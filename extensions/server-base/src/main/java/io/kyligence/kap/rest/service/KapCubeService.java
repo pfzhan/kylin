@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
@@ -33,10 +34,12 @@ import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -58,6 +61,7 @@ import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Component("kapCubeService")
 public class KapCubeService extends BasicService {
@@ -70,7 +74,7 @@ public class KapCubeService extends BasicService {
     @Qualifier("cubeMgmtService")
     private CubeService cubeService;
 
-    public ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
+    private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String id = segment.getUuid();
@@ -122,8 +126,9 @@ public class KapCubeService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#oldCube, 'ADMINISTRATION') or hasPermission(#oldCube, 'MANAGEMENT')")
-    public CubeInstance cubeClone(CubeInstance oldCube, String newCubeName, String project) throws IOException {
+            + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
+    public CubeInstance cubeClone(CubeInstance oldCube, String newCubeName, ProjectInstance project)
+            throws IOException {
         Message msg = MsgPicker.getMsg();
         if (oldCube.getStatus() == RealizationStatusEnum.DESCBROKEN) {
             throw new BadRequestException(String.format(msg.getCLONE_BROKEN_CUBE(), oldCube.getName()));
@@ -138,12 +143,36 @@ public class KapCubeService extends BasicService {
 
         newCubeDesc.setName(newCubeName);
 
-        CubeInstance newCube = cubeService.createCubeAndDesc(newCubeName, project, newCubeDesc);
+        CubeInstance newCube = cubeService.createCubeAndDesc(project, newCubeDesc);
 
         //reload to avoid shallow clone
         cubeService.getCubeDescManager().reloadCubeDescLocal(newCubeName);
 
         return newCube;
+    }
+
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')"
+            + " or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'READ')")
+    public List<ColumnarResponse> getAllColumnarInfo(CubeInstance cube) {
+        List<ColumnarResponse> columnar = new ArrayList<>();
+        for (CubeSegment segment : cube.getSegments()) {
+            final KylinConfig config = KylinConfig.getInstanceFromEnv();
+            String storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
+
+            ColumnarResponse info;
+            try {
+                info = getColumnarInfo(storagePath, segment);
+            } catch (IOException ex) {
+                logger.error("Can't get columnar info, cube {}, segment {}:", cube, segment);
+                logger.error("{}", ex);
+                continue;
+            }
+
+            columnar.add(info);
+        }
+
+        return columnar;
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {

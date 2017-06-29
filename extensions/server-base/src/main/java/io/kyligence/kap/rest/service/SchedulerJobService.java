@@ -34,7 +34,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobService;
@@ -76,6 +79,10 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     @Qualifier("jobService")
     private JobService jobService;
 
+    @Autowired
+    @Qualifier("accessService")
+    private AccessService accessService;
+
     @SuppressWarnings("unchecked")
     @Override
     public void afterPropertiesSet() throws Exception {
@@ -101,10 +108,6 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         }
         return sb.toString();
     }
-
-    @Autowired
-    @Qualifier("accessService")
-    private AccessService accessService;
 
     public SchedulerJobManager getSchedulerJobManager() {
         return SchedulerJobManager.getInstance(getConfig());
@@ -158,15 +161,20 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'OPERATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job) throws IOException {
+            + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
+    public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job, CubeInstance cube, ProjectInstance project)
+            throws IOException {
         if (job.getUuid() == null)
             job.updateRandomUuid();
 
         getSchedulerJobManager().addSchedulerJob(job);
+
+        accessService.init(job, AclPermission.ADMINISTRATION);
+        accessService.inherit(job, cube);
         return job;
     }
 
+    // test only
     SchedulerJobInstance saveSchedulerJob(String name, String project, String cube, boolean enabled, long triggerTime,
             long startTime, long repeatCount, long curRepeatCount, long repeatInterval, long partitionInterval)
             throws IOException {
@@ -209,13 +217,6 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance updateSchedulerJob(SchedulerJobInstance job, Map<String, Long> settings)
-            throws Exception {
-        return updateSchedulerJobInternal(job, settings);
-    }
-
     public SchedulerJobInstance deleteSchedulerJobInternal(String name) throws IOException {
         SchedulerJobInstance job = getSchedulerJobManager().getSchedulerJob(name);
 
@@ -225,22 +226,24 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+            throws IOException, SchedulerException {
+        disableSchedulerJob(job, cube);
+        getSchedulerJobManager().removeSchedulerJob(job);
+        accessService.clean(job, true);
+        return job;
+    }
+
+    // only for test
     public SchedulerJobInstance deleteSchedulerJob(String name) throws IOException {
         return deleteSchedulerJobInternal(name);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
-        disableSchedulerJob(job);
-        getSchedulerJobManager().removeSchedulerJob(job);
-        return job;
-    }
-
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job) throws IOException, SchedulerException {
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+            throws IOException, SchedulerException {
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
             Trigger trigger = scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             if (trigger != null) {
@@ -259,9 +262,10 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
+            + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
     public SchedulerJobInstance cloneSchedulerJob(SchedulerJobInstance job, String newJobName,
-            String newRealizationUuid, long partitionStartTime) throws IOException, ParseException, SchedulerException {
+            String newRealizationUuid, long partitionStartTime, CubeInstance newCube, ProjectInstance project)
+            throws IOException, ParseException, SchedulerException {
         SchedulerJobInstance newJob = job.getCopyOf();
         newJob.setName(newJobName);
         newJob.setRelatedRealization(newJobName);
@@ -270,15 +274,16 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         newJob.setCurRepeatCount(0);
 
         newJob.setEnabled(false);
-        saveSchedulerJob(newJob);
+        saveSchedulerJob(newJob, newCube, project);
 
         getSchedulerJobManager().reloadSchedulerJobLocal(newJobName);
         return newJob;
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#job, 'ADMINISTRATION') or hasPermission(#job, 'MANAGEMENT')")
-    public void enableSchedulerJob(SchedulerJobInstance job) throws ParseException, SchedulerException, IOException {
+            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
+    public void enableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+            throws ParseException, SchedulerException, IOException {
         if (!validateScheduler(job))
             return;
 
@@ -358,7 +363,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         for (SchedulerJobInstance schedulerInstance : schedulerList) {
             try {
                 if (schedulerInstance.isEnabled()) {
-                    enableSchedulerJob(schedulerInstance);
+                    enableSchedulerJob(schedulerInstance, getCubeManager().getCube(schedulerInstance.getName()));
                 }
             } catch (ParseException e) {
                 throw new RuntimeException(e.getMessage(), e);
