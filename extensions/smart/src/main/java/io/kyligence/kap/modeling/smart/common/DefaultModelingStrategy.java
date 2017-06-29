@@ -115,7 +115,7 @@ public class DefaultModelingStrategy implements IModelingStrategy {
     }
 
     public int getDerivedStrictRetryMax() {
-        return 20;
+        return 1;
     }
 
     public boolean getCuboidCombinationOverride() {

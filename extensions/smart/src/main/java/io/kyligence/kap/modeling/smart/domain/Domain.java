@@ -101,7 +101,7 @@ public class Domain {
         List<DimensionDesc> dimensions = new ArrayList<>();
         for (TblColRef colRef : this.getDimensions()) {
             DimensionDesc dimension = new DimensionDesc();
-            dimension.setName(colRef.getName());
+            dimension.setName(colRef.getIdentity());
             dimension.setTable(colRef.getTableAlias());
             dimension.setColumn(colRef.getName());
             dimensions.add(dimension);
