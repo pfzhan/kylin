@@ -282,9 +282,9 @@ export default {
       let href = ''
       if (this.selectTimer) {
         this.startTime = +new Date(this.startTime)
-        href = apiUrl + 'kybot/dump?startTime=' + this.startTime + '&endTime=' + this.endTime
+        href = apiUrl + 'kybot/dump?startTime=' + this.startTime + '&endTime=' + this.endTime + '&currentTime=' + (new Date()).getTime()
       } else {
-        href = apiUrl + 'kybot/dump?target=' + this.targetId
+        href = apiUrl + 'kybot/dump?target=' + this.targetId + '&currentTime=' + (new Date()).getTime()
       }
       $('.uploader').attr('href', href)
     },

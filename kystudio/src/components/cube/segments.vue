@@ -238,6 +238,7 @@ export default {
       .el-col{
         text-align: left;
         padding-left: 20px;
+        white-space: nowrap;
       }
       .left-part{
         border-right:solid 1px #393e53;

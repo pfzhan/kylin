@@ -1,4 +1,5 @@
 <template>
+<div>
 <div class="refresh-settion-view ksd-common-table ksd-mt-10">
   <el-row class="tableheader" v-for="(timeRange, index) in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
     <el-col :span="6" class="left-part"> {{index === 0 ? $t('autoMergeThresholds') : '&nbsp;'}}</el-col>
@@ -6,8 +7,10 @@
       {{timeRange|timeSize}}
     </el-col>
   </el-row>
+  </div>
  <div style="clear:both;"></div>
-  <el-row class="tableheader ksd-mt-20">
+ <div class="refresh-settion-view ksd-common-table ksd-mt-10">
+  <el-row class="tableheader">
     <el-col :span="6" class="left-part">{{$t('retentionThreshold')}}</el-col>
     <el-col :span="18"> {{cubeDesc.desc.retention_range|timeSize}}</el-col>
   </el-row>
@@ -15,8 +18,9 @@
     <el-col :span="6" class="left-part">{{$t('partitionStartDate')}}</el-col>
     <el-col :span="18"> {{toGmtTime(cubeDesc.desc.partition_date_start)}}</el-col>
   </el-row>
-
-   <el-row class="tableheader ksd-mt-20">
+  </div>
+<div class="refresh-settion-view ksd-common-table ksd-mt-10">
+   <el-row class="tableheader">
     <!-- <h2 class="ksd-mt-40 ksd-ml-40"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}}</span></h2> -->
     <el-col :span="6" class="left-part">{{$t('buildTrigger')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler"> {{toGmtTime(cubeDesc.scheduler.scheduled_run_time)}}</el-col>
@@ -25,6 +29,7 @@
     <el-col :span="6" class="left-part">{{$t('periddicalInterval')}}</el-col>
     <el-col :span="18" v-if="cubeDesc.scheduler"> {{cubeDesc.scheduler.repeat_interval|timeSize}}</el-col>
   </el-row>
+</div>
 </div>
 </template>
 

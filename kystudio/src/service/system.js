@@ -29,13 +29,15 @@ export default {
   getKybotDump: (startTime, endTime) => {
     return Vue.resource(apiUrl + 'kybot/dump').get({
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      currentTime: +(new Date())
     })
   },
   getKybotUpload: (startTime, endTime) => {
     return Vue.resource(apiUrl + 'kybot/upload').get({
       startTime: startTime,
-      endTime: endTime
+      endTime: endTime,
+      currentTime: +(new Date())
     })
   },
   getJobKtbot: (target) => {

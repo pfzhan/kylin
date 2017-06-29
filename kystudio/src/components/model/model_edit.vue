@@ -949,6 +949,14 @@ export default {
       }
       for (var i = 0; i < this.tableList.length; i++) {
         if (this.tableList[i].guid === guid) {
+          var k = this.getSameOriginTables(this.tableList[i].database, this.tableList[i].name)
+          if (k.length === 1) {
+            this.modelInfo.computed_columns.forEach((com, i) => {
+              if (com.tableIdentity === this.tableList[i].database + '.' + this.tableList[i].name) {
+                this.modelInfo.computed_columns.splice(i, 1)
+              }
+            })
+          }
           this.tableList.splice(i, 1)
           this.removePoint(guid)
           break
@@ -1033,6 +1041,9 @@ export default {
       return false
     },
     suggestColumnDtype (newTableData) {
+      if (!newTableData) {
+        return
+      }
       this.suggestDM({'table': newTableData.database + '.' + newTableData.name}).then((response) => {
         handleSuccess(response, (data) => {
           for (var i in data) {
@@ -1219,7 +1230,7 @@ export default {
         }
       }
       this.refreshConnectCountText(connect[0], connect[1])
-      var linkCount = this.getConnectsByTableId(connect[0])
+      var linkCount = this.getConnectsByTableId(connect[1])
       if (linkCount === 0) {
         this.dialogVisible = false
       }
@@ -1499,6 +1510,9 @@ export default {
     getDimensions: function () {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
+        if (!this.getConnectsByTableId(this.tableList[i].guid)) {
+          continue
+        }
         var obj = {
           table: this.tableList[i].alias,
           columns: []
@@ -1519,6 +1533,9 @@ export default {
     getMeasures: function () {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
+        if (!this.getConnectsByTableId(this.tableList[i].guid)) {
+          continue
+        }
         var columns = this.tableList[i].columns
         var len = columns && columns.length || 0
         for (var j = 0; j < len; j++) {
@@ -2141,6 +2158,9 @@ export default {
         return
       }
       var tableInfo = this.getTableInfoByGuid(guid)
+      if (!tableInfo) {
+        return []
+      }
       return this.modelInfo.computed_columns.filter((computedColumn) => {
         return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
       })

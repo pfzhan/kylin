@@ -1,24 +1,24 @@
 <template>
 <div class="cube-info-view ksd-common-table ksd-mt-10">
   <el-row class="tableheader">
-    <el-col :span="4" class="left-part">{{$t('modelName')}}</el-col>
-    <el-col :span="20">{{cubeDesc.model}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('modelName')}}</el-col>
+    <el-col :span="18">{{cubeDesc.model}}</el-col>
   </el-row>
   <el-row class="tableheader">
-    <el-col :span="4" class="left-part">{{$t('cubeName')}}</el-col>
-    <el-col :span="20">{{cubeDesc.name}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('cubeName')}}</el-col>
+    <el-col :span="18">{{cubeDesc.name}}</el-col>
   </el-row>
   <el-row class="tableheader">
-    <el-col :span="4" class="left-part">{{$t('notificationEmailList')}}</el-col>
-    <el-col :span="20">{{cubeDesc.notify_list}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('notificationEmailList')}}</el-col>
+    <el-col :span="18">{{cubeDesc.notify_list}}</el-col>
   </el-row>
   <el-row class="tableheader">
-    <el-col :span="4" class="left-part">{{$t('notificationEvents')}}</el-col>
-    <el-col :span="20">{{cubeDesc.status_need_notify}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('notificationEvents')}}</el-col>
+    <el-col :span="18">{{cubeDesc.status_need_notify}}</el-col>
   </el-row>
   <el-row class="tableheader">
-    <el-col :span="4" class="left-part">{{$t('description')}}</el-col>
-    <el-col :span="20">{{cubeDesc.description}}</el-col>
+    <el-col :span="6" class="left-part">{{$t('description')}}</el-col>
+    <el-col :span="18">{{cubeDesc.description}}</el-col>
   </el-row>
 </div>
 </template>

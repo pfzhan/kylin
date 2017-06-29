@@ -821,17 +821,20 @@ export default {
     if (this.isEdit) {
       this.loadCubeDetail()
     }
-    this.loadDataSourceByProject(this.selected_project)
-    this.loadModelInfo(this.extraoption.modelName).then((res) => {
-      handleSuccess(res, (data, code, status, msg) => {
-        this.renderCubeFirst = true
-        this.modelDetail = data.model
-        this.getTables()
-        if (this.$refs.infoForm) {
-          this.$refs.infoForm.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
-        }
+    this.loadDataSourceByProject(this.selected_project).then(() => {
+      this.loadModelInfo(this.extraoption.modelName).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.renderCubeFirst = true
+          this.modelDetail = data.model
+          this.getTables()
+          if (this.$refs.infoForm) {
+            this.$refs.infoForm.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
+          }
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }).catch((res) => {
+    }, (res) => {
       handleError(res)
     })
   },
