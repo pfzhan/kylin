@@ -349,8 +349,10 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         // delete draft is not critical and can be out of checkpoint/rollback
         Draft draft = cubeService.getCubeDraft(cubeName);
-        if (draft != null)
+        if (draft != null) {
             cubeService.getDraftManager().delete(draft.getUuid());
+            kapCubeService.deleteCubeOptLog(cubeName);
+        }
     }
 
     @RequestMapping(value = "/{cubeName}/clone", method = { RequestMethod.PUT }, produces = {

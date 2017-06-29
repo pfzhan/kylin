@@ -54,6 +54,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
@@ -97,7 +98,8 @@ public class KapCubeService extends BasicService {
         columnarResp.setSegmentPath(segStoragePath);
 
         if (raw != null) {
-            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw, segment.getDateRangeStart(), segment.getDateRangeEnd());
+            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw,
+                    segment.getDateRangeStart(), segment.getDateRangeEnd());
             if (rawSegs.size() != 1)
                 throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_ONE());
 
@@ -145,7 +147,16 @@ public class KapCubeService extends BasicService {
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath()).append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/").append("RawTable/").toString();
+        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath())
+                .append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/")
+                .append("RawTable/").toString();
+    }
+
+    public void deleteCubeOptLog(String cubeName) throws IOException {
+        CubeOptimizeLogManager cubeOptManager = CubeOptimizeLogManager.getInstance(getConfig());
+        if (cubeOptManager.getCubeOptimizeLog(cubeName) != null) {
+            cubeOptManager.removeCubeOptimizeLog(cubeName);
+        }
     }
 
 }
