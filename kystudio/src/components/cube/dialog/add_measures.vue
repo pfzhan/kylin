@@ -56,7 +56,7 @@
           :label="item"
           :value="item">
           <span style="float: left">{{ item}}</span>
-          <span style="float: right; color: #8492a6; font-size: 13px">{{modelDesc.columnsDetail[item].datatype}}</span>
+          <span style="float: right; color: #8492a6; font-size: 13px">{{modelDesc.columnsDetail && modelDesc.columnsDetail[item] && modelDesc.columnsDetail[item].datatype}}</span>
         </el-option>
       </el-select>
       <el-tag v-else>{{getParameterValue}}</el-tag>   
@@ -420,14 +420,17 @@ export default {
       }
     },
     getEncoding: function (encode) {
+      console.log(1)
       let code = encode.split(':')
       return code[0]
     },
     getLength: function (encode) {
+      console.log(2)
       let code = encode.split(':')
       return code[1]
     },
     getVersion: function (encode) {
+      console.log(3)
       let code = encode.split(':')
       return code[1]
     },

@@ -252,6 +252,7 @@ export default {
       filterCubeName: '',
       filterStatus: [],
       lockST: null,
+      scrollST: null,
       filterTimeZone: 1,
       currentPage: 1,
       stCycle: null,
@@ -260,6 +261,7 @@ export default {
       dialogVisible: false,
       outputDetail: '',
       stepAttrToShow: '',
+      beforeScrollPos: 0,
       filter: {
         pageOffset: 0,
         pageSize: pageCount,
@@ -306,10 +308,13 @@ export default {
   },
   mounted () {
     window.addEventListener('click', this.closeIt)
+    document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
   },
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
+    window.clearTimeout(this.scrollST)
     window.removeEventListener('click', this.closeIt)
+    window.removeEventListener('scroll', this.scrollRightBar, false)
   },
   computed: {
     jobsList () {
@@ -353,6 +358,19 @@ export default {
       cancelJob: 'CANCEL_JOB',
       resumeJob: 'RESUME_JOB'
     }),
+    scrollRightBar () {
+      clearTimeout(this.scrollST)
+      this.scrollST = setTimeout(() => {
+        if (this.showStep) {
+          var sTop = document.getElementById('scrollBox').scrollTop
+          if (sTop < this.beforeScrollPos) {
+            var result = sTop - 100
+            document.getElementById('stepList').style.top = result + 'px'
+            // this.beforeScrollPos = document.getElementById('scrollBox').scrollTop
+          }
+        }
+      }, 100)
+    },
     transToGmtTime: transToGmtTime,
     currentChange: function (val) {
       this.currentPage = val
@@ -408,7 +426,7 @@ export default {
         this.resumeJob(job.uuid).then(() => {
           this.$message({
             type: 'success',
-            message: '任务恢复成功!'
+            message: this.$t('kylinLang.common.actionSuccess')
           })
           this.refreshFilter()
         }).catch((res) => {
@@ -421,7 +439,7 @@ export default {
         this.cancelJob(job.uuid).then(() => {
           this.$message({
             type: 'success',
-            message: '任务成功取消!'
+            message: this.$t('kylinLang.common.actionSuccess')
           })
           this.refreshFilter()
         }).catch((res) => {
@@ -434,7 +452,7 @@ export default {
         this.pauseJob(job.uuid).then(() => {
           this.$message({
             type: 'success',
-            message: '任务成功取消!'
+            message: this.$t('kylinLang.common.actionSuccess')
           })
           this.refreshFilter()
         }).catch((res) => {
@@ -456,13 +474,15 @@ export default {
       })
     },
     showLineSteps: function (row, v1, v2) {
-      var target = v1.currentTarget || v1.srcElement || v1.target
+      // var target = v1.currentTarget || v1.srcElement || v1.target
       // 获取div距离顶部的距离
-      var mTop = target.offsetTop
+      // var mTop = target.offsetTop
       // 减去滚动条的高度
-      // var sTop = document.body.scrollTop
+      var sTop = document.getElementById('scrollBox').scrollTop
+      // alert(sTop)
       // console.log(mTop, sTop, 99001)
-      var result = 98 + mTop
+      this.beforeScrollPos = sTop
+      var result = sTop - 100
       document.getElementById('stepList').style.top = result + 'px'
       this.selected_job = row
       this.showStep = true

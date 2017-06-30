@@ -56,6 +56,7 @@ exports.default = {
     delSuccess: 'Deleted successfully',
     backupSuccess: 'Back up successfully',
     updateSuccess: 'Updated successfully',
+    actionSuccess: 'Operate successfully',
     confirmDel: 'Confirm delete it?',
     checkDraft: 'Detected the unsaved content, are you going to continue the last edit?',
     // placeholder

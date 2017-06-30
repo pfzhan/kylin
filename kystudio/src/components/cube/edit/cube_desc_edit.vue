@@ -801,17 +801,16 @@ export default {
         this.modelDetail.computed_columns.forEach((co) => {
           var alias = ''
           for (var i in this.aliasMap) {
-            console.log(this.aliasMap, co, 112)
             if (this.aliasMap[i] === co.tableIdentity) {
               alias = i
+              this.$set(this.modelDetail.columnsDetail, alias + '.' + co.columnName, {
+                name: co.columnName,
+                datatype: co.datatype,
+                cardinality: 'N/A',
+                comment: co.expression
+              })
             }
           }
-          this.$set(this.modelDetail.columnsDetail, alias + '.' + co.columnName, {
-            name: co.columnName,
-            datatype: co.datatype,
-            cardinality: 'N/A',
-            comment: co.expression
-          })
         })
       }
       this.$set(this.modelDetail, 'lookupTables', lookupTables)
