@@ -71,6 +71,10 @@ public class RawTableColumnDesc {
         tableName = tableName.toUpperCase();
         columnName = columnName.toUpperCase();
         column = model.findColumn(tableName, columnName);
+        
+        // normalize tableName & columnName
+        tableName = column.getTableAlias();
+        columnName = column.getName();
 
         // backward compatibility
         if (shardby == null) {
