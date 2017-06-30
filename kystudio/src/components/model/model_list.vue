@@ -108,7 +108,7 @@
   </el-table>
 
 
-		<pager class="ksd-center" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+		<pager class="ksd-center ksd-mb-20" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
     <el-dialog title="Clone Model" v-model="cloneFormVisible" size="tiny">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">

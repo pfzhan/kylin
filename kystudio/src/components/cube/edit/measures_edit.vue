@@ -213,15 +213,23 @@ export default {
         }
         if (dictionaryIndex < 0) {
           if (data.reuseColumn !== '') {
-            _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            if (_this.cubeDesc.dictionaries) {
+              _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            }
           } else {
-            _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            if (_this.cubeDesc.dictionaries) {
+              _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            }
           }
         } else {
           if (data.reuseColumn !== '') {
-            _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            if (_this.cubeDesc.dictionaries) {
+              _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            }
           } else {
-            _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            if (_this.cubeDesc.dictionaries) {
+              _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            }
           }
         }
       }

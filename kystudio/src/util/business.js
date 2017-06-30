@@ -84,7 +84,6 @@ export function loadBaseEncodings (state) {
     },
     removeEncoding (name) {
       var arr = []
-      console.log(name, resultArr)
       for (var i = 0; i < resultArr.length; i++) {
         if (resultArr[i].name !== name) {
           arr.push(resultArr[i])
@@ -151,7 +150,6 @@ export function hasPermission (vue, projectId) {
 export function hasPermissionOfCube (vue, cubeId) {
   var entity = vue.$store.state.cube.cubeEndAccess[cubeId]
   var curUser = vue.$store.state.user.currentUser
-  console.log(entity, 88999)
   if (!curUser) {
     return curUser
   }
