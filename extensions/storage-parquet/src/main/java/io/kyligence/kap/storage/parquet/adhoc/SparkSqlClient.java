@@ -32,7 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.storage.parquet.shaded.com.google.common.base.Strings;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -58,10 +60,15 @@ public class SparkSqlClient implements Serializable {
     private final transient Semaphore semaphore;
     private HiveContext hiveContext;
     private Map<UUID, Integer> uuidSizeMap = new HashMap<>();
+    private final int maxDriverMem ;
+    private final int allocationTimeOut;
 
     public SparkSqlClient(JavaSparkContext sc, Semaphore semaphore) {
         this.sc = sc;
         this.semaphore = semaphore;
+        this.maxDriverMem = semaphore.availablePermits();
+        this.allocationTimeOut = Strings.isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout"))?
+            60:Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
         hiveContext = new HiveContext(sc);
         hiveContext.sql(
                 "CREATE TEMPORARY FUNCTION timestampadd AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampAdd'");
@@ -114,7 +121,16 @@ public class SparkSqlClient implements Serializable {
             int estimateSize = (int) Math.ceil((double) (rowRdd.count() * sampleLen) / (1024 * 1024));
             uuidSizeMap.put(uuid, estimateSize);
 
-            this.semaphore.acquire(estimateSize);
+            if(estimateSize > this.maxDriverMem){
+                throw new RuntimeException("Estimate size exceeds the maximum driver memory size");
+            }
+
+            if(!this.semaphore.tryAcquire(estimateSize, allocationTimeOut, TimeUnit.SECONDS)){
+                throw new RuntimeException(String.format("spark driver allocation memory more than %s s," +
+                    "please increase driver memory or" +
+                    " set kap.storage.columnar.driver-allocation-timeout " , allocationTimeOut));
+            }
+
             logger.info("Estimate size of dataframe is " + estimateSize + "m.");
 
             List<StructField> originFieldList = JavaConversions.asJavaList(df.schema().toList());
