@@ -27,15 +27,15 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.kylin.rest.service.UserGrantedAuthority;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import org.apache.kylin.rest.security.ManagedUser;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
 /**
@@ -97,7 +97,7 @@ public class KapUserControllerTest extends ServiceTestBase {
         Assert.assertEquals(disabled, u.isDisabled());
         Assert.assertEquals(authorities.length, u.getAuthorities().size());
         for (String a : authorities) {
-            Assert.assertTrue(u.getAuthorities().contains(new UserGrantedAuthority(a)));
+            Assert.assertTrue(u.getAuthorities().contains(new SimpleGrantedAuthority(a)));
         }
     }
 }

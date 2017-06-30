@@ -40,7 +40,6 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
-import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +48,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -83,9 +83,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private Pattern passwordPattern;
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
-    private static final UserGrantedAuthority ADMIN_AUTH = new UserGrantedAuthority(Constant.ROLE_ADMIN);
-    private static final UserGrantedAuthority ANALYST_AUTH = new UserGrantedAuthority(Constant.ROLE_ANALYST);
-    private static final UserGrantedAuthority MODELER_AUTH = new UserGrantedAuthority(Constant.ROLE_MODELER);
+    private static final SimpleGrantedAuthority ADMIN_AUTH = new SimpleGrantedAuthority(Constant.ROLE_ADMIN);
+    private static final SimpleGrantedAuthority ANALYST_AUTH = new SimpleGrantedAuthority(Constant.ROLE_ANALYST);
+    private static final SimpleGrantedAuthority MODELER_AUTH = new SimpleGrantedAuthority(Constant.ROLE_MODELER);
 
     @PostConstruct
     public void init() throws IOException {
@@ -312,7 +312,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     }
 
     private void completeAuthorities(ManagedUser managedUser) {
-        List<UserGrantedAuthority> detailRoles = Lists.newArrayList(managedUser.getAuthorities());
+        List<SimpleGrantedAuthority> detailRoles = Lists.newArrayList(managedUser.getAuthorities());
         if (detailRoles.contains(ADMIN_AUTH)) {
             if (!detailRoles.contains(MODELER_AUTH)) {
                 logger.info("For ADMIN authority, add MODELER authority automatically");

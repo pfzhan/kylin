@@ -92,6 +92,7 @@
                                     <include>io.kyligence.kap:*</include>
                                     <include>org.springframework.security:spring-security-core</include>
                                     <include>org.springframework.security:spring-security-acl</include>
+                                    <include>org.springframework:spring-core</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
