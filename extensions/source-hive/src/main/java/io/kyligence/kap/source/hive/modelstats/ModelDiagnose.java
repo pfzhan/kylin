@@ -77,11 +77,6 @@ public class ModelDiagnose {
                 tables.add(tableName);
             }
             TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable());
-            if (tableDesc.isView()) {
-                String materializedName = tableDesc.getMaterializedName();
-                tableDesc.setDatabase(config.getHiveDatabaseForIntermediateTable());
-                tableDesc.setName(materializedName);
-            }
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
             IReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
