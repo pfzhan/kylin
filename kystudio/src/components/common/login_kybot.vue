@@ -63,7 +63,7 @@
                 type: 'success',
                 message: this.$t('openSuccess')
               })
-              this.$emit('openSwitch')
+              // this.$emit('openSwitch')
               this.$emit('closeLoginForm')
             }
           })
@@ -88,20 +88,22 @@
                 // A
                 if (data) {
                   this.$emit('closeLoginOpenKybot')
+                  this.$message({
+                    type: 'success',
+                    message: this.$t('openSuccess')
+                  })
                   this.getKyStatus().then((res) => {
                     handleSuccess(res, (data, code, status, msg) => {
                       if (data) { // 开启了 则开启
-                        this.$emit('openSwitch')
+                        // this.$emit('openSwitch')
                         this.$emit('closeLoginForm')
                       } else {
                         // a
+                        this.$emit('closeLoginForm')
                         this.getAgreement().then((res) => {
                           handleSuccess(res, (data, code, status, msg) => {
                             if (!data) { // 没有同意过协议 开协议层
                               this.$emit('closeLoginOpenKybot')
-                            } else {
-                              // b)
-                              this.startService()
                             }
                           })
                         })
