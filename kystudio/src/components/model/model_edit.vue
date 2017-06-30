@@ -32,12 +32,12 @@
     </div>
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
-        <div class="tool_box" >
+        <div class="tool_box">
             <span >
               <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
             </span>
             <span>
-              <icon name="calculator"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+              <icon name="calculator" v-show="table.kind !== 'LOOKUP'"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             </span>
             <span >
               <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
@@ -2013,6 +2013,9 @@ export default {
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
     subZoom: function () {
+      if (this.currentZoom <= 0.03) {
+        return
+      }
       this.currentZoom -= 0.03
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },

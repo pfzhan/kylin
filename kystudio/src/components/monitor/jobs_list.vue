@@ -314,7 +314,7 @@ export default {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     window.removeEventListener('click', this.closeIt)
-    window.removeEventListener('scroll', this.scrollRightBar, false)
+    document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
   },
   computed: {
     jobsList () {
@@ -484,8 +484,12 @@ export default {
       this.beforeScrollPos = sTop
       var result = sTop - 100
       document.getElementById('stepList').style.top = result + 'px'
+      if (row.uuid !== this.selected_job.uuid) {
+        this.showStep = true
+      } else {
+        this.showStep = !this.showStep
+      }
       this.selected_job = row
-      this.showStep = true
     },
     clickKey: function (step) {
       this.stepAttrToShow = 'cmd'

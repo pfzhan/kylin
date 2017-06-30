@@ -56,7 +56,7 @@ const permissions = {
 }
 const engineType = [
   {name: 'MapReduce', value: 2},
-  {name: 'Spark Engine', value: 4}
+  {name: 'Spark (Beta)', value: 4}
 ]
 export {
   // http请求

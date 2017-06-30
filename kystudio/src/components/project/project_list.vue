@@ -60,7 +60,6 @@
     </el-table-column>     
     </el-table>
     <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
-
     <el-dialog :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
       <project_edit ref="projectForm" :project="project"  v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
       <div slot="footer" class="dialog-footer">
