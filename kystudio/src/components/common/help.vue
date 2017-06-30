@@ -1,6 +1,6 @@
 <template>
 <div class="help_box" id="help">
-<el-dropdown trigger="click" @command="handleCommand">
+<el-dropdown trigger="click" @visible-change="dropHelp" @command="handleCommand">
   <span class="el-dropdown-link">
     {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
   </span>
@@ -120,8 +120,10 @@
           // })
         }
       },
-      dropHelp () {
-        this.getStatus()
+      dropHelp (s) {
+        if (s) {
+          this.getStatus()
+        }
       },
       resetLoginKybotForm () {
         this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()

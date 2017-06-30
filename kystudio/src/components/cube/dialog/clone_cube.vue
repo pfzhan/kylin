@@ -1,10 +1,10 @@
 <template>
 <div>
-  <el-alert
+<!--   <el-alert
     type="info"
     show-icon
     :title="$t('tip')">
-  </el-alert>
+  </el-alert> -->
   <el-form  :model="newCube" :rules="rules" label-position="top" ref="cloneCubeForm">
     <el-form-item :label="$t('newCubeName')" prop="cubeName">
       <el-input v-model="newCube.cubeName"></el-input>

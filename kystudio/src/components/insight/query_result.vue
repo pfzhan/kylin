@@ -14,8 +14,8 @@
     </el-row>
     <el-row class="resultTips" >
       <el-col :span="24">
-        <div v-if="!extraoption.data.adHoc" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>{{queryInfo.cube.replace(/name=/g, '')}}</span></p></div>
-        <div v-if="extraoption.data.adHoc" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>Push down</span></p></div>
+        <div v-if="!extraoption.data.pushDown" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>{{queryInfo.cube.replace(/name=/g, '')}}</span></p></div>
+        <div v-if="extraoption.data.pushDown" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>Push down</span></p></div>
       </el-col>
     </el-row>
   	<div class="ksd-mt-14">

@@ -400,7 +400,9 @@ export default {
           this.loadTableExt(database + '.' + tableName).then((res) => {
             handleSuccess(res, (data) => {
               this.transTableDetailData(data, column)
-              this.tableStaticsCache[database + '.' + tableName] = data
+              if (data.sample_rows && data.sample_rows.length) {
+                this.tableStaticsCache[database + '.' + tableName] = data
+              }
             })
           })
         }
