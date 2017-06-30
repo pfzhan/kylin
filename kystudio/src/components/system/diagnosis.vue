@@ -1,10 +1,15 @@
 <template>
 <div class="diagnosis-wrap">
-  <div class="dia-title">
-    <p>{{$t('contentOne')}}
-      <a href="https://kybot.io/#/home?src=kap240" target="_blank">KyBot</a>
+  <div class="dia-title" style="border-bottom:solid 1px #ddd;">
+    <p style="font-size:14px" v-if="job">{{$t('contentOneForJob')}}
+      <a href="https://kybot.io/#/home?src=kap240" target="_blank" style="font-size:20px;">KyBot</a>
       {{$t('contentTwo')}}
     </p>
+    <p style="font-size:14px" v-else="job">{{$t('contentOne')}}
+      <a href="https://kybot.io/#/home?src=kap240" target="_blank" style="font-size:20px;">KyBot</a>
+      {{$t('contentTwo')}}
+    </p>
+    
   </div>
 
   <!-- <p>{{$t('contentTip')}}</p> -->
@@ -73,24 +78,24 @@
   <!-- 协议弹层 -->
   <el-dialog v-model="protocolVisible" :title="$t('kybotAutoUpload')" class="agree-protocol" :modal="false" @close="agreeKyBot = false" size="large">
     <div v-if="job">
-      <p v-if="$lang==='en'">
-        By analyzing your job diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+      <p v-if="$lang==='en'" style="font-size:14px;">
+        By analyzing your job diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
       </p>
-      <p v-if="$lang==='zh-cn'">
-        <a href="https://kybot.io" target="_blank" class="blue">KyBot</a>通过分析生产的任务诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传
+      <p v-if="$lang==='zh-cn'" style="font-size:14px;">
+        <a href="https://kybot.io" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a>通过分析生产的任务诊断包，提供KAP在线诊断、优化及服务。
       </p>
     </div>
     <div v-else>
-      <p v-if="$lang==='en'">
-        By analyzing your diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+      <p v-if="$lang==='en'" style="font-size:14px;">
+        By analyzing your diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
       </p>
-      <p v-if="$lang==='zh-cn'">
-        <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传
+      <p v-if="$lang==='zh-cn'" style="font-size:14px;">
+        <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务。
       </p>
     </div>
     <div>
       <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot">
-        <a @click="showProtocol" class="btn-showProtocol">{{$t('protocol')}}</a>
+        <a @click="showProtocol" class="btn-showProtocol" style="font-size:14px;">{{$t('protocol')}}</a>
       </el-checkbox>
     </div>
     <el-button @click="agreeProtocol" :loading="agreeLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeProtocol')}}</el-button>
@@ -452,8 +457,8 @@ export default {
     }
   },
   locales: {
-    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KYBOT', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month', uploaded: 'uploaded successfully', protocol: 'I have read and agree《KyBot Term of Service》', agreeProtocol: 'Enable One Click Upload', noTime: 'Please choose the startTime or endTime', timeLimits: 'More than five minutes and less than one month', moreThanTime: 'Can not more than one month', lessThanTime: 'The choice should not be less than five minutes', kybot: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP', kybotAutoUpload: 'Kybot Diagnostic Pack Upload', kybotXY: 'Kybot User agreement', close: 'Close', uploading: 'uploading...', 'uploadSuccess': 'Upload successful, please sign in ', 'see': ' ', signIn: 'KyAccount | Sign In'},
-    'zh-cn': {kybotUpload: '生成诊断包并上传至KyBot', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '最近一小时', last2: '最近一天', last3: '最近三天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KYBOT', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内', uploaded: '上传成功', protocol: '我已阅读并同意《KyBot 用户协议》', agreeProtocol: '开启一键上传', noTime: '开始时间，结束时间不能为空', timeLimits: '大于五分钟小于一个月', moreThanTime: '时间不能超过一个月', lessThanTime: '选择的时间不能小于5分钟', kybot: 'Kybot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传', kybotAutoUpload: 'KyBot 诊断包上传', kybotXY: 'Kybot用户协议', close: '确定', uploading: '上传中...', 'uploadSuccess': '上传成功，请登录 ', 'see': ' 查看', signIn: 'KyAccount | 登录'}
+    'en': {kybotUpload: 'Generate and sync package to KyBot', contentOne: 'By analyzing your diagnostic package, ', contentOneForJob: 'By analyzing your job diagnostic package ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: 'Only generate', kybotDumpTwo: ', Manual upload ', selectTime: 'Select Time Range', last1: 'Last one hour', last2: 'Last one day', last3: 'Last three days', last4: 'Last one month', chooseDate: 'Choose Date', tipTitle: 'If there is no public network access, diagnostic package can be upload manually as following:', tipStep1: '1. Download diagnostic package', tipStep2: '2. Login on KyBot', tipStep3: '3. Click upload button on the top left of KyBot home page, and select the diagnostic package desired on the upload page to upload', err1: 'start time must less than end time', err2: 'at least 5 mins', err3: 'most one month', uploaded: 'uploaded successfully', protocol: 'I have read and agree《KyBot Term of Service》', agreeProtocol: 'Enable One Click Upload', noTime: 'Please choose the startTime or endTime', timeLimits: 'More than five minutes and less than one month', moreThanTime: 'Can not more than one month', lessThanTime: 'The choice should not be less than five minutes', kybot: 'By analyzing your diagnostic package, KyBot can provide online diagnostic, tuning and support service for KAP', kybotAutoUpload: 'Kybot Diagnostic Pack Upload', kybotXY: 'Kybot User agreement', close: 'Close', uploading: 'uploading...', 'uploadSuccess': 'Upload successful, please sign in ', 'see': ' ', signIn: 'KyAccount | Sign In'},
+    'zh-cn': {kybotUpload: '生成诊断包并上传至KyBot', contentOne: '通过分析生成的诊断包，', contentOneForJob: '通过分析生成的Job诊断包，', contentTwo: '提供在线诊断，优化服务。', contentTip: '(Generated diagnostic package would cover 72 hours using history ahead)', kybotDumpOne: '下载诊断包', kybotDumpTwo: ', 手动上传 ', selectTime: '选择时间范围', last1: '最近一小时', last2: '最近一天', last3: '最近三天', last4: '最近一个月', chooseDate: '选择日期', tipTitle: '如无公网访问权限，可选择手动上传，操作步骤如下：', tipStep1: '1. 点击下载诊断包', tipStep2: '2. 登录KyBot', tipStep3: '3. 在首页左上角点击上传按钮，在上传页面选择已下载的诊断包上传', err1: '开始时间必须小于结束时间', err2: '至少选择5分钟之后', err3: '至多选择一个月之内', uploaded: '上传成功', protocol: '我已阅读并同意《KyBot 用户协议》', agreeProtocol: '开启一键上传', noTime: '开始时间，结束时间不能为空', timeLimits: '大于五分钟小于一个月', moreThanTime: '时间不能超过一个月', lessThanTime: '选择的时间不能小于5分钟', kybot: 'Kybot通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天定时自动上传，无需自行打包和上传', kybotAutoUpload: 'KyBot 诊断包上传', kybotXY: 'Kybot用户协议', close: '确定', uploading: '上传中...', 'uploadSuccess': '上传成功，请登录 ', 'see': ' 查看', signIn: 'KyAccount | 登录'}
   }
 }
 </script>
@@ -485,7 +490,7 @@ export default {
     border-bottom: 1px solid #ddd;
     text-align: center;
     p {
-      width: 400px;
+      // width: 400px;
       margin: 0 auto;
     }
   }

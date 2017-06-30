@@ -1,5 +1,5 @@
 <template>
-  <div class="protocol-wrap" v-html="$t('protocol')">
+  <div class="protocol-wrap" style="font-size:12px;" v-html="$t('kylinLang.kybotXY.agreement')">
   </div>
 </template>
 <script>

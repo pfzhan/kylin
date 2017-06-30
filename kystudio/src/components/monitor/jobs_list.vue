@@ -88,7 +88,7 @@
               <el-dropdown-item @click.native="discard(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
               <el-dropdown-item @click.native="pause(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
               <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)">{{$t('jobDiagnosis')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="drop(scope.row.uuid)" v-if="scope.row.job_status=='FINISHED' || scope.row.job_status=='ERROR' || scope.row.job_status=='DISCARDED'">{{$t('jobDrop')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="drop(scope.row.uuid)" v-if="scope.row.job_status=='FINISHED' || scope.row.job_status=='DISCARDED'">{{$t('jobDrop')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </template>
@@ -233,7 +233,7 @@
 </el-dialog>
 
 <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
-  <diagnosis :targetId="targetId" job="job" :show="diagnosisVisible"></diagnosis>
+  <diagnosis :targetId="targetId" job="selected_job" :show="diagnosisVisible"></diagnosis>
 </el-dialog>
 </div>
 </template>
@@ -549,6 +549,9 @@ export default {
 </script>
 <style lang="less">
 .jobs_list {
+  .el-dialog__title{
+    font-size: 14px!important;
+  }
   li {
     list-style-type:none;
   }
@@ -756,6 +759,7 @@ export default {
     overflow: visible;
   }
 }
+
 .job-step{
   tr{
     td:first-child{

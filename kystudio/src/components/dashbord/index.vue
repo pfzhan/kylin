@@ -93,7 +93,7 @@
 		    <span>{{$t('kylinLang.common.tutorial')}}</span>
 		  </div>
 		  <div >
-		    <video controls="controls" src="http://kyligence.io/public/assets/video/video.mp4" data-current="--" data-duration="--">
+		    <video controls="controls" src="http://kyligence.io/public/assets/prod/sc.mp4" data-current="--" data-duration="--">
 				Your browser does not support HTML5 video.
 			</video>
 		  </div>

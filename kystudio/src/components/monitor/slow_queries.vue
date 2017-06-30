@@ -17,8 +17,7 @@
       </el-table-column>
       <el-table-column
       :label="$t('sql')"
-      sortable
-      width="250">
+      width="150">
         <template scope="scope">
           {{scope.row.sql}}
         </template>
@@ -29,7 +28,6 @@
       prop="adj">
       </el-table-column>
       <el-table-column
-      sortable
       :label="$t('running_seconds')">
         <template scope="scope">
           {{scope.row.running_seconds}} (s)
