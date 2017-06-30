@@ -662,6 +662,7 @@ export default {
       this.computedColumn.guid = guid
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
+      this.refreshComputed()
     },
     editComputedColumn (row) {
       this.openAddComputedColumnForm = true
@@ -694,6 +695,7 @@ export default {
             })
             this.$refs.computedColumnForm.resetFields()
             this.openAddComputedColumnForm = false
+            this.refreshComputed()
           })
         }
       })
@@ -1038,7 +1040,7 @@ export default {
       var btype = $(this.currentDragDom).attr('data-btype')
       if (btype !== 'D') {
         this.$message(this.$t('kylinLang.model.dimensionLinkLimit'))
-        return
+        return false
       }
       this.currentDragData = {
         table: $(this.currentDragDom).attr('data-guid'),
@@ -1109,7 +1111,8 @@ export default {
       var targetId = dataBox.attr('id')
       var columnName = columnBox.attr('data-column')
       var btype = columnBox.attr('data-btype')
-      if (btype !== 'D') {
+      var btypeStart = $(this.currentDragDom).attr('data-btype')
+      if (btype !== 'D' || btypeStart !== 'D') {
         this.$message(this.$t('kylinLang.model.dimensionLinkLimit'))
         return
       }
@@ -1985,6 +1988,7 @@ export default {
       if (!guid) {
         return
       }
+      // this.getCurrentTableComputedColumns()
       this.currentTableComputedColumns.splice(0, this.currentTableComputedColumns.length)
       var tableInfo = this.getTableInfoByGuid(guid)
       this.modelInfo.computed_columns.filter((computedColumn) => {
@@ -2196,20 +2200,20 @@ export default {
         })
       }
       return arr
-    },
-    currentTableComputedColumns () {
-      var guid = this.computedColumn.guid
-      if (!guid) {
-        return
-      }
-      var tableInfo = this.getTableInfoByGuid(guid)
-      if (!tableInfo) {
-        return []
-      }
-      return this.modelInfo.computed_columns.filter((computedColumn) => {
-        return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
-      })
     }
+    // currentTableComputedColumns () {
+    //   var guid = this.computedColumn.guid
+    //   if (!guid) {
+    //     return
+    //   }
+    //   var tableInfo = this.getTableInfoByGuid(guid)
+    //   if (!tableInfo) {
+    //     return []
+    //   }
+    //   return this.modelInfo.computed_columns.filter((computedColumn) => {
+    //     return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
+    //   })
+    // }
   },
   created () {
     this.reloadCubeTree()
