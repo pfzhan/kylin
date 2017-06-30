@@ -67,7 +67,7 @@ export function loadBaseEncodings (state) {
           break
         }
       }
-      for (let i = 0, len = matchArr && matchArr.length || 0; i < len; i++) {
+      for (let i = 0, len = (matchArr && matchArr.length || 0); i < len; i++) {
         for (var k in state.encodings) {
           if (k === matchArr[i]) {
             var obj = {

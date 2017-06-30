@@ -420,19 +420,22 @@ export default {
       }
     },
     getEncoding: function (encode) {
-      console.log(1)
-      let code = encode.split(':')
-      return code[0]
+      if (encode) {
+        let code = encode.split(':')
+        return code[0]
+      }
     },
     getLength: function (encode) {
-      console.log(2)
-      let code = encode.split(':')
-      return code[1]
+      if (encode) {
+        let code = encode.split(':')
+        return code[1]
+      }
     },
     getVersion: function (encode) {
-      console.log(3)
-      let code = encode.split(':')
-      return code[1]
+      if (encode) {
+        let code = encode.split(':')
+        return code[1]
+      }
     },
     removeProperty: function (index) {
       this.convertedColumns.splice(index, 1)
