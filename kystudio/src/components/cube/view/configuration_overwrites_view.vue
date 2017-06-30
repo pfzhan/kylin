@@ -12,8 +12,8 @@
     </el-row> -->
     <div class="refresh-settion-view ksd-common-table ksd-mt-10">
   <el-row class="tableheader" v-for="(property, property_index) in properties" :key="timeRange">
-    <el-col :span="6" class="left-part"> <b>{{property.key}}</b></el-col>
-    <el-col :span="18">
+    <el-col :span="10" class="left-part"> <b :title="property.key">{{property.key}}</b></el-col>
+    <el-col :span="14">
       {{property.value}}
     </el-col>
   </el-row>
@@ -56,5 +56,9 @@ export default {
     border-color: #292b38;
     padding: 0px;
     background: #292b38;
+    .left-part {
+      white-space: nowrap;
+      overflow: hidden;
+    }
   }
 </style>

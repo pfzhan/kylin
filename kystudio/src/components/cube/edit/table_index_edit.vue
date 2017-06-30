@@ -200,12 +200,13 @@ export default {
       let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column] && this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype || ''
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
+      filterEncodings = baseEncodings.addEncoding('orderedbytes', 1)
       filterEncodings = baseEncodings.removeEncoding('dict')
-      baseEncodings.addEncoding('orderedbytes', 1)
       if (this.isEdit) {
         let _encoding = _this.getEncoding(column.encoding)
         let _version = parseInt(_this.getVersion(column.encoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
+        addEncodings = baseEncodings.removeEncoding('dict')
         return addEncodings
       } else {
         return filterEncodings

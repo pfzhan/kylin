@@ -260,6 +260,7 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      currentTableComputedColumns: [],
       computedRules: {
         name: [
           {required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change'},

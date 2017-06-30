@@ -114,9 +114,9 @@ export default {
       // if (this.sqlString !== '') {
       this.sqlBtnLoading = true
       var sqls = this.sqlString.split(/;/)
-      if (!sqls[sqls.length - 1]) {
-        sqls.splice(sqls.length - 1, 1)
-      }
+      sqls = sqls.filter((s) => {
+        return !!s
+      })
       this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         this.sqlBtnLoading = false
         handleSuccess(res, (data, code, status, msg) => {
