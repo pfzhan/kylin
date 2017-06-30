@@ -54,6 +54,7 @@ import io.kyligence.kap.modeling.smart.query.QueryDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.query.QueryStatsExtractor;
 import io.kyligence.kap.modeling.smart.stats.ICubeStats;
+import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
@@ -139,8 +140,8 @@ public class ModelingContextBuilder {
         for (TblColRef colRef : measureCols) {
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs
-                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "SUM", ParameterDesc.newInstance(colRef),
+                        colRef.getDatatype()));
             }
         }
 

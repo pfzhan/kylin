@@ -36,6 +36,9 @@ import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.dimension.DictionaryDimEnc;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
@@ -139,5 +142,12 @@ public class CubeDescUtil {
                 }
             }
         }
+    }
+
+    public static FunctionDesc newFunctionDesc(DataModelDesc modelDesc, String expression, ParameterDesc param,
+            String returnType) {
+        FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
+        ret.init(modelDesc);
+        return ret;
     }
 }

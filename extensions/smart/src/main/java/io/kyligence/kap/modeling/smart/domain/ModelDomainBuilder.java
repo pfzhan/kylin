@@ -39,6 +39,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
+
 public class ModelDomainBuilder implements IDomainBuilder {
     private final DataModelDesc modelDesc;
 
@@ -76,17 +78,18 @@ public class ModelDomainBuilder implements IDomainBuilder {
         Set<FunctionDesc> measureFuncs = new HashSet<>();
         for (TblColRef colRef : measureCols) {
             // Distinct Count
-            measureFuncs.add(FunctionDesc.newInstance("COUNT_DISTINCT", ParameterDesc.newInstance(colRef), "hllc(10)"));
+            measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "COUNT_DISTINCT",
+                    ParameterDesc.newInstance(colRef), "hllc(10)"));
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs
-                        .add(FunctionDesc.newInstance("SUM", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "SUM", ParameterDesc.newInstance(colRef),
+                        colRef.getDatatype()));
                 // MAX
-                measureFuncs
-                        .add(FunctionDesc.newInstance("MAX", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "MAX", ParameterDesc.newInstance(colRef),
+                        colRef.getDatatype()));
                 // MIN
-                measureFuncs
-                        .add(FunctionDesc.newInstance("MIN", ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "MIN", ParameterDesc.newInstance(colRef),
+                        colRef.getDatatype()));
             }
         }
 

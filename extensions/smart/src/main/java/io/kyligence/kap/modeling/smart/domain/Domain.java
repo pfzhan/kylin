@@ -25,6 +25,7 @@
 package io.kyligence.kap.modeling.smart.domain;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -41,6 +42,8 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 
@@ -110,34 +113,37 @@ public class Domain {
     }
 
     private void fillMeasures(CubeDesc cubeDesc) {
-        List<MeasureDesc> measures = new ArrayList<>();
-        List<String> measureF1 = new ArrayList<>();
-        List<String> measureF2 = new ArrayList<>();
+        HashSet<MeasureDesc> measureDescs = Sets.newHashSet();
+        HashSet<String> measureF1 = Sets.newHashSet();
+        HashSet<String> measureF2 = Sets.newHashSet();
 
         // Count * is a must include measure
         MeasureDesc countAll = new MeasureDesc();
         countAll.setName("_COUNT_");
-        countAll.setFunction(FunctionDesc.newInstance("COUNT", ParameterDesc.newInstance("1"), "bigint"));
-        measures.add(countAll);
-        measureF1.add(countAll.getName());
+        countAll.setFunction(CubeDescUtil.newFunctionDesc(model, "COUNT", ParameterDesc.newInstance("1"), "bigint"));
+        measureDescs.add(countAll);
 
         // Column based measure function
-        for (FunctionDesc measureFunc : this.getMeasures()) {
-            if (measureFunc.isCountDistinct()) {
-                MeasureDesc colCountDist = new MeasureDesc();
-                colCountDist.setName(measureFunc.getParameter().getValue() + "_COUNT");
-                colCountDist.setFunction(measureFunc);
-                measures.add(colCountDist);
-                measureF2.add(colCountDist.getName());
-            } else if (measureFunc.isMax() || measureFunc.isMin() || measureFunc.isSum()) {
-                MeasureDesc colCountDist = new MeasureDesc();
-                colCountDist.setName(measureFunc.getParameter().getValue() + "_" + measureFunc.getExpression());
-                colCountDist.setFunction(measureFunc);
-                measures.add(colCountDist);
-                measureF1.add(colCountDist.getName());
+        for (FunctionDesc measureFunc : measures) {
+            measureFunc.init(model);
+            MeasureDesc measureDesc = new MeasureDesc();
+            measureDesc.setName(measureFunc.getParameter().getValue() + "_" + measureFunc.getExpression());
+            measureDesc.setFunction(measureFunc);
+            measureDescs.add(measureDesc);
+        }
+
+        // Add to column family
+        for (MeasureDesc measureDesc : measureDescs) {
+            FunctionDesc measureFunc = measureDesc.getFunction();
+            if (measureFunc.isCount() || measureFunc.isMax() || measureFunc.isMin() || measureFunc.isSum()) {
+                measureF1.add(measureDesc.getName());
+            } else {
+                measureF2.add(measureDesc.getName());
             }
         }
-        cubeDesc.setMeasures(measures);
+
+        List<MeasureDesc> measureSuggestion = new ArrayList<>(measureDescs);
+        cubeDesc.setMeasures(measureSuggestion);
 
         // setup hbase mapping
         int cfNum = 1;

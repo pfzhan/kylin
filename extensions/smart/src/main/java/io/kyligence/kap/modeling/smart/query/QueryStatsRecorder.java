@@ -31,6 +31,8 @@ import javax.annotation.Nullable;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.cuboid.Cuboid;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
@@ -50,26 +52,34 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
     @Override
     public void record(CubeInstance cubeInstance, final GTCubeStorageQueryRequest gtRequest) {
         final Cuboid cuboid = gtRequest.getCuboid();
-        Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(), new Function<TblColRef, String>() {
-            @Override
-            public String apply(@Nullable TblColRef tblColRef) {
-                return tblColRef.getIdentity();
-            }
-        });
+        Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(),
+                new Function<TblColRef, String>() {
+                    @Override
+                    public String apply(@Nullable TblColRef tblColRef) {
+                        return tblColRef.getIdentity();
+                    }
+                });
 
-        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(), new Function<TblColRef, String>() {
-            @Override
-            public String apply(@Nullable TblColRef tblColRef) {
-                return tblColRef.getIdentity();
-            }
-        });
+        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(),
+                new Function<TblColRef, String>() {
+                    @Override
+                    public String apply(@Nullable TblColRef tblColRef) {
+                        return tblColRef.getIdentity();
+                    }
+                });
 
         Set<String> usedCols = Sets.newHashSet();
         usedCols.addAll(groupByCols);
         usedCols.addAll(filterCols);
 
+        Set<FunctionDesc> funcs = gtRequest.getMetrics();
+        DataModelDesc modelDesc = cubeInstance.getModel();
+        for (FunctionDesc func : funcs) {
+            func.init(modelDesc);
+        }
+
         queryStats.addCuboid(cuboid.getId());
-        queryStats.addMeasures(gtRequest.getMetrics());
+        queryStats.addMeasures(funcs);
         queryStats.addColPairs(usedCols);
         queryStats.addGroupBy(groupByCols);
         queryStats.addFilter(filterCols);
