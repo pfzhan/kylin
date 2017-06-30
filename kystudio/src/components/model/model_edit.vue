@@ -1551,7 +1551,7 @@ export default {
     getDimensions: function () {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
-        if (!this.getConnectsByTableId(this.tableList[i].guid)) {
+        if (!this.getConnectsByTableId(this.tableList[i].guid) && this.tableList[i].kind !== 'ROOTFACT' && this.tableList[i].kind !== 'FACT') {
           continue
         }
         var obj = {
@@ -1574,7 +1574,7 @@ export default {
     getMeasures: function () {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
-        if (!this.getConnectsByTableId(this.tableList[i].guid)) {
+        if (!this.getConnectsByTableId(this.tableList[i].guid) && this.tableList[i].kind !== 'ROOTFACT' && this.tableList[i].kind !== 'FACT') {
           continue
         }
         var columns = this.tableList[i].columns

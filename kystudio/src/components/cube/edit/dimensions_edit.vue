@@ -106,7 +106,7 @@
                 </el-row> 
                 <el-row> 
                   <el-col :span="24">
-                    <area_label :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                    <area_label :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -115,7 +115,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="refreshAggragation(group_index)"   @checklabel="showDetail"> 
+                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="dimensionsChangeCalc(group_index)"   @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -126,7 +126,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                        <el-col :span="23" >
-                        <area_label :labels="group.includes"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                        <area_label :labels="group.includes"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
                         </area_label>
                       </el-col>  
                       <el-col :span="1" style="margin-top: 5px;">
@@ -150,7 +150,7 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="refreshAggragation(group_index)" @checklabel="showDetail"> 
+                      <area_label :labels="group.includes" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
                       </area_label>
                     </el-col>
                     <el-col :span="1" style="margin-top:5px;">                
@@ -708,6 +708,12 @@ export default {
         this.refreshAggragation(groupIndex)
       })
     },
+    dimensionsChangeCalc: function (groupindex) {
+      this.refreshAggragation(groupindex)
+      this.$nextTick(() => {
+        this.calcAllCuboid()
+      })
+    },
     refreshAggragation: function (groupindex) {
       this.$nextTick(() => {
         groupindex = groupindex || 0
@@ -726,6 +732,7 @@ export default {
             })
           }).catch((res) => {
             handleError(res, (data, code, status, msg) => {
+              this.$set(this.cuboidList, groupindex, '-')
               this.$set(this.groupErrorList, groupindex, msg)
             })
           })

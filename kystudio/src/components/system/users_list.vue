@@ -82,7 +82,7 @@
   </el-dialog>
 
   <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" v-model="resetPasswordFormVisible">
-    <reset_password :userDetail="selected_user" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+    <reset_password  :curUser="selected_user" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
     <div slot="footer" class="dialog-footer">
       <el-button @click="resetPasswordFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
@@ -256,13 +256,10 @@ export default {
       this.resetPassword(userPassword).then((result) => {
         this.$message({
           type: 'success',
-          message: result.statusText
+          message: this.$t('kylinLang.common.updateSuccess')
         })
       }).catch((result) => {
-        this.$message({
-          type: 'error',
-          message: result.statusText
-        })
+        handleError(result)
       })
       this.resetPasswordFormVisible = false
     }

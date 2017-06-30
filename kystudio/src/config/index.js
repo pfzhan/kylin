@@ -44,7 +44,7 @@ const modelHealthStatus = {
   'NONE': {
     icon: 'question-circle',
     color: 'gray',
-    message: 'Not checked health yet'
+    message: 'This model has no check result'
   }
 }
 const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']

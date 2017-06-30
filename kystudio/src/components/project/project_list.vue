@@ -59,7 +59,7 @@
       </template>      
     </el-table-column>     
     </el-table>
-    <pager class="ksd-center" :pageSize="pageSize" :totalSize="projectsTotal" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
+    <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
     <el-dialog :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
       <project_edit ref="projectForm" :project="project"  v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
@@ -78,7 +78,7 @@ import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
 import projectEdit from './project_edit'
 import projectConfig from './project_config'
-import { permissions } from '../../config/index'
+import { permissions, pageCount } from '../../config/index'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole } from '../../util/business'
 export default {
   name: 'projectlist',
@@ -103,23 +103,21 @@ export default {
       this.$refs.projectForm.$emit('projectFormValid')
     },
     saveAccess () {
-      this.$notify({
-        title: '保存成功',
-        message: 'Access保存成功',
-        type: 'success'
-      })
+      // this.$notify({
+      //   title: '保存成功',
+      //   message: 'Access保存成功',
+      //   type: 'success'
+      // })
+      this.$message(this.$t('kylinLang.common.saveSuccess'))
       // this.editAccessVisible = false
     },
     saveFilter () {
-      this.$notify({
-        title: '保存成功',
-        message: 'Filter保存成功',
-        type: 'success'
-      })
+      this.$message(this.$t('kylinLang.common.saveSuccess'))
       // this.editFilterVisible = false
     },
     pageCurrentChange (currentPage) {
-      this.loadProjects({pageOffset: currentPage - 1, pageSize: this.pageSize})
+      this.currentPage = currentPage
+      this.loadProjects({pageOffset: currentPage - 1, pageSize: this.pageCount})
     },
     addProject () {
       this.FormVisible = true
@@ -201,7 +199,7 @@ export default {
   },
   data () {
     return {
-      pageSize: 6,
+      pageCount: pageCount,
       currentPage: 1,
       project: {},
       isEdit: false,
@@ -250,7 +248,7 @@ export default {
     }
   },
   created () {
-    this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageSize})
+    this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
   },
   locales: {
     'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', action: 'Action', access: 'Access', externalFilters: 'External Filters', edit: 'Edit', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'Project backup successful: ', projectConfig: 'Configuration'},
