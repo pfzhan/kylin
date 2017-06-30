@@ -243,9 +243,11 @@ public class KapCubeController extends BasicController implements InitializingBe
                     schedulerJobService.disableSchedulerJob(schedule, cube);
                 }
             } else {
-                SchedulerJobInstance localSchedule = schedulerJobService.getSchedulerJobManager()
-                        .getSchedulerJob(cubeDesc.getName());
-                schedulerJobService.deleteSchedulerJob(localSchedule, cube);
+                //                SchedulerJobInstance localSchedule = schedulerJobService.getSchedulerJobManager()
+                //                        .getSchedulerJob(cubeDesc.getName());
+                //                if (localSchedule != null) {
+                //                    schedulerJobService.deleteSchedulerJob(localSchedule, cube);
+                //                }
             }
 
             // remove any previous draft
@@ -566,8 +568,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     }
 
     private void bindSchedulerJobWithCube(SchedulerJobInstance schedule, String cubeName, String cubeUuid,
-            ProjectInstance project)
-            throws IOException, SchedulerException {
+            ProjectInstance project) throws IOException, SchedulerException {
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (null != older)
