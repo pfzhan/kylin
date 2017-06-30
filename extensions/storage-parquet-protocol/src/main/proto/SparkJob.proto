@@ -76,7 +76,7 @@ message SparkConfResponse {
     required string value = 1;
 }
 
-message AdHocRequest {
+message PushDownRequest {
     required string sql = 1;
 }
 
@@ -90,14 +90,14 @@ message StructField {
     required bool nullable = 3;
 }
 
-message AdHocResponse {
+message PushDownResponse {
     repeated StructField columns = 1;
     repeated Row rows = 2;
 }
 
 service JobService {
     rpc submitJob (stream SparkJobRequest) returns (stream SparkJobResponse);
-    rpc doAdHocQuery (AdHocRequest) returns (AdHocResponse);
+    rpc doPushDownQuery (PushDownRequest) returns (PushDownResponse);
 }
 
 service ConfService {

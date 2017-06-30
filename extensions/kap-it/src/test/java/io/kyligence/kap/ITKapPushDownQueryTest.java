@@ -40,13 +40,13 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ITKapAdHocQueryTest extends KylinTestBase {
-    private static final String ADHOC_RUNNER_KEY = "kylin.query.ad-hoc.runner-class-name";
-    private static final Logger logger = LoggerFactory.getLogger(ITKapAdHocQueryTest.class);
+public class ITKapPushDownQueryTest extends KylinTestBase {
+    private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
+    private static final Logger logger = LoggerFactory.getLogger(ITKapPushDownQueryTest.class);
 
     @BeforeClass
     public static void setUp() throws Exception {
-        logger.info("setUp in ITKapAdHocQueryTest");
+        logger.info("setUp in ITKapPushDownQueryTest");
         KylinTestBase.setupAll();
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
@@ -54,21 +54,21 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
 
     @AfterClass
     public static void tearDown() {
-        logger.info("tearDown in ITKapAdHocQueryTest");
+        logger.info("tearDown in ITKapPushDownQueryTest");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
-        KylinConfig.getInstanceFromEnv().setProperty(ADHOC_RUNNER_KEY, "");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
     }
 
     @Test
     public void testFilterOnMeasureQuery() throws Exception {
 
-        String queryFileName = "src/test/resources/query/sql_adhoc/query01.sql";
+        String queryFileName = "src/test/resources/query/sql_pushdown/query01.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -78,8 +78,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -88,12 +88,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testNoMeasureQuery() throws Exception {
 
-        String queryFileName = "src/test/resources/query/sql_adhoc/query02.sql";
+        String queryFileName = "src/test/resources/query/sql_pushdown/query02.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -102,8 +102,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -112,12 +112,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testAggOnDimension() throws Exception {
 
-        String queryFileName = "src/test/resources/query/sql_adhoc/query03.sql";
+        String queryFileName = "src/test/resources/query/sql_pushdown/query03.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -126,8 +126,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -136,12 +136,12 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     @Test
     public void testUnMatchedJoin() throws Exception {
 
-        String queryFileName = "src/test/resources/query/sql_adhoc/query04.sql";
+        String queryFileName = "src/test/resources/query/sql_pushdown/query04.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
         if (sqlFile.exists()) {
             //runSQL(sqlFile, true, true);
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
             try {
                 runSQL(sqlFile, true, false);
                 throw new SQLException();
@@ -150,8 +150,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                 Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
             }
 
-            kylinConfig.setProperty(ADHOC_RUNNER_KEY,
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
             int resultCount = runSQL(sqlFile, true, false);
             Assert.assertEquals(resultCount, 1);
         }
@@ -164,8 +164,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
             RemoveBlackoutRealizationsRule.blackList.add("CUBE[name=ci_left_join_cube]");
             RemoveBlackoutRealizationsRule.blackList.add("HYBRID[name=ci_inner_join_hybrid]");
 
-            KylinConfig.getInstanceFromEnv().setProperty(ADHOC_RUNNER_KEY,
-                    "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+            KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
 
             List<File> sqlFiles = getFilesFromFolder(
                     new File("../../kylin/kylin-it/src/test/resources/query/sql_computedcolumn"), ".sql");
@@ -182,13 +182,13 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
     }
 
     @Test
-    public void testConcurrentAdHocQuery() throws Exception {
+    public void testConcurrentPushDownQuery() throws Exception {
         ConcurrentLinkedQueue<Integer> queue = new ConcurrentLinkedQueue<>();
         List<Thread> threadList = new ArrayList<>();
 
         int ThreadCount = 3;
         for (int i = 0; i < ThreadCount; i++) {
-            ConcurrentAdHocQueryThread con = new ConcurrentAdHocQueryThread();
+            ConcurrentPushDownQueryThread con = new ConcurrentPushDownQueryThread();
             Thread thread = new Thread(con);
             thread.start();
             threadList.add(thread);
@@ -205,15 +205,15 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
         System.out.println(queue.size());
     }
 
-    public class ConcurrentAdHocQueryThread implements Runnable {
+    public class ConcurrentPushDownQueryThread implements Runnable {
         @Override
         public void run() {
-            String queryFileName = "src/test/resources/query/sql_adhoc/query04.sql";
+            String queryFileName = "src/test/resources/query/sql_pushdown/query04.sql";
             KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             File sqlFile = new File(queryFileName);
             if (sqlFile.exists()) {
                 //runSQL(sqlFile, true, true);
-                kylinConfig.setProperty(ADHOC_RUNNER_KEY, "");
+                kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
                 try {
                     runSQL(sqlFile, true, false);
                 } catch (Exception e) {
@@ -221,8 +221,8 @@ public class ITKapAdHocQueryTest extends KylinTestBase {
                     Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
                 }
 
-                kylinConfig.setProperty(ADHOC_RUNNER_KEY,
-                        "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
+                kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                        "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
                 int resultCount = 0;
                 try {
                     resultCount = runSQL(sqlFile, true, false);

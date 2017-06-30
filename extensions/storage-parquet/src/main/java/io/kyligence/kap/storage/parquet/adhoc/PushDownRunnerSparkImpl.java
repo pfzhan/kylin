@@ -30,15 +30,15 @@ import java.util.List;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.source.adhocquery.IAdHocRunner;
+import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
-public class AdHocRunnerSparkImpl implements IAdHocRunner {
-    public static final Logger logger = LoggerFactory.getLogger(AdHocRunnerSparkImpl.class);
+public class PushDownRunnerSparkImpl implements IPushDownRunner {
+    public static final Logger logger = LoggerFactory.getLogger(PushDownRunnerSparkImpl.class);
 
     private SparkDriverClient client;
 
@@ -55,7 +55,7 @@ public class AdHocRunnerSparkImpl implements IAdHocRunner {
     @Override
     public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas)
             throws Exception {
-        SparkJobProtos.AdHocResponse response = client.queryWithAdHoc(query);
+        SparkJobProtos.PushDownResponse response = client.queryWithPushDown(query);
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 

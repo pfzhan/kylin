@@ -74,7 +74,7 @@ public class SparkSqlClient implements Serializable {
                 "CREATE TEMPORARY FUNCTION timestampadd AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampAdd'");
     }
 
-    public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.AdHocRequest request,
+    public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.PushDownRequest request,
             UUID uuid) throws Exception {
         logger.info("Start to run sql with Spark <<<<<<");
 
@@ -152,9 +152,9 @@ public class SparkSqlClient implements Serializable {
             return Pair.newPair(rowList, fieldList);
 
         } catch (Exception e) {
-            logger.error("Ad Hoc Query Error:", e);
+            logger.error("Query Push Down Error:", e);
             throw new StatusRuntimeException(
-                    Status.INTERNAL.withDescription("Ad hoc query failed with exception message: " + e.getMessage()
+                    Status.INTERNAL.withDescription("Query push down failed with exception message: " + e.getMessage()
                             + ", please check spark-driver.log for details."));
         }
     }

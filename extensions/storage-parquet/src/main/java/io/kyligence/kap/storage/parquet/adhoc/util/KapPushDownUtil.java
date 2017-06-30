@@ -25,7 +25,7 @@
 package io.kyligence.kap.storage.parquet.adhoc.util;
 
 
-public class KapAdHocUtil {
+public class KapPushDownUtil {
     public static long memoryStringToMegas(String memory) {
         if (memory == null || memory.length() == 0)
             return 0;

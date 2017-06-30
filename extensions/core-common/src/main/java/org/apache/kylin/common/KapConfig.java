@@ -201,8 +201,8 @@ public class KapConfig {
     }
 
     public String isCellLevelSecurityEnabled() {
-        if (config.isAdhocEnabled()) {
-            throw new IllegalStateException("Cell level security breach exists when ad-hoc query is enabled");
+        if (config.isPushDownEnabled()) {
+            throw new IllegalStateException("Cell level security breach exists when query push down is enabled");
         }
         return config.getOptional("kap.security.cell-level-acl-enabled", "false");
     }

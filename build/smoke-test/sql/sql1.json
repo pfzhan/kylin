@@ -33,7 +33,7 @@
         "affectedRowCount": 0,
         "isException": false,
         "exceptionMessage": null,
-        "adHoc": false,
+        "pushDown": false,
         "partial": false
     },
     "msg": ""
