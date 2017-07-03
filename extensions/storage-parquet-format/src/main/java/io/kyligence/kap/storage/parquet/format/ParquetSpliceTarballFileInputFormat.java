@@ -118,6 +118,9 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
         long profileStartTime = 0;
 
+        private long totalScanCnt = 0;
+        private long totalSkipCnt = 0;
+
         @Override
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
             Path path = ((FileSplit) split).getPath();
@@ -285,8 +288,9 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 if (data == null) {
                     return false;
                 }
-
+                totalScanCnt++;
                 if (binaryFilter != null && !binaryFilter.isMatch(((Binary) data.get(0)).getBytes())) {
+                    totalSkipCnt++;
                     data = null;
                 }
             }
@@ -360,6 +364,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
         @Override
         public void close() throws IOException {
+            logger.info("total scan {} rows, skip {} rows", totalScanCnt, totalSkipCnt);
             logger.info("read file takes {} ms", System.currentTimeMillis() - profileStartTime);
             if (reader != null) {
                 reader.close();
