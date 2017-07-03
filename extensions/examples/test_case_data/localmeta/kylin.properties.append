@@ -1,6 +1,6 @@
 
 # this file will be appended to kylin.properties, used by io.kyligence.kap.common.util.LocalTempMetadata
-
+kylin.server.init-tasks=
 kylin.storage.provider.100=io.kyligence.kap.storage.parquet.ParquetStorage
 kylin.engine.provider.100=io.kyligence.kap.engine.mr.KapMRBatchCubingEngine
 kylin.storage.provider.99=io.kyligence.kap.storage.parquet.ParquetSpliceStorage
