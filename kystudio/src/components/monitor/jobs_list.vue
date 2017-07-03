@@ -126,7 +126,7 @@
                 </tr>
                 <tr>
                   <td>{{$t('duration')}}</td>
-                  <td>{{selected_job.duration/60 | number(2)}}mins</td>
+                  <td>{{selected_job.duration/60 | number(2)}} mins</td>
                 </tr>
                 <tr>
                   <td>MapReduce {{$t('waiting')}}</td>
