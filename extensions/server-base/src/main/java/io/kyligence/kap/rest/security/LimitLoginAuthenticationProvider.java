@@ -70,23 +70,21 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
     @Qualifier("userService")
     UserService userService;
 
-    private MessageDigest md = null;
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
-    public LimitLoginAuthenticationProvider() {
+        MessageDigest md = null;
+
         try {
             md = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to init Message Digest ", e);
         }
-    }
-
-    @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
         md.reset();
         byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
         String userKey = Arrays.toString(hashKey);
-        
+
         if (userService.isEvictCacheFlag()) {
             userCache.invalidateAll();
             userService.setEvictCacheFlag(false);
