@@ -6,6 +6,7 @@
     <el-table  
       border
       :data="table.columns"
+      @row-click="dimensionRowClick"
       style="width: 100%" :ref="table.tableName"
       @select-all="selectionAllChange(table.tableName)"
       @select="selectionChange">
@@ -16,7 +17,7 @@
       <el-table-column
         :label="$t('name')">
         <template scope="scope">
-          <el-input v-model="scope.row.name" :disabled="!scope.row.isSelected">
+          <el-input @click.native.stop v-model="scope.row.name" :disabled="!scope.row.isSelected">
           </el-input>
         </template>
       </el-table-column>
@@ -48,6 +49,7 @@
       border
       :data="table.columns" :ref="table.tableName"
       style="width: 100%"
+      @row-click="dimensionRowClick"
       @select-all="selectionAllChange(table.tableName)"      
       @select="selectionChange">
       <el-table-column
@@ -57,7 +59,7 @@
        <el-table-column
         :label="$t('name')">
         <template scope="scope">
-          <el-input v-model="scope.row.name" :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
+          <el-input v-model="scope.row.name" @click.native.stop :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
         </template>
       </el-table-column>
       <el-table-column
@@ -79,7 +81,7 @@
       <el-table-column
         :label="$t('type')">
         <template scope="scope">
-          <el-radio-group v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
+          <el-radio-group @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
             <el-radio-button label="false">Normal</el-radio-button>
             <el-radio-button label="true">Derived</el-radio-button>
           </el-radio-group>
@@ -103,6 +105,23 @@ export default {
     }
   },
   methods: {
+    dimensionRowClick: function (row, event, column) {
+      this.$set(row, 'isSelected', !row.isSelected)
+      this.$refs[row.table][0].toggleRowSelection(row)
+      this.multipleSelection[row.table] = this.multipleSelection[row.table] || []
+      if (row.isSelected) {
+        var hasColumn = this.multipleSelection[row.table].filter((co) => {
+          return co.column === row.column
+        })
+        if (!(hasColumn && hasColumn.length)) {
+          this.multipleSelection[row.table].push(row)
+        }
+      } else {
+        this.multipleSelection[row.table] = this.multipleSelection[row.table].filter((co) => {
+          return !(co.column === row.column)
+        })
+      }
+    },
     getTableColumns: function () {
       let _this = this
       // console.log(_this.modelDesc.dimensions, 'lll')
