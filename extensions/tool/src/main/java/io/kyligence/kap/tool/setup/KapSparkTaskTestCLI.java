@@ -25,6 +25,7 @@
 package io.kyligence.kap.tool.setup;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -55,8 +56,8 @@ public class KapSparkTaskTestCLI {
 
         JavaRDD<String> words = lines.flatMap(new FlatMapFunction<String, String>() {
             @Override
-            public Iterable<String> call(String s) {
-                return Arrays.asList(SPACE.split(s));
+            public Iterator<String> call(String s) {
+                return Arrays.asList(SPACE.split(s)).iterator();
             }
         });
 

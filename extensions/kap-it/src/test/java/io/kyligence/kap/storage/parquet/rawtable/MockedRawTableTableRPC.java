@@ -31,6 +31,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Iterators;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -57,7 +58,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC;
@@ -115,14 +115,14 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
             for (int i = 0; i < splits.size(); i++) {
                 ParquetRecordIterator iterator = new ParquetRecordIterator(job, inputFormat, splits.get(i));
                 SparkExecutorPreAggFunction function = new SparkExecutorPreAggFunction(null, null, RealizationType.INVERTED_INDEX.toString(), "queryonmockedrpc");
-                Iterable<byte[]> ret = Iterables.transform(function.call(iterator), new Function<RDDPartitionResult, byte[]>() {
+                Iterator<byte[]> ret = Iterators.transform(function.call(iterator), new Function<RDDPartitionResult, byte[]>() {
                     @Nullable
                     @Override
                     public byte[] apply(@Nullable RDDPartitionResult input) {
                         return input.getData();
                     }
                 });
-                shardRecords.add(ret);
+                shardRecords.add(Lists.newArrayList(ret));
                 parquetRecordIterators.add(iterator);
                 logger.info("End of one shard......");
             }

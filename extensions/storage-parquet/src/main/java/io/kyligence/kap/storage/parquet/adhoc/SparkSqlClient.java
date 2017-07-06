@@ -39,7 +39,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.DataFrame;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.hive.HiveContext;
 import org.apache.spark.sql.types.StructField;
@@ -80,13 +80,13 @@ public class SparkSqlClient implements Serializable {
 
         try {
             //Get result data
-            DataFrame df = hiveContext.sql(request.getSql());
+            Dataset<Row> df = hiveContext.sql(request.getSql());
 
             JavaRDD<List<String>> rowRdd = df.javaRDD()
                     .mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
 
                         @Override
-                        public Iterable<List<String>> call(Iterator<Row> iterator) throws Exception {
+                        public Iterator<List<String>> call(Iterator<Row> iterator) throws Exception {
                             List<List<String>> rowList = new ArrayList<>();
 
                             while (iterator.hasNext()) {
@@ -103,7 +103,7 @@ public class SparkSqlClient implements Serializable {
                                 }
                                 rowList.add(data);
                             }
-                            return rowList;
+                            return rowList.iterator();
                         }
                     });
 
@@ -133,7 +133,7 @@ public class SparkSqlClient implements Serializable {
 
             logger.info("Estimate size of dataframe is " + estimateSize + "m.");
 
-            List<StructField> originFieldList = JavaConversions.asJavaList(df.schema().toList());
+            List<StructField> originFieldList = JavaConversions.seqAsJavaList(df.schema());
             List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
 
             for (StructField field : originFieldList) {

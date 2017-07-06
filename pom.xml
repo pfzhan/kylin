@@ -35,7 +35,7 @@
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <parquet.version>1.9.0</parquet.version>
         <tomcat.version>7.0.69</tomcat.version>
-        <spark.version>1.6.3</spark.version>
+        <spark.version>2.1.1</spark.version>
         <jackson.version>2.6.3</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <curator.version>2.7.1</curator.version>
@@ -271,7 +271,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
-                <artifactId>spark-core_2.10</artifactId>
+                <artifactId>spark-core_2.11</artifactId>
                 <version>${spark.version}</version>
             </dependency>
             <dependency>

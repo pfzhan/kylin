@@ -88,7 +88,7 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     }
 
     @Override
-    public Iterable<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
+    public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
         long localStartTime = System.currentTimeMillis();
         logger.info("Current stream identifier is {}", streamIdentifier);
@@ -156,6 +156,6 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
             collectedRecords.add(resultCounter);
 
         return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter, //
-                InetAddress.getLocalHost().getHostName(), localStartTime - startTime, System.currentTimeMillis() - localStartTime));
+                InetAddress.getLocalHost().getHostName(), localStartTime - startTime, System.currentTimeMillis() - localStartTime)).iterator();
     }
 }
