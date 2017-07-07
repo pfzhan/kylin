@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.mockup;
 
+import java.util.Properties;
 import java.util.Set;
 
 import org.apache.kylin.cube.CubeInstance;
@@ -39,6 +40,40 @@ import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
 public class MockupStorageQuery extends GTCubeStorageQueryBase {
+    private static ThreadLocal<Properties> parameters = new ThreadLocal<>();
+
+    public static final String CUBOID_TRANSLATATION = "cuboid.translate";
+
+    public static void clearThreadLocalParameter() {
+        parameters.remove();
+    }
+
+    public static void setThreadLocalParameter(String key, String val) {
+        Properties props = parameters.get();
+        if (props == null) {
+            props = new Properties();
+            parameters.set(props);
+        }
+
+        if (val == null) {
+            props.remove(key);
+        } else {
+            props.setProperty(key, val);
+        }
+    }
+
+    public static String getThreadLocalParameter(String key) {
+        if (parameters == null) {
+            return null;
+        }
+
+        Properties props = parameters.get();
+        if (props == null) {
+            return null;
+        }
+
+        return String.valueOf(props.get(key));
+    }
 
     public MockupStorageQuery(CubeInstance cube) {
         super(cube);
@@ -62,6 +97,11 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
     @Override
     protected Cuboid findCuboid(CubeDesc cubeDesc, Set<TblColRef> dimensionsD, Set<FunctionDesc> metrics) {
         long cuboidId = Cuboid.identifyCuboidId(cubeDesc, dimensionsD, metrics);
-        return Cuboid.findForFullCube(cubeDesc, cuboidId);
+        String cuboidTrans = getThreadLocalParameter(CUBOID_TRANSLATATION);
+        if (cuboidTrans != null && cuboidTrans.equals("true")) {
+            return Cuboid.findById(cubeDesc, cuboidId);
+        } else {
+            return Cuboid.findForFullCube(cubeDesc, cuboidId);
+        }
     }
 }
