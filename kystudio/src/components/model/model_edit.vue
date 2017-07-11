@@ -814,6 +814,10 @@ export default {
         this.warnAlert('已经在名称为' + usedCubes.join(',').replace(/cube\[name=(.*?)\]/gi, '$1') + '的cube中用过该列，不允许修改')
         return
       }
+      if (columnBType === 'D' && this.isColumnUsedInConnect(id, columnName)) {
+        this.warnAlert(this.$t('changeUsedForConnectColumnTypeWarn'))
+        return
+      }
       var willSetType = getNextValInArray(this.columnBType, columnBType)
       if (willSetType === '－' && isComputed) {
         willSetType = this.columnBType[0]
@@ -1407,6 +1411,15 @@ export default {
         }
       }
       return count
+    },
+    isColumnUsedInConnect: function (guid, columnName) {
+      var linkLen = this.links && this.links.length || 0
+      for (var i = 0; i < linkLen; i++) {
+        if (this.links[i][0] === guid && this.links[i][2] === columnName || this.links[i][1] === guid && this.links[i][3] === columnName) {
+          return true
+        }
+      }
+      return false
     },
     addShowLink: function (p1, p2, joinType) {
       this.addSelectPoints(p1, this.plumbInstance, joinType, '', '', true)
@@ -2252,8 +2265,8 @@ export default {
     // console.log(1)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'please set a fact table', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Expression consists of this selected table\'s columns, e.g. price*item_count. Notice DB name or table name is not allowed'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '数据模型中，表关系的建立是从外键开始，指向主键。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '请设置一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '由该表上的列所组成的表达式，例如price*item_count。注意表达式中不允许出现库名表名'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'please set a fact table', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Expression consists of this selected table\'s columns, e.g. price*item_count. Notice DB name or table name is not allowed', changeUsedForConnectColumnTypeWarn: 'The column is used in connect'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '数据模型中，表关系的建立是从外键开始，指向主键。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的计算列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '请设置一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '由该表上的列所组成的表达式，例如price*item_count。注意表达式中不允许出现库名表名', changeUsedForConnectColumnTypeWarn: '该列已经被Join过了，无法进行类型切换操作！'}
   }
 }
 </script>

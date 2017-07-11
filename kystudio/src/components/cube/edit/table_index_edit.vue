@@ -161,6 +161,7 @@ export default {
       totalRawTable: 0,
       currentPage: 1,
       convertedRawTable: [],
+      ST: null,
       rawTableDetail: [],
       rawTableIndexOptions: ['discrete', 'fuzzy'],
       booleanSelect: [{name: 'true', value: true}, {name: 'false', value: false}]
@@ -327,7 +328,10 @@ export default {
     //   Object.assign(this.rawTable.tableDetail.columns, value.list)
     // })
     this.$dragging.$on('dragged', ({ value }) => {
-      this.initConvertedRawTable()
+      clearTimeout(this.ST)
+      this.ST = setTimeout(() => {
+        this.initConvertedRawTable()
+      }, 1000)
     })
     let _this = this
     if (_this.rawTableUsable) {

@@ -204,13 +204,13 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row  :disabled="isReadyCube"  id="dimension-row" v-if="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
+        <el-row  :disabled="isReadyCube"  id="dimension-row" v-show="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
-          <el-col :span="9" style="word-wrap: break-word;"> <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
+          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap"> <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
           <el-col :span="4">
-            <el-select :disabled="isReadyCube"  v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
+            <el-select :disabled="isReadyCube"   v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <el-option
-                  v-for="(item, encodingindex) in initEncodingType(row)"
+                  v-for="(item, encodingindex) in row.selectEncodings"
                   :key="encodingindex"
                  :label="item.name"
                  :value="item.name + ':' + item.version">
@@ -225,7 +225,7 @@
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input> 
           </el-col>
           <el-col :span="2">
-              <el-select :disabled="isReadyCube"  v-model="row.isShardBy" @change="changeRowkey(row, index)">
+              <el-select :disabled="isReadyCube"   v-model="row.isShardBy" @change="changeRowkey(row, index)">
                 <el-option
                 v-for="item in shardByType"
                 :key="item.name"
@@ -234,8 +234,8 @@
                 </el-option>
               </el-select>
           </el-col>
-          <el-col :span="4"> {{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column]&&modelDesc.columnsDetail[row.column].datatype}}</el-col>
-          <el-col :span="2">{{modelDesc.columnsDetail&&modelDesc.columnsDetail[row.column]&&modelDesc.columnsDetail[row.column].cardinality}}</el-col>
+          <el-col :span="4"> {{row.datatype}}</el-col>
+          <el-col :span="2">{{row.cardinality}}</el-col>
         </el-row>
         </div>
     </el-col>
@@ -606,7 +606,11 @@ export default {
       this.$nextTick(() => {
         this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
           let version = rowkey.encoding_version || 1
-          this.convertedRowkeys.push({column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy})
+          var rowKeyObj = {column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy}
+          rowKeyObj.selectEncodings = this.initEncodingType(rowKeyObj)
+          rowKeyObj.datatype = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rowKeyObj.column] && this.modelDesc.columnsDetail[rowKeyObj.column].datatype || ''
+          rowKeyObj.cardinality = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rowKeyObj.column] && this.modelDesc.columnsDetail[rowKeyObj.column].cardinality || ''
+          this.convertedRowkeys.push(rowKeyObj)
         })
       })
     },
@@ -816,7 +820,10 @@ export default {
     })
     this.dim_cap = this.cubeDesc.aggregation_groups && this.cubeDesc.aggregation_groups[0] && this.cubeDesc.aggregation_groups[0].select_rule.dim_cap || 0
     this.$dragging.$on('dragged', ({ value }) => {
-      this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
+      clearTimeout(this.ST)
+      this.ST = setTimeout(() => {
+        this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
+      }, 1000)
     })
   },
   computed: {
