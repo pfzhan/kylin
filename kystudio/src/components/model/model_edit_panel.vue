@@ -173,7 +173,7 @@
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
             :fixed="index === 0"
             :prop="''+index"
-            :width="15*(modelStatics[0][index]&&modelStatics[0][index].length || 4)"
+            :width="36+15*(modelStatics[0][index]&&modelStatics[0][index].length || 4)"
             :label="modelStatics[0][index]">
           </el-table-column>
         </el-table>
