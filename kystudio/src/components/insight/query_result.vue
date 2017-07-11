@@ -2,7 +2,7 @@
   <div class="result_box">
     <el-row  class="resultTips" >
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:green"> success</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime}}</span></p></div></el-col>
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.duration')}}<span> {{(queryInfo.duration/1000)|fixed(2)}}s</span></p></div></el-col>
       <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{queryInfo.project}}</span></p></div></el-col>
       <el-col :span="5">
@@ -31,7 +31,7 @@
 		    style="width: 100%;">
 		    <el-table-column v-for="(value, index) in tableMeta" :key="index"
 		      :prop="''+index"
-          :width="15*(value.label&&value.label.length || 0)"
+          :width="52+15*(value.label&&value.label.length || 0)"
 		      :label="value.label"
           sortable
           >
@@ -358,7 +358,7 @@ export default {
   },
   mounted () {
     // var _this = this
-    this.queryInfo.starttime = Date.now()
+    this.queryInfo.starttime = new Date().toLocaleString()
     // this.query(this.extraoption.sql).then((response) => {
     //   var queryResult = response.data
     //   _this.queryInfo.duration = queryResult.duration
