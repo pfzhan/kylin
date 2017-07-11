@@ -2,7 +2,7 @@
 
 # ============================================================================
 
-kapbase=master
+kapbase=kap-2.4.x
 kap_remote=origin
 push_remote=true
 
@@ -61,7 +61,7 @@ rm 0001-Support-HBase-0.98.patch
 git checkout $kapbase-hbase0.98
 git reset ${kap_remote}/$kapbase-hbase0.98 --hard
 
-git checkout master
+git checkout $kapbase
 git reset ${kap_remote}/$kapbase --hard
 
 git branch -D tmp
