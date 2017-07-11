@@ -29,7 +29,6 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +57,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
@@ -94,7 +92,7 @@ public class SparkParquetVisit implements Serializable {
     private transient boolean needLazy;
     private transient int limit = 0;
     private transient long accumulateCnt = 0;
-    private transient List<JavaPairRDD> batchRdd = Lists.newArrayList();
+    private transient JavaPairRDD batchRdd = null;
 
     private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder()
             .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
@@ -249,8 +247,8 @@ public class SparkParquetVisit implements Serializable {
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records",
                 LongAccumulableParam.INSTANCE);
 
-        JavaPairRDD<Text, Text> seed = sc.union(batchRdd.toArray(new JavaPairRDD[0]));
-        batchRdd.clear();
+        JavaPairRDD<Text, Text> seed = batchRdd;
+        batchRdd = null;
 
         final Iterator<RDDPartitionResult> partitionResults;
         JavaRDD<RDDPartitionResult> baseRDD = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords,
@@ -285,31 +283,33 @@ public class SparkParquetVisit implements Serializable {
             return false;
         }
 
-        if (batchRdd.size() != 0) {
+        if (batchRdd != null) {
             return true;
         }
 
+        StringBuilder sb = new StringBuilder();
         if (needLazy) {
             for (int i = 0; i < parallel; i++) {
                 if (parquetPathIter.hasNext()) {
-                    batchRdd.add(sc.newAPIHadoopFile(parquetPathIter.next(), inputFormatClass, Text.class, Text.class,
-                            conf));
+                    sb.append(parquetPathIter.next()).append(",");
                 } else {
                     break;
                 }
             }
         } else {
             while (parquetPathIter.hasNext()) {
-                batchRdd.add(
-                        sc.newAPIHadoopFile(parquetPathIter.next(), inputFormatClass, Text.class, Text.class, conf));
+                sb.append(parquetPathIter.next()).append(",");
             }
         }
 
-        if (batchRdd.size() != 0) {
-            return true;
+        String path = sb.toString();
+        if (path.isEmpty()) {
+            return false;
         }
 
-        return false;
+        batchRdd = sc.newAPIHadoopFile(path.substring(0, path.length() - 1), inputFormatClass, Text.class, Text.class,
+                conf);
+        return true;
     }
 
     private boolean hasPreFiltered() {
