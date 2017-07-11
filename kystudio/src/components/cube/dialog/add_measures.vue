@@ -32,7 +32,7 @@
     </el-form-item>
 
     <el-form-item :label="$t('paramType')" >
-      <el-select v-model="measure.function.parameter.type" v-if="measure.function.expression ==='SUM'" class="input_width" @change="changeSumExpression">
+      <el-select v-model="measure.function.parameter.type" v-if="measure.function.expression ==='SUM'||measure.function.expression ==='TOP_N'" class="input_width" @change="changeParamType">
         <el-option
           v-for="(item, index) in type"
           :key="index"
@@ -471,7 +471,7 @@ export default {
         this.reuseColumn = ''
       }
     },
-    changeSumExpression: function () {
+    changeParamType: function () {
       if (this.measure.function.parameter.value === 1 && this.measure.function.parameter.type === 'column') {
         this.measure.function.parameter.value = ''
       }
