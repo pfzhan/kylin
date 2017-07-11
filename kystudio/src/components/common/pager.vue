@@ -1,5 +1,5 @@
 <template>
-	<div class="block ksd-mt-20 ksd-center" v-show="totalSize">
+	<div class="block ksd-mt-20 ksd-mb-40 ksd-center" v-show="totalSize">
 	  <el-pagination
 	    layout="total, prev, pager, next, jumper"
 	    :page-size="pageSize"
