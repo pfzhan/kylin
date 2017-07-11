@@ -31,7 +31,7 @@
 import { fromObjToArr, fromArrToObj } from '../../util/index'
 export default {
   name: 'project_edit',
-  props: ['project'],
+  props: ['project', 'visible'],
   data () {
     return {
       convertedProperties: fromObjToArr(this.project.override_kylin_properties),
@@ -58,30 +58,58 @@ export default {
     },
     addNewProperty () {
       this.convertedProperties.push({key: '', value: ''})
+    },
+    checkProperty: function () {
+      let _this = this
+      let alertMessage = false
+      _this.convertedProperties.forEach(function (property) {
+        if (property.key === '') {
+          _this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkCOKey'),
+            type: 'error'
+          })
+          alertMessage = true
+        }
+        if (property.value === '') {
+          _this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('checkCOValue'),
+            type: 'error'
+          })
+          alertMessage = true
+        }
+      })
+      return alertMessage
     }
   },
   watch: {
-    project (project) {
+    visible (visible) {
       this.projectDesc = Object.assign({}, this.project)
       this.convertedProperties = fromObjToArr(this.projectDesc.override_kylin_properties)
     }
   },
   created () {
-    this.$on('projectFormValid', (t) => {
-      this.$refs['projectForm'].validate((valid) => {
+    let _this = this
+    _this.$on('projectFormValid', (t) => {
+      _this.$refs['projectForm'].validate((valid) => {
         if (valid) {
-          this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
-          this.$emit('validSuccess', this.projectDesc)
+          if (!_this.checkProperty()) {
+            _this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
+            _this.$emit('validSuccess', this.projectDesc)
+          }
         } else {
-          this.$emit('validFailed')
+          _this.$emit('validFailed')
           return false
         }
       })
     })
   },
   locales: {
-    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.', projectDescription: 'Project description...', projectPlace: 'You can use letters, numbers, and underscore characters "_"', noProject: 'Please enter the project name'},
-    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空', projectDescription: '项目描述...', projectPlace: '可以使用字母、数字以及下划线', noProject: '请输入project名称'}
+    'en': {projectName: 'Project Name', description: 'Description', projectConfig: 'Project Config', delete: 'Delete', property: 'Property', inputTip: 'The project name is required.', projectDescription: 'Project description...', projectPlace: 'You can use letters, numbers, and underscore characters "_"', noProject: 'Please enter the project name', checkCOKey: 'Project Config name is required!', checkCOValue: 'Project Config value is required!'},
+    'zh-cn': {projectName: '项目名称', description: '描述', projectConfig: '项目配置', delete: '删除', property: '配置', inputTip: '项目名不能为空', projectDescription: '项目描述...', projectPlace: '可以使用字母、数字以及下划线', noProject: '请输入project名称', checkCOKey: '项目配置名不能为空!', checkCOValue: '项目配置值不能为空!'}
   }
 }
 </script>

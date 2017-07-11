@@ -61,7 +61,7 @@
     </el-table>
     <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
     <el-dialog :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
-      <project_edit ref="projectForm" :project="project"  v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
+      <project_edit ref="projectForm" :project="project"  :visible="FormVisible" v-on:validSuccess="validSuccess" v-on:validFailed='validFailed'></project_edit>
       <div slot="footer" class="dialog-footer">
         <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="checkProjectForm">{{$t('yes')}}</el-button>
