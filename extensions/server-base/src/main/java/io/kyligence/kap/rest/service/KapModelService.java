@@ -51,13 +51,13 @@ public class KapModelService extends BasicService {
         return modelStatus;
     }
 
-    public Map<String, MODEL_COLUMN_SUGGESTION> inferDimensionSuggestions(String tableName) {
+    public Map<String, MODEL_COLUMN_SUGGESTION> inferDimensionSuggestions(String tableName, String prj) {
         Map<String, MODEL_COLUMN_SUGGESTION> result = new HashMap<String, MODEL_COLUMN_SUGGESTION>();
-        TableDesc tableDesc = getMetadataManager().getTableDesc(tableName);
+        TableDesc tableDesc = getMetadataManager().getTableDesc(tableName, prj);
         if (tableDesc == null)
             return result;
         ColumnDesc[] columns = tableDesc.getColumns();
-        TableExtDesc tableExt = getMetadataManager().getTableExt(tableName);
+        TableExtDesc tableExt = getMetadataManager().getTableExt(tableName, prj);
         List<TableExtDesc.ColumnStats> columnStats = tableExt.getColumnStats();
         for (int i = 0; i < columns.length; i++) {
             ColumnDesc column = columns[i];

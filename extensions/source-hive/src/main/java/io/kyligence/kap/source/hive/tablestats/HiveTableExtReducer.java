@@ -54,8 +54,9 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         super.bindCurrentConfiguration(context.getConfiguration());
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
+        String project = context.getConfiguration().get(BatchConstants.CFG_PROJECT_NAME);
         String tableName = context.getConfiguration().get(BatchConstants.CFG_TABLE_NAME);
-        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
+        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName, project);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (int i = 0; i < columns.length; i++) {
             dataTypeMap.put(i, columns[i].getType().getName());

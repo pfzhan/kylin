@@ -161,7 +161,7 @@ public class KapMergeRawTableJob extends AbstractHadoopJob {
             List<String> dependentResources = SourceFactory.getMRDependentResources(table);
             dumpList.addAll(dependentResources);
         }
-        dumpKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
+        dumpKylinPropsAndMetadata(cube.getProject(), dumpList, instance.getConfig(), conf);
     }
 
     public int addRawInputDirs(String input, Job job) throws IOException {

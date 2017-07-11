@@ -8,6 +8,7 @@
     "DEFAULT.KYLIN_CATEGORY_GROUPINGS"
   ],
   "models": [
-    "kylin_sales_model"
+    "kylin_sales_model",
+    "kylin_sales_model_star"
   ]
 }

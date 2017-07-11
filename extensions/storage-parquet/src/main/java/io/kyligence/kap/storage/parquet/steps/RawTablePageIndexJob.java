@@ -31,7 +31,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -51,6 +50,7 @@ import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
@@ -154,7 +154,7 @@ public class RawTablePageIndexJob extends AbstractHadoopJob {
             List<String> dependentResources = SourceFactory.getMRDependentResources(table);
             dumpList.addAll(dependentResources);
         }
-        dumpKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
+        dumpKylinPropsAndMetadata(cube.getProject(), dumpList, instance.getConfig(), conf);
     }
 
     protected int setJobInputFile(Job job, Path path) throws IOException {

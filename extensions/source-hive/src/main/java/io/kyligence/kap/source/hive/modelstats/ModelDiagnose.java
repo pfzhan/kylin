@@ -76,7 +76,7 @@ public class ModelDiagnose {
             else {
                 tables.add(tableName);
             }
-            TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable());
+            TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable(), dataModelDesc.getProject());
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
             IReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
@@ -169,8 +169,8 @@ public class ModelDiagnose {
             throws IOException {
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-        TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName);
-        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(factTableName);
+        TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName, dataModelDesc.getProject());
+        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(factTableName, dataModelDesc.getProject());
         if (tableExtDesc.getColumnStats().size() == 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;
@@ -231,7 +231,7 @@ public class ModelDiagnose {
     public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config)
             throws IOException {
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
-        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName).getTotalRows();
+        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName, modelDesc.getProject()).getTotalRows();
         if (countFact <= 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;

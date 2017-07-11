@@ -114,8 +114,8 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     private void addSteps(CubingJob parent) throws IOException {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        TableDesc desc = metaMgr.getTableDesc(tableName);
-        TableExtDesc table_ext = metaMgr.getTableExt(tableName);
+        TableDesc desc = metaMgr.getTableDesc(tableName, project);
+        TableExtDesc table_ext = metaMgr.getTableExt(tableName, project);
         if (desc == null) {
             throw new IllegalArgumentException("Cannot find table descriptor " + tableName);
         }
@@ -134,7 +134,7 @@ public class HiveTableExtSampleJob extends CubingJob {
             parent.addTask(deleteMaterializedView(desc));
 
         table_ext.setJodID(parent.getId());
-        metaMgr.saveTableExt(table_ext);
+        metaMgr.saveTableExt(table_ext, project);
     }
 
     private void addMaterializeViewSteps(CubingJob parent, TableDesc desc) throws IOException {
@@ -150,7 +150,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     private void addExtractStatsStep(CubingJob parent, TableDesc table, String samplesOutPath) {
         String statsStepParam = "-table " + table.getIdentity() + " -output " + samplesOutPath + " -frequency "
-                + frequency;
+                + frequency + " -project " + project;
         MapReduceExecutable collectStatsStep = new MapReduceExecutable();
         collectStatsStep.setName("Extract Stats from Table: " + table.getIdentity());
         collectStatsStep.setMapReduceJobClass(HiveTableExtJob.class);
@@ -161,7 +161,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     private void addUpdateStatsMetaStep(CubingJob parent, String samplesOutPath) {
         HadoopShellExecutable updateStatsStep = new HadoopShellExecutable();
 
-        String updateStatsParam = "-table " + tableName + " -output " + samplesOutPath;
+        String updateStatsParam = "-table " + tableName + " -output " + samplesOutPath + " -project " + project;
         updateStatsStep.setName("Save Table's Stats");
         updateStatsStep.setJobClass(HiveTableExtUpdate.class);
         updateStatsStep.setJobParams(updateStatsParam);
@@ -171,7 +171,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     public String findRunningJob() {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
-        TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName);
+        TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName, project);
         String jobID = tableExtDesc.getJodID();
 
         if (null == jobID || jobID.isEmpty()) {

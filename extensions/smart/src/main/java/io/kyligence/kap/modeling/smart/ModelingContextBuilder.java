@@ -182,7 +182,7 @@ public class ModelingContextBuilder {
             TableDesc tableDesc = tableRef.getTableDesc();
             tableDescMap.put(tblRefId, tableDesc);
 
-            TableExtDesc tableExtDesc = metadataManager.getTableExt(tblRefId);
+            TableExtDesc tableExtDesc = metadataManager.getTableExt(tblRefId, modelDesc.getProject());
             if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
                 tableExtDescMap.put(tblRefId, tableExtDesc);
             }

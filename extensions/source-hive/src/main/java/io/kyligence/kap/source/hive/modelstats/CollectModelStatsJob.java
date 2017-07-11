@@ -115,7 +115,7 @@ public class CollectModelStatsJob extends CubingJob {
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-        TableExtDesc factTableExtDesc = manager.getTableExt(factTableName);
+        TableExtDesc factTableExtDesc = manager.getTableExt(factTableName, dataModelDesc.getProject());
 
         // Do fact table stats firstly
         if (factTableExtDesc.getColumnStats().size() == 0) {
@@ -151,7 +151,7 @@ public class CollectModelStatsJob extends CubingJob {
             tables.add(fTable.getTable());
         }
         for (String s : tables) {
-            TableExtDesc extDesc = manager.getTableExt(s);
+            TableExtDesc extDesc = manager.getTableExt(s, dataModelDesc.getProject());
             if (extDesc.getColumnStats().size() == 0) {
                 new HiveTableExtSampleJob(s, frequency).start(this);
             }

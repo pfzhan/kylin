@@ -165,7 +165,8 @@ public class KapRawTableJob extends AbstractHadoopJob {
         CubeInstance cube = rawSegment.getCubeSegment().getCubeInstance();
         dumpList.add(cube.getResourcePath());
         dumpList.add(cube.getDescriptor().getResourcePath());
-        dumpKylinPropsAndMetadata(dumpList, instance.getConfig(), conf);
+        
+        dumpKylinPropsAndMetadata(cube.getProject(), dumpList, instance.getConfig(), conf);
     }
 
 }

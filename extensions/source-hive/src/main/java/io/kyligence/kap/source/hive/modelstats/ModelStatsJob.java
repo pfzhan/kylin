@@ -145,7 +145,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
             dumpList.addAll(dependentResources);
         }
 
-        dumpKylinPropsAndMetadata(dumpList, KylinConfig.getInstanceFromEnv(), conf);
+        dumpKylinPropsAndMetadata(desc.getProject(), dumpList, KylinConfig.getInstanceFromEnv(), conf);
     }
 
     private int decideReduceTasks(int columnCount) {

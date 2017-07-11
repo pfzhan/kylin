@@ -50,14 +50,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class HiveTableExtUpdate extends AbstractHadoopJob {
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
+
     public static final String JOB_TITLE = "Hive Sample Update Job";
 
     @SuppressWarnings("static-access")
     protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
-
-    private String table;
-
-    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
 
     public HiveTableExtUpdate() {
 
@@ -69,19 +67,22 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         Options options = new Options();
 
         try {
+            options.addOption(OPTION_PROJECT);
             options.addOption(OPTION_TABLE);
             options.addOption(OPTION_OUTPUT_PATH);
 
             parseOptions(options, args);
 
-            this.table = getOptionValue(OPTION_TABLE).toUpperCase();
+            String project = getOptionValue(OPTION_PROJECT);
+            String table = getOptionValue(OPTION_TABLE).toUpperCase();
+            
             // start job
             String jobName = JOB_TITLE + getOptionsAsString();
             logger.info("Starting: " + jobName);
             Configuration conf = getConf();
             Path output = new Path(getOptionValue(OPTION_OUTPUT_PATH));
 
-            updateTableSample(table.toUpperCase(), output.toString(), conf);
+            updateTableSample(table.toUpperCase(), output.toString(), conf, project);
             return 0;
         } catch (Exception e) {
             printUsage(options);
@@ -89,13 +90,13 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         }
     }
 
-    public void updateTableSample(String tableName, String outPath, Configuration config) throws IOException {
+    public void updateTableSample(String tableName, String outPath, Configuration config, String prj) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
 
         samplers = read(new Path(outPath), config);
 
         MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
-        TableExtDesc tableSample = metaMgr.getTableExt(tableName);
+        TableExtDesc tableSample = metaMgr.getTableExt(tableName, prj);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         List<String[]> sampleRows = new ArrayList<>();
         boolean once = true;
@@ -122,7 +123,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         }
         tableSample.setColumnStats(columnStatsList);
         tableSample.setSampleRows(sampleRows);
-        metaMgr.saveTableExt(tableSample);
+        metaMgr.saveTableExt(tableSample, prj);
     }
 
     private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {

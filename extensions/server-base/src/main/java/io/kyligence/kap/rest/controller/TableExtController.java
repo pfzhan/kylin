@@ -72,13 +72,14 @@ public class TableExtController extends BasicController {
     @Qualifier("tableService")
     private TableService tableService;
 
-    @RequestMapping(value = "/{database}.{tableName}", method = { RequestMethod.GET }, produces = {
+    // FIXME prj-table
+    @RequestMapping(value = "/{project}/{database}.{tableName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTableExtDesc(@PathVariable String database, @PathVariable String tableName)
+    public EnvelopeResponse getTableExtDesc(@PathVariable String database, @PathVariable String tableName, @PathVariable String project)
             throws IOException {
 
-        TableExtDesc tableExtDesc = tableExtService.getTableExt(database + "." + tableName);
+        TableExtDesc tableExtDesc = tableExtService.getTableExt(database + "." + tableName, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableExtDesc, "");
     }
 
@@ -93,13 +94,14 @@ public class TableExtController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobID, "");
     }
 
-    @RequestMapping(value = "/{tableName}/job", method = { RequestMethod.GET }, produces = {
+    // FIXME prj-table
+    @RequestMapping(value = "/{project}/{tableName}/job", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse listJob(@PathVariable String tableName) throws IOException {
+    public EnvelopeResponse listJob(@PathVariable String tableName, @PathVariable String project) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        String jobID = tableExtService.getJobByTableName(tableName);
+        String jobID = tableExtService.getJobByTableName(tableName, project);
         if (jobID == null || jobID.isEmpty())
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
         try {
@@ -153,7 +155,7 @@ public class TableExtController extends BasicController {
             if ((jobID = new HiveTableExtSampleJob(tableName).findRunningJob()) != null) {
                 jobService.cancelJob(jobService.getJobInstance(jobID));
             }
-            tableExtService.removeTableExt(tableName);
+            tableExtService.removeTableExt(tableName, project);
         }
 
         String[] tableNames = StringUtil.splitAndTrim(tables, ",");

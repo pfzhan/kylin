@@ -77,24 +77,26 @@ public class KafkaController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getMessages(kafkaConfig), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = {
+    // FIXME prj-table
+    @RequestMapping(value = "{project}/{database}.{tablename}/samples", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSamples(@PathVariable String database, @PathVariable String tablename,
-            @RequestBody List<String> messages) throws IOException {
+            @RequestBody List<String> messages, @PathVariable String project) throws IOException {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages), "");
+                kafkaService.saveSamplesToStreamingTable(database + "." + tablename, messages, project), "");
     }
 
-    @RequestMapping(value = "{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = {
+    // FIXME prj-table
+    @RequestMapping(value = "{project}/{database}.{tablename}/update_samples", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateSamples(@PathVariable String database, @PathVariable String tablename)
+    public EnvelopeResponse updateSamples(@PathVariable String database, @PathVariable String tablename, @PathVariable String project)
             throws IOException {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                kafkaService.updateSamplesByTableName(database + "." + tablename), "");
+                kafkaService.updateSamplesByTableName(database + "." + tablename, project), "");
     }
 
     private KafkaConfig deserializeKafkaSchemalDesc(StreamingRequest streamingRequest) throws IOException {

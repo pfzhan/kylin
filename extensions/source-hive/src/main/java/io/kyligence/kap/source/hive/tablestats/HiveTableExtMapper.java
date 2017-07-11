@@ -68,8 +68,9 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
         String tableName = conf.get(BatchConstants.CFG_TABLE_NAME);
+        String project = conf.get(BatchConstants.CFG_PROJECT_NAME);
         int frequency = Integer.parseInt(conf.get(BatchConstants.CFG_STATS_JOB_FREQUENCY));
-        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName);
+        tableDesc = MetadataManager.getInstance(config).getTableDesc(tableName, project);
         tableInputFormat = MRUtil.getTableInputFormat(tableDesc);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (int i = 0; i < columns.length; i++) {

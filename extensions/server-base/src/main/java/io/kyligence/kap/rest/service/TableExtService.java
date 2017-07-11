@@ -44,15 +44,15 @@ public class TableExtService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String getJobByTableName(String tableName) {
-        return getMetadataManager().getTableExt(tableName).getJodID();
+    public String getJobByTableName(String tableName, String prj) {
+        return getMetadataManager().getTableExt(tableName, prj).getJodID();
     }
 
-    public TableExtDesc getTableExt(String tableName) {
-        return getMetadataManager().getTableExt(tableName);
+    public TableExtDesc getTableExt(String tableName, String prj) {
+        return getMetadataManager().getTableExt(tableName, prj);
     }
 
-    public void removeTableExt(String tableName) throws IOException {
-        getMetadataManager().removeTableExt(tableName);
+    public void removeTableExt(String tableName, String prj) throws IOException {
+        getMetadataManager().removeTableExt(tableName, prj);
     }
 }

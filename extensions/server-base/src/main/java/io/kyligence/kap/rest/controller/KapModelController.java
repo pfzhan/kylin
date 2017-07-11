@@ -62,6 +62,7 @@ import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
 @RequestMapping(value = "/models")
 public class KapModelController extends BasicController {
 
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(KapModelController.class);
 
     @Autowired
@@ -86,12 +87,12 @@ public class KapModelController extends BasicController {
      * @return suggestion map
      */
 
-    @RequestMapping(value = "table_suggestions", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "{project}/table_suggestions", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelDimensionSuggestions(@RequestParam(value = "table") String table) throws IOException {
+    public EnvelopeResponse getModelDimensionSuggestions(@RequestParam(value = "table") String table, @PathVariable String project) throws IOException {
 
-        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferDimensionSuggestions(table);
+        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferDimensionSuggestions(table, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 

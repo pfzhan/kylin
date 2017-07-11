@@ -48,18 +48,18 @@ public class KafkaService extends BasicService {
         return CollectKafkaStats.getMessages(kafkaConfig);
     }
 
-    public String saveSamplesToStreamingTable(String identity, List<String> messages) throws IOException {
+    public String saveSamplesToStreamingTable(String identity, List<String> messages, String prj) throws IOException {
         List<String[]> samples = convertMessagesToSamples(messages);
-        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(identity);
+        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(identity, prj);
         tableExtDesc.setSampleRows(samples);
-        getMetadataManager().saveTableExt(tableExtDesc);
+        getMetadataManager().saveTableExt(tableExtDesc, prj);
         return "OK";
     }
 
-    public List<String> updateSamplesByTableName(String tableName) throws IOException {
+    public List<String> updateSamplesByTableName(String tableName, String prj) throws IOException {
         KafkaConfig kafkaConfig = getKafkaManager().getKafkaConfig(tableName);
         List<String> messages = CollectKafkaStats.getMessages(kafkaConfig);
-        saveSamplesToStreamingTable(tableName, messages);
+        saveSamplesToStreamingTable(tableName, messages, prj);
         return messages;
     }
 

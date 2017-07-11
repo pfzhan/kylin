@@ -65,6 +65,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
         Options options = new Options();
 
+        options.addOption(OPTION_PROJECT);
         options.addOption(OPTION_TABLE);
         options.addOption(OPTION_OUTPUT_PATH);
         options.addOption(OPTION_FREQUENCY);
@@ -80,15 +81,17 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         JobEngineConfig jobEngineConfig = new JobEngineConfig(kylinConfig);
         conf.addResource(new Path(jobEngineConfig.getHadoopJobConfFilePath(null)));
 
+        String project = getOptionValue(OPTION_PROJECT);
         String table = getOptionValue(OPTION_TABLE);
-        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table);
-        TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table);
+        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table, project);
+        TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table, project);
         String skipHeaderLineCount = tableExtDesc.getDataSourceProp().get("skip_header_line_count");
 
         job = Job.getInstance(conf, jobName);
 
         setJobClasspath(job, kylinConfig);
 
+        job.getConfiguration().set(BatchConstants.CFG_PROJECT_NAME, project);
         job.getConfiguration().set(BatchConstants.CFG_TABLE_NAME, table);
 
         if (null != skipHeaderLineCount)
@@ -99,7 +102,7 @@ public class HiveTableExtJob extends AbstractHadoopJob {
         job.getConfiguration().set("mapreduce.output.fileoutputformat.compress", "false");
         job.getConfiguration().set(BatchConstants.CFG_STATS_JOB_FREQUENCY, getOptionValue(OPTION_FREQUENCY));
         // Mapper
-        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table);
+        IMRInput.IMRTableInputFormat tableInputFormat = MRUtil.getTableInputFormat(table, project);
         tableInputFormat.configureJob(job);
 
         job.setMapperClass(HiveTableExtMapper.class);
