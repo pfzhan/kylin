@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -66,6 +67,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
@@ -73,6 +75,7 @@ import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.KapCubeRequest;
+import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.rest.service.KapCubeService;
 import io.kyligence.kap.rest.service.RawTableService;
 import io.kyligence.kap.rest.service.SchedulerJobService;
@@ -121,18 +124,23 @@ public class KapCubeController extends BasicController implements InitializingBe
      * @return true
      * @throws IOException
      */
-    @RequestMapping(value = "/{cubeName}/columnar", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "/{cubeNames}/columnar", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getColumnarInfo(@PathVariable String cubeName) {
+    public EnvelopeResponse getColumnarInfo(@PathVariable String cubeNames) {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
-        if (null == cube) {
-            throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
+        List<List<ColumnarResponse>> columnarList = Lists.newArrayList();
+
+        for (String cubeName : cubeNames.split(",")) {
+            CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
+            if (null == cube) {
+                throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
+            }
+            columnarList.add(kapCubeService.getAllColumnarInfo(cube));
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapCubeService.getAllColumnarInfo(cube), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnarList, "");
     }
 
     /**

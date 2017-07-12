@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.WeakHashMap;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -61,6 +60,8 @@ import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.storage.parquet.shaded.com.google.common.cache.Cache;
+import io.kyligence.kap.storage.parquet.shaded.com.google.common.cache.CacheBuilder;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Component("kapCubeService")
@@ -69,7 +70,7 @@ public class KapCubeService extends BasicService {
             .toCharArray();
     private static final Logger logger = LoggerFactory.getLogger(KapCubeService.class);
 
-    protected WeakHashMap<String, ColumnarResponse> columnarInfoCache = new WeakHashMap<>();
+    protected Cache<String, ColumnarResponse> columnarInfoCache = CacheBuilder.newBuilder().build();
     @Autowired
     @Qualifier("cubeMgmtService")
     private CubeService cubeService;
@@ -78,8 +79,9 @@ public class KapCubeService extends BasicService {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String id = segment.getUuid();
-        if (columnarInfoCache.containsKey(id)) {
-            return columnarInfoCache.get(id);
+        ColumnarResponse response = columnarInfoCache.getIfPresent(id);
+        if (response != null) {
+            return response;
         }
 
         RawTableManager rawTableManager = RawTableManager.getInstance(segment.getConfig());
