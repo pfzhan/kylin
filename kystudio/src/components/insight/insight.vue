@@ -55,7 +55,7 @@
       <el-form  label-width="90px"  v-for="query in cookieQueries" :key="query.queryTime">
         <el-form-item label="Queried At:" class="ksd-mb-2" >
         <span slot="label" style="color:#9095ab;font-size:12px">Queried At:</span>
-          {{query.queryTime|gmtTime}} in Project: <span style="color:#20a0ff">{{ project }}</span>
+          {{transToGmtTime(query.queryTime)}} in Project: <span style="color:#20a0ff">{{ project }}</span>
         </el-form-item>
         <el-collapse >
          <div class="ksd-fright">
@@ -103,7 +103,7 @@ import querypanel from 'components/insight/query_panel'
 import queryresult from 'components/insight/query_result'
 import { mapActions } from 'vuex'
 import {groupData, indexOfObjWithSomeKey} from '../../util/index'
-import { handleSuccess, kapConfirm } from '../../util/business'
+import { handleSuccess, kapConfirm, transToGmtTime } from '../../util/business'
 import { pageCount } from '../../config'
 export default {
   name: 'insight',
@@ -116,7 +116,8 @@ export default {
     this.cacheQuery[this.project] = this.cacheQuery[this.project] || []
     this.$set(this.cacheQuery, this.project, this.cacheQuery[this.project].concat(localCache[this.project] || []))
     this.loadSavedQuery(0)
-    this.cookieQueries = Object.assign([], this.cacheQuery[this.project] && this.cacheQuery[this.project].slice(0, pageCount) || [])
+    // this.cookieQueries = Object.assign([], this.cacheQuery[this.project] && this.cacheQuery[this.project].slice(0, pageCount) || [])
+    this.pageCurrentChangeForCookie(1)
     this.cookieQuerySize = this.cacheQuery[this.project] && this.cacheQuery[this.project].length || 0
   },
   data () {
@@ -172,6 +173,7 @@ export default {
       getSavedQueries: 'GET_SAVE_QUERIES',
       delQuery: 'DELETE_QUERY'
     }),
+    transToGmtTime: transToGmtTime,
     loadSavedQuery (pageIndex) {
       this.getSavedQueries({
         pageData: {
@@ -193,7 +195,11 @@ export default {
     },
     pageCurrentChangeForCookie (currentPage) {
       this.cookieQueryCurrentPage = currentPage
-      this.cookieQueries = Object.assign([], this.cacheQuery[this.project].slice((currentPage - 1) * pageCount, currentPage * pageCount))
+      var wantPagerQuery = this.cacheQuery[this.project].slice(0)
+      wantPagerQuery.sort((a, b) => {
+        return b.queryTime - a.queryTime
+      })
+      this.cookieQueries = Object.assign([], wantPagerQuery.slice((currentPage - 1) * pageCount, currentPage * pageCount))
       this.cookieQuerySize = this.cacheQuery[this.project] && this.cacheQuery[this.project].length || 0
     },
     addTab (targetName, componentName, extraData) {
