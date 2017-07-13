@@ -36,6 +36,8 @@ import 'vue-awesome/icons'
 import 'brace/mode/json'
 import 'brace/mode/sql'
 import 'brace/theme/chrome'
+import 'brace/theme/monokai'
+import 'brace/ext/language_tools'
 import VueDND from 'awe-dnd'
 Vue.use(VueDND)
 Vue.component('icon', Icon)

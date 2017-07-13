@@ -6,7 +6,7 @@
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
 	  <el-tab-pane :label="$t('newQuery')" name="first">
-      <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
+      <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="monokai" width="100%" height="200" useWrapMode="true"></editor>
       <p class="tips_box" style="margin-top: 10px;color: #9095ab;">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
@@ -102,6 +102,8 @@ import tab from '../common/tab'
 import querypanel from 'components/insight/query_panel'
 import queryresult from 'components/insight/query_result'
 import { mapActions } from 'vuex'
+// import 'vue2-ace-editor'
+// import languageTool from 'brace/ext/language_tools'
 import {groupData, indexOfObjWithSomeKey} from '../../util/index'
 import { handleSuccess, kapConfirm, transToGmtTime } from '../../util/business'
 import { pageCount } from '../../config'
@@ -345,10 +347,39 @@ export default {
   },
   mounted () {
     var editor = this.$refs.insightBox.editor
-    editor.setOption('wrap', 'free')
+    var setCompleteData = function (data) {
+      editor.completers.push({
+        getCompletions: function (editor, session, pos, prefix, callback) {
+          if (prefix.length === 0) {
+            return callback(null, [])
+          } else {
+            return callback(null, data)
+          }
+        }
+      })
+    }
+    editor.commands.on('afterExec', function (e, t) {
+      if (e.command.name === 'insertstring' && e.args === '.') {
+        var all = e.editor.completers
+        // e.editor.completers = completers;
+        e.editor.execCommand('startAutocomplete')
+        e.editor.completers = all
+      }
+    })
+    // editor.setOption('wrap', 'free')
+    editor.setOptions({
+      wrap: 'free',
+      enableBasicAutocompletion: true,
+      enableSnippets: true,
+      enableLiveAutocompletion: true
+    })
+    // editor.setTheme('ace/theme/monokai')
+    // editor.getSession().setMode('brace/mode/sql')
     // alert(screen.availHeight - 65 - 50 - 55)
     let iHeight = screen.availHeight - 65 - 50 - 103
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
+    var autoCompeleteData = []
+    // setCompleteData(autoCompeleteData)
     if (!this.project) {
       return
     }
@@ -360,6 +391,7 @@ export default {
             label: i,
             children: []
           }
+          autoCompeleteData.push({meta: 'datasource', caption: i, value: i, scope: 1})
           var tableData = databaseObj[i]
           for (var s = 0; s < tableData.length; s++) {
             var tableObj = {
@@ -369,6 +401,8 @@ export default {
                 return tag[0]
               })
             }
+            autoCompeleteData.push({meta: 'table', caption: i + '.' + tableData[s].table_NAME, value: tableData[s].table_NAME, scope: 1})
+            autoCompeleteData.push({meta: 'table', caption: tableData[s].table_NAME, value: tableData[s].table_NAME, scope: 1})
             for (var m = 0; m < tableData[s].columns.length; m++) {
               tableObj.children.push({
                 label: tableData[s].columns[m].column_NAME,
@@ -386,6 +420,7 @@ export default {
           }
           this.tableData[0].children.push(obj)
         }
+        setCompleteData(autoCompeleteData)
       })
     })
   },
