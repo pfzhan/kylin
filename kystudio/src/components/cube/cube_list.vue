@@ -72,7 +72,7 @@
       width="100"
       :label="$t('cubeSize')">
       <template scope="scope">
-        <span>{{scope.row.size_kb*1024 | dataSize}}</span>
+        <span>{{segmentsSize(scope.row.completeSegments) | dataSize}}</span>
       </template>
     </el-table-column>
     <el-table-column
@@ -106,7 +106,7 @@
         <el-dropdown trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
-          </el-button >
+          </el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item v-show="scope.row.status !=='READY'" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
@@ -121,10 +121,7 @@
             <el-dropdown-item @click.native="view(scope.row)" style="border-top:solid 1px rgb(68, 75, 103)">{{$t('viewCube')}}</el-dropdown-item>
             <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED'&&!scope.row.is_draft" @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
-            
-            
             </el-dropdown-menu>
-
         </el-dropdown>
       </template>
     </el-table-column>
@@ -276,6 +273,7 @@ export default {
   methods: {
     ...mapActions({
       getCubesList: 'GET_CUBES_LIST',
+      getCubesSegmentsList: 'GET_CUBES_SEGMENTS_LIST',
       deleteCube: 'DELETE_CUBE',
       rebuildCube: 'REBUILD_CUBE',
       rebuildStreamingCube: 'REBUILD_STREAMING_CUBE',
@@ -303,6 +301,18 @@ export default {
         this.loadCubesList(this.currentPage - 1)
       }, 1000)
     },
+    segmentsSize (segments) {
+      let totalSize = 0
+      if (segments) {
+        segments.forEach(function (segment) {
+          totalSize += segment.tableSize
+          if (segment.rawTableStorageSize) {
+            totalSize += segment.rawTableStorageSize
+          }
+        })
+      }
+      return totalSize
+    },
     checkName (rule, value, callback) {
       if (!/^\w+$/.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -327,7 +337,6 @@ export default {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
-                console.log(data, 889911)
                 this.$message({
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'
@@ -357,6 +366,7 @@ export default {
     },
     loadCubesList: function (curPage) {
       let _this = this
+      let cubesNameList = []
       let param = {pageSize: pageCount, pageOffset: curPage}
       if (localStorage.getItem('selected_project')) {
         param.projectName = localStorage.getItem('selected_project')
@@ -374,6 +384,7 @@ export default {
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubesList = data.cubes.map((p) => {
+            cubesNameList.push(p.name)
             p.createGMTTime = p.create_time_utc === 0 ? '' : transToGmtTime(p.create_time_utc, _this)
             if (p.segments.length > 0) {
               p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
@@ -381,6 +392,17 @@ export default {
             return p
           })
           this.totalCubes = data.size
+          if (cubesNameList.length > 0) {
+            this.getCubesSegmentsList(cubesNameList.toString()).then((res) => {
+              handleSuccess(res, (data, code, status, msg) => {
+                this.cubesList.forEach((cube, index) => {
+                  this.$set(cube, 'completeSegments', data[index])
+                })
+              })
+            }, (res) => {
+              handleError(res)
+            })
+          }
         })
       }).catch((res) => {
         handleError(res)

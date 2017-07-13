@@ -67,6 +67,7 @@ export const CACHE_MODEL_ACCESS = 'CACHE_MODEL_ACCESS'
 export const MODEL_CHECKABLE = 'MODEL_CHECKABLE'
 // cube actions mutations
 export const GET_CUBES_LIST = 'GET_CUBES_LIST'
+export const GET_CUBES_SEGMENTS_LIST = 'GET_CUBES_SEGMENTS_LIST'
 export const SAVE_CUBES_LIST = 'SAVE_CUBES_LIST'
 export const LOAD_CUBE_DESC = 'LOAD_CUBE_DESC'
 export const SAVE_CUBE_DESC = 'SAVE_CUBE_DESC'

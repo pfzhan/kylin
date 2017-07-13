@@ -182,7 +182,7 @@ export default {
         this.type = 'columnar'
         this.getColumnarInfo(this.cube.name).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            data.forEach(function (segment) {
+            data[0].forEach(function (segment) {
               _this.segments.push(segment)
               _this.totalSize += segment.storageSize
               if (segment.rawTableStorageSize) {

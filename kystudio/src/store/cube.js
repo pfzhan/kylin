@@ -38,6 +38,9 @@ export default {
         return res
       })
     },
+    [types.GET_CUBES_SEGMENTS_LIST]: function ({ commit }, cubesName) {
+      return api.cube.getCubesSegmentsList(cubesName)
+    },
     [types.LOAD_CUBE_DESC]: function ({ commit }, cubeName) {
       return api.cube.getCubeDesc(cubeName)
     },

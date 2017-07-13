@@ -8,6 +8,9 @@ export default {
   getCubesList: (params) => {
     return Vue.resource(apiUrl + 'cubes').get(params)
   },
+  getCubesSegmentsList: (cubesName) => {
+    return Vue.resource(apiUrl + 'cubes/' + cubesName + '/columnar').get()
+  },
   getCubeDesc: (cubeName) => {
     return Vue.resource(apiUrl + 'cube_desc/' + cubeName).get()
   },
