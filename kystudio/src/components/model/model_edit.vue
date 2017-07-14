@@ -158,7 +158,8 @@
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle-o"></icon></common-tip></span>
-                <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input>
+                <!-- <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input> -->
+ <editor v-model="computedColumn.expression" @click.native="completeInput" ref="expressionBox" lang="sql" theme="monokai" width="100%" height="200" useWrapMode="true"></editor>
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.returnType')" prop="returnType">
                 <el-select v-model="computedColumn.returnType">
@@ -188,6 +189,11 @@
                 prop="expression"
                 :label="$t('kylinLang.dataSource.expression')"
                 width="180">
+                 <template scope="scope" >
+                    <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.expression" placement="top">
+                        <span >{{scope.row.expression|omit(24, '...')}}</span>
+                    </el-tooltip>
+                 </template>
               </el-table-column>
               <el-table-column
                 prop="datatype"
@@ -653,6 +659,10 @@ export default {
       this.$set(this.currentSelectTable, 'database', database || '')
       this.$set(this.currentSelectTable, 'tablename', tablename || '')
     },
+    completeInput: function () {
+      var editor = this.$refs.expressionBox.editor
+      editor.execCommand('startAutocomplete')
+    },
     addComputedColumn: function (guid) {
       Object.assign(this.computedColumn, {
         guid: '',
@@ -663,7 +673,48 @@ export default {
       this.computedColumn.guid = guid
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
+      this.openAddComputedColumnForm = false
       this.refreshComputed()
+      this.$nextTick(() => {
+        var editor = this.$refs.expressionBox.editor
+        var autoCompeleteData = []
+        var setCompleteData = function (data, tableName) {
+          editor.completers.splice(0, editor.completers.length - 3)
+          editor.completers.unshift({
+            uuid: tableName,
+            identifierRegexps: [/.a-zA-Z_0-9]/],
+            getCompletions: function (editor, session, pos, prefix, callback) {
+              if (prefix.length === 0) {
+                return callback(null, data)
+              } else {
+                return callback(null, data)
+              }
+            }
+          })
+        }
+        editor.setOptions({
+          wrap: 'free',
+          enableBasicAutocompletion: true,
+          enableSnippets: true,
+          enableLiveAutocompletion: true
+        })
+        editor.commands.on('afterExec', function (e, t) {
+          if (e.command.name === 'insertstring' && e.args === ' ') {
+            var all = e.editor.completers
+            // e.editor.completers = completers;
+            e.editor.execCommand('startAutocomplete')
+            e.editor.completers = all
+          }
+        })
+        var tableInfo = this.getTableInfoByGuid(guid)
+        autoCompeleteData.push({meta: 'table', caption: tableInfo.name, value: tableInfo.name, scope: 1})
+        if (tableInfo && tableInfo.columns) {
+          tableInfo.columns.forEach((co) => {
+            autoCompeleteData.push({meta: co.datatype, caption: co.name, value: co.name, scope: 2})
+          })
+        }
+        setCompleteData(autoCompeleteData)
+      })
     },
     editComputedColumn (row) {
       this.openAddComputedColumnForm = true

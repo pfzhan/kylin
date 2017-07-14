@@ -348,10 +348,12 @@ export default {
   mounted () {
     var editor = this.$refs.insightBox.editor
     var setCompleteData = function (data) {
-      editor.completers.push({
+      editor.completers.splice(0, editor.completers.length - 3)
+      editor.completers.unshift({
+        identifierRegexps: [/.a-zA-Z_0-9]/],
         getCompletions: function (editor, session, pos, prefix, callback) {
           if (prefix.length === 0) {
-            return callback(null, [])
+            return callback(null, data)
           } else {
             return callback(null, data)
           }
@@ -359,14 +361,13 @@ export default {
       })
     }
     editor.commands.on('afterExec', function (e, t) {
-      if (e.command.name === 'insertstring' && e.args === '.') {
+      if (e.command.name === 'insertstring' && (e.args === ' ' || e.args === '.')) {
         var all = e.editor.completers
         // e.editor.completers = completers;
         e.editor.execCommand('startAutocomplete')
         e.editor.completers = all
       }
     })
-    // editor.setOption('wrap', 'free')
     editor.setOptions({
       wrap: 'free',
       enableBasicAutocompletion: true,
@@ -394,16 +395,19 @@ export default {
           autoCompeleteData.push({meta: 'datasource', caption: i, value: i, scope: 1})
           var tableData = databaseObj[i]
           for (var s = 0; s < tableData.length; s++) {
+            var tableName = tableData[s].table_NAME
             var tableObj = {
-              label: tableData[s].table_NAME,
+              label: tableName,
               children: [],
               tags: tableData[s].type.map((tag) => {
                 return tag[0]
               })
             }
-            autoCompeleteData.push({meta: 'table', caption: i + '.' + tableData[s].table_NAME, value: tableData[s].table_NAME, scope: 1})
-            autoCompeleteData.push({meta: 'table', caption: tableData[s].table_NAME, value: tableData[s].table_NAME, scope: 1})
+            autoCompeleteData.push({meta: 'table', caption: i + '.' + tableName, value: i + '.' + tableName, scope: 1})
+            autoCompeleteData.push({meta: 'table', caption: tableName, value: tableName, scope: 1})
             for (var m = 0; m < tableData[s].columns.length; m++) {
+              var columnName = tableData[s].columns[m].column_NAME
+              autoCompeleteData.push({meta: 'column', caption: columnName, value: columnName, scope: 1})
               tableObj.children.push({
                 label: tableData[s].columns[m].column_NAME,
                 subLabel: tableData[s].columns[m].type_NAME,
@@ -430,8 +434,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box.', result: 'Result'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名。', result: '查询结果'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果'}
   }
 }
 </script>
