@@ -118,7 +118,9 @@ export function getProperty (name, kylinConfig) {
 // utc时间格式转换为gmt格式
 export function transToGmtTime (t, _vue) {
   var v = _vue || window.kapVm
-  return utcToConfigTimeZome(t, v.$store.state.system.timeZone)
+  if (v) {
+    return utcToConfigTimeZome(t, v.$store.state.system.timeZone)
+  }
 }
 
 // 检测是否有project的某种权限
