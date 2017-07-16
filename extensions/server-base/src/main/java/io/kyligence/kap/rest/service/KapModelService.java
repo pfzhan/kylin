@@ -176,8 +176,9 @@ public class KapModelService extends BasicService {
 
     public boolean isFactTableRunningStats(String modelName) {
         DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
+        String project = modelDesc.getProject();
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
-        if (new HiveTableExtSampleJob(factTableName).findRunningJob() != null)
+        if (new HiveTableExtSampleJob(project, factTableName).findRunningJob() != null)
             return true;
         return false;
     }

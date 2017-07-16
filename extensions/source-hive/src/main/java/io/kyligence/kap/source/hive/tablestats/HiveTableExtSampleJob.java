@@ -57,19 +57,16 @@ public class HiveTableExtSampleJob extends CubingJob {
     private int frequency;
     KylinConfig config;
 
+    // for reflection only
     public HiveTableExtSampleJob() {
-        config = KylinConfig.getInstanceFromEnv();
+    }
+    
+    public HiveTableExtSampleJob(String project, String tableName) {
+        this(project, null, tableName, 0);
     }
 
-    public HiveTableExtSampleJob(String tableName) {
-        config = KylinConfig.getInstanceFromEnv();
-        this.tableName = tableName;
-    }
-
-    public HiveTableExtSampleJob(String tableName, int frequency) {
-        this.tableName = tableName;
-        this.frequency = frequency;
-        config = KylinConfig.getInstanceFromEnv();
+    public HiveTableExtSampleJob(String project, String tableName, int frequency) {
+        this(project, null, tableName, frequency);
     }
 
     public HiveTableExtSampleJob(String project, String submitter, String tableName, int frequency) {
@@ -77,7 +74,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         this.submitter = submitter;
         this.tableName = tableName;
         this.frequency = frequency;
-        config = KylinConfig.getInstanceFromEnv();
+        this.config = KylinConfig.getInstanceFromEnv();
     }
 
     public String start() throws IOException {
@@ -172,8 +169,10 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         MetadataManager metaMgr = MetadataManager.getInstance(config);
         TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName, project);
+        if (tableExtDesc == null)
+            return null;
+        
         String jobID = tableExtDesc.getJodID();
-
         if (null == jobID || jobID.isEmpty()) {
             return null;
         }
@@ -183,11 +182,9 @@ public class HiveTableExtSampleJob extends CubingJob {
         try {
             job = exeMgt.getJob(jobID);
         } catch (RuntimeException e) {
-            /****
-             *
+            /**
              * By design, HiveTableExtSampleJob is moved from kap-engine-mr to kap-source-hive in kap2.3,
              * therefore, kap2.3 or higher version can not parse kap2.2 stats job info.
-             *
              */
             logger.warn("Could not parse old version table stats job. job_id:{}, table_name:{}" + jobID + tableName);
         }

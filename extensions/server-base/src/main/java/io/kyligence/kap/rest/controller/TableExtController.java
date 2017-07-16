@@ -121,13 +121,14 @@ public class TableExtController extends BasicController {
     @ResponseBody
     public EnvelopeResponse loadHiveTable(@RequestBody ExtTableRequest request) throws Exception {
 
+        String project = request.getProject();
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
         boolean isCalculate = request.isNeedProfile();
 
         List<String> tablesRunningJob = new ArrayList<>();
         List<String> tablesNotRunningJob = new ArrayList<>();
         for (String s : request.getTables()) {
-            String jobID = new HiveTableExtSampleJob(s).findRunningJob();
+            String jobID = new HiveTableExtSampleJob(project, s).findRunningJob();
             if (jobID != null) {
                 tablesRunningJob.add(s);
             } else {
@@ -152,7 +153,7 @@ public class TableExtController extends BasicController {
             throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
-            if ((jobID = new HiveTableExtSampleJob(tableName).findRunningJob()) != null) {
+            if ((jobID = new HiveTableExtSampleJob(project, tableName).findRunningJob()) != null) {
                 jobService.cancelJob(jobService.getJobInstance(jobID));
             }
             tableExtService.removeTableExt(tableName, project);

@@ -142,7 +142,7 @@ public class KapModelController extends BasicController {
     public EnvelopeResponse getProgress(@RequestHeader("Accept-Language") String lang,
             @PathVariable("project") String project, @PathVariable("modelName") String modelName) throws IOException {
         KapMsgPicker.setMsg(lang);
-        String jobId = new CollectModelStatsJob(modelName).findRunningJob();
+        String jobId = new CollectModelStatsJob(project, modelName).findRunningJob();
         Map<Boolean, Double> result = new HashMap<>();
         if (jobId != null && null != jobService.getJobInstance(jobId)) {
             result.put(true, jobService.getJobInstance(jobId).getProgress());
@@ -178,7 +178,7 @@ public class KapModelController extends BasicController {
         List<ModelStatusRequest> modelStatusList = new ArrayList<>();
         for (DataModelDesc model : modelService.getModels(modelName, projectName, limit, offset)) {
             ModelStatusRequest request = kapModelService.getDiagnoseResult(model.getName());
-            String jobId = new CollectModelStatsJob(model.getName()).findRunningJob();
+            String jobId = new CollectModelStatsJob(projectName, model.getName()).findRunningJob();
             if (null != jobId && null != jobService.getJobInstance(jobId)) {
                 request.setProgress(jobService.getJobInstance(jobId).getProgress());
                 request.setHeathStatus(ModelStatusRequest.HealthStatus.RUNNING);

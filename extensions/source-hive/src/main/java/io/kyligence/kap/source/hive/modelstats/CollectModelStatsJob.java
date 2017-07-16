@@ -68,6 +68,10 @@ public class CollectModelStatsJob extends CubingJob {
     private String submitter;
     private int frequency;
 
+    // for reflection only
+    public CollectModelStatsJob() {
+    }
+
     public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd,
             int frequency) {
         this.project = project;
@@ -78,11 +82,9 @@ public class CollectModelStatsJob extends CubingJob {
         this.frequency = frequency;
     }
 
-    public CollectModelStatsJob(String modelName) {
+    public CollectModelStatsJob(String project, String modelName) {
+        this.project = project;
         this.modelName = modelName;
-    }
-
-    public CollectModelStatsJob() {
     }
 
     public String start() throws IOException {
@@ -119,7 +121,7 @@ public class CollectModelStatsJob extends CubingJob {
 
         // Do fact table stats firstly
         if (factTableExtDesc.getColumnStats().size() == 0) {
-            new HiveTableExtSampleJob(factTableName, frequency).start(this);
+            new HiveTableExtSampleJob(project, factTableName, frequency).start(this);
         }
 
         // Do lookup table stats
@@ -153,7 +155,7 @@ public class CollectModelStatsJob extends CubingJob {
         for (String s : tables) {
             TableExtDesc extDesc = manager.getTableExt(s, dataModelDesc.getProject());
             if (extDesc.getColumnStats().size() == 0) {
-                new HiveTableExtSampleJob(s, frequency).start(this);
+                new HiveTableExtSampleJob(project, s, frequency).start(this);
             }
         }
     }

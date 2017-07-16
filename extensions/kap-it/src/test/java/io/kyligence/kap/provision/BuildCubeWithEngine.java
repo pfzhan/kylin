@@ -61,7 +61,7 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
     protected boolean testTableExt() throws Exception {
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         logger.info("Start testing tablestats: {}", tableName);
-        DefaultChainedExecutable job = new HiveTableExtSampleJob(tableName, 1).build();
+        DefaultChainedExecutable job = new HiveTableExtSampleJob("default", tableName, 1).build();
         jobService.addJob(job);
         ExecutableState state = waitForJob(job.getId());
         return Boolean.valueOf(ExecutableState.SUCCEED == state);
