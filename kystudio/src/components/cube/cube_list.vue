@@ -384,7 +384,9 @@ export default {
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubesList = data.cubes.map((p) => {
-            cubesNameList.push(p.name)
+            if (!p.is_draft) {
+              cubesNameList.push(p.name)
+            }
             p.createGMTTime = p.create_time_utc === 0 ? '' : transToGmtTime(p.create_time_utc, _this)
             if (p.segments.length > 0) {
               p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
@@ -396,7 +398,12 @@ export default {
             this.getCubesSegmentsList(cubesNameList.toString()).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 this.cubesList.forEach((cube, index) => {
-                  this.$set(cube, 'completeSegments', data[index])
+                  if (!cube.is_draft) {
+                    let segmentNumber = cubesNameList.indexOf(cube.name)
+                    this.$set(cube, 'completeSegments', data[segmentNumber])
+                  } else {
+                    this.$set(cube, 'completeSegments', [])
+                  }
                 })
               })
             }, (res) => {
