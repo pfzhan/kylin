@@ -96,11 +96,6 @@
       </el-input>
       <el-row v-if="measure.function.expression === 'SUM'" >
         <el-row v-if="sumMeasure.type === 'decimal'" id="decimal">
-          <!-- <el-col :span="4" >decimal(</el-col>
-          <el-col :span="2"><el-input v-model="sumMeasure.value.precision" ></el-input></el-col>
-          <el-col :span="1">,</el-col>
-          <el-col :span="2"><el-input v-model="sumMeasure.value.decimalPlace" ></el-input></el-col>
-          <el-col :span="1">)</el-col> -->
           <span class="decimal-left">decimal(</span>
           <el-input v-model="sumMeasure.value.precision" class="precision"></el-input>
           <span class="douhao">,</span>
@@ -334,16 +329,19 @@ export default {
     },
     initSumColumn: function () {
       let _this = this
-      if (_this.measure.function.expression === 'SUM' && _this.measure.function.parameter.type === 'column') {
-        let returnValue = _this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
-        if (returnValue) {
-          _this.sumMeasure.type = 'decimal'
-          _this.sumMeasure.value.precision = returnValue[1]
-          _this.sumMeasure.value.decimalPlace = returnValue[2]
-        } else {
-          _this.sumMeasure.type = 'bigint'
+      this.$nextTick(() => {
+        if (_this.measure.function.expression === 'SUM' && _this.measure.function.parameter.type === 'column') {
+          let returnValue = _this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
+          if (returnValue) {
+            _this.sumMeasure.type = 'decimal'
+            _this.sumMeasure.value.precision = returnValue[1]
+            _this.sumMeasure.value.decimalPlace = returnValue[2]
+            console.log(_this.sumMeasure.value.precision, _this.sumMeasure.value.decimalPlace, 11111)
+          } else {
+            _this.sumMeasure.type = 'bigint'
+          }
         }
-      }
+      })
     },
     initCountDistinctColumn: function () {
       let _this = this
@@ -525,6 +523,7 @@ export default {
             this.sumMeasure.value.decimalPlace = 0
           }
         }
+        console.log(this.sumMeasure.value.precision, this.sumMeasure.value.decimalPlace, 2345432)
       }
     },
     initHiddenFeature: function () {
