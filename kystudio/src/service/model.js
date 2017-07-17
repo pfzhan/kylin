@@ -9,7 +9,7 @@ export default {
     return Vue.resource(apiUrl + 'models').get(params)
   },
   measureDimensionSuggestion: (params) => {
-    return Vue.resource(apiUrl + 'models/table_suggestions').get(params)
+    return Vue.resource(apiUrl + 'models/' + params.project + '/table_suggestions').get(params)
   },
   getModelByModelName: (modelname) => {
     return Vue.resource(apiUrl + 'model_desc/' + modelname).get()

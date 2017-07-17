@@ -33,8 +33,8 @@ export default {
         return response
       })
     },
-    [types.LOAD_DATASOURCE_EXT]: function ({commit}, tableName) {
-      return api.datasource.loadDataSourceExt(tableName)
+    [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
+      return api.datasource.loadDataSourceExt(para.tableName, para.project)
     },
     [types.LOAD_HIVEBASIC_DATABASE]: function ({commit}) {
       return api.datasource.loadBasicLiveDatabase()
@@ -79,8 +79,8 @@ export default {
     [types.COLLECT_SAMPLE_DATA]: function ({commit}, para) {
       return api.datasource.collectSampleData(para)
     },
-    [types.GET_TABLE_JOB]: function ({commit}, tableName) {
-      return api.datasource.getTableJob(tableName)
+    [types.GET_TABLE_JOB]: function ({commit}, para) {
+      return api.datasource.getTableJob(para.tableName, para.project)
     }
   }
 }

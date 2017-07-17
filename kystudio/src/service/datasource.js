@@ -8,8 +8,8 @@ export default {
   loadDataSource: (project) => {
     return Vue.resource(apiUrl + 'tables?ext=true&project=' + project).get()
   },
-  loadDataSourceExt: (tableName) => {
-    return Vue.resource(apiUrl + 'table_ext/' + tableName).get()
+  loadDataSourceExt: (tableName, project) => {
+    return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName).get()
   },
   loadBasicLiveDatabase: () => {
     return Vue.resource(apiUrl + 'tables/hive').get()
@@ -47,7 +47,7 @@ export default {
   collectSampleData: (para) => {
     return Vue.resource(apiUrl + 'table_ext/' + para.project + '/' + para.tableName + '/sample_job').save(para.data)
   },
-  getTableJob: (tableName) => {
-    return Vue.resource(apiUrl + 'table_ext/' + tableName + '/job').get()
+  getTableJob: (tableName, project) => {
+    return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName + '/job').get()
   }
 }

@@ -11,8 +11,8 @@ export default {
   getTopicInfo: (topic) => {
     return Vue.resource(apiUrl + 'kafka/' + topic.cluster + '/' + topic.name).save(topic.kafka)
   },
-  saveSampleData: (tableName, sampleData) => {
-    return Vue.resource(apiUrl + 'kafka/' + tableName + '/samples').save(sampleData)
+  saveSampleData: (tableName, sampleData, project) => {
+    return Vue.resource(apiUrl + 'kafka/' + project + '/' + tableName + '/samples').save(sampleData)
   },
   saveKafka: (kafka) => {
     return Vue.resource(apiUrl + 'streaming').save(kafka)
@@ -26,8 +26,8 @@ export default {
   getKafkaConfig: (tableName) => {
     return Vue.resource(apiUrl + 'streaming/getKfkConfig').get({kafkaConfigName: tableName})
   },
-  loadKafkaSampleData: (tableName) => {
-    return Vue.resource(apiUrl + 'kafka/' + tableName + '/update_samples').get()
+  loadKafkaSampleData: (tableName, project) => {
+    return Vue.resource(apiUrl + 'kafka/' + project + '/' + tableName + '/update_samples').get()
   },
   getStreamingConfig: (tableName) => {
     return Vue.resource(apiUrl + 'streaming/getConfig?table=' + tableName).get()

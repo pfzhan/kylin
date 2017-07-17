@@ -437,7 +437,7 @@ export default {
     },
     collectKafkaSampleDialogOpen () {
       var tableName = this.tableData.database + '.' + this.tableData.name
-      this.collectKafkaSampleData(tableName).then((res) => {
+      this.collectKafkaSampleData({tableName: tableName, project: this.project}).then((res) => {
         this.$message(this.$t('kylinLang.common.submitSuccess'))
         this.$refs.kafkaSampleBtn.loading = false
       }, (res) => {
@@ -516,7 +516,7 @@ export default {
     },
     // 检查Table是否有正在运行的JOB
     checkTableHasJob (tableName, cb, hasNotCb) {
-      this.getTableJob(tableName).then((res) => {
+      this.getTableJob({tableName: tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
           if (data && (data.job_status === 'FINISHED' || data.progress === '100') || !data) {
             hasNotCb()
@@ -708,7 +708,7 @@ export default {
         }
       }
       this.activeName = 'first'
-      this.loadTableExt(database + '.' + tableName).then((res) => {
+      this.loadTableExt({tableName: database + '.' + tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
           _this.extendData = data
           for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
@@ -803,7 +803,7 @@ export default {
         database: data.database || 'Default'
       }
       data.streamingMeta.name = data.kafkaMeta.name
-      this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData })
+      this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData, project: this.project })
       this.saveKafka({
         kafkaConfig: JSON.stringify(data.kafkaMeta),
         streamingConfig: JSON.stringify(data.streamingMeta),

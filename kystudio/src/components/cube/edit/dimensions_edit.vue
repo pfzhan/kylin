@@ -397,7 +397,7 @@ export default {
             this.transTableDetailData(this.tableStaticsCache[database + '.' + tableName], column)
             return
           }
-          this.loadTableExt(database + '.' + tableName).then((res) => {
+          this.loadTableExt({tableName: database + '.' + tableName, project: this.selected_project}).then((res) => {
             handleSuccess(res, (data) => {
               this.transTableDetailData(data, column)
               if (data.sample_rows && data.sample_rows.length) {
@@ -471,7 +471,7 @@ export default {
       this.addDimensionsFormVisible = true
     },
     loadSpecial (database, tableName) {
-      this.loadTableExt(database + '.' + tableName).then((res) => {
+      this.loadTableExt({tableName: database + '.' + tableName, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data) => {
           this.statistics = data.columns_stats
           var sampleData = changeDataAxis(data.sample_rows)

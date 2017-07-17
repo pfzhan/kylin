@@ -13,7 +13,7 @@ export default {
       return api.kafka.getTopicInfo(topic)
     },
     [types.SAVE_SAMPLE_DATA]: function ({ commit }, data) {
-      return api.kafka.saveSampleData(data.tableName, data.sampleData)
+      return api.kafka.saveSampleData(data.tableName, data.sampleData, data.project)
     },
     [types.SAVE_KAFKA]: function ({ commit }, kafka) {
       return api.kafka.saveKafka(kafka)
@@ -24,8 +24,8 @@ export default {
     [types.GET_KAFKA_CONFIG]: function ({ commit }, tableName) {
       return api.kafka.getKafkaConfig(tableName)
     },
-    [types.LOAD_KAFKA_SAMPLEDATA]: function ({ commit }, tableName) {
-      return api.kafka.loadKafkaSampleData(tableName)
+    [types.LOAD_KAFKA_SAMPLEDATA]: function ({ commit }, para) {
+      return api.kafka.loadKafkaSampleData(para.tableName, para.project)
     },
     [types.LOAD_STREAMING_CONFIG]: function ({ commit }, tableName) {
       return api.kafka.getStreamingConfig(tableName)

@@ -260,7 +260,7 @@ export default {
       this.slideSubMenu('hide')
     },
     loadTableStatics (database, tableName) {
-      this.loadTableExt(database + '.' + tableName).then((res) => {
+      this.loadTableExt({tableName: database + '.' + tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
           var arr = []
           var lenOffeature = data.columns_stats && data.columns_stats.length || 0

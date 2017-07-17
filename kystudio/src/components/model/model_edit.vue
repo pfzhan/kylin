@@ -1134,7 +1134,7 @@ export default {
       if (!newTableData) {
         return
       }
-      this.suggestDM({'table': newTableData.database + '.' + newTableData.name}).then((response) => {
+      this.suggestDM({'table': newTableData.database + '.' + newTableData.name, project: this.project}).then((response) => {
         handleSuccess(response, (data) => {
           for (var i in data) {
             var setColumnBType
