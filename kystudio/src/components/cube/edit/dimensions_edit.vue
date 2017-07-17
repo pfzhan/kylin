@@ -358,30 +358,26 @@ export default {
       // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
     },
     updateIncludesDimUsed (index) {
-      this.$refs['includesSelect'][index].$children[0].$children[0].$children.forEach((dimension) => {
+      this.cubeDesc.aggregation_groups[index].includes.forEach((dimension, i) => {
         let isUsed = false
-        if (this.cubeDesc.aggregation_groups[index].select_rule.mandatory_dims.indexOf(dimension.$vnode.key) >= 0) {
+        if (this.cubeDesc.aggregation_groups[index].select_rule.mandatory_dims.indexOf(dimension) >= 0) {
           isUsed = true
         }
         this.cubeDesc.aggregation_groups[index].select_rule.hierarchy_dims.forEach((dim) => {
-          if (dim.indexOf(dimension.$vnode.key) >= 0) {
+          if (dim.indexOf(dimension) >= 0) {
             isUsed = true
           }
         })
         this.cubeDesc.aggregation_groups[index].select_rule.joint_dims.forEach((dim) => {
-          if (dim.indexOf(dimension.$vnode.key) >= 0) {
+          if (dim.indexOf(dimension) >= 0) {
             isUsed = true
           }
         })
-        console.log(dimension.$vnode.key, isUsed, 101010)
+        var tag = this.$refs.includesSelect[index].tags[i]
         if (!isUsed) {
-          this.$set(dimension.$el, 'hit', true)
-          this.$set(dimension.$el, 'className', 'el-tag el-tag--primary dimension_not_used')
-          console.log(dimension.$vnode.key, dimension.$el, dimension.$el.className, 454545)
+          tag.setAttribute('data-tag', 'unUseDimension')
         } else {
-          this.$set(dimension.$el, 'hit', false)
-          this.$set(dimension.$el, 'className', 'el-tag el-tag--primary')
-          console.log(343434)
+          tag.setAttribute('data-tag', '')
         }
       })
     },
@@ -753,6 +749,7 @@ export default {
     },
     refreshAggragation: function (groupindex) {
       this.$nextTick(() => {
+        this.updateIncludesDimUsed(groupindex)
         groupindex = groupindex || 0
         if (this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex]) {
           this.$set(this.cuboidList, groupindex, this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex])
@@ -774,7 +771,6 @@ export default {
             })
           })
         }, 1000)
-        this.updateIncludesDimUsed(groupindex)
       })
     },
     initCalCuboid: function () {
@@ -919,7 +915,7 @@ export default {
     .el-card{
       background: transparent;
     }
-    .dimension_not_used {
+    [data-tag=unUseDimension] {
       border:1px solid #f44236;
       box-shadow:0 0 5px #f44236;
     }

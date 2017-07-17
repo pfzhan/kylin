@@ -24,7 +24,8 @@ export default {
   props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled'],
   data () {
     return {
-      selectedL: this.selectedlabels
+      selectedL: this.selectedlabels,
+      tags: []
     }
   },
   computed: {
@@ -49,23 +50,20 @@ export default {
   },
   methods: {
     change (e) {
-      // console.log(e, 9999)
-      // var ev = ev || window.event
-      // var target = ev.target || ev.srcElement
-      this.$emit('change')
-      this.$emit('refreshData', this.selectedL, this.refreshInfo)
-      // this.refreshData = this.selectedL
-      // Object.assign(this.refreshData, [], this.selectedL)
       this.$nextTick(() => {
-        const tags = Array.prototype.slice.call(document.querySelectorAll('.el-tag'))
-        tags.forEach(tag => {
-          this.bindTagClick()
-        })
+        this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
+        this.$emit('change')
+        this.$emit('refreshData', this.selectedL, this.refreshInfo)
+        this.bindTagClick()
       })
     },
     bindTagClick () {
-      const tags = Array.prototype.slice.call(document.querySelectorAll('.el-tag'))
-      tags.forEach(tag => {
+      this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
+      this.tags.forEach(tag => {
+        // tag.removeEventListener('click', e => {
+        //   e.stopPropagation()
+        //   this.selectTag(e)
+        // })
         tag.addEventListener('click', e => {
           e.stopPropagation()
           this.selectTag(e)
