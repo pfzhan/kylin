@@ -83,7 +83,7 @@
 
       <el-row>
         <el-col :span="24">
-          <el-tag class="tag_margin dimension_not_used" style="cursor:pointer;font-size:14px;" type="primary" :hit="true">{{$t('dimensions')}}
+          <el-tag class="tag_margin unUseDimension" style="cursor:pointer;font-size:14px;" type="primary" :hit="true">{{$t('dimensions')}}
           </el-tag>
           <span style="font-size: 14px;">
             {{$t('dimensionNotUsed')}}
@@ -915,7 +915,7 @@ export default {
     .el-card{
       background: transparent;
     }
-    [data-tag=unUseDimension] {
+    [data-tag=unUseDimension], .unUseDimension {
       border:1px solid #f44236;
       box-shadow:0 0 5px #f44236;
     }
