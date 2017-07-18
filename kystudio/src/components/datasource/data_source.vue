@@ -187,16 +187,16 @@
       </div>
 
       <el-dialog size="small" :title="$t('loadhiveTables')" v-model="load_hive_dalog_visible" class="load_hive_dialog">
-        <el-input v-model="filterVal" :placeholder="$t('filterInputTips')"></el-input>
+        <!-- <el-input v-model="filterVal" :placeholder="$t('filterInputTips')"></el-input> -->
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree" :maxLabelLen="24" :showfilter="false" :allowdrag="false" ></tree>
+           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree" :maxLabelLen="24" :showfilter="true" :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" @refreshData="refreshHiveData" changeable="unchange" :selectedlabels="selectTablesNames" :placeholder="$t('selectLeftHiveTip')" @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel :labels="selectTables" @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
@@ -907,6 +907,9 @@ export default {
     p{
       font-size: 12px;
     }
+  }
+  .grid-content .el-select__tags {
+    left: 0;
   }
   .el-button.sampling{
     // border-color: @popper-bg;

@@ -7,6 +7,8 @@
     style="width:100%"
     :disabled='disabled'
     multiple
+    filterable
+    :allow-create='allowcreate'
     :popper-class="changeable"
     :placeholder="placeholder">
     <el-option
@@ -21,7 +23,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate'],
   data () {
     return {
       selectedL: this.selectedlabels,
@@ -53,6 +55,39 @@ export default {
       this.$nextTick(() => {
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         this.$emit('change')
+        // 处理单独录入的情况 start
+        if (this.allowcreate) {
+          var result = []
+          // 分隔符
+          var regOfSeparate = /[,;$|]/
+          var refOfAllowChar = /[^\w.,;$|]/g
+          // 只有分隔符
+          var regJustSeparate = /(^[,;$|]+$)|([,;$|]+$)|(^[,;$|]+)/g
+          var needRefresh = false
+          e.forEach((item) => {
+            item = item.replace(refOfAllowChar, '').replace(regJustSeparate, '')
+            if (item && regOfSeparate.test(item)) {
+              needRefresh = true
+              Array.prototype.push.apply(result, item.split(regOfSeparate))
+            } else if (item) {
+              result.push(item)
+            } else {
+              needRefresh = true
+            }
+          })
+          // 添加默认的datasource
+          result = result.map((table) => {
+            if (!/^\w+\.\w+$/.test(table)) {
+              needRefresh = true
+              return 'default.' + table
+            }
+            return table
+          })
+          if (needRefresh) {
+            this.selectedL = result
+          }
+        }
+        // 处理单独录入的情况end
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
       })

@@ -1,7 +1,7 @@
 <!-- 树 -->
 <template>
   <div class="tree_box">
-  <el-input style="margin-top: -10px;background: transparent;margin-bottom: 10px;"
+  <el-input style="background: transparent;margin-bottom: 10px;"
     :placeholder="placeholder"
     icon="search"
     v-model="filterText" v-if="showfilter">
@@ -24,7 +24,7 @@
     :lazy="lazy"
     ref="tree2">
   </el-tree>
-  <div class="empty_text" v-show="showNodeCount==1 || treedata&&treedata[0]&&treedata[0].children.length<=0">{{emptytext||$t('kylinLang.common.noData')}}</div>
+  <!-- <div class="empty_text" v-show="showNodeCount==1 || treedata&&treedata[0]&&treedata[0].children.length<=0">{{emptytext||$t('kylinLang.common.noData')}}</div> -->
   </div>
 </template>
 <script>
@@ -234,6 +234,9 @@
       font-size: 12px;
     }
     &>.el-tree-node{
+      &>.el-tree-node__children{
+        margin-bottom: 40px;
+      }
       &>.el-tree-node__content{
         background-color: #e5e9f2;
         border:solid 1px #c0ccda;
