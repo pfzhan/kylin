@@ -160,53 +160,6 @@ color: #000;
 .unselectable {user-select:none;}
 // 通用样式end
 
-// 编辑器皮肤覆盖
-.ace_print-margin {
-  display: none;
-}
-.ace-chrome{
-  background: #393e53!important;
-  border: 1px solid #4a4d5e;
-  border-radius: 5px;
-  .ace_print-margin {
-    display: none;
-  }
-  .ace_gutter{
-    background: #3e425b!important;
-  }
-  .ace_constant.ace_numeric,.ace_string, .ace_support.ace_function{
-    color: #fff!important;
-  }
-  .ace_support.ace_function {
-    color: blue!important;
-  }
-  .ace_support.ace_function {
-    color: orange!important;
-  }
-  .ace_gutter-cell{
-    background: #393e53;
-    color: rgba(255,255,255,0.6);
-    padding-right: 30px;
-  }
-  .ace_content{
-    background: @input-bg;
-    // background: #222;
-    color: rgba(255,255,255,0.6);
-    // font-weight:bolder;
-  }
-  .ace_cursor{
-    color: #fff!important;
-  }
-  .ace_storage,  .ace_keyword, .ace_meta.ace_tag {
-    color:#3cd3ec!important;
-  }
-  color: @fff!important;
-}
-.ace_gutter-layer{
-  background: #444863;
-}
-// 编辑器皮肤覆盖end
-
 
 #nprogress div.bar{background-color: #58b7ff;}
 
@@ -282,6 +235,70 @@ color: #000;
 
 // 13新样式  蓝黑风格皮肤覆盖样式
 .kapApp {
+
+  // 编辑器皮肤覆盖
+  .ace_print-margin {
+    display: none;
+  }
+  .ace_editor.ace_autocomplete {
+    background-color: #4f5473;
+    border:none;
+    color:#fff;
+    font-size: 12px;
+    .ace_rightAlignedText{
+      color: #a5acca;
+    }
+  }
+  .ace_editor.ace_autocomplete .ace_marker-layer .ace_active-line{
+    background-color: #7881aa;
+  }
+  .ace_editor.ace_autocomplete .ace_line-hover { 
+    background-color: #7881aa;
+  }
+  .ace-chrome{
+    background: #393e53!important;
+    border: 1px solid #4a4d5e;
+    border-radius: 5px;
+    .ace_print-margin {
+      display: none;
+    }
+    .ace_gutter{
+      background: #3e425b!important;
+    }
+    .ace_constant.ace_numeric,.ace_string, .ace_support.ace_function{
+      color: #fff!important;
+    }
+    .ace_support.ace_function {
+      color: blue!important;
+    }
+    .ace_support.ace_function {
+      color: orange!important;
+    }
+    .ace_gutter-cell{
+      background: #393e53;
+      color: rgba(255,255,255,0.6);
+      padding-right: 30px;
+    }
+    .ace_content{
+      background: @input-bg;
+      // background: #222;
+      color: rgba(255,255,255,0.6);
+      // font-weight:bolder;
+    }
+    .ace_cursor{
+      color: #fff!important;
+    }
+    .ace_storage,  .ace_keyword, .ace_meta.ace_tag {
+      color:#3cd3ec!important;
+    }
+    color: @fff!important;
+  }
+  .ace_gutter-layer{
+    background: #444863;
+  }
+  // 编辑器皮肤覆盖end
+
+
   background: @bg-total;
   // message
   .el-message {

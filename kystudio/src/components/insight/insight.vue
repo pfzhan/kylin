@@ -350,7 +350,7 @@ export default {
     var setCompleteData = function (data) {
       editor.completers.splice(0, editor.completers.length - 3)
       editor.completers.unshift({
-        identifierRegexps: [/.a-zA-Z_0-9]/],
+        identifierRegexps: [/[.a-zA-Z_0-9]/],
         getCompletions: function (editor, session, pos, prefix, callback) {
           if (prefix.length === 0) {
             return callback(null, data)
