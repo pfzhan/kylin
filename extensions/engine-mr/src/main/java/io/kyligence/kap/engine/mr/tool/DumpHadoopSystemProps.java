@@ -60,7 +60,7 @@ public class DumpHadoopSystemProps implements IKeep {
             System.exit(1);
         }
 
-        String[] cmd = new String[] { "/bin/bash", "hadoop", Inner.class.getName(), tmp.getAbsolutePath(), filters };
+        String[] cmd = new String[] { "hadoop", Inner.class.getName(), tmp.getAbsolutePath(), filters };
         Process proc = Runtime.getRuntime().exec(cmd);
         int code = proc.waitFor();
         if (code != 0)
