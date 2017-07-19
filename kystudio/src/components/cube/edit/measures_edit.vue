@@ -104,7 +104,7 @@
       {{$t('addColumnFamily')}}</el-button>      
   
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
-    <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" v-on:validSuccess="measureValidSuccess"></add_measures>
+    <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">
       <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
@@ -246,8 +246,9 @@ export default {
           _this.$delete(_this.cubeDesc.dictionaries, dictionaryIndex)
         }
       }
-      if (data.measure.function.expression === 'EXTENDED_COLUMN') {
+      if (data.nextParam && data.measure.function.expression === 'EXTENDED_COLUMN') {
         data.measure.function.returntype = 'extendedcolumn(' + data.measure.function.returntype + ')'
+        _this.$set(data.measure.function.parameter, 'next_parameter', data.nextParam)
       }
       if (data.measure.function.expression === 'SUM') {
         if (data.sumMeasure.type === 'bigint') {

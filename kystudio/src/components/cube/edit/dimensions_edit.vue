@@ -81,7 +81,7 @@
       <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
 
 
-      <el-row>
+      <el-row v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           <el-tag class="tag_margin unUseDimension" style="cursor:pointer;font-size:14px;" type="primary" :hit="true">{{$t('dimensions')}}
           </el-tag>

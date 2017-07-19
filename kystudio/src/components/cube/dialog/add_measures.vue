@@ -63,7 +63,7 @@
     </el-form-item>
 
     <el-form-item :label="$t('extendedColumn')"  v-if="measure.function.expression === 'EXTENDED_COLUMN'">
-      <el-select v-model="measure.function.parameter.value" filterable>
+      <el-select v-model="nextParam.value" :placeholder="$t('kylinLang.common.pleaseSelect')" class="input_width" filterable>
         <el-option
           v-for="(item, index) in getAllModelDimColumns()"
           :key="index"
@@ -192,7 +192,7 @@ import { loadBaseEncodings } from '../../../util/business'
 import { objectClone } from '../../../util/index'
 export default {
   name: 'add_measure',
-  props: ['measureDesc', 'modelDesc', 'cubeDesc'],
+  props: ['measureDesc', 'modelDesc', 'cubeDesc', 'measureFormVisible'],
   data () {
     return {
       measure: objectClone(this.measureDesc),
@@ -202,7 +202,13 @@ export default {
       isReuse: false,
       reuseColumn: '',
       isEdit: 'false',
+      firstChange: true,
       convertedColumns: [],
+      nextParam: {
+        'type': 'column',
+        'value': '',
+        'next_parameter': null
+      },
       sumMeasure: {
         type: '',
         value: {
@@ -320,46 +326,47 @@ export default {
       return columns
     },
     initExtendedColumn: function () {
-      let _this = this
-      _this.convertedColumns.splice(0, _this.convertedColumns.length)
-      if (_this.measure.function.expression === 'EXTENDED_COLUMN') {
-        let returnValue = (/\((\d+)(,\d+)?\)/).exec(_this.measure.function.returntype)
-        _this.measure.function.returntype = returnValue[1]
+      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+        this.$nextTick(() => {
+          this.nextParam.value = this.measure.function.parameter.next_parameter.value || ''
+          let returnValue = /\((\d+)\)/.exec(this.measure.function.returntype)
+          this.measure.function.returntype = returnValue[1]
+        })
       }
     },
     initSumColumn: function () {
-      let _this = this
-      this.$nextTick(() => {
-        if (_this.measure.function.expression === 'SUM' && _this.measure.function.parameter.type === 'column') {
-          let returnValue = _this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
+      this.convertedColumns.splice(0, this.convertedColumns.length)
+      if (this.measure.function.expression === 'SUM' && this.measure.function.parameter.type === 'column') {
+        this.$nextTick(() => {
+          let returnValue = this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
           if (returnValue) {
-            _this.sumMeasure.type = 'decimal'
-            _this.sumMeasure.value.precision = returnValue[1]
-            _this.sumMeasure.value.decimalPlace = returnValue[2]
-            console.log(_this.sumMeasure.value.precision, _this.sumMeasure.value.decimalPlace, 11111)
+            this.sumMeasure.type = 'decimal'
+            this.sumMeasure.value.precision = returnValue[1]
+            this.sumMeasure.value.decimalPlace = returnValue[2]
           } else {
-            _this.sumMeasure.type = 'bigint'
+            this.sumMeasure.type = 'bigint'
           }
-        }
-      })
+        })
+      }
     },
     initCountDistinctColumn: function () {
-      let _this = this
-      if (_this.measure.function.expression === 'COUNT_DISTINCT') {
-        if (_this.cubeDesc.dictionaries) {
-          _this.cubeDesc.dictionaries.forEach(function (dictionary) {
-            if (dictionary.reuse && dictionary.column === _this.measure.function.parameter.value) {
-              _this.reuseColumn = dictionary.reuse
-              _this.isReuse = true
-            } else {
-              _this.isReuse = false
-              _this.reuseColumn = ''
-            }
-          })
-        }
-        if (_this.measure.function.parameter.next_parameter) {
-          this.recursion(_this.measure.function.parameter.next_parameter, this.convertedColumns)
-        }
+      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+        this.$nextTick(() => {
+          if (this.cubeDesc.dictionaries) {
+            this.cubeDesc.dictionaries.forEach((dictionary) => {
+              if (dictionary.reuse && dictionary.column === this.measure.function.parameter.value) {
+                this.reuseColumn = dictionary.reuse
+                this.isReuse = true
+              } else {
+                this.isReuse = false
+                this.reuseColumn = ''
+              }
+            })
+          }
+          if (this.measure.function.parameter.next_parameter) {
+            this.recursion(this.measure.function.parameter.next_parameter, this.convertedColumns)
+          }
+        })
       }
     },
     getCountDistinctBitMapColumn: function () {
@@ -374,21 +381,22 @@ export default {
       return columns
     },
     initGroupByColumn: function () {
-      let _this = this
-      if (_this.measure.function.configuration && _this.measure.function.expression === 'TOP_N') {
-        let returnValue = (/\((\d+)(,\d+)?\)/).exec(_this.measure.function.returntype)
-        _this.measure.function.returntype = 'topn(' + returnValue[1] + ')'
-        if (_this.measure.function.parameter.next_parameter) {
-          _this.recursion(_this.measure.function.parameter.next_parameter, this.convertedColumns)
-          this.convertedColumns.forEach(function (column) {
-            let item = _this.measure.function.configuration['topn.encoding.' + column.column]
-            let _encoding = _this.getEncoding(item)
-            let _valueLength = _this.getLength(item)
-            let version = _this.measure.function.configuration['topn.encoding_version.' + column.column] || 1
-            _this.$set(column, 'encoding', _encoding + ':' + version)
-            _this.$set(column, 'valueLength', _valueLength)
-          })
-        }
+      if (this.measure.function.configuration && this.measure.function.expression === 'TOP_N') {
+        this.$nextTick(() => {
+          let returnValue = (/\((\d+)(,\d+)?\)/).exec(this.measure.function.returntype)
+          this.measure.function.returntype = 'topn(' + returnValue[1] + ')'
+          if (this.measure.function.parameter.next_parameter) {
+            this.recursion(this.measure.function.parameter.next_parameter, this.convertedColumns)
+            this.convertedColumns.forEach((column) => {
+              let item = this.measure.function.configuration['topn.encoding.' + column.column]
+              let _encoding = this.getEncoding(item)
+              let _valueLength = this.getLength(item)
+              let version = this.measure.function.configuration['topn.encoding_version.' + column.column] || 1
+              this.$set(column, 'encoding', _encoding + ':' + version)
+              this.$set(column, 'valueLength', _valueLength)
+            })
+          }
+        })
       }
     },
     changeEncoding (row) {
@@ -475,19 +483,19 @@ export default {
       }
     },
     changeExpression: function () {
-      if (this.measure.function.expression === 'TOP_N') {
+      if (!this.firstChange && this.measure.function.expression === 'TOP_N') {
         this.measure.function.returntype = 'topn(100)'
       }
-      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+      if (!this.firstChange && this.measure.function.expression === 'COUNT_DISTINCT') {
         this.measure.function.returntype = 'hllc(10)'
       }
-      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
+      if (!this.firstChange && this.measure.function.expression === 'EXTENDED_COLUMN') {
         this.measure.function.returntype = '100'
       }
-      if (this.measure.function.expression === 'EXTENDED_COLUMN') {
-        this.measure.function.returntype = 100
+      if (!this.firstChange && this.measure.function.expression === 'PERCENTILE') {
+        this.measure.function.returntype = 'percentile(100)'
       }
-      if (this.measure.function.expression === 'SUM') {
+      if (!this.firstChange && this.measure.function.expression === 'SUM') {
         if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
           let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
           if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
@@ -503,10 +511,11 @@ export default {
             }
           }
         }
-        if (this.measure.function.parameter.value === 1 && this.measure.function.expression !== 'SUM' && this.measure.function.expression !== 'COUNT') {
+        if (this.measure.function.parameter.value === 1 && this.measure.function.expression !== 'SUM' && this.measure.function.expression !== 'COUNT' && this.measure.function.expression !== 'TOP_N') {
           this.measure.function.parameter.value = ''
         }
       }
+      this.firstChange = false
     },
     changeParamValue: function () {
       if (this.measure.function.expression === 'SUM' && this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
@@ -523,7 +532,6 @@ export default {
             this.sumMeasure.value.decimalPlace = 0
           }
         }
-        console.log(this.sumMeasure.value.precision, this.sumMeasure.value.decimalPlace, 2345432)
       }
     },
     initHiddenFeature: function () {
@@ -631,8 +639,9 @@ export default {
     }
   },
   watch: {
-    measureDesc (measureDesc) {
+    measureFormVisible (measureFormVisible) {
       this.measure = objectClone(this.measureDesc)
+      this.firstChange = true
       this.inModelDimensions()
       this.initHiddenFeature()
       this.initSumColumn()
@@ -652,7 +661,7 @@ export default {
     this.$on('measureFormValid', (t) => {
       _this.$refs['measureForm'].validate((valid) => {
         if (valid) {
-          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, sumMeasure: _this.sumMeasure})
+          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, sumMeasure: _this.sumMeasure, nextParam: _this.nextParam})
         }
       })
     })
