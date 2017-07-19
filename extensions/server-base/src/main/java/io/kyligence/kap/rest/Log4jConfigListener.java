@@ -50,6 +50,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
     public Log4jConfigListener() {
         KapConfig config = KapConfig.getInstanceFromEnv();
         this.isDebugTomcat = config.isDevEnv();
+        
     }
 
     @Override
@@ -59,6 +60,7 @@ public class Log4jConfigListener extends org.springframework.web.util.Log4jConfi
         }
         licenseLog = LoggerFactory.getLogger("License");
         gatherLicenseInfo();
+        System.setProperty("needCheckCC", "true");
     }
 
     @Override
