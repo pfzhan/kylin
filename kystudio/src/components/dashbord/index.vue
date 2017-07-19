@@ -187,7 +187,9 @@ export default {
   },
   created () {
     var params = {pageSize: 1, pageOffset: 0}
-    this.loadProjects()
+    this.loadProjects({
+      ignoreAccess: true
+    })
     this.getCubesList(params)
     this.loadModels(params)
     this.loadUsersList(params)

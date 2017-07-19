@@ -50,9 +50,11 @@ export default {
       return api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
         // 加载project所有的权限
         var pl = response.data.data.projects && response.data.data.projects.length || 0
-        for (var i = 0; i < pl; i++) {
-          dispatch(types.GET_PROJECT_ACCESS, response.data.data.projects[i].uuid)
-          dispatch(types.GET_PROJECT_END_ACCESS, response.data.data.projects[i].uuid)
+        if (!(params && params.ignoreAccess)) {
+          for (var i = 0; i < pl; i++) {
+            dispatch(types.GET_PROJECT_ACCESS, response.data.data.projects[i].uuid)
+            dispatch(types.GET_PROJECT_END_ACCESS, response.data.data.projects[i].uuid)
+          }
         }
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
       })

@@ -548,6 +548,7 @@ export default {
 }
 </script>
 <style lang="less">
+@import '../../less/config.less';
 .jobs_list {
   .el-dialog__title{
     font-size: 14px!important;
@@ -568,7 +569,7 @@ export default {
     top: 0px;
     bottom: 0;
     width: 4px;
-    background: #ddd;
+    background: #71779d;
     left: 13px;
     margin: 0;
     border-radius: 2px;
@@ -588,11 +589,16 @@ export default {
     clear: both;
   }
   .timeline > li > .timeline-item {
+    .el-button {
+      background: @grey-color;
+    }
+  }
+  .timeline > li > .timeline-item {
     position: relative;
     margin-top: 0px;
     margin-left: 60px;
     padding: 0;
-    background: #fff;
+    background: @grey-color;
     color: #444;
     border-radius: 3px;
   }
@@ -650,7 +656,7 @@ export default {
     bottom: 0;
     content: '';
     width: 4px;
-    background: #fff;
+    background: #71779d;
   }
   .bg-blue {
     background-color: #0073b7 !important;
@@ -658,7 +664,7 @@ export default {
 
   .bg-gray {
     color: #000;
-    background-color: #d2d6de !important;
+    background-color: #71779d !important;
   }
   .bg-red {
     background-color: #dd4b39 !important;
@@ -680,7 +686,7 @@ export default {
      margin-bottom: 20px;
   }
   .card-width {
-    width: 40%;
+    width: 30%;
   }
   .job-step {
     z-index: 100;
@@ -699,7 +705,7 @@ export default {
   .table-bordered {
       border-collapse: collapse;
       font-size:14px;
-      tr:first-child {background: #eef1f6;}
+      tr:first-child {background: transparent;color:@fff;}
       th,
       td {font-size:14px;
         padding:8px 18px;
@@ -729,7 +735,7 @@ export default {
   .table_margin .el-icon-arrow-right {position:absolute;left:20px;top:50%;transform:translate(0,-50%);font-size:12px;}
   .el-checkbox-group {margin-top:7px;}
   .single-line {max-width: 140px;}
-  .blue {color: #20a0ff;}
+  .blue {color: #fff;}
   .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #ddd;}
   .timeline {
     .timeline-header .single-line.stepname {max-width:none;font-size:14px;}

@@ -7,7 +7,16 @@ body{
     -webkit-font-smoothing: antialiased;
     color: @fff;
 }
-
+a{cursor: pointer;}
+a:link{color:@base-color;text-decoration:none;}
+a:-webkit-any-link{color:@base-color;text-decoration:none;}
+a:visited{color:@base-color;text-decoration:none;}
+a:hover{text-decoration: underline;color:@base-color;}
+a:active{color:@base-color;text-decoration:none;}
+li {list-style-type:none;}
+.clear {
+  clear: both;
+}
 // 滚动条优化
 // chrome
 ::-webkit-scrollbar
@@ -32,11 +41,6 @@ body{
     background-color: #383838;
     -webkit-border-radius: 6px;
 }
-// firefox
-// [data-scrollbar] .scroll-content, [scrollbar] .scroll-content, scrollbar .scroll-content {
-//   transform:none!important;
-//   -webkit-transform:none!important;
-// }
 // IE
 body {   
 scrollbar-base-color: #2f3243;   
@@ -61,7 +65,9 @@ color: #000;
 -ms-input-placeholder { /* Internet Explorer 10+ */ 
 color: #000; 
 } 
-//common css
+// 滚动条样式end
+
+//通用样式 start
 .generate-attr(@n,@attr, @attrName, @i: 1,@k:@i*2) when (@i =< @n) {
   .@{attr}-@{k} {
     @{attrName}:@i*2px!important;
@@ -146,25 +152,18 @@ color: #000;
 .ksd-extend-tips { 
   color: rgb(144, 149, 171);
 }
-a{cursor: pointer;}
-a:link{color:@base-color;text-decoration:none;}
-a:-webkit-any-link{color:@base-color;text-decoration:none;}
-a:visited{color:@base-color;text-decoration:none;}
-a:hover{text-decoration: underline;color:@base-color;}
-a:active{color:@base-color;text-decoration:none;}
-li {list-style-type:none;}
-.clear {
-  clear: both;
-}
 .el-table{
   .cell {
     word-break:normal!important;
   }
 }
+.unselectable {user-select:none;}
+// 通用样式end
+
 // 编辑器皮肤覆盖
- .ace_print-margin {
-    display: none;
-  }
+.ace_print-margin {
+  display: none;
+}
 .ace-chrome{
   background: #393e53!important;
   border: 1px solid #4a4d5e;
@@ -206,8 +205,11 @@ li {list-style-type:none;}
 .ace_gutter-layer{
   background: #444863;
 }
+// 编辑器皮肤覆盖end
+
+
 #nprogress div.bar{background-color: #58b7ff;}
-.unselectable {user-select:none;}
+
 // kystudio  border型tab
 .ksd-border-tab {
    .el-tabs--border-card{
@@ -278,7 +280,7 @@ li {list-style-type:none;}
   }
 }
 
-// 13新样式
+// 13新样式  蓝黑风格皮肤覆盖样式
 .kapApp {
   background: @bg-total;
   // message
@@ -812,28 +814,6 @@ li {list-style-type:none;}
   .el-table__row:hover td{
     background: @bg-top!important;
   }
-  .jobs_list{
-    .card-width{
-      width: 30%;
-    }
-    .bg-gray{
-      background: #71779d!important;
-    }
-  }
-  .jobs_list .table-bordered tr:first-child{
-    background: transparent;
-    color: @fff;
-  }
-  .jobs_list .blue{
-    color: @fff;
-  }
-  .jobs_list .timeline > li > .timeline-item *{
-    background: @grey-color;
-    // color: @fff;
-  }
-  .insight_box .query_result_box{
-    border: 0;
-  }
   .el-tabs--card{
     .el-tabs__header{
       border-color: @grey-color;
@@ -980,13 +960,6 @@ li {list-style-type:none;}
   padding-top: 5px!important;
   overflow: auto;
   overflow-x: hidden;
-}
-.tree_box{
-  .el-input__inner{
-    border: 0;
-    border-radius: 20px;
-    text-indent: 10px;
-  }
 }
 .kapApp .cell .el-dropdown .el-button{
   border: 0;
@@ -1147,10 +1120,4 @@ tr.current-row > td{
     height: 32px!important;
     line-height: 32px!important;
   }
-}
-.jobs_list .timeline:before{
-  background: #71779d!important;
-}
-.jobs_list .timeline li:last-child:before{
-  background: #71779d!important;
 }

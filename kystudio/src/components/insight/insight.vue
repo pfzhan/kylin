@@ -506,7 +506,7 @@ export default {
       }
     }
     .query_result_box{
-      border-top: solid 1px #d1dbe5;
+      border: 0;
       h3{
         margin: 20px;
       }

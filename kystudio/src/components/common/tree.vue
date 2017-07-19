@@ -188,6 +188,11 @@
     display: block;
     margin: 4px auto;
   }
+  .el-input__inner{
+    border: 0;
+    border-radius: 20px;
+    text-indent: 10px;
+  }
   .sublabel {
     color:#9da3b3;
     font-style: italic;
