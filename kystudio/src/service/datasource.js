@@ -18,7 +18,7 @@ export default {
     return Vue.resource(apiUrl + 'tables/hive/' + database).get()
   },
   loadHiveInProject: (para) => {
-    return Vue.resource(apiUrl + 'table_ext/' + para.tables + '/' + para.project).save(para.data)
+    return Vue.resource(apiUrl + 'table_ext/' + 'any/' + para.project).save(para.data)
   },
   unLoadHiveInProject: (data) => {
     return Vue.resource(apiUrl + 'table_ext/' + data.tables + '/' + data.project).delete()

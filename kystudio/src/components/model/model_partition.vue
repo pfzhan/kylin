@@ -9,7 +9,7 @@
              <el-select v-model="checkPartition.date_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode || actionMode==='view'">
               <el-option
                 v-for="(key,value) in dateColumns"
-                :key="value"
+                :key="key+''"
                 :label="value"
                 :value="value">
               </el-option>
@@ -50,7 +50,7 @@
           <el-select v-model="checkPartition.time_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
             <el-option
               v-for="(key,value) in timeColumns"
-              :key="value"
+              :key="key+''"
               :label="value"
               :value="value">
             </el-option>

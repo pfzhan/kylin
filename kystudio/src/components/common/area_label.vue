@@ -8,6 +8,8 @@
     :disabled='disabled'
     multiple
     filterable
+    remote
+    :remote-method="remoteMethod"
     :allow-create='allowcreate'
     :popper-class="changeable"
     :placeholder="placeholder">
@@ -27,7 +29,8 @@ export default {
   data () {
     return {
       selectedL: this.selectedlabels,
-      tags: []
+      tags: [],
+      query: ''
     }
   },
   computed: {
@@ -51,43 +54,19 @@ export default {
     }
   },
   methods: {
+    remoteMethod (query) {
+      this.query = query
+    },
     change (e) {
       this.$nextTick(() => {
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         this.$emit('change')
-        // 处理单独录入的情况 start
-        if (this.allowcreate) {
-          var result = []
-          // 分隔符
-          var regOfSeparate = /[,;$|]/
-          var refOfAllowChar = /[^\w.,;$|]/g
-          // 只有分隔符
-          var regJustSeparate = /(^[,;$|]+$)|([,;$|]+$)|(^[,;$|]+)/g
-          var needRefresh = false
-          e.forEach((item) => {
-            item = item.replace(refOfAllowChar, '').replace(regJustSeparate, '')
-            if (item && regOfSeparate.test(item)) {
-              needRefresh = true
-              Array.prototype.push.apply(result, item.split(regOfSeparate))
-            } else if (item) {
-              result.push(item)
-            } else {
-              needRefresh = true
-            }
-          })
-          // 添加默认的datasource
-          result = result.map((table) => {
-            if (!/^\w+\.\w+$/.test(table)) {
-              needRefresh = true
-              return 'default.' + table
-            }
-            return table
-          })
-          if (needRefresh) {
-            this.selectedL = result
-          }
+        if (e.length > 0 && !/^\w+\.\w+$/.test(e[e.length - 1])) {
+          var result = this.filterCreateTag(e[e.length - 1])
+          this.selectedL.splice(this.selectedL.length - 1, 1)
+          this.selectedL = this.selectedL.concat(result)
+          this.selectedL = [...new Set(this.selectedL)]
         }
-        // 处理单独录入的情况end
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
       })
@@ -95,10 +74,6 @@ export default {
     bindTagClick () {
       this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
       this.tags.forEach(tag => {
-        // tag.removeEventListener('click', e => {
-        //   e.stopPropagation()
-        //   this.selectTag(e)
-        // })
         tag.addEventListener('click', e => {
           e.stopPropagation()
           this.selectTag(e)
@@ -120,9 +95,50 @@ export default {
       if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
         this.$emit('checklabel', target.innerText, target)
       }
+    },
+    filterCreateTag (item) {
+      var result = []
+      // 分隔符
+      var regOfSeparate = /[,;$|]/
+      var refOfAllowChar = /[^\w.,;$|]/g
+      // 只有分隔符
+      var regJustSeparate = /(^[,;$|]+$)|([,;$|]+$)|(^[,;$|]+)/g
+      //  多个分隔符
+      var moreSeparate = /([,;$|])+/g
+      // var needRefresh = false
+      item = item.replace(refOfAllowChar, '').replace(regJustSeparate, '').replace(moreSeparate, '$1')
+      if (item && regOfSeparate.test(item)) {
+        Array.prototype.push.apply(result, item.split(regOfSeparate))
+      } else if (item) {
+        result.push(item)
+      }
+      // 添加默认的datasource
+      result = result.map((table) => {
+        if (!/^\w+\.\w+$/.test(table)) {
+          return 'default.' + table
+        } else {
+          return table
+        }
+      })
+      return result
     }
   },
   mounted () {
+    this.$refs.select.$refs.input.onkeydown = (ev) => {
+      ev = ev || window.event
+      if (ev.keyCode !== 13) {
+        return
+      }
+      // 处理单独录入的情况 start
+      if (this.allowcreate && this.query) {
+        var result = this.filterCreateTag(this.query)
+        this.selectedL = this.selectedL.concat(result)
+        this.selectedL = [...new Set(this.selectedL)]
+        this.$refs.select.$refs.input.value = ''
+        this.$refs.select.$refs.input.click()
+      }
+      // 处理单独录入的情况end
+    }
     this.bindTagClick()
   }
 }

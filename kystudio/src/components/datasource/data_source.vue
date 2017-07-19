@@ -196,7 +196,8 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :labels="selectTables" @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel  @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+        <p class="ksd-mt-10 ksd-extend-tips">{{$t('loadHiveTip')}}</p>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
@@ -867,8 +868,8 @@ export default {
     }
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!'}
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入。系统默认使用‘Default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载Y张表。输入完成后按回车键。'},
+    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually. By default, system will choose "Default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load Y tables once as maximum . press enter after input .'}
   }
 }
 </script>
@@ -1052,6 +1053,22 @@ export default {
 #data-source-search{
   .el-input__inner{
     border-color: #7881aa;
+  }
+}
+.load_hive_dialog {
+  .el-dialog__body{
+    padding-top: 0;
+    padding-left: 0;
+  }
+  .el-select{
+    max-height: 232px;
+  }
+  .el-select__tags {
+    max-height: 232px;
+    max-width: 100%!important;
+    overflow-y: auto;
+    overflow-x: hidden;
+
   }
 }
 #datasource{
