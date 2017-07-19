@@ -116,7 +116,7 @@ public class TableExtController extends BasicController {
         throw new BadRequestException(msg.getJOB_INSTANCE_NOT_FOUND());
     }
 
-    @RequestMapping(value = "/{tables}/{project}", method = { RequestMethod.POST }, produces = {
+    @RequestMapping(value = "/{project}/load", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse loadHiveTable(@RequestBody ExtTableRequest request) throws Exception {
