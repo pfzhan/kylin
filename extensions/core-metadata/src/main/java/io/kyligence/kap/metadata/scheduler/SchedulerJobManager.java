@@ -56,6 +56,7 @@ public class SchedulerJobManager {
     private SchedulerJobManager(KylinConfig config) throws IOException {
         logger.info("Initializing BadQueryHistoryManager with config " + config);
         this.kylinConfig = config;
+        loadAllSchedulerJobInstance();
     }
 
     public static SchedulerJobManager getInstance(KylinConfig config) {
@@ -112,7 +113,18 @@ public class SchedulerJobManager {
     }
 
     public synchronized SchedulerJobInstance reloadSchedulerJobLocal(String name) {
-        return reloadSchedulerJobLocalAt(concatResourcePath(name));
+        ResourceStore store = getStore();
+        SchedulerJobInstance job;
+
+        try {
+            job = store.getResource(concatResourcePath(name), SchedulerJobInstance.class,
+                    SCHEDULER_JOB_INSTANCE_SERIALIZER);
+        } catch (Exception e) {
+            logger.error("Error during load scheduler job instance " + name, e);
+            return null;
+        }
+
+        return job;
     }
 
     private synchronized SchedulerJobInstance reloadSchedulerJobLocalAt(String path) {
