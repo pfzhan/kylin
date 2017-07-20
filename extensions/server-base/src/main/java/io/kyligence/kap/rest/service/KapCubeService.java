@@ -106,20 +106,19 @@ public class KapCubeService extends BasicService {
         if (raw != null) {
             List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw,
                     segment.getDateRangeStart(), segment.getDateRangeEnd());
-            if (rawSegs.size() != 1)
-                throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_ONE());
+            if (rawSegs.size() != 0) {
+                String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
+                columnarResp.setRawTableSegmentPath(rawSegmentDir);
 
-            String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
-            columnarResp.setRawTableSegmentPath(rawSegmentDir);
-
-            if (fs.exists(new Path(rawSegmentDir))) {
-                ContentSummary cs = fs.getContentSummary(new Path(rawSegmentDir));
-                columnarResp.setRawTableFileCount(cs.getFileCount());
-                // FIXME: We should store correct size info in segment metadata
-                columnarResp.setRawTableStorageSize(cs.getLength());
-            } else {
-                columnarResp.setRawTableFileCount(0);
-                columnarResp.setRawTableStorageSize(0L);
+                if (fs.exists(new Path(rawSegmentDir))) {
+                    ContentSummary cs = fs.getContentSummary(new Path(rawSegmentDir));
+                    columnarResp.setRawTableFileCount(cs.getFileCount());
+                    // FIXME: We should store correct size info in segment metadata
+                    columnarResp.setRawTableStorageSize(cs.getLength());
+                } else {
+                    columnarResp.setRawTableFileCount(0);
+                    columnarResp.setRawTableStorageSize(0L);
+                }
             }
         }
 
