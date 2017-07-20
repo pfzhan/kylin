@@ -42,6 +42,7 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.SourceFactory;
@@ -53,7 +54,7 @@ public class ModelDiagnose {
     private static final Logger logger = LoggerFactory.getLogger(ModelDiagnose.class);
 
     private static final long FACT_SKEW_THRESHOLD = KapConfig.getInstanceFromEnv().getJointDataSkewThreshold();
-    private static final float FLAT_TABLE_RECORDS_RATION = 0.01F;
+    private static final float FLAT_TABLE_RECORDS_RATIO = 0.01F;
     private static final float LEFT_JOIN_NULL_TOLERANCE = 0.1F;
     private static final float DUPLICATION_TOLERANCE = 0.1F;
     private static final int DUPLICATION_THRESHOLD = 10;
@@ -69,13 +70,19 @@ public class ModelDiagnose {
         List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
         MetadataManager metadataManager = MetadataManager.getInstance(config);
         List<String> tables = new ArrayList<>();
-        for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
+
+        for (TableRef tblRef : dataModelDesc.getLookupTables()) {
+            JoinTableDesc fTable = getJoinTableDesc(tblRef, dataModelDesc.getJoinTables());
+
+            if (fTable == null)
+                throw new IllegalArgumentException("Lookup table: " + tblRef.getTableName() + " has no JoinTableDesc.");
+
             String tableName = fTable.getTable();
+
             if (tables.contains(tableName))
                 continue;
-            else {
+            else
                 tables.add(tableName);
-            }
             TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable(), dataModelDesc.getProject());
             List<TblColRef> primaryKeys = new ArrayList<>();
             primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
@@ -86,6 +93,14 @@ public class ModelDiagnose {
         }
         modelStats.setDuplicatePrimaryKeys(dupPKList);
         ModelStatsManager.getInstance(config).saveModelStats(modelStats);
+    }
+
+    private static JoinTableDesc getJoinTableDesc(TableRef tbl, JoinTableDesc[] joinTableDescs) {
+        for (JoinTableDesc joinTableDesc : joinTableDescs) {
+            if (joinTableDesc.getTableRef() == tbl)
+                return joinTableDesc;
+        }
+        return null;
     }
 
     private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns,
@@ -169,8 +184,10 @@ public class ModelDiagnose {
             throws IOException {
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-        TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName, dataModelDesc.getProject());
-        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(factTableName, dataModelDesc.getProject());
+        TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName,
+                dataModelDesc.getProject());
+        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(factTableName,
+                dataModelDesc.getProject());
         if (tableExtDesc.getColumnStats().size() == 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;
@@ -231,7 +248,8 @@ public class ModelDiagnose {
     public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config)
             throws IOException {
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
-        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName, modelDesc.getProject()).getTotalRows();
+        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName, modelDesc.getProject())
+                .getTotalRows();
         if (countFact <= 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;
@@ -239,7 +257,7 @@ public class ModelDiagnose {
 
         List<ModelStats.JoinResult> joinResults = new ArrayList<>();
         long countAfterJoin = modelStats.getCounter();
-        if ((float) countAfterJoin / (float) countFact < FLAT_TABLE_RECORDS_RATION) {
+        if ((float) countAfterJoin / (float) countFact < FLAT_TABLE_RECORDS_RATIO) {
             logger.warn("The records of model's flat table is too few, please check the join details");
             ModelStats.JoinResult joinResult = new ModelStats.JoinResult();
             joinResult.setJoinResultValidCount(countAfterJoin);
