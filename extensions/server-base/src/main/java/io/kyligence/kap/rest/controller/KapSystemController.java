@@ -35,6 +35,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -42,10 +44,14 @@ import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.multipart.MultipartFile;
 
+import io.kyligence.kap.rest.LicenseGatherUtil;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.service.LicenseInfoService;
@@ -62,8 +68,65 @@ public class KapSystemController extends BasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listLicense() {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+    }
+
+    @RequestMapping(value = "/license/file", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse uploadLisense(@RequestParam("file") MultipartFile uploadfile) throws IOException {
+
+        if (uploadfile.isEmpty()) {
+            throw new IllegalArgumentException("please select a file");
+        }
+
+        byte[] bytes = uploadfile.getBytes();
+        updateLicense(bytes);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+    }
+
+    //either content or file is okay
+    @RequestMapping(value = "/license/content", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse uploadLisense(@RequestBody String licenseContent) throws IOException {
+
+        byte[] bytes = null;
+
+        if (!StringUtils.isEmpty(licenseContent)) {
+            bytes = licenseContent.getBytes("UTF-8");
+        }
+
+        if (bytes == null)
+            throw new IllegalArgumentException("license content is empty");
+
+        updateLicense(bytes);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
+    }
+
+    private void updateLicense(byte[] bytes) throws IOException {
+
+        checkLicense(bytes);
+
+        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
+        File licenseFile = new File(kylinHome, "LICENSE");
+        if (licenseFile.exists()) {
+            File licenseBackFile = new File(kylinHome, "LICENSE.backup");
+            if (licenseBackFile.exists())
+                FileUtils.forceDelete(licenseBackFile);
+            FileUtils.copyFile(licenseFile, licenseBackFile);
+            FileUtils.forceDelete(licenseFile);
+        }
+        FileUtils.writeByteArrayToFile(licenseFile, bytes);
+
+        //refresh license
+        LicenseGatherUtil.gatherLicenseInfo(LicenseGatherUtil.getDefaultLicenseFile(),
+                LicenseGatherUtil.getDefaultCommitFile(), null);
+    }
+
+    private void checkLicense(byte[] bytes) {
     }
 
     @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = {
@@ -81,7 +144,7 @@ public class KapSystemController extends BasicController {
         KapMessage msg = KapMsgPicker.getMsg();
 
         try (InputStream fileInputStream = new FileInputStream(downloadFile);
-                OutputStream output = response.getOutputStream();) {
+                OutputStream output = response.getOutputStream()) {
             response.reset();
             response.setContentType("application/octet-stream");
             response.setContentLength((int) (downloadFile.length()));

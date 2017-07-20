@@ -99,25 +99,38 @@
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
+        <bean id="requestResponseLoggingFilter"
+              class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
     </beans>
     <beans profile="testing">
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache-test.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
+        <bean id="requestResponseLoggingFilter"
+              class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
     </beans>
     <beans profile="debug-ldap,debug-saml">
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.RequestResponseLoggingFilter"/>
+        <bean id="requestResponseLoggingFilter"
+              class="io.kyligence.kap.rest.spring.RequestResponseLoggingFilter"/>
     </beans>
     <beans profile="debug-testing">
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache-test.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.RequestResponseLoggingFilter"/>
+        <bean id="requestResponseLoggingFilter"
+              class="io.kyligence.kap.rest.spring.RequestResponseLoggingFilter"/>
+    </beans>
+
+    <beans>
+        <bean id="multipartResolver"
+              class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+            <property name="maxUploadSize" value="2147483648"/>
+            <property name="defaultEncoding" value="UTF-8"/>
+            <property name="resolveLazily" value="true"/>
+        </bean>
     </beans>
 
 </beans>
