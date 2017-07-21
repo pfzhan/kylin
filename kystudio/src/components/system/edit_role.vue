@@ -1,5 +1,5 @@
 <template>
-  <el-form :model="userDetail" label-position="top"  ref="addUserForm">
+  <el-form :model="userDetail" label-position="top"  ref="editRoleForm">
     <el-form-item :label="$t('username')">
       <el-tag
        type="primary"

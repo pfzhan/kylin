@@ -54,11 +54,11 @@
             <i class="el-icon-more"></i>
           </el-button >
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="edit(scope.row)">{{$t('editRole')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.username!=='ADMIN'" @click.native="edit(scope.row)">{{$t('editRole')}}</el-dropdown-item>
             <el-dropdown-item @click.native="reset(scope.row)">{{$t('resetPassword')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="drop(scope.row.username, scope.row.$index)">{{$t('drop')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="changeStatus(scope.row)" v-if="scope.row.disabled">{{$t('enable')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="changeStatus(scope.row)" v-else>{{$t('disable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.username!=='ADMIN'" @click.native="drop(scope.row.username, scope.row.$index)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.username!=='ADMIN'" @click.native="changeStatus(scope.row)" v-if="scope.row.disabled">{{$t('enable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.username!=='ADMIN'" @click.native="changeStatus(scope.row)" v-else>{{$t('disable')}}</el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
       </template>
@@ -88,6 +88,20 @@
       <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
     </div>
   </el-dialog>
+
+  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false">
+    <el-alert style="margin-bottom:10px;"
+      :title="$t('refinePassword')"
+      type="info" 
+      :closable="false"
+      show-icon>
+    </el-alert>
+    <reset_password  :curUser="adminSetting" ref="resetPassword" v-on:validSuccess="resetPasswordValidSuccess">
+    </reset_password>
+    <div slot="footer" class="dialog-footer">
+      <el-button type="primary" @click="checkResetPasswordForm">{{$t('yes')}}</el-button>
+    </div>
+  </el-dialog>
 </div>
 </template>
 
@@ -100,13 +114,24 @@ import resetPassword from './reset_password'
 import { pageCount } from '../../config'
 export default {
   name: 'userslist',
+  props: ['fromLogin'],
   data () {
     return {
       selected_user: {},
       addUserFormVisible: false,
       editRoleFormVisible: false,
       resetPasswordFormVisible: false,
-      currentPage: 1
+      currentPage: 1,
+      resetAdmin: this.fromLogin,
+      adminSetting: {
+        username: 'Admin',
+        password: '',
+        disabled: false,
+        admin: true,
+        modeler: true,
+        analyst: true,
+        confirmPassword: ''
+      }
     }
   },
   components: {
@@ -258,10 +283,11 @@ export default {
           type: 'success',
           message: this.$t('kylinLang.common.updateSuccess')
         })
+        this.resetPasswordFormVisible = false
+        this.resetAdmin.needReset = false
       }).catch((result) => {
         handleError(result)
       })
-      this.resetPasswordFormVisible = false
     }
   },
   computed: {
@@ -301,8 +327,8 @@ export default {
     this.loadUsersList({pageSize: pageCount, pageOffset: this.currentPage - 1})
   },
   locales: {
-    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.'},
-    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。'}
+    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.', refinePassword: ' Please redefine ADMIN\'s password while you login at the very first time.'},
+    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。', refinePassword: '为了保证系统安全，首次登录后请重置ADMIN密码。'}
   }
 }
 </script>

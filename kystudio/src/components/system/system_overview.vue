@@ -2,10 +2,10 @@
   <div class="system_box paddingbox ksd-common-tab">
     <el-tabs v-model="activeName" type="card"  @tab-click="handleClick">
       <el-tab-pane :label="$t('system')" name="config">
-        <system></system>
+        <system ></system>
       </el-tab-pane>
       <el-tab-pane :label="$t('user')" name="user">
-       <users></users>
+       <users :fromLogin="fromLogin"></users>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -16,7 +16,8 @@ import system from './system'
 export default {
   data () {
     return {
-      activeName: 'system'
+      activeName: 'system',
+      fromLogin: {needReset: false}
     }
   },
   components: {
@@ -37,6 +38,15 @@ export default {
     var subRouter = hash.replace(/.*\/(.*)$/, '$1')
     if (subRouter === 'user' || subRouter === 'config') {
       this.activeName = subRouter
+    }
+  },
+  beforeRouteEnter (to, from, next) {
+    if (from.path === '/access/login') {
+      next(vm => {
+        vm.$set(vm.fromLogin, 'needReset', true)
+      })
+    } else {
+      next()
     }
   }
 }
