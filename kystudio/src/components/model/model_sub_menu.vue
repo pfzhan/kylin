@@ -2,13 +2,19 @@
 	<div class="sub_menu">
     <el-tabs v-model="subMenu" @tab-click="handleClick" class="el-tabs--default">
       <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource">
-        <component is="dataSource" v-on:addtabs="addTab" ref="datsources" v-if="subMenu === 'datasource'"></component>
+        <div v-if="subMenu === 'datasource'">
+          <component is="dataSource" v-on:addtabs="addTab" ref="datsources" ></component>
+        </div>
       </el-tab-pane>
       <el-tab-pane :label="$t('kylinLang.common.model')" name="model">
-        <component is="modelList" v-on:addtabs="addTab" ref="models" v-if="subMenu === 'model'"></component>
+        <div v-if="subMenu === 'model'">
+          <component is="modelList" v-on:addtabs="addTab" ref="models" ></component>
+        </div>
       </el-tab-pane>
       <el-tab-pane :label="$t('kylinLang.common.cube')" name="cube" >
-        <component is="cubeList"  v-on:addtabs="addTab" ref="cubes" v-if="subMenu === 'cube'"></component>
+        <div v-if="subMenu === 'cube'">
+          <component is="cubeList"  v-on:addtabs="addTab" ref="cubes" ></component>
+        </div>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -27,10 +33,6 @@ export default {
     'dataSource': dataSource,
     'modelList': modelList,
     'cubeList': cubeList
-  },
-  beforeRouteUpdate (to, from, next) {
-    // console.log(to, from, 'jjjj2')
-    // next()
   },
   methods: {
     addTab (a, b, c, d) {

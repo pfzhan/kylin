@@ -292,21 +292,21 @@
         v-model="loadResultVisible"
         >
          <el-alert v-for=" su in loadResult.success" :key="su"
-            :title="currentAction + $t('kylinLang.common.success') + ' ' + '['+su+']'"
+            :title="currentAction + ' ' + $t('kylinLang.common.success') + ' ! ' + '['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
             <el-alert v-for=" fa in loadResult.fail" :key="fa"
-            :title="currentAction + $t('kylinLang.common.fail') + ' ' + '['+fa+']'"
+            :title="currentAction + ' ' + $t('kylinLang.common.fail') + ' ! ' + '['+fa+']'"
             type="error"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
            <el-alert v-for=" fa in loadResult.running" :key="fa"
-            :title=" currentAction +$t('kylinLang.common.fail') + ' ' + $t('kylinLang.common.running') + '['+fa+']'"
+            :title=" currentAction + ' ' + $t('kylinLang.common.fail') + ' ! ' + $t('kylinLang.common.running') + '['+fa+']'"
             type="error"
             :closable="false"
             class="ksd-mt-10"
@@ -346,6 +346,7 @@ export default {
         label: 'label',
         data: 'data'
       },
+      treePerPage: 50,
       currentAction: this.$t('load'),
       tableData: '',
       extendData: {},
@@ -624,8 +625,8 @@ export default {
         handleError(res)
       })
     },
-    clickHiveTable (data) {
-      if (data.id && data.id.indexOf('.') > 0) {
+    clickHiveTable (data, vnode) {
+      if (data.id && data.id.indexOf('.') > 0 && !data.isMore) {
         var newArr = this.selectTables.filter(function (item) {
           return item.value === data.id
         })
@@ -636,22 +637,29 @@ export default {
           })
           this.selectTablesNames.push(data.id)
         }
-      } else {
-        this.loadTablesByDatabse(data.label).then((res) => {
-          handleSuccess(res, (result, code, status, msg) => {
-            var len = result && result.length || 0
-            data.children = []
-            for (var k = 0; k < len; k++) {
-              data.children.push({
-                id: data.label + '.' + result[k],
-                label: result[k],
-                children: []
-              })
-            }
-          })
-        }, (res) => {
-          handleError(res)
-        })
+      }
+      var node = data
+      if (node.index) {
+        // 加载更多
+        vnode.store.remove(vnode.data)
+        var addData = node.fullData.slice(node.index, node.index + this.treePerPage)
+        for (var k = 0; k < addData.length; k++) {
+          node.parentStore.append({
+            id: node.parentLabel + '.' + addData[k],
+            label: addData[k]
+          }, node.parentNode)
+        }
+        if (node.index + this.treePerPage < node.fullData.length) {
+          node.parentStore.append({
+            id: node.parentLabel + '...',
+            label: '。。。',
+            parentLabel: node.parentLabel,
+            fullData: node.fullData,
+            children: [],
+            index: node.index + this.treePerPage,
+            isMore: true
+          }, node.parentNode)
+        }
       }
     },
     loadChildNode (node, resolve) {
@@ -662,7 +670,7 @@ export default {
           handleSuccess(res, (data) => {
             var datasourceTreeData = []
             for (var i = 0; i < data.length; i++) {
-              datasourceTreeData.push({id: data[i], label: data[i], children: []})
+              datasourceTreeData.push({id: data[i], label: data[i], children: [], fullData: data})
             }
             resolve(datasourceTreeData)
           })
@@ -674,10 +682,23 @@ export default {
         this.loadTablesByDatabse(node.label).then((res) => {
           handleSuccess(res, (data) => {
             var len = data && data.length || 0
-            for (var k = 0; k < len; k++) {
+            var pagerLen = len > this.treePerPage ? this.treePerPage : len
+            for (var k = 0; k < pagerLen; k++) {
               subData.push({
                 id: node.label + '.' + data[k],
                 label: data[k]
+              })
+            }
+            if (pagerLen < len) {
+              subData.push({
+                id: node.label + '...',
+                label: '。。。',
+                children: [],
+                parentNode: node,
+                parentLabel: node.label,
+                fullData: data,
+                index: this.treePerPage,
+                isMore: true
               })
             }
             resolve(subData)
@@ -868,8 +889,8 @@ export default {
     }
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入。系统默认使用‘Default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载Y张表。输入完成后按回车键。'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually. By default, system will choose "Default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load Y tables once as maximum . press enter after input .'}
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入,输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。'},
+    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, Press enter after input . By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum . '}
   }
 }
 </script>

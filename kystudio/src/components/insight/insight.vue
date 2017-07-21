@@ -122,6 +122,29 @@ export default {
     this.pageCurrentChangeForCookie(1)
     this.cookieQuerySize = this.cacheQuery[this.project] && this.cacheQuery[this.project].length || 0
   },
+  beforeRouteLeave (to, from, next) {
+  // 导航离开该组件的对应路由时调用
+  // 可以访问组件实例 `this`
+    var hasEditTab = false
+    this.editableTabs.forEach((tab) => {
+      if (tab.icon === 'circle-o-notch') {
+        hasEditTab = true
+      }
+    })
+    if (hasEditTab) {
+      this.$confirm(this.$t('willGo'), this.$t('kylinLang.common.tip'), {
+        confirmButtonText: this.$t('go'),
+        cancelButtonText: this.$t('kylinLang.common.cancel'),
+        type: 'warning'
+      }).then(() => {
+        next()
+      }).catch(() => {
+        next(false)
+      })
+    } else {
+      next()
+    }
+  },
   data () {
     return {
       listRows: 50000,
@@ -434,8 +457,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result', 'willGo': 'You have unfinished request detected, Do you want to continue?', 'go': 'Continue go'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果', 'willGo': '检测到有执行的请求，是否继续跳转？', 'go': '继续跳转'}
   }
 }
 </script>

@@ -57,7 +57,7 @@
         }
       },
       // 节点点击事件，处理点击变色
-      nodeClick (data) {
+      nodeClick (data, vnode) {
         if (!data.children || data.children.length <= 0) {
           if (this.lastCheckedNode && !this.multiple) {
             this.$set(this.lastCheckedNode, 'checked', false)
@@ -67,7 +67,7 @@
           this.checkedNodes[data.label] = data
           this.lastCheckedNode = data
         }
-        this.$emit('nodeclick', data)
+        this.$emit('nodeclick', data, vnode)
       },
       // 取消某个节点的选中变色
       cancelNodeChecked (name) {
@@ -86,11 +86,16 @@
         this.checkedNodes = []
       },
       // 根据用户入参渲染树的节点DOM
-      createLeafContent (data) {
+      createLeafContent (data, store, node) {
         var len = data.tags && data.tags.length || 0
         var dom = []
         for (var i = 0; i < len; i++) {
           dom.push('<span class="tag tag_' + data.tags[i] + '">' + data.tags[i] + '</span>')
+        }
+        if (data.isMore) {
+          data.parentNode = node.parent.data
+          data.parentStore = node.parent.store
+          return '<img class="loadmore_btn" title="load more" src="' + require('../../assets/img/loadmore.png') + '"/>'
         }
         return dom.join('') + Vue.filter('omit')(data.label, this.maxLabelLen || 0, '...') + (data.subLabel ? ' <span class="sublabel" title="' + data.subLabel + '">' + data.subLabel + '</span>' : '')
       },
@@ -106,7 +111,7 @@
         return this.$createElement('div', {
           class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1, 'checked-leaf': data.checked}],
           domProps: {
-            innerHTML: this.createLeafContent(data)
+            innerHTML: this.createLeafContent(data, store, node)
           },
           attrs: {
             title: data.label + (data.subLabel ? '(' + data.subLabel + ')' : ''),
@@ -222,6 +227,13 @@
     padding-top: 20px;
     background-color: #f1f2f7;
     width: 250px;
+    .loadmore_btn{
+      font-weight: bolder;
+      width: 20px;
+      height: 6px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
     div{
       &.leaf-label{
         font-size: 12px;
