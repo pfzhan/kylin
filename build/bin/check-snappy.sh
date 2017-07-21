@@ -4,17 +4,27 @@
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh
 
+source ${dir}/find-working-dir.sh
+
 echo "Checking Snappy..."
 
-mkdir -p ${KYLIN_HOME}/logs/tmp
-input_file=${KYLIN_HOME}/logs/tmp/snappy_test_input
-[[ ! -f ${input_file} ]] || rm -f ${input_file}
-echo "Hello Snappy" >> ${input_file};
-source ${dir}/hdfs-op.sh put ${input_file}
-source ${dir}/hdfs-op.sh mkdir snappy_test_output
+local_input_dir=${KYLIN_HOME}/logs/tmp
+local_input_file=snappy_test_input
+hdfs_output_dir=snappy_test_output
+full_input_file=${local_input_dir}/${local_input_file}
 
-${dir}/kylin.sh io.kyligence.kap.tool.mr.KapMRJobCLI ${TARGET_HDFS_FILE} ${TARGET_HDFS_DIR}
+mkdir -p ${local_input_dir}
+[[ ! -f ${full_input_file} ]] || rm -f ${full_input_file}
+
+echo "Hello Snappy" >> ${full_input_file};
+
+hadoop ${KAP_HADOOP_PARAM} fs -put -f ${full_input_file} ${KAP_WORKING_DIR}
+hadoop ${KAP_HADOOP_PARAM} fs -mkdir ${KAP_WORKING_DIR}/${hdfs_output_dir}
+
+${dir}/kylin.sh io.kyligence.kap.tool.mr.KapMRJobCLI ${KAP_WORKING_DIR}/${local_input_file} ${KAP_WORKING_DIR}/${hdfs_output_dir}
 [[ $? == 0 ]] || quit "Test MR job with SnappyCodec failed, please check the full log for more details."
-${dir}/hdfs-op.sh rm ${input_file}
-${dir}/hdfs-op.sh rm snappy_test_output
+
+hadoop ${KAP_HADOOP_PARAM} fs -rm -r -skipTrash ${KAP_WORKING_DIR}/${local_input_file}
+hadoop ${KAP_HADOOP_PARAM} fs -rm -r -skipTrash ${KAP_WORKING_DIR}/${hdfs_output_dir}
+rm -rf ${full_input_file}
 

@@ -2,6 +2,8 @@
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
+source ${dir}/find-working-dir.sh
+
 if [ "$1" == "-v" ]; then
     shift
 fi
@@ -93,20 +95,26 @@ then
     retrieveSparkEnvProps
     echo "HADOOP_CONF_DIR=$HADOOP_CONF_DIR"
 
-    mkdir -p ${KYLIN_HOME}/logs/tmp
-    input_file=${KYLIN_HOME}/logs/tmp/spark_client_test_input
-    [[ ! -f ${input_file} ]] || rm -f ${input_file}
-    echo "Hello Spark Client" >> ${input_file};
-    source ${dir}/hdfs-op.sh put ${input_file}
+    local_input_dir=${KYLIN_HOME}/logs/tmp
+    input_file=spark_client_test_input
+    full_input_file=${local_input_dir}/${input_file}
+    mkdir -p ${local_input_dir}
 
-    submitCommand='$SPARK_HOME/bin/spark-submit --class io.kyligence.kap.tool.setup.KapSparkTaskTestCLI --name Test  $KYLIN_SPARK_TEST_JAR_PATH ${TARGET_HDFS_FILE} '
+    [[ ! -f ${full_input_file} ]] || rm -f ${full_input_file}
+    echo "Hello Spark Client" >> ${full_input_file};
+
+    hadoop ${KAP_HADOOP_PARAM} fs -put -f ${full_input_file} ${KAP_WORKING_DIR}
+
+    submitCommand='$SPARK_HOME/bin/spark-submit --class io.kyligence.kap.tool.setup.KapSparkTaskTestCLI --name Test  $KYLIN_SPARK_TEST_JAR_PATH ${KAP_WORKING_DIR}/${input_file} '
     submitCommand=${submitCommand}${confStr}
     verbose "The submit command is: $submitCommand"
     eval $submitCommand
     if [ $? == 0 ];then
-        ${dir}/hdfs-op.sh rm ${input_file}
+        hadoop ${KAP_HADOOP_PARAM} fs -rm -r -skipTrash ${KAP_WORKING_DIR}/${input_file}
+        rm -rf ${full_input_file}
     else
-        ${dir}/hdfs-op.sh rm ${input_file}
+        hadoop ${KAP_HADOOP_PARAM} fs -rm -r -skipTrash ${KAP_WORKING_DIR}/${input_file}
+        rm -rf ${full_input_file}
         quit "ERROR: error when testing spark with spark configurations in KAP!"
     fi
     exit 0
