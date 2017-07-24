@@ -68,8 +68,14 @@ then
     # set JAVA
     if [[ "${JAVA}" == "" ]]; then
         if [[ -z "$JAVA_HOME" ]]; then
-            JAVA_HOME=`/bin/bash -x hadoop classpath 2>&1 | sed -n "s/\(.*\)export JAVA_HOME=\(.*\)/\2/"p`
+            JAVA_VERSION=`java -version 2>&1 | awk -F\" '/version/ {print $2}'`
+            if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.7" ]]; then
+                JAVA_HOME=$(dirname $(dirname $(readlink -f $(which java))))
+            else
+                quit "Java 1.7 or above is required."
+            fi
             [[ -z "$JAVA_HOME" ]] && quit "Please set JAVA_HOME"
+            export JAVA_HOME
         fi
         export JAVA=$JAVA_HOME/bin/java
         [[ -e "${JAVA}" ]] || quit "${JAVA} does not exist. Please set JAVA_HOME correctly."
