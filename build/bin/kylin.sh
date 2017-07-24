@@ -241,6 +241,10 @@ elif [ "$1" = "diag" ]
 then
     quit "kylin.sh diag no longer supported, use 'bin/diag.sh' instead"
 
+elif [ "$1" = "admin-password-reset" ]
+then
+    runTool io.kyligence.kap.tool.security.KapPasswordResetCLI
+
 # tool command
 elif [[ "$1" = org.apache.kylin.* ]] || [[ "$1" = io.kyligence.* ]]
 then

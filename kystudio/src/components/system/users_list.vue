@@ -124,7 +124,7 @@ export default {
       currentPage: 1,
       resetAdmin: this.fromLogin,
       adminSetting: {
-        username: 'Admin',
+        username: 'ADMIN',
         password: '',
         disabled: false,
         admin: true,

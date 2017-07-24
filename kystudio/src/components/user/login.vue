@@ -131,7 +131,7 @@ export default {
       forgetPassword: 'Forget your password?',
       noUserName: 'please enter your username',
       noUserPwd: 'please enter your password',
-      adminTip: 'Apply the reset password command in the "KYLIN_HOME/" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.'
+      adminTip: 'Apply the reset password command "kylin.sh admin-password-reset" in the "KYLIN_HOME/" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Analytics Platform(KAP)',
@@ -141,7 +141,7 @@ export default {
       forgetPassword: '忘记密码？',
       noUserName: '请输入用户名',
       noUserPwd: '请输入密码',
-      adminTip: '在"KYLIN_HOME/"使用重置密码命令，<br/>将ADMIN账户密码恢复为初始密码，<br/>其他账户密码将保持不变。'
+      adminTip: '在"KYLIN_HOME/"使用重置密码命令"kylin.sh admin-password-reset"，<br/>将ADMIN账户密码恢复为初始密码，<br/>其他账户密码将保持不变。'
     }
   }
 }
