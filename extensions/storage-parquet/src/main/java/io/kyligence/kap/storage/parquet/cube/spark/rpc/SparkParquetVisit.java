@@ -33,6 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -72,6 +74,8 @@ import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
 
+import javax.annotation.Nullable;
+
 public class SparkParquetVisit implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkParquetVisit.class);
 
@@ -93,6 +97,7 @@ public class SparkParquetVisit implements Serializable {
     private transient int limit = 0;
     private transient long accumulateCnt = 0;
     private transient JavaPairRDD batchRdd = null;
+    private static final transient String SCHEMA_HINT = "://";
 
     private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder()
             .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
@@ -170,7 +175,7 @@ public class SparkParquetVisit implements Serializable {
                 this.limit = scanRequest.getStoragePushDownLimit();
             }
 
-            this.parquetPathIter = parquetPathCollection.iterator();
+            this.parquetPathIter = Iterators.transform(parquetPathCollection.iterator(), new PathTransformer());
             conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS,
                     RoaringBitmaps.writeToString(request.getParquetColumnsList())); // which columns are required
             conf.set(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH, String.valueOf(request.getMaxRecordLength())); // max gt length
@@ -199,6 +204,19 @@ public class SparkParquetVisit implements Serializable {
             throw new RuntimeException(e);
         }
 
+    }
+
+    // Transform relative path to absolute path
+    private class PathTransformer implements Function<String, String> {
+        private String workingDir = kylinConfig.getHdfsWorkingDirectory();
+        @Nullable
+        @Override
+        public String apply(@Nullable String input) {
+            if (input.contains(SCHEMA_HINT)) {
+                return input;
+            }
+            return workingDir + "/" + input;
+        }
     }
 
     private Set<String> listFiles(String directory, final String suffix) throws IOException {

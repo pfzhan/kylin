@@ -34,6 +34,7 @@ import java.util.Set;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -54,6 +55,18 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
     public static final String OUTPUT_PATH = "output_path";
     public static final String CUBE_INFO_NAME = "CUBE_INFO";
     public static final String SKIP = "skip";
+    public final String WORKING_DIR; // working dir without schema
+    private static final String SCHEMA_HINT = "://";
+
+    public ParquetCubeInfoCollectionStep() {
+        String fullPath = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        int index = fullPath.indexOf(SCHEMA_HINT);
+        if (index >= 0) {
+            WORKING_DIR = fullPath.substring(index + SCHEMA_HINT.length());
+        } else {
+            WORKING_DIR = fullPath;
+        }
+    }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
@@ -82,7 +95,8 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
                                 cuboid2FileMap.put(cuboid, Sets.<String> newHashSet());
                             }
 
-                            cuboid2FileMap.get(cuboid).add(child.getPath().toString());
+                            String absolutePath = child.getPath().toString();
+                            cuboid2FileMap.get(cuboid).add(getRelativePath(absolutePath));
                         }
                     }
                 }
@@ -103,5 +117,16 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
 
     private boolean isParquetFile(Path path) {
         return path.getName().endsWith(".parquettar");
+    }
+
+    private String getRelativePath(String absolute) {
+        int index = absolute.indexOf(WORKING_DIR);
+
+        if (index < 0) {
+            throw new RuntimeException(String.format("File path %s doesn't contain working dir %s", absolute, WORKING_DIR));
+        }
+
+        logger.debug("absolute path {}, relative path {}", absolute, absolute.substring(index + WORKING_DIR.length()));
+        return absolute.substring(index + WORKING_DIR.length());
     }
 }
