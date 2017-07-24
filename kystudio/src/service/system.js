@@ -42,5 +42,11 @@ export default {
   },
   getJobKtbot: (target) => {
     return Vue.resource(apiUrl + 'kybot/upload?target=' + target).get()
+  },
+  saveLicenseContent: (license) => {
+    return Vue.resource(apiUrl + 'kap/system/license/content').save(license)
+  },
+  saveLicenseFile: (formData) => {
+    return Vue.resource(apiUrl + 'kap/system/license/file', formData).save({})
   }
 }

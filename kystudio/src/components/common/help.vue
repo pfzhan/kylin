@@ -22,14 +22,15 @@
       </div>
     </el-dropdown-item>
     <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
-    <el-dropdown-item command="aboutkap" style="border-top:solid 1px #444b67">{{$t('aboutKap')}}</el-dropdown-item>
+    <el-dropdown-item command="updatelicense" style="border-top:solid 1px #444b67">{{$t('updateLicense')}}</el-dropdown-item>
+    <el-dropdown-item command="aboutkap" >{{$t('aboutKap')}}</el-dropdown-item>
   </el-dropdown-menu>
 </el-dropdown>
 
 
 <a :href="url" target="_blank"></a>
 <el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')" id="about-kap">
-  <about_kap :about="serverAbout">
+  <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
   </about_kap>
 </el-dialog>
 <el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" :title="$t('signIn')" size="tiny" @close="resetLoginKybotForm">
@@ -50,6 +51,14 @@
   </span>
   </div>
 </el-dialog>
+
+  <el-dialog :title="$t('license')" v-model="updateLicenseVisible" size="small">
+    <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+    </div>
+  </el-dialog>
 </div>
 </template>
 <script>
@@ -58,6 +67,7 @@
   import aboutKap from '../common/about_kap.vue'
   import loginKybot from '../common/login_kybot.vue'
   import startKybot from '../common/start_kybot.vue'
+  import updateLicense from '../user/license'
   import { handleSuccess, handleError } from '../../util/business'
 
   export default {
@@ -77,7 +87,9 @@
         startLoading: false,
         flag: true,
         switchTimer: 0,
-        alertkybot: false
+        alertkybot: false,
+        updateLicenseVisible: false,
+        loadCheck: false
       }
     },
     methods: {
@@ -88,7 +100,9 @@
         getKyStatus: 'GET_KYBOT_STATUS',
         startKybot: 'START_KYBOT',
         stopKybot: 'STOP_KYBOT',
-        getAgreement: 'GET_AGREEMENT'
+        getAgreement: 'GET_AGREEMENT',
+        saveLicenseContent: 'SAVE_LICENSE_CONTENT',
+        saveLicenseFile: 'SAVE_LICENSE_FILE'
       }),
       handleCommand (val) {
         var _this = this
@@ -109,6 +123,8 @@
             // console.log(resp)
           })
           this.aboutKapVisible = true
+        } else if (val === 'updatelicense') {
+          this.updateLicenseVisible = true
         } else if (val === 'kybot') {
           // 需要先检测有没有登录 待修改
           // this.kyBotUploadVisible = true
@@ -239,6 +255,34 @@
       // 关闭switch事件
       closeSwitch () {
         this.isopend = false
+      },
+      licenseForm: function () {
+        this.$refs['licenseEnter'].$emit('licenseFormValid')
+      },
+      licenseValidSuccess: function (license) {
+        this.loadCheck = true
+        if (license.useFile) {
+          let formData = new FormData()
+          formData.append('file', license.file[0].raw)
+          this.saveLicenseFile(formData).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+              this.updateLicenseVisible = false
+              this.loadCheck = false
+            })
+          }, (res) => {
+            handleError({data: res})
+          })
+        } else {
+          this.saveLicenseContent(license.content).then((res) => {
+            handleSuccess(res, (data, code, status, msg) => {
+              this.updateLicenseVisible = false
+              this.loadCheck = false
+            })
+          }, (res) => {
+            handleError(res)
+          })
+        }
+        this.loadCheck = false
       }
     },
     computed: {
@@ -252,11 +296,12 @@
     components: {
       'about_kap': aboutKap,
       'login_kybot': loginKybot,
-      'start_kybot': startKybot
+      'start_kybot': startKybot,
+      'update_license': updateLicense
     },
     locales: {
-      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK'},
-      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定'}
+      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', updateLicense: 'Update License', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK', cancel: 'Cancel', save: 'Save', license: 'Update License'},
+      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', updateLicense: '更新许可证', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定', cancel: '取消', save: '保存', license: '更新许可证'}
     }
   }
 </script>

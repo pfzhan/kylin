@@ -1,6 +1,7 @@
 import api from './../service/api'
 import * as types from './types'
 import { getProperty } from '../util/business'
+import $ from 'jquery'
 export default {
   state: {
     authentication: null,
@@ -85,6 +86,36 @@ export default {
     },
     [types.GET_KYBOT_DUMP]: function ({ commit }, {startTime, endTime}) {
       return api.system.getKybotDump(startTime, endTime)
+    },
+    [types.SAVE_LICENSE_CONTENT]: function ({ commit }, license) {
+      return api.system.saveLicenseContent(license).then((response) => {
+        commit(types.GET_ABOUT, { list: response.data.data })
+      })
+    },
+    [types.SAVE_LICENSE_FILE]: function ({ commit }, formData) {
+      return new Promise((resolve, reject) => {
+        $.ajax({
+          type: 'post',
+          url: '/kylin/api/kap/system/license/file',
+          async: false,
+          contentType: false,    // 这个一定要写
+          processData: false, // 这个也一定要写，不然会报错
+          data: formData,
+          dataType: 'json',    // 返回类型，有json，text，HTML。这里并没有jsonp格式，所以别妄想能用jsonp做跨域了。
+          success: (response) => {
+            commit(types.GET_ABOUT, { list: response.data })
+            resolve(response)
+          },
+          error: function (xr, textStatus, errorThrown) {
+            try {
+              var res = JSON.parse(xr.responseText)
+              reject(res)
+            } catch (e) {
+              reject({data: null})
+            }
+          }
+        })
+      })
     }
   },
   getters: {}

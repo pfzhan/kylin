@@ -1,38 +1,45 @@
 <template>
-	<div class="about-kap">
-		<div class="header">
-			<a href="http://kyligence.io/" target="_blank">
-				<img src="../../assets/img/kyligence-logo.png" alt="" />
-			</a>
-			<el-row><label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
-			</el-row>
-			
-					<el-row><label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['kap.dates'])}}</el-row>
-		<el-row><label for="">{{$t('licenseStatement')}}</label>{{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}</el-row>		
-		</div>
-		<div class="container">
-			<h3>{{$t('statement')}}</h3>
-            <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'">{{$t('kylinLang.system.evaluationStatement')}}</p>
-            <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'">{{$t('kylinLang.system.statement')}}</p>
-			<el-row>
-				<label for="">{{$t('serviceEnd')}}</label>
-				{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
-			</el-row>
-			<el-row>
-			  <label for="">KAP Commit:</label>
-			  {{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
-			</el-row>
-		</div>
-		<div class="footer">
-			<p class="details">{{kyAccount}}</p>
-			<a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a>
-			<el-row class="gray">All Rights Reserved. Kyligence Inc.</el-row>
-		</div>
+  <div class="about-kap">
+    <div class="header">
+	  <a href="http://kyligence.io/" target="_blank">
+		<img src="../../assets/img/kyligence-logo.png" alt="" />
+	  </a>
+	  <el-row>
+		<label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
+	  </el-row>
+	  <el-row>
+		<label for="">{{$t('validPeriod')}}</label>
+		{{license(serverAboutKap && serverAboutKap['kap.dates'])}}
+	  </el-row>
+	  <el-row>
+	    <label for="">{{$t('licenseStatement')}}</label>
+	    {{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}
+	  </el-row>	
 	</div>
+	<div class="container">
+	  <h3>{{$t('statement')}}</h3>
+      <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'">{{$t('kylinLang.system.evaluationStatement')}}</p>
+      <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'">{{$t('kylinLang.system.statement')}}</p>
+	  <el-row>
+		<label for="">{{$t('serviceEnd')}}</label>
+		{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
+	  </el-row>
+	  <el-row>
+		<label for="">KAP Commit:</label>
+		{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
+	  </el-row>
+	</div>
+	<div class="footer">
+	  <p class="details">{{kyAccount}}</p>
+	  <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a>
+	  <el-row class="gray">All Rights Reserved. Kyligence Inc.</el-row>
+	</div>
+  </div>
 </template>
 <script>
 export default {
   name: 'about_kap',
+  props: ['about'],
   data () {
     return {
       aboutKap: this.about
@@ -65,23 +72,53 @@ export default {
     }
   },
   locales: {
-    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', statement: 'Service Statement', statementContent: 'You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.', licenseStatement: 'License Statement: ', sendFile: 'To request license, please contact with Kyligence sales support channel with the License Request file.', noAccount: 'To request license, please contact with Kyligence sales support channel with the License Request file.', generateLicense: 'Generate License Request File'},
-    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', statement: '服务申明', statementContent: '您正在使用KAP试用版，如果您对我们的产品满意，需要专业的产品、咨询或服务，请联系我们，您将获得来自Apache Kylin核心小组的帮助。', licenseStatement: '许可声明: ', sendFile: '申请许可请将许可申请文件发送到Kyligence销售支持渠道', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件'}
+    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', statementContent: 'You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.', licenseStatement: 'License Statement: ', sendFile: 'To request license, please contact with Kyligence sales support channel with the License Request file.', noAccount: 'To request license, please contact with Kyligence sales support channel with the License Request file.', generateLicense: 'Generate License Request File', updateLicense: 'Update License'},
+    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', statementContent: '您正在使用KAP试用版，如果您对我们的产品满意，需要专业的产品、咨询或服务，请联系我们，您将获得来自Apache Kylin核心小组的帮助。', licenseStatement: '许可声明: ', sendFile: '申请许可请将许可申请文件发送到Kyligence销售支持渠道', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证'}
   }
 }
 </script>
 <style lang="less">
-	.about-kap {
-		line-height:30px;
-		font-size:14px;
-		text-align: center;
-		img {width: 120px;}
-		label {font-weight:bold;}
-		.header, 
-		.container {padding-bottom:20px;border-bottom:1px solid #D3DCE6;}
-		h3 {margin-top:20px;font-size:14px;}
-		.details {line-height:24px;margin:20px 0 30px;}
-		.gray {margin:6px 0 30px;color:#a2a2a2;font-size:12px;}
-		.buttonLink {padding:10px;color: #fff;border-radius:2px;background: #35a8fe;text-decoration: none;}
-	}
+  .about-kap {
+	line-height:30px;
+	font-size:14px;
+	text-align: center;
+	img {width: 120px;}
+	label {font-weight:bold;}
+	.header, 
+	.container {padding-bottom:20px;border-bottom:1px solid #D3DCE6;}
+	h3 {margin-top:20px;font-size:14px;}
+	.details {line-height:24px;margin:20px 0 30px;}
+	.gray {margin:6px 0 30px;color:#a2a2a2;font-size:12px;}
+	.buttonLink {padding:10px;color: #fff;border-radius:2px;background: #35a8fe;text-decoration: none;}
+  .el-input{
+    width: 100%;
+    display: inline-table;
+    margin-top: 20px;
+    position: relative;
+  }
+  .el-input-group__append {
+    width: 8%;
+    background-color:#a2a2a2;
+    border-style:none;
+    position: static;
+    .el-button {
+      margin: 0 0 0 0;
+      padding: 0 0 0 0;
+      border-style: none;
+    }
+  }
+  .el-upload-list {
+    position: absolute;
+    margin-top: 5px;
+    left: 0px;
+    width: 100%;
+    li {
+      width: 500px;
+    }
+  }
+  .uploadButton {
+    position: absolute;
+    display: block;
+  }
+}
 </style>

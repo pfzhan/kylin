@@ -47,13 +47,20 @@
     </el-row>
      <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence</a> Inc. All rights reserved.</p>
   </div>
-
+  <el-dialog @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small">
+    <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
+      <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+    </div>
+  </el-dialog>
   </div>
 </template>
 <script>
 import { mapActions, mapMutations } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
 import changeLang from '../common/change_lang'
+import license from './license'
 import help from '../common/help'
 import Vue from 'vue'
 import { Base64 } from 'js-base64'
@@ -69,12 +76,17 @@ export default {
         username: '' || localStorage.getItem('username'),
         password: ''
       },
-      btnLock: false
+      btnLock: false,
+      needLicense: false,
+      loadCheck: false
     }
   },
   methods: {
     ...mapActions({
-      login: 'LOGIN'
+      login: 'LOGIN',
+      getAboutKap: 'GET_ABOUTKAP',
+      saveLicenseContent: 'SAVE_LICENSE_CONTENT',
+      saveLicenseFile: 'SAVE_LICENSE_FILE'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER'
@@ -99,28 +111,63 @@ export default {
             })
           }, (res) => {
             handleError(res)
-            // handleError(res, (data) => {
-            //   var match = (new RegExp('<u>User.*?(\\d+).*?</u>', 'i')).exec(data)
-            //   var errorType = match && match[1] ? 'lock' : 'error'
-            //   var reTryTime = match && match[1] || 0
-            //   if (errorType === 'lock') {
-            //     this.$message({
-            //       message: '尝试登录失败超过三次，请在' + reTryTime + '秒后再试！', type: 'warning'
-            //     })
-            //   } else {
-            //     this.$message.error('登陆失败，请检查帐号和密码是否输入正确！')
-            //   }
-            // })
             Vue.http.headers.common['Authorization'] = ''
             this.$refs['loginBtn'].loading = false
           })
         }
       })
+    },
+    checkLicense () {
+      this.getAboutKap().then((result) => {
+      }, (resp) => {
+      })
+    },
+    licenseForm: function () {
+      this.$refs['licenseEnter'].$emit('licenseFormValid')
+    },
+    licenseValidSuccess: function (license) {
+      this.loadCheck = true
+      if (license.useFile) {
+        let formData = new FormData()
+        formData.append('file', license.file[0].raw)
+        this.saveLicenseFile(formData).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.loadCheck = false
+          })
+        }, (res) => {
+          handleError({data: res})
+        })
+      } else {
+        this.saveLicenseContent(license.content).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.loadCheck = false
+          })
+        }, (res) => {
+          handleError(res)
+        })
+      }
+      this.loadCheck = false
+    },
+    closeDialog: function () {
+      this.$store.state.system.serverAboutKap['kap.dates'] = ''
     }
   },
   components: {
     'kap-change-lang': changeLang,
-    'kap-help': help
+    'kap-help': help,
+    'license': license
+  },
+  created () {
+    this.checkLicense()
+  },
+  computed: {
+    hasLicense () {
+      if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] !== null) {
+        return false
+      } else {
+        return true
+      }
+    }
   },
   locales: {
     'en': {
@@ -131,7 +178,10 @@ export default {
       forgetPassword: 'Forget your password?',
       noUserName: 'please enter your username',
       noUserPwd: 'please enter your password',
-      adminTip: 'Apply the reset password command "kylin.sh admin-password-reset" in the "KYLIN_HOME/" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.'
+      adminTip: 'Apply the reset password command "kylin.sh admin-password-reset" in the "KYLIN_HOME/" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.',
+      license: 'Update License',
+      cancel: 'Cancel',
+      save: 'Save'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Analytics Platform(KAP)',
@@ -141,7 +191,10 @@ export default {
       forgetPassword: '忘记密码？',
       noUserName: '请输入用户名',
       noUserPwd: '请输入密码',
-      adminTip: '在"KYLIN_HOME/"使用重置密码命令"kylin.sh admin-password-reset"，<br/>将ADMIN账户密码恢复为初始密码，<br/>其他账户密码将保持不变。'
+      adminTip: '在"KYLIN_HOME/"使用重置密码命令"kylin.sh admin-password-reset"，<br/>将ADMIN账户密码恢复为初始密码，<br/>其他账户密码将保持不变。',
+      license: '更新许可证',
+      cancel: '取消',
+      save: '保存'
     }
   }
 }
