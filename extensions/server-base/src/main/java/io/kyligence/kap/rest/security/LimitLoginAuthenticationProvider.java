@@ -132,7 +132,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                     managedUser.increaseWrongTime();
                     userService.updateUser(managedUser);
                 }
-                throw e;
+
+                throw new BadCredentialsException(KapMsgPicker.getMsg().getUSER_AUTHFAILED(), e);
             }
         }
     }

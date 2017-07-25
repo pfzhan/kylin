@@ -218,4 +218,8 @@ public class KapCnMessage extends KapMessage {
     public String getUSER_LOCK() {
         return "用户 %s 已被锁定, 请等待 %s 秒";
     }
+
+    public String getUSER_AUTHFAILED() {
+        return "登陆认证信息错误，请确认您的用户和密码正确。";
+    }
 }

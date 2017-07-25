@@ -264,4 +264,8 @@ public class KapMessage {
         return "User %s is locked, please wait for %s seconds.";
     }
 
+    public String getUSER_AUTHFAILED() {
+        return "Invalid credentials for login. Please ensure your password/user information are correct.";
+    }
+
 }

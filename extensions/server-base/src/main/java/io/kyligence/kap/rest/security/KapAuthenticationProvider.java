@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -167,7 +168,7 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
                     userService.updateUser(managedUser);
                 }
                 logger.error("Failed to auth user: " + authentication.getName(), e);
-                throw e;
+                throw new BadCredentialsException(KapMsgPicker.getMsg().getUSER_AUTHFAILED(), e);
             }
 
             logger.debug("Authenticated user " + authed.toString());
