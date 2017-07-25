@@ -89,7 +89,7 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false">
+  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false" :before-close="closeResetWindow">
     <el-alert style="margin-bottom:10px;"
       :title="$t('refinePassword')"
       type="info" 
@@ -288,6 +288,8 @@ export default {
       }).catch((result) => {
         handleError(result)
       })
+    },
+    closeResetWindow: function (done) {
     }
   },
   computed: {
