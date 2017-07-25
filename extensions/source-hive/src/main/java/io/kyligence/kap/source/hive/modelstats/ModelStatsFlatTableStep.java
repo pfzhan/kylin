@@ -25,7 +25,6 @@
 package io.kyligence.kap.source.hive.modelstats;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.BufferedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
@@ -35,17 +34,17 @@ import org.slf4j.LoggerFactory;
 
 public class ModelStatsFlatTableStep extends CreateFlatHiveTableStep {
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsFlatTableStep.class);
-    private final BufferedLogger stepLogger = new BufferedLogger(logger);
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         try {
             createFlatHiveTable(config);
+            stepLogger.log("Success");
             return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
 
         } catch (Exception e) {
-            logger.error("job:" + getId() + " execute finished with exception", e);
+            logger.error("job:" + getId() + " execute finished with exception" + e);
             return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
         }
     }

@@ -40,7 +40,6 @@ import org.slf4j.LoggerFactory;
 public class CheckLookupStep extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(CheckLookupStep.class);
-
     public final static String MODEL_NAME = "model_name";
 
     @Override
@@ -53,9 +52,10 @@ public class CheckLookupStep extends AbstractExecutable {
         try {
             ModelStats modelStats = modelStatsManager.getModelStats(modelName);
             ModelDiagnose.checkDuplicatePKOnLookups(modelStats, dataModelDesc, kylinConfig);
+            stepLogger.log("Success");
             return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
         } catch (IOException e) {
-            logger.error("fail to check lookups", e);
+            stepLogger.log("Failed to check lookups: " + e);
             return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
         }
     }

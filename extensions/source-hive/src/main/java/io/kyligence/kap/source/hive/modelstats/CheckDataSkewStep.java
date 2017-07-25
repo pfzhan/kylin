@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 public class CheckDataSkewStep extends AbstractExecutable {
     private static final Logger logger = LoggerFactory.getLogger(CheckDataSkewStep.class);
-
     public final static String MODEL_NAME = "model_name";
 
     @Override
@@ -53,9 +52,10 @@ public class CheckDataSkewStep extends AbstractExecutable {
             ModelStats modelStats = modelStatsManager.getModelStats(modelName);
             DataModelDesc dataModelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
             ModelDiagnose.checkDataSkewOnFactTable(dataModelDesc, modelStats, kylinConfig);
+            stepLogger.log("Success");
             return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
         } catch (IOException e) {
-            logger.error("fail to check data skew", e);
+            stepLogger.log("Failed to check data skew: " + e);
             return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
         }
     }
