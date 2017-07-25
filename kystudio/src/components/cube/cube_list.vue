@@ -14,7 +14,7 @@
     <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isModeler" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
-  <el-table id="cube-list-table" v-show="cubesList&&cubesList.length"
+  <el-table id="cube-list-table"  v-show="cubesList&&cubesList.length"
     :data="cubesList"
     :default-expand-all="isViewCubeMode"
     :row-class-name="showRowClass"
@@ -77,7 +77,7 @@
             {{$t('sourceTableSize')}}{{scope.row.input_records_size|dataSize}}<br/>
             {{$t('expansionRate')}}{{(scope.row.input_records_size>0? scope.row.size_kb*1024/scope.row.input_records_size : 0) * 100 | number(2)}}%
           </div>
-          <span>{{segmentsSize(scope.row.completeSegments) | dataSize}}</span>
+          <span>{{(totalSizeList[scope.row.name]||0) | dataSize}}</span>
         </el-tooltip>
       </template>
     </el-table-column>
@@ -244,6 +244,7 @@ export default {
       filterCube: '',
       currentModel: 'ALL',
       allModels: [],
+      totalSizeList: [],
       cubeMeta: {
         cubeName: '',
         modelName: '',
@@ -292,7 +293,10 @@ export default {
       getCubeSql: 'GET_CUBE_SQL',
       deleteRawTable: 'DELETE_RAW_TABLE',
       deleteScheduler: 'DELETE_SCHEDULER',
-      loadModels: 'LOAD_ALL_MODEL'
+      loadModels: 'LOAD_ALL_MODEL',
+      loadCubeDesc: 'LOAD_CUBE_DESC',
+      getHbaseInfo: 'GET_HBASE_INFO',
+      getColumnarInfo: 'GET_COLUMNAR_INFO'
     }),
     initCube () {
       this.cubeMeta = {
@@ -311,7 +315,7 @@ export default {
       let totalSize = 0
       if (segments) {
         segments.forEach(function (segment) {
-          totalSize += segment.tableSize
+          totalSize += segment.storageSize
           if (segment.rawTableStorageSize) {
             totalSize += segment.rawTableStorageSize
           }
@@ -401,20 +405,54 @@ export default {
           })
           this.totalCubes = data.size
           if (cubesNameList.length > 0) {
-            this.getCubesSegmentsList(cubesNameList.toString()).then((res) => {
-              handleSuccess(res, (data, code, status, msg) => {
-                this.cubesList.forEach((cube, index) => {
-                  if (!cube.is_draft) {
-                    let segmentNumber = cubesNameList.indexOf(cube.name)
-                    this.$set(cube, 'completeSegments', data[segmentNumber])
+            cubesNameList.forEach((cubename) => {
+              this.totalSizeList[cubename] = 0
+              this.loadCubeDesc(cubename).then((res) => {
+                handleSuccess(res, (data, code, status, msg) => {
+                  if (data.cube.storage_type === 100 || data.cube.storage_type === 99) {
+                    this.getColumnarInfo(cubename).then((res) => {
+                      handleSuccess(res, (data, code, status, msg) => {
+                        let totalSize = 0
+                        data[0].forEach(function (segment) {
+                          totalSize += segment.storageSize
+                          if (segment.rawTableStorageSize) {
+                            totalSize += segment.rawTableStorageSize
+                          }
+                        })
+                        this.totalSizeList[cubename] = totalSize
+                      })
+                    })
                   } else {
-                    this.$set(cube, 'completeSegments', [])
+                    this.getHbaseInfo(cubename).then((res) => {
+                      handleSuccess(res, (data, code, status, msg) => {
+                        let totalSize = 0
+                        data.forEach(function (segment) {
+                          totalSize += segment.tableSize
+                          if (segment.rawTableStorageSize) {
+                            totalSize += segment.rawTableStorageSize
+                          }
+                        })
+                        this.totalSizeList[cubename] = totalSize
+                      })
+                    })
                   }
                 })
               })
-            }, (res) => {
-              handleError(res)
             })
+            // this.getCubesSegmentsList(cubesNameList.toString()).then((res) => {
+            //   handleSuccess(res, (data, code, status, msg) => {
+            //     this.cubesList.forEach((cube, index) => {
+            //       if (!cube.is_draft) {
+            //         let segmentNumber = cubesNameList.indexOf(cube.name)
+            //         this.$set(cube, 'completeSegments', data[segmentNumber])
+            //       } else {
+            //         this.$set(cube, 'completeSegments', [])
+            //       }
+            //     })
+            //   })
+            // }, (res) => {
+            //   handleError(res)
+            // })
           }
         })
       }).catch((res) => {

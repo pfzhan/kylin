@@ -5,7 +5,7 @@
      <div class="ksd-common-table rowkeys ksd-mt-10"  v-for="(segment, index) in segments" :key="index" v-if="type==='hbase'">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">{{$t('SegmentID')}}</el-col>
-          <el-col :span="20">{{$t('segment.segmentUUID')}}</el-col>
+          <el-col :span="20">{{segment.segmentUUID}}</el-col>
        </el-row>
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">Htable:</el-col>
@@ -66,7 +66,7 @@
    <div class="ksd-common-table ksd-mt-10"  v-if="type==='columnar'" v-for="(segment, index) in segments" :key="index">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part"><b>{{$t('SegmentID')}}</b></el-col>
-          <el-col :span="20">{{$t('segment.segmentUUID')}}</el-col>
+          <el-col :span="20">{{segment.segmentUUID}}</el-col>
        </el-row>
         <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('SegmentName')}}</b></el-col>
