@@ -36,6 +36,7 @@ import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.dimension.DictionaryDimEnc;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -146,6 +147,14 @@ public class CubeDescUtil {
 
     public static FunctionDesc newFunctionDesc(DataModelDesc modelDesc, String expression, ParameterDesc param,
             String returnType) {
+        // SUM() may cause overflow on int family, will change to decimal(19,0) here.
+        if ("SUM".equals(expression)) {
+            DataType type = DataType.getType(returnType);
+            if (type != null && type.isIntegerFamily()) {
+                returnType = "decimal(19,0)";
+            }
+        }
+
         FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
         ret.init(modelDesc);
         return ret;
