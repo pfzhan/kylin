@@ -26,7 +26,7 @@ import cubeList from '../cube/cube_list'
 export default {
   data () {
     return {
-      subMenu: 'datasource'
+      subMenu: ''
     }
   },
   components: {
@@ -56,9 +56,7 @@ export default {
   mounted () {
     var hash = location.hash
     var subRouter = hash.replace(/.*\/(.*)$/, '$1')
-    if (subRouter === 'model' || subRouter === 'cube') {
-      this.subMenu = subRouter
-    }
+    this.subMenu = subRouter
   }
 }
 </script>
