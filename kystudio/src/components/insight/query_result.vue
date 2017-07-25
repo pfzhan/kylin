@@ -82,6 +82,11 @@
     <el-button type="primary" @click="saveQuery">{{$t('kylinLang.common.ok')}}</el-button>
   </div>
     </el-dialog>
+    <form name="export" id="exportTool" action="/kylin/api/query/format/csv" method="post">
+      <input type="hidden" name="sql" v-model="sql"/>
+      <input type="hidden" name="project" v-model="project"/>
+      <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
+    </form>
   </div>
 </template>
 <script>
@@ -114,6 +119,9 @@ export default {
       selectDimension: '',
       selectMetrics: '',
       graphType: 'line',
+      sql: '',
+      project: '',
+      limit: '',
       queryInfo: {
         duration: '-',
         project: this.extraoption.project,
@@ -138,11 +146,12 @@ export default {
      // this.addTab('query', 'querypanel', queryObj)
     },
     exportData () {
-      if (this.extraoption.limit) {
-        location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project + '&limit=' + this.extraoption.limit
-      } else {
-        location.href = '/kylin/api/query/format/csv?sql=' + this.extraoption.sql + '&project=' + this.extraoption.project
-      }
+      this.sql = this.extraoption.sql
+      this.project = this.extraoption.project
+      this.limit = this.extraoption.limit
+      this.$nextTick(() => {
+        document.getElementById('exportTool').submit()
+      })
     },
     changeViewModel () {
       this.viewModel = !this.viewModel
