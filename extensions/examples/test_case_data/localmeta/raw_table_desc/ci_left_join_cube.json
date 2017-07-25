@@ -125,6 +125,36 @@
     {
       "index": "discrete",
       "encoding": "orderedbytes",
+      "table": "BUYER_ACCOUNT",
+      "column": "ACCOUNT_ID"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "BUYER_ACCOUNT",
+      "column": "ACCOUNT_BUYER_LEVEL"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "BUYER_ACCOUNT",
+      "column": "ACCOUNT_SELLER_LEVEL"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "BUYER_ACCOUNT",
+      "column": "ACCOUNT_COUNTRY"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "BUYER_ACCOUNT",
+      "column": "ACCOUNT_CONTACT"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
       "table": "TEST_CAL_DT",
       "column": "CAL_DT"
     },
