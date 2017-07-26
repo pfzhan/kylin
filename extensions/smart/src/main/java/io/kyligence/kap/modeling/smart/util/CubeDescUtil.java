@@ -147,11 +147,15 @@ public class CubeDescUtil {
 
     public static FunctionDesc newFunctionDesc(DataModelDesc modelDesc, String expression, ParameterDesc param,
             String returnType) {
-        // SUM() may cause overflow on int family, will change to decimal(19,0) here.
-        if ("SUM".equals(expression)) {
+        // SUM() may cause overflow on int family, will change precision here.
+        if ("SUM".equals(expression) && returnType != null) {
             DataType type = DataType.getType(returnType);
-            if (type != null && type.isIntegerFamily()) {
-                returnType = "decimal(19,0)";
+            if (type.isIntegerFamily()) {
+                returnType = "bigint";
+            } else if (type.isDecimal() || type.isDouble() || type.isFloat()) {
+                returnType = "decimal(19,4)";
+            } else {
+                returnType = "decimal(14,0)";
             }
         }
 
