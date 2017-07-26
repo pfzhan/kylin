@@ -127,8 +127,12 @@ public class HiveTableExtSampleJob extends CubingJob {
 
         addUpdateStatsMetaStep(parent, samplesOutPath);
 
+        /**
+         *
+         * The materialized Hive view might be used in model check, so it's better to be reserved.
         if (desc.isView())
             parent.addTask(deleteMaterializedView(desc));
+         */
 
         table_ext.setJodID(parent.getId());
         metaMgr.saveTableExt(table_ext, project);
