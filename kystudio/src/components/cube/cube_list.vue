@@ -78,6 +78,7 @@
             {{$t('expansionRate')}}{{(scope.row.input_records_size>0? scope.row.size_kb*1024/scope.row.input_records_size : 0) * 100 | number(2)}}%
           </div>
           <span>{{(totalSizeList[scope.row.name]||0) | dataSize}}</span>
+
         </el-tooltip>
       </template>
     </el-table-column>
@@ -244,7 +245,7 @@ export default {
       filterCube: '',
       currentModel: 'ALL',
       allModels: [],
-      totalSizeList: [],
+      totalSizeList: {},
       cubeMeta: {
         cubeName: '',
         modelName: '',
@@ -406,11 +407,12 @@ export default {
           this.totalCubes = data.size
           if (cubesNameList.length > 0) {
             cubesNameList.forEach((cubename) => {
-              this.totalSizeList[cubename] = 0
+              // this.totalSizeList[cubename] = 0
               this.loadCubeDesc(cubename).then((res) => {
+                var innerCubeName = cubename
                 handleSuccess(res, (data, code, status, msg) => {
                   if (data.cube.storage_type === 100 || data.cube.storage_type === 99) {
-                    this.getColumnarInfo(cubename).then((res) => {
+                    this.getColumnarInfo(innerCubeName).then((res) => {
                       handleSuccess(res, (data, code, status, msg) => {
                         let totalSize = 0
                         data[0].forEach(function (segment) {
@@ -419,11 +421,11 @@ export default {
                             totalSize += segment.rawTableStorageSize
                           }
                         })
-                        this.totalSizeList[cubename] = totalSize
+                        this.$set(this.totalSizeList, innerCubeName, totalSize)
                       })
                     })
                   } else {
-                    this.getHbaseInfo(cubename).then((res) => {
+                    this.getHbaseInfo(innerCubeName).then((res) => {
                       handleSuccess(res, (data, code, status, msg) => {
                         let totalSize = 0
                         data.forEach(function (segment) {
@@ -432,7 +434,7 @@ export default {
                             totalSize += segment.rawTableStorageSize
                           }
                         })
-                        this.totalSizeList[cubename] = totalSize
+                        this.$set(this.totalSizeList, innerCubeName, totalSize)
                       })
                     })
                   }
