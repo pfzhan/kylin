@@ -263,7 +263,7 @@ export default {
       this.loadTableExt({tableName: database + '.' + tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
           var arr = []
-          var lenOffeature = data.columns_stats && data.columns_stats.length || 0
+          var lenOffeature = data && data.columns_stats && data.columns_stats.length || 0
           if (lenOffeature) {
             arr = [[''], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
             for (let i = 0; i < lenOffeature; i++) {

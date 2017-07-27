@@ -792,6 +792,7 @@ export default {
       this.timeColumns = Object.assign({}, this.timeColumns, timeColumns)
     },
     addComputedColumnToDatabase: function (callback, isInit) {
+      this.computedColumn.name = this.computedColumn.name.toUpperCase()
       var guid = this.computedColumn.guid
       var databaseInfo = this.getTableInfoByGuid(guid)
       var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
@@ -1263,7 +1264,7 @@ export default {
       var anchor = [[1.0, -0.05, 1.5, 0], [0, -0.05, -1, 0]]
       var scope = 'link'
       if (isShowLinkPoint) {
-        anchor = [[0.5, 0, 0.6, 0], [0.5, 1, 0.6, 1], [0, 0.5, 0, 0.6], [1, 0.5, 1, 0.6]]
+        anchor = [[0.5, 0, 0.6, 0], [0.1, 0, 0.2, 0], [0.8, 0, 0.9, 0], [0.5, 1, 0.6, 1], [0.1, 1, 0.2, 1], [0.8, 1, 0.9, 1], [0, 0.8, 0, 0.9], [1, 0.8, 1, 0.9]]
         scope = 'showlink'
       }
       jsplumb.addEndpoint(guid, {anchor: anchor}, this.createEndpointConfig({
