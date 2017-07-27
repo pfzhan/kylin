@@ -203,8 +203,8 @@ export default {
     this.checkLockFormat()
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'Please input filter condition'},
-    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件'}
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.'},
+    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。'}
   }
 }
 </script>
