@@ -73,12 +73,23 @@ export default {
     },
     bindTagClick () {
       this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
-      this.tags.forEach(tag => {
-        tag.addEventListener('click', e => {
-          e.stopPropagation()
-          this.selectTag(e)
-        })
-      })
+      // this.tags.forEach(tag => {
+      //   tag.addEventListener('click', e => {
+      //     e.stopPropagation()
+      //     this.selectTag(e)
+      //   })
+      // })
+      var arealabel = this.$el.querySelectorAll('.el-select__tags > span')
+      if (arealabel.length) {
+        arealabel[0].onclick = (e) => {
+          var ev = ev || window.event
+          var target = ev.target || ev.srcElement
+          if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
+            e.stopPropagation()
+            this.selectTag(ev)
+          }
+        }
+      }
     },
     removeTag (data) {
       for (var k = 0; k < (this.selectedL && this.selectedL.length || 0); k++) {

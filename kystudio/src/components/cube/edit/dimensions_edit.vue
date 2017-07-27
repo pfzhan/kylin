@@ -2,13 +2,6 @@
 <div class="dimensionBox">
   <el-row>
     <el-col :span="18" style="padding-right: 30px;border-right: 1px solid #393e53;padding-bottom: 30px;margin-top: -15px;padding-top: 15px;">  
-    <!-- 以前的输入sql -->
-      <!-- <el-row>
-        <el-col :span="24">
-          <el-button type="primary"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
-        </el-col>
-      </el-row> -->
-      <!-- <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div> -->
       <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
           <el-col :span="24" style="font-size: 14px;">
@@ -211,9 +204,9 @@
        </el-row>
         <el-row  :disabled="isReadyCube"  id="dimension-row" v-show="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
-          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap"> <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
+          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap">{{row.column}}<!--  <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip> --></el-col>
           <el-col :span="4">
-            <el-select :disabled="isReadyCube"   v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
+            <!-- <el-select :disabled="isReadyCube"   v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <el-option
                   v-for="(item, encodingindex) in row.selectEncodings"
                   :key="encodingindex"
@@ -224,20 +217,26 @@
                    <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
                 </el-tooltip>
               </el-option>              
-            </el-select>
+            </el-select> -->
+            <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
+              <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
+            </select>
           </el-col>
           <el-col :span="2"> 
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input> 
           </el-col>
           <el-col :span="2">
-              <el-select :disabled="isReadyCube"   v-model="row.isShardBy" @change="changeRowkey(row, index)">
+              <!-- <el-select :disabled="isReadyCube"   v-model="row.isShardBy" @change="changeRowkey(row, index)">
                 <el-option
                 v-for="item in shardByType"
                 :key="item.name"
                 :label="item.name"
                 :value="item.value">
                 </el-option>
-              </el-select>
+              </el-select> -->
+              <select class="rowkeySelect" v-model="row.isShardBy" @change="changeRowkey(row, index)">
+              <option v-for="item in shardByType" :key="item.name" :value="item.value">{{item.name}}</option>
+            </select>
           </el-col>
           <el-col :span="4"> {{row.datatype}}</el-col>
           <el-col :span="2">{{row.cardinality}}</el-col>
@@ -268,8 +267,8 @@
           style="width: 100%">
           <el-table-column
             prop="name"
-            width="90"
-            :label="$t('kylinLang.dataSource.sampleData')">
+            width="86"
+            :label="$t('sampleData')">
           </el-table-column>
           <el-table-column
             prop="content"
@@ -327,7 +326,11 @@ export default {
       tableStaticsCache: {},
       suggestLoading: false,
       cuboidCache: {},
-      ST: null
+      ST: null,
+      scrollST: null,
+      beforeScrollPos: 260,
+      selectEncodingCache: {},
+      dimensionRightDom: null
     }
   },
   components: {
@@ -413,6 +416,7 @@ export default {
       // this.initConvertedRowkeys()
     },
     showDetail: function (text, target) {
+      this.dimensionRightDom.style.paddingTop = (document.getElementById('scrollBox').scrollTop - 180) + 'px'
       this.isActiveItem = text
       var columnNameInfo = text && text.split('.') || []
       if (columnNameInfo.length) {
@@ -539,10 +543,11 @@ export default {
       this.addDimensionsFormVisible = false
       this.$nextTick(() => {
         setTimeout(() => {
-          this.initRowkeyColumns()
-          if (this.convertedRowkeys.length > 25) {
-            kapConfirm(this.$t('moreRowkeyTip'))
-          }
+          this.initRowkeyColumns((rowkeys) => {
+            if (rowkeys && rowkeys.length > 25) {
+              kapConfirm(this.$t('moreRowkeyTip'))
+            }
+          })
           setTimeout(() => {
             this.initAggregationGroup()
             this.calcAllCuboid()
@@ -570,7 +575,7 @@ export default {
       }
       this.editDimensionFormVisible = false
     },
-    initRowkeyColumns: function () {
+    initRowkeyColumns: function (moreRowKeyCallback) {
       this.currentRowkey.splice(0, this.currentRowkey.length)
       this.oldRowkey = []
       this.modelDesc.lookups.forEach((lookup) => {
@@ -628,19 +633,25 @@ export default {
           }
         }
       })
-      this.initConvertedRowkeys()
+      this.initConvertedRowkeys(moreRowKeyCallback)
     },
-    initConvertedRowkeys: function () {
+    initConvertedRowkeys: function (moreRowKeyCallback) {
       this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
       this.$nextTick(() => {
         this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
           let version = rowkey.encoding_version || 1
           var rowKeyObj = {column: rowkey.column, encoding: this.getEncoding(rowkey.encoding) + ':' + version, valueLength: this.getLength(rowkey.encoding), isShardBy: rowkey.isShardBy}
           rowKeyObj.selectEncodings = this.initEncodingType(rowKeyObj)
-          rowKeyObj.datatype = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rowKeyObj.column] && this.modelDesc.columnsDetail[rowKeyObj.column].datatype || ''
-          rowKeyObj.cardinality = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rowKeyObj.column] && this.modelDesc.columnsDetail[rowKeyObj.column].cardinality || ''
+          var rowkeyColumnInfo = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rowKeyObj.column] || null
+          if (rowkeyColumnInfo) {
+            rowKeyObj.datatype = rowkeyColumnInfo.datatype
+            rowKeyObj.cardinality = rowkeyColumnInfo.cardinality
+          }
           this.convertedRowkeys.push(rowKeyObj)
         })
+        if (typeof moreRowKeyCallback === 'function') {
+          moreRowKeyCallback(this.convertedRowkeys)
+        }
       })
     },
     initEncodingType: function (rowkey) {
@@ -648,14 +659,19 @@ export default {
         return
       }
       let datatype = this.modelDesc.columnsDetail[rowkey.column].datatype
+      if (this.selectEncodingCache[datatype]) {
+        return this.selectEncodingCache[datatype]
+      }
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
       if (this.isEdit) {
         let _encoding = this.getEncoding(rowkey.encoding)
         let _version = parseInt(this.getVersion(rowkey.encoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
+        this.selectEncodingCache[datatype] = addEncodings
         return addEncodings
       } else {
+        this.selectEncodingCache[datatype] = filterEncodings
         return filterEncodings
       }
     },
@@ -668,12 +684,15 @@ export default {
       }
     },
     changeRowkey: function (rowkey, index) {
-      this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'isShardBy', rowkey.isShardBy)
-      this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding_version', this.getVersion(rowkey.encoding))
+      var curRowkeyColumn = this.cubeDesc.rowkey.rowkey_columns[index]
+      var version = this.getVersion(rowkey.encoding)
+      var encoding = this.getEncoding(rowkey.encoding)
+      this.$set(curRowkeyColumn, 'isShardBy', rowkey.isShardBy)
+      this.$set(curRowkeyColumn, 'encoding_version', version)
       if (rowkey.valueLength) {
-        this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', this.getEncoding(rowkey.encoding) + ':' + rowkey.valueLength)
+        this.$set(curRowkeyColumn, 'encoding', encoding + ':' + rowkey.valueLength)
       } else {
-        this.$set(this.cubeDesc.rowkey.rowkey_columns[index], 'encoding', this.getEncoding(rowkey.encoding))
+        this.$set(curRowkeyColumn, 'encoding', encoding)
       }
       if (rowkey.encoding.indexOf('dict') >= 0 || rowkey.encoding.indexOf('date') >= 0 || rowkey.encoding.indexOf('time') >= 0) {
         this.$set(rowkey, 'valueLength', null)
@@ -832,9 +851,21 @@ export default {
     },
     addJointDims: function (jointDims) {
       jointDims.push([])
+    },
+    scrollRightBar () {
+      clearTimeout(this.scrollST)
+      this.scrollST = setTimeout(() => {
+        var sTop = document.getElementById('scrollBox').scrollTop
+        if (sTop < this.beforeScrollPos) {
+          this.dimensionRightDom.style.paddingTop = '20px'
+          // this.beforeScrollPos = document.getElementById('scrollBox').scrollTop
+        }
+      }, 50)
     }
   },
   mounted () {
+    this.dimensionRightDom = this.$el.querySelectorAll('.dimension-right')[0]
+    document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
     this.getSmartDimensions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
@@ -860,15 +891,41 @@ export default {
       // return this.cubeDesc.status === 'READY'
     }
   },
+  beforeDestroy () {
+    document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+  },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionNotUsed: 'This dimension is not used as a mandatory、 a hierarchy and a joint dimension.'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionNotUsed: '该维度未被用作必须 、层级以及联合维度。'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionNotUsed: 'This dimension is not used as a mandatory、 a hierarchy and a joint dimension.', sampleData: 'Sample'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionNotUsed: '该维度未被用作必须 、层级以及联合维度。', sampleData: '采样数据'}
   }
 }
 </script>
 <style lang="less">
   @import '../../../less/config.less';
   .dimensionBox{
+    .rowkeySelect::-ms-expand { display: none; }
+    .rowkeySelect {
+      height: 30px;
+      border-color: #393e53;
+      width: 100%;
+      color:rgba(255, 255, 255, 0.6);
+
+      border: solid 1px #000;
+      background: url('../../../assets/img/arrow.png') no-repeat scroll right center transparent!important;
+      /*很关键：将默认的select选择框样式清除*/
+      appearance:none;
+      -moz-appearance:none;
+      -webkit-appearance:none;
+      padding-left:10px;
+      -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+      outline: none;
+      background-color: transparent;
+      option{
+        padding:4px;
+        border:none;
+
+      }
+    }
     .active{
       background: #0aaacc!important;
     }
