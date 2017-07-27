@@ -82,7 +82,7 @@
     <el-button type="primary" @click="saveQuery">{{$t('kylinLang.common.ok')}}</el-button>
   </div>
     </el-dialog>
-    <form name="export" id="exportTool" action="/kylin/api/query/format/csv" method="post">
+    <form name="export" id="exportTool" action="/kylin/api/query/format/csv" method="post" accept-charset="UTF-8">
       <input type="hidden" name="sql" v-model="sql"/>
       <input type="hidden" name="project" v-model="project"/>
       <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
