@@ -36,7 +36,8 @@ export default {
   computed: {
     'baseLabel' () {
       var arr = []
-      for (var k = 0; this.labels && k < this.labels.length || 0; k++) {
+      var len = this.labels && this.labels.length || 0
+      for (var k = 0; k < len; k++) {
         if (this.labels[k]) {
           var obj = {
             label: (this.datamap && this.datamap.label) ? this.labels[k][this.datamap.label] : this.labels[k],
@@ -61,7 +62,7 @@ export default {
       this.$nextTick(() => {
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         this.$emit('change')
-        if (e.length > 0 && !/^\w+\.\w+$/.test(e[e.length - 1])) {
+        if (this.allowcreate && e.length > 0 && !/^\w+\.\w+$/.test(e[e.length - 1])) {
           var result = this.filterCreateTag(e[e.length - 1])
           this.selectedL.splice(this.selectedL.length - 1, 1)
           this.selectedL = this.selectedL.concat(result)

@@ -564,14 +564,15 @@ export default {
     },
     editDimensionValidSuccess: function (data) {
       let index = this.cubeDesc.dimensions.indexOf(this.selected_dimension)
-      this.$set(this.cubeDesc.dimensions[index], 'name', data.name)
-      if (this.cubeDesc.dimensions[index].column && data.type === 'derived') {
-        this.$set(this.cubeDesc.dimensions[index], 'derived', [this.cubeDesc.dimensions[index].column])
-        this.$set(this.cubeDesc.dimensions[index], 'column', null)
+      var curDimension = this.cubeDesc.dimensions[index]
+      this.$set(curDimension, 'name', data.name)
+      if (curDimension.column && data.type === 'derived') {
+        this.$set(curDimension, 'derived', [curDimension.column])
+        this.$set(curDimension, 'column', null)
       }
-      if (this.cubeDesc.dimensions[index].derived && data.type === 'normal') {
-        this.$set(this.cubeDesc.dimensions[index], 'column', this.cubeDesc.dimensions[index].derived[0])
-        this.$set(this.cubeDesc.dimensions[index], 'derived', null)
+      if (curDimension.derived && data.type === 'normal') {
+        this.$set(curDimension, 'column', curDimension.derived[0])
+        this.$set(curDimension, 'derived', null)
       }
       this.editDimensionFormVisible = false
     },
@@ -626,9 +627,11 @@ export default {
       })
       this.oldRowkey.forEach((rowkey) => {
         if (this.currentRowkey.indexOf(rowkey) === -1) {
-          for (let i = 0; i < this.cubeDesc.rowkey.rowkey_columns.length; i++) {
+          let len = this.cubeDesc.rowkey.rowkey_columns.length
+          for (let i = 0; i < len; i++) {
             if (this.cubeDesc.rowkey.rowkey_columns[i].column === rowkey) {
               this.cubeDesc.rowkey.rowkey_columns.splice(i, 1)
+              break
             }
           }
         }
@@ -706,18 +709,14 @@ export default {
       this.initCalCuboid()
     },
     initAggregationGroup: function (isReset) {
-      if (!this.isEdit && this.cubeDesc.aggregation_groups.length <= 0) {
-        let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
-        this.cubeDesc.aggregation_groups.push(newGroup)
-        this.cuboidList.push(0)
-      }
-      if (this.isEdit && isReset && this.cubeDesc.aggregation_groups.length <= 0) {
+      if ((!this.isEdit || this.isEdit && isReset) && this.cubeDesc.aggregation_groups.length <= 0) {
         let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)
       }
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
-        for (let i = 0; i < aggregationGroup.includes.length; i++) {
+        var aggLen = aggregationGroup.includes && aggregationGroup.includes.length || 0
+        for (let i = 0; i < aggLen; i++) {
           if (this.currentRowkey.indexOf(aggregationGroup.includes[i]) === -1) {
             let removeColumn = aggregationGroup.includes[i]
             aggregationGroup.includes.splice(i, 1)
@@ -726,33 +725,31 @@ export default {
             if (mandatory && mandatory.length) {
               let columnIndex = mandatory.indexOf(removeColumn)
               if (columnIndex >= 0) {
-                aggregationGroup.select_rule.mandatory_dims.splice(columnIndex, 1)
+                mandatory.splice(columnIndex, 1)
               }
             }
             let hierarchys = aggregationGroup.select_rule.hierarchy_dims
-            if (hierarchys && hierarchys.length) {
-              for (let i = 0; i < hierarchys.length; i++) {
-                let hierarchysIndex = hierarchys[i].indexOf(removeColumn)
-                if (hierarchysIndex >= 0) {
-                  aggregationGroup.select_rule.hierarchy_dims[i].splice(hierarchysIndex, 1)
-                }
-                if (hierarchys[i].length === 0) {
-                  aggregationGroup.select_rule.hierarchy_dims.splice(i, 1)
-                  i--
-                }
+            var hierarchysLen = hierarchys && hierarchys.length || 0
+            for (let i = 0; i < hierarchysLen; i++) {
+              let hierarchysIndex = hierarchys[i].indexOf(removeColumn)
+              if (hierarchysIndex >= 0) {
+                hierarchys[i].splice(hierarchysIndex, 1)
+              }
+              if (hierarchys[i].length === 0) {
+                hierarchys.splice(i, 1)
+                i--
               }
             }
             let joints = aggregationGroup.select_rule.joint_dims
-            if (joints && joints.length) {
-              for (let i = 0; i < joints.length; i++) {
-                let jointIndex = joints[i].indexOf(removeColumn)
-                if (jointIndex >= 0) {
-                  aggregationGroup.select_rule.joint_dims[i].splice(jointIndex, 1)
-                }
-                if (joints[i].length === 0) {
-                  aggregationGroup.select_rule.joint_dims.splice(i, 1)
-                  i--
-                }
+            var jointsLen = joints && joints.length || 0
+            for (let i = 0; i < jointsLen; i++) {
+              let jointIndex = joints[i].indexOf(removeColumn)
+              if (jointIndex >= 0) {
+                joints[i].splice(jointIndex, 1)
+              }
+              if (joints[i].length === 0) {
+                joints.splice(i, 1)
+                i--
               }
             }
           }
@@ -882,7 +879,7 @@ export default {
       clearTimeout(this.ST)
       this.ST = setTimeout(() => {
         this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
-      }, 1000)
+      }, 2000)
     })
   },
   computed: {
