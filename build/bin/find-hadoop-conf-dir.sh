@@ -14,7 +14,9 @@ then
         verbose Retrieving hadoop java opts...
         old_hadoop_cp=${HADOOP_CLASSPATH}
         export HADOOP_CLASSPATH=`ls ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar`
-        extra_system_props=`$JAVA -cp ${HADOOP_CLASSPATH} io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps 'HADOOP_CONF_DIR HADOOP_CLASSPATH PATH CLASSPATH'`  || quit "Faild to run io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps"
+        extra_system_props=`$JAVA -cp ${HADOOP_CLASSPATH} io.kyligence.kap.engine.mr.tool.DumpHadoopSystemProps
+        'HADOOP_CONF_DIR HADOOP_CLASSPATH PATH CLASSPATH java.runtime.name java.vm.name'`  || quit "Faild to run io
+        .kyligence.kap.engine.mr.tool.DumpHadoopSystemProps"
         export HADOOP_CLASSPATH=${old_hadoop_cp}
         verbose "The extra system properties that involved by Hadoop are: `cat ${extra_system_props}`"
         source ${extra_system_props}
