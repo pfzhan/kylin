@@ -207,7 +207,7 @@ export default {
         for (let i = 0; i < len; i++) {
           if (_this.cubeDesc.dictionaries[i].column === data.measure.function.parameter.value) {
             dictionaryIndex = i
-            return
+            break
           }
         }
         if (dictionaryIndex < 0) {
@@ -238,7 +238,7 @@ export default {
         for (let i = 0; i < len; i++) {
           if (_this.cubeDesc.dictionaries[i].column === _this.selected_measure.function.parameter.value) {
             dictionaryIndex = i
-            return
+            break
           }
         }
         if (_this.cubeDesc.dictionaries) {
