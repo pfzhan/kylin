@@ -93,7 +93,8 @@ export default {
       }
     },
     removeTag (data) {
-      for (var k = 0; k < (this.selectedL && this.selectedL.length || 0); k++) {
+      var len = this.selectedL && this.selectedL.length || 0
+      for (var k = 0; k < len; k++) {
         if (this.selectedL[k] === data.value) {
           this.selectedL.splice(k, 1)
           break
@@ -136,20 +137,22 @@ export default {
     }
   },
   mounted () {
-    this.$refs.select.$refs.input.onkeydown = (ev) => {
-      ev = ev || window.event
-      if (ev.keyCode !== 13) {
-        return
+    if (this.allowcreate) {
+      this.$refs.select.$refs.input.onkeydown = (ev) => {
+        ev = ev || window.event
+        if (ev.keyCode !== 13) {
+          return
+        }
+        // 处理单独录入的情况 start
+        if (this.allowcreate && this.query) {
+          var result = this.filterCreateTag(this.query)
+          this.selectedL = this.selectedL.concat(result)
+          this.selectedL = [...new Set(this.selectedL)]
+          this.$refs.select.$refs.input.value = ''
+          this.$refs.select.$refs.input.click()
+        }
+        // 处理单独录入的情况end
       }
-      // 处理单独录入的情况 start
-      if (this.allowcreate && this.query) {
-        var result = this.filterCreateTag(this.query)
-        this.selectedL = this.selectedL.concat(result)
-        this.selectedL = [...new Set(this.selectedL)]
-        this.$refs.select.$refs.input.value = ''
-        this.$refs.select.$refs.input.click()
-      }
-      // 处理单独录入的情况end
     }
     this.bindTagClick()
   }

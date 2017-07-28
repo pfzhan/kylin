@@ -82,7 +82,7 @@
     <el-button type="primary" @click="saveQuery">{{$t('kylinLang.common.ok')}}</el-button>
   </div>
     </el-dialog>
-    <form name="export" id="exportTool" action="/kylin/api/query/format/csv" method="post" accept-charset="UTF-8">
+    <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
       <input type="hidden" name="sql" v-model="sql"/>
       <input type="hidden" name="project" v-model="project"/>
       <input type="hidden" name="limit" v-model="limit" v-if="limit"/>
@@ -150,7 +150,7 @@ export default {
       this.project = this.extraoption.project
       this.limit = this.extraoption.limit
       this.$nextTick(() => {
-        document.getElementById('exportTool').submit()
+        this.$el.querySelectorAll('.exportTool')[0].submit()
       })
     },
     changeViewModel () {

@@ -164,6 +164,7 @@ export default {
       ST: null,
       rawTableDetail: [],
       rawTableIndexOptions: ['discrete', 'fuzzy'],
+      selectEncodingCache: {},
       booleanSelect: [{name: 'true', value: true}, {name: 'false', value: false}]
     }
   },
@@ -199,6 +200,9 @@ export default {
     initEncodingType: function (column) {
       let _this = this
       let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column] && this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype || ''
+      if (this.selectEncodingCache[datatype]) {
+        return this.selectEncodingCache[datatype]
+      }
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
       let filterEncodings = baseEncodings.filterByColumnType(datatype)
       filterEncodings = baseEncodings.addEncoding('orderedbytes', 1)
@@ -208,8 +212,10 @@ export default {
         let _version = parseInt(_this.getVersion(column.encoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         addEncodings = baseEncodings.removeEncoding('dict')
+        this.selectEncodingCache[datatype] = addEncodings
         return addEncodings
       } else {
+        this.selectEncodingCache[datatype] = filterEncodings
         return filterEncodings
       }
     },
@@ -305,7 +311,7 @@ export default {
           is_shardby: false
         })
       })
-      this.initConvertedRawTable()
+      // this.initConvertedRawTable()
     },
     currentChange: function (value) {
       this.currentPage = value
