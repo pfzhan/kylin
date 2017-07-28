@@ -34,7 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.storage.parquet.shaded.com.google.common.base.Strings;
+import com.google.common.base.Strings;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;

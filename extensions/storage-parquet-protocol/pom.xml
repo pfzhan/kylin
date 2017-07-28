@@ -36,7 +36,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <shadeBase>io.kyligence.kap.storage.parquet.shaded</shadeBase>
+        <shadeBase>io.kyligence.kap.storage.parquet.protocol.shaded</shadeBase>
     </properties>
 
 
@@ -98,7 +98,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.3</version>
+                <version>3.0.0</version>
 
                 <executions>
                     <execution>

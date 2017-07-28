@@ -37,6 +37,7 @@
 -keep class io.kyligence.kap.tool.shaded.** {*;}
 -keep class io.kyligence.kap.job.shaded.** {*;}
 -keep class io.kyligence.kap.storage.parquet.shaded.** {*;}
+-keep class io.kyligence.kap.storage.parquet.protocol.shaded.** {*;}
 
 -keep class * extends org.apache.log4j.AppenderSkeleton {*;}
 -keep class * extends org.apache.kylin.rest.controller.BasicController {*;}

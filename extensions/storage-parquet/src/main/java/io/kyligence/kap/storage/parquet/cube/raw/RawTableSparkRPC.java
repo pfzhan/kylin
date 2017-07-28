@@ -49,7 +49,7 @@ import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
-import io.kyligence.kap.storage.parquet.shaded.com.google.protobuf.ByteString;
+import io.kyligence.kap.storage.parquet.protocol.shaded.com.google.protobuf.ByteString;
 
 public class RawTableSparkRPC implements IGTStorage {
 

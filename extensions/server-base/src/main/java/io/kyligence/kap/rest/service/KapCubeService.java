@@ -28,6 +28,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -60,8 +62,6 @@ import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
-import io.kyligence.kap.storage.parquet.shaded.com.google.common.cache.Cache;
-import io.kyligence.kap.storage.parquet.shaded.com.google.common.cache.CacheBuilder;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Component("kapCubeService")
