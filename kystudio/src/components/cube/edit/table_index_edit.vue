@@ -134,10 +134,10 @@
             {{row.table}}
           </el-col>
           <el-col :span="2">
-            {{row.encoding}} 
+            {{row.encoding.split(':')[0]}} 
           </el-col>
           <el-col :span="4">
-            {{row.valueLength}}
+            {{row.encoding.split(':')[1]}}
           </el-col>
           <el-col :span="2">
             {{row.index}}
