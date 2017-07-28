@@ -1,16 +1,5 @@
 <template>
   <el-form :model="measure" id="add-measure" label-position="right" :rules="rules" label-width="20%" ref="measureForm">
-
-<!--     <el-form-item label="活动名称" prop="name">
-      <el-input v-model="ruleForm.name"></el-input>
-    </el-form-item>
-    <el-form-item label="活动区域" prop="region">
-      <el-select v-model="ruleForm.region" placeholder="请选择活动区域">
-        <el-option label="区域一" value="shanghai"></el-option>
-        <el-option label="区域二" value="beijing"></el-option>
-      </el-select>
-    </el-form-item> -->
-
     <el-form-item :label="$t('name')" prop="name">
       <div class="input_width">
         <el-input v-model="measure.name"></el-input>
@@ -73,7 +62,7 @@
       </el-select>     
     </el-form-item>     
     <el-form-item :label="getReturnTypeLab" >
-      <el-tag v-if="measure.function.expression !== 'TOP_N' && measure.function.expression !== 'COUNT_DISTINCT' && measure.function.expression !== 'EXTENDED_COLUMN' && (measure.function.expression !== 'SUM' || measure.function.returntype.indexOf('decimal') > 0)">
+      <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || measure.function.expression === 'PERCENTILE' || measure.function.parameter.type === 'constant'">
         {{getReturnType}}
       </el-tag>
       <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'COUNT_DISTINCT'">
@@ -94,17 +83,27 @@
       </el-select>
       <el-input v-if="measure.function.expression === 'EXTENDED_COLUMN'" v-model="measure.function.returntype">
       </el-input>
-      <el-row v-if="measure.function.expression === 'SUM'" >
-        <el-row v-if="sumMeasure.type === 'decimal'" id="decimal">
-          <span class="decimal-left">decimal(</span>
-          <el-input v-model="sumMeasure.value.precision" class="precision"></el-input>
-          <span class="douhao">,</span>
-          <el-input v-model="sumMeasure.value.decimalPlace" class="place"></el-input>
-          <span class="decimal-right">)</span>
-        </el-row>
-        <el-row v-if="sumMeasure.type === 'bigint'">
-         <el-col  :span="4"><el-tag>bigint</el-tag></el-col>
-        </el-row>
+      <el-row class="select-returntype" v-if="selectableMeasure.type != '' && measure.function.expression === 'SUM' && measure.function.parameter.type === 'column'">
+        <el-col v-if="otherType.indexOf(selectableMeasure.type) >= 0">
+          <el-tag>{{getSumReturnType}}</el-tag>
+        </el-col>
+        <el-col v-else>
+          <el-select v-model="selectableMeasure.type">
+            <el-option
+              v-for="(item, index) in selectableType"
+              :key="index"
+              :label="item"
+              :value="item">
+            </el-option>
+          </el-select>
+          <div class="decimal" v-if="selectableMeasure.type === 'decimal'">
+            <span class="decimal-left">(</span>
+            <el-input v-model="selectableMeasure.value.firstNumber"></el-input>
+            <span class="douhao">,</span>
+            <el-input v-model="selectableMeasure.value.secondNumber"></el-input>
+            <span class="decimal-right">)</span>
+          </div>
+        </el-col>  
       </el-row>  
     </el-form-item> 
 
@@ -136,7 +135,7 @@
       <el-table-column
         :label="$t('column')">
         <template scope="scope">
-          <el-select v-model="scope.row.column" filterable>
+          <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct}" filterable>
            <el-option   
             v-for="(item, index) in getMultipleColumns"
             :label="item"
@@ -156,7 +155,7 @@
               :key="index"
               :label="item.name"
               :value="item.name + ':' + item.version">
-              <el-tooltip effect="dark" :content="$t($store.state.config.encodingTip[item.name])" placement="top">
+              <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="top">
                 <span style="float: left;width: 90%">{{ item.name }}</span>
                 <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
               </el-tooltip>
@@ -198,22 +197,26 @@ export default {
       measure: objectClone(this.measureDesc),
       expressionsConf: ['SUM', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'TOP_N', 'RAW', 'EXTENDED_COLUMN', 'PERCENTILE'],
       type: ['constant', 'column'],
+      integerType: ['bigint', 'int', 'integer', 'smallint', 'tinyint'],
+      floatType: ['decimal', 'double', 'float'],
+      otherType: ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar'],
       showDim: false,
       isReuse: false,
       reuseColumn: '',
       isEdit: 'false',
       firstChange: true,
       convertedColumns: [],
+      hisBType: '',
       nextParam: {
         'type': 'column',
         'value': '',
         'next_parameter': null
       },
-      sumMeasure: {
+      selectableMeasure: {
         type: '',
         value: {
-          precision: 19,
-          decimalPlace: 4
+          firstNumber: 0,
+          secondNumber: 0
         }
       },
       distinctDataTypes: [
@@ -273,7 +276,7 @@ export default {
         }
       } else {
         _this.showDim = false
-        _this.sumMeasure.type = ''
+        _this.selectableMeasure.type = ''
       }
     },
     getExtendedHostColumn: function () {
@@ -334,17 +337,18 @@ export default {
         })
       }
     },
-    initSumColumn: function () {
-      this.convertedColumns.splice(0, this.convertedColumns.length)
-      if (this.measure.function.expression === 'SUM' && this.measure.function.parameter.type === 'column') {
+    initSelectableColumn: function () {
+      if (this.measure.function.parameter.value !== '' && (this.measure.function.expression === 'SUM' && this.measure.function.parameter.type === 'column')) {
         this.$nextTick(() => {
-          let returnValue = this.measure.function.returntype.match(RegExp('^.*?\\((\\d+)\\,(\\d+)\\)$'))
-          if (returnValue) {
-            this.sumMeasure.type = 'decimal'
-            this.sumMeasure.value.precision = returnValue[1]
-            this.sumMeasure.value.decimalPlace = returnValue[2]
-          } else {
-            this.sumMeasure.type = 'bigint'
+          this.selectableMeasure.value.firstNumber = ''
+          this.selectableMeasure.value.secondNumber = ''
+          const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+          let returnValue = returnRegex.exec(this.measure.function.returntype)
+          this.selectableMeasure.type = returnValue[1]
+          this.hisBType = returnValue[1]
+          if (this.selectableMeasure.type === 'decimal') {
+            this.selectableMeasure.value.firstNumber = returnValue[2]
+            this.selectableMeasure.value.secondNumber = returnValue[3]
           }
         })
       }
@@ -381,6 +385,7 @@ export default {
       return columns
     },
     initGroupByColumn: function () {
+      this.convertedColumns.splice(0, this.convertedColumns.length)
       if (this.measure.function.configuration && this.measure.function.expression === 'TOP_N') {
         this.$nextTick(() => {
           let returnValue = (/\((\d+)(,\d+)?\)/).exec(this.measure.function.returntype)
@@ -447,20 +452,19 @@ export default {
       this.convertedColumns.splice(index, 1)
     },
     addNewProperty: function () {
-      let _this = this
-      if (_this.measure.function.expression === 'TOP_N') {
-        let baseEncodings = loadBaseEncodings(_this.$store.state.datasource)
+      if (this.measure.function.expression === 'TOP_N') {
+        let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
         let GroupBy = {
           column: '',
           encoding: 'dict:' + baseEncodings.getEncodingMaxVersion('dict'),
           valueLength: 0
         }
-        _this.convertedColumns.push(GroupBy)
+        this.convertedColumns.push(GroupBy)
       } else {
         let GroupBy = {
           column: ''
         }
-        _this.convertedColumns.push(GroupBy)
+        this.convertedColumns.push(GroupBy)
       }
     },
     recursion: function (parameter, list) {
@@ -492,23 +496,20 @@ export default {
       if (!this.firstChange && this.measure.function.expression === 'EXTENDED_COLUMN') {
         this.measure.function.returntype = '100'
       }
-      if (!this.firstChange && this.measure.function.expression === 'PERCENTILE') {
-        this.measure.function.returntype = 'percentile(100)'
-      }
       if (!this.firstChange && this.measure.function.expression === 'SUM') {
         if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
           let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
-          if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
-            this.sumMeasure.type = 'bigint'
-          } else {
-            this.sumMeasure.type = 'decimal'
-            if (colType.indexOf('decimal') !== -1 || colType === 'double' || colType === 'float') {
-              this.sumMeasure.value.precision = 19
-              this.sumMeasure.value.decimalPlace = 4
-            } else {
-              this.sumMeasure.value.precision = 14
-              this.sumMeasure.value.decimalPlace = 0
-            }
+          this.selectableMeasure.value.firstNumber = ''
+          this.selectableMeasure.value.secondNumber = ''
+          const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+          let returnValue = returnRegex.exec(colType)
+          this.selectableMeasure.type = returnValue[1]
+          if (this.integerType.indexOf(this.selectableMeasure.type) >= 0) {
+            this.selectableMeasure.type = 'bigint'
+          } else if (this.floatType.indexOf(this.selectableMeasure.type) >= 0) {
+            this.selectableMeasure.type = 'decimal'
+            this.selectableMeasure.value.firstNumber = 19
+            this.selectableMeasure.value.secondNumber = 4
           }
         }
         if (this.measure.function.parameter.value === 1 && this.measure.function.expression !== 'SUM' && this.measure.function.expression !== 'COUNT' && this.measure.function.expression !== 'TOP_N') {
@@ -517,20 +518,29 @@ export default {
       }
       this.firstChange = false
     },
+    changeReturnType: function () {
+      if (this.hisBType === this.selectableMeasure.type) {
+        return
+      }
+      if (this.measure.function.parameter.value !== '' && (this.measure.function.expression === 'SUM' && this.measure.function.parameter.type === 'column')) {
+        this.selectableMeasure.value.firstNumber = ''
+        this.selectableMeasure.value.secondNumber = ''
+      }
+    },
     changeParamValue: function () {
-      if (this.measure.function.expression === 'SUM' && this.measure.function.parameter.value !== '' && this.measure.function.parameter.type === 'column') {
+      if (this.measure.function.parameter.value !== '' && (this.measure.function.expression === 'SUM' && this.measure.function.parameter.type === 'column')) {
+        this.selectableMeasure.value.firstNumber = ''
+        this.selectableMeasure.value.secondNumber = ''
         let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
-        if (colType === 'smallint' || colType === 'int' || colType === 'bigint' || colType === 'integer' || colType === 'tinyint') {
-          this.sumMeasure.type = 'bigint'
-        } else {
-          this.sumMeasure.type = 'decimal'
-          if (colType.indexOf('decimal') !== -1 || colType === 'double' || colType === 'float') {
-            this.sumMeasure.value.precision = 19
-            this.sumMeasure.value.decimalPlace = 4
-          } else {
-            this.sumMeasure.value.precision = 14
-            this.sumMeasure.value.decimalPlace = 0
-          }
+        const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+        let returnValue = returnRegex.exec(colType)
+        this.selectableMeasure.type = returnValue[1]
+        if (this.integerType.indexOf(this.selectableMeasure.type) >= 0) {
+          this.selectableMeasure.type = 'bigint'
+        } else if (this.floatType.indexOf(this.selectableMeasure.type) >= 0) {
+          this.selectableMeasure.type = 'decimal'
+          this.selectableMeasure.value.firstNumber = 19
+          this.selectableMeasure.value.secondNumber = 4
         }
       }
     },
@@ -593,6 +603,12 @@ export default {
         }
       }
     },
+    getSumReturnType: function () {
+      if (this.measure.function.parameter.value !== '' && this.otherType.indexOf(this.selectableMeasure.type) === -1) {
+        this.measure.function.returntype = this.selectableMeasure.type
+      }
+      return this.selectableMeasure.type
+    },
     getReturnType: function () {
       if (this.measure.function.parameter.type === 'constant') {
         switch (this.measure.function.expression) {
@@ -607,7 +623,7 @@ export default {
             break
         }
       }
-      if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.value !== 1 && this.measure.function.parameter.type === 'column' && this.measure.function.expression !== 'COUNT_DISTINCT') {
+      if (this.measure.function.parameter.value !== '' && this.measure.function.parameter.value !== 1 && this.measure.function.parameter.type === 'column') {
         let colType = this.modelDesc.columnsDetail[this.measure.function.parameter.value].datatype
         switch (this.measure.function.expression) {
           case 'MIN':
@@ -636,6 +652,21 @@ export default {
       if (this.measure.function.expression === 'COUNT_DISTINCT') {
         return this.getAllModelDimMeasureColumns()
       }
+    },
+    selectableType: function () {
+      if (this.integerType.indexOf(this.selectableMeasure.type) >= 0) {
+        return this.integerType
+      }
+      if (this.floatType.indexOf(this.selectableMeasure.type) >= 0) {
+        return this.floatType
+      }
+    },
+    isCountDistinct: function () {
+      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+        return true
+      } else {
+        return false
+      }
     }
   },
   watch: {
@@ -644,7 +675,7 @@ export default {
       this.firstChange = true
       this.inModelDimensions()
       this.initHiddenFeature()
-      this.initSumColumn()
+      this.initSelectableColumn()
       this.initExtendedColumn()
       this.initGroupByColumn()
       this.initCountDistinctColumn()
@@ -654,14 +685,14 @@ export default {
     let _this = this
     this.inModelDimensions()
     this.initHiddenFeature()
-    this.initSumColumn()
+    this.initSelectableColumn()
     this.initExtendedColumn()
     this.initGroupByColumn()
     this.initCountDistinctColumn()
     this.$on('measureFormValid', (t) => {
       _this.$refs['measureForm'].validate((valid) => {
         if (valid) {
-          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, sumMeasure: _this.sumMeasure, nextParam: _this.nextParam})
+          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, selectableMeasure: _this.selectableMeasure, nextParam: _this.nextParam})
         }
       })
     })
@@ -720,25 +751,36 @@ export default {
     .el-dialog__body .el-input{
       padding: 0!important;
     }
-  }
-  #decimal{
-    span, .el-input{
-      float: left;
-      margin-left: 5px;
+    .select-returntype {
+      .el-select{
+        float:left;
+      }
+      .decimal{
+        float: left;
+        width: 60%;
+        span{
+          float: left;
+          margin-left: 5px;
+          font-size: 25px;
+        }
+        .el-input{
+          float: left;
+          margin-left: 5px;
+          width: 15%;
+        }
+        .decimal-left{
+          margin-top: 5px;
+        }
+        .douhao{
+          margin-top: 5px;
+        }
+        .decimal-right{
+          margin-top: 5px;
+        }
+      }
     }
-    .decimal-left{
-      margin-top: 10px;
-    }
-    .el-input{
-      padding-top: 0;
-      margin-top: 10px;
-      width: 38px;
-    }
-    .douhao{
-      margin-top: 5px;
-    }
-    .decimal-right{
-      margin-top: 10px;
+    .distinctWidth {
+      width: 80%
     }
   }
 </style>

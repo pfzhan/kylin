@@ -82,7 +82,7 @@
             property="name"
             :label="$t('columnFamily')"
             width="150">
-        </el-table-column>       
+        </el-table-column>
         <el-table-column
             :label="$t('measures')">
             <template scope="scope">  
@@ -101,8 +101,7 @@
         </el-table-column>                                              
       </el-table>   
      <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
-      {{$t('addColumnFamily')}}</el-button>      
-  
+      {{$t('addColumnFamily')}}</el-button> 
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
     <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">
@@ -250,12 +249,11 @@ export default {
         data.measure.function.returntype = 'extendedcolumn(' + data.measure.function.returntype + ')'
         _this.$set(data.measure.function.parameter, 'next_parameter', data.nextParam)
       }
-      if (data.measure.function.expression === 'SUM') {
-        if (data.sumMeasure.type === 'bigint') {
-          data.measure.function.returntype = 'bigint'
-        }
-        if (data.sumMeasure.type === 'decimal') {
-          data.measure.function.returntype = 'decimal(' + data.sumMeasure.value.precision + ',' + data.sumMeasure.value.decimalPlace + ')'
+      if (data.measure.function.expression === 'SUM' && data.measure.function.parameter.type === 'column') {
+        if (data.selectableMeasure.type === 'decimal') {
+          data.measure.function.returntype = data.selectableMeasure.type + '(' + data.selectableMeasure.value.firstNumber + ',' + data.selectableMeasure.value.secondNumber + ')'
+        } else if (data.selectableMeasure.type !== 'char' && data.selectableMeasure.type !== 'varchar') {
+          data.measure.function.returntype = data.selectableMeasure.type
         }
       }
       if (index >= 0) {
@@ -347,14 +345,16 @@ export default {
       let _this = this
       let normalMeasures = []
       let distinctCountMeasures = []
-      _this.cubeDesc.measures.forEach(function (measure, index) {
-        if (measure.function.expression === 'COUNT_DISTINCT') {
-          distinctCountMeasures.push(measure.name)
-        } else {
-          normalMeasures.push(measure.name)
-        }
-      })
-      _this.currentMeasure = normalMeasures.concat(distinctCountMeasures)
+      if (this.cubeDesc.measures) {
+        this.cubeDesc.measures.forEach(function (measure, index) {
+          if (measure.function.expression === 'COUNT_DISTINCT') {
+            distinctCountMeasures.push(measure.name)
+          } else {
+            normalMeasures.push(measure.name)
+          }
+        })
+      }
+      this.currentMeasure = normalMeasures.concat(distinctCountMeasures)
       let columnFamilyLength = _this.cubeDesc.hbase_mapping.column_family.length
       if (columnFamilyLength === 0) {
         _this.cubeDesc.hbase_mapping.column_family.push({
@@ -375,20 +375,24 @@ export default {
         }
       } else {
         let assignedMeasures = []
-        _this.cubeDesc.hbase_mapping.column_family.forEach(function (colFamily, index) {
-          colFamily.columns[0].measure_refs.forEach(function (measure, index) {
-            assignedMeasures.push(measure)
+        if (_this.cubeDesc.hbase_mapping.column_family) {
+          _this.cubeDesc.hbase_mapping.column_family.forEach(function (colFamily, index) {
+            colFamily.columns[0].measure_refs.forEach(function (measure, index) {
+              assignedMeasures.push(measure)
+            })
           })
-        })
-        _this.cubeDesc.measures.forEach(function (measure, index) {
-          if (assignedMeasures.indexOf(measure.name) === -1) {
-            if (measure.function.expression === 'COUNT_DISTINCT') {
-              _this.cubeDesc.hbase_mapping.column_family[columnFamilyLength - 1].columns[0].measure_refs.push(measure.name)
-            } else {
-              _this.cubeDesc.hbase_mapping.column_family[0].columns[0].measure_refs.push(measure.name)
+        }
+        if (_this.cubeDesc.measures) {
+          _this.cubeDesc.measures.forEach(function (measure, index) {
+            if (assignedMeasures.indexOf(measure.name) === -1) {
+              if (measure.function.expression === 'COUNT_DISTINCT') {
+                _this.cubeDesc.hbase_mapping.column_family[columnFamilyLength - 1].columns[0].measure_refs.push(measure.name)
+              } else {
+                _this.cubeDesc.hbase_mapping.column_family[0].columns[0].measure_refs.push(measure.name)
+              }
             }
-          }
-        })
+          })
+        }
       }
       for (let j = 0; j < _this.cubeDesc.hbase_mapping.column_family.length; j++) {
         for (let i = 0; i < _this.cubeDesc.hbase_mapping.column_family[j].columns[0].measure_refs.length; i++) {
