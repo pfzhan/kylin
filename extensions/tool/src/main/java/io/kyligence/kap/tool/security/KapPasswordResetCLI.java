@@ -58,6 +58,7 @@ public class KapPasswordResetCLI {
             String id = DIR_PREFIX + user.getUsername();
             aclStore.putResourceWithoutCheck(id, managedUser, System.currentTimeMillis(), SERIALIZER);
             logger.trace("update user : {}", user.getUsername());
+            System.out.println("User " + user.getUsername() + "'s password is set to default password.");
         } catch (IOException e) {
             throw new InternalErrorException(e);
         }
