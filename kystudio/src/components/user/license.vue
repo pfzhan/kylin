@@ -1,16 +1,6 @@
 <template>
 <div>
   <el-form label-position="top" ref="licenseForm" class="licenseBox">
-    <el-alert
-    title=""
-    type="info"
-    show-icon
-    :closable="false">
-    <p style="text-align: left;">{{$t('enterLicensePartOne')}}
-     <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
-    {{$t('enterLicensePartTwo')}}
-    </p>
-    </el-alert>
     <el-input v-show="showTextArea" class="textArea" wrap="off"  ref="enterLicense" @blur="blurInput" :placeholder="$t('enterLicense')" v-model="licenseNumber" type="textarea" :row="5">
     </el-input>
     <el-input v-show="showInput" @focus="inputLicense"  :disabled="useFile" :placeholder="$t('enterLicense')" v-model="licenseNumber" multiple="multiple">
@@ -85,8 +75,8 @@ export default {
     'kap-help': help
   },
   locales: {
-    'en': {enterLicense: 'Please upload or enter the license.', upload: 'Upload', enterLicensePartOne: 'Please upload the license file from local or enter license content to the box below.To get the evaluation license for free, please visit ', enterLicensePartTwo: '.'},
-    'zh-cn': {enterLicense: '请上传或手动输入许可证', upload: '上传', enterLicensePartOne: '请从本地选择许可证上传或者输入许可证内容。注册', enterLicensePartTwo: '后，可自助申请免费的试用许可证。'}
+    'en': {enterLicense: 'Please upload or enter the license.', upload: 'Upload'},
+    'zh-cn': {enterLicense: '请上传或手动输入许可证', upload: '上传'}
   }
 }
 </script>
@@ -97,7 +87,7 @@ export default {
     .el-input{
       width: 100%;
       display: inline-table;
-      margin-top: 20px;
+      margin-top: 10px;
       position: relative;
     }
     .el-input-group__append {

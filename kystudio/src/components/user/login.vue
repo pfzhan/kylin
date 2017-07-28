@@ -48,6 +48,16 @@
      <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence</a> Inc. All rights reserved.</p>
   </div>
   <el-dialog @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small">
+    <el-alert 
+    title=""
+    type="info"
+    show-icon
+    :closable="false">
+    <p style="text-align: left;">{{$t('enterLicensePartOne')}}
+     <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
+    {{$t('enterLicensePartTwo')}}
+    </p>
+    </el-alert>
     <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
     <div slot="footer" class="dialog-footer">
       <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
@@ -181,7 +191,9 @@ export default {
       adminTip: 'Apply the reset password command "kylin.sh admin-password-reset" in the "KYLIN_HOME/" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.',
       license: 'Update License',
       cancel: 'Cancel',
-      save: 'Save'
+      save: 'Save',
+      enterLicensePartOne: 'Please upload the license file from local or enter license content to the box below.To get the evaluation license for free, please visit ',
+      enterLicensePartTwo: '.'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Analytics Platform(KAP)',
@@ -194,7 +206,9 @@ export default {
       adminTip: '在"KYLIN_HOME/"使用重置密码命令"kylin.sh admin-password-reset"，<br/>将ADMIN账户密码恢复为初始密码，<br/>其他账户密码将保持不变。',
       license: '更新许可证',
       cancel: '取消',
-      save: '保存'
+      save: '保存',
+      enterLicensePartOne: '请从本地选择许可证上传或者输入许可证内容。注册',
+      enterLicensePartTwo: '后，可自助申请免费的试用许可证。'
     }
   }
 }
