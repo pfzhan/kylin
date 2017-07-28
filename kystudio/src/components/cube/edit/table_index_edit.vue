@@ -25,11 +25,9 @@
      </el-table-column>
      <el-table-column
         :label="$t('dataType')"
+        prop="dataType"
         header-align="center"
-        align="center">
-        <template scope="scope">
-          {{modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
-        </template>   
+        align="center"> 
      </el-table-column>  
      <el-table-column
         :label="$t('tableAlias')"
@@ -44,7 +42,7 @@
             <template scope="scope">
               <el-select v-model="scope.row.encoding" @change=" changeEncoding(scope.row, scope.$index);changeRawTable(scope.row, scope.$index);">
                 <el-option
-                    v-for="(item, index) in initEncodingType(scope.row)" :key="index"
+                    v-for="(item, index) in scope.row.selectEncoding" :key="index"
                    :label="item.name"
                    :value="item.name + ':' + item.version">
                    <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="top">
@@ -151,7 +149,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { loadBaseEncodings } from '../../../util/business'
-import { removeNameSpace, getNameSpace } from '../../../util/index'
+import { objectClone } from '../../../util/index'
 export default {
   name: 'tableIndex',
   props: ['cubeDesc', 'modelDesc', 'isEdit', 'rawTable'],
@@ -182,6 +180,9 @@ export default {
         this.$store.state.cube.cubeRowTableIsSetting = true
         this.$nextTick(() => {
           this.getBaseColumnsData()
+          setTimeout(() => {
+            this.initConvertedRawTable()
+          }, 1000)
         })
       }
     },
@@ -197,9 +198,9 @@ export default {
       let code = encode.split(':')
       return code[1]
     },
-    initEncodingType: function (column) {
+    initEncodingType: function (columnEncoding, columnType) {
       let _this = this
-      let datatype = this.modelDesc.columnsDetail[column.table + '.' + column.column] && this.modelDesc.columnsDetail[column.table + '.' + column.column].datatype || ''
+      let datatype = columnType || ''
       if (this.selectEncodingCache[datatype]) {
         return this.selectEncodingCache[datatype]
       }
@@ -208,8 +209,8 @@ export default {
       filterEncodings = baseEncodings.addEncoding('orderedbytes', 1)
       filterEncodings = baseEncodings.removeEncoding('dict')
       if (this.isEdit) {
-        let _encoding = _this.getEncoding(column.encoding)
-        let _version = parseInt(_this.getVersion(column.encoding))
+        let _encoding = _this.getEncoding(columnEncoding)
+        let _version = parseInt(_this.getVersion(columnEncoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         addEncodings = baseEncodings.removeEncoding('dict')
         this.selectEncodingCache[datatype] = addEncodings
@@ -239,10 +240,11 @@ export default {
       this.$set(curRowTable, 'is_sortby', column.is_sortby)
       this.$set(curRowTable, 'is_shardby', column.is_shardby)
       this.$set(curRowTable, 'encoding_version', this.getVersion(column.encoding))
+      var columnEncoding = this.getEncoding(column.encoding)
       if (column.valueLength) {
-        this.$set(curRowTable, 'encoding', this.getEncoding(column.encoding) + ':' + column.valueLength)
+        this.$set(curRowTable, 'encoding', columnEncoding + ':' + column.valueLength)
       } else {
-        this.$set(curRowTable, 'encoding', this.getEncoding(column.encoding))
+        this.$set(curRowTable, 'encoding', columnEncoding)
       }
       if (column.encoding.indexOf('dict') >= 0 || column.encoding.indexOf('date') >= 0 || column.encoding.indexOf('time') >= 0 || column.encoding.indexOf('var') >= 0 || column.encoding.indexOf('orderedbytes') >= 0) {
         this.$set(column, 'valueLength', null)
@@ -254,64 +256,14 @@ export default {
       this.convertedRawTable.splice(0, this.convertedRawTable.length)
       rawTableDetail.forEach((rawTable) => {
         let version = rawTable.encoding_version || 1
-        this.convertedRawTable.push({column: rawTable.column, table: rawTable.table, encoding: this.getEncoding(rawTable.encoding) + ':' + version, valueLength: this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: rawTable.is_sortby, is_shardby: rawTable.is_shardby})
+        var rawObj = {column: rawTable.column, table: rawTable.table, encoding: this.getEncoding(rawTable.encoding) + ':' + version, valueLength: this.getLength(rawTable.encoding), index: rawTable.index, is_sortby: rawTable.is_sortby, is_shardby: rawTable.is_shardby}
+        rawObj.dataType = this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[rawObj.table + '.' + rawObj.column] && this.modelDesc.columnsDetail[rawObj.table + '.' + rawObj.column].datatype
+        rawObj.selectEncoding = this.initEncodingType(rawObj.encoding, rawObj.dataType)
+        this.convertedRawTable.push(rawObj)
       })
     },
     getBaseColumnsData: function () {
-      let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
-      this.modelDesc.dimensions.forEach((dimension) => {
-        dimension.columns.forEach((column) => {
-          let index = 'discrete'
-          let sorted = false
-          if (this.modelDesc.partition_desc && dimension.table + '.' + column === this.modelDesc.partition_desc.partition_date_column) {
-            sorted = true
-          }
-          var columType = this.modelDesc.columnsDetail[dimension.table + '.' + column] && this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype
-          let encodingVersion = 1
-          if (['time', 'date', 'integer'].indexOf(columType) < 0) {
-            columType = ''
-          }
-          if (columType === 'integer') {
-            columType = columType + ':4'
-            encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
-          }
-          this.rawTable.tableDetail.columns.push({
-            index: index,
-            encoding: columType || 'orderedbytes',
-            table: dimension.table,
-            column: column,
-            encoding_version: encodingVersion,
-            is_sortby: sorted,
-            is_shardby: false
-          })
-        })
-      })
-      this.modelDesc.metrics.forEach((measure) => {
-        let index = 'discrete'
-        let sorted = false
-        if (this.modelDesc.partition_desc && measure === this.modelDesc.partition_desc.partition_date_column) {
-          sorted = true
-        }
-        var columType = this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)] && this.modelDesc.columnsDetail[getNameSpace(measure) + '.' + removeNameSpace(measure)].datatype
-        let encodingVersion = 1
-        if (['time', 'date', 'integer'].indexOf(columType) < 0) {
-          columType = ''
-        }
-        if (columType === 'integer') {
-          columType = columType + ':4'
-          encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
-        }
-        this.rawTable.tableDetail.columns.push({
-          index: index,
-          encoding: columType || 'orderedbytes',
-          table: getNameSpace(measure),
-          column: removeNameSpace(measure),
-          encoding_version: encodingVersion,
-          is_sortby: sorted,
-          is_shardby: false
-        })
-      })
-      // this.initConvertedRawTable()
+      this.rawTable.tableDetail.columns = objectClone(this.$store.state.cube.cubeRawTableBaseData[this.modelDesc.project + '' + this.modelDesc.name])
     },
     currentChange: function (value) {
       this.currentPage = value
@@ -339,30 +291,17 @@ export default {
         this.initConvertedRawTable()
       }, 1000)
     })
-    let _this = this
-    if (_this.rawTableUsable) {
-      if (_this.rawTable.tableDetail && _this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
-        _this.usedRawTable = true
-        _this.initConvertedRawTable()
+    if (this.rawTableUsable) {
+      if (this.rawTable.tableDetail && this.rawTable.tableDetail.columns.length > 0 && this.$store.state.cube.cubeRowTableIsSetting) {
+        this.usedRawTable = true
+        setTimeout(() => {
+          this.initConvertedRawTable()
+        }, 100)
       } else {
-        if (_this.isEdit) {
-          // var rawtbaleName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
-          _this.initConvertedRawTable()
-          // this.loadRawTable(this.cubeDesc.name).then((res) => {
-          //   handleSuccess(res, (data, code, status, msg) => {
-          //     if (this.$store.state.cube.cubeRowTableIsSetting) {
-          //       _this.usedRawTable = true
-          //       var rawtbale = this.cubeDesc.is_draft ? data.draft : data.rawTable
-          //       if (rawtbale) {
-          //         _this.$set(_this.rawTable, 'tableDetail', rawtbale)
-          //         _this.initConvertedRawTable()
-          //       }
-          //     }
-          //   })
-          // }).catch((res) => {
-          //   handleError(res, () => {
-          //   })
-          // })
+        if (this.isEdit) {
+          setTimeout(() => {
+            this.initConvertedRawTable()
+          }, 100)
         }
       }
     }
@@ -394,7 +333,7 @@ export default {
   overflow: scroll;
  }
 .table-index .el-table .info-row {
-  background: transparent;
+  background: #232530;
 }
 .ksd-common-table .tablebody{
   background: @tableBC;

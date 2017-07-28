@@ -46,7 +46,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex'
+import { mapActions, mapMutations } from 'vuex'
 import info from './info_edit'
 import sampleSql from './sample_sql_edit'
 import dimensions from './dimensions_edit'
@@ -56,8 +56,8 @@ import tableIndex from './table_index_edit'
 import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
-import { removeNameSpace, objectClone } from '../../../util/index'
-import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
+import { removeNameSpace, getNameSpace, objectClone } from '../../../util/index'
+import { handleSuccess, handleError, kapConfirm, loadBaseEncodings } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
   props: ['extraoption'],
@@ -144,6 +144,9 @@ export default {
       deleteScheduler: 'DELETE_SCHEDULER',
       draftCube: 'DRAFT_CUBE',
       loadDataSourceByProject: 'LOAD_DATASOURCE'
+    }),
+    ...mapMutations({
+      cacheRawTableBaseData: 'CACHE_RAWTABLE__BASEDATA'
     }),
     step: function (num) {
       this.activeStep = this.stepsCheck(num)
@@ -407,6 +410,65 @@ export default {
       }
       return true
     },
+    getModelColumnsDataForRawtable: function () {
+      var modelColumnsData = []
+      let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
+      this.modelDetail.dimensions.forEach((dimension) => {
+        dimension.columns.forEach((column) => {
+          let index = 'discrete'
+          let sorted = false
+          if (this.modelDetail.partition_desc && dimension.table + '.' + column === this.modelDetail.partition_desc.partition_date_column) {
+            sorted = true
+          }
+          var columType = this.modelDetail.columnsDetail[dimension.table + '.' + column] && this.modelDetail.columnsDetail[dimension.table + '.' + column].datatype
+          let encodingVersion = 1
+          if (['time', 'date', 'integer'].indexOf(columType) < 0) {
+            columType = ''
+          }
+          if (columType === 'integer') {
+            columType = columType + ':4'
+          }
+          encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
+          modelColumnsData.push({
+            index: index,
+            encoding: columType || 'orderedbytes',
+            table: dimension.table,
+            column: column,
+            encoding_version: encodingVersion,
+            is_sortby: sorted,
+            is_shardby: false
+          })
+        })
+      })
+      this.modelDetail.metrics.forEach((measure) => {
+        let index = 'discrete'
+        let sorted = false
+        if (this.modelDetail.partition_desc && measure === this.modelDetail.partition_desc.partition_date_column) {
+          sorted = true
+        }
+        var tableName = getNameSpace(measure)
+        var columnName = removeNameSpace(measure)
+        var columType = this.modelDetail.columnsDetail[tableName + '.' + columnName] && this.modelDetail.columnsDetail[tableName + '.' + columnName].datatype
+        let encodingVersion = 1
+        if (['time', 'date', 'integer'].indexOf(columType) < 0) {
+          columType = ''
+        }
+        if (columType === 'integer') {
+          columType = columType + ':4'
+        }
+        encodingVersion = baseEncodings.getEncodingMaxVersion(columType)
+        modelColumnsData.push({
+          index: index,
+          encoding: columType || 'orderedbytes',
+          table: tableName,
+          column: columnName,
+          encoding_version: encodingVersion,
+          is_sortby: sorted,
+          is_shardby: false
+        })
+      })
+      return modelColumnsData
+    },
     saveDraft (tipChangestate) {
       if (!this.checkHasChanged()) {
         if (tipChangestate) {
@@ -473,7 +535,7 @@ export default {
           // })
           this.$emit('reload', 'cubeList')
         })
-      }).catch((res) => {
+      }, (res) => {
         this.cubeDraftSaving = false
         handleError(res)
       })
@@ -570,7 +632,7 @@ export default {
           this.$emit('reload', 'cubeList')
           this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
         })
-      }).catch((res) => {
+      }, (res) => {
         this.cubeSaving = false
         handleError(res)
       })
@@ -759,13 +821,10 @@ export default {
                   }
                 }
               })
-            }).catch((res) => {
-              handleError(res, () => {
-              })
             })
           }
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
     },
@@ -846,6 +905,8 @@ export default {
           this.renderCubeFirst = true
           this.modelDetail = data.model
           this.getTables()
+          var rawtableBaseData = this.getModelColumnsDataForRawtable()
+          this.cacheRawTableBaseData({project: this.selected_project, modelName: this.extraoption.modelName, data: rawtableBaseData})
           if (this.$refs.infoForm) {
             this.$refs.infoForm.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
           }

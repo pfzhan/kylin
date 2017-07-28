@@ -62,7 +62,7 @@ export default {
       if (this.userDetail.password.length < 8) {
         callback(new Error(this.$t('passwordLength')))
       } else if (!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/gi.test(this.userDetail.password)) {
-        callback(new Error(this.$t('tip_password_unsafe')))
+        callback(new Error(this.$t('kylinLang.user.tip_password_unsafe')))
       } else {
         callback()
       }
@@ -100,8 +100,8 @@ export default {
     })
   },
   locales: {
-    'en': {username: 'User Name', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', tip_password_unsafe: 'The password should contain at least one numbers, letters and special characters.', passwordConfirm: 'Password and confirm password are not the same.', passwordLength: 'the length of password is at least 8'},
-    'zh-cn': {username: '用户名', role: '角色', password: '新密码', oldPassword: '旧密码', confirmNewPassword: '确认密码', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符.', passwordConfirm: '两次密码不一致, 请检查', passwordLength: '密码长度至少8位'}
+    'en': {username: 'User Name', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', passwordConfirm: 'Password and confirm password are not the same.', passwordLength: 'the length of password is at least 8'},
+    'zh-cn': {username: '用户名', role: '角色', password: '新密码', oldPassword: '旧密码', confirmNewPassword: '确认密码', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', passwordConfirm: '两次密码不一致, 请检查', passwordLength: '密码长度至少8位'}
   }
 }
 </script>

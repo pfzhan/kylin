@@ -202,6 +202,9 @@ exports.default = {
     system: '系统',
     project: '项目'
   },
+  user: {
+    tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)'
+  },
   system: {
     evaluationStatement: '您正在使用KAP试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎联系我们。您将获得来自Apache Kylin核心小组的帮助。',
     statement: '您已经购买KAP企业版产品及服务。如果您在使用过程中遇到任何问题，欢迎随时与我们沟通，我们将持续为您提供优质的产品及服务！'

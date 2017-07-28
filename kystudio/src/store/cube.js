@@ -8,7 +8,8 @@ export default {
     cubeEndAccess: {},
     totalCubes: 0,
     cubeRowTableIsSetting: false,
-    cubeSchedulerIsSetting: false
+    cubeSchedulerIsSetting: false,
+    cubeRawTableBaseData: {}
   },
   mutations: {
     [types.SAVE_CUBES_LIST]: function (state, { list, total }) {
@@ -21,6 +22,9 @@ export default {
     },
     [types.CACHE_CUBE_END_ACCESS]: function (state, { access, id }) {
       state.cubeEndAccess[id] = access
+    },
+    [types.CACHE_RAWTABLE__BASEDATA]: function (state, { project, modelName, data }) {
+      state.cubeRawTableBaseData[project + '' + modelName] = data
     }
   },
   actions: {

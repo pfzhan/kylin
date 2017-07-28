@@ -93,7 +93,7 @@ export default {
     },
     validate: function (rule, value, callback) {
       if (!(/^\w+$/).test(this.newUser.password)) {
-        callback(new Error(this.$t('tip_password_unsafe')))
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
       }
