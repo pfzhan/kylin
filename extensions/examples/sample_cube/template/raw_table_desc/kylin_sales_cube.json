@@ -186,6 +186,18 @@
     {
       "index": "discrete",
       "encoding": "orderedbytes",
+      "table": "BUYER_COUNTRY",
+      "column": "COUNTRY"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "BUYER_COUNTRY",
+      "column": "NAME"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
       "table": "KYLIN_SALES",
       "column": "PRICE"
     },
