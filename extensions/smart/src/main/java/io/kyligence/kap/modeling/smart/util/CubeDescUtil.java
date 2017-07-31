@@ -152,8 +152,10 @@ public class CubeDescUtil {
             DataType type = DataType.getType(returnType);
             if (type.isIntegerFamily()) {
                 returnType = "bigint";
-            } else if (type.isDecimal() || type.isDouble() || type.isFloat()) {
+            } else if (type.isDouble() || type.isFloat()) {
                 returnType = "decimal(19,4)";
+            } else if (type.isDecimal()) {
+                returnType = String.format("decimal(19,%d)", type.getScale());
             } else {
                 returnType = "decimal(14,0)";
             }
