@@ -740,6 +740,7 @@ export default {
       }
       // this.editTableColumnInfo(tableList[0].guid, 'name', column.columnName, 'btype', '-')
       this.refreshComputed()
+      this.getPartitionDateColumns()
     },
     saveComputedColumn: function (guid) {
       this.$refs.computedColumnForm.validate((valid) => {
@@ -838,6 +839,7 @@ export default {
           this.warnAlert(this.$t('sameNameComputedColumn'))
         }
       }
+      this.getPartitionDateColumns()
     },
     checkSameColumnName: function (guid, column) {
       var columns = this.getTableInfoByGuid(guid).columns
