@@ -152,8 +152,10 @@ public class ParquetBundleReader {
                 throw new IllegalStateException("Output file path should be set");
             }
             if (columnBitset == null) {
-                int columnCnt = new ParquetRawReader.Builder().setConf(conf).setPath(path).build().getColumnCount();
+                ParquetRawReader build = new ParquetRawReader.Builder().setConf(conf).setPath(path).build();
+                int columnCnt = build.getColumnCount();
                 columnBitset = Utils.createBitset(columnCnt);
+                build.close();
             }
 
             ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset, null);

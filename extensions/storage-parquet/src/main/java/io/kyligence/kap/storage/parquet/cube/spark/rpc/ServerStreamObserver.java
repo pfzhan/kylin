@@ -326,6 +326,7 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         logger.info("grpc server side receive complete.");
         setUserCancelledIfPossible();
         responseObserver.onCompleted();
+        storageVisitStates.invalidate(streamIdentifier);
     }
 
     private void setUserCancelledIfPossible() {

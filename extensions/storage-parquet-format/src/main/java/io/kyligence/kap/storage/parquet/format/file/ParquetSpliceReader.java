@@ -157,8 +157,10 @@ public class ParquetSpliceReader {
                 throw new IllegalStateException("Output file path should be set");
             }
             if (columnBitset == null) {
-                int columnCnt = new ParquetRawReader.Builder().setConf(conf).setPath(path).build().getColumnCount();
+                ParquetRawReader build = new ParquetRawReader.Builder().setConf(conf).setPath(path).build();
+                int columnCnt = build.getColumnCount();
                 columnBitset = Utils.createBitset(columnCnt);
+                build.close();
             }
 
             return new ParquetSpliceReader(conf, path, columnBitset, fileOffset);

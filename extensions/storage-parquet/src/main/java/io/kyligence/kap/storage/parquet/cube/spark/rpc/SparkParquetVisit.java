@@ -33,8 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -55,10 +55,12 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
@@ -73,8 +75,6 @@ import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterConverter;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
-
-import javax.annotation.Nullable;
 
 public class SparkParquetVisit implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkParquetVisit.class);
@@ -109,7 +109,16 @@ public class SparkParquetVisit implements Serializable {
                         }
                     })
             .build();
-
+    private final static Cache<String, Set<String>> cubePathCache = CacheBuilder.newBuilder()
+            .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
+                    new RemovalListener<String, Set<String>>() {
+                        @Override
+                        public void onRemoval(RemovalNotification<String, Set<String>> notification) {
+                            SparkParquetVisit.logger.info("cubePathCache entry with key {} is removed due to {} ",
+                                    notification.getKey(), notification.getCause());
+                        }
+                    })
+            .build();
     public SparkParquetVisit(JavaSparkContext sc, SparkJobProtos.SparkJobRequestPayload request,
             String streamIdentifier) {
         try {
@@ -136,7 +145,7 @@ public class SparkParquetVisit implements Serializable {
                     // Engine 100
                     this.isSplice = false;
                     long listFileStartTime = System.currentTimeMillis();
-                    this.parquetPathCollection = listFiles(
+                    this.parquetPathCollection = listFilesWithCache(
                             new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                                     append(request.getRealizationId()).append("/").//
                                     append(request.getSegmentId()).append("/").//
@@ -164,7 +173,7 @@ public class SparkParquetVisit implements Serializable {
                 }
             } else {
                 this.isSplice = false;
-                this.parquetPathCollection = listFiles(
+                this.parquetPathCollection = listFilesWithCache(
                         new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
                                 append(request.getRealizationId()).append("/").//
                                 append(request.getSegmentId()).append("/").//
@@ -219,20 +228,37 @@ public class SparkParquetVisit implements Serializable {
         }
     }
 
+    /**
+     * warn!!! The method  cache the result. If you use it ,pls ensure this dir never modify.
+     * @param directory   FileDir
+     * @param suffix      FileSuffix
+     * @return File Set
+     */
+    private Set<String> listFilesWithCache(String directory, final String suffix) throws IOException {
+        String key = directory + ":" + suffix;
+        Set<String> ifPresent = cubePathCache.getIfPresent(key);
+        if (ifPresent != null) {
+            return ifPresent;
+        }
+        Set<String> fileSets = listFiles(directory, suffix);
+        cubePathCache.put(key, fileSets);
+        return fileSets;
+    }
+
     private Set<String> listFiles(String directory, final String suffix) throws IOException {
         FileSystem fs = HadoopUtil.getFileSystem(directory);
         final FileStatus[] fileStatuses = fs.listStatus(new Path(directory));
-
         Set<String> result = Sets.newHashSet();
-        for (int i = 0; i < fileStatuses.length; i++) {
-            String path = fileStatuses[i].getPath().toString();
+        for (FileStatus fileStatuse : fileStatuses) {
+            String path = fileStatuse.getPath().toString();
             if (path.endsWith(suffix)) {
                 result.add(path);
             }
         }
-
         return result;
     }
+
+
 
     private Map<Long, Set<String>> readCubeMappingInfo() throws IOException, ClassNotFoundException {
         String cubeInfoPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/")//

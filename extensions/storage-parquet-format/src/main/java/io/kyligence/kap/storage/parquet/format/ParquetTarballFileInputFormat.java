@@ -42,7 +42,6 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -122,7 +121,7 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
             logger.info("Creating KylinConfig from conf");
             KylinConfig.setKylinConfigInEnvIfMissing(kylinPropsStr);
 
-            FileSystem fileSystem = HadoopUtil.getFileSystem(shardPath);
+            FileSystem fileSystem = shardPath.getFileSystem(conf);
             FSDataInputStream inputStream = fileSystem.open(shardPath);
             long fileOffset = inputStream.readLong();//read the offset
             int indexOffset = ParquetFormatConstants.KYLIN_PARQUET_TARBALL_HEADER_SIZE;

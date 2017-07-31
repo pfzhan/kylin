@@ -36,7 +36,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ValuesType;
@@ -70,19 +69,19 @@ public class ParquetRawReader {
     protected Map<String, String> indexMap;
 
     public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, long fileOffset) throws IOException {
-        config = configuration;
+        this.config = configuration;
 
         if (metadata == null) {
-            parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
+            this.parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         } else {
-            parquetMetadata = metadata;
+            this.parquetMetadata = metadata;
         }
 
-        FileSystem fileSystem = HadoopUtil.getFileSystem(path, config);
-        inputStream = fileSystem.open(path);
+        FileSystem fileSystem = path.getFileSystem(configuration);
+        this.inputStream = fileSystem.open(path);
 
-        indexMap = parquetMetadata.getFileMetaData().getKeyValueMetaData();
-        pagesPerGroup = Integer.parseInt(indexMap.get("pagesPerGroup"));
+        this.indexMap = parquetMetadata.getFileMetaData().getKeyValueMetaData();
+        this.pagesPerGroup = Integer.parseInt(indexMap.get("pagesPerGroup"));
         this.fileOffset = fileOffset;
         logger.info("The file offset is " + this.fileOffset);
     }
@@ -98,7 +97,7 @@ public class ParquetRawReader {
 
     public void close() throws IOException {
         inputStream.close();
-        //indexReader.close();
+//        indexReader.close();
     }
 
     /**
@@ -235,6 +234,7 @@ public class ParquetRawReader {
             return compressedData;
         } else {
             InputStream is = compressionCodec.createInputStream(new ByteArrayInputStream(compressedData.toByteArray()), decompressor);
+            
             return BytesInput.from(is, uncompressedSize);
         }
     }
