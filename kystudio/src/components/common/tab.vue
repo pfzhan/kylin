@@ -38,7 +38,7 @@
       },
       handleTabsEdit (targetName, action) {
         if (action === 'remove') {
-          this.$emit('removetab', targetName)
+          this.$emit('removetab', targetName, '', '_close')
         }
       }
     },

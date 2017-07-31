@@ -30,19 +30,14 @@
         extraoption: {},
         currentView: 'modelList',
         activeName: 'Overview',
-        tabIndex: 1
+        tabIndex: 1,
+        editTabNameList: ['cube', 'cubes', 'model']
       }
     },
     beforeRouteLeave (to, from, next) {
     // 导航离开该组件的对应路由时调用
     // 可以访问组件实例 `this`
-      var hasEditTab = false
-      this.editableTabs.forEach((tab) => {
-        if (['cube', 'cubes', 'model'].indexOf(tab.tabType) !== -1) {
-          hasEditTab = true
-        }
-      })
-      if (hasEditTab) {
+      if (this.hasEditTab()) {
         this.$confirm(this.$t('willGo'), this.$t('kylinLang.common.tip'), {
           confirmButtonText: this.$t('go'),
           cancelButtonText: this.$t('kylinLang.common.cancel'),
@@ -57,6 +52,15 @@
       }
     },
     methods: {
+      hasEditTab () {
+        var hasEditTab = false
+        this.editableTabs.forEach((tab) => {
+          if (this.editTabNameList.indexOf(tab.tabType) !== -1) {
+            hasEditTab = true
+          }
+        })
+        return hasEditTab
+      },
       addTab (tabType, title, componentName, extraData) {
         let tabs = this.editableTabs
         let hasTab = false
@@ -82,13 +86,30 @@
       reloadTab (moduleName) {
         this.$refs.modelSubMenu.reload(moduleName)
       },
-      delTab (targetName, stayTabName) {
-        let tabs = this.editableTabs
-        let activeName = this.activeName
-        let activeView = this.currentView
+      delTab (targetName, stayTabName, closeCheck) {
         if (targetName === 'OverView') {
           return
         }
+        if (closeCheck === '_close') {
+          if (!this.hasEditTab()) {
+            this.removeTab(targetName, stayTabName)
+          } else {
+            this.$confirm(this.$t('willClose'), this.$t('kylinLang.common.tip'), {
+              confirmButtonText: this.$t('close'),
+              cancelButtonText: this.$t('kylinLang.common.cancel'),
+              type: 'warning'
+            }).then(() => {
+              this.removeTab(targetName, stayTabName)
+            })
+          }
+        } else {
+          this.removeTab(targetName, stayTabName)
+        }
+      },
+      removeTab (targetName, stayTabName) {
+        let tabs = this.editableTabs
+        let activeName = this.activeName
+        let activeView = this.currentView
         if (activeName === targetName) {
           tabs.forEach((tab, index) => {
             if (stayTabName) {
@@ -125,8 +146,8 @@
     mounted () {
     },
     locales: {
-      'en': {'willGo': 'You have unsaved information detected, Do you want to continue?', 'go': 'Continue go'},
-      'zh-cn': {'willGo': '检测到您有未保存的信息，是否继续跳转？', 'go': '继续跳转'}
+      'en': {'willGo': 'You have unsaved information detected, Do you want to continue?', 'go': 'Continue go', willClose: 'You have unsaved information detected, Do you want to continue?', close: 'Continue'},
+      'zh-cn': {'willGo': '检测到您有未保存的信息，是否继续跳转？', 'go': '继续跳转', willClose: '检测到您有未保存的信息，是否继续关闭？', close: '继续关闭'}
     }
   }
 </script>
