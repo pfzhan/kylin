@@ -25,10 +25,11 @@
 package io.kyligence.kap.query.mockup;
 
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
 public abstract class AbstractQueryRecorder<T> {
     public static ThreadLocal<AbstractQueryRecorder> CURRENT = new ThreadLocal<>();
 
-    public abstract void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest);
+    public abstract void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest, StorageContext context);
 }

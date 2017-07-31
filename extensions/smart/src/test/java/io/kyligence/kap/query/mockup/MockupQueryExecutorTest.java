@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 import org.junit.After;
 import org.junit.Assert;
@@ -78,7 +79,7 @@ public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
         GTCubeStorageQueryRequest gtRequest;
 
         @Override
-        public void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest) {
+        public void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest, StorageContext context) {
             this.cubeInstance = cubeInstance;
             this.gtRequest = gtRequest;
 

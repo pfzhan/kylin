@@ -34,6 +34,7 @@ import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
 import com.google.common.base.Function;
@@ -50,7 +51,8 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
     }
 
     @Override
-    public void record(CubeInstance cubeInstance, final GTCubeStorageQueryRequest gtRequest) {
+    public void record(CubeInstance cubeInstance, final GTCubeStorageQueryRequest gtRequest,
+            final StorageContext context) {
         final Cuboid cuboid = gtRequest.getCuboid();
         Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(),
                 new Function<TblColRef, String>() {
