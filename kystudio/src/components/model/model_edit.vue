@@ -61,7 +61,7 @@
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-btype="column.btype" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -1102,10 +1102,15 @@ export default {
       // var dt = event.originalEvent.dataTransfer
       // dt.effectAllowed = 'copyMove'
       var btype = $(this.currentDragDom).attr('data-btype')
+      // var isComputed = $(this.currentDragDom).attr('data-isComputed')
       if (btype !== 'D') {
         this.$message(this.$t('kylinLang.model.dimensionLinkLimit'))
         return false
       }
+      // if (isComputed) {
+      //   this.$message(this.$t('kylinLang.model.computedLinkLimit'))
+      //   return false
+      // }
       this.currentDragData = {
         table: $(this.currentDragDom).attr('data-guid'),
         columnName: $(this.currentDragDom).attr('data-column'),
@@ -1175,9 +1180,15 @@ export default {
       var targetId = dataBox.attr('id')
       var columnName = columnBox.attr('data-column')
       var btype = columnBox.attr('data-btype')
+      var isComputed = columnBox.attr('data-isComputed')
+      var isComputedStart = $(this.currentDragDom).attr('data-isComputed')
       var btypeStart = $(this.currentDragDom).attr('data-btype')
       if (btype !== 'D' || btypeStart !== 'D') {
         this.$message(this.$t('kylinLang.model.dimensionLinkLimit'))
+        return
+      }
+      if (isComputed || isComputedStart) {
+        this.$message(this.$t('kylinLang.model.computedLinkLimit'))
         return
       }
       if (targetId) {
@@ -1204,15 +1215,14 @@ export default {
       this.currentLinkData.source.name = sourceTableInfo.name
       this.currentLinkData.source.alias = sourceTableInfo.alias
       this.currentLinkData.source.columns = sourceTableInfo.columns.filter((co) => {
-        return co.btype === 'D'
+        return co.btype === 'D' && co.isComputed !== true
       })
-
       this.currentLinkData.target.guid = targetTableInfo.guid
       this.currentLinkData.target.database = targetTableInfo.database
       this.currentLinkData.target.name = targetTableInfo.name
       this.currentLinkData.target.alias = targetTableInfo.alias
       this.currentLinkData.target.columns = targetTableInfo.columns.filter((co) => {
-        return co.btype === 'D'
+        return co.btype === 'D' && co.isComputed !== true
       })
       this.currentLinkData.joinType = this.getConnectType(p1, p2)
       this.getConnectsByTableIds(p1, p2)
