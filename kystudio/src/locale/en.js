@@ -108,7 +108,7 @@ exports.default = {
     dragTip: 'Try to drag the tables from the left',
     resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.',
     dimensionLinkLimit: 'Only dimension columns can be linked',
-    computedLinkLimit: 'Computed column can not be linked'
+    computedLinkLimit: 'Computed column cannot be join key.'
   },
   cube: {
     inputSqlTip1: '1.The following shows all the inputing SQL statements, each with ";" as a split.',

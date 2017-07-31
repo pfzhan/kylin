@@ -107,7 +107,7 @@ exports.default = {
     dragTip: '拖拽左侧的table到该区域',
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。',
     dimensionLinkLimit: '只有维度列可以进行关联',
-    computedLinkLimit: '计算列不能进行关联'
+    computedLinkLimit: '可计算列不能作为连接条件。'
   },
   cube: {
     inputSqlTip1: '1.下面展示了输入的所有SQL语句，每句以“;”作为分割。',
