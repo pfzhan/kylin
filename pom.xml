@@ -33,7 +33,7 @@
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <parquet.version>kylin-1.9.0-r1-SNAPSHOT</parquet.version>
+        <parquet.version>kylin-1.9.0-r1</parquet.version>
         <tomcat.version>7.0.69</tomcat.version>
         <spark.version>2.1.1</spark.version>
         <jackson.version>2.6.3</jackson.version>
