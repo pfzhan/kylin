@@ -143,8 +143,8 @@ export default {
     }),
     resetMeasures: function () {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
-      this.cubeDesc.measures = this.cubeDesc.oldMeasures
-      this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily
+      this.cubeDesc.measures = this.cubeDesc.oldMeasures || []
+      this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily || []
       // this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
       // this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
       // // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
