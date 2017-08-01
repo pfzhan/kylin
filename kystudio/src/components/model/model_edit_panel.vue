@@ -315,9 +315,9 @@ export default {
     'selectTable.tablename' () {
       this.tableStaticsBaseData()
     },
-    'selectTable.columnname' () {
-      this.tableStaticsBaseData()
-    },
+    // 'selectTable.columnname' () {
+    //   this.tableStaticsBaseData()
+    // },
     'partitionSelect.partition_time_column' (val) {
       if (val) {
         this.hasSeparate = true

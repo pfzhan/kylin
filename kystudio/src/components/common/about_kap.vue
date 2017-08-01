@@ -18,8 +18,8 @@
 	</div>
 	<div class="container">
 	  <h3>{{$t('statement')}}</h3>
-      <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'">{{$t('kylinLang.system.evaluationStatement')}}</p>
-      <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'">{{$t('kylinLang.system.statement')}}</p>
+      <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'" v-html="$t('kylinLang.system.evaluationStatement')"></p>
+      <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'" v-html="$t('kylinLang.system.statement')"></p>
 	  <el-row>
 		<label for="">{{$t('serviceEnd')}}</label>
 		{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
@@ -28,11 +28,15 @@
 		<label for="">KAP Commit:</label>
 		{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
 	  </el-row>
+    <el-row>
+    <label for="">KyAccount: </label>
+    {{kyAccount}}
+    </el-row>
 	</div>
 	<div class="footer">
-	  <p class="details">{{kyAccount}}</p>
+	  <p class="details" v-html="$t('sendFile')"></p>
 	  <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a>
-	  <el-row class="gray">All Rights Reserved. Kyligence Inc.</el-row>
+	  <el-row class="gray">Copyright 2016 Kyligence Inc. All rights reserved.</el-row>
 	</div>
   </div>
 </template>
@@ -72,8 +76,8 @@ export default {
     }
   },
   locales: {
-    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', statementContent: 'You are using KAP enterprise product and service. If you have any issues about KAP, please contact us. We will continue to provide you with quality products and services from Apache Kylin core team.', licenseStatement: 'License Statement: ', sendFile: 'To request license, please contact with Kyligence sales support channel with the License Request file.', noAccount: 'To request license, please contact with Kyligence sales support channel with the License Request file.', generateLicense: 'Generate License Request File', updateLicense: 'Update License'},
-    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', statementContent: '您正在使用KAP试用版，如果您对我们的产品满意，需要专业的产品、咨询或服务，请联系我们，您将获得来自Apache Kylin核心小组的帮助。', licenseStatement: '许可声明: ', sendFile: '申请许可请将许可申请文件发送到Kyligence销售支持渠道', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证'}
+    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', licenseStatement: 'License Statement: ', sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.', noAccount: 'No account is configured in Kylin properties', generateLicense: 'Generate License Request File', updateLicense: 'Update License'},
+    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证'}
   }
 }
 </script>

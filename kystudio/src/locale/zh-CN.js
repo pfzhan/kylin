@@ -207,8 +207,8 @@ exports.default = {
     tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)'
   },
   system: {
-    evaluationStatement: '您正在使用KAP试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎联系我们。您将获得来自Apache Kylin核心小组的帮助。',
-    statement: '您已经购买KAP企业版产品及服务。如果您在使用过程中遇到任何问题，欢迎随时与我们沟通，我们将持续为您提供优质的产品及服务！'
+    evaluationStatement: '您正在使用KAP试用版。如果您对我们的产品满意，需要专业的产品、咨询或服务，欢迎<a target="_blank" href="mailto:g-ent-lic@kyligence.io" style="font-weight:bold">联系我们</a>。您将获得来自Apache Kylin核心小组的帮助。',
+    statement: '您已经购买KAP企业版产品及服务。如果您在使用过程中遇到任何问题，欢迎随时与<a target="_blank" href="mailto:g-ent-lic@kyligence.io" style="font-weight:bold">我们沟通</a>，我们将持续为您提供优质的产品及服务！'
   },
   kybotXY: {
     agreement: `若您（下称“您”或“用户”）代表某公司或者其他机构使用任何产品
