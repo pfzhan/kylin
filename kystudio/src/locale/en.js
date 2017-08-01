@@ -71,7 +71,7 @@ exports.default = {
     nameFormatValidTip: 'Invalid name! Only letters, numbers and underscore characters are supported in a valid name.',
     // 其他
     users: 'Users',
-    tip: 'Tips',
+    tip: 'Notice',
     action: 'Action',
     help: 'Help',
     username: 'username',
@@ -114,7 +114,7 @@ exports.default = {
     inputSqlTip1: '1.The following shows all the inputing SQL statements, each with ";" as a split.',
     inputSqlTip2: '2.Incorrect inputing SQL statements will be ignored and will not work on subsequent steps.',
     readyCubeTip: 'Cube containing segments is allowed to be modified, avoiding the inconsistence of cube metadata.',
-    saveCubeTip: 'Confirm save the cube?',
+    saveCubeTip: 'Confirm to save the cube?',
     cubeName: 'Cube Name',
     scheduler: 'Scheduler',
     merge: 'Merge Settings',

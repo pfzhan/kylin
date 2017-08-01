@@ -100,7 +100,7 @@ export default {
     })
   },
   locales: {
-    'en': {username: 'User Name', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', passwordConfirm: 'Password and confirm password are not the same.', passwordLength: 'the length of password is at least 8'},
+    'en': {username: 'User Name', role: 'Role', password: 'Password', oldPassword: 'Old Password', confirmNewPassword: 'Confirm new password', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', passwordConfirm: 'Password and confirm password are not the same.', passwordLength: 'The minimal length of password is 8'},
     'zh-cn': {username: '用户名', role: '角色', password: '新密码', oldPassword: '旧密码', confirmNewPassword: '确认密码', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', passwordConfirm: '两次密码不一致, 请检查', passwordLength: '密码长度至少8位'}
   }
 }

@@ -16,7 +16,7 @@ export function handleSuccess (res, callback, errorcallback) {
 }
 // 失败回调入口
 export function handleError (res, errorcallback) {
-  var responseData = res.data
+  var responseData = res && res.data || null
   if (typeof errorcallback !== 'function') {
     var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
     MessageBox.confirm(msg, window.kapVm.$t('kylinLang.common.tip'), {
@@ -31,7 +31,7 @@ export function handleError (res, errorcallback) {
     }
   } else {
     if (typeof errorcallback === 'function') {
-      errorcallback(res.data, -1, res.status, '')
+      errorcallback(responseData, -1, res && res.status || -1, '')
     }
   }
 }
