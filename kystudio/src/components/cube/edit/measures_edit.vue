@@ -87,7 +87,7 @@
             :label="$t('measures')">
             <template scope="scope">  
               <el-col :span="24">
-                <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs"> 
+                <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs" :refreshInfo="{index: scope.$index, key: 'measure_refs'}" @refreshData="refreshColumnFamily"> 
                 </area_label>
               </el-col>    
             </template>
@@ -101,7 +101,7 @@
         </el-table-column>                                              
       </el-table>   
      <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
-      {{$t('addColumnFamily')}}</el-button> 
+      {{$t('addColumnFamily')}}</el-button>
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
     <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">
@@ -145,6 +145,7 @@ export default {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.cubeDesc.measures = this.cubeDesc.oldMeasures || []
       this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily || []
+      this.initColumnFamily()
       // this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
       // this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
       // // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
@@ -155,6 +156,7 @@ export default {
         handleSuccess(res, (data, code, status, msg) => {
           this.$set(this.cubeDesc, 'measures', data.measures)
           this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
+          this.initColumnFamily()
         })
       }, (res) => {
         handleError(res)
@@ -261,8 +263,9 @@ export default {
       } else {
         this.cubeDesc.measures.push(data.measure)
       }
-      _this.loadCheck = false
-      _this.measureFormVisible = false
+      this.loadCheck = false
+      this.measureFormVisible = false
+      this.initColumnFamily()
     },
     recursion: function (parameter, list, num) {
       if (num < list.length) {
@@ -295,51 +298,13 @@ export default {
         }
       }
       this.cubeDesc.measures.splice(index, 1)
-    },
-    autoAddMeasures: function (arr) {
-      let _this = this
-      _this.cubeDesc.measures.push({
-        name: '_COUNT_',
-        function: {
-          expression: 'COUNT',
-          returntype: 'bigint',
-          parameter: {
-            type: 'constant',
-            value: '1',
-            next_parameter: null
-          }
-        }
-      })
-      let bigintType = ['int', 'integer', 'smallint', 'bigint', 'tinyint', 'long']
-      let numbertype = ['int', 'integer', 'smallint', 'bigint', 'tinyint', 'float', 'double', 'long']
-      _this.modelDesc.metrics.forEach(function (metric) {
-        let dataType = _this.modelDesc.columnsDetail[metric].datatype
-        if ((numbertype.indexOf(dataType) !== -1) || (dataType.substring(0, 7) === 'decimal')) {
-          let columnType
-          if (bigintType.indexOf(dataType) !== -1) {
-            columnType = 'bigint'
-          } else {
-            if (dataType.indexOf('decimal') !== -1 || dataType === 'double' || dataType === 'float') {
-              columnType = 'decimal(19,4)'
-            } else {
-              columnType = 'decimal(14,0)'
-            }
-          }
-          _this.cubeDesc.measures.push({
-            name: metric,
-            function: {
-              expression: 'SUM',
-              parameter: {
-                type: 'column',
-                value: metric,
-                next_parameter: null
-              },
-              returntype: columnType
-            }
-          })
-        }
-      })
       this.initColumnFamily()
+    },
+    refreshColumnFamily (data, refreshInfo) {
+      console.log(data, refreshInfo, 909876)
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.hbase_mapping.column_family[index].columns[0], key, data)
     },
     initColumnFamily: function () {
       let _this = this
@@ -426,11 +391,6 @@ export default {
       this.cubeDesc.hbase_mapping.column_family.splice(index, 1)
     }
   },
-  watch: {
-    'cubeDesc.measures' (val, oldVal) {
-      this.initColumnFamily()
-    }
-  },
   computed: {
     isPlusVersion () {
       var kapVersionInfo = this.$store.state.system.serverAboutKap
@@ -442,9 +402,7 @@ export default {
     }
   },
   created () {
-    if (this.cubeDesc.measures.length === 0) {
-      // this.autoAddMeasures()  //改为自动建议
-    }
+    this.initColumnFamily()
     this.loadHiddenFeature({feature_name: 'raw-measure'})
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },

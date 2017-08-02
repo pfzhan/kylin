@@ -340,12 +340,6 @@ export default {
     collectSql () {
       this.addSQLFormVisible = true
     },
-    refreshIncludeData (data, refreshInfo) {
-      var index = refreshInfo.index
-      var key = refreshInfo.key
-      this.$set(this.cubeDesc.aggregation_groups[index], key, data)
-      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
-    },
     updateIncludesDimUsed (index) {
       this.cubeDesc.aggregation_groups[index].includes.forEach((dimension, i) => {
         let isUsed = false
@@ -369,6 +363,12 @@ export default {
           tag.setAttribute('data-tag', 'useDimension')
         }
       })
+    },
+    refreshIncludeData (data, refreshInfo) {
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[index], key, data)
+      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
     },
     refreshMandatoryData (data, refreshInfo) {
       var index = refreshInfo.index

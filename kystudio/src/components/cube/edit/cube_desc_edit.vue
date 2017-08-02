@@ -266,9 +266,27 @@ export default {
     checkMeasures: function () {
       let _this = this
       let existCountExpression = false
+      let countDistinctColumns = []
       for (let i = 0; i < _this.cubeDetail.measures.length; i++) {
         if (_this.cubeDetail.measures[i].function.expression === 'COUNT') {
           existCountExpression = true
+        }
+        if (this.cubeDetail.measures[i].function.expression === 'COUNT_DISTINCT' && this.cubeDetail.measures[i].function.returntype === 'bitmap') {
+          countDistinctColumns.push(this.cubeDetail.measures[i].function.parameter.value)
+        }
+      }
+      if (countDistinctColumns.length > 0) {
+        for (let i = 0; i < this.cubeDetail.dimensions.length; i++) {
+          let dimension = this.cubeDetail.dimensions[i]
+          if (countDistinctColumns.indexOf(dimension.table + '.' + dimension.column) >= 0) {
+            this.$message({
+              showClose: true,
+              duration: 3000,
+              message: _this.$t('checkCountDistinctPartOne') + dimension.table + '.' + dimension.column + _this.$t('checkCountDistinctPartTwo'),
+              type: 'error'
+            })
+            return false
+          }
         }
       }
       if (!existCountExpression) {
@@ -930,8 +948,8 @@ export default {
     clearTimeout(this.cubeSaveST)
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息', shardCountError: 'Max shard by column number is 1', unsetScheduler: 'Scheduler configuration is imperfect', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type data only.'},
-    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息', shardCountError: 'Shard by最多可以设置一列', unsetScheduler: 'Scheduler 参数设置不完整', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。'}
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息', shardCountError: 'Max shard by column number is 1', unsetScheduler: 'Scheduler configuration is imperfect', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type data only.', checkCountDistinctPartOne: 'Count distinct(precise) is not supported to apply to "', checkCountDistinctPartTwo: '" yet.'},
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息', shardCountError: 'Shard by最多可以设置一列', unsetScheduler: 'Scheduler 参数设置不完整', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: 'Count distinct(精确去重)尚且无法在"', checkCountDistinctPartTwo: '"上使用，请修改该度量。'}
   }
 }
 </script>
