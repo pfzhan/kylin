@@ -30,14 +30,6 @@
             Instead of using compile scope, we choose to copy the jar into ext due to #1251 -->
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>xerces</groupId>
-            <artifactId>xercesImpl</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>xalan</groupId>
-            <artifactId>xalan</artifactId>
-        </dependency>
 
         <dependency>
             <groupId>com.thetransactioncompany</groupId>
