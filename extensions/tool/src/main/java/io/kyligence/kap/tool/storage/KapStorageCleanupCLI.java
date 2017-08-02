@@ -92,7 +92,8 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                     FileStatus[] segmentFolders = fs.listStatus(dataFolder.getPath());
 
                     for (FileStatus segmentFolder : segmentFolders) {
-                        String folderName = KapConfig.getInstanceFromEnv().getParquetStoragePath() + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
+                        String folderName = KapConfig.getInstanceFromEnv().getParquetStoragePath()
+                                + dataFolder.getPath().getName() + "/" + segmentFolder.getPath().getName();
                         allHdfsPathsNeedToBeDeleted.add(folderName);
                     }
                 }
@@ -104,28 +105,37 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
             // only remove FINISHED and DISCARDED job intermediate files
             final ExecutableState state = executableManager.getOutput(jobId).getState();
             if (!state.isFinalState()) {
-                Map<String, String> params = executableManager.getJob(jobId).getParams();
-                String cubeName = CubingExecutableUtil.getCubeName(params);
+                try {
+                    Map<String, String> params = executableManager.getJob(jobId).getParams();
+                    String cubeName = CubingExecutableUtil.getCubeName(params);
 
-                if (cubeName == null) {
-                    //skip job like "calculate cardinality"
-                    continue;
-                }
+                    if (cubeName == null) {
+                        //skip job like "calculate cardinality"
+                        continue;
+                    }
 
-                String segmentId = CubingExecutableUtil.getSegmentId(params);
+                    String segmentId = CubingExecutableUtil.getSegmentId(params);
 
-                if (cubeMgr.getCube(cubeName) != null) {
-                    String cubeId = cubeMgr.getCube(cubeName).getId();
-                    String cubePath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cubeId + "/" + segmentId;
-                    allHdfsPathsNeedToBeDeleted.remove(cubePath);
-                    logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
-                }
+                    if (cubeMgr.getCube(cubeName) != null) {
+                        String cubeId = cubeMgr.getCube(cubeName).getId();
+                        String cubePath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cubeId + "/"
+                                + segmentId;
+                        allHdfsPathsNeedToBeDeleted.remove(cubePath);
+                        logger.info("Skip " + cubePath + " from deletion list, as the path belongs to job " + jobId
+                                + " with state " + state);
+                    }
 
-                if (rawMgr.getRawTableInstance(cubeName) != null) {
-                    String rawId = rawMgr.getRawTableInstance(cubeName).getId();
-                    String rawPath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + rawId + "/" + segmentId;
-                    allHdfsPathsNeedToBeDeleted.remove(rawPath);
-                    logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId + " with state " + state);
+                    if (rawMgr.getRawTableInstance(cubeName) != null) {
+                        String rawId = rawMgr.getRawTableInstance(cubeName).getId();
+                        String rawPath = KapConfig.getInstanceFromEnv().getParquetStoragePath() + rawId + "/"
+                                + segmentId;
+                        allHdfsPathsNeedToBeDeleted.remove(rawPath);
+                        logger.info("Skip " + rawPath + " from deletion list, as the path belongs to job " + jobId
+                                + " with state " + state);
+                    }
+                } catch (Exception ex) {
+                    logger.warn("Failed to find segment ID from job ID " + jobId + ", ignore it");
+                    // some older version job metadata may fail to read, ignore it
                 }
             }
         }
@@ -137,9 +147,11 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cube.getId() + "/" + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + cube.getId() + "/"
+                            + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
-                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of cube " + cube.getName() + ", with status " + status);
+                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg
+                            + " of cube " + cube.getName() + ", with status " + status);
                 }
             }
         }
@@ -150,9 +162,11 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
                 SegmentStatusEnum status = seg.getStatus();
                 String jobUuid = seg.getLastBuildJobID();
                 if (jobUuid != null && jobUuid.equals("") == false) {
-                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + raw.getId() + "/" + seg.getUuid();
+                    String exclude = KapConfig.getInstanceFromEnv().getParquetStoragePath() + raw.getId() + "/"
+                            + seg.getUuid();
                     allHdfsPathsNeedToBeDeleted.remove(exclude);
-                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg + " of rawtable " + raw.getName() + ", with status " + status);
+                    logger.info("Skip " + exclude + " from deletion list, as the path belongs to segment " + seg
+                            + " of rawtable " + raw.getName() + ", with status " + status);
                 }
             }
         }
