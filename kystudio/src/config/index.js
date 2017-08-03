@@ -67,7 +67,6 @@ export const engineType = [
 ]
 export const SystemPwdRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/
 export const NamedRegex = /^\w+$/
-
 export const DatePartitionRule = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
 export const TimePartitionRule = ['time', 'timestamp', 'string', 'varchar']
 export const IntegerType = ['bigint', 'int', 'integer']

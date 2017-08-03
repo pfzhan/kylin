@@ -83,10 +83,14 @@ export default {
       var arealabel = this.$el.querySelectorAll('.el-select__tags > span')
       if (arealabel.length) {
         arealabel[0].onclick = (e) => {
-          var ev = ev || window.event
+          var ev = e || window.event
           var target = ev.target || ev.srcElement
           if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
-            e.stopPropagation()
+            if (e.stopPropagation) {
+              e.stopPropagation()
+            } else {
+              window.event.cancelBubble = true
+            }
             this.selectTag(ev)
           }
         }
@@ -103,7 +107,7 @@ export default {
       this.$emit('removeTag', data.value)
     },
     selectTag (e) {
-      var ev = ev || window.event
+      var ev = e || window.event
       var target = ev.target || ev.srcElement
       if (target && (target.className.indexOf('el-tag') >= 0 || target.className.indexOf('el-select__tags') || target.className.indexOf('el-select__tags-text') >= 0)) {
         this.$emit('checklabel', target.innerText, target)
