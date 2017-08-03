@@ -15,7 +15,14 @@ if (process.env.NODE_ENV === 'development') {
   baseUrl = '/kylin/'
   regexApiUrl = '\\/kylin\\/api\\/'
 }
-const modelHealthStatus = {
+export {
+  // http请求
+  apiUrl,
+  baseUrl,
+  regexApiUrl,
+  pageCount
+}
+export const modelHealthStatus = {
   'RUNNING': {
     icon: '',
     color: '',
@@ -47,29 +54,21 @@ const modelHealthStatus = {
     message: 'This model has no check result'
   }
 }
-const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
-const permissions = {
+export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']
+export const permissions = {
   READ: {name: 'CUBE QUERY', value: 'READ', mask: 1},
   MANAGEMENT: {name: 'CUBE EDIT', value: 'MANAGEMENT', mask: 32},
   OPERATION: {name: 'CUBE OPERATION', value: 'OPERATION', mask: 64},
   ADMINISTRATION: {name: 'CUBE ADMIN', value: 'ADMINISTRATION', mask: 16}
 }
-const engineType = [
+export const engineType = [
   {name: 'MapReduce', value: 2},
   {name: 'Spark (Beta)', value: 4}
 ]
-export {
-  // http请求
-  apiUrl,
-  baseUrl,
-  regexApiUrl,
-  // 分页
-  pageCount,
-  // model健康状态
-  modelHealthStatus,
-  // cube操作权限对应数值
-  permissions,
-  needLengthMeasureType,
-  engineType
-}
+export const SystemPwdRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/
+export const NamedRegex = /^\w+$/
+
+export const DatePartitionRule = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
+export const TimePartitionRule = ['time', 'timestamp', 'string', 'varchar']
+export const IntegerType = ['bigint', 'int', 'integer']
 

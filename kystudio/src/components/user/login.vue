@@ -53,7 +53,7 @@
     type="info"
     show-icon
     :closable="false">
-    <p style="text-align: left;">{{$t('enterLicensePartOne')}}
+    <p class="ksd-left">{{$t('enterLicensePartOne')}}
      <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
     {{$t('enterLicensePartTwo')}}
     </p>
@@ -74,6 +74,7 @@ import license from './license'
 import help from '../common/help'
 import Vue from 'vue'
 import { Base64 } from 'js-base64'
+import { SystemPwdRegex } from '../../config/index'
 export default {
   name: 'login',
   data () {
@@ -104,14 +105,14 @@ export default {
     onLoginSubmit () {
       this.$refs['loginForm'].validate((valid) => {
         if (valid) {
-          Vue.http.headers.common['Authorization'] = 'Basic ' + Base64.encode(this.user.username + ':' + this.user.password)
+          var baseStr = 'Basic ' + Base64.encode(this.user.username + ':' + this.user.password)
+          Vue.http.headers.common['Authorization'] = baseStr
           this.$refs['loginBtn'].loading = true
           this.login(this.user).then((res) => {
             handleSuccess(res, (data) => {
-              Vue.http.headers.common['Authorization'] = ''
-              this.$refs['loginBtn'].loading = false
+              this.loginEnd()
               this.setCurUser({ user: data })
-              if (!/^(?=.*\d)(?=.*[a-z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/gi.test(this.user.password) && this.user.username === 'ADMIN') {
+              if (!SystemPwdRegex.test(this.user.password) && this.user.username === 'ADMIN') {
                 this.$router.push('/system/user')
               } else {
                 this.$router.push('/dashboard')
@@ -121,11 +122,14 @@ export default {
             })
           }, (res) => {
             handleError(res)
-            Vue.http.headers.common['Authorization'] = ''
-            this.$refs['loginBtn'].loading = false
+            this.loginEnd()
           })
         }
       })
+    },
+    loginEnd () {
+      Vue.http.headers.common['Authorization'] = ''
+      this.$refs['loginBtn'].loading = false
     },
     checkLicense () {
       this.getAboutKap().then((result) => {
@@ -315,11 +319,6 @@ export default {
          }
        }
      }
-     .el-row{
-       // background:url(../../assets/img/login_bg.png);
-       background-size: contain;
-       background-position: right top;
-     }
      .content_part2 {
        h2{
         font-size:18px;
@@ -333,6 +332,7 @@ export default {
          font-size: 12px;
          color:#c0ccda;
          cursor: pointer;
+         text-decoration: none;
        }
        .login_form{
         padding: 15px 25px 0px 25px;

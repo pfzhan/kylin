@@ -248,6 +248,7 @@
 <script>
 import { jsPlumb } from 'jsplumb'
 import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray, isIE } from '../../util/index'
+import { NamedRegex, DatePartitionRule, TimePartitionRule, IntegerType } from '../../config'
 import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
@@ -477,8 +478,7 @@ export default {
         key = 'id'
         squence = true
       }
-      var sortedColumns = objectArraySort(tableInfo.columns, squence, key)
-      tableInfo.columns = sortedColumns
+      tableInfo.columns = objectArraySort(tableInfo.columns, squence, key)
     },
     // 检查是否上锁了
     checkLock (msg) {
@@ -553,7 +553,6 @@ export default {
       if (this.actionMode === 'view') {
         return
       }
-      var _this = this
       if (this.getRootFact().length <= 0) {
         return
       }
@@ -568,9 +567,9 @@ export default {
       }
       this.draftBtnLoading = true
       this.saveModelDraft({
-        modelDescData: filterNullValInObj(_this.DragDataToServerData()),
-        project: _this.project,
-        modelName: _this.modelInfo.name
+        modelDescData: filterNullValInObj(this.DragDataToServerData()),
+        project: this.project,
+        modelName: this.modelInfo.name
       }).then((res) => {
         this.draftBtnLoading = false
         handleSuccess(res, (data) => {
@@ -578,11 +577,6 @@ export default {
           this.modelInfo.is_draft = true
           this.modelInfo.last_modified = JSON.parse(data.modelDescData).last_modified
           this.$emit('reload', 'modelList')
-          // this.$notify({
-          //   title: '成功',
-          //   message: '定时保存为草稿',
-          //   type: 'success'
-          // })
         })
       }, (res) => {
         handleError(res)
@@ -596,7 +590,7 @@ export default {
       this.cubeMeta.modelName = this.modelInfo.modelName
     },
     checkName (rule, value, callback) {
-      if (!/^\w+$/.test(value)) {
+      if (!NamedRegex.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
@@ -759,9 +753,6 @@ export default {
       })
     },
     getPartitionDateColumns: function () {
-      var canSetDatePartion = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
-      var canSetTimePartion = ['time', 'timestamp', 'string', 'varchar']
-      var needNotSetDateFormat = ['bigint', 'int', 'integer']
       var dateColumns = {}
       var timeColumns = {}
       var tableList = this.getTableList('kind', 'ROOTFACT').concat(this.getTableList('kind', 'FACT'))
@@ -772,16 +763,16 @@ export default {
         }
         for (var k = 0; k < tableList[i].columns.length; k++) {
           var datatype = tableList[i].columns[k].datatype.replace(/\(.*?\)/, '')
-          if (canSetDatePartion.indexOf(datatype) >= 0) {
+          if (DatePartitionRule.indexOf(datatype) >= 0) {
             var needFormat = true
-            if (needNotSetDateFormat.indexOf(datatype) >= 0) {
+            if (IntegerType.indexOf(datatype) >= 0) {
               needFormat = false
             }
             var tabeFullName = tableList[i].alias
             dateColumns[tabeFullName] = dateColumns[tabeFullName] || []
             dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat})
           }
-          if (canSetTimePartion.indexOf(datatype) >= 0) {
+          if (TimePartitionRule.indexOf(datatype) >= 0) {
             timeColumns[tabeFullName] = timeColumns[tabeFullName] || []
             timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true})
           }
@@ -1764,7 +1755,6 @@ export default {
         description: this.modelInfo.modelDiscribe,
         computed_columns: fainalComputed
       }
-      // console.log(this.partitionSelect, '2456')
       if (this.partitionSelect.date_table && this.partitionSelect.date_column) {
         kylinData.partition_desc.partition_date_column = this.partitionSelect.date_table + '.' + this.partitionSelect.date_column
       }
@@ -2228,7 +2218,8 @@ export default {
         Container: $(this.$el).find('.model_edit')
       })
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
-      var draggablePlugin = new Draggable($(this.$el).find('.model_edit')[0], {
+      /* eslint-disable no-new */
+      new Draggable($(this.$el).find('.model_edit')[0], {
         onDrag: (s) => {
         },
         onDragEnd: (s, x, y) => {
@@ -2245,7 +2236,6 @@ export default {
         },
         useGPU: true
       })
-      console.log(draggablePlugin)
       this.plumbInstance.bind('connection', (info, originalEvent) => {
         this.setConnectLabelText(info.connection, info.connection.sourceId, info.connection.targetId, this.getConnectCountByTableIds(info.connection.sourceId, info.connection.targetId))
       })
@@ -2284,19 +2274,6 @@ export default {
       }
       return arr
     }
-    // currentTableComputedColumns () {
-    //   var guid = this.computedColumn.guid
-    //   if (!guid) {
-    //     return
-    //   }
-    //   var tableInfo = this.getTableInfoByGuid(guid)
-    //   if (!tableInfo) {
-    //     return []
-    //   }
-    //   return this.modelInfo.computed_columns.filter((computedColumn) => {
-    //     return computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false
-    //   })
-    // }
   },
   created () {
     this.reloadCubeTree()
@@ -2329,9 +2306,6 @@ export default {
     this.isFullScreen = false
     $('#fullBox').removeClass('fullLayoutForModelEdit')
     this.resizeWindow(this.briefMenu)
-  },
-  updated () {
-    // console.log(1)
   },
   locales: {
     'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Expression consists of this selected table\'s columns, e.g. price*item_count. Notice DB name or table name is not allowed', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column'},

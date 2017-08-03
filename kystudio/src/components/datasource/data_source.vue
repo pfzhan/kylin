@@ -20,7 +20,7 @@
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-            <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
+            <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;" v-if="extendData.last_modified">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
       	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
@@ -174,7 +174,7 @@
 			    style="width: 100%">
 			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
 			      :prop="''+index"
-            :width="15* (sampleData[0][index] && sampleData[0][index].length || 0)"
+            :width="15* (sampleData[0][index] && sampleData[0][index].length || 0) + 20"
 			      :label="sampleData[0][index]">
 			    </el-table-column>
 			  </el-table>
@@ -736,7 +736,7 @@ export default {
           for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
             _this.extendData.columns_stats[s].column = this.tableData.columns[s].name
           }
-          _this.extendData.last_modified = transToGmtTime(_this.extendData.last_modified, _this)
+          _this.extendData.last_modified = _this.extendData.last_modified ? transToGmtTime(_this.extendData.last_modified, _this) : null
           _this.statistics = _this.extendData.columns_stats
           var sampleData = changeDataAxis(_this.extendData.sample_rows)
           var basicColumn = [[]]

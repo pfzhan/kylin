@@ -45,7 +45,7 @@ export function getNameSpace (str) {
     return ''
   }
 }
-
+// 转换二维数组的横纵顺序
 export function changeDataAxis (data, hasIndex) {
   var len = data && data.length || 0
   var newArr = []
@@ -62,7 +62,7 @@ export function changeDataAxis (data, hasIndex) {
   }
   return newArr
 }
-
+// 科学计数法数字转换成可读数字
 export function scToFloat (data) {
   var resultValue = ''
   if (data && data.indexOf('E') !== -1) {
@@ -82,7 +82,7 @@ export function scToFloat (data) {
   }
   return resultValue
 }
-
+// 显示显示null
 export function showNull (val) {
   if (val === null) {
     return 'null'
@@ -132,7 +132,7 @@ export function objectArraySort (objArr, sequence, sortKey) {
   }
   return objectArr
 }
-
+// 对象数组按照另一个数组来排序
 export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   var resultArr = []
   var len1 = arr1 && arr1.length || 0
@@ -146,7 +146,7 @@ export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   }
   return resultArr
 }
-
+// 对象克隆
 export function objectClone (obj) {
   if (typeof obj !== 'object') {
     return obj

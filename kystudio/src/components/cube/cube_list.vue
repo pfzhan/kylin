@@ -214,7 +214,7 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { pageCount, permissions } from '../../config'
+import { pageCount, permissions, NamedRegex } from '../../config'
 import showJson from './json'
 import showSql from './sql'
 import segments from './segments'
@@ -224,7 +224,7 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermissionOfCube } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermissionOfCube, kapConfirm } from '../../util/business'
 export default {
   name: 'cubeslist',
   props: ['extraoption'],
@@ -325,7 +325,7 @@ export default {
       return totalSize
     },
     checkName (rule, value, callback) {
-      if (!/^\w+$/.test(value)) {
+      if (!NamedRegex.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
@@ -376,7 +376,6 @@ export default {
       return o.is_draft ? 'is_draft' : ''
     },
     loadCubesList: function (curPage) {
-      let _this = this
       let cubesNameList = []
       let param = {pageSize: pageCount, pageOffset: curPage}
       if (localStorage.getItem('selected_project')) {
@@ -393,14 +392,14 @@ export default {
         param.cubeName = this.extraoption.cubeName
       }
       this.getCubesList(param).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
+        handleSuccess(res, (data) => {
           this.cubesList = data.cubes.map((p) => {
             if (!p.is_draft) {
               cubesNameList.push(p.name)
             }
-            p.createGMTTime = p.create_time_utc === 0 ? '' : transToGmtTime(p.create_time_utc, _this)
+            p.createGMTTime = p.create_time_utc === 0 ? '' : transToGmtTime(p.create_time_utc, this)
             if (p.segments.length > 0) {
-              p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, _this)
+              p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, this)
             }
             return p
           })
@@ -410,10 +409,10 @@ export default {
               // this.totalSizeList[cubename] = 0
               this.loadCubeDesc(cubename).then((res) => {
                 var innerCubeName = cubename
-                handleSuccess(res, (data, code, status, msg) => {
+                handleSuccess(res, (data) => {
                   if (data.cube.storage_type === 100 || data.cube.storage_type === 99) {
                     this.getColumnarInfo(innerCubeName).then((res) => {
-                      handleSuccess(res, (data, code, status, msg) => {
+                      handleSuccess(res, (data) => {
                         let totalSize = 0
                         data[0].forEach(function (segment) {
                           totalSize += segment.storageSize
@@ -426,7 +425,7 @@ export default {
                     })
                   } else {
                     this.getHbaseInfo(innerCubeName).then((res) => {
-                      handleSuccess(res, (data, code, status, msg) => {
+                      handleSuccess(res, (data) => {
                         let totalSize = 0
                         data.forEach(function (segment) {
                           totalSize += segment.tableSize
@@ -441,23 +440,9 @@ export default {
                 })
               })
             })
-            // this.getCubesSegmentsList(cubesNameList.toString()).then((res) => {
-            //   handleSuccess(res, (data, code, status, msg) => {
-            //     this.cubesList.forEach((cube, index) => {
-            //       if (!cube.is_draft) {
-            //         let segmentNumber = cubesNameList.indexOf(cube.name)
-            //         this.$set(cube, 'completeSegments', data[segmentNumber])
-            //       } else {
-            //         this.$set(cube, 'completeSegments', [])
-            //       }
-            //     })
-            //   })
-            // }, (res) => {
-            //   handleError(res)
-            // })
           }
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
     },
@@ -466,13 +451,9 @@ export default {
         this.$message(this.$t('kylinLang.cube.cubeHasJob'))
         return
       }
-      this.$confirm(this.$t('deleteCube'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('deleteCube')).then(() => {
         this.deleteCube(cube.name).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
+          handleSuccess(res, (data) => {
             this.$message({
               type: 'success',
               message: this.$t('deleteSuccessful'),
@@ -485,10 +466,9 @@ export default {
           } else {
             this.loadCubesList(this.currentPage - 1)
           }
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
-      }).catch(() => {
       })
     },
     edit: function (cube) {
@@ -510,51 +490,40 @@ export default {
       //   this.$message(this.$t('kylinLang.cube.cubeHasJob'))
       //   return
       // }
-      let _this = this
-      _this.selected_cube = cube
+      this.selected_cube = cube
       if (cube.is_streaming) {
-        this.$confirm(this.$t('buildCube'), this.$t('tip'), {
-          confirmButtonText: this.$t('yes'),
-          cancelButtonText: this.$t('cancel'),
-          type: 'warning'
-        }).then(() => {
-          _this.rebuildStreamingCube(cube.name).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
+        kapConfirm(this.$t('buildCube')).then(() => {
+          this.rebuildStreamingCube(cube.name).then((res) => {
+            handleSuccess(res, (data) => {
               this.$message({
                 type: 'success',
                 message: this.$t('kylinLang.common.submitSuccess'),
                 duration: 3000
               })
-              _this.loadCubesList(this.currentPage - 1)
+              this.loadCubesList(this.currentPage - 1)
             })
-          }).catch((res) => {
+          }, (res) => {
             handleError(res)
           })
-        }).catch(() => {
         })
       } else {
         if (cube.partitionDateColumn) {
           this.buildCubeFormVisible = true
         } else {
-          this.$confirm(this.$t('buildCube'), this.$t('tip'), {
-            confirmButtonText: this.$t('yes'),
-            cancelButtonText: this.$t('cancel'),
-            type: 'warning'
-          }).then(() => {
+          kapConfirm(this.$t('buildCube')).then(() => {
             let time = {buildType: 'BUILD', startTime: 0, endTime: 0}
-            _this.rebuildCube({cubeName: cube.name, timeZone: time}).then((res) => {
-              handleSuccess(res, (data, code, status, msg) => {
+            this.rebuildCube({cubeName: cube.name, timeZone: time}).then((res) => {
+              handleSuccess(res, (data) => {
                 this.$message({
                   type: 'success',
                   message: this.$t('kylinLang.common.submitSuccess'),
                   duration: 3000
                 })
-                _this.loadCubesList(this.currentPage - 1)
+                this.loadCubesList(this.currentPage - 1)
               })
-            }).catch((res) => {
+            }, (res) => {
               handleError(res)
             })
-          }).catch(() => {
           })
         }
       }
@@ -565,7 +534,7 @@ export default {
     buildCubeValidSuccess: function (data, isFullBuild) {
       let time = {buildType: 'BUILD', startTime: data.start, endTime: data.end}
       this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
+        handleSuccess(res, (data) => {
           this.$message({
             type: 'success',
             message: this.$t('kylinLang.common.submitSuccess'),
@@ -573,7 +542,7 @@ export default {
           })
           this.loadCubesList(this.currentPage - 1)
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
       this.buildCubeFormVisible = false
@@ -593,21 +562,20 @@ export default {
       if (!noFullBuild) {
         data.date_range_end = 0
       }
-      let _this = this
       let time = {buildType: 'REFRESH', startTime: data.date_range_start, endTime: data.date_range_end}
-      this.rebuildCube({cubeName: _this.selected_cube.name, timeZone: time}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
+      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
+        handleSuccess(res, (data) => {
           this.$message({
             type: 'success',
             message: this.$t('refreshSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.currentPage - 1)
+          this.loadCubesList(this.currentPage - 1)
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
-      _this.refreshCubeFormVisible = false
+      this.refreshCubeFormVisible = false
     },
     merge: function (cube) {
       if (!(cube.segments && cube.segments.length >= 0)) {
@@ -621,86 +589,67 @@ export default {
       this.$refs['mergeCubeForm'].$emit('mergeCubeFormValid')
     },
     mergeCubeValidSuccess: function (data) {
-      let _this = this
       let time = {buildType: 'MERGE', startTime: data.date_range_start, endTime: data.date_range_end}
-      this.rebuildCube({cubeName: _this.selected_cube.name, timeZone: time}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
+      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
+        handleSuccess(res, (data) => {
           this.$message({
             type: 'success',
             message: this.$t('mergeSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.currentPage - 1)
+          this.loadCubesList(this.currentPage - 1)
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
-      _this.mergeCubeFormVisible = false
+      this.mergeCubeFormVisible = false
     },
     enable: function (cubeName) {
-      let _this = this
-      this.$confirm(this.$t('enableCube'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('enableCube')).then(() => {
         this.enableCube(cubeName).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
+          handleSuccess(res, (data) => {
             this.$message({
               type: 'success',
               message: this.$t('enableSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.currentPage - 1)
+            this.loadCubesList(this.currentPage - 1)
           })
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
-      }).catch(() => {
       })
     },
     disable: function (cubeName) {
-      let _this = this
-      this.$confirm(this.$t('disableCube'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('disableCube')).then(() => {
         this.disableCube(cubeName).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
+          handleSuccess(res, (data) => {
             this.$message({
               type: 'success',
               message: this.$t('disableSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.currentPage - 1)
+            this.loadCubesList(this.currentPage - 1)
           })
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
-      }).catch(() => {
       })
     },
     purge: function (cubeName) {
-      let _this = this
-      this.$confirm(this.$t('purgeCube'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('purgeCube')).then(() => {
         this.purgeCube(cubeName).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
+          handleSuccess(res, (data) => {
             this.$message({
               type: 'success',
               message: this.$t('purgeSuccessful'),
               duration: 3000
             })
-            _this.loadCubesList(this.currentPage - 1)
+            this.loadCubesList(this.currentPage - 1)
           })
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
-      }).catch(() => {
       })
     },
     clone: function (cube) {
@@ -711,20 +660,19 @@ export default {
       this.$refs['cloneCubeForm'].$emit('cloneCubeFormValid')
     },
     cloneCubeValidSuccess: function (data) {
-      let _this = this
       this.cloneCube(data).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
+        handleSuccess(res, (data) => {
           this.$message({
             type: 'success',
             message: this.$t('cloneSuccessful'),
             duration: 3000
           })
-          _this.loadCubesList(this.currentPage - 1)
+          this.loadCubesList(this.currentPage - 1)
         })
-      }).catch((res) => {
+      }, (res) => {
         handleError(res)
       })
-      _this.cloneCubeFormVisible = false
+      this.cloneCubeFormVisible = false
     },
     editCubeDesc: function (cube) {
       this.$emit('addtabs', 'edit', cube.name, 'cubeMetadata', {
@@ -742,18 +690,14 @@ export default {
       })
     },
     backup: function (cubeName) {
-      this.$confirm(this.$t('backupCube'), this.$t('tip'), {
-        confirmButtonText: this.$t('yes'),
-        cancelButtonText: this.$t('cancel'),
-        type: 'warning'
-      }).then(() => {
+      kapConfirm(this.$t('backupCube')).then(() => {
         this.backupCube(cubeName).then((result) => {
           this.$message({
             type: 'success',
             message: this.$t('backupSuccessful')
           })
           this.loadCubesList(this.currentPage - 1)
-        }).catch((res) => {
+        }, (res) => {
           handleError(res)
         })
       })

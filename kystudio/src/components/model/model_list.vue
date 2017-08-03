@@ -1,5 +1,5 @@
 <template>
-	<div class="paddingbox modelist_box" style="margin-left: 30px;min-height:600px; margin-right: 30px;">
+	<div class="modelist_box">
    <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
     <el-button type="blue" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
@@ -252,7 +252,7 @@
 <script>
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
-import { pageCount, modelHealthStatus, permissions } from '../../config'
+import { pageCount, modelHealthStatus, permissions, NamedRegex } from '../../config'
 import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermissionOfModel } from 'util/business'
 export default {
   data () {
@@ -262,19 +262,12 @@ export default {
       scanRatioDialogVisible: false,
       openCollectRange: true,
       usedCubes: [],
-      // cloneBtnLoading: false,
       btnLoading: false,
       stCycleRequest: null,
       modelStaticsRange: 1,
       startTime: '',
       endTime: '',
-      pickerOptionsEnd: {
-        // disabledDate: (time) => {
-        //   let nowDate = new Date(this.startTime)
-        //   let v1 = time.getTime() < +nowDate
-        //   return v1
-        // }
-      },
+      pickerOptionsEnd: {},
       viewModal: 'card',
       hasPartition: false,
       currentDate: new Date(),
@@ -344,17 +337,9 @@ export default {
         if (this.endTime < this.startTime) {
           this.endTime = this.startTime
         }
-        // this.endTime = this.startTime
-        // nowDate.setMonth(nowDate.getMonth() + 1)// 后一个月
-        // let v1 = time.getTime() > +new Date(_this.startTime) + 30 * 24 * 60 * 60 * 1000
         let v1 = time.getTime() < +nowDate
-        // let v2 = time.getTime() < +new Date(this.startTime) - 8.64e7
-        // this.maxTime = +nowDate // 缓存最大值 endTime
         return v1
       }
-    },
-    checkActionRole () {
-
     },
     showRowClass (o) {
       return o.is_draft ? 'is_draft' : ''
@@ -384,13 +369,9 @@ export default {
         params.projectName = localStorage.getItem('selected_project')
         params1.project = localStorage.getItem('selected_project')
       }
-      // this.loadModels(params)
-      // this.loadModelDiagnoseList(params1)
       this.loadModels(params).then(() => {
         this.loadModelDiagnoseList(params1)
       })
-    },
-    sizeChange () {
     },
     viewModel (modelInfo) {
       this.$emit('addtabs', 'viewmodel', '[view] ' + modelInfo.name, 'modelEdit', {
@@ -574,26 +555,6 @@ export default {
         this.createCubeVisible = true
         this.cubeMeta.projectName = projectName
         this.cubeMeta.modelName = modelName
-        // this.$prompt('请输入Cube名称', '提示', {
-        //   confirmButtonText: '确定',
-        //   cancelButtonText: '取消',
-        //   inputPattern: /^\w+$/
-        // }).then(({ value }) => {
-        //   this.checkCubeName(value).then((data) => {
-        //     console.log(data, 'ssss')
-        //     return false
-        //   }, () => {
-        //     return false
-        //   })
-        //   // return false
-        //   // this.$emit('addtabs', 'cube', value, 'cubeEdit', {
-        //   //   project: projectName,
-        //   //   cubeName: value,
-        //   //   modelName: modelName,
-        //   //   isEdit: false
-        //   // })
-        // }).catch(() => {
-        // })
       }
     },
     getModelCheckMode (projectName, modelName, noCb, yesCb) {
@@ -689,7 +650,7 @@ export default {
       })
     },
     checkName (rule, value, callback) {
-      if (!/^\w+$/.test(value)) {
+      if (!NamedRegex.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
@@ -712,22 +673,6 @@ export default {
         }
       }
       return []
-    },
-    // getHelthInfo (modelName) {
-    //   var len = this.modelHelth && this.modelHelth.length || 0
-    //   for (var i = 0; i < len; i++) {
-    //     if (this.modelHelth[i].modelName === modelName) {
-    //       this.modelHelth[i].progress = this.modelHelth[i].progress ? Number(this.modelHelth[i].progress).toFixed(2) : 0
-    //       return this.modelHelth[i]
-    //     }
-    //   }
-    //   return {
-    //     progress: 0,
-    //     heathStatus: '',
-    //     message: []
-    //   }
-    // },
-    renderHelthStatusIcon () {
     },
     isUsedInCubes (modelName, callback, noUseCallback) {
       this.getCubesList({
@@ -815,6 +760,9 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
 .modelist_box{
+  margin-left: 30px;
+  min-height:600px;
+  margin-right: 30px;
   .modelCheck{
     .el-date-editor.el-input{
       width: 100%;
