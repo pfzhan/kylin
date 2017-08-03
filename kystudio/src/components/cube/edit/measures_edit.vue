@@ -9,7 +9,7 @@
   </div>
   <el-table class="table_margin"
     :data="cubeDesc.measures"
-    border stripe 
+    border stripe
     style="width: 100%">
     <el-table-column
       property="name"
@@ -23,7 +23,7 @@
       align="center"
       :label="$t('expression')"
       width="180">
-    </el-table-column>    
+    </el-table-column>
     <el-table-column
       :label="$t('parameters')"
       header-align="center"
@@ -43,7 +43,7 @@
           {{modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
         </span>
       </template>
-    </el-table-column>  
+    </el-table-column>
     <el-table-column
       :label="$t('comment')"
       width="110">
@@ -54,12 +54,12 @@
       </template>
     </el-table-column>
     <el-table-column
-      property="function.returntype"    
+      property="function.returntype"
       :label="$t('returnType')"
       header-align="center"
       align="center"
       width="120">
-    </el-table-column>  
+    </el-table-column>
     <el-table-column
       :label="$t('action')"
       header-align="center"
@@ -69,12 +69,12 @@
         <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button>
         <el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
-    </el-table-column>                     
+    </el-table-column>
   </el-table>
-   <el-button type="blue" icon="plus" :disabled="isReadyCube" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>  
+   <el-button type="blue" icon="plus" :disabled="isReadyCube" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>
       <el-row v-if="!isPlusVersion">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
-      </el-row> 
+      </el-row>
       <el-table class="table_margin" v-if="!isPlusVersion"
         :data="cubeDesc.hbase_mapping.column_family"
         style="width: 100%">
@@ -85,21 +85,21 @@
         </el-table-column>
         <el-table-column
             :label="$t('measures')">
-            <template scope="scope">  
+            <template scope="scope">
               <el-col :span="24">
-                <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs" :refreshInfo="{index: scope.$index, key: 'measure_refs'}" @refreshData="refreshColumnFamily"> 
+                <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs" :refreshInfo="{index: scope.$index, key: 'measure_refs'}" @refreshData="refreshColumnFamily">
                 </area_label>
-              </el-col>    
+              </el-col>
             </template>
         </el-table-column>
         <el-table-column
         width="110">
             <template scope="scope">
               <el-button type="delete" icon="minus" size="mini" @click="removeColumnFamily(scope.$index)">
-              </el-button>               
+              </el-button>
             </template>
-        </el-table-column>                                              
-      </el-table>   
+        </el-table-column>
+      </el-table>
      <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
@@ -107,9 +107,9 @@
     <span slot="footer" class="dialog-footer">
       <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
-    </span>     
-  </el-dialog>    
-</div>  
+    </span>
+  </el-dialog>
+</div>
 </template>
 <script>
 import { mapActions } from 'vuex'

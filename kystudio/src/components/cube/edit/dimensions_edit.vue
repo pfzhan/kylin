@@ -78,13 +78,7 @@
         </div>
         <el-col :span="24">
           <el-card class="ksd_noshadow" style="border: none;">
-            <!-- <el-row>
-              <el-col :span="6">
-                Cuboid Number: {{cuboidList[group_index]}} {{groupErrorList[group_index]}}
-              </el-col> 
-            </el-row> -->
             <el-row class="row_padding" style="background: #2f3243;padding-left: 30px;" id="dimensions-item">
-              <!-- <el-col :span="1">#{{group_index+1}}</el-col> -->
               <el-col :span="22">
                 <el-row class="row_padding">
                   <el-col :span="5" class="dimensions-title">{{$t('Includes')}} (<span style="font-size:14px;color:#218fea;">{{group.includes.length}}</span>)</el-col>
@@ -100,7 +94,7 @@
                 </el-row>  
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.includes" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="dimensionsChangeCalc(group_index)"   @checklabel="showDetail"> 
+                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.select_range && group.select_range.mandatoryDims" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="dimensionsChangeCalc(group_index)"   @checklabel="showDetail"> 
                     </area_label>
                   </el-col>
                 </el-row>
@@ -110,12 +104,12 @@
                 <el-row>
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
-                       <el-col :span="23" >
-                        <area_label :labels="group.includes"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
+                      <el-col :span="23" >
+                        <area_label :labels="group.select_range && group.select_range.hierarchyDims"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
                         </area_label>
-                      </el-col>  
+                      </el-col>
                       <el-col :span="1" style="margin-top: 5px;">
-                        <el-button type="danger" icon="minus" size="mini" :disabled="isReadyCube"  @click="removeHierarchyDims(hierarchy_index, group.select_rule.  hierarchy_dims)">
+                        <el-button type="danger" icon="minus" size="mini" :disabled="isReadyCube"  @click="removeHierarchyDims(group_index, hierarchy_index, group.select_rule.hierarchy_dims)">
                       </el-button>
                     </el-col>
                   </el-row>
@@ -123,42 +117,42 @@
               </el-row>
               <el-row>
                 <el-col :span="5">
-                  <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addHierarchyDims( group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
+                  <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addHierarchyDims(group_index, group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
                   {{$t('newHierarchy')}}
-                  </el-button>                
+                  </el-button>              
                 </el-col>
-              </el-row>      
+              </el-row>
               <el-row class="row_padding">
                 <el-col :span="5" class="dimensions-title">{{$t('jointDimensions')}}</el-col>
-              </el-row>  
+              </el-row>
               <el-row>
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.includes" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
+                      <area_label :labels="group.select_range && group.select_range.jointDims[joint_index]" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
                       </area_label>
                     </el-col>
-                    <el-col :span="1" style="margin-top:5px;">                
-                      <el-button type="danger" icon="minus" :disabled="isReadyCube"  size="mini" @click="removeJointDims(joint_index, group.select_rule.joint_dims)">
+                    <el-col :span="1" style="margin-top:5px;">               
+                      <el-button type="danger" icon="minus" :disabled="isReadyCube"  size="mini" @click="removeJointDims(group_index, joint_index, group.select_rule.joint_dims)">
                       </el-button>
-                    </el-col>  
+                    </el-col>
                  </el-row>
                 </el-col>
-               </el-row> 
+               </el-row>
                <el-row style="padding-bottom: 20px;">
                  <el-col :span="5">
-                  <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addJointDims( group.select_rule.joint_dims)">
+                  <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addJointDims(group_index, group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
-                  </el-button>                 
-                </el-col>                    
+                  </el-button>             
+                </el-col>
               </el-row>
             </el-col>
-            <el-col :span="1" class="close-dimentions">            
+            <el-col :span="1" class="close-dimentions">
               <el-button type="danger" :disabled="isReadyCube"  icon="minus" size="mini" @click="removeAggGroup(group_index)">
               </el-button>
             </el-col>
           </el-row>
-        </el-card>  
+        </el-card>
       </el-col>
     </el-row>
 
@@ -323,12 +317,6 @@ export default {
     'add_dimensions': addDimensions,
     'area_label': areaLabel
   },
-  created () {
-    this.initCalCuboid()
-    setTimeout(() => {
-      this.initConvertedRowkeys()
-    }, 1000)
-  },
   methods: {
     ...mapActions({
       calCuboid: 'CAL_CUBOID',
@@ -339,56 +327,6 @@ export default {
     }),
     collectSql () {
       this.addSQLFormVisible = true
-    },
-    updateIncludesDimUsed (index) {
-      this.cubeDesc.aggregation_groups[index].includes.forEach((dimension, i) => {
-        let isUsed = false
-        if (this.cubeDesc.aggregation_groups[index].select_rule.mandatory_dims.indexOf(dimension) >= 0) {
-          isUsed = true
-        }
-        this.cubeDesc.aggregation_groups[index].select_rule.hierarchy_dims.forEach((dim) => {
-          if (dim.indexOf(dimension) >= 0) {
-            isUsed = true
-          }
-        })
-        this.cubeDesc.aggregation_groups[index].select_rule.joint_dims.forEach((dim) => {
-          if (dim.indexOf(dimension) >= 0) {
-            isUsed = true
-          }
-        })
-        var tag = this.$refs.includesSelect[index].tags[i]
-        if (!isUsed) {
-          tag.setAttribute('data-tag', '')
-        } else {
-          tag.setAttribute('data-tag', 'useDimension')
-        }
-      })
-    },
-    refreshIncludeData (data, refreshInfo) {
-      var index = refreshInfo.index
-      var key = refreshInfo.key
-      this.$set(this.cubeDesc.aggregation_groups[index], key, data)
-      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
-    },
-    refreshMandatoryData (data, refreshInfo) {
-      var index = refreshInfo.index
-      var key = refreshInfo.key
-      this.$set(this.cubeDesc.aggregation_groups[index].select_rule, key, data)
-      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
-    },
-    refreshJointData (data, refreshInfo) {
-      var gindex = refreshInfo.gindex
-      var jindex = refreshInfo.jindex
-      var key = refreshInfo.key
-      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
-      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
-    },
-    refreshHierarchyData (data, refreshInfo) {
-      var gindex = refreshInfo.gindex
-      var jindex = refreshInfo.hindex
-      var key = refreshInfo.key
-      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
-      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
     },
     resetDimensions: function () {
       // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
@@ -811,28 +749,148 @@ export default {
       let code = encode.split(':')
       return code[1]
     },
+    updateIncludesDimUsed (index) {
+      this.cubeDesc.aggregation_groups[index].includes.forEach((dimension, i) => {
+        let isUsed = false
+        if (this.cubeDesc.aggregation_groups[index].select_rule.mandatory_dims.indexOf(dimension) >= 0) {
+          isUsed = true
+        }
+        this.cubeDesc.aggregation_groups[index].select_rule.hierarchy_dims.forEach((dim) => {
+          if (dim.indexOf(dimension) >= 0) {
+            isUsed = true
+          }
+        })
+        this.cubeDesc.aggregation_groups[index].select_rule.joint_dims.forEach((dim) => {
+          if (dim.indexOf(dimension) >= 0) {
+            isUsed = true
+          }
+        })
+        var tag = this.$refs.includesSelect[index].tags[i]
+        if (!isUsed) {
+          tag.setAttribute('data-tag', '')
+        } else {
+          tag.setAttribute('data-tag', 'useDimension')
+        }
+      })
+    },
+    refreshIncludeData (data, refreshInfo) {
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[index], key, data)
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[index], index)
+      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
+    },
+    refreshMandatoryData (data, refreshInfo) {
+      var index = refreshInfo.index
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[index].select_rule, key, data)
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[index], index)
+      // this.cubeDesc.aggregation_groups[index].select_rule[key] = data
+    },
+    refreshJointData (data, refreshInfo) {
+      var gindex = refreshInfo.gindex
+      var jindex = refreshInfo.jindex
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
+      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
+    },
+    refreshHierarchyData (data, refreshInfo) {
+      var gindex = refreshInfo.gindex
+      var jindex = refreshInfo.hindex
+      var key = refreshInfo.key
+      this.$set(this.cubeDesc.aggregation_groups[gindex].select_rule[key], jindex, data)
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
+      // this.cubeDesc.aggregation_groups[gindex].select_rule[key][jindex] = data
+    },
+    initAllAggSelectRange: function () {
+      if (this.cubeDesc.aggregation_groups.length > 0) {
+        this.cubeDesc.aggregation_groups.forEach((group, gindex) => {
+          this.initAggSelectRange(group, gindex)
+        })
+      }
+    },
+    initAggSelectRange: function (group, gindex) {
+      this.$set(group, 'select_range', {
+        mandatoryDims: [],
+        hierarchyDims: [],
+        jointDims: []
+      })
+      let usedInMandatory = []
+      let usedInHierarchy = []
+      let usedInJoint = {allDims: [], eachOtherDims: []}
+      usedInMandatory = group.select_rule.mandatory_dims
+      group.select_rule.hierarchy_dims.forEach((dim) => {
+        usedInHierarchy = usedInHierarchy.concat(dim)
+      })
+      group.select_rule.joint_dims.forEach((dim, index) => {
+        usedInJoint.allDims = usedInJoint.allDims.concat(dim)
+        this.$set(usedInJoint.eachOtherDims, index, [])
+        this.$set(group.select_range.jointDims, index, [])
+      })
+      group.select_rule.joint_dims.forEach((dim, index) => {
+        usedInJoint.eachOtherDims.forEach((eoDim, eoIndex) => {
+          if (index !== eoIndex) {
+            usedInJoint.eachOtherDims[eoIndex] = eoDim.concat(dim)
+          }
+        })
+      })
+      group.includes.forEach((column) => {
+        if (usedInHierarchy.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
+          group.select_range.mandatoryDims.push(column)
+        }
+        if (usedInMandatory.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
+          group.select_range.hierarchyDims.push(column)
+        }
+        if (usedInMandatory.indexOf(column) === -1 && usedInHierarchy.indexOf(column) === -1) {
+          group.select_rule.joint_dims.forEach((dim, index) => {
+            if (usedInJoint.eachOtherDims[index].indexOf(column) === -1) {
+              group.select_range.jointDims[index].push(column)
+            }
+          })
+        }
+      })
+    },
     removeAggGroup: function (index) {
       this.cubeDesc.aggregation_groups.splice(index, 1)
       this.cuboidList.splice(index, 1)
       this.initCalCuboid()
     },
     addAggGroup: function () {
-      this.cubeDesc.aggregation_groups.push({includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}})
+      this.cubeDesc.aggregation_groups.push({
+        includes: this.currentRowkey,
+        select_rule: {
+          mandatory_dims: [],
+          hierarchy_dims: [],
+          joint_dims: []
+        },
+        select_range: {
+          mandatoryDims: [],
+          hierarchyDims: [],
+          jointDims: []
+        }
+      })
       this.cuboidList.push(0)
     },
-    removeHierarchyDims: function (index, hierarchyDims) {
+    removeHierarchyDims: function (gindex, index, hierarchyDims) {
       hierarchyDims.splice(index, 1)
       this.initCalCuboid()
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
     },
-    addHierarchyDims: function (hierarchyDims) {
+    addHierarchyDims: function (gindex, hierarchyDims) {
       hierarchyDims.push([])
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
     },
-    removeJointDims: function (index, jointDims) {
+    removeJointDims: function (gindex, index, jointDims) {
       jointDims.splice(index, 1)
       this.initCalCuboid()
+      this.cubeDesc.aggregation_groups[gindex].select_range.jointDims.splice(index, 1)
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
     },
-    addJointDims: function (jointDims) {
+    addJointDims: function (gindex, jointDims) {
       jointDims.push([])
+      this.cubeDesc.aggregation_groups[gindex].select_range.jointDims.push([])
+      this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
     },
     scrollRightBar () {
       clearTimeout(this.scrollST)
@@ -844,6 +902,13 @@ export default {
         }
       }, 50)
     }
+  },
+  created () {
+    this.initAllAggSelectRange()
+    this.initCalCuboid()
+    setTimeout(() => {
+      this.initConvertedRowkeys()
+    }, 1000)
   },
   mounted () {
     this.dimensionRightDom = this.$el.querySelectorAll('.dimension-right')[0]
