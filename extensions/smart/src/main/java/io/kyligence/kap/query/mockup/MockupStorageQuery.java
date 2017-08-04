@@ -24,17 +24,23 @@
 
 package io.kyligence.kap.query.mockup;
 
+import java.io.IOException;
 import java.util.Properties;
 import java.util.Set;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.metadata.tuple.TupleInfo;
+import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
@@ -102,6 +108,51 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
             return Cuboid.findById(cubeDesc, cuboidId);
         } else {
             return Cuboid.findForFullCube(cubeDesc, cuboidId);
+        }
+    }
+
+    @Override
+    protected LookupStringTable getLookupStringTableForDerived(TblColRef derived, CubeDesc.DeriveInfo hostInfo) {
+        JoinDesc join = hostInfo.join;
+        String tableName = join.getPKSide().getTableIdentity();
+        String[] pkCols = join.getPrimaryKey();
+
+        try {
+            TableDesc tableDesc = MetadataManager.getInstance(cubeInstance.getConfig()).getTableDesc(tableName,
+                    cubeInstance.getProject());
+            return new LookupStringTable(tableDesc, pkCols, new IReadableTable() {
+                @Override
+                public TableReader getReader() throws IOException {
+                    return new TableReader() {
+                        @Override
+                        public boolean next() throws IOException {
+                            return false;
+                        }
+
+                        @Override
+                        public String[] getRow() {
+                            return new String[0];
+                        }
+
+                        @Override
+                        public void close() throws IOException {
+
+                        }
+                    };
+                }
+
+                @Override
+                public TableSignature getSignature() throws IOException {
+                    return null;
+                }
+
+                @Override
+                public boolean exists() throws IOException {
+                    return false;
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
