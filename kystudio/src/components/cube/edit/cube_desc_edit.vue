@@ -12,7 +12,7 @@
       <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
     </el-steps>
   </div>
-
+  
   <div class="line margin-l-r"></div>
   <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
   <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></info>
@@ -24,7 +24,7 @@
   <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit"></configuration_overwrites>
   <overview v-if="activeStep===7" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail"></overview>
   </div>
-
+  
 <!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
   <el-button class="button_right" type="primary" v-if="activeStep !== 7" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
   <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 7" @click.native="saveOrUpdate">{{$t('save')}}</el-button>

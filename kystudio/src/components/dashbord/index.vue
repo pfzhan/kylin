@@ -82,7 +82,7 @@
 		    <span>{{$t('kylinLang.common.manual')}}</span>
 		  </div>
 		  <div v-for="o in manualList" :key="o.title" class="text item">
-		    <a class="kap-help" :href="o.link" target="_blank">{{o.title }}</a>
+		    <a class="kap-help" :href="o.link" target="_blank">{{$t(o.title)}}</a>
 		  </div>
 		</el-card>
       </div>
@@ -154,9 +154,8 @@ export default {
   data () {
     return {
       sliderImgs: [{index: 0, src: require('../../assets/img/banner.png')}, {index: 1, src: require('../../assets/img/banner.png')}, {index: 2, src: require('../../assets/img/banner.png')}, {index: 3, src: require('../../assets/img/banner.png')}],
-      newsList: [{id: 0, title: '大数据初创企业Kyligence亮相硅谷顶级大数据峰会Strata+Hadoop World', time: '3/14/2017'}, {id: 0, title: 'Kyligence智能分析平台助力国泰君安构建互联网级大数据分析平台', time: '3/14/2017'}, {id: 0, title: '华人顶级开源项目强强联合，Kyligence与Alluxio达成战略合作协议', time: '3/14/2017'}, {id: 0, title: 'Kyligence成功入选【微软加速器·上海】，成为“黄埔一期”成员', time: '3/14/2017'}],
       blogsList: [{id: 0, title: 'Query returns incorrect date via JDBC', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003630227?src=kap240'}, {id: 0, title: 'How to clean up hive temporary tables', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115004004868?src=kap240'}, {id: 0, title: 'What latency should I expect while streaming from Kafka?', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003632207?src=kap240'}, {id: 0, title: 'Size of table snapshot exceeds the limitation', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003988308?src=kap240'}],
-      manualList: [{id: 0, title: 'KAP 操作手册', time: '3/14/2017', link: 'https://kyligence.gitbooks.io/kap-manual/content/zh-cn/'}, {id: 0, title: 'Apache Kylin 文档', time: '3/14/2017', link: 'http://kylin.apache.org/docs20/'}]
+      manualList: [{id: 0, title: 'kapManual', time: '3/14/2017', link: 'https://kyligence.gitbooks.io/kap-manual/content/zh-cn/'}, {id: 0, title: 'kylinManual', time: '3/14/2017', link: 'http://kylin.apache.org/docs20/'}]
 
     }
   },
@@ -194,6 +193,10 @@ export default {
     this.loadModels(params)
     this.loadUsersList(params)
     this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 1})
+  },
+  locales: {
+    'en': {'kapManual': 'KAP manual', 'kylinManual': 'Apache Kylin document'},
+    'zh-cn': {'kapManual': 'KAP 操作手册', 'kylinManual': 'Apache Kylin 文档'}
   }
 }
 </script>
