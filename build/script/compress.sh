@@ -40,11 +40,11 @@ cp -rf VERSION commit_SHA1 ext lib tool kybot tomcat spark ${package_name}/
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
 cp -rf conf/profile_prod ${package_name}/conf
-
+cp -rf conf/spark ${package_name}/conf/spark
 cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
-cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
-cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
+
+
 
 cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/

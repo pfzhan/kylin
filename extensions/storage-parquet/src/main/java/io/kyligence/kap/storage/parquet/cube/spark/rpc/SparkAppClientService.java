@@ -64,7 +64,6 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
     public SparkAppClientService() {
         conf = new SparkConf().setAppName("KyStorage for Kyligence Analytical Platform");
         conf.set("spark.scheduler.mode", "FAIR");
-
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.kryo.registrationRequired", "false");
 

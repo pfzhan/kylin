@@ -144,6 +144,7 @@ public class SparkParquetVisit implements Serializable {
 
             long startTime = System.currentTimeMillis();
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {
+                sc.setLocalProperty("spark.scheduler.pool", "cube");
 
                 if (IKapStorageAware.ID_SPLICE_PARQUET != this.storageType) {
                     // Engine 100
@@ -176,6 +177,7 @@ public class SparkParquetVisit implements Serializable {
                     binaryFilterSerialized = BinaryFilterSerializer.serialize(binaryFilter);
                 }
             } else {
+                sc.setLocalProperty("spark.scheduler.pool", "table_index");
                 this.isSplice = false;
                 this.parquetPathCollection = listFilesWithCache(
                         new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
@@ -211,9 +213,7 @@ public class SparkParquetVisit implements Serializable {
             logger.info("Required Measures: " + StringUtils.join(request.getParquetColumnsList(), ","));
             logger.info("Max GT length: " + request.getMaxRecordLength());
             logger.info("needLazy: " + needLazy);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (ClassNotFoundException e) {
+        } catch (IOException | ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
 
@@ -290,6 +290,7 @@ public class SparkParquetVisit implements Serializable {
     }
 
     Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> executeTask() throws Exception {
+        
         logger.info("Start to visit cube data with Spark <<<<<<");
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records",
