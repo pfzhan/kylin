@@ -136,7 +136,11 @@ public class SparkParquetVisit implements Serializable {
             GTScanRequest scanRequest = GTScanRequest.serializer
                     .deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
             this.needLazy = false;
-            this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
+            if (kapConfig.getParquetSparkDynamicResourceEnabled()) {
+                this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstanceMax();
+            } else {
+                this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
+            }
 
             long startTime = System.currentTimeMillis();
             if (RealizationType.CUBE.toString().equals(this.realizationType)) {

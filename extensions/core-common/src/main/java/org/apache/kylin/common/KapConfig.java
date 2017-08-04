@@ -126,6 +126,16 @@ public class KapConfig {
                 config.getOptional("kap.storage.columnar.spark-conf.spark.executor.cores", String.valueOf(1)));
     }
 
+    public boolean getParquetSparkDynamicResourceEnabled() {
+        return Boolean.valueOf(
+                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.enabled", "false"));
+    }
+
+    public int getParquetSparkExecutorInstanceMax() {
+        return Integer.parseInt(
+                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.maxExecutors", String.valueOf(1)));
+    }
+
     public String getSparkClientHost() {
         return config.getOptional("kap.storage.columnar.spark-driver-host", "localhost");
     }
