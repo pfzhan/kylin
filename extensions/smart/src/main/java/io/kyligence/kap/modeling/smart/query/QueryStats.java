@@ -51,6 +51,9 @@ public class QueryStats implements Serializable {
     @JsonProperty("filter")
     private Map<String, Integer> filters = Maps.newHashMap();
 
+    @JsonProperty("cuboids")
+    private Set<Set<String>> cuboids = Sets.newHashSet();
+
     @JsonProperty("appear")
     private Map<String, Integer> appears = Maps.newHashMap();
 
@@ -109,6 +112,10 @@ public class QueryStats implements Serializable {
         }
     }
 
+    public void addCuboidCols(Set<String> cols) {
+        cuboids.add(cols);
+    }
+
     public void putOneColumn(String colName, int filter, int groupBy, int appear) {
         filters.put(colName, filter);
         groupBys.put(colName, groupBy);
@@ -156,6 +163,10 @@ public class QueryStats implements Serializable {
 
     public Map<String, Integer> getAppears() {
         return appears;
+    }
+
+    public Set<Set<String>> getCuboids() {
+        return cuboids;
     }
 
     public Set<FunctionDesc> getMeasures() {

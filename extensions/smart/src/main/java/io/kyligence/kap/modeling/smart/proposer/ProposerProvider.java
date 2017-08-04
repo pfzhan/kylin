@@ -22,58 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.modeling.smart.common;
+package io.kyligence.kap.modeling.smart.proposer;
 
-interface IModelingStrategy {
-    int getRowkeyDictEncCardinalityMax();
+import io.kyligence.kap.modeling.smart.ModelingContext;
 
-    int getRowkeyFixLenLengthMax();
+public class ProposerProvider {
 
-    long getRowkeyUHCCardinalityMin();
+    ProposerProvider(ModelingContext context) {
+        this.context = context;
+    }
 
-    int getJointGroupCardinalityMax();
+    private ModelingContext context;
 
-    int getJointColNumMax();
+    public AbstractProposer getDimensionProposer() {
+        return new DerivedDimensionProposer(context);
+    }
 
-    double getDimDerivedRatio();
+    public AbstractProposer getConfigOverrideProposer() {
+        return new ConfigOverrideProposer(context);
+    }
 
-    int getMandatoryCardinalityMax();
+    public AbstractProposer getAggrGroupProposer() {
+        String strategy = context.getModelingConfig().getAggGroupStrategy();
+        switch (strategy) {
+        case "whitelist":
+            return new WhiteListAggrGroupProposer(context);
+        default:
+            return new AggrGroupProposer(context);
+        }
 
-    double getApproxEqualMax();
+    }
 
-    double getApproxEqualMin();
+    public AbstractProposer getRowkeyProposer() {
+        return new RowkeyProposer(context);
+    }
 
-    int getMandatoryEnableQueryMin();
-
-    int getRowkeyFilterPromotionTimes();
-
-    double getApproxDiffMax();
-
-    String getRowkeyDefaultEnc();
-
-    double getPhyscalWeight();
-
-    double getBusinessWeight();
-
-    boolean getDomainQueryEnabled();
-
-    boolean getAggGroupKeepLegacy();
-
-    boolean getAggGroupStrictEnabled();
-
-    long getAggGroupStrictCombinationMax();
-
-    int getAggGroupStrictRetryMax();
-
-    String getAggGroupStrategy();
-
-    int getDerivedStrictRetryMax();
-
-    boolean getCuboidCombinationOverride();
-
-    boolean enableDimCapForAggGroupStrict();
-
-    boolean enableJointForAggGroupStrict();
-
-    int getDimCapMin();
 }

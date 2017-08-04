@@ -79,21 +79,25 @@ public abstract class AbstractProposer {
             List<List<String>> joints = Lists.newArrayList();
             List<List<String>> hiers = Lists.newArrayList();
 
-            for (String[] joint_dim : selectRule.jointDims) {
-                if (joint_dim != null && joint_dim.length > 1) {
-                    List<String> jointOld = Arrays.asList(joint_dim);
-                    joints.add(jointOld);
+            if (selectRule.jointDims != null) {
+                for (String[] joint_dim : selectRule.jointDims) {
+                    if (joint_dim != null && joint_dim.length > 1) {
+                        List<String> jointOld = Arrays.asList(joint_dim);
+                        joints.add(jointOld);
+                    }
                 }
-            }
-            for (String[] hierarchy_dim : selectRule.hierarchyDims) {
-                if (hierarchy_dim != null && hierarchy_dim.length > 1) {
-                    List<String> hierOld = Arrays.asList(hierarchy_dim);
-                    hiers.add(hierOld);
-                }
+                selectRule.jointDims = ArrayUtils.to2DArray(joints);
             }
 
-            selectRule.jointDims = ArrayUtils.to2DArray(joints);
-            selectRule.hierarchyDims = ArrayUtils.to2DArray(hiers);
+            if (selectRule.hierarchyDims != null) {
+                for (String[] hierarchy_dim : selectRule.hierarchyDims) {
+                    if (hierarchy_dim != null && hierarchy_dim.length > 1) {
+                        List<String> hierOld = Arrays.asList(hierarchy_dim);
+                        hiers.add(hierOld);
+                    }
+                }
+                selectRule.hierarchyDims = ArrayUtils.to2DArray(hiers);
+            }
 
             processed.add(aggGroup);
         }

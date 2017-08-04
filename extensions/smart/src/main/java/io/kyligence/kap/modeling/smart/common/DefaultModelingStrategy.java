@@ -114,6 +114,11 @@ public class DefaultModelingStrategy implements IModelingStrategy {
         return 63;
     }
 
+    @Override
+    public String getAggGroupStrategy() {
+        return "default";
+    }
+
     public int getDerivedStrictRetryMax() {
         return 1;
     }

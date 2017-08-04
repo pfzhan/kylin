@@ -25,21 +25,17 @@
 package io.kyligence.kap.modeling.smart;
 
 import org.apache.kylin.cube.model.CubeDesc;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.modeling.smart.proposer.AggrGroupProposer;
-import io.kyligence.kap.modeling.smart.proposer.ConfigOverrideProposer;
-import io.kyligence.kap.modeling.smart.proposer.DerivedDimensionProposer;
-import io.kyligence.kap.modeling.smart.proposer.RowkeyProposer;
+import io.kyligence.kap.modeling.smart.proposer.ProposerProvider;
+import io.kyligence.kap.modeling.smart.proposer.ProposerProviderFactory;
 
 public class ModelingMaster {
-    private static final Logger logger = LoggerFactory.getLogger(ModelingMaster.class);
-
-    private ModelingContext context;
+    private final ModelingContext context;
+    private final ProposerProvider proposerProvider;
 
     ModelingMaster(ModelingContext context) {
         this.context = context;
+        this.proposerProvider = ProposerProviderFactory.createProvider(this.context);
     }
 
     public ModelingContext getContext() {
@@ -51,22 +47,18 @@ public class ModelingMaster {
     }
 
     public CubeDesc proposeDerivedDimensions(final CubeDesc cubeDesc) {
-        DerivedDimensionProposer cubeDescProposer = new DerivedDimensionProposer(context);
-        return cubeDescProposer.propose(cubeDesc);
+        return proposerProvider.getDimensionProposer().propose(cubeDesc);
     }
 
     public CubeDesc proposeAggrGroup(final CubeDesc cubeDesc) {
-        AggrGroupProposer cubeDescProposer = new AggrGroupProposer(context);
-        return cubeDescProposer.propose(cubeDesc);
+        return proposerProvider.getAggrGroupProposer().propose(cubeDesc);
     }
 
     public CubeDesc proposeRowkey(final CubeDesc cubeDesc) {
-        RowkeyProposer cubeDescProposer = new RowkeyProposer(context);
-        return cubeDescProposer.propose(cubeDesc);
+        return proposerProvider.getRowkeyProposer().propose(cubeDesc);
     }
 
     public CubeDesc proposeConfigOverride(final CubeDesc cubeDesc) {
-        ConfigOverrideProposer cubeDescProposer = new ConfigOverrideProposer(context);
-        return cubeDescProposer.propose(cubeDesc);
+        return proposerProvider.getConfigOverrideProposer().propose(cubeDesc);
     }
 }

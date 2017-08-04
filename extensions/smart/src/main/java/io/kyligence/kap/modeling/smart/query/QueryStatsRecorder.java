@@ -86,6 +86,7 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
         queryStats.addGroupBy(groupByCols);
         queryStats.addFilter(filterCols);
         queryStats.addAppear(usedCols);
+        queryStats.addCuboidCols(usedCols);
         queryStats.addTotalQueries();
     }
 

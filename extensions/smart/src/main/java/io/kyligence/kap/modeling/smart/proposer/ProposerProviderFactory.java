@@ -22,58 +22,12 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.modeling.smart.common;
+package io.kyligence.kap.modeling.smart.proposer;
 
-interface IModelingStrategy {
-    int getRowkeyDictEncCardinalityMax();
+import io.kyligence.kap.modeling.smart.ModelingContext;
 
-    int getRowkeyFixLenLengthMax();
-
-    long getRowkeyUHCCardinalityMin();
-
-    int getJointGroupCardinalityMax();
-
-    int getJointColNumMax();
-
-    double getDimDerivedRatio();
-
-    int getMandatoryCardinalityMax();
-
-    double getApproxEqualMax();
-
-    double getApproxEqualMin();
-
-    int getMandatoryEnableQueryMin();
-
-    int getRowkeyFilterPromotionTimes();
-
-    double getApproxDiffMax();
-
-    String getRowkeyDefaultEnc();
-
-    double getPhyscalWeight();
-
-    double getBusinessWeight();
-
-    boolean getDomainQueryEnabled();
-
-    boolean getAggGroupKeepLegacy();
-
-    boolean getAggGroupStrictEnabled();
-
-    long getAggGroupStrictCombinationMax();
-
-    int getAggGroupStrictRetryMax();
-
-    String getAggGroupStrategy();
-
-    int getDerivedStrictRetryMax();
-
-    boolean getCuboidCombinationOverride();
-
-    boolean enableDimCapForAggGroupStrict();
-
-    boolean enableJointForAggGroupStrict();
-
-    int getDimCapMin();
+public class ProposerProviderFactory {
+    public static ProposerProvider createProvider(ModelingContext context) {
+        return new ProposerProvider(context);
+    }
 }

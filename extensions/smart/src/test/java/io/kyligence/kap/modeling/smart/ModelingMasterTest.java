@@ -42,6 +42,8 @@ import io.kyligence.kap.query.mockup.Utils;
 
 @Ignore("Ignore because this is only used for demo.")
 public class ModelingMasterTest {
+    public static String aggrStrategy = "default";
+
     @AfterClass
     public static void afterClass() {
         KylinConfig.destroyInstance();
@@ -70,6 +72,7 @@ public class ModelingMasterTest {
     private void testInternal(String metaDir, String modelName, String sqlDir) throws IOException {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
+        kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", aggrStrategy);
 
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
