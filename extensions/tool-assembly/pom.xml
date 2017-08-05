@@ -93,6 +93,8 @@
                                     <include>org.springframework.security:spring-security-core</include>
                                     <include>org.springframework.security:spring-security-acl</include>
                                     <include>org.springframework:spring-core</include>
+                                    <include>org.apache.calcite:*</include>
+                                    <include>org.apache.calcite.avatica:*</include>
                                 </includes>
                             </artifactSet>
                             <relocations>

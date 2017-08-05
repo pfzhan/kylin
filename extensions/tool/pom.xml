@@ -31,6 +31,11 @@
             <artifactId>kap-core-common</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-smart</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-common</artifactId>
             <type>test-jar</type>
