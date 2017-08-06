@@ -110,7 +110,7 @@ public class CubeSparkRPC implements IGTStorage {
 
         SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
                 .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).setGtScanRequestId(scanReqId)
-                .setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString())
+                .setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
                 .setRealizationId(cubeSegment.getCubeInstance().getUuid()).setSegmentId(cubeSegment.getUuid())
                 .setDataFolderName(String.valueOf(cuboid.getId()))
                 .setMaxRecordLength(scanRequest.getInfo().getMaxLength())

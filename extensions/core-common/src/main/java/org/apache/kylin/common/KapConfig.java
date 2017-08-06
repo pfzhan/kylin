@@ -42,7 +42,7 @@ public class KapConfig {
         if (kylinHome != null) {
             return new File(kylinHome).getAbsoluteFile();
         } else {
-            File confFile = KylinConfig.getKylinPropertiesFile();
+            File confFile = KylinConfig.getSitePropertiesFile();
             return confFile.getAbsoluteFile().getParentFile().getParentFile();
         }
     }

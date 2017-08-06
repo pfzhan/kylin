@@ -31,7 +31,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import com.google.common.collect.Iterators;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -58,6 +57,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.storage.parquet.cube.raw.RawTableSparkRPC;
@@ -97,7 +97,7 @@ public class MockedRawTableTableRPC extends RawTableSparkRPC {
                 append("/*.parquet").toString();
 
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS, RoaringBitmaps.writeToString(getRequiredParquetColumns(scanRequest))); // which columns are required
-        conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, kylinConfig.getConfigAsString()); //push down kylin config
+        conf.set(ParquetFormatConstants.KYLIN_SCAN_PROPERTIES, kylinConfig.exportToString()); //push down kylin config
         conf.set(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES, new String(scanRequest.toByteArray(), "ISO-8859-1")); //so that ParquetRawInputFormat can use the scan request
         conf.set(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX, String.valueOf(true)); //whether to use II
         conf.set(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, ParquetTarballFileInputFormat.ParquetTarballFileReader.ReadStrategy.COMPACT.toString()); //read fashion

@@ -98,7 +98,7 @@ public class RawTableSparkRPC implements IGTStorage {
 
         SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
                 .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
-                setGtScanRequestId(scanReqId).setKylinProperties(KylinConfig.getInstanceFromEnv().getConfigAsString())
+                setGtScanRequestId(scanReqId).setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
                 .setRealizationId(rawTableSegment.getRawTableInstance().getUuid()).//
                 setSegmentId(rawTableSegment.getUuid()).setDataFolderName(String.valueOf("RawTable")).//
                 setMaxRecordLength(scanRequest.getInfo().getMaxLength())
