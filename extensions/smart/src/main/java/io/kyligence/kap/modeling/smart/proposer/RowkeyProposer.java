@@ -167,12 +167,18 @@ public class RowkeyProposer extends AbstractProposer {
             return String.format("%s:%d", FixedLenDimEnc.ENCODING_NAME, length);
         }
 
-        // keep non-dict encoding
-        if (!colDesc.getEncoding().equals(DictionaryDimEnc.ENCODING_NAME)) {
+        // if cardinality is not high, then use dict
+        if (cardinality <= modelingConfig.getRowkeyDictEncCardinalityMax()) {
+            return DictionaryDimEnc.ENCODING_NAME;
+        }
+
+        // finally, keep non-default encoding for special cases
+        String defaultEnc = modelingConfig.getRowkeyDefaultEnc();
+        if (!colDesc.getEncoding().equals(defaultEnc)) {
             return colDesc.getEncoding();
         }
 
-        return modelingConfig.getRowkeyDefaultEnc();
+        return defaultEnc;
     }
 
     private void updateAttributes(CubeDesc workCubeDesc) {
