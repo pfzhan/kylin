@@ -75,6 +75,10 @@ public class CubeSuggestCLI implements IKeepNames {
     private static void suggestCube(String modelName, File sqlFile, boolean shouldImport, String cubeName)
             throws IOException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        CubeManager cubeManager = CubeManager.getInstance(kylinConfig);
+        Preconditions.checkArgument(cubeManager.getCube(cubeName) == null,
+                "Cube " + cubeName + " already exists, please use another name.");
+
         kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", "whitelist");
         kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
 

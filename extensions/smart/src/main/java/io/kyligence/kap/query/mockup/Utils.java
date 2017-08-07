@@ -25,8 +25,10 @@
 package io.kyligence.kap.query.mockup;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeManager;
@@ -38,7 +40,11 @@ import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.draft.DraftManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationRegistry;
+import org.apache.kylin.query.util.CognosParenthesesEscape;
+import org.apache.kylin.query.util.ConvertToComputedColumn;
 import org.apache.kylin.storage.hybrid.HybridManager;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
@@ -54,6 +60,12 @@ public class Utils {
         props.setProperty("kylin.storage.provider.100", MockupStorage.class.getName());
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
+
+        List<String> queryTransformers = Lists.newArrayList();
+        queryTransformers.add(ConvertToComputedColumn.class.getName());
+        queryTransformers.add(CognosParenthesesEscape.class.getName());
+        props.setProperty("kylin.query.transformers", StringUtils.join(queryTransformers, ","));
+
         return KylinConfig.createKylinConfig(props);
     }
 
