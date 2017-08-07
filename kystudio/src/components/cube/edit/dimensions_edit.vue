@@ -644,6 +644,7 @@ export default {
             let removeColumn = aggregationGroup.includes[i]
             aggregationGroup.includes.splice(i, 1)
             i--
+            aggLen--
             let mandatory = aggregationGroup.select_rule.mandatory_dims
             if (mandatory && mandatory.length) {
               let columnIndex = mandatory.indexOf(removeColumn)
@@ -653,26 +654,28 @@ export default {
             }
             let hierarchys = aggregationGroup.select_rule.hierarchy_dims
             var hierarchysLen = hierarchys && hierarchys.length || 0
-            for (let i = 0; i < hierarchysLen; i++) {
-              let hierarchysIndex = hierarchys[i].indexOf(removeColumn)
+            for (let h = 0; h < hierarchysLen; h++) {
+              let hierarchysIndex = hierarchys[h].indexOf(removeColumn)
               if (hierarchysIndex >= 0) {
-                hierarchys[i].splice(hierarchysIndex, 1)
+                hierarchys[h].splice(hierarchysIndex, 1)
               }
-              if (hierarchys[i].length === 0) {
-                hierarchys.splice(i, 1)
-                i--
+              if (hierarchys[h].length === 0) {
+                hierarchys.splice(h, 1)
+                h--
+                hierarchysLen--
               }
             }
             let joints = aggregationGroup.select_rule.joint_dims
             var jointsLen = joints && joints.length || 0
-            for (let i = 0; i < jointsLen; i++) {
-              let jointIndex = joints[i].indexOf(removeColumn)
+            for (let j = 0; j < jointsLen; j++) {
+              let jointIndex = joints[j].indexOf(removeColumn)
               if (jointIndex >= 0) {
-                joints[i].splice(jointIndex, 1)
+                joints[j].splice(jointIndex, 1)
               }
-              if (joints[i].length === 0) {
-                joints.splice(i, 1)
-                i--
+              if (joints[j].length === 0) {
+                joints.splice(j, 1)
+                j--
+                jointsLen--
               }
             }
           }
