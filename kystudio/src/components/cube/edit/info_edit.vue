@@ -20,7 +20,7 @@
       <span slot="label">{{$t('notificationEvents')}}
         <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
-      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :selectedlabels="cubeDesc.status_need_notify" :datamap="{label: 'label', value: 'value'}"> 
+      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents"> 
       </area_label>
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
@@ -142,6 +142,9 @@ export default {
           }) : [modelHealthStatus[data.heathStatus].message]
         })
       })
+    },
+    refreshNotificationEvents (data) {
+      this.$set(this.cubeDesc, 'status_need_notify', data)
     }
   },
   components: {

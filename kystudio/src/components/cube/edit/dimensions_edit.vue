@@ -1,7 +1,7 @@
 <template>
 <div class="dimensionBox">
   <el-row>
-    <el-col :span="18" style="padding-right: 30px;border-right: 1px solid #393e53;padding-bottom: 30px;margin-top: -15px;padding-top: 15px;">  
+    <el-col :span="18" style="padding-right: 30px;border-right: 1px solid #393e53;padding-bottom: 30px;margin-top: -15px;padding-top: 15px;">
       <el-row class="row_padding border_bottom" style="border: none;">
         <el-row class="row_padding">
           <el-col :span="24" style="font-size: 14px;">
@@ -31,7 +31,7 @@
             <el-tag class="tag_margin" style="cursor:pointer;" :hit="true"
               @click.native="showDetail(dimension.table+'.'+dimension.name)"
               v-for="(dimension, index) in cubeDesc.dimensions"
-              :key="index" 
+              :key="index"
               :type="dimension.derived?'gray':'primary'">
               {{dimension.table+'.'+ (dimension.derived ? dimension.derived&&dimension.derived[0]:dimension.column)}}
             </el-tag>
@@ -82,19 +82,19 @@
               <el-col :span="22">
                 <el-row class="row_padding">
                   <el-col :span="5" class="dimensions-title">{{$t('Includes')}} (<span style="font-size:14px;color:#218fea;">{{group.includes.length}}</span>)</el-col>
-                </el-row> 
-                <el-row> 
+                </el-row>
+                <el-row>
                   <el-col :span="24" class="includes_tag">
-                    <area_label ref="includesSelect" :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" > 
+                    <area_label ref="includesSelect" :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" >
                     </area_label>
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
                   <el-col :span="5" class="dimensions-title">{{$t('mandatoryDimensions')}}</el-col>
-                </el-row>  
+                </el-row>
                 <el-row>
                   <el-col :span="24" >
-                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.select_range && group.select_range.mandatoryDims" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="dimensionsChangeCalc(group_index)"   @checklabel="showDetail"> 
+                    <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.select_range && group.select_range.mandatoryDims" :disabled="isReadyCube" :refreshInfo="{index: group_index, key: 'mandatory_dims'}" @refreshData="refreshMandatoryData"  :selectedlabels="group.select_rule.mandatory_dims" @change="dimensionsChangeCalc(group_index)"   @checklabel="showDetail">
                     </area_label>
                   </el-col>
                 </el-row>
@@ -105,7 +105,7 @@
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                       <el-col :span="23" >
-                        <area_label :labels="group.select_range && group.select_range.hierarchyDims"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
+                        <area_label :labels="group.select_range && group.select_range.hierarchyDims"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
                         </area_label>
                       </el-col>
                       <el-col :span="1" style="margin-top: 5px;">
@@ -119,7 +119,7 @@
                 <el-col :span="5">
                   <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addHierarchyDims(group_index, group.select_rule.hierarchy_dims)" style="margin-top: 8px;">
                   {{$t('newHierarchy')}}
-                  </el-button>              
+                  </el-button>
                 </el-col>
               </el-row>
               <el-row class="row_padding">
@@ -129,10 +129,10 @@
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.select_range && group.select_range.jointDims[joint_index]" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail"> 
+                      <area_label :labels="group.select_range && group.select_range.jointDims[joint_index]" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
                       </area_label>
                     </el-col>
-                    <el-col :span="1" style="margin-top:5px;">               
+                    <el-col :span="1" style="margin-top:5px;">
                       <el-button type="danger" icon="minus" :disabled="isReadyCube"  size="mini" @click="removeJointDims(group_index, joint_index, group.select_rule.joint_dims)">
                       </el-button>
                     </el-col>
@@ -143,7 +143,7 @@
                  <el-col :span="5">
                   <el-button type="default" icon="plus" :disabled="isReadyCube"  @click="addJointDims(group_index, group.select_rule.joint_dims)">
                   {{$t('newJoint')}}
-                  </el-button>             
+                  </el-button>
                 </el-col>
               </el-row>
             </el-col>
@@ -197,14 +197,14 @@
                    <span style="float: left;width: 90%">{{ item.name }}</span>
                    <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
                 </el-tooltip>
-              </el-option>              
+              </el-option>
             </el-select> -->
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
             </select>
           </el-col>
-          <el-col :span="2"> 
-            <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input> 
+          <el-col :span="2">
+            <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input>
           </el-col>
           <el-col :span="2">
               <!-- <el-select :disabled="isReadyCube"   v-model="row.isShardBy" @change="changeRowkey(row, index)">
@@ -258,7 +258,7 @@
           </el-table-column>
         </el-table>
     </el-col>
-  </el-row> 
+  </el-row>
   <div class="line" style="margin: 0px -30px 0 -30px;"></div>
     <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible">
       <span slot="title">{{$t('addDimensions')}}
@@ -268,8 +268,8 @@
       <span slot="footer" class="dialog-footer">
         <el-button @click="addDimensionsFormVisible = false">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
-      </span>     
-    </el-dialog>  
+      </span>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -417,6 +417,7 @@ export default {
           this.initConvertedRowkeys()
           this.initCalCuboid()
           this.suggestLoading = false
+          this.initAllAggSelectRange()
         })
       }, (res) => {
         this.suggestLoading = false
@@ -477,27 +478,6 @@ export default {
           }, 1000)
         }, 1000)
       })
-    },
-    editDimension: function (dimension) {
-      this.selected_dimension = dimension
-      this.editDimensionFormVisible = true
-    },
-    checkEditDimension: function () {
-      this.$refs['editDimensionForm'].$emit('editDimensionFormValid')
-    },
-    editDimensionValidSuccess: function (data) {
-      let index = this.cubeDesc.dimensions.indexOf(this.selected_dimension)
-      var curDimension = this.cubeDesc.dimensions[index]
-      this.$set(curDimension, 'name', data.name)
-      if (curDimension.column && data.type === 'derived') {
-        this.$set(curDimension, 'derived', [curDimension.column])
-        this.$set(curDimension, 'column', null)
-      }
-      if (curDimension.derived && data.type === 'normal') {
-        this.$set(curDimension, 'column', curDimension.derived[0])
-        this.$set(curDimension, 'derived', null)
-      }
-      this.editDimensionFormVisible = false
     },
     initRowkeyColumns: function (moreRowKeyCallback) {
       this.currentRowkey.splice(0, this.currentRowkey.length)
@@ -681,6 +661,7 @@ export default {
           }
         }
         this.refreshAggragation(groupIndex)
+        this.initAggSelectRange(this.cubeDesc.aggregation_groups[groupIndex], groupIndex)
       })
     },
     dimensionsChangeCalc: function (groupindex) {
@@ -887,7 +868,6 @@ export default {
     removeJointDims: function (gindex, index, jointDims) {
       jointDims.splice(index, 1)
       this.initCalCuboid()
-      this.cubeDesc.aggregation_groups[gindex].select_range.jointDims.splice(index, 1)
       this.initAggSelectRange(this.cubeDesc.aggregation_groups[gindex], gindex)
     },
     addJointDims: function (gindex, jointDims) {

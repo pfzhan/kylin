@@ -135,7 +135,7 @@
       <el-table-column
         :label="$t('column')">
         <template scope="scope">
-          <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct}" filterable>
+          <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct, topnWidth : !isCountDistinct}" filterable>
            <el-option   
             v-for="(item, index) in getMultipleColumns"
             :label="item"
@@ -551,6 +551,64 @@ export default {
       if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true && this.expressionsConf.indexOf('EXTENDED_COLUMN') >= 0) {
         this.expressionsConf.splice(this.expressionsConf.indexOf('EXTENDED_COLUMN'), 1)
       }
+    },
+    checkMeasures: function () {
+      if (this.measure.function.parameter.value === '' && this.measure.function.expression !== 'TOP_N') {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: this.$t('paramValueNull'),
+          type: 'error'
+        })
+        return false
+      }
+      if (this.measure.function.returntype === '') {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: this.$t('returntypeNull'),
+          type: 'error'
+        })
+        return false
+      }
+      if (this.measure.function.expression === 'COUNT_DISTINCT' || this.measure.function.expression === 'TOP_N') {
+        if (this.measure.function.expression === 'TOP_N') {
+          if (this.measure.function.parameter.value === '') {
+            this.$message({
+              showClose: true,
+              duration: 3000,
+              message: this.$t('topnParamValueNull'),
+              type: 'error'
+            })
+            return false
+          }
+          if (this.convertedColumns.length < 1) {
+            this.$message({
+              showClose: true,
+              duration: 3000,
+              message: this.$t('convertedColumnsTip'),
+              type: 'error'
+            })
+            return false
+          }
+        }
+        let hasExisted = []
+        for (let column in this.convertedColumns) {
+          console.log(this.convertedColumns, this.convertedColumns[column], this.convertedColumns[column].name)
+          if (hasExisted.indexOf(this.convertedColumns[column].column) === -1) {
+            hasExisted.push(this.convertedColumns[column].column)
+          } else {
+            this.$message({
+              showClose: true,
+              duration: 3000,
+              message: this.$t('duplicateColumnPartOne') + this.convertedColumns[column].column + this.$t('duplicateColumnPartTwo'),
+              type: 'error'
+            })
+            return false
+          }
+        }
+      }
+      return true
     }
   },
   computed: {
@@ -682,7 +740,6 @@ export default {
     }
   },
   created () {
-    let _this = this
     this.inModelDimensions()
     this.initHiddenFeature()
     this.initSelectableColumn()
@@ -690,16 +747,19 @@ export default {
     this.initGroupByColumn()
     this.initCountDistinctColumn()
     this.$on('measureFormValid', (t) => {
-      _this.$refs['measureForm'].validate((valid) => {
+      this.$refs['measureForm'].validate((valid) => {
         if (valid) {
-          _this.$emit('validSuccess', {measure: _this.measure, convertedColumns: _this.convertedColumns, reuseColumn: _this.reuseColumn, selectableMeasure: _this.selectableMeasure, nextParam: _this.nextParam})
+          let measureCheck = this.checkMeasures()
+          if (measureCheck) {
+            this.$emit('validSuccess', {measure: this.measure, convertedColumns: this.convertedColumns, reuseColumn: this.reuseColumn, selectableMeasure: this.selectableMeasure, nextParam: this.nextParam})
+          }
         }
       })
     })
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.', nameReuse: 'The measure name is reused.'},
-    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称', nameReuse: 'Measure名称已被使用'}
+    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.', nameReuse: 'The measure name is reused.', convertedColumnsTip: '[ TOP_N] Group by Column is required', paramValueNull: 'Param Value is required', topnParamValueNull: '[ TOP_N] ORDER|SUM by Column  is required', returntypeNull: 'Return Type is required', duplicateColumnPartOne: 'The column named [ ', duplicateColumnPartTwo: ' ] already exists.'},
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称', nameReuse: 'Measure名称已被使用', convertedColumnsTip: '[ TOP_N] 的Group by Column不能为空', paramValueNull: 'Param Value 不能为空', topnParamValueNull: '[ TOP_N] 的ORDER|SUM by Column不能为空', returntypeNull: '返回类型不能为空', duplicateColumnPartOne: '名为 [ ', duplicateColumnPartTwo: '] 的度量已经存在。'}
   }
 }
 </script>
@@ -781,6 +841,9 @@ export default {
     }
     .distinctWidth {
       width: 80%
+    }
+    .topnWidth {
+      width: 100%
     }
   }
 </style>

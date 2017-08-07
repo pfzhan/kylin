@@ -301,7 +301,6 @@ export default {
       this.initColumnFamily()
     },
     refreshColumnFamily (data, refreshInfo) {
-      console.log(data, refreshInfo, 909876)
       var index = refreshInfo.index
       var key = refreshInfo.key
       this.$set(this.cubeDesc.hbase_mapping.column_family[index].columns[0], key, data)
