@@ -40,13 +40,13 @@ import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.draft.DraftManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationRegistry;
-import org.apache.kylin.query.util.CognosParenthesesEscape;
-import org.apache.kylin.query.util.ConvertToComputedColumn;
 import org.apache.kylin.storage.hybrid.HybridManager;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
+import io.kyligence.kap.query.util.CognosParenthesesEscape;
+import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 public class Utils {

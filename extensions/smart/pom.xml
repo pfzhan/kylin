@@ -40,6 +40,11 @@
             <artifactId>kap-source-hive</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-query</artifactId>
+        </dependency>
+
         <!--log4j provided for debugging-->
         <dependency>
             <groupId>log4j</groupId>
