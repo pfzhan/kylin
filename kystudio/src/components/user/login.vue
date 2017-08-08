@@ -45,7 +45,7 @@
         </div>
       </el-col>
     </el-row>
-     <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence</a> Inc. All rights reserved.</p>
+     <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
   </div>
   <el-dialog @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small">
     <el-alert 
