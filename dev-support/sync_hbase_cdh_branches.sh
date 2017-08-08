@@ -2,7 +2,7 @@
 
 # ============================================================================
 
-kapbase=kap-2.4.x
+kapbase=master
 kap_remote=origin
 push_remote=true
 
