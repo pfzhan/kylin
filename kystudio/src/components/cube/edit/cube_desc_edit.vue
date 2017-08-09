@@ -406,21 +406,20 @@ export default {
       }
     },
     checkConfigurationOverwrite: function () {
-      let _this = this
-      for (var key in _this.cubeDetail.override_kylin_properties) {
+      for (var key in this.cubeDetail.override_kylin_properties) {
         if (key === '') {
           this.$message({
             showClose: true,
             duration: 3000,
-            message: _this.$t('checkCOKey'),
+            message: this.$t('checkCOKey'),
             type: 'error'
           })
           return false
         }
-        if (_this.cubeDetail.override_kylin_properties[key] === '') {
+        if (this.cubeDetail.override_kylin_properties[key] === '') {
           this.$message({
             showClose: true,
-            message: _this.$t('checkCOValue'),
+            message: this.$t('checkCOValue'),
             type: 'error'
           })
           return false
