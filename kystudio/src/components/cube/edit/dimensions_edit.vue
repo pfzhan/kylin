@@ -842,7 +842,7 @@ export default {
     },
     addAggGroup: function () {
       this.cubeDesc.aggregation_groups.push({
-        includes: this.currentRowkey,
+        includes: [],
         select_rule: {
           mandatory_dims: [],
           hierarchy_dims: [],
