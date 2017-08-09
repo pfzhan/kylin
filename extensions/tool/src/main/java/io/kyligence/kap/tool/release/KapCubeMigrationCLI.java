@@ -56,8 +56,8 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
     }
 
     @Override
-    protected void listCubeRelatedResources(CubeInstance cube, List<String> metaResource, Set<String> dictAndSnapshot) throws IOException {
-        super.listCubeRelatedResources(cube, metaResource, dictAndSnapshot);
+    protected void listCubeRelatedResources(CubeInstance cube, List<String> metaResource, Set<String> dictAndSnapshot, boolean copyAcl) throws IOException {
+        super.listCubeRelatedResources(cube, metaResource, dictAndSnapshot, copyAcl);
 
         RawTableInstance raw = detectRawTable(cube);
         if (null != raw) {
