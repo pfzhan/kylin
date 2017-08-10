@@ -252,6 +252,7 @@ export default {
       height: auto;
     }
     .el-table__row{
+      cursor: pointer;
       .el-input{
         padding: 10px 0 10px 0;
       }

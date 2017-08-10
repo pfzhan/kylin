@@ -21,6 +21,15 @@
                           </el-input>
                         </td>
                       </tr>
+                       <tr v-if="">
+                        <th>{{$t('health')}}</th>
+                        <td>
+                        <icon v-if="modelHealth.status!=='RUNNING' && (modelHealth.progress===0 || modelHealth.progress===100)" :name="modelHealth.icon" :style="{color:modelHealth.color}"></icon>
+                         <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='RUNNING'" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
+                         <span style="color:rgb(32, 160, 255)" v-if="modelHealth.status==='RUNNING'">{{modelHealth.progress||0}}%</span>
+                         <span>{{modelHealth.msg}}</span>
+                        </td>
+                      </tr>
                        <tr v-show="currentModelInfo.owner">
                         <th>{{$t('owner')}}</th>
                         <td>
@@ -31,80 +40,9 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('setting')" name="second">
                  <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
-
-                 <!--  <el-form   label-width="240px">
-                    <el-form-item label="Partition Date Column">
-                      <el-select v-model="checkPartition.date_table" placeholder="请选择" :disabled="editMode || actionMode==='view'">
-                        <el-option
-                          v-for="(key,value) in dateColumns"
-                          :label="value"
-                          :value="value">
-                        </el-option>
-                      </el-select>
-                      <el-select v-model="checkPartition.date_column" @change="changeDateColumn" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
-                        <el-option
-                          v-for="item in dateColumnsByTable"
-                          :label="item.name"
-                          :value="item.name">
-                        </el-option>
-                      </el-select>
-                    </el-form-item>
-                    <el-form-item label="Date Format">
-                      <el-select v-model="checkPartition.partition_date_format" placeholder="请选择" :disabled="!needSetTime || editMode  || actionMode==='view'">
-                        <el-option
-                          v-for="item in dateFormat"
-                          :label="item.label"
-                          :value="item.label">
-                        </el-option>
-                      </el-select>
-                    </el-form-item>
-                    <el-form-item label="separate time of the day column " v-show="needSetTime">
-                    <el-switch v-model="hasSeparate" on-text="" @change="changeSeparate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
-                    </el-form-item>
-                    <el-form-item label="Partition Time Column" v-show="hasSeparate">
-                      <el-select v-model="checkPartition.time_table" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
-                        <el-option
-                          v-for="(key,value) in timeColumns"
-                          :label="value"
-                          :value="value">
-                        </el-option>
-                      </el-select>
-                      <el-select v-model="checkPartition.time_column" placeholder="请选择" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
-                        <el-option
-                          v-for="item in timeColumnsByTable"
-                          :label="item.name"
-                          :value="item.name">
-                        </el-option>
-                      </el-select>
-                    </el-form-item>
-                     <el-form-item label="Time Format" v-show="hasSeparate">
-                      <el-select v-model="checkPartition.partition_time_format" placeholder="请选择" :disabled="editMode  || actionMode==='view'">
-                        <el-option
-                          v-for="item in timeFormat"
-                          :label="item.label"
-                          :value="item.label">
-                        </el-option>
-                      </el-select>
-                    </el-form-item>
-                  </el-form> -->
                 </el-tab-pane>
-               <!--  <el-tab-pane :label="$t('filter')" name="five">
-                  <el-form label-width="240px">
-                    <el-form-item :label="$t('filterCondition')">
-                       <el-input :disabled="actionMode==='view'"
-                        type="textarea"
-                        :autosize="{ minRows: 2, maxRows: 4}"
-                        :placeholder="$t('filterPlaceHolder')"
-                        v-model="currentModelInfo.filterStr">
-                      </el-input>
-                    </el-form-item>
-                  </el-form>
-                </el-tab-pane> -->
                 <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
-                    <!-- <el-badge :value="dimensions[value]&&dimensions[value].length" class="item ksd-mt-10" style="background-color:green">
-                    <el-tag type="success">{{value}}</el-tag>
-                    </el-badge> -->
                     <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;" >{{value}}</div>
                     <div class="dimensionBox">
                       <el-tag class="ksd-ml-10 ksd-mt-6" type="primary" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
@@ -122,7 +60,6 @@
 
             </el-tabs>
         </el-tab-pane>
-		    <!-- <el-tab-pane label="Model Statistics" name="second">Model Statistics</el-tab-pane> -->
         <el-tab-pane :label="$t('tableStatistics')" name="second">
              <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
              <el-table
@@ -134,36 +71,6 @@
                 :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
                 :label="statistics[0][index]">
               </el-table-column>
-              <!-- <el-table-column
-                prop="column_name"
-                label="列名"
-                width="180">
-              </el-table-column>
-              <el-table-column
-                prop="cardinality"
-                label="基数"
-                width="180">
-              </el-table-column>
-              <el-table-column
-                prop="max_length_value"
-                label="最大长度值">
-              </el-table-column>
-               <el-table-column
-                prop="max_value"
-                label="最大值">
-              </el-table-column>
-               <el-table-column
-                prop="min_length_value"
-                label="最小长度值">
-              </el-table-column>
-               <el-table-column
-                prop="min_value"
-                label="最小值">
-              </el-table-column>
-               <el-table-column
-                prop="null_count"
-                label="空值个数">
-              </el-table-column> -->
             </el-table>
             <div style="font-size:12px;" class="ksd-mt-10"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
         <el-table
@@ -185,6 +92,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { changeDataAxis } from '../../util/index'
+import { modelHealthStatus } from '../../config'
 import { handleSuccess } from '../../util/business'
 import partitionColumn from 'components/model/model_partition.vue'
 export default {
@@ -205,7 +113,8 @@ export default {
       columnsT: this.columnsForTime,
       needSetTime: true,
       hasSeparate: false,
-      statistics: []
+      statistics: [],
+      ST: null
     }
   },
   components: {
@@ -330,6 +239,23 @@ export default {
     editMode () {
       return this.editLock
     },
+    modelHealth () {
+      var obj = {}
+      this.$store.state.model.modelsDianoseList.forEach((data) => {
+        if (data.modelName === this.modelInfo.modelName) {
+          Object.assign(obj, {
+            progress: data.progress === 0 ? 0 : parseInt(data.progress),
+            msg: (data.messages && data.messages.length ? data.messages.map((x) => {
+              return x.replace(/\r\n/g, '<br/>')
+            }) : [modelHealthStatus[data.heathStatus].message]).join('<br/>'),
+            icon: modelHealthStatus[data.heathStatus].icon,
+            status: data.heathStatus,
+            color: modelHealthStatus[data.heathStatus].color
+          })
+        }
+      })
+      return obj
+    },
     // editModeDisabled () {
     //   return this.editLock
     // },
@@ -407,19 +333,19 @@ export default {
 
   },
   created () {
-    var _this = this
-    this.$on('menu-toggle', function (currentMenuStatus) {
-      _this.slideSubMenu(currentMenuStatus)
+    this.$on('menu-toggle', (currentMenuStatus) => {
+      this.slideSubMenu(currentMenuStatus)
     })
-    setTimeout(function (argument) {
-      _this.slideSubMenu('show')
+    setTimeout((argument) => {
+      this.slideSubMenu('show')
     }, 1000)
   },
-  mounted () {
+  destroyed () {
+    clearTimeout(this.ST)
   },
   locales: {
-    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition'},
-    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件'}
+    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health'},
+    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件', health: '模型健康'}
   }
 }
 </script>

@@ -58,10 +58,10 @@
         <p class="table_name  drag_bar" v-on:dblclick="editAlias(table.guid)" v-visible="aliasEditTableId!=table.guid">
         <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
         <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" :placeholder="$t('kylinLang.common.enterAlias')" v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
-        <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
+        <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput1(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
+            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li" v-show="column.isShow!==false"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></style></li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -705,13 +705,17 @@ export default {
             e.editor.completers = all
           }
         })
-        var tableInfo = this.getTableInfoByGuid(guid)
-        autoCompeleteData.push({meta: 'table', caption: tableInfo.name, value: tableInfo.name, scope: 1})
-        if (tableInfo && tableInfo.columns) {
-          tableInfo.columns.forEach((co) => {
-            autoCompeleteData.push({meta: co.datatype, caption: co.name, value: co.name, scope: 2})
-          })
-        }
+        var tableList = this.tableList
+        editor.setOption('wrap', 'free')
+        tableList.forEach((tableInfo) => {
+          autoCompeleteData.push({meta: 'table', caption: tableInfo.name, value: tableInfo.name, scope: 1})
+          if (tableInfo && tableInfo.columns) {
+            tableInfo.columns.forEach((co) => {
+              autoCompeleteData.push({meta: co.datatype, caption: tableInfo.name + '.' + co.name, value: tableInfo.name + '.' + co.name, scope: 2})
+              // autoCompeleteData.push({meta: co.datatype, caption: co.name, value: co.name, scope: 2})
+            })
+          }
+        })
         setCompleteData(autoCompeleteData)
       })
     },
@@ -920,6 +924,10 @@ export default {
       } else {
         this.selectFilterColumn(id, '', '')
       }
+    },
+    filterColumnByInput1: function (filter, id) {
+      filter = filter.toUpperCase()
+      this.editTableColumnsUniqueInfo(id, 'name', filter, 'isShow', true, false, true)
     },
     cancelFilterColumn: function (id) {
       this.$set(this.selectColumn, id, '')
@@ -1718,16 +1726,19 @@ export default {
       })
     },
     // 设置所有列中只有一个列有一种属性，其他都为另一种属性
-    editTableColumnsUniqueInfo: function (guid, filterColumnKey, filterColumnVal, columnKey, value, oppositeValue) {
-      var _this = this
-      this.tableList.forEach(function (table) {
+    editTableColumnsUniqueInfo: function (guid, filterColumnKey, filterColumnVal, columnKey, value, oppositeValue, fuzzy) {
+      this.tableList.forEach((table) => {
         if (table.guid === guid) {
           for (let i = 0; i < table.columns.length; i++) {
             var col = table.columns[i]
-            if (col[filterColumnKey] === filterColumnVal) {
-              _this.$set(col, columnKey, value)
+            if (!filterColumnVal) {
+              this.$set(col, columnKey, value)
+              continue
+            }
+            if (col[filterColumnKey] === filterColumnVal || fuzzy && col[filterColumnKey].indexOf(filterColumnVal) >= 0) {
+              this.$set(col, columnKey, value)
             } else {
-              _this.$set(col, columnKey, oppositeValue)
+              this.$set(col, columnKey, oppositeValue)
             }
           }
         }
