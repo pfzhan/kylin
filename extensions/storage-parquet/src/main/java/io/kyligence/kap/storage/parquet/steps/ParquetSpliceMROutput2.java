@@ -25,6 +25,7 @@
 package io.kyligence.kap.storage.parquet.steps;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
@@ -36,7 +37,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.steps.HiveToBaseCuboidMapper;
@@ -59,7 +59,7 @@ import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 
 public class ParquetSpliceMROutput2 implements IMROutput2 {
-    @SuppressWarnings("unused")
+    
     private static final Logger logger = LoggerFactory.getLogger(ParquetSpliceMROutput2.class);
 
     @Override
@@ -120,7 +120,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
                 // inmem
                 job.setPartitionerClass(ByteArrayConfigurationBasedPartitioner.class);
                 reducerNum = ReducerNumSizing.getInmemCubingReduceTaskNum(segment);
-                List<Long> allCuboids = new CuboidScheduler(segment.getCubeDesc()).getAllCuboidIds();
+                Set<Long> allCuboids = segment.getCubeDesc().getCuboidScheduler().getAllCuboidIds();
                 for (Long cuboidId : allCuboids) {
                     reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
                 }
@@ -128,7 +128,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
                 // layer
                 job.setPartitionerClass(ConfigurationBasedPartitioner.class);
                 reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), level);
-                List<List<Long>> layeredCuboids = new CuboidScheduler(segment.getCubeDesc()).getCuboidsByLayer();
+                List<List<Long>> layeredCuboids = segment.getCubeDesc().getCuboidScheduler().getCuboidsByLayer();
                 for (Long cuboidId : layeredCuboids.get(level)) {
                     reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
                 }
@@ -200,7 +200,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
         public void configureJobOutput(Job job, String output, CubeSegment segment) throws Exception {
             int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), -1);
             job.setPartitionerClass(ConfigurationBasedPartitioner.class);
-            List<Long> allCuboids = new CuboidScheduler(segment.getCubeDesc()).getAllCuboidIds();
+            Set<Long> allCuboids = segment.getCubeDesc().getCuboidScheduler().getAllCuboidIds();
             for (Long cuboidId : allCuboids) {
                 reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
             }
