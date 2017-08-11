@@ -29,6 +29,7 @@ import io.kyligence.kap.rest.request.KapJobRequest;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.rest.service.KapModelService;
 import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
+import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.controller.BasicController;
@@ -132,7 +133,16 @@ public class KapModelController extends BasicController {
     public EnvelopeResponse getModelDiagnosis(@PathVariable("project") String project,
                                               @PathVariable("modelName") String modelName) throws IOException {
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapModelService.getDiagnoseResult(modelName), "");
+        ModelStatusRequest request = kapModelService.getDiagnoseResult(modelName);
+        String jobId = new CollectModelStatsJob(project, modelName).findRunningJob();
+        if (null != jobId && null != jobService.getJobInstance(jobId)) {
+            request.setProgress(jobService.getJobInstance(jobId).getProgress());
+            if (jobService.getJobInstance(jobId).getStatus() == JobStatusEnum.ERROR) {
+                request.setHeathStatus(ModelStatusRequest.HealthStatus.ERROR);
+            } else
+                request.setHeathStatus(ModelStatusRequest.HealthStatus.RUNNING);
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, request, "");
     }
 
     @RequestMapping(value = "{project}/{modelName}/progress", method = {RequestMethod.GET}, produces = {
@@ -180,7 +190,10 @@ public class KapModelController extends BasicController {
             String jobId = new CollectModelStatsJob(projectName, model.getName()).findRunningJob();
             if (null != jobId && null != jobService.getJobInstance(jobId)) {
                 request.setProgress(jobService.getJobInstance(jobId).getProgress());
-                request.setHeathStatus(ModelStatusRequest.HealthStatus.RUNNING);
+                if (jobService.getJobInstance(jobId).getStatus() == JobStatusEnum.ERROR) {
+                    request.setHeathStatus(ModelStatusRequest.HealthStatus.ERROR);
+                } else
+                    request.setHeathStatus(ModelStatusRequest.HealthStatus.RUNNING);
             }
             modelStatusList.add(request);
         }
