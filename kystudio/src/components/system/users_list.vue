@@ -233,7 +233,7 @@ export default {
       let user = {
         name: data.username,
         detail: {
-          defaultPassword: true,
+          defaultPassword: data.defaultPassword,
           username: data.username,
           password: data.password,
           disabled: data.disabled,
@@ -307,7 +307,8 @@ export default {
           disabled: user.disabled,
           admin: false,
           modeler: false,
-          analyst: false
+          analyst: false,
+          defaultPassword: user.defaultPassword
         }
         user.authorities.forEach(function (role) {
           if (role.authority === 'ROLE_ADMIN') {
