@@ -24,12 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
+import io.kyligence.kap.rest.request.ModelStatusRequest;
+import io.kyligence.kap.source.hive.modelstats.ModelStats;
+import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -38,10 +36,14 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
-import io.kyligence.kap.rest.request.ModelStatusRequest;
-import io.kyligence.kap.source.hive.modelstats.ModelStats;
-import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
+import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Component("kapModelService")
 public class KapModelService extends BasicService {
@@ -155,21 +157,21 @@ public class KapModelService extends BasicService {
     private ModelStatusRequest.HealthStatus judgeHealthStatus(int sign) {
         ModelStatusRequest.HealthStatus healthStatus;
         switch (sign) {
-        case 0:
-            healthStatus = ModelStatusRequest.HealthStatus.GOOD;
-            break;
-        case 1:
-            healthStatus = ModelStatusRequest.HealthStatus.WARN;
-            break;
-        case 2:
-            healthStatus = ModelStatusRequest.HealthStatus.BAD;
-            break;
-        case 3:
-            healthStatus = ModelStatusRequest.HealthStatus.TERRIBLE;
-            break;
-        default:
-            healthStatus = ModelStatusRequest.HealthStatus.NONE;
-            break;
+            case 0:
+                healthStatus = ModelStatusRequest.HealthStatus.GOOD;
+                break;
+            case 1:
+                healthStatus = ModelStatusRequest.HealthStatus.WARN;
+                break;
+            case 2:
+                healthStatus = ModelStatusRequest.HealthStatus.BAD;
+                break;
+            case 3:
+                healthStatus = ModelStatusRequest.HealthStatus.TERRIBLE;
+                break;
+            default:
+                healthStatus = ModelStatusRequest.HealthStatus.NONE;
+                break;
         }
         return healthStatus;
     }
@@ -187,6 +189,37 @@ public class KapModelService extends BasicService {
         DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
         int sourceTypeType = modelDesc.getRootFactTable().getTableDesc().getSourceType();
         return sourceTypeType == ISourceAware.ID_STREAMING;
+    }
+
+    public String[] getColumnSamples(String proj, String table, String column) {
+        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(table, proj);
+
+        int index = 0;
+        for (TableExtDesc.ColumnStats s : tableExtDesc.getColumnStats()) {
+            if (s.getColumnName().equals(column.toUpperCase()))
+                break;
+            index++;
+        }
+        return tableExtDesc.getSampleRows().get(index);
+    }
+
+    public boolean validatePartitionFormat(String proj, String table, String column, String format) {
+        String[] samples = getColumnSamples(proj, table, column);
+
+        boolean ret = false;
+        if (samples.length == 0)
+            ret = false;
+
+        for (String s : samples) {
+            DateFormat formatter = new SimpleDateFormat(format);
+            try {
+                Date date = formatter.parse(s);
+                ret = s.equals(formatter.format(date));
+            } catch (Exception e) {
+                ret = false;
+            }
+        }
+        return ret;
     }
 
     public ModelStatsManager getModelStatsManager() {
