@@ -56,7 +56,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 
-public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(ConvertToComputedColumn.class);
 
     @Override

@@ -36,7 +36,9 @@ import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.Lists;
 
-public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer {
+import io.kyligence.kap.common.obf.IKeep;
+
+public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKeep {
     private static final Pattern FROM_PATTERN = Pattern.compile("\\s+from\\s+(\\s*\\(\\s*)+(?!\\s*select\\s)",
             Pattern.CASE_INSENSITIVE);
 

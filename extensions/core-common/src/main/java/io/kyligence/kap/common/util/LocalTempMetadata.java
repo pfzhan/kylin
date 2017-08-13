@@ -75,6 +75,9 @@ public class LocalTempMetadata {
             List<String> engine99File = new ArrayList<>();
             engine99File.add("ci_left_join_cube.json");
             overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(100, 99), engine99File);
+            
+            // Let CI cube be faster
+            overrideDimCapOnCiCubes(TEMP_TEST_METADATA, 1);
 
             if (debug) {
                 File copy = new File(TEMP_TEST_METADATA + ".debug");
@@ -129,6 +132,31 @@ public class LocalTempMetadata {
                 }
                 if (l.contains("\"storage_type\"")) {
                     lines.set(i, "  \"storage_type\" : " + storageType + ",");
+                }
+            }
+            FileUtils.writeLines(f, "UTF-8", lines);
+        }
+    }
+
+    private static void overrideDimCapOnCiCubes(String tempMetadataDir, int dimCap) throws IOException {
+        if (debug) {
+            logger.info("Override dim cap to be " + dimCap);
+        }
+
+        // re-write cube_desc/ci_*.json
+        File cubeDescDir = new File(tempMetadataDir, "cube_desc");
+        for (File f : cubeDescDir.listFiles()) {
+            if (!f.getName().startsWith("ci_")) {
+                continue;
+            }
+            if (debug) {
+                logger.info("Process override " + f.getCanonicalPath());
+            }
+            List<String> lines = FileUtils.readLines(f, "UTF-8");
+            for (int i = 0, n = lines.size(); i < n; i++) {
+                String l = lines.get(i);
+                if (l.contains("\"dim_cap\"")) {
+                    lines.set(i, "        \"dim_cap\" : " + dimCap);
                 }
             }
             FileUtils.writeLines(f, "UTF-8", lines);
