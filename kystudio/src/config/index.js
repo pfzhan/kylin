@@ -54,8 +54,8 @@ export const modelHealthStatus = {
     message: 'This model has no check result'
   },
   'ERROR': {
-    icon: 'check-circle-o',
-    color: 'green',
+    icon: 'circle-o-notch',
+    color: 'red',
     message: 'Check job failed'
   }
 }

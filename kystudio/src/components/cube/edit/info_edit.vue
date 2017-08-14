@@ -29,8 +29,9 @@
         <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
   <ul class="list">
     <li>{{$t('modelCheck')}}
-      <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
-      <el-progress  :width="20" type="circle" :stroke-width="2" :show-text="false" v-if="healthStatus.status==='RUNNING'" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress>
+      <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING' && healthStatus.status!=='ERROR'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
+      <common-tip v-if="healthStatus.status==='RUNNING'"  :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
+      <common-tip v-if="healthStatus.status==='ERROR'" :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" status="exception"  :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
     </li>
     <li>{{$t('sqlPattens')}} <span v-show="sqlCount>0">({{sqlCount}})</span></li>
   </ul>
