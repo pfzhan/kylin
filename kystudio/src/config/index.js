@@ -52,6 +52,11 @@ export const modelHealthStatus = {
     icon: 'question-circle',
     color: 'gray',
     message: 'This model has no check result'
+  },
+  'ERROR': {
+    icon: 'check-circle-o',
+    color: 'green',
+    message: 'Check job failed'
   }
 }
 export const needLengthMeasureType = ['fixed_length', 'fixed_length_hex', 'int', 'integer']

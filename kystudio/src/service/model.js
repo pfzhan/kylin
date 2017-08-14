@@ -59,5 +59,11 @@ export default {
   },
   getModelEndAccess: (modelId) => {
     return Vue.resource(apiUrl + 'access/all/DataModelDesc/' + modelId).get()
+  },
+  validModelPartitionColumnFormat: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.table + '/' + para.column + '/validate').get({format: para.format})
+  },
+  getColumnSampleData: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.table + '/' + para.column).get()
   }
 }

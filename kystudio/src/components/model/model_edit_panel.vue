@@ -36,10 +36,10 @@
                            {{currentModelInfo.owner}}
                         </td>
                       </tr>
-                    </table>
+                    </table> 
                 </el-tab-pane>
                 <el-tab-pane :label="$t('setting')" name="second">
-                 <partition-column style="width:800px" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+                 <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third">
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
@@ -171,6 +171,9 @@ export default {
     loadTableStatics (database, tableName) {
       this.loadTableExt({tableName: database + '.' + tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
+          if (!data) {
+            return
+          }
           var arr = []
           var lenOffeature = data && data.columns_stats && data.columns_stats.length || 0
           if (lenOffeature) {
@@ -386,8 +389,8 @@ export default {
       left:100px;
     }
     .el-tab-pane{
-      height: 290px;
-      overflow: auto;
+      min-height: 400px;
+      // overflow-y: hidden;
       background-color: #393e53;
     }
     .display_bar{
@@ -434,9 +437,6 @@ export default {
       background-color: #2b2d3b;
       padding: 4px;
     }
-    .el-form-item__label{
-      float: left!important;
-    }
     .el-tabs--border-card{
       box-shadow: none;
       border-bottom: none;
@@ -457,12 +457,15 @@ export default {
     }
     .el-tab-pane .el-form{
       height: 260px;
-      overflow-y: auto;
+      // overflow-y: auto;
     }
     .model-name-input{
       .el-input__inner{
         border-color: @grey-color;
       }
+    }
+    .el-input__inner{
+        border-color: @grey-color;
     }
     .model-discribe-input{
       .el-textarea__inner{

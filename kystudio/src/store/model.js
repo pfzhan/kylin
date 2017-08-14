@@ -105,6 +105,12 @@ export default {
         commit(types.CACHE_MODEL_END_ACCESS, {access: res.data.data, id: id})
         return res
       })
+    },
+    [types.GET_COLUMN_SAMPLEDATA]: function ({ commit }, para) {
+      return api.model.getColumnSampleData(para)
+    },
+    [types.VALID_PARTITION_COLUMN]: function ({ commit }, para) {
+      return api.model.validModelPartitionColumnFormat(para)
     }
   },
   getters: {

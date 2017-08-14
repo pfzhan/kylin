@@ -231,7 +231,7 @@
     </el-dialog>
 
     <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" >
-       <partition-column :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+       <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
        <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
        <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
              <icon name="question-circle-o"></icon>
@@ -774,11 +774,11 @@ export default {
             }
             var tabeFullName = tableList[i].alias
             dateColumns[tabeFullName] = dateColumns[tabeFullName] || []
-            dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat})
+            dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat, database: tableList[i].database, table: tableList[i].name})
           }
           if (TimePartitionRule.indexOf(datatype) >= 0) {
             timeColumns[tabeFullName] = timeColumns[tabeFullName] || []
-            timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true})
+            timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true, database: tableList[i].database, table: tableList[i].name})
           }
         }
       }
