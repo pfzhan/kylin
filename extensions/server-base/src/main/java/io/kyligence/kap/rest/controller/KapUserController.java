@@ -128,16 +128,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         user.setUsername(userName);
 
-        if (!user.isDefaultPassword()) {
-            if (!checkPasswordLength(user.getPassword())) {
-                throw new BadRequestException(msg.getSHORT_PASSWORD());
-            }
-
-            if (!checkPasswordCharacter(user.getPassword())) {
-                throw new BadRequestException(msg.getINVALID_PASSWORD());
-            }
-        }
-
         // merge with existing user
         try {
             ManagedUser existing = get(userName);
@@ -147,6 +137,16 @@ public class KapUserController extends BasicController implements UserDetailsSer
                 user.setGrantedAuthorities(existing.getAuthorities());
         } catch (UsernameNotFoundException ex) {
             // that is OK, we create new
+        }
+
+        if (!user.isDefaultPassword()) {
+            if (!checkPasswordLength(user.getPassword())) {
+                throw new BadRequestException(msg.getSHORT_PASSWORD());
+            }
+
+            if (!checkPasswordCharacter(user.getPassword())) {
+                throw new BadRequestException(msg.getINVALID_PASSWORD());
+            }
         }
 
         user.setPassword(pwdEncode(user.getPassword()));
