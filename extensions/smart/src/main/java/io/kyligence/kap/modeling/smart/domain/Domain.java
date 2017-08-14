@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.cube.model.HBaseColumnDesc;
@@ -87,7 +88,7 @@ public class Domain {
         CubeDesc cubeDesc = new CubeDesc();
         cubeDesc.setName(UUID.randomUUID().toString()); //random name assigned
         cubeDesc.updateRandomUuid();
-        cubeDesc.setVersion(model.getVersion());
+        cubeDesc.setVersion(KylinVersion.getCurrentVersion().toString());
         cubeDesc.setModelName(model.getName());
         cubeDesc.setModel(model);
         cubeDesc.setEngineType(kylinConfig.getDefaultCubeEngine());
