@@ -79,9 +79,6 @@ public class CubeSuggestCLI implements IKeepNames {
         Preconditions.checkArgument(cubeManager.getCube(cubeName) == null,
                 "Cube " + cubeName + " already exists, please use another name.");
 
-        kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", "whitelist");
-        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
-
         MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
         DataModelDesc modelDesc = metadataManager.getDataModelDesc(modelName);
 

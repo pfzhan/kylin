@@ -47,6 +47,8 @@ public class ProposerProvider {
         switch (strategy) {
         case "whitelist":
             return new WhiteListAggrGroupProposer(context);
+        case "mixed":
+            return new MixedAggrGroupProposer(context);
         default:
             return new AggrGroupProposer(context);
         }

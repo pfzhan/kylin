@@ -42,7 +42,7 @@ import io.kyligence.kap.query.mockup.Utils;
 
 @Ignore("Ignore because this is only used for demo.")
 public class ModelingMasterTest {
-    public static String aggrStrategy = "default";
+    public static String aggrStrategy = "mixed";
 
     @AfterClass
     public static void afterClass() {
