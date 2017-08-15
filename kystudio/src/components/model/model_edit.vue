@@ -1831,6 +1831,9 @@ export default {
         this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
         this.modelDataLoadEnd = true
+        this.$nextTick(() => {
+          this.resizeWindow(this.briefMenu)
+        })
         return
       }
       // 编辑模式
@@ -1985,6 +1988,9 @@ export default {
             _this.getPartitionDateColumns()
             _this.firstRenderServerData = true
             _this.modelDataLoadEnd = true
+            _this.$nextTick(() => {
+              _this.resizeWindow(_this.briefMenu)
+            })
           }
           // 处理编辑数据完毕
         })
