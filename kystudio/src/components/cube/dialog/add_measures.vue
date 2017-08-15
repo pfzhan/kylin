@@ -562,7 +562,7 @@ export default {
         })
         return false
       }
-      if (this.measure.function.returntype === '') {
+      if (this.measure.function.returntype === '' && this.measure.function.expression !== 'SUM') {
         this.$message({
           showClose: true,
           duration: 3000,
