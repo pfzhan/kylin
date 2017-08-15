@@ -180,20 +180,24 @@
             </div>
             <div class="timeline-body">
               <!-- <span style="color: #4383B4">#{{index+1}} Step Name: </span>{{step.name}}<br> -->
-              <p class="steptime">
+              <span class="steptime">
                 <i class="el-icon-time"></i>
                 {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
-              </p>
+              </span>
               
               <div v-if="step.info.hdfs_bytes_written">
                 <span>Data Size: </span>
                 <span class="blue">{{step.info.hdfs_bytes_written|dataSize}}</span>
                 <!-- <br /> -->
               </div>
-              <span>{{$t('duration')}}: </span>
+              <div>
+                <span>{{$t('duration')}}: </span>
                 <span class="blue">{{timerline_duration(step)}}</span><br />
-              <span>{{$t('waiting')}}: </span>
+              </div>
+              <div>
+                <span>{{$t('waiting')}}: </span>
                 <span class="blue">{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
+              </div>
             </div>
             <div class="timeline-footer">
              <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">
@@ -203,8 +207,8 @@
                 <icon name="file" ></icon>
               </el-button>
               <a :href="step.info.yarn_application_tracking_url" target="_blank"
-                       tooltip="MRJob">
-                <el-button v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
+                       tooltip="MRJob" style="margin-left: 10px;">
+                <el-button  v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
                   <icon name="tasks" ></icon>
                 </el-button>
               </a>
