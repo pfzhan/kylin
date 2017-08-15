@@ -52,16 +52,24 @@
         </div>
       </el-row>
 
+<div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
 
-      <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+
+  <el-tabs v-model="activeName" class="el-tabs--default ksd-mt-40" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+    <el-tab-pane name="first">
+    <span slot="label">{{$t('aggregationGroups')}} <common-tip :content="$t('AGG')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip></span>
+       <!-- 维度优化 -->
+     <!--   <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           {{$t('aggregationGroups')}}
           <common-tip :content="$t('AGG')" >
              <icon name="question-circle-o"></icon>
           </common-tip>
         </el-col>
-      </el-row>
-      <el-row class="row_padding border_bottom borderLeft" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: -8px;padding-top: 0;">
+      </el-row> -->
+      <el-row class="row_padding border_bottom borderLeft "  style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: 4px;padding-top: 0;">
         <el-col :span="5">Total cuboid number: <i class="cuboid_number">{{totalCuboid}}</i></el-col>
         <el-col :span="12" >
          <common-tip :content="$t('maxGroup')" >
@@ -71,8 +79,7 @@
          <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button :loading="applyLoading" id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" :disabled="isReadyCube"  @click.native="changeDimCap();">Apply</el-button> </el-col>
       </el-row>
       <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
-
-      <el-row class="row_padding border_bottom agg_tag" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
+       <el-row class="row_padding border_bottom agg_tag" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
         <div style="height: 30px;line-height: 30px;margin-top: -15px;">
           <span style="float: right;color: rgba(255,255,255,0.5);">Cuboid Number: <i class="cuboid_number">{{cuboidList[group_index]}} {{groupErrorList[group_index]}}</i></span>
         </div>
@@ -156,7 +163,7 @@
       </el-col>
     </el-row>
 
-    <el-row class="row_padding" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+    <el-row class="row_padding" >
       <el-col :span="24">
         <el-button type="default" icon="plus" @click="addAggGroup" :disabled="isReadyCube" style="margin-top: 10px;" class="table_margin">
         {{$t('addAggregationGroups')}}
@@ -164,15 +171,26 @@
       </el-col>
     </el-row>
     <div class="line" style="margin-bottom: 5px;margin-right: -30px;margin-left: -30px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
-    <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
-      <el-row class="row_padding" style="margin-bottom: 5px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+
+
+      
+    </el-tab-pane>
+    <el-tab-pane label="Rowkeys" name="second">
+      <span slot="label"> Rowkeys
+          <common-tip :content="$t('kylinLang.cube.rowkeyTip')" >
+             <icon name="question-circle-o"></icon>
+          </common-tip></span>
+
+       <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;" ></div>
+ <!--      <el-row class="row_padding" style="margin-bottom: 5px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
         <el-col :span="24">
           Rowkeys
           <common-tip :content="$t('kylinLang.cube.rowkeyTip')" >
              <icon name="question-circle-o"></icon>
           </common-tip>
         </el-col>
-      </el-row>
+      </el-row> -->
+      <div class="ksd-mb-20" style="color:grey">{{$t('dragtips')}}</div>
       <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length && convertedRowkeys.length">
        <el-row class="tableheader" >
          <el-col :span="1">{{$t('ID')}}</el-col>
@@ -187,18 +205,6 @@
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9" style="word-wrap: break-word; white-space:nowrap">{{row.column}}<!--  <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip> --></el-col>
           <el-col :span="4">
-            <!-- <el-select :disabled="isReadyCube"   v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
-              <el-option
-                  v-for="(item, encodingindex) in row.selectEncodings"
-                  :key="encodingindex"
-                 :label="item.name"
-                 :value="item.name + ':' + item.version">
-                 <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="top">
-                   <span style="float: left;width: 90%">{{ item.name }}</span>
-                   <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-show="item.version>1">{{ item.version }}</span>
-                </el-tooltip>
-              </el-option>
-            </el-select> -->
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
             </select>
@@ -207,15 +213,7 @@
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input>
           </el-col>
           <el-col :span="2">
-              <!-- <el-select :disabled="isReadyCube"   v-model="row.isShardBy" @change="changeRowkey(row, index)">
-                <el-option
-                v-for="item in shardByType"
-                :key="item.name"
-                :label="item.name"
-                :value="item.value">
-                </el-option>
-              </el-select> -->
-              <select class="rowkeySelect" v-model="row.isShardBy" @change="changeRowkey(row, index)">
+            <select class="rowkeySelect" v-model="row.isShardBy" @change="changeRowkey(row, index)">
               <option v-for="item in shardByType" :key="item.name" :value="item.value">{{item.name}}</option>
             </select>
           </el-col>
@@ -223,6 +221,19 @@
           <el-col :span="2">{{row.cardinality}}</el-col>
         </el-row>
         </div>
+
+    </el-tab-pane>
+  </el-tabs>
+<!-- 维度优化 -->
+
+     
+      
+      
+
+     
+
+    <!-- rowkeys -->
+   
     </el-col>
     <el-col :span="6" class="dimension-right">
        <el-table
@@ -283,6 +294,7 @@ export default {
   props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
   data () {
     return {
+      activeName: 'first',
       dim_cap: 0,
       totalCuboid: 0,
       sqlBtnLoading: false,
@@ -925,8 +937,8 @@ export default {
     document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionUsed: 'This dimension is used as a mandatory、 a hierarchy and a joint dimension.', sampleData: 'Sample'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionUsed: '该维度被用作必须 、层级以及联合维度。', sampleData: '采样数据'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionUsed: 'This dimension is used as a mandatory、 a hierarchy and a joint dimension.', sampleData: 'Sample', dragtips: 'you can drag and drop to reorder'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionUsed: '该维度被用作必须 、层级以及联合维度。', sampleData: '采样数据', dragtips: '您可以通过拖拽列表对rowkey进行排序'}
   }
 }
 </script>
@@ -1100,7 +1112,7 @@ export default {
     }
     li{
       float: left;
-      line-height: 20px;
+      line-height: 24px;
     }
     li:nth-child(2){
       margin-left: 10px;
