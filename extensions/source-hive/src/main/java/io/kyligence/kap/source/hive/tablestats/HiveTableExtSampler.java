@@ -24,6 +24,13 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import com.google.common.collect.Maps;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.measure.hllc.HLLCSerializer;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.datatype.DataTypeSerializer;
+
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -37,14 +44,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
-import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.datatype.DataTypeSerializer;
-
-import com.google.common.collect.Maps;
-
 public class HiveTableExtSampler implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -55,6 +54,7 @@ public class HiveTableExtSampler implements Serializable {
     public static final String HLLC_DATATYPE = "hllc";
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
+
     static {
         implementations.put("char", StringImplementor.class);
         implementations.put("varchar", StringImplementor.class);
@@ -76,7 +76,7 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     private Map<String, String> sampleValues = new LinkedHashMap<>();
-    private SimpleTopN topN = new SimpleTopN(10);
+    private SimpleTopN topN = null;
     DataTypeImplementor implementor = null;
     private ByteBuffer buf;
     private SamplerCoder samplerCoder;
@@ -88,15 +88,18 @@ public class HiveTableExtSampler implements Serializable {
     private long nullCount = 0;
     private int statsSampleFrequency = 1;
     private long counter = 0;
+    private String dataType = "String";
     private List<HLLCounter> hllList = new ArrayList<>();
     private List<Long> mapperRows = new ArrayList<>();
 
-    public HiveTableExtSampler() {
-        this(0, 1);
+    public HiveTableExtSampler(String type, int precision) {
+        this(type, precision, 0, 1);
     }
 
-    public HiveTableExtSampler(int curIndex, int allColumns) {
+    public HiveTableExtSampler(String type, int precision, int curIndex, int allColumns) {
 
+        precision = precision < 256 ? 256 : precision;
+        this.dataType = "varchar(" + precision + ")";
         this.curIndex = curIndex;
         this.lastIndex = allColumns - 1;
         //special samples
@@ -130,19 +133,23 @@ public class HiveTableExtSampler implements Serializable {
         String[] sampleDataType = new String[serializedSize];
 
         for (int i = 0; i < sizeOfElements(); i++)
-            sampleDataType[i] = "String";
+            sampleDataType[i] = dataType;
 
         for (int j = sizeOfElements(); j < serializedSize; j++)
             sampleDataType[j] = HLLC_DATATYPE;
 
         samplerCoder = new SamplerCoder(sampleDataType);
+
+        initImplementor(type);
+
+        topN = new SimpleTopN(10);
     }
 
     public int sizeOfElements() {
         return sampleValues.size();
     }
 
-    public void setDataType(String dataType) {
+    private void initImplementor(String dataType) {
         Class<?> clz = implementations.get(dataType);
         if (clz == null)
             throw new RuntimeException("No DataTypeImplementor for type " + dataType);
@@ -749,7 +756,7 @@ public class HiveTableExtSampler implements Serializable {
         private Map<String, MutableInt> topMap = new HashMap<>();
         private LinkedList<MutableInt> topList = new LinkedList<>();
 
-        private DataTypeSerializer strSer = DataTypeSerializer.create("string");
+        private DataTypeSerializer strSer = DataTypeSerializer.create(dataType);
         private DataTypeSerializer longSer = DataTypeSerializer.create("long");
 
         public SimpleTopN(int capability) {

@@ -24,15 +24,8 @@
 
 package io.kyligence.kap.source.hive.modelstats;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -45,8 +38,14 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
 
@@ -73,14 +72,15 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
         int skey = key.get();
         for (BytesWritable v : values) {
             ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            HiveTableExtSampler sampler = new HiveTableExtSampler(key.get(), columnSize);
+            String type = columns.get(skey).getType().getName();
+            int precision = columns.get(skey).getType().getPrecision();
+            HiveTableExtSampler sampler = new HiveTableExtSampler(type, precision, key.get(), columnSize);
             sampler.decode(buffer);
             if (!samplerMap.containsKey(skey))
                 samplerMap.put(skey, sampler);
             else {
                 samplerMap.get(skey);
             }
-            sampler.setDataType(columns.get(skey).getType().getName());
             samplerMap.get(skey).merge(sampler);
         }
     }

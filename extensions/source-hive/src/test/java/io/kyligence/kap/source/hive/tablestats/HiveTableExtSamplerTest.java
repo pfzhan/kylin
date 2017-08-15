@@ -24,22 +24,20 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import junit.framework.TestCase;
+import org.junit.Test;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.junit.Test;
-
-import junit.framework.TestCase;
-
 public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true", "Dinner is perfect", "Not very good" };
-        String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
-        HiveTableExtSampler sampler = new HiveTableExtSampler();
-        sampler.setDataType("varchar");
+        String[] stringValues = {"I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true", "Dinner is perfect", "Not very good"};
+        String[] decimalValues = {"1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323"};
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 256);
 
         for (int i = 0; i < stringValues.length; i++) {
             sampler.samples(stringValues[i]);
@@ -61,8 +59,7 @@ public class HiveTableExtSamplerTest extends TestCase {
         assertEquals("麒麟最牛逼啊", sampler.getMaxLenValue());
         sampler.clean();
 
-        sampler = new HiveTableExtSampler();
-        sampler.setDataType("decimal");
+        sampler = new HiveTableExtSampler("decimal", 19);
 
         for (int i = 0; i < decimalValues.length; i++) {
             sampler.samples(decimalValues[i]);
@@ -80,10 +77,24 @@ public class HiveTableExtSamplerTest extends TestCase {
     }
 
     @Test
+    public void testPrecision() {
+        String longString = "";
+        for (int i = 0; i < 1200; i++) {
+            longString += "K";
+        }
+        System.out.println("Length: " + longString.length());
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 1300);
+        sampler.samples(longString);
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+    }
+
+    @Test
     public void testSampleRaw() {
 
-        HiveTableExtSampler sampler = new HiveTableExtSampler();
-        sampler.setDataType("varchar");
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100);
         List<String> rawList = new ArrayList<>();
         for (int i = 0; i < 1000000; i++) {
             rawList.add(String.valueOf(i));
@@ -107,8 +118,7 @@ public class HiveTableExtSamplerTest extends TestCase {
                 skewSamples.add(v);
             }
         }
-        HiveTableExtSampler sampler = new HiveTableExtSampler();
-        sampler.setDataType("varchar");
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 1000);
 
         for (String e : skewSamples) {
             sampler.samples(e);
@@ -124,8 +134,7 @@ public class HiveTableExtSamplerTest extends TestCase {
     public void testMerge() {
         List<HiveTableExtSampler> samplers = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            HiveTableExtSampler s = new HiveTableExtSampler();
-            s.setDataType("varchar");
+            HiveTableExtSampler s = new HiveTableExtSampler("varchar", 100);
             samplers.add(s);
         }
 
@@ -136,8 +145,7 @@ public class HiveTableExtSamplerTest extends TestCase {
             }
         }
 
-        HiveTableExtSampler finalSampler = new HiveTableExtSampler();
-        finalSampler.setDataType("varchar");
+        HiveTableExtSampler finalSampler = new HiveTableExtSampler("varchar", 100);
         for (HiveTableExtSampler s : samplers) {
             s.sync();
             ByteBuffer buf = s.code();
@@ -154,10 +162,9 @@ public class HiveTableExtSamplerTest extends TestCase {
 
     @Test
     public void testModelStats() {
-        HiveTableExtSampler sampler = new HiveTableExtSampler(0, 3);
-        sampler.setDataType("varchar");
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100, 0, 3);
 
-        String[][] sampleValues = { { "1", "2", "3" }, { "4", "5", "6" }, { "7", "8", "9" } };
+        String[][] sampleValues = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}};
 
         for (int i = 0; i < sampleValues.length; i++)
             sampler.samples(sampleValues[i]);

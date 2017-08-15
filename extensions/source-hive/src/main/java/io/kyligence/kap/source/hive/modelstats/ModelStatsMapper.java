@@ -24,14 +24,8 @@
 
 package io.kyligence.kap.source.hive.modelstats;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -48,8 +42,13 @@ import org.apache.kylin.source.hive.HiveMRInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
@@ -79,8 +78,9 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
 
         List<TblColRef> columns = flatTableDesc.getAllColumns();
         for (int i = 0; i < columns.size(); i++) {
-            HiveTableExtSampler sampler = new HiveTableExtSampler(i, columns.size());
-            sampler.setDataType(columns.get(i).getType().getName());
+            String type = columns.get(i).getType().getName();
+            int precision = columns.get(i).getType().getPrecision();
+            HiveTableExtSampler sampler = new HiveTableExtSampler(type, precision, i, columns.size());
             sampler.setColumnName(columns.get(i).getIdentity());
             sampler.setStatsSampleFrequency(frequency);
             samplerMap.put(i, sampler);

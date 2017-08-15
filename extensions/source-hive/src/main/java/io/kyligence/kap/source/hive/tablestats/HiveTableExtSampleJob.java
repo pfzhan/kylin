@@ -218,7 +218,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         }
 
         StringBuilder createIntermediateTableHql = new StringBuilder();
-        createIntermediateTableHql.append("USE " + desc.getDatabase() + ";").append("\n");
+        createIntermediateTableHql.append("USE " + config.getHiveDatabaseForIntermediateTable() + ";").append("\n");
         createIntermediateTableHql.append("DROP TABLE IF EXISTS " + desc.getMaterializedName() + ";\n");
         createIntermediateTableHql.append("CREATE TABLE IF NOT EXISTS " + desc.getMaterializedName() + "\n");
         createIntermediateTableHql.append("LOCATION '" + getViewPath(conf, desc) + "'\n");

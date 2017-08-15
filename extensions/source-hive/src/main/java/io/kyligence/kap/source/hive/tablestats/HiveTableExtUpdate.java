@@ -24,12 +24,6 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
-
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -45,9 +39,17 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.TreeMap;
 
 public class HiveTableExtUpdate extends AbstractHadoopJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
@@ -75,7 +77,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
 
             String project = getOptionValue(OPTION_PROJECT);
             String table = getOptionValue(OPTION_TABLE).toUpperCase();
-            
+
             // start job
             String jobName = JOB_TITLE + getOptionsAsString();
             logger.info("Starting: " + jobName);
@@ -93,7 +95,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
     public void updateTableSample(String tableName, String outPath, Configuration config, String prj) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
 
-        samplers = read(new Path(outPath), config);
+        samplers = read(new Path(outPath), config, tableName, prj);
 
         MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
         TableExtDesc tableSample = metaMgr.getTableExt(tableName, prj);
@@ -126,8 +128,12 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         metaMgr.saveTableExt(tableSample, prj);
     }
 
-    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf) throws IOException {
+    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf, String tableName, String prj) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = new TreeMap<>();
+
+        TableDesc tableDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(tableName, prj);
+        ColumnDesc[] columns = tableDesc.getColumns();
+
         for (Path p : getAllPaths(path, conf)) {
             SequenceFile.Reader.Option seqInput = SequenceFile.Reader.file(p);
             SequenceFile.Reader reader = new SequenceFile.Reader(conf, seqInput);
@@ -135,7 +141,9 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             IntWritable key = (IntWritable) ReflectionUtils.newInstance(reader.getKeyClass(), conf);
             BytesWritable value = (BytesWritable) ReflectionUtils.newInstance(reader.getValueClass(), conf);
             while (reader.next(key, value)) {
-                HiveTableExtSampler sampler = new HiveTableExtSampler();
+                String type = columns[key.get()].getType().getName();
+                int precision = columns[key.get()].getType().getPrecision();
+                HiveTableExtSampler sampler = new HiveTableExtSampler(type, precision);
                 sampler.decode(ByteBuffer.wrap(value.getBytes()));
                 samplers.put(key.get(), sampler);
             }
