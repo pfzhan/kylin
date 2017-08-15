@@ -20,8 +20,8 @@
         </el-row>
         <el-row class="row_padding">
           <el-col :span="24">
-            <el-button type="blue" @click.native="addDimensions" :disabled="isReadyCube" >
-              +&nbsp;{{$t('dimensions')}}
+            <el-button type="blue" icon="plus" @click.native="addDimensions" :disabled="isReadyCube" >
+              {{$t('addDimensions')}}
             </el-button>
           </el-col>
         </el-row>

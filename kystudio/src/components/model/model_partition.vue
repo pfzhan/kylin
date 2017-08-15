@@ -1,7 +1,7 @@
 <template>
 	<div  class="partitionBox" :style="{height:comHeight+'px'}">
     <el-row>
-      <el-col :span="layout.left" style="padding:10px;">
+      <el-col :span="layout.left" style="padding:10px;border-right: solid 1px #292b38; ">
         <el-form v-model="checkPartition"  label-position="top" :rules="rule" ref="partition">
           <el-form-item :label="$t('partitionDateColumn')">
             <span slot="label">{{$t('partitionDateColumn')}}
@@ -111,9 +111,9 @@
           </el-form-item>
         </el-form>
       </el-col>
-      <el-col :span="layout.right" v-if="layout.right" style="border-left: solid 1px #292b38; padding:20px;margin-top: -30px; padding-top: 30px;">
+      <el-col :span="layout.right" v-if="layout.right" style="padding:20px;margin-top: -30px; padding-top: 30px;">
 
-       <p>{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer"></span></p>
+       <p>{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
        <el-alert class="ksd-mt-20" v-if="modelStatics && modelStatics.length <= 1"
         :title="$t('noSample')"
         show-icon
@@ -278,6 +278,7 @@ export default {
     closeSample () {
       this.layout.left = 24
       this.layout.right = 0
+      this.modelStatics = []
     },
     loadTableStatics (database, tableName, columnName) {
       var project = this.modelInfo.project || this.project
@@ -289,6 +290,10 @@ export default {
           var sampleData = changeDataAxis([data], true)
           this.modelStatics = basicColumn.concat(sampleData)
         })
+      }, () => {
+        this.layout.left = 14
+        this.layout.right = 10
+        this.modelStatics = []
       })
     },
     changeSepatate (val) {
@@ -318,6 +323,7 @@ export default {
       this.$set(this.checkPartition, 'time_table', null)
       this.$set(this.checkPartition, 'time_column', null)
       this.$set(this.checkPartition, 'partition_time_format', null)
+      this.closeSample()
     },
     timeColumns () {
       this.columnsForTime[''] = []
@@ -357,8 +363,8 @@ export default {
     this.checkLockFormat()
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'Format partten valid failed'},
-    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '具有表采样结果时才能进行分区列格式检查。', validFail: '格式校验失败'}
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'Please try another partition column or date format. The date format is invalid.'},
+    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '具有表采样结果时才能进行分区列格式检查。', validFail: '分区列格式不正确，请重新选择分区格式或分区列。'}
   }
 }
 </script>
@@ -367,6 +373,14 @@ export default {
   overflow-y: auto;
   .el-form-item{
     margin-bottom: 12px;
+  }
+  .el-alert--warning{
+    background:rgba(247,186,42, 0.1);
+    .el-alert__icon {
+      color:#e3ab29;
+    }
+    color:#e3ab29;
+    border:solid 1px rgba(247,186,42, 0.1);
   }
   .el-form {
     // height: 260px;

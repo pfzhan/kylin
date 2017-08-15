@@ -214,7 +214,7 @@
             <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
-      <model-tool :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+      <model-tool v-if="modelDataLoadEnd" :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
 
        <!-- 添加cube -->
 
@@ -280,6 +280,7 @@ export default {
           {required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change'}
         ]
       },
+      modelDataLoadEnd: false,
       openAddComputedColumnForm: false,
       createCubeVisible: false,
       openModelCheck: true,
@@ -1829,6 +1830,7 @@ export default {
       if (!this.extraoption.uuid) {
         this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
         this.$set(this.modelInfo, 'modelName', this.extraoption.modelName)
+        this.modelDataLoadEnd = true
         return
       }
       // 编辑模式
@@ -1982,6 +1984,7 @@ export default {
             // partition time setting
             _this.getPartitionDateColumns()
             _this.firstRenderServerData = true
+            _this.modelDataLoadEnd = true
           }
           // 处理编辑数据完毕
         })
