@@ -66,8 +66,13 @@ if [ -z "$BUILD_SYSTEM" ]; then
 fi
 echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit_SHA1
 
-echo "${release_version}" > build/VERSION
-echo "VERSION file content:" ${release_version}
+if [ "${PACKAGE_PLUS}" = "1" ]; then
+    KAP_VERSION_NAME="KAP Enterprise Plus ${release_version}"
+else
+    KAP_VERSION_NAME="KAP Enterprise ${release_version}"
+fi
+echo "${KAP_VERSION_NAME}" > build/VERSION
+echo "VERSION file content:" ${KAP_VERSION_NAME}
 
 echo "BUILD STAGE 2 - Build binaries..."
 sh build/script/build.sh $@             || { exit 1; }
