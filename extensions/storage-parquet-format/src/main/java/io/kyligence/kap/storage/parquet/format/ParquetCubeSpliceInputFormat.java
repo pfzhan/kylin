@@ -27,6 +27,9 @@ package io.kyligence.kap.storage.parquet.format;
 import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -47,8 +50,12 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
+import org.apache.kylin.cube.model.HBaseColumnDesc;
+import org.apache.kylin.cube.model.HBaseColumnFamilyDesc;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.measure.MeasureCodec;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.io.api.Binary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +68,8 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
 
 public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
     @Override
-    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public RecordReader<Text, Text> createRecordReader(InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetCubeSpliceReader();
     }
 
@@ -112,7 +120,8 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 requiredCuboids = getAllCuboidsFromFile();
             } else {
                 // <cuboid-id1>,<cuboid-id2>,...,<cuboid-idn>
-                requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).split(",");
+                requiredCuboids = context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS)
+                        .split(",");
             }
 
             filterDivs(requiredCuboids);
@@ -178,27 +187,83 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 }
                 String div = divs.get(divIndex++);
                 reader = spliceReader.getDivReader(div);
-                rowKeyEncoder = new RowKeyEncoder(cubeSegment, Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
+                rowKeyEncoder = new RowKeyEncoder(cubeSegment,
+                        Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
                 return true;
             }
             return false;
         }
 
         private void setVal(List<Object> data) {
-            int valueBytesLength = 0;
-            for (int i = 1; i < data.size(); ++i) {
-                valueBytesLength += ((Binary) data.get(i)).getBytes().length;
-            }
-            byte[] valueBytes = new byte[valueBytesLength];
 
-            int offset = 0;
+            int cfValueBytesLength = 0;
+            for (int i = 1; i < data.size(); ++i) {
+                cfValueBytesLength += ((Binary) data.get(i)).getBytes().length;
+            }
+            byte[] cfValueBytes = new byte[cfValueBytesLength];
+
+            int cfIndex = 0;
             for (int i = 1; i < data.size(); ++i) {
                 byte[] src = ((Binary) data.get(i)).getBytes();
-                System.arraycopy(src, 0, valueBytes, offset, src.length);
-                offset += src.length;
+                System.arraycopy(src, 0, cfValueBytes, cfIndex, src.length);
+                cfIndex += src.length;
+            }
+
+            HBaseColumnFamilyDesc[] cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+
+            List<MeasureDesc> cfMeasures = Lists.newArrayList();
+
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    MeasureDesc[] measures = colDesc.getMeasures();
+                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
+                }
+            }
+
+            MeasureCodec measureCodec = new MeasureCodec(cfMeasures);
+
+            int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(cfValueBytes));
+
+            int[] valueLengthInMeasureOrder = new int[valueLength.length];
+
+            int idx = 0;
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    int[] measureIndexes = colDesc.getMeasureIndex();
+                    for (int measureIndex : measureIndexes) {
+                        valueLengthInMeasureOrder[measureIndex] = valueLength[idx];
+                        idx++;
+                    }
+                }
+            }
+
+            int[] valueOffsets = new int[valueLength.length];
+            int valueOffset = 0;
+
+            for (int i = 0; i < valueOffsets.length; i++) {
+                valueOffsets[i] = valueOffset;
+                valueOffset += valueLengthInMeasureOrder[i];
+            }
+
+            byte[] valueBytes = new byte[cfValueBytes.length];
+            int cfValueOffset = 0;
+
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    int[] measureIndexes = colDesc.getMeasureIndex();
+                    for (int measureIndex : measureIndexes) {
+                        System.arraycopy(cfValueBytes, cfValueOffset, valueBytes, valueOffsets[measureIndex],
+                                valueLengthInMeasureOrder[measureIndex]);
+                        cfValueOffset += valueLengthInMeasureOrder[measureIndex];
+                    }
+                }
             }
 
             val.set(valueBytes);
+
         }
 
         @Override
