@@ -113,7 +113,7 @@ exports.default = {
   cube: {
     inputSqlTip1: '1.The following shows all the inputing SQL statements, each with ";" as a split.',
     inputSqlTip2: '2.Incorrect inputing SQL statements will be ignored and will not work on subsequent steps.',
-    readyCubeTip: 'Cube containing segments is allowed to be modified, avoiding the inconsistence of cube metadata.',
+    readyCubeTip: 'Cube containing segments is not allowed to be modified, avoiding the inconsistence of cube metadata.',
     saveCubeTip: 'Confirm to save the cube?',
     cubeName: 'Cube Name',
     scheduler: 'Scheduler',
