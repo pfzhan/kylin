@@ -66,10 +66,17 @@ public class LicenseGatherUtil {
         return commitFile;
     }
 
-    public static void gatherLicenseInfo(File licenseFile, File commitFile, UUID prefix) {
+    public static File getDefaultVersionFile() {
+        File kylinHome = KapConfig.getKylinHomeAtBestEffort();
+        File versionFile = new File(kylinHome, "VERSION");
+        return versionFile;
+    }
+
+    public static void gatherLicenseInfo(File licenseFile, File commitFile, File versionFile, UUID prefix) {
         gatherLicense(licenseFile, prefix);
         gatherCommits(commitFile, prefix);
         gatherEnv(prefix);
+        gatherVersion(versionFile, prefix);
         gatherMetastore(prefix);
         checkParallelScale(prefix);
     }
@@ -81,6 +88,23 @@ public class LicenseGatherUtil {
             setProperty("kap.metastore", prefix, metaStoreId);
         } catch (Exception e) {
             licenseLog.error("Cannot get metastore uuid", e);
+        }
+    }
+
+    private static void gatherVersion(File vfile, UUID prefix) {
+        if (vfile.exists()) {
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(vfile), "UTF-8"));
+                String l;
+                while ((l = in.readLine()) != null) {
+                    setProperty("kap.version", prefix, l);
+                    licenseLog.info("KAP Version: " + l + "\n");
+                    break;
+                }
+                in.close();
+            } catch (IOException ex) {
+                licenseLog.error("", ex);
+            }
         }
     }
 
@@ -114,7 +138,7 @@ public class LicenseGatherUtil {
                     setProperty("kap.license.statement", prefix, statement);
 
                     String version = in.readLine();
-                    setProperty("kap.version", prefix, version);
+                    setProperty("kap.license.version", prefix, version);
 
                     String dates = in.readLine();
                     setProperty("kap.dates", prefix, dates);

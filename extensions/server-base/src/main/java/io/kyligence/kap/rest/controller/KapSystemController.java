@@ -123,7 +123,7 @@ public class KapSystemController extends BasicController {
 
         //refresh license
         LicenseGatherUtil.gatherLicenseInfo(LicenseGatherUtil.getDefaultLicenseFile(),
-                LicenseGatherUtil.getDefaultCommitFile(), null);
+                LicenseGatherUtil.getDefaultCommitFile(), LicenseGatherUtil.getDefaultVersionFile(), null);
     }
 
     private void checkLicense(byte[] bytes) {
