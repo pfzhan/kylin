@@ -117,7 +117,7 @@ import addMeasures from '../dialog/add_measures'
 import parameterTree from '../../common/parameter_tree'
 import areaLabel from '../../common/area_label'
 import { needLengthMeasureType } from '../../../config/index'
-import { handleSuccess, handleError } from 'util/business'
+import { handleSuccess, handleError, kapConfirm } from 'util/business'
 export default {
   name: 'measures',
   props: ['cubeDesc', 'modelDesc', 'cubeInstance'],
@@ -142,24 +142,23 @@ export default {
       getCubeSuggestions: 'GET_CUBE_DIMENSIONS'
     }),
     resetMeasures: function () {
-      // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
-      this.cubeDesc.measures = this.cubeDesc.oldMeasures || []
-      this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily || []
-      this.initColumnFamily()
-      // this.cubeDesc.measures.splice(0, this.cubeDesc.measures.length)
-      // this.cubeDesc.hbase_mapping.column_family.splice(0, this.cubeDesc.hbase_mapping.column_family.length)
-      // // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
-      // this.initConvertedRowkeys()
+      kapConfirm(this.$t('deleteMeasuresTip')).then(() => {
+        this.cubeDesc.measures = this.cubeDesc.oldMeasures || []
+        this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily || []
+        this.initColumnFamily()
+      })
     },
     cubeSuggestions: function () {
-      this.getCubeSuggestions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          this.$set(this.cubeDesc, 'measures', data.measures)
-          this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
-          this.initColumnFamily()
+      kapConfirm(this.$t('overwriteMeasuresTip')).then(() => {
+        this.getCubeSuggestions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$set(this.cubeDesc, 'measures', data.measures)
+            this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
+            this.initColumnFamily()
+          })
+        }, (res) => {
+          handleError(res)
         })
-      }, (res) => {
-        handleError(res)
       })
     },
     addMeasure: function () {
@@ -406,8 +405,8 @@ export default {
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', measuresSuggestion: 'Optimize', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the optimize will output the suggested type. Reset will drop all existing measures.'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量优化', resetMeasures: '重置', measuresSuggestTip: '点击优化度量将输出优化器推荐的度量类型 。重置将会清空所有度量。'}
+    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', measuresSuggestion: 'Optimize', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the optimize will output the suggested type. Reset will call last saving back and overwrite existing measures.', overwriteMeasuresTip: 'Optimizer will suggest you all measures from the model, and overwrite existing measures. Please confirm to continue?', deleteMeasuresTip: 'Reset will call last saving back and overwrite existing measures. Please confirm to continue?'},
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量优化', resetMeasures: '重置', measuresSuggestTip: '点击优化度量将输出优化器推荐的度量类型 。重置操作会返回上一次保存过的度量列表，并覆盖现有的度量。', overwriteMeasuresTip: '优化操作会推荐模型中所有度量，并覆盖现有的度量，请确认是否继续此操作？', deleteMeasuresTip: '重置操作会返回上一次保存过的度量列表，并覆盖现有的度量，请确认是否继续此操作？'}
   }
 }
 </script>
