@@ -49,11 +49,12 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.domain.ModelDomainBuilder;
 import io.kyligence.kap.modeling.smart.query.QueryDomainBuilder;
+import io.kyligence.kap.modeling.smart.query.QueryDryRunner;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
-import io.kyligence.kap.modeling.smart.query.QueryStatsExtractor;
 import io.kyligence.kap.modeling.smart.stats.ICubeStats;
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
@@ -105,16 +106,18 @@ public class ModelingContextBuilder {
 
     private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, String[] sqls) {
         QueryStats queryStats = null;
+        List<SqlResult> queryResults = null;
         if (sqls != null && sqls.length > 0) {
-            QueryStatsExtractor extractor = new QueryStatsExtractor(initCubeDesc, sqls);
+            QueryDryRunner extractor = new QueryDryRunner(initCubeDesc, sqls);
             try {
-                queryStats = extractor.extract();
-
+                extractor.execute();
+                queryStats = extractor.getQueryStats();
+                queryResults = extractor.getQueryResults();
             } catch (Exception e) {
-                logger.error("Failed to extract query stats. ", e);
+                logger.error("Failed to execute query stats. ", e);
             }
         }
-        return internalBuild(initCubeDesc, initDomain, queryStats);
+        return internalBuild(initCubeDesc, initDomain, queryStats, queryResults);
     }
 
     private Domain getOutputDomain(CubeDesc origCubeDesc, QueryStats queryStats) {
@@ -150,6 +153,11 @@ public class ModelingContextBuilder {
     }
 
     private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats) {
+        return internalBuild(initCubeDesc, initDomain, queryStats, null);
+    }
+
+    private ModelingContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats,
+            List<SqlResult> sqlResults) {
         ModelingContext context = new ModelingContext(modelingConfig);
 
         Domain usedDomain = initDomain;
@@ -197,6 +205,7 @@ public class ModelingContextBuilder {
         context.setModelDesc(modelDesc);
         context.setTableDescs(tableDescMap);
         context.setTableExtDescs(tableExtDescMap);
+        context.setSqlResults(sqlResults);
 
         return context;
     }

@@ -22,7 +22,10 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.modeling.smart.query;
+package io.kyligence.kap.query.mockup;
+
+import java.io.IOException;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
@@ -33,26 +36,38 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
+import io.kyligence.kap.modeling.smart.query.QueryDryRunner;
+import io.kyligence.kap.modeling.smart.query.QueryStats;
 
-public class QueryStatsExtractorTest extends LocalFileMetadataTestCase {
-
-    @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
+public class QueryDryRunnerTest extends LocalFileMetadataTestCase {
+    @After
+    public void cleanup() throws IOException {
+        cleanAfterClass();
     }
 
-    @After
-    public void after() throws Exception {
-        this.cleanupTestMetadata();
+    @Before
+    public void setup() throws IOException {
+        createTestMetadata();
     }
 
     @Test
     public void test() throws Exception {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        CubeDesc testCubeDesc = CubeDescManager.getInstance(kylinConfig).getCubeDesc("ci_inner_join_cube");
-        QueryStatsExtractor extractor = new QueryStatsExtractor(testCubeDesc,
-                new String[] { "select count(*) from test_kylin_fact" });
-        QueryStats stats = extractor.extract();
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc("ci_inner_join_cube");
+        String[] sqls = { "select count(*) from test_kylin_fact", "select 1", "abcd",
+                "select a,b,c from test_kylin_fact", "select price from test_kylin_fact group by price" };
+        QueryDryRunner runner = new QueryDryRunner(cubeDesc, sqls);
+        runner.execute();
+
+        QueryStats stats = runner.getQueryStats();
         Assert.assertEquals(1, stats.getTotalQueries());
+
+        List<SqlResult> results = runner.getQueryResults();
+        Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(0).getStatus());
+        Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(1).getStatus());
+        Assert.assertEquals(SqlResult.Status.FAILED, results.get(2).getStatus());
+        Assert.assertEquals(SqlResult.Status.FAILED, results.get(3).getStatus());
+        Assert.assertEquals(SqlResult.Status.FAILED, results.get(4).getStatus());
     }
 }

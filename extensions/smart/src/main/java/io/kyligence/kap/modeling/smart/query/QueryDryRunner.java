@@ -29,8 +29,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -47,22 +47,31 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationType;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.query.mockup.Utils;
 
-public class QueryStatsExtractor {
+public class QueryDryRunner {
     private final CubeDesc cubeDesc;
     private final String[] sqls;
 
-    public QueryStatsExtractor(CubeDesc cubeDesc, String[] sqls) {
+    private QueryStats queryStats;
+    private List<SqlResult> queryResults = Lists.newArrayList();
+
+    public QueryDryRunner(CubeDesc cubeDesc, String[] sqls) {
         this.cubeDesc = cubeDesc;
         this.sqls = sqls;
     }
 
-    public QueryStats extract() throws Exception {
-        final String projectName = UUID.randomUUID().toString();
+    public void execute() throws Exception {
+        if (queryStats != null && !queryResults.isEmpty()) {
+            return;
+        }
+
+        final String projectName = cubeDesc.getProject();
         final File localMetaDir = prepareLocalMetaStore(projectName, cubeDesc);
         final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
@@ -77,8 +86,9 @@ public class QueryStatsExtractor {
                     for (String sql : sqls) {
                         try {
                             queryExecutor.execute(projectName, sql);
+                            queryResults.add(new SqlResult(SqlResult.Status.SUCCESS, null));
                         } catch (Exception e) {
-                            // ignore
+                            queryResults.add(new SqlResult(SqlResult.Status.FAILED, e.getMessage()));
                         }
                     }
                     return queryRecorder.getResult();
@@ -93,12 +103,20 @@ public class QueryStatsExtractor {
         new Thread(future).start();
 
         try {
-            return future.get();
+            queryStats = future.get();
         } catch (InterruptedException | ExecutionException e) {
-            return null;
+            queryStats = null;
         } finally {
             FileUtils.forceDelete(localMetaDir);
         }
+    }
+
+    public QueryStats getQueryStats() {
+        return queryStats;
+    }
+
+    public List<SqlResult> getQueryResults() {
+        return queryResults;
     }
 
     private File prepareLocalMetaStore(String projName, CubeDesc cubeDesc) throws IOException, URISyntaxException {

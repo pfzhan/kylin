@@ -39,15 +39,18 @@ import io.kyligence.kap.modeling.smart.query.QueryStats;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-
 public class CubeOptimizeLog extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(CubeOptimizeLog.class);
 
     @JsonProperty("cube_name")
+
     private String cubeName;
 
     @JsonProperty("sample_sqls")
     private List<String> sampleSqls = new ArrayList<>();
+
+    @JsonProperty("sql_results")
+    private List<SqlResult> sqlResult = new ArrayList<>();
 
     @JsonProperty("query_stats")
     private QueryStats queryStats;
@@ -79,8 +82,20 @@ public class CubeOptimizeLog extends RootPersistentEntity {
         return this.sampleSqls;
     }
 
+    public List<SqlResult> getSqlResult() {
+        return sqlResult;
+    }
+
+    public void setSqlResult(List<SqlResult> sqlResult) {
+        this.sqlResult = sqlResult;
+    }
+
     public String getResourcePath() {
         return CubeOptimizeLogManager.CUBE_OPTIMIZE_LOG_STATISTICS_ROOT + "/" + cubeName
                 + MetadataConstants.FILE_SURFIX;
+    }
+
+    public boolean isValid() {
+        return sampleSqls.size() == sqlResult.size();
     }
 }

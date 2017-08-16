@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.modeling.smart.common.ModelingConfig;
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.modeling.smart.domain.Domain;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.stats.ICubeStats;
@@ -59,6 +60,7 @@ public class ModelingContext {
     private Domain domain;
     private String cubeName;
     private ICubeStats cubeStats;
+    private List<SqlResult> sqlResults;
 
     ModelingContext(ModelingConfig modelingConfig) {
         this.modelingConfig = modelingConfig;
@@ -77,6 +79,14 @@ public class ModelingContext {
         if (modelStats == null && cubeDesc != null) {
             initModelStatsFromCubeStats(cubeDesc);
         }
+    }
+
+    public List<SqlResult> getSqlResults() {
+        return sqlResults;
+    }
+
+    public void setSqlResults(List<SqlResult> sqlResults) {
+        this.sqlResults = sqlResults;
     }
 
     private void initModelStatsFromCubeStats(CubeDesc cubeDesc) {

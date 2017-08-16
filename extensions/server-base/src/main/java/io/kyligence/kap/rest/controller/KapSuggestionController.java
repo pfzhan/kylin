@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -44,6 +45,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.rest.service.KapSuggestionService;
 
 @Controller
@@ -60,17 +65,28 @@ public class KapSuggestionController extends BasicController {
     @ResponseBody
     public EnvelopeResponse saveSampleSqls(@PathVariable String modelName, @PathVariable String cubeName,
             @RequestBody List<String> sqls) throws Exception {
-
         kapSuggestionService.saveSampleSqls(modelName, cubeName, sqls);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "{modelName}/{cubeName}/check_sql", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse checkSampleSqls(@PathVariable String modelName, @PathVariable String cubeName,
+            @RequestBody List<String> sqls) throws Exception {
+        List<SqlResult> data = kapSuggestionService.checkSampleSqls(modelName, cubeName, sqls);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     @RequestMapping(value = "{cubeName}/get_sql", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSampleSqls(@PathVariable String cubeName) throws Exception {
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getSampleSqls(cubeName), "");
+        CubeOptimizeLog optLog = kapSuggestionService.getCubeOptLog(cubeName);
+        Map<String, Object> data = Maps.newHashMap();
+        data.put("sqls", optLog.getSampleSqls());
+        data.put("results", optLog.getSqlResult());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     @RequestMapping(value = "{modelName}/{cubeName}/dimension_measure", method = { RequestMethod.POST }, produces = {

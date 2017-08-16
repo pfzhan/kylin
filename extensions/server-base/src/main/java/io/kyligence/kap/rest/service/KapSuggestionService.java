@@ -35,22 +35,26 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.modeling.smart.ModelingContext;
 import io.kyligence.kap.modeling.smart.ModelingMaster;
 import io.kyligence.kap.modeling.smart.ModelingMasterFactory;
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 
 @Component("kapSuggestionService")
 public class KapSuggestionService extends BasicService {
     public void saveSampleSqls(String modelName, String cubeName, List<String> sampleSqls) throws Exception {
-        CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
-        CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
-
         if (sampleSqls.size() == 0)
             return;
 
-        if (!isSampleSqlUpdated(sampleSqls, cubeOptimizeLog.getSampleSqls()))
+        CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
+        CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
+
+        if (!isSampleSqlUpdated(sampleSqls, cubeOptimizeLog.getSampleSqls()) && cubeOptimizeLog.isValid())
             return;
 
         String[] sqlArray = new String[sampleSqls.size()];
@@ -59,15 +63,38 @@ public class KapSuggestionService extends BasicService {
         DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
         ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc, sqlArray);
 
-        cubeOptimizeLog.setQueryStats(modelingMaster.getContext().getQueryStats());
+        ModelingContext modelingContext = modelingMaster.getContext();
         cubeOptimizeLog.setSampleSqls(sampleSqls);
+        cubeOptimizeLog.setQueryStats(modelingContext.getQueryStats());
+        cubeOptimizeLog.setSqlResult(modelingContext.getSqlResults());
         cubeOptimizeLogManager.saveCubeOptimizeLog(cubeOptimizeLog);
     }
 
-    public List<String> getSampleSqls(String cubeName) throws IOException {
+    public List<SqlResult> checkSampleSqls(String modelName, String cubeName, List<String> sampleSqls)
+            throws Exception {
+        if (sampleSqls.size() == 0)
+            return Lists.newArrayList();
+
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
         CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
-        return cubeOptimizeLog.getSampleSqls();
+
+        if (!isSampleSqlUpdated(sampleSqls, cubeOptimizeLog.getSampleSqls()) && cubeOptimizeLog.isValid())
+            return cubeOptimizeLog.getSqlResult();
+
+        String[] sqlArray = new String[sampleSqls.size()];
+        sampleSqls.toArray(sqlArray);
+
+        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
+        ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc, sqlArray);
+
+        ModelingContext modelingContext = modelingMaster.getContext();
+        return modelingContext.getSqlResults();
+    }
+
+    public CubeOptimizeLog getCubeOptLog(String cubeName) throws IOException {
+        CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
+        CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
+        return cubeOptimizeLog;
     }
 
     public CubeDesc proposeAggGroups(CubeDesc cubeDesc) throws IOException {

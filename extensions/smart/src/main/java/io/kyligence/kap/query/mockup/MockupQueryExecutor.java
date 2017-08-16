@@ -68,10 +68,11 @@ public class MockupQueryExecutor implements Closeable {
                 for (StackTraceElement s : stackTrace) {
                     if (s.toString().contains(LookupTableEnumerator.class.getName())) {
                         logger.info("Skip dry run because this query only hits lookup tables.");
-                        break;
+                        return;
                     }
                 }
             }
+            throw e;
         } finally {
             DBUtils.closeQuietly(statement);
             DBUtils.closeQuietly(resultSet);
