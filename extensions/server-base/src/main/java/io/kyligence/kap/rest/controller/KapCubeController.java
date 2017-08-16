@@ -171,7 +171,16 @@ public class KapCubeController extends BasicController implements InitializingBe
     public EnvelopeResponse calculateCubeCuboidCombination(@RequestBody String cubeDescStr) throws IOException {
         CubeDesc cubeDesc = deserializeCubeDesc(cubeDescStr);
         cubeDesc.init(KylinConfig.getInstanceFromEnv());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cubeDesc.getAllCuboids().size(), "");
+
+        List<Long> cuboidCnt = Lists.newArrayList();
+        cuboidCnt.add((long) cubeDesc.getAllCuboids().size());
+        for (AggregationGroup agg : cubeDesc.getAggregationGroups()) {
+            if (agg != null) {
+                cuboidCnt.add(agg.calculateCuboidCombination());
+            }
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cuboidCnt, "");
     }
 
     private CubeDesc deserializeCubeDesc(String cubeDescStr) throws IOException {

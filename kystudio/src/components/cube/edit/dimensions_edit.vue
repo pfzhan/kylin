@@ -81,7 +81,7 @@
       <div class="line" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
        <el-row class="row_padding border_bottom agg_tag" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length" v-for="(group, group_index) in cubeDesc.aggregation_groups" :key="group_index" style="border-bottom: 0;">
         <div style="height: 30px;line-height: 30px;margin-top: -15px;">
-          <span style="float: right;color: rgba(255,255,255,0.5);">Cuboid Number: <i class="cuboid_number">{{cuboidList[group_index]}} {{groupErrorList[group_index]}}</i></span>
+          <span style="float: right;color: rgba(255,255,255,0.5);">Cuboid Number: <i class="cuboid_number">{{cuboidList[group_index]}} <span style="color:#ff4949">{{groupErrorList[group_index]}}</span></i></span>
         </div>
         <el-col :span="24">
           <el-card class="ksd_noshadow" style="border: none;">
@@ -685,27 +685,6 @@ export default {
     refreshAggragation: function (groupindex) {
       this.$nextTick(() => {
         this.updateIncludesDimUsed(groupindex)
-        groupindex = groupindex || 0
-        if (this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex]) {
-          this.$set(this.cuboidList, groupindex, this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex])
-          this.$set(this.groupErrorList, groupindex, '')
-          return
-        }
-        clearTimeout(this.ST)
-        this.ST = setTimeout(() => {
-          this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: groupindex}).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.cuboidCache[JSON.stringify(this.cubeDesc) + groupindex] = data
-              this.$set(this.cuboidList, groupindex, data)
-              this.$set(this.groupErrorList, groupindex, '')
-            })
-          }).catch((res) => {
-            handleError(res, (data, code, status, msg) => {
-              this.$set(this.cuboidList, groupindex, '-')
-              this.$set(this.groupErrorList, groupindex, msg)
-            })
-          })
-        }, 1000)
       })
     },
     initCalCuboid: function () {
@@ -715,21 +694,56 @@ export default {
       this.calcAllCuboid()
     },
     calcAllCuboid: function () {
-      if (this.cuboidCache[JSON.stringify(this.cubeDesc) + '-1']) {
-        this.totalCuboid = this.cuboidCache[JSON.stringify(this.cubeDesc) + '-1']
+      this.groupErrorList = []
+      if (this.cuboidCache[JSON.stringify(this.cubeDesc)]) {
+        let cacheData = this.cuboidCache[JSON.stringify(this.cubeDesc)]
+        var data = cacheData.slice(0)
+        this.totalCuboid = data && data[0]
+        data = data.splice(1, data.length)
+        data.forEach((cuboid, index) => {
+          this.$set(this.cuboidList, index, cuboid)
+        })
         this.applyLoading = false
         return
       }
-      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc), aggIndex: -1}).then((res) => {
+      this.calCuboid({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          this.totalCuboid = data
+          if (data) {
+            this.cuboidCache[JSON.stringify(this.cubeDesc)] = data.slice(0)
+            this.totalCuboid = data && data[0]
+            data = data.splice(1, data.length)
+            data.forEach((cuboid, index) => {
+              this.$set(this.cuboidList, index, cuboid)
+            })
+          }
         })
         this.applyLoading = false
-      }).catch((res) => {
+      }, (res) => {
         handleError(res, (data, code, status, msg) => {
-          // this.$set(this.groupErrorList, groupindex, msg)
+          this.groupErrorList = []
+          var nullAggIndex = -1
+          this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
+            if (aggregationGroup.includes.length < 1) {
+              nullAggIndex = groupIndex
+            }
+          })
+          // 解析出是哪个组的错误
+          var groupIndex = msg && msg.replace(/^Aggregation\s+group\s+(\d+).*?$/, '$1')
+          if (groupIndex === msg && nullAggIndex !== -1) {
+            // 如果有空agg在空agg处报错
+            groupIndex = nullAggIndex
+          }
+          // 否则全局弹出提示
+          if (!/^\d+$/.test(groupIndex)) {
+            this.$message(msg)
+          } else {
+            this.$set(this.groupErrorList, groupIndex, msg)
+          }
           this.applyLoading = false
-          this.totalCuboid = '-'
+          this.totalCuboid = 'N/A'
+          this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
+            this.$set(this.cuboidList, groupIndex, 'N/A')
+          })
         })
       })
     },

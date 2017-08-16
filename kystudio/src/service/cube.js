@@ -64,12 +64,12 @@ export default {
     return Vue.resource(apiUrl + 'cubes?cubeName=' + para.cubeName + '&projectName=' + para.project).get()
   },
   calCuboid: (cubeDesc) => {
-    var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
-    return Vue.resource(apiUrl + 'cubes/' + resultUrl).save(cubeDesc.cubeDescData)
+    // var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
+    return Vue.resource(apiUrl + 'cubes/cuboid').save(cubeDesc.cubeDescData)
   },
-  calAllCuboid: (cubeDesc) => {
-    return Vue.resource(apiUrl + 'cubes/aggregationgroups/cuboid').save(cubeDesc.cubeDescData)
-  },
+  // calAllCuboid: (cubeDesc) => {
+  //   return Vue.resource(apiUrl + 'cubes/aggregationgroups/cuboid').save(cubeDesc.cubeDescData)
+  // },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'encodings/valid_encodings').get()
   },
