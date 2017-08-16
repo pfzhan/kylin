@@ -127,7 +127,7 @@ export default {
   created () {
     let _this = this
     if (!_this.cube.desc) {
-      this.loadCubeDesc(_this.cube.name).then((res) => {
+      this.loadCubeDesc({cubeName: _this.cube.name, project: _this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           _this.$set(_this.cube, 'desc', data.cube)
         })
@@ -136,7 +136,7 @@ export default {
       })
     }
     if (!_this.cube.modelDesc) {
-      _this.loadModelInfo(_this.cube.model).then((res) => {
+      _this.loadModelInfo({modelName: _this.cube.model, project: _this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           _this.$set(_this.cube, 'modelDesc', data.model)
           _this.getTables()

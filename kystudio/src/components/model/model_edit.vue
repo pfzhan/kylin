@@ -248,7 +248,7 @@
 <script>
 import { jsPlumb } from 'jsplumb'
 import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray, isIE } from '../../util/index'
-import { NamedRegex, DatePartitionRule, TimePartitionRule, IntegerType } from '../../config'
+import { NamedRegex, DatePartitionRule, permissions, TimePartitionRule, IntegerType } from '../../config'
 import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
@@ -256,7 +256,7 @@ import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
 import partitionColumn from 'components/model/model_partition.vue'
-import { handleSuccess, handleError, hasRole, filterNullValInObj, kapConfirm } from 'util/business'
+import { handleSuccess, handleError, hasRole, filterNullValInObj, kapConfirm, hasPermission } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
@@ -449,8 +449,7 @@ export default {
       getUsedCols: 'GET_USED_COLS',
       getCubesList: 'GET_CUBES_LIST',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
-      statsModel: 'COLLECT_MODEL_STATS',
-      loadDataSource: 'LOAD_DATASOURCE'
+      statsModel: 'COLLECT_MODEL_STATS'
     }),
     toggleFullScreen () {
       this.isFullScreen = !this.isFullScreen
@@ -607,7 +606,7 @@ export default {
     createCube () {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
-          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.cubeMeta.projectName}).then((res) => {
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
                 this.$message({
@@ -630,9 +629,24 @@ export default {
         }
       })
     },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasSomePermissionOfProject () {
+      var projectId = this.getProjectIdByName(this.project)
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    },
     renderCubeTree (h, {node, data, store}) {
       var _this = this
-      var addCubeDom = this.isAdmin ? '<span style="width:40px;height:60px; text-align:center;margin-left:30px;font-size:18px;" class="addCube" >+</span>' : ''
+      var addCubeDom = (this.isAdmin || this.hasSomePermissionOfProject()) ? '<span style="width:40px;height:60px; text-align:center;margin-left:30px;font-size:18px;" class="addCube" >+</span>' : ''
       return this.$createElement('div', {
         class: [{'el-tree-node__label': true, 'leaf-label': node.isLeaf && node.level !== 1}, node.icon],
         domProps: {
@@ -1839,7 +1853,7 @@ export default {
       // 编辑模式
       // var actionModelName = this.extraoption.status ? this.extraoption.modelName + '_draft' : this.extraoption.modelName
       var actionModelName = this.extraoption.modelName
-      this.getModelByModelName(actionModelName).then((response) => {
+      this.getModelByModelName({modelName: actionModelName, project: this.extraoption.project}).then((response) => {
         handleSuccess(response, (data) => {
           this.modelData = data.model
           this.draftData = data.draft

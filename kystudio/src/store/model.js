@@ -40,8 +40,8 @@ export default {
           if (response.data.data.models[i].is_draft) {
             continue
           }
-          dispatch(types.GET_MODEL_ACCESS, response.data.data.models[i].uuid)
-          dispatch(types.GET_MODEL_END_ACCESS, response.data.data.models[i].uuid)
+          // dispatch(types.GET_MODEL_ACCESS, response.data.data.models[i].uuid)
+          // dispatch(types.GET_MODEL_END_ACCESS, response.data.data.models[i].uuid)
         }
         commit(types.SAVE_MODEL_LIST, { list: response.data.data.models, total: response.data.data.size })
         return response
@@ -82,8 +82,8 @@ export default {
         commit(types.CACHE_MODEL_DIANOSELIST, { data: res.data.data })
       })
     },
-    [types.CHECK_MODELNAME]: function ({ commit }, modelName) {
-      return api.model.checkModelName(modelName)
+    [types.CHECK_MODELNAME]: function ({ commit }, para) {
+      return api.model.checkModelName(para)
     },
     [types.GET_USED_COLS]: function ({ commit }, modelName) {
       return api.model.checkUsedCols(modelName)

@@ -130,7 +130,7 @@ export function hasPermission (vue, projectId) {
   if (!curUser) {
     return curUser
   }
-  var hasPermission = false
+  var hasPermission1 = false
   var masks = []
   for (var i = 2; i < arguments.length; i++) {
     if (arguments[i]) {
@@ -141,12 +141,14 @@ export function hasPermission (vue, projectId) {
     entity.forEach((acessEntity, index) => {
       if (masks.indexOf(acessEntity.permission.mask) !== -1) {
         if ((curUser.username === acessEntity.sid.principal)) {
-          hasPermission = true
+          hasPermission1 = true
         }
       }
     })
   }
-  return hasPermission
+  // 为了测试先全部true
+  // return hasPermission || true
+  return hasPermission1
 }
 // 检测是否有cube的某种权限
 export function hasPermissionOfCube (vue, cubeId) {
@@ -171,7 +173,9 @@ export function hasPermissionOfCube (vue, cubeId) {
       }
     })
   }
-  return hasPermission
+  // 为了测试先全部true
+  return hasPermission || true
+  // return hasPermission
 }
 
 // 检测是否有cube的某种权限
@@ -197,7 +201,9 @@ export function hasPermissionOfModel (vue, modelId) {
       }
     })
   }
-  return hasPermission
+  // 为了测试先全部true
+  return hasPermission || true
+  // return hasPermission
 }
 // 检测当前用户是否有某种角色
 export function hasRole (vue, roleName) {

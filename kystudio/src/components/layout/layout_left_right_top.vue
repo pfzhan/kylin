@@ -19,9 +19,10 @@
     </aside>
     <div class="topbar">
       <icon name="bars" style="color: #d4d7e3;" v-on:click.native="toggleMenu"></icon>
-      <project_select v-show='gloalProjectSelectShow' class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
+      <project_select  class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select>
+      <!--  <project_select v-show='gloalProjectSelectShow' class="project_select" v-on:changePro="changeProject" ref="projectSelect"></project_select> -->
       <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'isProjectPage':defaultActive==='projectActive'}" @click="goToProjectList"><icon name="window-restore" scale="0.8"></icon></el-button>
-      <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isModeler&&gloalProjectSelectShow"><icon name="plus" scale="0.8"></icon></el-button>
+      <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin"><icon name="plus" scale="0.8"></icon></el-button>
 
       <ul class="topUl">
         <li><help></help></li>
@@ -257,13 +258,14 @@
       },
       changeProject () {
         var currentPath = this.$router.currentRoute.path
-        this.$router.replace('/')
+        if (currentPath.indexOf('dashboard') < 0) {
+          this.$router.replace('/')
+        } else {
+          this.$router.replace('/system/config')
+        }
         this.$nextTick(() => {
           this.$router.replace(currentPath)
         })
-        // if (navigator.userAgent.indexOf('Safari') > 0) {
-        //   location.reload()
-        // }
       },
       addProject () {
         this.FormVisible = true

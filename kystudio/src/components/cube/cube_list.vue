@@ -11,7 +11,7 @@
       </el-option>
     </el-select>
     <el-input v-model="filterCube" icon="search" class="ksd-mb-10 ksd-ml-10 ksd-fleft" @change="filterChange" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
-    <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isModeler" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
+    <el-button type="blue" class="ksd-mb-10 ksd-fleft" v-if="isAdmin || hasSomePermissionOfProject(selected_project)" @click.native="addCube" style="font-weight: bold;border-radius: 20px;float: left;margin-left: 20px;">+{{$t('kylinLang.common.cube')}}</el-button>
   </el-row>
 
   <el-table id="cube-list-table"  v-show="cubesList&&cubesList.length"
@@ -32,9 +32,9 @@
           <el-tab-pane label="JSON" name="third" v-if="!props.row.is_draft">
             <show_json :json="props.row.desc" ></show_json>
           </el-tab-pane>
-          <el-tab-pane label="Access" name="fourth" v-if="!props.row.is_draft">
+          <!-- <el-tab-pane label="Access" name="fourth" v-if="!props.row.is_draft">
             <access_edit  :accessId="props.row.uuid" own='cube'></access_edit>
-          </el-tab-pane>
+          </el-tab-pane> -->
           <el-tab-pane :label="$t('storage')" name="fifth" v-if="!props.row.is_draft">
             <segments :cube="props.row"></segments>
           </el-tab-pane>
@@ -109,24 +109,24 @@
        width="70"
       :label="$t('actions')">
       <template scope="scope">
-      <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
-        <el-dropdown trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
+      <span v-if="!(isAdmin || hasSomePermissionOfProject(scope.row.project) || hasOperationPermissionOfProject(selected_project))"> N/A</span>
+        <el-dropdown trigger="click" v-show="isAdmin || hasSomePermissionOfProject(scope.row.project) || hasOperationPermissionOfProject(selected_project) ">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-show="scope.row.status !=='READY'" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="edit(scope.row)">{{$t('edit')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft" @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!== 'DESCBROKEN'&& !scope.row.is_draft" @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status !=='READY' && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="edit(scope.row)" v-show="isAdmin || hasSomePermissionOfProject(selected_project)">{{$t('edit')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!== 'DESCBROKEN'&& !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status=='DISABLED' && !scope.row.is_draft" @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status ==='READY' && !scope.row.is_draft" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status ==='READY' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft " @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
+            <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
 
-            <el-dropdown-item @click.native="view(scope.row)" style="border-top:solid 1px rgb(68, 75, 103)">{{$t('viewCube')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="view(scope.row)" v-show="isAdmin" style="border-top:solid 1px rgb(68, 75, 103)">{{$t('viewCube')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project))  ">{{$t('backup')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status==='DISABLED'&&!scope.row.is_draft" @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
             </el-dropdown-menu>
         </el-dropdown>
@@ -224,7 +224,7 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermissionOfCube, kapConfirm } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermission, kapConfirm } from '../../util/business'
 export default {
   name: 'cubeslist',
   props: ['extraoption'],
@@ -344,7 +344,7 @@ export default {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.selected_project}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
@@ -407,7 +407,7 @@ export default {
           if (cubesNameList.length > 0) {
             cubesNameList.forEach((cubename) => {
               // this.totalSizeList[cubename] = 0
-              this.loadCubeDesc(cubename).then((res) => {
+              this.loadCubeDesc({cubeName: cubename, project: this.selected_project}).then((res) => {
                 var innerCubeName = cubename
                 handleSuccess(res, (data) => {
                   if (data.cube.storage_type === 100 || data.cube.storage_type === 99) {
@@ -452,7 +452,7 @@ export default {
         return
       }
       kapConfirm(this.$t('deleteCube')).then(() => {
-        this.deleteCube(cube.name).then((res) => {
+        this.deleteCube({cubeName: cube.name, project: cube.project}).then((res) => {
           handleSuccess(res, (data) => {
             this.$message({
               type: 'success',
@@ -714,8 +714,28 @@ export default {
         tab.$children[0].loadSegments()
       }
     },
-    hasPermission (cubeId) {
-      return hasPermissionOfCube(this, cubeId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasSomePermissionOfProject (project) {
+      var projectId = this.getProjectIdByName(project)
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    },
+    hasQueryPermissionOfProject (project) {
+      var projectId = this.getProjectIdByName(project)
+      return hasPermission(this, projectId, permissions.READ.mask)
+    },
+    hasOperationPermissionOfProject (project) {
+      var projectId = this.getProjectIdByName(project)
+      return hasPermission(this, projectId, permissions.OPERATION.mask)
     },
     loadAllModels () {
       this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
@@ -741,9 +761,6 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
-    },
-    isModeler () {
-      return hasRole(this, 'ROLE_MODELER')
     },
     isViewCubeMode () {
       return !!(this.extraoption && this.extraoption.cubeName)

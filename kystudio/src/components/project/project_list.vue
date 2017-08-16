@@ -1,6 +1,6 @@
 <template>
   <div class="paddingbox" id="project-list">
- <el-button style="border-radius: 20px;" type="blue" class="ksd-mb-10" v-if="isModeler" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
+ <el-button style="border-radius: 20px;" type="blue" class="ksd-mb-10" v-if="isAdmin" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
  <img src="../../assets/img/no_project.png" class="null_pic" v-if="!(projectList && projectList.length)">
   <el-table v-if="projectList && projectList.length"
     :data="projectList"
@@ -45,15 +45,15 @@
     <el-table-column 
       :label="$t('action')">
       <template scope="scope">
-      <span v-if="!(isAdmin || hasSomePermission(scope.row.uuid))">N/A</span>
-      <el-dropdown trigger="click" v-if="isAdmin || hasSomePermission(scope.row.uuid)">
+      <span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span>
+      <el-dropdown trigger="click" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">
       <el-button class="el-dropdown-link">
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown" >
-        <el-dropdown-item @click.native="editProject(scope.row)">{{$t('edit')}}</el-dropdown-item> 
-        <el-dropdown-item @click.native="backup(scope.row)">{{$t('backup')}}</el-dropdown-item>
-        <el-dropdown-item @click.native="removeProject(scope.row)">{{$t('delete')}}</el-dropdown-item>
+        <el-dropdown-item @click.native="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('edit')}}</el-dropdown-item> 
+        <el-dropdown-item @click.native="backup(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('backup')}}</el-dropdown-item>
+        <el-dropdown-item @click.native="removeProject(scope.row)" v-if="isAdmin">{{$t('delete')}}</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
       </template>      
@@ -189,8 +189,8 @@ export default {
         sid: ''
       }
     },
-    hasSomePermission (pid) {
-      return hasPermission(this, pid, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+    hasAdminProjectPermission (pid) {
+      return hasPermission(this, pid, permissions.ADMINISTRATION.mask)
     },
     resetProjectForm () {
       this.$refs['projectForm'].$refs['projectForm'].resetFields()
@@ -241,9 +241,6 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
-    },
-    isModeler () {
-      return hasRole(this, 'ROLE_MODELER')
     }
   },
   created () {

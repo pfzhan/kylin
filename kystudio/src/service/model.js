@@ -11,14 +11,14 @@ export default {
   measureDimensionSuggestion: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.project + '/table_suggestions').get(params)
   },
-  getModelByModelName: (modelname) => {
-    return Vue.resource(apiUrl + 'model_desc/' + modelname).get()
+  getModelByModelName: (para) => {
+    return Vue.resource(apiUrl + 'model_desc/' + para.project + '/' + para.modelName).get()
   },
-  deleteModel: (modelname) => {
-    return Vue.resource(apiUrl + 'models/' + modelname).delete()
+  deleteModel: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName).delete()
   },
-  collectStats: (params) => {
-    return Vue.resource(apiUrl + 'models/' + params.project + '/' + params.modelname + '/stats').save(params.data)
+  collectStats: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelname + '/stats').save(para.data)
   },
   updateModel: (data) => {
     return Vue.resource(apiUrl + 'models/').update(data)
@@ -42,8 +42,8 @@ export default {
       pageSize: pageSize
     })
   },
-  checkModelName: (modelName) => {
-    return Vue.resource(apiUrl + 'models?modelName=' + modelName).get()
+  checkModelName: (para) => {
+    return Vue.resource(apiUrl + 'models?modelName=' + para.modelName + '&projectName=' + para.project).get()
   },
   checkUsedCols: (modelName) => {
     return Vue.resource(apiUrl + 'models/' + modelName + '/usedCols').get()

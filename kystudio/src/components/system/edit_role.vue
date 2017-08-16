@@ -7,8 +7,8 @@
     </el-tag>
     </el-form-item>
     <el-form-item :label="$t('role')">
-      <el-checkbox v-model="userDetail.analyst">{{$t('analyst')}}</el-checkbox>
-      <el-checkbox v-model="userDetail.modeler">{{$t('modeler')}}</el-checkbox>
+      <!-- <el-checkbox v-model="userDetail.analyst">{{$t('analyst')}}</el-checkbox>
+      <el-checkbox v-model="userDetail.modeler">{{$t('modeler')}}</el-checkbox> -->
       <el-checkbox v-model="userDetail.admin">{{$t('admin')}}</el-checkbox>
     </el-form-item>
   </el-form>

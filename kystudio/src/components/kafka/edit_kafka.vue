@@ -81,8 +81,6 @@
     </el-form>
 </template>
 <script>
-import { mapActions } from 'vuex'
-// import { handleSuccess } from '../../util/business'
 export default {
   name: 'editKafka',
   props: ['tableName', 'streamingData', 'streamingConfig'],
@@ -100,10 +98,6 @@ export default {
     }
   },
   methods: {
-    ...mapActions({
-      getKafkaTableDetail: 'GET_KAFKA_CONFIG',
-      getStreamingConfig: 'LOAD_STREAMING_CONFIG'
-    }),
     addBroker: function () {
       // if (this.currentCheck === -1) {
       this.kafkaMeta.clusters[0].brokers.push({id: '', host: '', port: ''})

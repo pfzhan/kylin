@@ -2,7 +2,7 @@
 <div class="user-list">  
   <el-row>
     <el-col :span="1">
-      <el-button type="primary" v-if="$store.state.system.securityProfile === 'testing'" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
+      <el-button type="primary" v-if="$store.state.system.securityProfile === 'testing' && (hasAdminProjectPermission() || isAdmin)" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
     </el-col>
   </el-row>
   <el-alert v-if="$store.state.system.securityProfile !== 'testing'" class="ksd-mt-20"
@@ -28,28 +28,16 @@
       </template>
     </el-table-column>
     <el-table-column
-      :label="$t('modeler')">
-      <template scope="scope">
-        <i class="el-icon-check" v-if="scope.row.modeler"></i>
-      </template>
-    </el-table-column>
-    <el-table-column
-      :label="$t('analyst')">
-      <template scope="scope">
-        <i class="el-icon-check" v-if="scope.row.analyst"></i>
-      </template>
-    </el-table-column>
-    <el-table-column
       :label="$t('status')">
       <template scope="scope">
         <el-tag type="primary" v-if="scope.row.disabled">Disabled</el-tag>
         <el-tag type="success" v-else>Enabled</el-tag>
       </template>
     </el-table-column>
-    <el-table-column v-if="$store.state.system.securityProfile === 'testing'"
+    <el-table-column v-if="$store.state.system.securityProfile === 'testing' && (hasAdminProjectPermission() || isAdmin)"
       :label="$t('action')">
       <template scope="scope">
-        <el-dropdown trigger="click" v>
+        <el-dropdown trigger="click" >
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -107,11 +95,11 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleError } from '../../util/business'
+import { handleError, hasPermission, hasRole } from '../../util/business'
 import addUser from './add_user'
 import editRole from './edit_role'
 import resetPassword from './reset_password'
-import { pageCount } from '../../config'
+import { pageCount, permissions } from '../../config'
 export default {
   name: 'userslist',
   props: ['fromLogin'],
@@ -158,6 +146,20 @@ export default {
       }).catch((result) => {
         handleError(result)
       })
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasAdminProjectPermission () {
+      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
     },
     pageCurrentChange (pager) {
       this.currentPage = pager
@@ -299,6 +301,9 @@ export default {
     securityProfile () {
       return this.$store.state.system.securityProfile
     },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
+    },
     usersList () {
       let userData = []
       this.$store.state.user.usersList.forEach(function (user) {
@@ -330,8 +335,8 @@ export default {
     this.loadUsersList({pageSize: pageCount, pageOffset: this.currentPage - 1})
   },
   locales: {
-    'en': {user: 'User', userName: 'User Name', admin: 'Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.', refinePassword: ' Please redefine ADMIN\'s password while you login at the very first time.'},
-    'zh-cn': {user: '用户', userName: '用户名', admin: '管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。', refinePassword: '为了保证系统安全，首次登录后请重置ADMIN密码。'}
+    'en': {user: 'User', userName: 'User Name', admin: 'System Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.', refinePassword: ' Please redefine ADMIN\'s password while you login at the very first time.'},
+    'zh-cn': {user: '用户', userName: '用户名', admin: '系统管理人员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。', refinePassword: '为了保证系统安全，首次登录后请重置ADMIN密码。'}
   }
 }
 </script>

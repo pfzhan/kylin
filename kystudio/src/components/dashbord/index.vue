@@ -185,14 +185,14 @@ export default {
     })
   },
   created () {
-    var params = {pageSize: 1, pageOffset: 0}
+    var params = {pageSize: 1, pageOffset: 0, projectName: this.$store.state.project.selected_project}
     this.loadProjects({
       ignoreAccess: true
     })
     this.getCubesList(params)
     this.loadModels(params)
     this.loadUsersList(params)
-    this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 1})
+    this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 1, projectName: this.$store.state.project.selected_project})
   },
   locales: {
     'en': {'kapManual': 'KAP manual', 'kylinManual': 'Apache Kylin document'},

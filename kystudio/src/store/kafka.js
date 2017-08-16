@@ -18,17 +18,17 @@ export default {
     [types.SAVE_KAFKA]: function ({ commit }, kafka) {
       return api.kafka.saveKafka(kafka)
     },
-    [types.GET_CONFIG]: function ({ commit }, tableName) {
-      return api.kafka.getConfig(tableName)
+    [types.GET_CONFIG]: function ({ commit }, para) {
+      return api.kafka.getConfig(para.tableName, para.project)
     },
-    [types.GET_KAFKA_CONFIG]: function ({ commit }, tableName) {
-      return api.kafka.getKafkaConfig(tableName)
+    [types.GET_KAFKA_CONFIG]: function ({ commit }, para) {
+      return api.kafka.getKafkaConfig(para.tableName, para.project)
     },
     [types.LOAD_KAFKA_SAMPLEDATA]: function ({ commit }, para) {
       return api.kafka.loadKafkaSampleData(para.tableName, para.project)
     },
-    [types.LOAD_STREAMING_CONFIG]: function ({ commit }, tableName) {
-      return api.kafka.getStreamingConfig(tableName)
+    [types.LOAD_STREAMING_CONFIG]: function ({ commit }, para) {
+      return api.kafka.getStreamingConfig(para.tableName, para.project)
     },
     [types.UPDATE_KAFKA]: function ({ commit }, kafka) {
       return api.kafka.updateKafka(kafka)

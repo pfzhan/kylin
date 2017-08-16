@@ -5,8 +5,8 @@ import { apiUrl } from '../config'
 Vue.use(VueResource)
 
 export default {
-  loadDataSource: (project) => {
-    return Vue.resource(apiUrl + 'tables?ext=true&project=' + project).get()
+  loadDataSource: (para) => {
+    return Vue.resource(apiUrl + 'tables?ext=' + para.isExt + '&project=' + para.project).get()
   },
   loadDataSourceExt: (tableName, project) => {
     return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName).get()

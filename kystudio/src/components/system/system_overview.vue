@@ -1,8 +1,8 @@
 <template>
   <div class="system_box paddingbox ksd-common-tab">
     <el-tabs v-model="activeName" type="card"  @tab-click="handleClick">
-      <el-tab-pane :label="$t('system')" name="config">
-        <system ></system>
+      <el-tab-pane :label="$t('system')" name="config" >
+        <system v-if="isAdmin"></system>
       </el-tab-pane>
       <el-tab-pane :label="$t('user')" name="user">
        <users :fromLogin="fromLogin"></users>
@@ -13,6 +13,7 @@
 <script>
 import users from './users_list'
 import system from './system'
+import { hasRole } from '../../util/business'
 export default {
   data () {
     return {
@@ -27,6 +28,11 @@ export default {
   locales: {
     'en': {user: 'User', system: 'System'},
     'zh-cn': {user: '用户', system: '系统'}
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
+    }
   },
   methods: {
     handleClick (a) {

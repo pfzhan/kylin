@@ -194,7 +194,7 @@ export default {
       let _this = this
       let nameUsed = false
       if (!_this.isEdit) {
-        this.checkCubeNameAvailability(_this.cubeDetail.name).then((res) => {
+        this.checkCubeNameAvailability({cubeName: _this.cubeDetail.name, project: this.selected_project}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             if (data === false) {
               this.$message({
@@ -782,7 +782,7 @@ export default {
     loadCubeDetail: function () {
       var _this = this
       this.createNewCube()
-      this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
+      this.loadCubeDesc({cubeName: this.extraoption.cubeName, project: this.extraoption.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubeDetail = data.cube || data.draft
           if (data.cube && data.draft) {
@@ -813,7 +813,7 @@ export default {
           this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
-            _this.loadRawTable(_this.extraoption.cubeName).then((res) => {
+            _this.loadRawTable({cubeName: _this.extraoption.cubeName, project: this.selected_project}).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var rawtableData = isDraft ? data.draft : data.rawTable
                 if (rawtableData) {
@@ -825,7 +825,7 @@ export default {
           }
           function loadScheduler (isDraft) {
             _this.$store.state.cube.cubeSchedulerIsSetting = false
-            _this.getScheduler(_this.extraoption.cubeName).then((res) => {
+            _this.getScheduler({cubeName: _this.extraoption.cubeName, project: this.selected_project}).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var schedulerData = isDraft ? data.draft : data.schedulerJob
                 // this.initRepeatInterval(schedulerData)
@@ -916,8 +916,8 @@ export default {
     if (this.isEdit) {
       this.loadCubeDetail()
     }
-    this.loadDataSourceByProject(this.selected_project).then(() => {
-      this.loadModelInfo(this.extraoption.modelName).then((res) => {
+    this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
+      this.loadModelInfo({modelName: this.extraoption.modelName, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.renderCubeFirst = true
           this.modelDetail = data.model

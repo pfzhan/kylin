@@ -37,8 +37,8 @@ export default {
             if (res.data.data.cubes[i].is_draft) {
               continue
             }
-            dispatch(types.GET_CUBE_ACCESS, res.data.data.cubes[i].uuid)
-            dispatch(types.GET_CUBE_END_ACCESS, res.data.data.cubes[i].uuid)
+            // dispatch(types.GET_CUBE_ACCESS, res.data.data.cubes[i].uuid)
+            // dispatch(types.GET_CUBE_END_ACCESS, res.data.data.cubes[i].uuid)
           }
         }
         return res
@@ -92,8 +92,8 @@ export default {
     [types.DRAFT_CUBE]: function ({ commit }, cube) {
       return api.cube.draftCube(cube)
     },
-    [types.CHECK_CUBE_NAME_AVAILABILITY]: function ({ commit }, cubeName) {
-      return api.cube.checkCubeNameAvailability(cubeName)
+    [types.CHECK_CUBE_NAME_AVAILABILITY]: function ({ commit }, para) {
+      return api.cube.checkCubeNameAvailability(para)
     },
     [types.CAL_CUBOID]: function ({ commit }, cubeDesc) {
       return api.cube.calCuboid(cubeDesc)

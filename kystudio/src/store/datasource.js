@@ -27,9 +27,9 @@ export default {
     }
   },
   actions: {
-    [types.LOAD_DATASOURCE]: function ({ commit }, project) {
-      return api.datasource.loadDataSource(project).then((response) => {
-        commit(types.CACHE_DATASOURCE, { data: response.data.data, project: project })
+    [types.LOAD_DATASOURCE]: function ({ commit }, para) {
+      return api.datasource.loadDataSource(para).then((response) => {
+        commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.project })
         return response
       })
     },

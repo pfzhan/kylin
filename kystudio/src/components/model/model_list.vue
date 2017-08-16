@@ -1,7 +1,7 @@
 <template>
 	<div class="modelist_box">
    <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
-    <el-button type="blue" class="ksd-mb-10" id="addModel" v-if="isAdmin" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
+    <el-button type="blue" class="ksd-mb-10" id="addModel" v-if="isAdmin || hasPermissionOfProject(project)" @click="addModel" style="font-weight: bold;border-radius: 20px;"><span class="add">+</span><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
       <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
@@ -11,7 +11,7 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p style="font-size: 12px;padding-left: 10px;" class="title">{{$t('kylinLang.model.modifiedGrid')}} {{ o.gmtTime }}
-					<el-dropdown style="margin-right: 20px;" @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermission(o.uuid)">
+					<el-dropdown style="margin-right: 20px;" @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermissionOfProject(o.project)">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
 					  </span>
@@ -97,8 +97,8 @@
       width="100"
       :label="$t('kylinLang.common.action')">
        <template scope="scope">
-       <span v-if="!(isAdmin || hasPermission(scope.row.uuid))"> N/A</span>
-        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermission(scope.row.uuid)">
+       <span v-if="!(hasPermissionOfProject(scope.row.project))"> N/A</span>
+        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermissionOfProject(scope.row.project)">
            <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -260,7 +260,7 @@
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
 import { pageCount, modelHealthStatus, permissions, NamedRegex } from '../../config'
-import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermissionOfModel } from 'util/business'
+import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermission } from 'util/business'
 export default {
   data () {
     return {
@@ -378,6 +378,8 @@ export default {
       }
       this.loadModels(params).then(() => {
         this.loadModelDiagnoseList(params1)
+      }, (res) => {
+        handleError(res)
       })
     },
     viewModel (modelInfo) {
@@ -404,7 +406,7 @@ export default {
       this.$refs['addModelForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkModelName(this.createModelMeta.modelName).then((res) => {
+          this.checkModelName({modelName: this.createModelMeta.modelName, project: localStorage.getItem('selected_project')}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data.size === 0) {
@@ -440,7 +442,7 @@ export default {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkCubeName(this.cubeMeta.cubeName).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.cubeMeta.projectName}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
@@ -646,7 +648,7 @@ export default {
       })
     },
     drop () {
-      this.delModel(this.currentModelData.name).then(() => {
+      this.delModel({modelName: this.currentModelData.name, project: this.currentModelData.project}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
@@ -698,8 +700,16 @@ export default {
         })
       })
     },
-    hasPermission (modelId) {
-      return hasPermissionOfModel(this, modelId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+    hasPermissionOfProject (project) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === project) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     }
   },
   computed: {
@@ -731,25 +741,26 @@ export default {
   created () {
     var params = {pageSize: pageCount, pageOffset: 0}
     var params1 = {pageSize: pageCount, pageOffset: 0}
-    // console.log(this.project, 112233)
     if (localStorage.getItem('selected_project')) {
       params.projectName = localStorage.getItem('selected_project')
       params1.project = localStorage.getItem('selected_project')
     }
     this.loadModelDiagnoseList(params1).then(() => {
       this.loadModels(params)
+    }, (res) => {
+      handleError(res)
     })
     var cycleDiagnose = () => {
       window.clearTimeout(this.stCycleRequest)
       this.stCycleRequest = setTimeout(() => {
         if (this.$route.path !== '/studio/model') {
-          cycleDiagnose()
+          // cycleDiagnose()
           return
         }
         this.reloadDiagnoseList().then(() => {
           cycleDiagnose()
-        }, () => {
-          cycleDiagnose()
+        }, (res) => {
+          handleError(res)
         })
       }, 10000)
     }

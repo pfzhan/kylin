@@ -1,7 +1,7 @@
 <template>
 	<div class="datasource" id="datasource">
     <div class="tree_list">
-      <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin">
+      <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin || hasSomeProjectPermission(project)">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
@@ -14,8 +14,8 @@
          <p><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
        <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
-         <kap-icon-button v-if="tableData.source_type === 0" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
-         <kap-icon-button v-if="isAdmin" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+         <kap-icon-button v-if="tableData.source_type === 0 && (isAdmin || hasSomeProjectPermission(project))" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
+         <kap-icon-button v-if="isAdmin || hasSomeProjectPermission(project)" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
@@ -320,7 +320,8 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime } from '../../util/business'
+import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime, hasPermission } from '../../util/business'
+import { permissions } from '../../config'
 import { changeDataAxis, isFireFox } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
@@ -400,6 +401,17 @@ export default {
       getKafkaTableDetail: 'GET_KAFKA_CONFIG',
       getStreamingConfig: 'LOAD_STREAMING_CONFIG'
     }),
+    hasPermissionOfProject (project) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === project) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+    },
     filterColumnChange (filterVal) {
       if (filterVal) {
         this.tableColumnsByFilter = this.tableData.columns.filter((col) => {
@@ -589,7 +601,7 @@ export default {
       })
     },
     loadHiveTree () {
-      this.loadDataSourceByProject(this.project).then((response) => {
+      this.loadDataSourceByProject({project: this.project, isExt: true}).then((response) => {
         handleSuccess(response, (data, code) => {
           var datasourceData = data
           var datasourceTreeData = {
@@ -749,12 +761,12 @@ export default {
           this.sampleData = basicColumn.concat(sampleData)
           if (_this.tableData.source_type === 1) {
             this.currentStreamingTable = data.table_name
-            this.getKafkaTableDetail(this.currentStreamingTable).then((res) => {
+            this.getKafkaTableDetail({tableName: this.currentStreamingTable, project: this.project}).then((res) => {
               handleSuccess(res, (data) => {
                 this.currentStreamingTableData = data[0] || null
               })
             })
-            this.getStreamingConfig(this.currentStreamingTable).then((res) => {
+            this.getStreamingConfig({tableName: this.currentStreamingTable, project: this.project}).then((res) => {
               handleSuccess(res, (data) => {
                 this.currentStreamingConfig = data && data[0]
               })
@@ -864,6 +876,20 @@ export default {
         this.showTableDetail(data.kafkaMeta.name.split('.')[0], data.kafkaMeta.name.split('.')[1])
         handleError(res)
       })
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasSomeProjectPermission () {
+      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     }
   },
   computed: {

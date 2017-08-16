@@ -1,7 +1,7 @@
 <template>
 	<div class="sub_menu">
     <el-tabs v-model="subMenu" @tab-click="handleClick" class="el-tabs--default">
-      <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource">
+      <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource" v-if="isAdmin || hasSomePermissionOfProject()">
         <div v-if="subMenu === 'datasource'">
           <component is="dataSource" v-on:addtabs="addTab" ref="datsources" ></component>
         </div>
@@ -23,10 +23,12 @@
 import dataSource from '../datasource/data_source'
 import modelList from '../model/model_list'
 import cubeList from '../cube/cube_list'
+import { permissions } from '../../config'
+import { hasPermission, hasRole } from '../../util/business'
 export default {
   data () {
     return {
-      subMenu: ''
+      subMenu: 'model'
     }
   },
   components: {
@@ -51,6 +53,26 @@ export default {
       } else if (moduleName === 'cubeList') {
         this.$refs.cubes.reloadCubeList()
       }
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasSomePermissionOfProject () {
+      var projectId = this.getProjectIdByName(this.$store.state.project.selected_project)
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    }
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   mounted () {

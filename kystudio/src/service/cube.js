@@ -11,11 +11,11 @@ export default {
   getCubesSegmentsList: (cubesName) => {
     return Vue.resource(apiUrl + 'cubes/' + cubesName + '/columnar').get()
   },
-  getCubeDesc: (cubeName) => {
-    return Vue.resource(apiUrl + 'cube_desc/' + cubeName).get()
+  getCubeDesc: (para) => {
+    return Vue.resource(apiUrl + 'cube_desc/' + para.project + '/' + para.cubeName).get()
   },
-  deleteCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/' + cubeName).delete({})
+  deleteCube: (para) => {
+    return Vue.resource(apiUrl + 'cubes/' + para.project + '/' + para.cubeName).delete({})
   },
   rebuildCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes/' + cube.cubeName + '/rebuild').update(cube.timeZone)
@@ -60,8 +60,8 @@ export default {
   saveCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes').save(cube)
   },
-  checkCubeNameAvailability: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes?cubeName=' + cubeName).get()
+  checkCubeNameAvailability: (para) => {
+    return Vue.resource(apiUrl + 'cubes?cubeName=' + para.cubeName + '&projectName=' + para.project).get()
   },
   calCuboid: (cubeDesc) => {
     var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
@@ -76,8 +76,8 @@ export default {
   getEncodingVersion: () => {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()
   },
-  getRawTable: (cubeName) => {
-    return Vue.resource(apiUrl + 'raw_desc/' + cubeName).get()
+  getRawTable: (para) => {
+    return Vue.resource(apiUrl + 'raw_desc/' + para.project + '/' + para.cubeName).get()
   },
   updateRawTable: (rawTable) => {
     return Vue.resource(apiUrl + 'raw_desc').update(rawTable)
@@ -100,8 +100,8 @@ export default {
   getCubeSuggestDimensions: (cubeDesc) => {
     return Vue.resource(apiUrl + 'smart/' + cubeDesc.model + '/' + cubeDesc.cube + '/dimension_measure').save()
   },
-  getScheduler: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/scheduler_job').get()
+  getScheduler: (para) => {
+    return Vue.resource(apiUrl + 'cubes/' + para.project + '/' + para.cubeName + '/scheduler_job').get()
   },
   updateScheduler: (scheduler) => {
     return Vue.resource(apiUrl + 'cubes/' + scheduler.cubeName + '/schedule').update(scheduler.desc)

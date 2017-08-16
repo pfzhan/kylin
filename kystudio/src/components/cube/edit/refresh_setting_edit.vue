@@ -194,7 +194,7 @@ export default {
     },
     initScheduler: function () {
       // var schedulerName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
-      this.getScheduler(this.cubeDesc.name).then((res) => {
+      this.getScheduler({cubeName: this.cubeDesc.name, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           var schedulerData = this.cubeDesc.is_draft ? data.draft : data.schedulerJob
           if (schedulerData && schedulerData.enabled) {

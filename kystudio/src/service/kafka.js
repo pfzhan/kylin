@@ -20,16 +20,16 @@ export default {
   updateKafka: (kafka) => {
     return Vue.resource(apiUrl + 'streaming').update(kafka)
   },
-  getConfig: (tableName) => {
-    return Vue.resource(apiUrl + 'streaming/getConfig').get({table: tableName})
+  getConfig: (tableName, project) => {
+    return Vue.resource(apiUrl + 'streaming/getConfig').get({table: tableName, project: project})
   },
-  getKafkaConfig: (tableName) => {
-    return Vue.resource(apiUrl + 'streaming/getKfkConfig').get({kafkaConfigName: tableName})
+  getKafkaConfig: (tableName, project) => {
+    return Vue.resource(apiUrl + 'streaming/getKfkConfig').get({kafkaConfigName: tableName, project: project})
   },
   loadKafkaSampleData: (tableName, project) => {
     return Vue.resource(apiUrl + 'kafka/' + project + '/' + tableName + '/update_samples').get()
   },
-  getStreamingConfig: (tableName) => {
-    return Vue.resource(apiUrl + 'streaming/getConfig?table=' + tableName).get()
+  getStreamingConfig: (tableName, project) => {
+    return Vue.resource(apiUrl + 'streaming/getConfig').get({table: tableName, project: project})
   }
 }

@@ -21,7 +21,7 @@ export default {
   },
   created () {
     var _this = this
-    this.loadDataSourceByProject(this.project).then((res) => {
+    this.loadDataSourceByProject({project: this.project, isExt: false}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         var datasourceData = data
         var datasourceTreeData = {

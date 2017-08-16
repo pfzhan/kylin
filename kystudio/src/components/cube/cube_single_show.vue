@@ -210,7 +210,7 @@ export default {
         cancelButtonText: this.$t('cancel'),
         type: 'warning'
       }).then(() => {
-        this.deleteCube(cubeName).then((res) => {
+        this.deleteCube({cubeName: cubeName, project: this.selected_project}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$message({
               type: 'success',

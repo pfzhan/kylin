@@ -98,7 +98,7 @@ export default {
   created () {
     let _this = this
     if (!_this.cubeDesc.rawTable) {
-      _this.loadRawTable(this.cubeDesc.name).then((res) => {
+      _this.loadRawTable({cubeName: this.cubeDesc.name, project: this.cubeDesc.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           var rawData = data.rawTable || data.draft
           _this.$set(_this.cubeDesc, 'rawTable', rawData)
@@ -107,7 +107,7 @@ export default {
         handleError(res, () => {})
       })
     }
-    this.loadDataSourceByProject(this.cubeDesc.project)
+    this.loadDataSourceByProject({project: this.cubeDesc.project, isExt: true})
   },
   locales: {
     'en': {noRawTable: 'No Raw Table Configuration Information', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},

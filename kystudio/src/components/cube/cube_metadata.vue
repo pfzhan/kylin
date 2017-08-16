@@ -51,19 +51,20 @@ export default {
     if (this.extraoption.type === 'view') {
       this.json = JSON.stringify(this.extraoption.cubeDesc, 4, 4)
     } else {
-      this.loadCubeDesc(this.extraoption.cubeName).then((res) => {
+      var commonPara = {cubeName: this.extraoption.cubeName, project: this.extraoption.project}
+      this.loadCubeDesc(commonPara).then((res) => {
         handleSuccess(res, (data) => {
           this.json = JSON.stringify(data.cube || data.draft, 4, 4)
         })
       })
-      this.loadRawTable(this.extraoption.cubeName).then((res) => {
+      this.loadRawTable(commonPara).then((res) => {
         handleSuccess(res, (data) => {
           if (data) {
             this.saveData.rawTableDescData = JSON.stringify(data.rawTable || data.draft)
           }
         })
       })
-      this.getScheduler(this.extraoption.cubeName).then((res) => {
+      this.getScheduler(commonPara).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           if (data) {
             this.saveData.schedulerJobData = JSON.stringify(data.rawTable || data.draft)

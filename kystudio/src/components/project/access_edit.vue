@@ -1,6 +1,6 @@
 <template>
 <div class="access_edit">
-    <el-button class="ksd-mb-20" type="primary" size="small" @click="addAccess()"> ＋ {{$t('grant')}}</el-button>
+    <el-button class="ksd-mb-20" type="primary" size="small" @click="addAccess()" v-if="hasProjectAdminPermission()||isAdmin" > ＋ {{$t('grant')}}</el-button>
     <kap-common-popover>
       <div slot="content">
          <h4>{{$t('grantTitle')}}</h4>
@@ -39,17 +39,17 @@
         </el-form-item>
          <el-form-item label="Role" v-if="!accessMeta.principal">
           <el-select  placeholder="Role" v-model="accessMeta.sid">
-            <el-option label="ADMIN" value="ROLE_ADMIN"></el-option>
-            <el-option label="MODELER" value="ROLE_MODELER"></el-option>
-            <el-option label="ANALYST" value="ROLE_ANALYST"></el-option>
+            <el-option label="ROLE_ADMIN" value="ROLE_ADMIN"></el-option>
+            <el-option label="ROLE_MODELER" value="ROLE_MODELER"></el-option>
+            <el-option label="ROLE_ANALYST" value="ROLE_ANALYST"></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item :label="$t('permission')">
-          <el-select  :placeholder="$t('permission')" v-model="accessMeta.permission">
+        <el-form-item :label="$t('access')">
+          <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
             <el-option label="Admin" :value="16"></el-option>
             <el-option label="Edit" :value="32"></el-option>
             <el-option label="OPERATION" :value="64"></el-option>
-            <el-option label="Query" :value="1"></el-option>
+            <el-option label="READ" :value="1"></el-option>
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -81,13 +81,13 @@
 	      :label="$t('kylinLang.common.action')"
 	      width="160">
 	      <template scope="scope">
-        <span v-if="!hasPermission(scope.row.id)">N/A</span>
-	        <el-button  v-if="hasPermission(scope.row.id)"
+        <span v-if="!(hasProjectAdminPermission()||isAdmin)">N/A</span>
+	        <el-button  v-if="hasProjectAdminPermission()||isAdmin"
 	          @click="beginEdit(scope.row)"
 	          type="blue" size="small">
 	          {{$t('kylinLang.common.edit')}}
 	        </el-button>
-           <el-button  v-if="hasPermission(scope.row.id)"
+           <el-button  v-if="isAdmin || hasProjectAdminPermission()"
             @click="removeAccess(scope.row.id)"
             type="danger" size="small">
             {{$t('kylinLang.common.delete')}}
@@ -100,7 +100,8 @@
 
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, hasPermission, hasPermissionOfCube, hasRole, kapConfirm } from '../../util/business'
+import { permissions } from '../../config/index'
+import { handleSuccess, handleError, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'access',
   props: ['accessId', 'own'],
@@ -197,10 +198,9 @@ export default {
         handleError(res)
       })
     },
-    hasPermission (accessId) {
-      // var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
-      var checkPermission = this.own === 'cube' ? hasPermissionOfCube : hasPermission
-      return hasRole(this, 'ROLE_ADMIN') || checkPermission(this, accessId, 16)
+    hasProjectAdminPermission () {
+      var pid = this.accessId
+      return hasPermission(this, pid, permissions.ADMINISTRATION.mask)
     },
     loadAccess () {
       var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
@@ -221,6 +221,9 @@ export default {
     }
   },
   computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
+    }
   },
   created () {
     this.loadAccess()
