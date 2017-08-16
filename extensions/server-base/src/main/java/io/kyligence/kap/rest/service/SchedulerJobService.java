@@ -41,6 +41,7 @@ import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.quartz.CronExpression;
 import org.quartz.CronScheduleBuilder;
 import org.quartz.JobDataMap;
@@ -82,6 +83,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     @Autowired
     @Qualifier("accessService")
     private AccessService accessService;
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -225,10 +229,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return job;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
             throws IOException, SchedulerException {
+        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
         disableSchedulerJob(job, cube);
         getSchedulerJobManager().removeSchedulerJob(job);
         accessService.clean(job, true);
@@ -240,10 +243,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return deleteSchedulerJobInternal(name);
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
             throws IOException, SchedulerException {
+        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
             Trigger trigger = scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             if (trigger != null) {
@@ -280,10 +282,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return newJob;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public void enableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
             throws ParseException, SchedulerException, IOException {
+        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
         if (!validateScheduler(job))
             return;
 

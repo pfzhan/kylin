@@ -39,19 +39,18 @@ import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationType;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -77,10 +76,11 @@ public class RawTableService extends BasicService {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
-    public RawTableInstance updateRawCost(RawTableInstance raw, CubeInstance cube, int cost) throws IOException {
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
+    public RawTableInstance updateRawCost(RawTableInstance raw, CubeInstance cube, int cost) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         if (raw.getCost() == cost) {
             // Do nothing
             return raw;
@@ -121,9 +121,8 @@ public class RawTableService extends BasicService {
         return createdRaw;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public void deleteRaw(RawTableInstance raw, CubeInstance cube) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         KapMessage msg = KapMsgPicker.getMsg();
 
         final List<CubingJob> cubingJobs = jobService.listJobsByRealizationName(raw.getName(), null,
@@ -189,9 +188,8 @@ public class RawTableService extends BasicService {
         return updatedRawTableDesc;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION')  or hasPermission(#cube, 'MANAGEMENT')")
     public RawTableInstance enableRaw(RawTableInstance raw, CubeInstance cube) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         KapMessage msg = KapMsgPicker.getMsg();
 
         String cubeName = raw.getName();
@@ -221,9 +219,8 @@ public class RawTableService extends BasicService {
         }
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'MANAGEMENT')")
     public RawTableInstance disableRaw(RawTableInstance raw, CubeInstance cube) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         KapMessage msg = KapMsgPicker.getMsg();
 
         String cubeName = raw.getName();
@@ -245,10 +242,9 @@ public class RawTableService extends BasicService {
         }
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
     public RawTableInstance cloneRaw(RawTableInstance raw, String newRawName, CubeInstance cube,
             ProjectInstance project) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         RawTableDesc rawDesc = raw.getRawTableDesc();
         RawTableDesc newRawDesc = RawTableDesc.getCopyOf(rawDesc);
 
@@ -290,9 +286,8 @@ public class RawTableService extends BasicService {
         }
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
     public RawTableDesc saveRaw(RawTableDesc desc, CubeInstance cube, ProjectInstance project) throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         KapMessage msg = KapMsgPicker.getMsg();
 
         desc.setDraft(false);
@@ -307,10 +302,9 @@ public class RawTableService extends BasicService {
         return desc;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')")
     public RawTableDesc updateRaw(RawTableInstance raw, RawTableDesc desc, CubeInstance cube, ProjectInstance project)
             throws IOException {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
         KapMessage msg = KapMsgPicker.getMsg();
         String projectName = project.getName();
 

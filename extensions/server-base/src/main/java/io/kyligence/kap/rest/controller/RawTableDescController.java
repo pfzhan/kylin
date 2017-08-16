@@ -62,19 +62,18 @@ public class RawTableDescController extends BasicController {
      * Get detail information of the "Cube ID"
      * return CubeDesc instead of CubeDesc[]
      *
+     * @param projectName
      * @param rawName
-     *            Cube ID
-     * @return
+     * @return Cube ID
      * @throws IOException
      */
-    @RequestMapping(value = "/{rawName}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{projectName}/{rawName}", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getDesc(@PathVariable String rawName) throws IOException {
-
+    public EnvelopeResponse getDesc(@PathVariable String projectName, @PathVariable String rawName) throws IOException {
         RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(rawName);
-        Draft draft = cubeService.getCubeDraft(rawName);
-        
+        Draft draft = cubeService.getCubeDraft(rawName, projectName);
+
         // skip checking raw/draft being null, raw table not exist is fine
 
         HashMap<String, RawTableDesc> result = new HashMap<>();
@@ -86,7 +85,7 @@ public class RawTableDescController extends BasicController {
             RawTableDesc draw = (RawTableDesc) draft.getEntities()[1];
             if (draw != null)
                 Preconditions.checkState(draw.isDraft());
-            result.put("draft", draw);            
+            result.put("draft", draw);
         }
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");

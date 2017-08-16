@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -48,12 +46,16 @@ import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.CubeService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
@@ -74,6 +76,9 @@ public class KapCubeService extends BasicService {
     @Autowired
     @Qualifier("cubeMgmtService")
     private CubeService cubeService;
+
+    @Autowired
+    AclEvaluate aclEvaluate;
 
     private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
@@ -152,10 +157,8 @@ public class KapCubeService extends BasicService {
         return newCube;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
-            + " or hasPermission(#cube, 'ADMINISTRATION') or hasPermission(#cube, 'MANAGEMENT')"
-            + " or hasPermission(#cube, 'OPERATION') or hasPermission(#cube, 'READ')")
     public List<ColumnarResponse> getAllColumnarInfo(CubeInstance cube) {
+        aclEvaluate.hasProjectReadPermission(cube.getProjectInstance());
         List<ColumnarResponse> columnar = new ArrayList<>();
         for (CubeSegment segment : cube.getSegments()) {
             final KylinConfig config = KylinConfig.getInstanceFromEnv();

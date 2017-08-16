@@ -32,7 +32,9 @@ import java.util.Map;
 
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.source.kafka.CollectKafkaStats;
@@ -40,15 +42,21 @@ import io.kyligence.kap.source.kafka.CollectKafkaStats;
 @Component("kafkaClusterService")
 public class KafkaService extends BasicService {
 
-    public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig) {
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
+    public Map<String, List<String>> getTopics(KafkaConfig kafkaConfig, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         return CollectKafkaStats.getTopics(kafkaConfig);
     }
 
-    public List<String> getMessages(KafkaConfig kafkaConfig) {
+    public List<String> getMessages(KafkaConfig kafkaConfig, String project) {
+        aclEvaluate.checkProjectWritePermission(project);
         return CollectKafkaStats.getMessages(kafkaConfig);
     }
 
     public String saveSamplesToStreamingTable(String identity, List<String> messages, String prj) throws IOException {
+        aclEvaluate.checkProjectWritePermission(prj);
         List<String[]> samples = convertMessagesToSamples(messages);
         TableExtDesc tableExtDesc = getMetadataManager().getTableExt(identity, prj);
         tableExtDesc.setSampleRows(samples);
@@ -57,6 +65,7 @@ public class KafkaService extends BasicService {
     }
 
     public List<String> updateSamplesByTableName(String tableName, String prj) throws IOException {
+        aclEvaluate.checkProjectWritePermission(prj);
         KafkaConfig kafkaConfig = getKafkaManager().getKafkaConfig(tableName);
         List<String> messages = CollectKafkaStats.getMessages(kafkaConfig);
         saveSamplesToStreamingTable(tableName, messages, prj);

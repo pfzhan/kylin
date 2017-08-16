@@ -29,6 +29,8 @@ import java.io.IOException;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Component;
 
@@ -36,9 +38,11 @@ import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String extractTableExt(String project, String submitter, int frequency, String tableName) throws IOException {
+        aclEvaluate.checkProjectWritePermission(project);
         HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName, frequency);
         return hiveTableExtSampleJob.start();
     }
@@ -49,10 +53,12 @@ public class TableExtService extends BasicService {
     }
 
     public TableExtDesc getTableExt(String tableName, String prj) {
+        aclEvaluate.checkProjectWritePermission(prj);
         return getMetadataManager().getTableExt(tableName, prj);
     }
 
     public void removeTableExt(String tableName, String prj) throws IOException {
+        aclEvaluate.checkProjectWritePermission(prj);
         getMetadataManager().removeTableExt(tableName, prj);
     }
 }

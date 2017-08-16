@@ -328,13 +328,12 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{projectName}/{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getSchedulerJob(@PathVariable String cubeName) throws IOException {
-
+    public EnvelopeResponse getSchedulerJob(@PathVariable String projectName, @PathVariable String cubeName) throws IOException {
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
-        Draft draft = cubeService.getCubeDraft(cubeName);
+        Draft draft = cubeService.getCubeDraft(cubeName, projectName);
 
         // skip checking job/draft being null, schedulerJob not exist is fine
 
@@ -350,10 +349,10 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "{cubeName}", method = { RequestMethod.DELETE }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/{projectName}/{cubeName}", method = {RequestMethod.DELETE}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public void deleteCubeAndDraft(@PathVariable String cubeName) throws IOException, SchedulerException {
+    public void deleteCubeAndDraft(@PathVariable String projectName, @PathVariable String cubeName) throws IOException, SchedulerException {
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (cube != null) {
             String project = projectService.getProjectOfCube(cube.getName());
@@ -372,7 +371,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         }
 
         // delete draft is not critical and can be out of checkpoint/rollback
-        Draft draft = cubeService.getCubeDraft(cubeName);
+        Draft draft = cubeService.getCubeDraft(cubeName, projectName);
         if (draft != null) {
             cubeService.deleteDraft(draft);
             kapCubeService.deleteCubeOptLog(cubeName);

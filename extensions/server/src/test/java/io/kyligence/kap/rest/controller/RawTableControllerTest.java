@@ -74,7 +74,7 @@ public class RawTableControllerTest extends ServiceTestBase {
 
     @Test
     public void testBasics() throws IOException {
-        HashMap<String, RawTableDesc> data = (HashMap<String, RawTableDesc>) descController.getDesc("ci_left_join_cube").data;
+        HashMap<String, RawTableDesc> data = (HashMap<String, RawTableDesc>) descController.getDesc("default", "ci_left_join_cube").data;
         RawTableDesc desc = data.get("rawTable");
         Assert.assertNotNull(desc);
         RawTableDesc newDesc = new RawTableDesc();

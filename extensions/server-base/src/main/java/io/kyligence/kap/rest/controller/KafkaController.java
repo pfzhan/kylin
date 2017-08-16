@@ -64,7 +64,7 @@ public class KafkaController extends BasicController {
     public EnvelopeResponse getTopics(@RequestBody StreamingRequest streamingRequest) throws IOException {
 
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getTopics(kafkaConfig), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getTopics(kafkaConfig, streamingRequest.getProject()), "");
     }
 
     @RequestMapping(value = "{cluster}/{topic}", method = { RequestMethod.POST }, produces = {
@@ -74,7 +74,7 @@ public class KafkaController extends BasicController {
             @RequestBody StreamingRequest streamingRequest) throws IOException {
 
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getMessages(kafkaConfig), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getMessages(kafkaConfig, streamingRequest.getProject()), "");
     }
 
     // FIXME prj-table

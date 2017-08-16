@@ -36,13 +36,14 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceTool;
-import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.tool.CubeMetaExtractor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.rest.msg.KapMessage;
@@ -53,13 +54,23 @@ public class MetaStoreService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(MetaStoreService.class);
 
+    @Autowired
+    private AclEvaluate aclEvaluate;
+
     /**
      * @param project the project to backup
      * @param cube    the cube to backup
      * @throws Exception
      */
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String backup(String project, String cube) throws IOException {
+        if (project != null) {
+            aclEvaluate.checkProjectAdminPermission(project);
+        } else if (cube != null) {
+            aclEvaluate.checkProjectOperationPermission(
+                    CubeManager.getInstance(KylinConfig.getInstanceFromEnv()).getCube(cube).getProject());
+        } else {
+            aclEvaluate.checkIsGlobalAdmin();
+        }
         KapMessage msg = KapMsgPicker.getMsg();
 
         String kylinHome = KylinConfig.getKylinHome();
