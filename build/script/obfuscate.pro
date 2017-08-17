@@ -54,7 +54,7 @@
 	public *;
 } 
 
--keepattributes Exceptions,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod
+-keepattributes Exceptions,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod,InnerClasses
 -keepdirectories
 -keepparameternames
 
