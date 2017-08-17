@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.modeling.smart.domain;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -37,6 +35,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
@@ -66,7 +65,7 @@ public class ModelDomainBuilder implements IDomainBuilder {
         }
 
         // Setup measures
-        List<TblColRef> measureCols = new ArrayList<>();
+        List<TblColRef> measureCols = Lists.newArrayList();
         for (String col : modelDesc.getMetrics()) {
             TblColRef colRef = modelDesc.findColumn(col);
             if (colRef != null) {
@@ -75,7 +74,7 @@ public class ModelDomainBuilder implements IDomainBuilder {
         }
         measureCols.addAll(dimensionCols);
 
-        Set<FunctionDesc> measureFuncs = new HashSet<>();
+        List<FunctionDesc> measureFuncs = Lists.newArrayList();
         for (TblColRef colRef : measureCols) {
             // Distinct Count
             measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "COUNT_DISTINCT",

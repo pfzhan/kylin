@@ -44,6 +44,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -133,7 +134,7 @@ public class ModelingContextBuilder {
                 measureCols.add(colRef);
             }
         }
-        Set<FunctionDesc> measureFuncs = Sets.newHashSet();
+        List<FunctionDesc> measureFuncs = Lists.newArrayList();
         if (queryStats != null) {
             measureFuncs.addAll(queryStats.getMeasures());
         }

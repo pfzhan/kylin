@@ -48,38 +48,31 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 
 public class Domain {
-    private DataModelDesc model;
-    private Set<TblColRef> dimensions;
-    private Set<FunctionDesc> measures;
+    private final DataModelDesc model;
+    private final Set<TblColRef> dimensions;
+    private final Set<FunctionDesc> measures;
 
-    public Domain(DataModelDesc model, Set<TblColRef> dimensions, Set<FunctionDesc> measures) {
+    public Domain(DataModelDesc model, Set<TblColRef> dimensions, List<FunctionDesc> functionDescs) {
         this.model = model;
         this.dimensions = dimensions;
-        this.measures = measures;
+
+        measures = Sets.newHashSet();
+        for (FunctionDesc funcDesc : functionDescs) {
+            funcDesc.init(model);
+            measures.add(funcDesc);
+        }
     }
 
     public DataModelDesc getModel() {
         return model;
     }
 
-    public void setModel(DataModelDesc model) {
-        this.model = model;
-    }
-
     public Set<TblColRef> getDimensions() {
         return dimensions;
     }
 
-    public void setDimensions(Set<TblColRef> dimensions) {
-        this.dimensions = dimensions;
-    }
-
     public Set<FunctionDesc> getMeasures() {
         return measures;
-    }
-
-    public void setMeasures(Set<FunctionDesc> measures) {
-        this.measures = measures;
     }
 
     public CubeDesc buildCubeDesc() {

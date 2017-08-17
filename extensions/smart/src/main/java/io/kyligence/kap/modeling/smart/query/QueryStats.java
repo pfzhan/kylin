@@ -26,6 +26,7 @@ package io.kyligence.kap.modeling.smart.query;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,6 +35,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -58,7 +60,7 @@ public class QueryStats implements Serializable {
     private Map<String, Integer> appears = Maps.newHashMap();
 
     @JsonProperty("measure")
-    private Set<FunctionDesc> measures = Sets.newHashSet();
+    private List<FunctionDesc> measures = Lists.newArrayList();
 
     @JsonProperty("coocurrence")
     private Map<String, Integer> coocurrences = Maps.newHashMap();
@@ -169,7 +171,7 @@ public class QueryStats implements Serializable {
         return cuboids;
     }
 
-    public Set<FunctionDesc> getMeasures() {
+    public List<FunctionDesc> getMeasures() {
         return measures;
     }
 
