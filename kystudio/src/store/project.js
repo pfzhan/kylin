@@ -36,6 +36,7 @@ export default {
         }
         if (state.allProject.length > 0 && !localStorage.getItem('selected_project')) {
           state.selected_project = state.allProject[0].name
+          localStorage.setItem('selected_project', state.selected_project)
         }
       } else {
         localStorage.setItem('selected_project', '')

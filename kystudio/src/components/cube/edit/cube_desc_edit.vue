@@ -813,7 +813,7 @@ export default {
           this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
-            _this.loadRawTable({cubeName: _this.extraoption.cubeName, project: this.selected_project}).then((res) => {
+            _this.loadRawTable({cubeName: _this.extraoption.cubeName, project: _this.selected_project}).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var rawtableData = isDraft ? data.draft : data.rawTable
                 if (rawtableData) {
@@ -825,7 +825,7 @@ export default {
           }
           function loadScheduler (isDraft) {
             _this.$store.state.cube.cubeSchedulerIsSetting = false
-            _this.getScheduler({cubeName: _this.extraoption.cubeName, project: this.selected_project}).then((res) => {
+            _this.getScheduler({cubeName: _this.extraoption.cubeName, project: _this.selected_project}).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var schedulerData = isDraft ? data.draft : data.schedulerJob
                 // this.initRepeatInterval(schedulerData)
