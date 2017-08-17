@@ -141,6 +141,11 @@ public class SparkSqlClient implements Serializable {
                 builder.setName(field.name());
                 builder.setDataType(field.dataType().toString());
                 builder.setNullable(field.nullable());
+                String tableName = df.resolve(field.name()).qualifier().get();
+
+                if (tableName != null) {
+                    builder.setTable(tableName);
+                }
                 fieldList.add(builder.build());
             }
 

@@ -87,7 +87,8 @@ message Row {
 message StructField {
     required string name = 1;
     required string dataType = 2;
-    required bool nullable = 3;
+    required string table = 3;
+    required bool nullable = 4;
 }
 
 message PushDownResponse {

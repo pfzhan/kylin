@@ -69,7 +69,7 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
             int type = Types.VARCHAR;
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE,
                     fieldList.get(i).getName().toUpperCase(), fieldList.get(i).getName().toUpperCase(), null, null,
-                    null, Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
+                    fieldList.get(i).getTable(), Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
         }
     }
 }
