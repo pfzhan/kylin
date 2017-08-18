@@ -36,12 +36,15 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
@@ -49,6 +52,7 @@ import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -67,7 +71,7 @@ import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Component("kapCubeService")
-public class KapCubeService extends BasicService {
+public class KapCubeService extends BasicService implements InitializingBean {
     public static final char[] VALID_CUBENAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
     private static final Logger logger = LoggerFactory.getLogger(KapCubeService.class);
@@ -189,6 +193,35 @@ public class KapCubeService extends BasicService {
         CubeOptimizeLogManager cubeOptManager = CubeOptimizeLogManager.getInstance(getConfig());
         if (cubeOptManager.getCubeOptimizeLog(cubeName) != null) {
             cubeOptManager.removeCubeOptimizeLog(cubeName);
+        }
+    }
+
+    private void invalidateCubeColumnarCache(String cubeName) {
+        CubeInstance cube = CubeManager.getInstance(getConfig()).getCube(cubeName);
+        if (null == cube) {
+            throw new InternalErrorException("Cannot find cube " + cubeName);
+        }
+        for (CubeSegment segment : cube.getSegments()) {
+            columnarInfoCache.invalidate(segment.getUuid());
+        }
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        Broadcaster.getInstance(getConfig()).registerListener(new ColumnarInfoSyncListener(), "cube");
+    }
+
+    private class ColumnarInfoSyncListener extends Broadcaster.Listener {
+        @Override
+        public void onClearAll(Broadcaster broadcaster) throws IOException {
+            columnarInfoCache.invalidateAll();
+        }
+
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
+                throws IOException {
+            String cubeName = cacheKey;
+            invalidateCubeColumnarCache(cubeName);
         }
     }
 
