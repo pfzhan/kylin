@@ -76,7 +76,8 @@ public class SparkDriverClient {
         if (channel == null) {
             synchronized (SparkDriverClient.class) {
                 logger.info("SparkDriverClient host {}, port {}", host, port);
-                channel = NettyChannelBuilder.forAddress(host, port).usePlaintext(true).maxMessageSize(maxMessageSize).build();
+                channel = NettyChannelBuilder.forAddress(host, port).usePlaintext(true).maxMessageSize(maxMessageSize)
+                        .build();
 
                 Runtime.getRuntime().addShutdownHook(new Thread() {
                     @Override
@@ -99,7 +100,8 @@ public class SparkDriverClient {
 
     }
 
-    public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest, SparkJobProtos.SparkJobRequestPayload payload, long queryMaxScanBytes) {
+    public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest,
+            SparkJobProtos.SparkJobRequestPayload payload, long queryMaxScanBytes) {
         final long startTime = System.currentTimeMillis();
         final String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
         final SparkJobRequest initialRequest = SparkJobRequest.newBuilder().setPayload(payload).build();
@@ -110,35 +112,41 @@ public class SparkDriverClient {
         final AtomicReference<Throwable> serverSideError = new AtomicReference<>();
         final Semaphore semaphore = new Semaphore(0);
 
-        final StreamObserver<SparkJobRequest> requestObserver = asyncStub.submitJob(new StreamObserver<SparkJobResponse>() {
+        final StreamObserver<SparkJobRequest> requestObserver = asyncStub
+                .submitJob(new StreamObserver<SparkJobResponse>() {
 
-            @Override
-            public void onNext(SparkJobResponse sparkJobResponse) {
-                responses.add(sparkJobResponse);
-                semaphore.release();
-            }
+                    @Override
+                    public void onNext(SparkJobResponse sparkJobResponse) {
+                        responses.add(sparkJobResponse);
+                        semaphore.release();
+                    }
 
-            @Override
-            public void onError(Throwable throwable) {
-                Status status = Status.fromThrowable(throwable);
-                logger.error("grpc client side receive error: " + status);
-//                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
-                serverSideError.set(throwable);
-                semaphore.release();
-            }
+                    @Override
+                    public void onError(Throwable throwable) {
+                        Status status = Status.fromThrowable(throwable);
+                        logger.error("grpc client side receive error: " + status);
+                        if (status != null && status.getCause() != null
+                                && status.getCause().toString().contains("exceeds maximum")) {
+                            serverSideError.set(new Throwable("Too many return records, please apply limit for SQL."));
+                        } else
+                            //                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
+                            serverSideError.set(throwable);
+                        semaphore.release();
+                    }
 
-            @Override
-            public void onCompleted() {
-                logger.info("grpc client side receive complete.");
-                serverSideCompleted.set(true);
-                semaphore.release();
-            }
-        });
+                    @Override
+                    public void onCompleted() {
+                        logger.info("grpc client side receive complete.");
+                        serverSideCompleted.set(true);
+                        semaphore.release();
+                    }
+                });
 
         //start
         requestObserver.onNext(initialRequest);
 
-        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses, requestObserver, scanReqId, startTime, queryMaxScanBytes);
+        return new KyStorageVisitResponseStreamer(semaphore, serverSideCompleted, serverSideError, responses,
+                requestObserver, scanReqId, startTime, queryMaxScanBytes);
     }
 
     public String getSparkConf(String confName) {
@@ -168,7 +176,10 @@ public class SparkDriverClient {
         SparkJobRequest subsequentRequest;
         private boolean fetched;
 
-        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted, AtomicReference<Throwable> serverSideError, List<SparkJobResponse> responses, StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime, long queryMaxScanBytes) {
+        public KyStorageVisitResponseStreamer(Semaphore semaphore, AtomicBoolean serverSideCompleted,
+                AtomicReference<Throwable> serverSideError, List<SparkJobResponse> responses,
+                StreamObserver<SparkJobRequest> requestObserver, String scanRequestId, long startTime,
+                long queryMaxScanBytes) {
             this.semaphore = semaphore;
             this.serverSideCompleted = serverSideCompleted;
             this.serverSideError = serverSideError;
@@ -198,11 +209,14 @@ public class SparkDriverClient {
                     if (status.getCode() == Status.DEADLINE_EXCEEDED.getCode()) {
                         throw new ResourceLimitExceededException(serverSideError.get().getMessage());
                     }
-                    throw new RuntimeException(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark-client.sh start\"" : status.getDescription());
+                    throw new RuntimeException(status.getDescription() == null
+                            ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark-client.sh start\""
+                            : status.getDescription());
                 }
 
                 if (responses.size() != 1) {
-                    throw new IllegalStateException("the number of responses in queue is abnormal: " + responses.size());
+                    throw new IllegalStateException(
+                            "the number of responses in queue is abnormal: " + responses.size());
                 }
 
                 fetched = true;
@@ -251,28 +265,40 @@ public class SparkDriverClient {
             final MutableInt responseCount = new MutableInt(0);
             Iterator<byte[]> transform = Iterators.transform(//
                     Iterators.concat(//
-                            Iterators.transform(this, new Function<SparkJobResponse, Iterator<SparkJobResponse.PartitionResponse>>() {
-                                @Override
-                                public Iterator<SparkJobResponse.PartitionResponse> apply(@Nullable SparkJobResponse sparkJobResponse) {
-                                    logger.info("{}th gRPC response message of query {} scan-request {} from spark instance {} is returned, wall time duration is: {}, partition count: {}", //
-                                            responseCount, QueryContext.current().getQueryId(), scanRequestId, sparkJobResponse.getSparkInstanceIdentifier(), (System.currentTimeMillis() - startTime), sparkJobResponse.getPartitionResponseList().size());
-                                    responseCount.increment();
-                                    return sparkJobResponse.getPartitionResponseList().iterator();
-                                }
-                            })),
+                            Iterators.transform(this,
+                                    new Function<SparkJobResponse, Iterator<SparkJobResponse.PartitionResponse>>() {
+                                        @Override
+                                        public Iterator<SparkJobResponse.PartitionResponse> apply(
+                                                @Nullable SparkJobResponse sparkJobResponse) {
+                                            logger.info(
+                                                    "{}th gRPC response message of query {} scan-request {} from spark instance {} is returned, wall time duration is: {}, partition count: {}", //
+                                                    responseCount, QueryContext.current().getQueryId(), scanRequestId,
+                                                    sparkJobResponse.getSparkInstanceIdentifier(),
+                                                    (System.currentTimeMillis() - startTime),
+                                                    sparkJobResponse.getPartitionResponseList().size());
+                                            responseCount.increment();
+                                            return sparkJobResponse.getPartitionResponseList().iterator();
+                                        }
+                                    })),
                     new Function<SparkJobResponse.PartitionResponse, byte[]>() {
                         @Override
                         public byte[] apply(@Nullable SparkJobResponse.PartitionResponse partitionResponse) {
 
                             byte[] bytes = partitionResponse.getBlob().toByteArray();
-                            logger.info("[Partition Response Metrics] scan-request {}, result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
-                                    scanRequestId, bytes.length, partitionResponse.getScannedRows(), partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(), partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(), partitionResponse.getHostname());
+                            logger.info(
+                                    "[Partition Response Metrics] scan-request {}, result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
+                                    scanRequestId, bytes.length, partitionResponse.getScannedRows(),
+                                    partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(),
+                                    partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(),
+                                    partitionResponse.getHostname());
 
                             QueryContext.current().addAndGetScannedRows(partitionResponse.getScannedRows());
                             QueryContext.current().addAndGetScannedBytes(partitionResponse.getScannedBytes());
 
                             if (QueryContext.current().getScannedBytes() > queryMaxScanBytes) {
-                                throw new ResourceLimitExceededException("Query scanned " + QueryContext.current().getScannedBytes() + " bytes exceeds threshold " + queryMaxScanBytes);
+                                throw new ResourceLimitExceededException(
+                                        "Query scanned " + QueryContext.current().getScannedBytes()
+                                                + " bytes exceeds threshold " + queryMaxScanBytes);
                             }
 
                             //only for debug/profile purpose
