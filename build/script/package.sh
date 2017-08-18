@@ -22,6 +22,9 @@ if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
         removeKAPPlusConfigs $file
     done
     
+    # remove raw table from sample cube template
+    mv -f extensions/examples/sample_cube/template/raw_table* ./
+    
     shift
     
     echo "Packing for KAP Normal..."
@@ -95,5 +98,11 @@ for file in extensions/core-common/src/main/resources/kylin-defaults0.properties
 do 
     restoreKAPPlusConfigs $file
 done
+    
+# restore raw table to sample cube template
+BAK=`ls | grep raw_table`
+if [ ! -z "$BAK" ]; then
+	mv -f raw_table* extensions/examples/sample_cube/template/
+fi	
 
 echo "BUILD FINISHED!"
