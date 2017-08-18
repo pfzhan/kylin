@@ -710,7 +710,7 @@ export default {
       if (tab.$data.index === '1') {
         tab.$children[0].loadCubeSql()
       }
-      if (tab.$data.index === '4') {
+      if (tab.$data.index === '3') {
         tab.$children[0].loadSegments()
       }
     },
