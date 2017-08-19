@@ -6,24 +6,24 @@ cd ${dir}/../..
 source build/script/functions.sh
 exportProjectVersions
 
-client_version=1.1.16
+client_version=1.1.17
 # use cdh5.7 version
 if [ "$1" == "cdh5.7" ]; then
     pkg_name="kybot-client-${client_version}-cdh5.7-bin.tar.gz"
     pkg_url="http://kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-cdh5.7-bin.tar.gz"
-    pkg_md5="1e1d5114ff3e3f339e0fbae8b69e790e"
+    pkg_md5="8168b58a75e7582e702d25938e4468c8"
 fi
 # use hbase0.98 version
 if [ "$1" == "hbase0.98" ]; then
     pkg_name="kybot-client-${client_version}-hbase0.98-bin.tar.gz"
     pkg_url="http://kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-hbase0.98-bin.tar.gz"
-    pkg_md5="b0d98ebf93af8e9edca3d1543af1873c"
+    pkg_md5="49da4025197bb3752d70ab5a1b225772"
 fi
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
     pkg_name="kybot-client-${client_version}-hbase1.x-bin.tar.gz"
     pkg_url="http://kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-hbase1.x-bin.tar.gz"
-    pkg_md5="9471da02381fc99603faa7b4e2dc11b2"
+    pkg_md5="432eb668c4bc870635349d1bc6e8ac56"
 fi  
 
 if [[ -z "${pkg_name}" ]]; then
