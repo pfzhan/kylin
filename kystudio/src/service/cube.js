@@ -94,6 +94,9 @@ export default {
   getSampleSql: (cubeName) => {
     return Vue.resource(apiUrl + 'smart/' + cubeName + '/get_sql').get()
   },
+  checkSql: (cubeDesc) => {
+    return Vue.resource(apiUrl + 'smart/' + cubeDesc.modelName + '/' + cubeDesc.cubeName + '/check_sql').save(cubeDesc.sqls)
+  },
   getCubeSuggestions: (cubeDesc) => {
     return Vue.resource(apiUrl + 'smart/aggregation_groups').save(cubeDesc)
   },

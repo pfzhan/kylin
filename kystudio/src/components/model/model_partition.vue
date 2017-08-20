@@ -114,7 +114,7 @@
       <el-col :span="layout.right" v-if="layout.right" style="padding:20px;margin-top: -30px; padding-top: 30px;">
 
        <p>{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
-       <el-alert class="ksd-mt-20" v-if="modelStatics && modelStatics.length <= 1"
+       <el-alert class="ksd-mt-20 trans" v-if="modelStatics && modelStatics.length <= 1"
         :title="$t('noSample')"
         show-icon
         :closable="false"
@@ -373,14 +373,6 @@ export default {
   overflow-y: auto;
   .el-form-item{
     margin-bottom: 12px;
-  }
-  .el-alert--warning{
-    background:rgba(247,186,42, 0.1);
-    .el-alert__icon {
-      color:#e3ab29;
-    }
-    color:#e3ab29;
-    border:solid 1px rgba(247,186,42, 0.1);
   }
   .el-form {
     // height: 260px;

@@ -122,6 +122,9 @@ export default {
     [types.GET_SAMPLE_SQL]: function ({ commit }, cubeName) {
       return api.cube.getSampleSql(cubeName)
     },
+    [types.CHECK_SQL]: function ({ commit }, cubeDesc) {
+      return api.cube.checkSql(cubeDesc)
+    },
     [types.GET_CUBE_SUGGESTIONS]: function ({ commit }, cubeDesc) {
       return api.cube.getCubeSuggestions(cubeDesc)
     },
