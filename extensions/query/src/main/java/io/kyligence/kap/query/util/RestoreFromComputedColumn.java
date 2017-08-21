@@ -194,6 +194,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         for (SqlIdentifier columnUsage : columnUsages) {
             String columnName = Iterables.getLast(columnUsage.names);
             //TODO cannot do this check because cc is not visible on schema without solid realizations
+            // after this is done, constrains on #1932 can be relaxed
+
             //            TblColRef tblColRef = QueryAliasMatchInfo.resolveTblColRef(queryAliasMatchInfo.getQueryAlias(), columnName);
             //            //for now, must be fact table
             //            Preconditions.checkState(tblColRef.getTableRef().getTableIdentity()
