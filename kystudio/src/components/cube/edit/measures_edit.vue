@@ -288,7 +288,7 @@ export default {
     },
     removeMeasure: function (measure, index) {
       if (measure.function.expression === 'COUNT_DISTINCT') {
-        var len = this.cubeDesc.dictionaries && this.cubeDesc.dictionaries || 0
+        var len = this.cubeDesc.dictionaries && this.cubeDesc.dictionaries.length || 0
         for (let i = 0; i < len; i++) {
           if (this.cubeDesc.dictionaries[i].column === measure.function.parameter.value) {
             this.cubeDesc.dictionaries.splice(i, 1)
