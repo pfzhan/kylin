@@ -41,24 +41,25 @@ class QueryAliasMatchInfo {
     // each alias's ColumnRowType
     private LinkedHashMap<String, ColumnRowType> queryAlias;
 
-    public QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> queryAlias) {
+    QueryAliasMatchInfo(BiMap<String, String> aliasMapping,
+        LinkedHashMap<String, ColumnRowType> queryAlias) {
         this.aliasMapping = aliasMapping;
         this.queryAlias = queryAlias;
     }
 
-    public BiMap<String, String> getAliasMapping() {
+    BiMap<String, String> getAliasMapping() {
         return aliasMapping;
     }
 
-    public LinkedHashMap<String, ColumnRowType> getQueryAlias() {
+    LinkedHashMap<String, ColumnRowType> getQueryAlias() {
         return queryAlias;
     }
 
     /**
      * only return null if it's a column on subquery
      */
-    public static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier,
-            LinkedHashMap<String, ColumnRowType> queryAlias) {
+    static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier,
+        LinkedHashMap<String, ColumnRowType> queryAlias) {
         TblColRef ret = null;
         if (sqlIdentifier.names.size() == 2) {
             //alias.col
@@ -88,7 +89,7 @@ class QueryAliasMatchInfo {
         return ret;
     }
 
-    public static TblColRef resolveTblColRef(LinkedHashMap<String, ColumnRowType> queryAlias, String col) {
+    static TblColRef resolveTblColRef(LinkedHashMap<String, ColumnRowType> queryAlias, String col) {
         List<String> potentialAlias = Lists.newArrayList();
         for (Map.Entry<String, ColumnRowType> entry : queryAlias.entrySet()) {
             if (entry.getValue() != QueryAliasMatcher.SUBQUERY_TAG && entry.getValue().getColumnByName(col) != null) {

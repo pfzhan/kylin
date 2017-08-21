@@ -56,10 +56,10 @@ public class ImplicitCCTest {
             String sql = "select a from t";
             List<ComputedColumnDesc> list = Lists.newArrayList();
             List<SqlCall> sqlSelects = SqlSubqueryFinder.getSubqueries(sql);
-            Assert.assertEquals("select a from t",
-                    ConvertToComputedColumn.replaceComputedColumn(sql, sqlSelects.get(0), null, queryAliasMatchInfo));
-            Assert.assertEquals("select a from t",
-                    ConvertToComputedColumn.replaceComputedColumn(sql, sqlSelects.get(0), list, queryAliasMatchInfo));
+            Assert.assertEquals("select a from t", ConvertToComputedColumn
+                    .replaceComputedColumn(sql, sqlSelects.get(0), null, queryAliasMatchInfo).getFirst());
+            Assert.assertEquals("select a from t", ConvertToComputedColumn
+                    .replaceComputedColumn(sql, sqlSelects.get(0), list, queryAliasMatchInfo).getFirst());
         }
 
         //        {
@@ -136,16 +136,16 @@ public class ImplicitCCTest {
         Assert.assertEquals(
                 "select (T1.cc0) as c, T1.cc as z from table1 as t1 group by T1.cc0 having T1.cc0 > 100 order by T1.cc0",
                 ConvertToComputedColumn.replaceComputedColumn(sql0, SqlSubqueryFinder.getSubqueries(sql0).get(0),
-                        mockCCs, queryAliasMatchInfo));
+                        mockCCs, queryAliasMatchInfo).getFirst());
 
         Assert.assertEquals("select sum(T1.cc1) from table1 as t1", ConvertToComputedColumn.replaceComputedColumn(sql1,
-                SqlSubqueryFinder.getSubqueries(sql1).get(0), mockCCs, queryAliasMatchInfo));
+                SqlSubqueryFinder.getSubqueries(sql1).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         Assert.assertEquals("select T1.cc from table1 as t1", ConvertToComputedColumn.replaceComputedColumn(sql2,
-                SqlSubqueryFinder.getSubqueries(sql2).get(0), mockCCs, queryAliasMatchInfo));
+                SqlSubqueryFinder.getSubqueries(sql2).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         Assert.assertEquals("select T1.cc4 from table1", ConvertToComputedColumn.replaceComputedColumn(sql3,
-                SqlSubqueryFinder.getSubqueries(sql3).get(0), mockCCs, queryAliasMatchInfo));
+                SqlSubqueryFinder.getSubqueries(sql3).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         //more tables
         String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where t1.a + t1.b > t2.c + t2.d order by t1.a + t1.b";
@@ -162,13 +162,13 @@ public class ImplicitCCTest {
         Assert.assertEquals(
                 "select T1.cc2 as aa, T2.cc3 as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tables,
-                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo));
+                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         String sql2tableswithquote = "\r\n select \"T1\".\"A\" + \"T1\".\"B\" as aa, \"T2\".\"C\" + \"T2\".\"D\" as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where \"T1\".\"A\" + \"T1\".\"B\" > \"T2\".\"C\" + \"T2\".\"D\" order by \"T1\".\"A\" + \"T1\".\"B\"";
         Assert.assertEquals(
                 "\r\n select T1.cc2 as aa, T2.cc3 as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tableswithquote,
-                        SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo));
+                        SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo).getFirst());
 
         //        //sub query cannot be mocked here
         //        String sqlwithsubquery = "select count(*), sum(t1.a + t1.b), sum(t22.w) from table1 t1 inner join (select t11.a + t11.b as aa, t22.c + t22.d as bb from table1 t11 inner join table2 t22 on t11.x = t22.y where t11.a + t11.b > t22.c + t22.d order by t11.a + t11.b) as t2 on t1.x = t2.aa group by substring(substring(t1.d,1,3),1,3) order by sum(t1.a) ";

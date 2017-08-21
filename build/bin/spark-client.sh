@@ -2,7 +2,6 @@
 # Kyligence Inc. License
 
 source $(cd -P -- "$(dirname -- "$0")" && pwd -P)/header.sh $@
-source ${dir}/find-working-dir.sh
 
 if [ "$1" == "-v" ]; then
     shift
@@ -90,6 +89,7 @@ function retrieveSparkEnvProps()
 
 if [ "$1" == "test" ]
 then
+    source ${dir}/find-working-dir.sh
     echo "Starting test spark with conf"
 
     retrieveSparkEnvProps

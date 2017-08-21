@@ -36,7 +36,6 @@ import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +47,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
     @BeforeClass
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapPushDownQueryTest");
+        System.setProperty("needCheckCC", "true");
         KylinTestBase.setupAll();
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
@@ -56,6 +56,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
     @AfterClass
     public static void tearDown() {
         logger.info("tearDown in ITKapPushDownQueryTest");
+        System.clearProperty("needCheckCC");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
@@ -158,7 +159,6 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
         }
     }
 
-    @Ignore("To unblock CI, MUST add it back!!!")
     @Test
     public void testComputedColumnExpand() throws Exception {
         try {
