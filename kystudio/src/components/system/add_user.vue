@@ -79,7 +79,7 @@ export default {
   },
   locales: {
     'en': {username: 'User Name', password: 'Password', confirmNewPassword: 'Confirm new password', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'System Admin', passwordConfirm: 'Password and confirm password are not the same.', usernameEmpty: 'user name required', passwordEmpty: 'password required', passwordLength: 'the length of password is at least 8'},
-    'zh-cn': {username: '用户名', password: '密码', confirmNewPassword: '确认密码', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '系统管理人员', passwordConfirm: '两次密码不一致, 请检查', usernameEmpty: '用户名不能为空', passwordEmpty: '密码不能为空', passwordLength: '密码长度至少8位'}
+    'zh-cn': {username: '用户名', password: '密码', confirmNewPassword: '确认密码', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '系统管理员', passwordConfirm: '两次密码不一致, 请检查', usernameEmpty: '用户名不能为空', passwordEmpty: '密码不能为空', passwordLength: '密码长度至少8位'}
   }
 }
 </script>
