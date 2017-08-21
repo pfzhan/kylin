@@ -287,14 +287,26 @@
     {
       "index": "discrete",
       "encoding": "orderedbytes",
-      "table": "BUYER_ACCOUNT",
-      "column": "COUNTRY_ABBR"
+      "table": "TEST_KYLIN_FACT",
+      "column": "SELLER_COUNTRY_ABBR"
     },
     {
       "index": "discrete",
       "encoding": "orderedbytes",
-      "table": "SELLER_ACCOUNT",
-      "column": "COUNTRY_ABBR"
+      "table": "TEST_KYLIN_FACT",
+      "column": "BUYER_COUNTRY_ABBR"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "TEST_KYLIN_FACT",
+      "column": "SELLER_ID_AND_COUNTRY_NAME"
+    },
+    {
+      "index": "discrete",
+      "encoding": "orderedbytes",
+      "table": "TEST_KYLIN_FACT",
+      "column": "BUYER_ID_AND_COUNTRY_NAME"
     }
   ],
   "last_modified": 1482662768247,

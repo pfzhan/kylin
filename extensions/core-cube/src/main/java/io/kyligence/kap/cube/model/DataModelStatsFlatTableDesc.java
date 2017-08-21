@@ -67,7 +67,7 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
             for (String col : mdDesc.getColumns()) {
                 TblColRef tblColRef = dataModelDesc.findColumn(mdDesc.getTable(), col);
                 if (tblColRef == null) {
-                    logger.error("Dimension: table name: {}; col name: {}", mdDesc.getTable(), col);
+                    logger.error("Dimension: table name: {}; col name: {} is not found", mdDesc.getTable(), col);
                 }
                 addColumn(tblColRef);
             }

@@ -227,7 +227,6 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     }
     /////////////////test less
 
-
     //raw table does not support percentile
     @Test
     public void testPercentileQuery() throws Exception {
@@ -255,13 +254,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
-    @Ignore
     @Test
     public void testKAPSinglePublicQuery() throws Exception {
         System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
 
-        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_raw/query03.sql";
-        //String queryFileName =  "src/test/resources/query/temp/temp.sql";
+        //String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_raw/query03.sql";
+        String queryFileName = "src/test/resources/query/temp/query01.sql";
 
         File sqlFile = new File(queryFileName);
         System.out.println(sqlFile.getAbsolutePath());

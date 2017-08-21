@@ -41,6 +41,7 @@ import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.TooManyCuboidException;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterators;
@@ -221,7 +222,7 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
         for (long child : children) {
             parents.addAll(getOnTreeParents(child));
         }
-        
+
         //debugPrint(parents, "parents");
         parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<Long>() {
             @Override
@@ -239,7 +240,7 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
                 return false;
             }
         }));
-        
+
         //debugPrint(parents, "parents-dimcapped");
         return parents;
     }
@@ -263,7 +264,7 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
         Set<Long> children = getOnTreeParentsByLayer(Sets.newHashSet(0L), agg); // lowest level cuboids
         while (!children.isEmpty()) {
             if (cuboidHolder.size() > cubeDesc.getConfig().getCubeAggrGroupMaxCombination()) {
-                throw new IllegalStateException("too many combination for the aggregation group");
+                throw new TooManyCuboidException("Holder size larger than kylin.cube.aggrgroup.max-combination");
             }
             cuboidHolder.addAll(children);
             children = getOnTreeParentsByLayer(children, agg);

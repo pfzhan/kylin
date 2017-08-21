@@ -147,6 +147,8 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
                 }
             }
         }
+        
+        baos.close();
 
         logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows", scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
 

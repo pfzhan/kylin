@@ -40,7 +40,7 @@ public class CognosParenthesesEscapeTest {
         CognosParenthesesEscape escape = new CognosParenthesesEscape();
         String data = " from ((a left outer join b on a.x1 = b.y1 and a.x2=b.y2 and   a.x3= b.y3) inner join c as cc on a.x1=cc.z1 ) join d dd on a.x1=d.w1 and a.x2 =d.w2 ";
         String expected = " from a left outer join b on a.x1 = b.y1 and a.x2=b.y2 and   a.x3= b.y3 inner join c as cc on a.x1=cc.z1  join d dd on a.x1=d.w1 and a.x2 =d.w2 ";
-        String transformed = escape.transform(data, null);
+        String transformed = escape.transform(data, null, null);
         Assert.assertEquals(expected, transformed);
     }
 
@@ -51,7 +51,7 @@ public class CognosParenthesesEscapeTest {
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query01.sql.expected"),
                 Charset.defaultCharset());
-        String transformed = escape.transform(query, null);
+        String transformed = escape.transform(query, null, null);
         //System.out.println(transformed);
         Assert.assertEquals(expected, transformed);
     }
@@ -63,7 +63,7 @@ public class CognosParenthesesEscapeTest {
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query02.sql.expected"),
                 Charset.defaultCharset());
-        String transformed = escape.transform(query, null);
+        String transformed = escape.transform(query, null, null);
         //System.out.println(transformed);
         Assert.assertEquals(expected, transformed);
     }
@@ -75,7 +75,7 @@ public class CognosParenthesesEscapeTest {
                 Charset.defaultCharset());
         String expected = FileUtils.readFileToString(new File("src/test/resources/query/cognos/query03.sql.expected"),
                 Charset.defaultCharset());
-        String transformed = escape.transform(query, null);
+        String transformed = escape.transform(query, null, null);
         //System.out.println(transformed);
         Assert.assertEquals(expected, transformed);
     }
@@ -83,12 +83,12 @@ public class CognosParenthesesEscapeTest {
     @Test
     public void proguardTest() throws IOException {
         CognosParenthesesEscape escape = new CognosParenthesesEscape();
-        Collection<File> files = FileUtils.listFiles(new File("../../kylin/kylin-it/src/test/resources"), new String[] { "sql" },
-                true);
+        Collection<File> files = FileUtils.listFiles(new File("../../kylin/kylin-it/src/test/resources"),
+                new String[] { "sql" }, true);
         for (File f : files) {
             System.out.println("checking " + f.getAbsolutePath());
             String query = FileUtils.readFileToString(f, Charset.defaultCharset());
-            String transformed = escape.transform(query, null);
+            String transformed = escape.transform(query, null, null);
             Assert.assertEquals(query, transformed);
         }
     }

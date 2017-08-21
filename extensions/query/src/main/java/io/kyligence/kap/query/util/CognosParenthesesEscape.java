@@ -43,7 +43,7 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
             Pattern.CASE_INSENSITIVE);
 
     @Override
-    public String transform(String sql, String project) {
+    public String transform(String sql, String project, String defaultSchema) {
         if (sql == null || sql.isEmpty()) {
             return sql;
         }

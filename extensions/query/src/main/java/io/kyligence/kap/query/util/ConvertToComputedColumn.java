@@ -25,10 +25,11 @@
 package io.kyligence.kap.query.util;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
@@ -38,6 +39,8 @@ import org.apache.calcite.sql.SqlIntervalQualifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
@@ -51,86 +54,154 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Functions;
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.obf.IKeep;
 
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
+
     private static final Logger logger = LoggerFactory.getLogger(ConvertToComputedColumn.class);
 
     @Override
-    public String transform(String sql, String project) {
-        if (project == null) {
+    public String transform(String originSql, String project, String defaultSchema) {
+        try {
+
+            String sql = originSql;
+            if (project == null || sql == null) {
+                return sql;
+            }
+
+            MetadataManager metadataManager = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
+            List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
+
+            List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+            QueryAliasMatcher queryAliasMatcher = new QueryAliasMatcher(project, defaultSchema);
+            boolean isSqlChanged = false;
+
+            for (int i = 0; i < selectOrOrderbys.size(); i++) { //subquery will precede
+                if (isSqlChanged) {
+                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+                    isSqlChanged = false;
+                }
+
+                SqlSelect sqlSelect = selectOrOrderbys.get(i) instanceof SqlSelect ? ((SqlSelect) selectOrOrderbys.get(i))
+                    : (SqlSelect) (((SqlOrderBy) selectOrOrderbys.get(i)).query);
+                for (int j = 0; j < dataModelDescs.size(); j++) {
+                    QueryAliasMatchInfo info = queryAliasMatcher.match(dataModelDescs.get(j), sqlSelect);
+                    if (info == null) {
+                        continue;
+                    }
+
+                    List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(dataModelDescs.get(j));
+                    String s = replaceComputedColumn(sql, selectOrOrderbys.get(i), computedColumns, info);
+                    if (!StringUtils.equals(sql, s)) {
+                        isSqlChanged = true;
+                        sql = s;
+                        //a subquery can only match one model's cc, 
+                        //will continue to next subquery after SUCCESSFULLY apply a model's cc
+                        break;
+                    }
+                }
+            }
+
             return sql;
+
+        } catch (Exception e) {
+            logger.error(
+                    "Something unexpected while ConvertToComputedColumn transforming the query, return original query",
+                    e);
+            return originSql;
         }
-        ImmutableSortedMap<String, String> computedColumns = getSortedComputedColumnWithProject(project);
-        String s = replaceComputedColumn(sql, computedColumns);
-        if (!StringUtils.equals(sql, s)) {
-            logger.debug("sql changed");
-        }
-        return s;
     }
 
-    static String replaceComputedColumn(String inputSql, ImmutableSortedMap<String, String> computedColumn) {
-        if (inputSql == null) {
-            return "";
-        }
+    static String replaceComputedColumn(String inputSql, SqlCall selectOrOrderby, List<ComputedColumnDesc> computedColumns,
+            QueryAliasMatchInfo queryAliasMatchInfo) {
 
-        if (computedColumn == null || computedColumn.isEmpty()) {
+        if (computedColumns == null || computedColumns.isEmpty()) {
             return inputSql;
         }
-        String result = inputSql;
-        List<Pair<String, String>> toBeReplacedExp = new ArrayList<>(); //{"alias":"expression"}, like {"t1":"t1.a+t1.b+t1.c"}
 
-        for (String ccExp : computedColumn.keySet()) {
-            List<SqlNode> matchedNodes = new ArrayList<>();
+        String result = inputSql;
+        List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
+
+        for (ComputedColumnDesc cc : computedColumns) {
+            List<SqlNode> matchedNodes;
             try {
-                matchedNodes = getMatchedNodes(inputSql, computedColumn.get(ccExp));
+                matchedNodes = getMatchedNodes(selectOrOrderby, cc.getExpression(), queryAliasMatchInfo);
             } catch (SqlParseException e) {
-                logger.error("Convert to computedColumn Fail,parse sql fail ", e);
+                logger.debug("Convert to computedColumn Fail,parse sql fail ", e);
                 return inputSql;
             }
             for (SqlNode node : matchedNodes) {
                 Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(node, inputSql);
                 int start = startEndPos.getLeft();
                 int end = startEndPos.getRight();
-                //add table alias like t1.column,if exists alias
-                String alias = getTableAlias(node);
-                toBeReplacedExp.add(Pair.of(alias, inputSql.substring(start, end)));
+
+                boolean conflict = false;
+                for (int i = 0; i < toBeReplacedExp.size(); i++) {
+                    Pair<Integer, Integer> replaced = toBeReplacedExp.get(i).getRight();
+                    if (!(replaced.getLeft() >= end || replaced.getRight() <= start)) {
+                        //overlap with chosen areas
+                        conflict = true;
+                    }
+                }
+
+                if (conflict) {
+                    continue;
+                }
+
+                toBeReplacedExp.add(Pair.of(cc, Pair.of(start, end)));
             }
-            logger.debug("Computed column: " + ccExp + "'s matched list:" + toBeReplacedExp);
-            //replace user's input sql
-            for (Pair<String, String> toBeReplaced : toBeReplacedExp) {
-                result = result.replace(toBeReplaced.getRight(), toBeReplaced.getLeft() + ccExp);
+
+        }
+
+        Collections.sort(toBeReplacedExp, new Comparator<Pair<ComputedColumnDesc, Pair<Integer, Integer>>>() {
+            @Override
+            public int compare(Pair<ComputedColumnDesc, Pair<Integer, Integer>> o1,
+                    Pair<ComputedColumnDesc, Pair<Integer, Integer>> o2) {
+                return o2.getRight().getLeft().compareTo(o1.getRight().getLeft());
             }
+        });
+
+        //replace user's input sql
+        for (Pair<ComputedColumnDesc, Pair<Integer, Integer>> toBeReplaced : toBeReplacedExp) {
+            Pair<Integer, Integer> startEndPos = toBeReplaced.getRight();
+            int start = startEndPos.getLeft();
+            int end = startEndPos.getRight();
+            ComputedColumnDesc cc = toBeReplaced.getLeft();
+            String alias = queryAliasMatchInfo.getAliasMapping().inverse().get(cc.getTableAlias());
+
+            logger.debug("Computed column: " + cc.getColumnName() + " matching " + inputSql.substring(start, end)
+                    + " at [" + start + "," + end + "] " + " using alias in query: " + alias);
+            result = result.substring(0, start) + alias + "." + cc.getColumnName() + result.substring(end);
         }
         return result;
     }
 
-    //Return matched node's position and its alias(if exists).If can not find matches, return an empty capacity list
-    private static List<SqlNode> getMatchedNodes(String inputSql, String ccExp) throws SqlParseException {
+    //Return matched node's position and its alias(if exists).If can not find matches, return an empty list
+    private static List<SqlNode> getMatchedNodes(SqlCall selectOrOrderby, String ccExp,
+            QueryAliasMatchInfo queryAliasMatchInfo) throws SqlParseException {
         if (ccExp == null || ccExp.equals("")) {
             return new ArrayList<>();
         }
-        ArrayList<SqlNode> toBeReplacedNodes = new ArrayList<>();
+        ArrayList<SqlNode> matchedNodes = new ArrayList<>();
         SqlNode ccNode = CalciteParser.getExpNode(ccExp);
-        List<SqlNode> inputNodes = getInputTreeNodes(inputSql);
+        List<SqlNode> inputNodes = getInputTreeNodes(selectOrOrderby);
 
         // find whether user input sql's tree node equals computed columns's define expression
         for (SqlNode inputNode : inputNodes) {
-            if (CalciteParser.isNodeEqual(inputNode, ccNode)) {
-                toBeReplacedNodes.add(inputNode);
+            if (ExpressionComparator.isNodeEqual(inputNode, ccNode, queryAliasMatchInfo)) {
+                matchedNodes.add(inputNode);
             }
         }
-        return toBeReplacedNodes;
+        return matchedNodes;
     }
 
-    private static List<SqlNode> getInputTreeNodes(String inputSql) throws SqlParseException {
+    private static List<SqlNode> getInputTreeNodes(SqlCall selectOrOrderby) throws SqlParseException {
         SqlTreeVisitor stv = new SqlTreeVisitor();
-        CalciteParser.parse(inputSql).accept(stv);
+        selectOrOrderby.accept(stv);
         return stv.getSqlNodes();
     }
 
@@ -165,93 +236,89 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return "";
     }
 
-    private ImmutableSortedMap<String, String> getSortedComputedColumnWithProject(String project) {
-
-        Map<String, String> computedColumns = new HashMap<>();
-
-        MetadataManager metadataManager = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
-        List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
-        for (DataModelDesc dataModelDesc : dataModelDescs) {
-            for (ComputedColumnDesc computedColumnDesc : dataModelDesc.getComputedColumnDescs()) {
-                computedColumns.put(computedColumnDesc.getColumnName(), computedColumnDesc.getExpression());
-            }
-        }
-
-        return getMapSortedByValue(computedColumns);
+    //match longer expressions first
+    private List<ComputedColumnDesc> getSortedComputedColumnWithModel(DataModelDesc dataModelDesc) {
+        return getCCListSortByLength(dataModelDesc.getComputedColumnDescs());
     }
 
-    static ImmutableSortedMap<String, String> getMapSortedByValue(Map<String, String> computedColumns) {
+    static List<ComputedColumnDesc> getCCListSortByLength(List<ComputedColumnDesc> computedColumns) {
         if (computedColumns == null || computedColumns.isEmpty()) {
             return null;
         }
 
-        Ordering<String> ordering = Ordering.from(new Comparator<String>() {
+        Ordering<ComputedColumnDesc> ordering = Ordering.<String> from(new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
                 return Integer.compare(o1.replaceAll("\\s*", "").length(), o2.replaceAll("\\s*", "").length());
             }
-        }).reverse().nullsLast().onResultOf(Functions.forMap(computedColumns, null)).compound(Ordering.natural());
-        return ImmutableSortedMap.copyOf(computedColumns, ordering);
-    }
-
-}
-
-class SqlTreeVisitor implements SqlVisitor<SqlNode> {
-    private List<SqlNode> sqlNodes;
-
-    SqlTreeVisitor() {
-        this.sqlNodes = new ArrayList<>();
-    }
-
-    List<SqlNode> getSqlNodes() {
-        return sqlNodes;
-    }
-
-    @Override
-    public SqlNode visit(SqlNodeList nodeList) {
-        sqlNodes.add(nodeList);
-        for (int i = 0; i < nodeList.size(); i++) {
-            SqlNode node = nodeList.get(i);
-            node.accept(this);
-        }
-        return null;
-    }
-
-    @Override
-    public SqlNode visit(SqlLiteral literal) {
-        sqlNodes.add(literal);
-        return null;
-    }
-
-    @Override
-    public SqlNode visit(SqlCall call) {
-        sqlNodes.add(call);
-        for (SqlNode operand : call.getOperandList()) {
-            if (operand != null) {
-                operand.accept(this);
+        }).reverse().nullsLast().onResultOf(new Function<ComputedColumnDesc, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable ComputedColumnDesc input) {
+                return input.getExpression();
             }
+        });
+
+        return ordering.immutableSortedCopy(computedColumns);
+    }
+
+    static class SqlTreeVisitor implements SqlVisitor<SqlNode> {
+        private List<SqlNode> sqlNodes;
+
+        SqlTreeVisitor() {
+            this.sqlNodes = new ArrayList<>();
         }
-        return null;
-    }
 
-    @Override
-    public SqlNode visit(SqlIdentifier id) {
-        sqlNodes.add(id);
-        return null;
-    }
+        List<SqlNode> getSqlNodes() {
+            return sqlNodes;
+        }
 
-    @Override
-    public SqlNode visit(SqlDataTypeSpec type) {
-        return null;
-    }
+        @Override
+        public SqlNode visit(SqlNodeList nodeList) {
+            sqlNodes.add(nodeList);
+            for (int i = 0; i < nodeList.size(); i++) {
+                SqlNode node = nodeList.get(i);
+                node.accept(this);
+            }
+            return null;
+        }
 
-    @Override
-    public SqlNode visit(SqlDynamicParam param) {
-        return null;
-    }
+        @Override
+        public SqlNode visit(SqlLiteral literal) {
+            sqlNodes.add(literal);
+            return null;
+        }
 
-    @Override
-    public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
-        return null;
+        @Override
+        public SqlNode visit(SqlCall call) {
+            sqlNodes.add(call);
+            for (SqlNode operand : call.getOperandList()) {
+                if (operand != null) {
+                    operand.accept(this);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public SqlNode visit(SqlIdentifier id) {
+            sqlNodes.add(id);
+            return null;
+        }
+
+        @Override
+        public SqlNode visit(SqlDataTypeSpec type) {
+            return null;
+        }
+
+        @Override
+        public SqlNode visit(SqlDynamicParam param) {
+            return null;
+        }
+
+        @Override
+        public SqlNode visit(SqlIntervalQualifier intervalQualifier) {
+            return null;
+        }
     }
 }

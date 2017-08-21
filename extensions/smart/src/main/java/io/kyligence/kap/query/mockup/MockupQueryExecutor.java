@@ -33,6 +33,7 @@ import java.sql.Statement;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
+import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.QueryDataSource;
 import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.apache.kylin.query.util.QueryUtil;
@@ -52,14 +53,15 @@ public class MockupQueryExecutor implements Closeable {
     }
 
     public void execute(String projectName, String sql) throws SQLException {
-        Connection conn = queryDataSource.get(projectName, kylinConfig).getConnection();
+        //Connection conn = queryDataSource.get(projectName, kylinConfig).getConnection();
+        Connection conn = QueryConnection.getConnection(projectName);
 
         Statement statement = null;
         ResultSet resultSet = null;
 
         try {
             statement = conn.createStatement();
-            sql = QueryUtil.massageSql(sql, projectName, 0, 0);
+            sql = QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema());
             resultSet = statement.executeQuery(sql);
         } catch (Exception e) {
             if (e.getCause() != null

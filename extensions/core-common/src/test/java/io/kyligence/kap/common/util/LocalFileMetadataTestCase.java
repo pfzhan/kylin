@@ -26,9 +26,6 @@ package io.kyligence.kap.common.util;
 
 import org.apache.kylin.common.KylinConfig;
 
-/**
- * Created by dongli on 4/7/16.
- */
 public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.LocalFileMetadataTestCase {
 
     @Override
