@@ -65,5 +65,8 @@ export default {
   },
   getColumnSampleData: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.table + '/' + para.column).get()
+  },
+  checkComputedExpression: (para) => {
+    return Vue.resource(apiUrl + 'models/validness').save(para)
   }
 }

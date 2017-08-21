@@ -151,7 +151,7 @@
       </el-dialog>
        <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
           <div>
-            <el-button type="primary" class="ksd-mb-10" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="addComputedForm">{{$t('kylinLang.common.add')}}</el-button>
+            <el-button type="trans" class="ksd-mb-10 radius" icon="plus" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="addComputedForm">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top" :model="computedColumn"  ref="computedColumnForm"  :rules="computedRules" v-show="openAddComputedColumnForm">
               <el-form-item :label="$t('kylinLang.dataSource.columns')" prop="name">
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
@@ -159,7 +159,17 @@
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle-o"></icon></common-tip></span>
                 <!-- <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input> -->
- <editor v-model="computedColumn.expression" @click.native="completeInput" ref="expressionBox" lang="sql" theme="monokai" width="100%" height="200" useWrapMode="true"></editor>
+               <editor v-model="computedColumn.expression" @click.native="completeInput" ref="expressionBox" lang="sql" theme="monokai" width="100%" height="100" useWrapMode="true"></editor>
+               <p :class="{isvalid:checkExpressResult.isValid}" v-if="checkExpressResult.msg" class="checkresult">
+                 {{checkExpressResult.msg}}
+               </p>
+               <div v-show="computedColumn.expression">
+                <el-button size="small" @click="checkExpression" :loading="checkExpressionBtnLoad">Expression Check</el-button>
+                <common-tip :content="$t('longTimeTip')" >
+                   <icon name="question-circle-o"></icon>
+                </common-tip> 
+                <el-button type="text" size="mini" v-show="checkExpressionBtnLoad" @click="cancelCheckExpression" >{{$t('kylinLang.common.cancel')}}</el-button>
+              </div>
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.returnType')" prop="returnType">
                 <el-select v-model="computedColumn.returnType">
@@ -173,13 +183,15 @@
                 <!-- <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input> -->
               </el-form-item>  
               <el-form-item>
-                <el-button type="primary" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
+                <el-button type="trans" class="radius" @click="cancelComputedEditForm">{{$t('kylinLang.common.cancel')}}</el-button>
+                <el-button type="trans" class="radius" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
               </el-form-item>
+                <div class="line-primary" style="margin: 0px -20px;"></div>
             </el-form>
             <kap-nodata v-if="!(currentTableComputedColumns && currentTableComputedColumns.length)"></kap-nodata>
-            <el-table v-if="currentTableComputedColumns && currentTableComputedColumns.length"
+            <el-table border v-if="currentTableComputedColumns && currentTableComputedColumns.length"
               :data="currentTableComputedColumns"
-              style="width: 100%">
+              style="width: 100%; font-size:12px;">
               <el-table-column
                 prop="columnName"
                 :label="$t('kylinLang.dataSource.columns')"
@@ -188,7 +200,7 @@
               <el-table-column
                 prop="expression"
                 :label="$t('kylinLang.dataSource.expression')"
-                width="180">
+                >
                  <template scope="scope" >
                     <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.expression" placement="top">
                         <span >{{scope.row.expression|omit(24, '...')}}</span>
@@ -196,21 +208,23 @@
                  </template>
               </el-table-column>
               <el-table-column
+              width="100"
                 prop="datatype"
                 :label="$t('kylinLang.dataSource.returnType')">
               </el-table-column>
               <el-table-column
+                 width="140"
                 :label="$t('kylinLang.common.action')" v-if="actionMode!=='view'">
                 <template scope="scope">
-                  <el-button type="primary" size="small" v-on:click='editComputedColumn(scope.row)'>{{$t('kylinLang.common.edit')}}</el-button>
-                   <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
-          type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
+                  <el-button  icon="edit" size="small" v-on:click='editComputedColumn(scope.row)'></el-button>
+                   <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')">
+                   <el-button size="small" icon="delete" ></el-button></confirm-btn>
                 </template>
               </el-table-column>
             </el-table>
           </div>
             <span slot="footer" class="dialog-footer">
-            <!-- <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button> -->
+            <el-button @click="computedColumnFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
             <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
@@ -267,6 +281,8 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      checkExpressionBtnLoad: false,
+      checkExpressResult: {},
       currentTableComputedColumns: [],
       computedRules: {
         name: [
@@ -444,13 +460,60 @@ export default {
       saveModelDraft: 'SAVE_MODEL_DRAFT',
       updateModel: 'CACHE_UPDATE_MODEL_EDIT',
       diagnose: 'DIAGNOSE',
-      // 数据缓冲到vuex里
       cacheModelEdit: 'CACHE_MODEL_EDIT',
       getUsedCols: 'GET_USED_COLS',
       getCubesList: 'GET_CUBES_LIST',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
-      statsModel: 'COLLECT_MODEL_STATS'
+      statsModel: 'COLLECT_MODEL_STATS',
+      checkComputedExpression: 'CHECK_COMPUTED_EXPRESSION'
     }),
+    checkExpression () {
+      if (!this.computedColumn.returnType) {
+        this.$message(this.$t('plsCheckReturnType'))
+        return
+      }
+      this.$message(this.$t('longTimeTip'))
+      var editor = this.$refs.expressionBox.editor
+      editor.setReadOnly(true)
+      this.checkExpressionBtnLoad = true
+      var checkData = JSON.parse(this.DragDataToServerData(false, true))
+      var needCheckComputedObj = {}
+      var guid = this.computedColumn.guid
+      var databaseInfo = this.getTableInfoByGuid(guid)
+      needCheckComputedObj = {
+        tableIdentity: databaseInfo.database + '.' + databaseInfo.name,
+        tableAlias: databaseInfo.alias,
+        columnName: this.computedColumn.name,
+        expression: this.computedColumn.expression,
+        comment: this.computedColumn.comment,
+        datatype: this.computedColumn.returnType,
+        disabled: true
+      }
+      checkData.computed_columns = [needCheckComputedObj]
+      this.checkComputedExpression({
+        modelDescData: JSON.stringify(checkData),
+        project: this.project
+      }).then((res) => {
+        this.checkExpressionBtnLoad = false
+        editor.setReadOnly(false)
+        this.checkExpressResult.isValid = true
+        handleSuccess(res, (data) => {
+          this.checkExpressResult.msg = this.$t('checkSuccess')
+        })
+      }, (res) => {
+        this.checkExpressionBtnLoad = false
+        editor.setReadOnly(false)
+        this.checkExpressResult.isValid = false
+        handleError(res, (a, b, c, msg) => {
+          this.checkExpressResult.msg = msg
+        })
+      })
+    },
+    cancelCheckExpression () {
+      var editor = this.$refs.expressionBox.editor
+      editor.setReadOnly(false)
+      this.checkExpressionBtnLoad = false
+    },
     toggleFullScreen () {
       this.isFullScreen = !this.isFullScreen
       $('#fullBox').toggleClass('fullLayoutForModelEdit')
@@ -461,6 +524,7 @@ export default {
       this.computedColumn.name = ''
       this.computedColumn.expression = ''
       this.computedColumn.returnType = ''
+      this.checkExpressResult = {isValid: '', msg: ''}
     },
     // 列排序
     sortColumns: function (tableInfo) {
@@ -678,12 +742,12 @@ export default {
       editor.execCommand('startAutocomplete')
     },
     addComputedColumn: function (guid) {
-      Object.assign(this.computedColumn, {
+      this.computedColumn = {
         guid: '',
         name: '',
         expression: '',
         returnType: ''
-      })
+      }
       this.computedColumn.guid = guid
       this.currentTableComputedColumns = []
       this.computedColumnFormVisible = true
@@ -691,6 +755,7 @@ export default {
       this.refreshComputed()
       this.$nextTick(() => {
         var editor = this.$refs.expressionBox.editor
+        editor.insert(' ')
         var autoCompeleteData = []
         var setCompleteData = function (data, tableName) {
           editor.completers.splice(0, editor.completers.length - 3)
@@ -726,7 +791,7 @@ export default {
           autoCompeleteData.push({meta: 'table', caption: tableInfo.name, value: tableInfo.name, scope: 1})
           if (tableInfo && tableInfo.columns) {
             tableInfo.columns.forEach((co) => {
-              autoCompeleteData.push({meta: co.datatype, caption: tableInfo.name + '.' + co.name, value: tableInfo.name + '.' + co.name, scope: 2})
+              autoCompeleteData.push({meta: co.datatype, caption: tableInfo.alias + '.' + co.name, value: tableInfo.alias + '.' + co.name, scope: 2})
               // autoCompeleteData.push({meta: co.datatype, caption: co.name, value: co.name, scope: 2})
             })
           }
@@ -735,41 +800,67 @@ export default {
       })
     },
     editComputedColumn (row) {
+      this.checkExpressResult = {
+        isvalid: '',
+        msg: ''
+      }
       this.openAddComputedColumnForm = true
-      var tableList = this.getSameOriginTables(row.tableIdentity.split('.')[0], row.tableIdentity.split('.')[1])
-      this.computedColumn = {
-        guid: tableList[0].guid,
-        name: row.columnName,
-        expression: row.expression,
-        returnType: row.datatype
+      var tableInfo = this.getTableInfo('alias', row.tableAlias)
+      if (tableInfo) {
+        this.computedColumn = {
+          guid: tableInfo.guid,
+          name: row.columnName,
+          expression: row.expression,
+          returnType: row.datatype
+        }
       }
     },
     delComputedColumn (column) {
-      this.changeComputedColumnDisable(column.tableIdentity, column.columnName, false)
-      var tableList = this.getSameOriginTables(column.tableIdentity.split('.')[0], column.tableIdentity.split('.')[1])
-      for (var i = 0; i < tableList.length; i++) {
-        var guid = tableList[i].guid
-        this.delColumn(guid, 'name', column.columnName)
-      }
+      this.changeComputedColumnDisable(column.tableAlias, column.columnName, false)
+      var tableInfo = this.getTableInfo('alias', column.tableAlias)
+      this.delColumn(tableInfo.guid, 'name', column.columnName)
+      // var tableList = this.getSameOriginTables(column.tableIdentity.split('.')[0], column.tableIdentity.split('.')[1])
+      // for (var i = 0; i < tableList.length; i++) {
+      //   var guid = tableList[i].guid
+      //   this.delColumn(guid, 'name', column.columnName)
+      // }
       // this.editTableColumnInfo(tableList[0].guid, 'name', column.columnName, 'btype', '-')
       this.refreshComputed()
       this.getPartitionDateColumns()
     },
+    pushComputedColumnToMeta () {
+      this.addComputedColumnToDatabase((columnName) => {
+        this.$notify({
+          title: this.$t('kylinLang.common.success'),
+          message: this.$t('addComputedColumnSuccess'),
+          type: 'success'
+        })
+        this.$refs.computedColumnForm.resetFields()
+        this.openAddComputedColumnForm = false
+        this.refreshComputed()
+      })
+    },
     saveComputedColumn: function (guid) {
       this.$refs.computedColumnForm.validate((valid) => {
         if (valid) {
-          this.addComputedColumnToDatabase((columnName) => {
-            this.$notify({
-              title: this.$t('kylinLang.common.success'),
-              message: this.$t('addComputedColumnSuccess'),
-              type: 'success'
+          if (this.checkExpressionBtnLoad) {
+            kapConfirm(this.$t('checkingTip'), {
+              confirmButtonText: this.$t('continueSave'),
+              cancelButtonText: this.$t('continueCheck')
+            }).then(() => {
+              this.pushComputedColumnToMeta()
             })
-            this.$refs.computedColumnForm.resetFields()
-            this.openAddComputedColumnForm = false
-            this.refreshComputed()
-          })
+          } else {
+            this.pushComputedColumnToMeta()
+          }
         }
       })
+    },
+    cancelComputedEditForm: function (argument) {
+      var editor = this.$refs.expressionBox.editor
+      editor.insert(' ')
+      this.openAddComputedColumnForm = false
+      this.$refs.computedColumnForm.resetFields()
     },
     getPartitionDateColumns: function () {
       var dateColumns = {}
@@ -806,7 +897,7 @@ export default {
       this.computedColumn.name = this.computedColumn.name.toUpperCase()
       var guid = this.computedColumn.guid
       var databaseInfo = this.getTableInfoByGuid(guid)
-      var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
+      // var sameTables = this.getSameOriginTables(databaseInfo.database, databaseInfo.name)
       if (!this.checkSameColumnName(guid, this.computedColumn.name)) {
         var columnObj = {
           name: this.computedColumn.name,
@@ -817,17 +908,14 @@ export default {
         }
         var computedObj = {
           tableIdentity: databaseInfo.database + '.' + databaseInfo.name,
+          tableAlias: databaseInfo.alias,
           columnName: this.computedColumn.name,
           expression: this.computedColumn.expression,
           comment: this.computedColumn.comment,
           datatype: this.computedColumn.returnType,
           disabled: true
         }
-        sameTables.forEach((table) => {
-          if (!this.checkSameColumnName(table.guid, this.computedColumn.name)) {
-            table.columns.push(columnObj)
-          }
-        })
+        databaseInfo.columns.push(columnObj)
         if (!isInit) {
           this.modelInfo.computed_columns.push(computedObj)
         }
@@ -837,7 +925,7 @@ export default {
       } else {
         if (this.checkSameComputedName(guid, this.computedColumn.name)) {
           this.modelInfo.computed_columns.forEach((co) => {
-            if (co.tableIdentity === databaseInfo.database + '.' + databaseInfo.name && co.columnName === this.computedColumn.name) {
+            if (co.tableAlias === databaseInfo.alias && co.columnName === this.computedColumn.name) {
               co.expression = this.computedColumn.expression
               co.datatype = this.computedColumn.returnType
             }
@@ -894,11 +982,11 @@ export default {
       this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
       // var fullName = tableInfo.database + '.' + tableInfo.name
     },
-    changeComputedColumnDisable (fullName, column) {
+    changeComputedColumnDisable (alias, column) {
       var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0
       for (var i = 0; i < len; i++) {
         var calcColumn = this.modelInfo.computed_columns[i]
-        if (calcColumn.tableIdentity === fullName && calcColumn.columnName === column) {
+        if (calcColumn.tableAlias === alias && calcColumn.columnName === column) {
           this.modelInfo.computed_columns.splice(i, 1)
           break
         }
@@ -1026,16 +1114,15 @@ export default {
           break
         }
       }
-      this.modelInfo.computed_columns.forEach((k) => {
-        if (k.tableIdentity === database + '.' + tableName) {
-          var columnObj = this.getColumnData(database, tableName, k.columnName)
-          if (columnObj) {
-            obj.columns.push(columnObj)
-          }
-        }
-      })
+      // this.modelInfo.computed_columns.forEach((k) => {
+      //   if (k.tableIdentity === database + '.' + tableName) {
+      //     var columnObj = this.getColumnData(database, tableName, k.columnName)
+      //     if (columnObj) {
+      //       obj.columns.push(columnObj)
+      //     }
+      //   }
+      // })
       this.tableList.push(obj)
-
       var uniqueName = this.createUniqueName(obj.guid, obj.alias)
       this.$set(obj, 'alias', uniqueName)
       this.$nextTick(() => {
@@ -1055,14 +1142,14 @@ export default {
       }
       for (var i = 0; i < this.tableList.length; i++) {
         if (this.tableList[i].guid === guid) {
-          var k = this.getSameOriginTables(this.tableList[i].database, this.tableList[i].name)
-          if (k.length === 1) {
-            this.modelInfo.computed_columns.forEach((com, i) => {
-              if (com.tableIdentity === this.tableList[i].database + '.' + this.tableList[i].name) {
-                this.modelInfo.computed_columns.splice(i, 1)
-              }
-            })
-          }
+          // var k = this.getSameOriginTables(this.tableList[i].database, this.tableList[i].name)
+          // if (k.length === 1) {
+          this.modelInfo.computed_columns.forEach((com, i) => {
+            if (com.tableAlias === this.tableList[i].alias) {
+              this.modelInfo.computed_columns.splice(i, 1)
+            }
+          })
+          // }
           this.tableList.splice(i, 1)
           this.removePoint(guid)
           break
@@ -1577,15 +1664,17 @@ export default {
       this.$set(tableInfo, 'alias', uniqueName)
     },
     createUniqueName (guid, alias) {
-      var sameCount = this.checkSameAlias(guid, alias)
-      var finalAlias = alias.toUpperCase().replace(/[^a-zA-Z_0-9]/g, '')
-      if (sameCount === 0) {
-        return finalAlias
-      } else {
-        while (this.checkSameAlias(guid, finalAlias + '_' + sameCount)) {
-          sameCount++
+      if (alias && guid) {
+        var sameCount = this.checkSameAlias(guid, alias)
+        var finalAlias = alias.toUpperCase().replace(/[^a-zA-Z_0-9]/g, '')
+        if (sameCount === 0) {
+          return finalAlias
+        } else {
+          while (this.checkSameAlias(guid, finalAlias + '_' + sameCount)) {
+            sameCount++
+          }
+          return finalAlias + '_' + sameCount
         }
-        return finalAlias + '_' + sameCount
       }
     },
     selectTableKind: function (command, licompon) {
@@ -1648,7 +1737,7 @@ export default {
         }
       }
     },
-    getDimensions: function () {
+    getDimensions: function (ignoreComputed) {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
         if (!this.getConnectsByTableId(this.tableList[i].guid) && this.tableList[i].kind !== 'ROOTFACT' && this.tableList[i].kind !== 'FACT') {
@@ -1662,6 +1751,9 @@ export default {
         var len = columns && columns.length || 0
         for (var j = 0; j < len; j++) {
           if (columns[j].btype === 'D') {
+            if (ignoreComputed && columns[j].isComputed) {
+              continue
+            }
             obj.columns.push(columns[j].name)
           }
         }
@@ -1671,7 +1763,7 @@ export default {
       }
       return resultArr
     },
-    getMeasures: function () {
+    getMeasures: function (ignoreComputed) {
       var resultArr = []
       for (var i = 0; i < this.tableList.length; i++) {
         if (!this.getConnectsByTableId(this.tableList[i].guid) && this.tableList[i].kind !== 'ROOTFACT' && this.tableList[i].kind !== 'FACT') {
@@ -1681,6 +1773,9 @@ export default {
         var len = columns && columns.length || 0
         for (var j = 0; j < len; j++) {
           if (columns[j].btype === 'M') {
+            if (ignoreComputed && columns[j].isComputed) {
+              continue
+            }
             resultArr.push(this.tableList[i].alias + '.' + columns[j].name)
           }
         }
@@ -1763,7 +1858,7 @@ export default {
       this.$message(str)
     },
     // trans Data
-    DragDataToServerData: function (needJson) {
+    DragDataToServerData: function (needJson, ignoreComputed) {
       var fainalComputed = this.getDisableComputedColumn()
       var pos = {}
       var kylinData = {
@@ -1830,9 +1925,9 @@ export default {
         kylinData.lookups.push(linkTables[s])
       }
       // dimensions
-      kylinData.dimensions = this.getDimensions()
+      kylinData.dimensions = this.getDimensions(ignoreComputed)
       kylinData.pos = pos
-      kylinData.metrics = this.getMeasures()
+      kylinData.metrics = this.getMeasures(ignoreComputed)
       if (needJson) {
         return kylinData
       }
@@ -1969,14 +2064,29 @@ export default {
                 _this.autoLayerPosition()
               }
             })
-            // computed column add
             var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
+            // computed column add  old method to init computed column
+            // for (let i = 0; i < computedColumnsLen; i++) {
+            //   var fullName = modelData.computed_columns[i].tableIdentity.split('.')
+            //   var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
+            //   if (tableList && tableList.length) {
+            //     _this.computedColumn = {
+            //       guid: tableList[0].guid,
+            //       name: modelData.computed_columns[i].columnName,
+            //       expression: modelData.computed_columns[i].expression,
+            //       returnType: modelData.computed_columns[i].datatype
+            //       // columnType: modelData.computed_columns[i].datatype
+            //     }
+            //     _this.addComputedColumnToDatabase(() => {}, true)
+            //   }
+            // }
+            // computed column add  new method to init computed column
             for (let i = 0; i < computedColumnsLen; i++) {
-              var fullName = modelData.computed_columns[i].tableIdentity.split('.')
-              var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
-              if (tableList && tableList.length) {
+              var alias = modelData.computed_columns[i].tableAlias
+              var tableInfo = _this.getTableInfo('alias', alias)
+              if (tableInfo) {
                 _this.computedColumn = {
-                  guid: tableList[0].guid,
+                  guid: tableInfo.guid,
                   name: modelData.computed_columns[i].columnName,
                   expression: modelData.computed_columns[i].expression,
                   returnType: modelData.computed_columns[i].datatype
@@ -1984,6 +2094,17 @@ export default {
                 }
                 _this.addComputedColumnToDatabase(() => {}, true)
               }
+              // var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
+              // if (tableList && tableList.length) {
+              //   _this.computedColumn = {
+              //     guid: tableList[0].guid,
+              //     name: modelData.computed_columns[i].columnName,
+              //     expression: modelData.computed_columns[i].expression,
+              //     returnType: modelData.computed_columns[i].datatype
+              //     // columnType: modelData.computed_columns[i].datatype
+              //   }
+              //   _this.addComputedColumnToDatabase(() => {}, true)
+              // }
             }
 
             var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
@@ -2099,7 +2220,7 @@ export default {
       this.currentTableComputedColumns.splice(0, this.currentTableComputedColumns.length)
       var tableInfo = this.getTableInfoByGuid(guid)
       this.modelInfo.computed_columns.filter((computedColumn) => {
-        if (computedColumn.tableIdentity === tableInfo.database + '.' + tableInfo.name && computedColumn.disabled !== false) {
+        if (computedColumn.tableAlias === tableInfo.alias && computedColumn.disabled !== false) {
           this.currentTableComputedColumns.push(computedColumn)
         }
       })
@@ -2342,8 +2463,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Expression consists of this selected table\'s columns, e.g. price*item_count. Notice DB name or table name is not allowed', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '数据模型中，表关系的建立是从外键开始，指向主键。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '由该表上的列所组成的表达式，例如price*item_count。注意表达式中不允许出现库名表名', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Expression consists of this selected table\'s columns, e.g. price*item_count. Notice DB name or table name is not allowed', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '数据模型中，表关系的建立是从外键开始，指向主键。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '由该表上的列所组成的表达式，例如price*item_count。注意表达式中不允许出现库名表名', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！'}
   }
 }
 </script>
@@ -2389,6 +2510,15 @@ export default {
       }
     }
    .model_edit_box {
+    .checkresult {
+       color: red;
+       font-size: 12px;
+       word-break: break-all;
+       line-height: 20px;
+       &.isvalid {
+         color:green;
+       }
+     }
     .notable_tip{
       position: absolute;
       top: 50%;

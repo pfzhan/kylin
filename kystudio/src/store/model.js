@@ -111,6 +111,9 @@ export default {
     },
     [types.VALID_PARTITION_COLUMN]: function ({ commit }, para) {
       return api.model.validModelPartitionColumnFormat(para)
+    },
+    [types.CHECK_COMPUTED_EXPRESSION]: function ({ commit }, para) {
+      return api.model.checkComputedExpression(para)
     }
   },
   getters: {

@@ -25,15 +25,15 @@
       </el-col>
       <el-col :span="6" class="action-wrap">
         <p style="font-size:13px;">{{$t('action')}}</p>
-        <el-button style="margin-top: 22px;" class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
-        <el-button class="but-width bg_blue" @click="setConfig"><p class="p_font">{{$t('setConfig')}}</p></el-button>
-        <el-button class="but-width bg_blue" @click="backup">
+        <el-button style="margin-top: 22px;" type="primary" class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
+        <el-button class="but-width bg_blue" type="primary" @click="setConfig"><p class="p_font">{{$t('setConfig')}}</p></el-button>
+        <el-button class="but-width bg_blue" type="primary" @click="backup">
           <p class="p_font">
             <!-- <icon name="cogs"></icon> -->
             {{$t('backup')}}
           </p>
         </el-button>
-        <el-button class="but-width bg_blue" @click="diagnosisSys" style="margin-bottom:30px;">
+        <el-button class="but-width bg_blue" type="primary" @click="diagnosisSys" style="margin-bottom:30px;">
           <p class="p_font">
             <!-- <icon name="ambulance"></icon> -->
             {{$t('diagnosis')}}
@@ -81,6 +81,7 @@ export default {
   mounted () {
     var editor1 = this.$refs.envConfig.editor
     var editor2 = this.$refs.sysConfig.editor
+    editor1.setOption('gutters', 'huuuu')
     editor1.setOption('wrap', 'free')
     editor2.setOption('wrap', 'free')
     editor1.setReadOnly(true)

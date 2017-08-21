@@ -464,10 +464,12 @@ export default {
 </script>
 <style lang="less">
   @import '../../less/config.less';
- .table_margin {
+ 
+#create-kafka{
+  .table_margin {
    margin-top: 10px;
    margin-bottom: 10px;
- }
+  }
   .row_padding {
   padding-top: 5px;
   padding-bottom: 5px;
@@ -506,7 +508,6 @@ export default {
   color: @fff;
   border: 1px solid @base-color;
 }
-#create-kafka{
   .el-input{
     padding: 0;
     color:#fff;

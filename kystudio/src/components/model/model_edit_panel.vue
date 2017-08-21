@@ -4,7 +4,7 @@
 		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" @click.native="">
 		    <el-tab-pane label="Overview" name="first">
             <el-tabs class="el-tabs--default" v-model="subMenuActive" >
-                <el-tab-pane :label="$t('modelInfo')" name="first">
+                <el-tab-pane :label="$t('modelInfo')" name="first" class="overflow-y:auto;height:400px">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
                         <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
@@ -28,7 +28,7 @@
                          <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='RUNNING'" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
                          <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='ERROR'" status="exception" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
                          <span style="color:rgb(32, 160, 255)" v-if="modelHealth.status==='RUNNING'">{{modelHealth.progress||0}}%</span>
-                         <span>{{modelHealth.msg}}</span>
+                         <div style="color:#ccc;line-height:20px;margin-top:-8px;display:inline-block;vertical-align:text-top;" class=" ksd-ml-10" v-html="modelHealth.msg"></div>
                         </td>
                       </tr>
                        <tr v-show="currentModelInfo.owner">
@@ -250,8 +250,8 @@ export default {
           Object.assign(obj, {
             progress: data.progress === 0 ? 0 : parseInt(data.progress),
             msg: (data.messages && data.messages.length ? data.messages.map((x) => {
-              return x.replace(/\r\n/g, '<br/>')
-            }) : [modelHealthStatus[data.heathStatus].message]).join('<br/>'),
+              return x.replace(/\r\n/g, '\n')
+            }) : [modelHealthStatus[data.heathStatus].message]).join('\n'),
             icon: modelHealthStatus[data.heathStatus].icon,
             status: data.heathStatus,
             color: modelHealthStatus[data.heathStatus].color
