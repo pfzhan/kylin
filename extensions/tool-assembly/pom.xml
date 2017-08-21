@@ -95,9 +95,14 @@
                                     <include>org.springframework:spring-core</include>
                                     <include>org.apache.calcite:*</include>
                                     <include>org.apache.calcite.avatica:*</include>
+                                    <include>com.fasterxml.jackson*:*</include>
                                 </includes>
                             </artifactSet>
                             <relocations>
+                                <relocation>
+                                    <pattern>com.fasterxml.jackson</pattern>
+                                    <shadedPattern>${shadeBase}.com.fasterxml.jackson</shadedPattern>
+                                </relocation>
                                 <relocation>
                                     <pattern>com.google.common</pattern>
                                     <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
