@@ -474,7 +474,8 @@ export default {
  }
  .textarea_height {
   height: 200px;
-  width: 100%
+  width: 100%;
+  overflow-y: auto;
  }
  .textarea_percent {
   height: 100%;
