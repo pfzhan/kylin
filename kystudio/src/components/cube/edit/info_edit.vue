@@ -51,11 +51,21 @@
     <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
     <transition name="fade">
     <div v-if="errorMsg">
-     <el-alert class="ksd-mt-20 trans"  
+     <el-alert class="ksd-mt-10 trans"  
         :title="errorMsg"
         show-icon
         :closable="false"
         type="error">
+      </el-alert>
+    </div>
+    </transition>
+    <transition name="fade">
+    <div v-if="successMsg">
+     <el-alert class="ksd-mt-10 trans"  
+        :title="successMsg"
+        show-icon
+        :closable="false"
+        type="success">
       </el-alert>
     </div>
     </transition>
@@ -81,6 +91,7 @@ export default {
       sqlBtnLoading: false,
       checkSqlLoadBtn: false,
       errorMsg: '',
+      successMsg: '',
       hasCheck: false,
       sqlCount: 0,
       sqlString: '',
@@ -137,18 +148,26 @@ export default {
       return sqls
     },
     addBreakPoint (data, editor) {
+      this.errorMsg = ''
+      this.successMsg = ''
       if (!editor) {
         return
       }
       if (data && data.length) {
-        this.errorMsg = this.$t('validFail')
+        var hasFailValid = false
         data.forEach((r, index) => {
           if (r.status === 'FAILED') {
+            hasFailValid = true
             editor.session.setBreakpoint(index)
           } else {
             editor.session.clearBreakpoint(index)
           }
         })
+        if (hasFailValid) {
+          this.errorMsg = this.$t('validFail')
+        } else {
+          this.successMsg = this.$t('validSuccess')
+        }
       }
     },
     bindBreakClickEvent (editor) {
@@ -165,6 +184,7 @@ export default {
             }
           } else {
             this.errorMsg = ''
+            this.successMsg = ''
           }
         }
         e.stop()
@@ -185,14 +205,15 @@ export default {
       }
     },
     validateSql () {
+      var sqls = this.filterSqls(this.sqlString)
+      if (sqls.length === 0) {
+        return
+      }
       var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
-      // this.$nextTick(() => {
       this.renderEditerRender(editor)
-      // })
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      var sqls = this.filterSqls(this.sqlString)
       this.sqlString = sqls.join(';\r\n')
       this.checkSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
@@ -315,8 +336,8 @@ export default {
     // })
   },
   locales: {
-    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens', check: 'Check', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see details.'},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。'}
+    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens', check: 'Check', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see details.', validSuccess: 'Congratulations, the SQL statements is valid.'},
+    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: '恭喜您，校验结果正确。'}
   }
 }
 </script>
