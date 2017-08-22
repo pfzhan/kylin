@@ -48,9 +48,6 @@ import io.kyligence.kap.modeling.smart.query.QueryStats;
 @Component("kapSuggestionService")
 public class KapSuggestionService extends BasicService {
     public void saveSampleSqls(String modelName, String cubeName, List<String> sampleSqls) throws Exception {
-        if (sampleSqls.size() == 0)
-            return;
-
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
         CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
 
