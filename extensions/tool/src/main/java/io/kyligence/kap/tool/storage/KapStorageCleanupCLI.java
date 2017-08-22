@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.tool.storage;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +65,9 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         super.execute(optionsHelper);
-        cleanUnusedParquetFolders(new Configuration());
+        Configuration conf = new Configuration();
+        cleanUnusedParquetFolders(conf);
+        cleanUnusedIntermediateStatsFile(conf);
     }
 
     @Override
@@ -74,6 +77,63 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
             super.cleanUnusedHBaseTables();
         } else {
             logger.info("Not using HBase as metadata resource store, skip hbase clean up job.");
+        }
+    }
+
+    private List<String> getNeedToDeletePath(Configuration conf, Path rootPath) throws IOException {
+        List<String> deleteList = new ArrayList<>();
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
+        FileStatus[] statsFolders;
+        logger.info("The stats root path is: {}", rootPath);
+        if (fs.exists(rootPath)) {
+            statsFolders = fs.listStatus(rootPath);
+            if (statsFolders != null) {
+                for (FileStatus statsFolder : statsFolders) {
+                    try {
+                        String jobId = statsFolder.getPath().getName();
+                        final ExecutableState state = executableManager.getOutput(jobId).getState();
+                        if (!state.isFinalState()) {
+                            continue;
+                        }
+                        String folderName = rootPath + File.separator + jobId;
+                        deleteList.add(folderName);
+                    } catch (Exception e) {
+                        logger.error("Ignore executableManager.getOutput exception: {}", e);
+                    }
+                }
+            }
+        }
+        return deleteList;
+    }
+
+    private void cleanUnusedIntermediateStatsFile(Configuration conf) throws IOException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        List<String> allStatsPathsNeedToBeDeleted = new ArrayList<>();
+
+        Path modelStatsStoragePath = new Path(config.getHdfsWorkingDirectory() + "model_stats");
+        Path tableStatsStoragePath = new Path(config.getHdfsWorkingDirectory() + "table_stats");
+        allStatsPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, modelStatsStoragePath));
+        allStatsPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, tableStatsStoragePath));
+
+        if (delete) {
+            FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
+            for (String hdfsPath : allStatsPathsNeedToBeDeleted) {
+                logger.info("Deleting hdfs path " + hdfsPath);
+                Path p = new Path(hdfsPath);
+                if (fs.exists(p)) {
+                    fs.delete(p, true);
+                    logger.info("Deleted HDFS path " + hdfsPath);
+                } else {
+                    logger.info("HDFS path " + hdfsPath + "does not exist");
+                }
+            }
+
+        } else {
+            System.out.println("--------------- Intermediate Stats HDFS Path To Be Deleted ---------------");
+            for (String hdfsPath : allStatsPathsNeedToBeDeleted) {
+                System.out.println(hdfsPath);
+            }
+            System.out.println("-------------------------------------------------------");
         }
     }
 
