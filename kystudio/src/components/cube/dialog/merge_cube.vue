@@ -7,12 +7,12 @@
   <el-row :gutter="20">
     <el-col :span="8">{{$t('mergeStartSegment')}}</el-col>
     <el-col :span="16">  
-      <el-select v-model="startSegment" class="select" >
+      <el-select v-model="startSegment" class="select" @change="changeStart">
         <el-option 
           v-for="(item, index) in cubeDesc.segments"
           :key="index"
           :label="item.name"
-          :value="item">
+          :value="item.uuid">
         </el-option>
       </el-select>
     </el-col>
@@ -20,12 +20,12 @@
   <el-row :gutter="20">
     <el-col :span="8">{{$t('mergeEndSegment')}}</el-col>
     <el-col :span="16">  
-      <el-select v-model="endSegment" class="select" >
+      <el-select v-model="endSegment" class="select" @change="changeEnd">
         <el-option 
           v-for="(item, index) in cubeDesc.segments"
           :key="index"
           :label="item.name"
-          :value="item">
+          :value="item.uuid">
         </el-option>
       </el-select>
     </el-col>
@@ -36,11 +36,11 @@
       <el-card>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('startDate')}}</el-col>
-          <el-col :span="16">{{startSegment.date_range_start | utcTime}}</el-col>
+          <el-col :span="16">{{segObject.startObject.date_range_start | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('endDate')}}</el-col>
-          <el-col :span="16">{{startSegment.date_range_end | utcTime}}</el-col>
+          <el-col :span="16">{{segObject.startObject.date_range_end | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildTime')}}</el-col>
@@ -48,7 +48,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildID')}}</el-col>
-          <el-col :span="16">{{startSegment.last_build_job_id}}</el-col>
+          <el-col :span="16">{{segObject.startObject.last_build_job_id}}</el-col>
         </el-row>
       </el-card>                  
     </el-col>
@@ -59,11 +59,11 @@
       <el-card>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('startDate')}}</el-col>
-          <el-col :span="16">{{endSegment.date_range_start | utcTime}}</el-col>
+          <el-col :span="16">{{segObject.endObject.date_range_start | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('endDate')}}</el-col>
-          <el-col :span="16">{{endSegment.date_range_end | utcTime}}</el-col>
+          <el-col :span="16">{{segObject.endObject.date_range_end | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildTime')}}</el-col>
@@ -71,7 +71,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildID')}}</el-col>
-          <el-col :span="16">{{endSegment.last_build_job_id}}</el-col>
+          <el-col :span="16">{{segObject.endObject.last_build_job_id}}</el-col>
         </el-row> 
       </el-card>                 
     </el-col>
@@ -88,28 +88,50 @@ export default {
   props: ['cubeDesc'],
   data () {
     return {
-      startSegment: this.cubeDesc.segments[0],
-      endSegment: this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
+      startSegment: this.cubeDesc.segments[0].uuid,
+      endSegment: this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid,
+      segObject: {
+        startObject: this.cubeDesc.segments[0],
+        endObject: this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
+      }
+    }
+  },
+  methods: {
+    changeStart: function (item) {
+      this.cubeDesc.segments.forEach((segment) => {
+        if (segment.uuid === item) {
+          this.$set(this.segObject, 'startObject', segment)
+        }
+      })
+    },
+    changeEnd: function (item) {
+      this.cubeDesc.segments.forEach((segment) => {
+        if (segment.uuid === item) {
+          this.$set(this.segObject, 'endObject', segment)
+        }
+      })
     }
   },
   computed: {
     startSegLastBuild () {
-      return transToGmtTime(this.startSegment.last_build_time, this)
+      return transToGmtTime(this.segObject.startObject.last_build_time, this)
     },
     endSegLastBuild () {
-      return transToGmtTime(this.endSegment.last_build_time, this)
+      return transToGmtTime(this.segObject.endObject.last_build_time, this)
     }
   },
   created () {
     let _this = this
     this.$on('mergeCubeFormValid', (t) => {
-      _this.$emit('validSuccess', {date_range_start: this.startSegment.date_range_start, date_range_end: this.endSegment.date_range_end})
+      _this.$emit('validSuccess', {date_range_start: this.segObject.startObject.date_range_start, date_range_end: this.segObject.endObject.date_range_end})
     })
   },
   watch: {
     cubeDesc (cubeDesc) {
-      this.startSegment = this.cubeDesc.segments[0]
-      this.endSegment = this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
+      this.segObject.startObject = this.cubeDesc.segments[0]
+      this.startSegment = this.cubeDesc.segments[0].uuid
+      this.segObject.endObject = this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
+      this.endSegment = this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid
     }
   },
   locales: {

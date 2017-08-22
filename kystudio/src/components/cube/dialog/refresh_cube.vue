@@ -7,12 +7,12 @@
   <el-row :gutter="20">
     <el-col :span="8">{{$t('refreshSegment')}}</el-col>
     <el-col :span="16">  
-      <el-select v-model="selected_segment" class="select" >
+      <el-select v-model="selected_segment" class="select" @change="changeSegment">
         <el-option 
           v-for="(item, index) in cubeDesc.segments"
           :key="index"
           :label="item.name"
-          :value="item">
+          :value="item.uuid">
         </el-option>
       </el-select>
     </el-col>
@@ -23,11 +23,11 @@
       <el-card>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('startDate')}}</el-col>
-          <el-col :span="16">{{selected_segment.date_range_start | utcTime}}</el-col>
+          <el-col :span="16">{{selectSeg.detail.date_range_start | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('endDate')}}</el-col>
-          <el-col :span="16">{{selected_segment.date_range_end | utcTime}}</el-col>
+          <el-col :span="16">{{selectSeg.detail.date_range_end | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildTime')}}</el-col>
@@ -35,7 +35,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildID')}}</el-col>
-          <el-col :span="16">{{selected_segment.last_build_job_id}}</el-col>
+          <el-col :span="16">{{selectSeg.detail.last_build_job_id}}</el-col>
         </el-row> 
       </el-card>                   
     </el-col>
@@ -52,27 +52,36 @@ export default {
   props: ['cubeDesc'],
   data () {
     return {
-      _this: this,
-      selected_segment: this.cubeDesc.segments[0]
+      selected_segment: this.cubeDesc.segments[0].uuid,
+      selectSeg: {
+        detail: this.cubeDesc.segments[0]
+      }
     }
   },
   methods: {
-    transToGmtTime
+    transToGmtTime,
+    changeSegment: function (item) {
+      this.cubeDesc.segments.forEach((segment) => {
+        if (segment.uuid === item) {
+          this.$set(this.selectSeg, 'detail', segment)
+        }
+      })
+    }
   },
   created () {
-    let _this = this
     this.$on('refreshCubeFormValid', (t) => {
-      _this.$emit('validSuccess', this.selected_segment, !!this.cubeDesc.partitionDateColumn)
+      this.$emit('validSuccess', this.selectSeg.detail, !!this.cubeDesc.partitionDateColumn)
     })
   },
   computed: {
     lastBuild () {
-      return transToGmtTime(this.selected_segment.last_build_time)
+      return transToGmtTime(this.selectSeg.detail.last_build_time)
     }
   },
   watch: {
     cubeDesc (cubeDesc) {
-      this.selected_segment = this.cubeDesc.segments[0]
+      this.selected_segment = this.cubeDesc.segments[0].uuid
+      this.$set(this.selectSeg, 'detail', this.cubeDesc.segments[0])
     }
   },
   locales: {
