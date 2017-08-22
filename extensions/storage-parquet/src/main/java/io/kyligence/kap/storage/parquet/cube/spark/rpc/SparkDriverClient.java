@@ -127,7 +127,8 @@ public class SparkDriverClient {
                         logger.error("grpc client side receive error: " + status);
                         if (status != null && status.getCause() != null
                                 && status.getCause().toString().contains("exceeds maximum")) {
-                            serverSideError.set(new Throwable("Too many return records, please apply limit for SQL."));
+                            serverSideError.set(new Throwable(
+                                    "Records returned are over result maximum, please use LIMIT to control SQL result."));
                         } else
                             //                serverSideError.set(status.getDescription() == null ? "Unknown error! Please make sure the spark driver is working by running \"bin/spark_client.sh start\"" : status.getDescription());
                             serverSideError.set(throwable);
