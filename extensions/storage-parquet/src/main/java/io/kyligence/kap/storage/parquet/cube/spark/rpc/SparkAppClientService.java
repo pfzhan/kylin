@@ -108,29 +108,32 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
         logger.info("Finish warming up all executors");
     }
 
+    private void checkSparkContext() {
+        if (sc.sc().isStopped()) {
+            synchronized (SparkAppClientService.class) {
+                if (sc.sc().isStopped()) {
+                    logger.warn(
+                            "Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
+                            DateFormat.formatToTimeStr(sc.startTime()));
+                    sc = new JavaSparkContext(conf);
+                    semaphore = new Semaphore(
+                            (int) KapPushDownUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+                    sqlClient = new SparkSqlClient(sc, semaphore);
+                }
+            }
+        }
+    }
+
     @Override
     public StreamObserver<SparkJobRequest> submitJob(final StreamObserver<SparkJobResponse> responseObserver) {
-        if (sc.sc().isStopped()) {
-            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
-                    DateFormat.formatToTimeStr(sc.startTime()));
-            sc = new JavaSparkContext(conf);
-            semaphore = new Semaphore((int) KapPushDownUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
-            sqlClient = new SparkSqlClient(sc, semaphore);
-        }
-
+        checkSparkContext();
         return new ServerStreamObserver(responseObserver, sc);
     }
 
     @Override
     public void doPushDownQuery(SparkJobProtos.PushDownRequest request,
             StreamObserver<SparkJobProtos.PushDownResponse> responseObserver) {
-        if (sc.sc().isStopped()) {
-            logger.warn("Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
-                    DateFormat.formatToTimeStr(sc.startTime()));
-            sc = new JavaSparkContext(conf);
-            semaphore = new Semaphore((int) KapPushDownUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
-            sqlClient = new SparkSqlClient(sc, semaphore);
-        }
+        checkSparkContext();
 
         logger.info("Starting to do query push down");
         try {
