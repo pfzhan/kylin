@@ -38,15 +38,27 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.cube.raw.gridtable.RawTableCodeSystem;
 import io.kyligence.kap.metadata.datatype.OrderedBytesStringSerializer;
 
-public class OrderedBytesSerializerTest {
+public class OrderedBytesSerializerTest extends LocalFileMetadataTestCase {
+
+    @Before
+    public void setup() throws Exception {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void after() throws Exception {
+        this.cleanupTestMetadata();
+    }
 
     BigDecimal largeBigDecimal = normalize(new BigDecimal(Double.MAX_VALUE).multiply(new BigDecimal(2)));
     BigDecimal normalBigDecimal = normalize(new BigDecimal("123123.231123"));
@@ -55,7 +67,7 @@ public class OrderedBytesSerializerTest {
     RawTableCodeSystem codeSystem;
     ImmutableBitSet allCols;
 
-    String[] inputs1 = new String[]{null, //
+    String[] inputs1 = new String[] { null, //
             "FFFF", //
             largeBigDecimal.toPlainString(), //
             normalBigDecimal.toPlainString(), //
@@ -71,7 +83,7 @@ public class OrderedBytesSerializerTest {
             "1970-01-01 00:00:00", //
             "1970-01-01 00:00:00", //
     };
-    Object[] expectedOutputs1 = new Object[]{null, //
+    Object[] expectedOutputs1 = new Object[] { null, //
             "FFFF", //
             largeBigDecimal, //
             normalBigDecimal, //
@@ -88,7 +100,7 @@ public class OrderedBytesSerializerTest {
             0L, //
     };
 
-    String[] inputs2 = new String[]{null, //
+    String[] inputs2 = new String[] { null, //
             "FFFF", //
             largeBigDecimal.negate().toPlainString(), //
             normalBigDecimal.negate().toPlainString(), //
@@ -104,7 +116,7 @@ public class OrderedBytesSerializerTest {
             "1970-01-01 00:00:00", //
             "1970-01-01 00:00:00", //
     };
-    Object[] expectedOutputs2 = new Object[]{null, //
+    Object[] expectedOutputs2 = new Object[] { null, //
             "FFFF", //
             largeBigDecimal.negate(), //
             normalBigDecimal.negate(), //
