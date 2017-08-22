@@ -25,6 +25,7 @@
 package io.kyligence.kap.storage.parquet.log;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.security.PrivilegedExceptionAction;
@@ -38,6 +39,7 @@ import java.util.concurrent.LinkedBlockingDeque;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.Credentials;
@@ -58,6 +60,7 @@ public class HdfsAppender extends AppenderSkeleton {
     FileSystem fileSystem = null;
     private String outPutPath;
     private String executorId;
+    private int rollingPeriod = 5;
     private BlockingDeque<LoggingEvent> logBufferQue = null;
     private ExecutorService appendHdfsService = null;
     private long startTime = 0;
@@ -150,6 +153,7 @@ public class HdfsAppender extends AppenderSkeleton {
                     LoggingEvent loggingEvent = logBufferQue.take();
                     if (isDayChanged(loggingEvent)) {
                         updateOutPutDir(loggingEvent);
+                        doRollingClean(loggingEvent);
 
                         final Path file = new Path(outPutPath);
 
@@ -162,7 +166,8 @@ public class HdfsAppender extends AppenderSkeleton {
 
                         String sparkuser = System.getenv("SPARK_USER");
                         String user = System.getenv("USER");
-                        logger.info("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is " + sparkuser + " USER is " + user);
+                        logger.info("login user is " + UserGroupInformation.getLoginUser() + " SPARK_USER is "
+                                + sparkuser + " USER is " + user);
                         UserGroupInformation childUGI = UserGroupInformation.createRemoteUser(user);
                         // Add tokens to new user so that it may execute its task correctly.
                         childUGI.addCredentials(credentials);
@@ -214,6 +219,14 @@ public class HdfsAppender extends AppenderSkeleton {
         return this.flushInterval;
     }
 
+    public int getRollingPeriod() {
+        return this.rollingPeriod;
+    }
+
+    public void setRollingPeriod(int rollingPeriod) {
+        this.rollingPeriod = rollingPeriod;
+    }
+
     private void initWriter(Path outPath) throws IOException {
         closeWriter();
         Configuration conf = new Configuration();
@@ -247,7 +260,40 @@ public class HdfsAppender extends AppenderSkeleton {
     }
 
     private void updateOutPutDir(LoggingEvent event) {
-        outPutPath = parseHdfsWordingDir() + "/" + "spark_logs" + "/" + dateFormat.format(new Date(event.getTimeStamp())) + "/" + "application-" + getApplicationId() + "/" + "executor-" + this.executorId + ".log";
+        outPutPath = parseHdfsWordingDir() + "/" + "spark_logs" + "/"
+                + dateFormat.format(new Date(event.getTimeStamp())) + "/" + "application-" + getApplicationId() + "/"
+                + "executor-" + this.executorId + ".log";
+    }
+
+    private void doRollingClean(LoggingEvent event) throws IOException {
+
+        if (fileSystem == null) {
+            Configuration conf = new Configuration();
+            fileSystem = FileSystem.get(conf);
+        }
+
+        String rootPathName = parseHdfsWordingDir() + "/" + "spark_logs";
+        Path rootPath = new Path(rootPathName);
+
+        if (!fileSystem.exists(rootPath))
+            return;
+
+        FileStatus[] logFolders = fileSystem.listStatus(rootPath);
+
+        if (logFolders == null)
+            return;
+
+        String thresholdDay = dateFormat.format(new Date(event.getTimeStamp() - A_DAY_MILLIS * rollingPeriod));
+
+        for (FileStatus fs : logFolders) {
+            String fileName = fs.getPath().getName();
+            if (fileName.compareTo(thresholdDay) < 0) {
+                Path fullPath = new Path(rootPathName + File.separator + fileName);
+                if (!fileSystem.exists(fullPath))
+                    continue;
+                fileSystem.delete(fullPath, true);
+            }
+        }
     }
 
     private boolean isDayChanged(LoggingEvent event) {
