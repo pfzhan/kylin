@@ -246,7 +246,8 @@ public class SequenceSQLController extends BasicController {
                     throw new BadRequestException(String.format(msg.getQUERY_NOT_ALLOWED(), serverMode));
                 }
 
-                if (!sql.toLowerCase().contains("select")) {
+                if (!sql.toLowerCase().contains("select")
+                        && KylinConfig.getInstanceFromEnv().isPushDownEnabled() == false) {
                     logger.debug("Directly return exception as not supported");
                     throw new BadRequestException(msg.getNOT_SUPPORTED_SQL());
                 }
