@@ -1,10 +1,10 @@
 <template>
 	<div class="model_edit_tool">
   <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
-		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" @click.native="">
-		    <el-tab-pane label="Overview" name="first">
-            <el-tabs class="el-tabs--default" v-model="subMenuActive" >
-                <el-tab-pane :label="$t('modelInfo')" name="first" class="overflow-y:auto;height:400px">
+		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
+		    <el-tab-pane label="Overview" name="first" >
+            <el-tabs class="el-tabs--default modelExtraInfoTab" v-model="subMenuActive" >
+                <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
                         <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
@@ -42,11 +42,11 @@
                 <el-tab-pane :label="$t('setting')" name="second">
                  <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                 </el-tab-pane>
-                <el-tab-pane :label="$t('dimension')" name="third">
+                <el-tab-pane :label="$t('dimension')" name="third" >
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
                     <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;" >{{value}}</div>
                     <div class="dimensionBox">
-                      <el-tag class="ksd-ml-10 ksd-mt-6" type="primary" v-for="i in dimensions[value]" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
+                      <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" type="primary" v-for="i in dimensions[value]" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
                   </div>
                 </el-tab-pane>
@@ -54,7 +54,7 @@
                   <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
                     <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;">{{value}}</div>
                      <div class="dimensionBox">
-                    <el-tag class="ksd-ml-10 ksd-mt-6" v-for="i in measures[value]" type="primary" :key="i">{{i}}</el-tag>&nbsp;&nbsp;
+                    <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" v-for="i in measures[value]" type="primary" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
                   </div>
                 </el-tab-pane>
@@ -126,6 +126,9 @@ export default {
     ...mapActions({
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
+    setColumnDisable (guid, columnName, isComputed) {
+      this.$emit('changeColumnType', guid, columnName, 'M', isComputed)
+    },
     slideSubMenu (currentMenuStatus) {
       if (currentMenuStatus) {
         this.menuStatus = currentMenuStatus
@@ -311,11 +314,11 @@ export default {
     dimensions () {
       this.resultDimensionArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
-        this.resultDimensionArr[this.tableList[k].name] = this.resultDimensionArr[this.tableList[k].name] || []
+        this.resultDimensionArr[this.tableList[k].alias] = this.resultDimensionArr[this.tableList[k].alias] || []
         for (var m = 0; m < this.tableList[k].columns.length; m++) {
           if (this.tableList[k].columns[m].btype === 'D') {
-            this.resultDimensionArr[this.tableList[k].name] = this.resultDimensionArr[this.tableList[k].name] || []
-            this.resultDimensionArr[this.tableList[k].name].push(this.tableList[k].columns[m].name)
+            // this.resultDimensionArr[this.tableList[k].alias] = this.resultDimensionArr[this.tableList[k].name] || []
+            this.resultDimensionArr[this.tableList[k].alias].push({name: this.tableList[k].columns[m].name, guid: this.tableList[k].guid, isComputed: this.tableList[k].columns[m].isComputed})
           }
         }
       }
@@ -324,11 +327,11 @@ export default {
     measures () {
       this.resultMeasureArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
-        this.resultMeasureArr[this.tableList[k].name] = this.resultMeasureArr[this.tableList[k].name] || []
+        this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].alias] || []
         for (var m = 0; m < this.tableList[k].columns.length; m++) {
           if (this.tableList[k].columns[m].btype === 'M') {
-            this.resultMeasureArr[this.tableList[k].name] = this.resultMeasureArr[this.tableList[k].name] || []
-            this.resultMeasureArr[this.tableList[k].name].push(this.tableList[k].columns[m].name)
+            // this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].name] || []
+            this.resultMeasureArr[this.tableList[k].alias].push({name: this.tableList[k].columns[m].name, guid: this.tableList[k].guid, isComputed: this.tableList[k].columns[m].isComputed})
           }
         }
       }
@@ -366,6 +369,20 @@ export default {
       }
     }
   .model_edit_tool {
+    .modelExtraInfoTab{
+      &>.el-tabs__content{
+      &>.el-tab-pane{
+        overflow-y:auto;height:260px;
+        .partitionBox{
+          overflow-y:visible;
+          height: auto!important;
+        }
+        .el-tag.el-tag--primary:hover {
+          background: none;
+        }
+      }
+    }
+    }
     height: 360px;
   	z-index:2000;
     position:fixed;
@@ -373,10 +390,15 @@ export default {
     bottom:0;
     left:200px;
     right: 0px;
+    
     .el-table__fixed{
       box-shadow: none;
     }
-  
+    >.el-tabs{
+      >.el-tabs__content{
+        height: 400px;
+      }
+    }
     .el-table__fixed-header-wrapper thead div{
       background: none;
       color:#fff;
@@ -390,7 +412,7 @@ export default {
       left:100px;
     }
     .el-tab-pane{
-      min-height: 400px;
+      // min-height: 400px;
       // overflow-y: hidden;
       background-color: #393e53;
     }
