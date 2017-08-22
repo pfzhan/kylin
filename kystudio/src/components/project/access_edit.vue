@@ -46,10 +46,11 @@
         </el-form-item>
         <el-form-item :label="$t('access')">
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
-            <el-option label="Admin" :value="16"></el-option>
-            <el-option label="Edit" :value="32"></el-option>
+          
+            <el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>
+<!--             <el-option label="Management" :value="32"></el-option>
             <el-option label="OPERATION" :value="64"></el-option>
-            <el-option label="READ" :value="1"></el-option>
+            <el-option label="Query" :value="1"></el-option> -->
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -117,10 +118,16 @@ export default {
       },
       accessList: [],
       mask: {
-        '1': 'READ',
-        '32': 'MANAGEMENT',
-        '64': 'OPERATION',
-        '16': 'ADMINISTRATION'
+        1: 'READ',
+        32: 'MANAGEMENT',
+        64: 'OPERATION',
+        16: 'ADMINISTRATION'
+      },
+      showMask: {
+        1: 'Query',
+        32: 'Management',
+        64: 'Operation',
+        16: 'Admin'
       }
     }
   },
@@ -210,7 +217,7 @@ export default {
           this.settleAccessList = data && data.map((access) => {
             access.roleOrName = access.sid.grantedAuthority || access.sid.principal
             access.type = access.sid.principal ? 'User' : 'Role'
-            access.promission = this.mask[access.permission.mask]
+            access.promission = this.showMask[access.permission.mask]
             return access
           }) || []
         })
