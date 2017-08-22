@@ -24,6 +24,13 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -38,15 +45,12 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtMapper.class);
+
     private Map<Integer, HiveTableExtSampler> samplerMap = new HashMap<>();
 
     private boolean isOffsetZero = false;
@@ -74,7 +78,8 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         tableInputFormat = MRUtil.getTableInputFormat(tableDesc);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (int i = 0; i < columns.length; i++) {
-            HiveTableExtSampler sampler = new HiveTableExtSampler(columns[i].getType().getName(), columns[i].getType().getPrecision());
+            HiveTableExtSampler sampler = new HiveTableExtSampler(columns[i].getType().getName(),
+                    columns[i].getType().getPrecision());
             sampler.setColumnName(columns[i].getName());
             sampler.setStatsSampleFrequency(frequency);
             samplerMap.put(i, sampler);
@@ -92,8 +97,13 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
 
         for (String[] values : valuesCollection) {
             for (int m = 0; m < columns.length; m++) {
-                String fieldValue = values[m];
-                samplerMap.get(m).samples(fieldValue);
+                try {
+                    String fieldValue = values[m];
+                    samplerMap.get(m).samples(fieldValue);
+                } catch (Exception e) {
+                    logger.error("error when handling sampled data for column {} ", tableDesc.getColumns()[m]);
+                    throw e;
+                }
             }
         }
     }
@@ -103,11 +113,16 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
         Iterator<Integer> it = samplerMap.keySet().iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.sync();
-            ByteBuffer buf = sampler.code();
-            context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
-            sampler.clean();
+            try {
+                HiveTableExtSampler sampler = samplerMap.get(key);
+                sampler.sync();
+                ByteBuffer buf = sampler.code();
+                context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
+                sampler.clean();
+            } catch (Exception e) {
+                logger.error("error when handling sampled data for column {} ", tableDesc.getColumns()[key]);
+                throw e;
+            }
         }
     }
 }

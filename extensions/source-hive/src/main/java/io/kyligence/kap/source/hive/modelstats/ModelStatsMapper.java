@@ -24,8 +24,14 @@
 
 package io.kyligence.kap.source.hive.modelstats;
 
-import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
@@ -42,13 +48,8 @@ import org.apache.kylin.source.hive.HiveMRInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampler;
 
 public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, BytesWritable> {
 
@@ -92,7 +93,13 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         Collection<String[]> valuesCollection = tableInputFormat.parseMapperInput(value);
         for (String[] values : valuesCollection) {
             for (int m = 0; m < flatTableDesc.getAllColumns().size(); m++) {
-                samplerMap.get(m).samples(values);
+                try {
+                    samplerMap.get(m).samples(values);
+                } catch (Exception e) {
+                    logger.error("error when handling sampled data for column {} ",
+                            flatTableDesc.getAllColumns().get(m));
+                    throw e;
+                }
             }
             counter++;
         }
@@ -103,10 +110,15 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         Iterator<Integer> it = samplerMap.keySet().iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveTableExtSampler sampler = samplerMap.get(key);
-            sampler.sync();
-            ByteBuffer buf = sampler.code();
-            context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
+            try {
+                HiveTableExtSampler sampler = samplerMap.get(key);
+                sampler.sync();
+                ByteBuffer buf = sampler.code();
+                context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
+            } catch (Exception e) {
+                logger.error("error when handling sampled data for column {} ", flatTableDesc.getAllColumns().get(key));
+                throw e;
+            }
         }
         logger.info("Total row size: " + counter);
     }

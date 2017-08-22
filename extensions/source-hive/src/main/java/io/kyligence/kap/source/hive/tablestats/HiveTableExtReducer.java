@@ -24,6 +24,15 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.kylin.common.KylinConfig;
@@ -34,17 +43,11 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable, IntWritable, BytesWritable> {
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtReducer.class);
 
     private Map<Integer, HiveTableExtSampler> sampleMap = new HashMap<Integer, HiveTableExtSampler>();
     private TableDesc tableDesc;
@@ -65,18 +68,25 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
     }
 
     @Override
-    public void doReduce(IntWritable key, Iterable<BytesWritable> values, Context context) throws IOException, InterruptedException {
+    public void doReduce(IntWritable key, Iterable<BytesWritable> values, Context context)
+            throws IOException, InterruptedException {
         int skey = key.get();
-        for (BytesWritable v : values) {
-            ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
-            HiveTableExtSampler sampler = new HiveTableExtSampler(dataTypeMap.get(skey).getName(), dataTypeMap.get(skey).getPrecision());
-            sampler.decode(buffer);
-            if (!sampleMap.containsKey(skey))
-                sampleMap.put(skey, sampler);
-            else {
-                sampleMap.get(skey);
+        try {
+            for (BytesWritable v : values) {
+                ByteBuffer buffer = ByteBuffer.wrap(v.getBytes());
+                HiveTableExtSampler sampler = new HiveTableExtSampler(dataTypeMap.get(skey).getName(),
+                        dataTypeMap.get(skey).getPrecision());
+                sampler.decode(buffer);
+                if (!sampleMap.containsKey(skey))
+                    sampleMap.put(skey, sampler);
+                else {
+                    sampleMap.get(skey);
+                }
+                sampleMap.get(skey).merge(sampler);
             }
-            sampleMap.get(skey).merge(sampler);
+        } catch (Exception e) {
+            logger.error("error when handling sampled data for column {} ", tableDesc.getColumns()[skey]);
+            throw e;
         }
     }
 
@@ -91,9 +101,14 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
         it = keys.iterator();
         while (it.hasNext()) {
             int key = it.next();
-            HiveTableExtSampler sampler = sampleMap.get(key);
-            context.write(new IntWritable(key), new BytesWritable(sampler.code().array(), sampler.code().limit()));
-            sampler.clean();
+            try {
+                HiveTableExtSampler sampler = sampleMap.get(key);
+                context.write(new IntWritable(key), new BytesWritable(sampler.code().array(), sampler.code().limit()));
+                sampler.clean();
+            } catch (Exception e) {
+                logger.error("error when handling sampled data for column {} ", tableDesc.getColumns()[key]);
+                throw e;
+            }
         }
     }
 }
