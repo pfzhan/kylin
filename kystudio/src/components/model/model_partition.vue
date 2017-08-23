@@ -191,7 +191,7 @@ export default {
       return []
     },
     dateFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_date_format) {
+      if (!this.checkPartition.partition_date_format || this.modelStatics.length === 0) {
         callback()
       }
       var project = this.modelInfo.project || this.project
@@ -209,7 +209,7 @@ export default {
       })
     },
     timeFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_time_format) {
+      if (!this.checkPartition.partition_time_format || this.modelStatics.length === 0) {
         callback()
       }
       var project = this.modelInfo.project || this.project
