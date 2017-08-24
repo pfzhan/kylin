@@ -19,6 +19,7 @@
 <style>
 .kap_popover {
     display: inline-block;
+    vertical-align:middle;
    .trigger {
     display: inline-block;
   } 

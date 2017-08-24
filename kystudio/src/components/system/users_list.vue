@@ -116,8 +116,8 @@ export default {
         password: '',
         disabled: false,
         admin: true,
-        modeler: true,
-        analyst: true,
+        modeler: false,
+        analyst: false,
         confirmPassword: ''
       }
     }
@@ -219,6 +219,7 @@ export default {
       }).catch((result) => {
         handleError(result)
       })
+      this.$refs['addUser'].$refs['addUserForm'].resetFields()
       this.addUserFormVisible = false
     },
     closeEditRole: function () {
@@ -265,7 +266,9 @@ export default {
       this.editRoleFormVisible = false
     },
     closeResetPassword: function () {
-      this.$refs['resetPassword'].$refs['resetPasswordForm'].resetFields()
+      if (this.$refs['resetPassword'].$refs['resetPasswordForm']) {
+        this.$refs['resetPassword'].$refs['resetPasswordForm'].resetFields()
+      }
     },
     reset: function (userDetail) {
       this.selected_user = userDetail
