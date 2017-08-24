@@ -30,7 +30,6 @@ import java.sql.SQLException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 import org.junit.After;
 import org.junit.Assert;
@@ -57,9 +56,11 @@ public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
     @Test
     public void test() throws SQLException, IOException {
         TestQueryRecorder queryRecorder = new TestQueryRecorder();
-        MockupQueryExecutor executor = new MockupQueryExecutor(queryRecorder);
-        executor.execute("default", "select count(*) from STREAMING_TABLE where DAY_START is not null");
-        executor.close();
+        MockupQueryExecutor executor = new MockupQueryExecutor();
+
+        QueryRecord record = executor.execute("default",
+                "select count(*) from STREAMING_TABLE where DAY_START is not null");
+        queryRecorder.record(record);
 
         Object[] result = queryRecorder.getResult();
         validateResult((CubeInstance) result[0], (GTCubeStorageQueryRequest) result[1]);
@@ -79,9 +80,9 @@ public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
         GTCubeStorageQueryRequest gtRequest;
 
         @Override
-        public void record(CubeInstance cubeInstance, GTCubeStorageQueryRequest gtRequest, StorageContext context) {
-            this.cubeInstance = cubeInstance;
-            this.gtRequest = gtRequest;
+        public void record(QueryRecord queryRecord) {
+            this.cubeInstance = queryRecord.getCubeInstance();
+            this.gtRequest = queryRecord.getGtRequest();
 
             validateResult(cubeInstance, gtRequest);
         }

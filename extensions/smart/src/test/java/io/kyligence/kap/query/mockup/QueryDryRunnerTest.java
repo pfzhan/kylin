@@ -57,17 +57,19 @@ public class QueryDryRunnerTest extends LocalFileMetadataTestCase {
         CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc("ci_inner_join_cube");
         String[] sqls = { "select count(*) from test_kylin_fact", "select 1", "abcd",
                 "select a,b,c from test_kylin_fact", "select price from test_kylin_fact group by price" };
-        QueryDryRunner runner = new QueryDryRunner(cubeDesc, sqls);
-        runner.execute();
 
-        QueryStats stats = runner.getQueryStats();
-        Assert.assertEquals(1, stats.getTotalQueries());
+        try (QueryDryRunner runner = new QueryDryRunner(cubeDesc, sqls)) {
+            runner.execute();
 
-        List<SqlResult> results = runner.getQueryResults();
-        Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(0).getStatus());
-        Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(1).getStatus());
-        Assert.assertEquals(SqlResult.Status.FAILED, results.get(2).getStatus());
-        Assert.assertEquals(SqlResult.Status.FAILED, results.get(3).getStatus());
-        Assert.assertEquals(SqlResult.Status.FAILED, results.get(4).getStatus());
+            QueryStats stats = runner.getQueryStats();
+            Assert.assertEquals(1, stats.getTotalQueries());
+
+            List<SqlResult> results = runner.getQueryResults();
+            Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(0).getStatus());
+            Assert.assertEquals(SqlResult.Status.SUCCESS, results.get(1).getStatus());
+            Assert.assertEquals(SqlResult.Status.FAILED, results.get(2).getStatus());
+            Assert.assertEquals(SqlResult.Status.FAILED, results.get(3).getStatus());
+            Assert.assertEquals(SqlResult.Status.FAILED, results.get(4).getStatus());
+        }
     }
 }

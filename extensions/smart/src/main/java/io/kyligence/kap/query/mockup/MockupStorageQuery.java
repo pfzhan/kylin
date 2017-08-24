@@ -89,8 +89,10 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
     public ITupleIterator search(StorageContext context, SQLDigest sqlDigest, TupleInfo tupleInfo) {
         GTCubeStorageQueryRequest request = super.getStorageQueryRequest(context, sqlDigest, tupleInfo);
 
-        AbstractQueryRecorder queryRecorder = AbstractQueryRecorder.CURRENT.get();
-        queryRecorder.record(cubeInstance, request, context);
+        QueryRecord record = MockupQueryExecutor.getCurrentRecord();
+        record.setCubeInstance(cubeInstance);
+        record.setGtRequest(request);
+        record.setStorageContext(context);
 
         return ITupleIterator.EMPTY_TUPLE_ITERATOR;
     }

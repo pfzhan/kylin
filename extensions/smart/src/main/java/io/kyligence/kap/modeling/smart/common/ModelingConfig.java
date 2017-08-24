@@ -178,4 +178,8 @@ public class ModelingConfig {
     public boolean enableJointForAggGroupStrict() {
         return getOptional("aggGroup.strict.joint-enabled", strategy.enableJointForAggGroupStrict());
     }
+
+    public int getQueryDryRunThreads() {
+        return getOptional("dryrun.threads", 12);
+    }
 }

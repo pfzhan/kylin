@@ -24,66 +24,78 @@
 
 package io.kyligence.kap.query.mockup;
 
-import java.io.Closeable;
-import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.query.QueryConnection;
-import org.apache.kylin.query.QueryDataSource;
 import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MockupQueryExecutor implements Closeable {
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
+
+public class MockupQueryExecutor {
     private static final Logger logger = LoggerFactory.getLogger(MockupQueryExecutor.class);
 
-    private final KylinConfig kylinConfig;
+    private static ThreadLocal<QueryRecord> CURRENT_RECORD = new ThreadLocal<>();
 
-    private QueryDataSource queryDataSource = new QueryDataSource();
-
-    public MockupQueryExecutor(AbstractQueryRecorder<?> queryRecorder) {
-        this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        AbstractQueryRecorder.CURRENT.set(queryRecorder);
+    protected static QueryRecord getCurrentRecord() {
+        QueryRecord record = CURRENT_RECORD.get();
+        if (record == null) {
+            record = new QueryRecord();
+            CURRENT_RECORD.set(record);
+        }
+        return record;
     }
 
-    public void execute(String projectName, String sql) throws SQLException {
-        //Connection conn = queryDataSource.get(projectName, kylinConfig).getConnection();
-        Connection conn = QueryConnection.getConnection(projectName);
+    private static void clearCurrentRecord() {
+        CURRENT_RECORD.remove();
+    }
 
+    public QueryRecord execute(String projectName, String sql) {
+        QueryRecord record = getCurrentRecord();
+
+        Connection conn = null;
         Statement statement = null;
         ResultSet resultSet = null;
+        SqlResult sqlResult = new SqlResult();
+        record.setSqlResult(sqlResult);
 
         try {
+            conn = QueryConnection.getConnection(projectName);
+
             statement = conn.createStatement();
             sql = QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema());
             resultSet = statement.executeQuery(sql);
+
+            sqlResult.setStatus(SqlResult.Status.SUCCESS);
         } catch (Exception e) {
             if (e.getCause() != null
                     && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
                 StackTraceElement[] stackTrace = e.getCause().getStackTrace();
                 for (StackTraceElement s : stackTrace) {
                     if (s.toString().contains(LookupTableEnumerator.class.getName())) {
-                        logger.info("Skip dry run because this query only hits lookup tables.");
-                        return;
+                        logger.debug("This query hits table snapshot.");
+
+                        sqlResult.setStatus(SqlResult.Status.SUCCESS);
+                        return record;
                     }
                 }
             }
-            throw e;
+
+            sqlResult.setStatus(SqlResult.Status.FAILED);
+            sqlResult.setMessage(e.getMessage());
+
         } finally {
             DBUtils.closeQuietly(statement);
             DBUtils.closeQuietly(resultSet);
             DBUtils.closeQuietly(conn);
+            clearCurrentRecord();
         }
-    }
 
-    @Override
-    public void close() throws IOException {
-        queryDataSource.clearCache();
+        return record;
     }
 }

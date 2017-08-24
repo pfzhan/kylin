@@ -108,8 +108,8 @@ public class ModelingContextBuilder {
         QueryStats queryStats = null;
         List<SqlResult> queryResults = null;
         if (sqls != null && sqls.length > 0) {
-            QueryDryRunner extractor = new QueryDryRunner(initCubeDesc, sqls);
-            try {
+            try (QueryDryRunner extractor = new QueryDryRunner(initCubeDesc, sqls,
+                    modelingConfig.getQueryDryRunThreads())) {
                 extractor.execute();
                 queryStats = extractor.getQueryStats();
                 queryResults = extractor.getQueryResults();

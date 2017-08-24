@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.modeling.smart.query;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -31,9 +32,12 @@ import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,23 +51,63 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationType;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.cube.SqlResult;
 import io.kyligence.kap.query.mockup.MockupQueryExecutor;
+import io.kyligence.kap.query.mockup.QueryRecord;
 import io.kyligence.kap.query.mockup.Utils;
 
-public class QueryDryRunner {
+public class QueryDryRunner implements Closeable {
     private final CubeDesc cubeDesc;
     private final String[] sqls;
 
+    private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
+
     private QueryStats queryStats;
-    private List<SqlResult> queryResults = Lists.newArrayList();
+    private ExecutorService executorService;
+
+    private ConcurrentNavigableMap<Integer, SqlResult> queryResults = new ConcurrentSkipListMap<>();
+
+    final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
     public QueryDryRunner(CubeDesc cubeDesc, String[] sqls) {
+        this(cubeDesc, sqls, 1);
+    }
+
+    public QueryDryRunner(CubeDesc cubeDesc, String[] sqls, int threads) {
         this.cubeDesc = cubeDesc;
         this.sqls = sqls;
+        this.executorService = Executors.newFixedThreadPool(threads);
+    }
+
+    private void submitQueryExecute(final CountDownLatch counter, final MockupQueryExecutor executor,
+            final KylinConfig kylinConfig, final String project, final String sql, final int index) {
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    QueryRecord record = queryCache.getIfPresent(sql);
+                    if (record == null) {
+                        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+                        record = executor.execute(project, sql);
+
+                        queryCache.put(sql, record);
+                    }
+                    SqlResult result = record.getSqlResult();
+                    queryResults.put(index, result);
+                    if (result.getStatus() == SqlResult.Status.SUCCESS) {
+                        queryRecorder.record(record);
+                    }
+                } finally {
+                    counter.countDown();
+                }
+            }
+        });
+
     }
 
     public void execute() throws Exception {
@@ -73,40 +117,22 @@ public class QueryDryRunner {
 
         final String projectName = cubeDesc.getProject();
         final File localMetaDir = prepareLocalMetaStore(projectName, cubeDesc);
-        final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
-        Callable<QueryStats> callable = new Callable<QueryStats>() {
-            @Override
-            public QueryStats call() throws Exception {
-                KylinConfig config = Utils.newKylinConfig(localMetaDir.getAbsolutePath());
-                Utils.setLargeCuboidCombinationConf(config);
-
-                KylinConfig.setKylinConfigThreadLocal(config);
-                try (MockupQueryExecutor queryExecutor = new MockupQueryExecutor(queryRecorder)) {
-                    for (String sql : sqls) {
-                        try {
-                            queryExecutor.execute(projectName, sql);
-                            queryResults.add(new SqlResult(SqlResult.Status.SUCCESS, null));
-                        } catch (Exception e) {
-                            queryResults.add(new SqlResult(SqlResult.Status.FAILED, e.getMessage()));
-                        }
-                    }
-                    return queryRecorder.getResult();
-                } finally {
-                    KylinConfig.removeKylinConfigThreadLocal();
-                    Utils.clearCacheForKylinConfig(config);
-                }
-            }
-        };
-
-        FutureTask<QueryStats> future = new FutureTask<>(callable);
-        new Thread(future).start();
+        KylinConfig config = Utils.newKylinConfig(localMetaDir.getAbsolutePath());
+        Utils.setLargeCuboidCombinationConf(config);
 
         try {
-            queryStats = future.get();
-        } catch (InterruptedException | ExecutionException e) {
-            queryStats = null;
+            MockupQueryExecutor queryExecutor = new MockupQueryExecutor();
+            CountDownLatch latch = new CountDownLatch(sqls.length);
+            for (int i = 0; i < sqls.length; i++) {
+                submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
+            }
+            latch.await();
+
+            queryStats = queryRecorder.getResult();
         } finally {
+            KylinConfig.removeKylinConfigThreadLocal();
+            Utils.clearCacheForKylinConfig(config);
             FileUtils.forceDelete(localMetaDir);
         }
     }
@@ -116,7 +142,7 @@ public class QueryDryRunner {
     }
 
     public List<SqlResult> getQueryResults() {
-        return queryResults;
+        return Lists.newArrayList(queryResults.values());
     }
 
     private File prepareLocalMetaStore(String projName, CubeDesc cubeDesc) throws IOException, URISyntaxException {
@@ -149,4 +175,13 @@ public class QueryDryRunner {
         return metaDir;
     }
 
+    @Override
+    public void close() throws IOException {
+        executorService.shutdown();
+        try {
+            executorService.awaitTermination(120, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Failed to interrupt.", e);
+        }
+    }
 }

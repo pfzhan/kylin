@@ -24,11 +24,47 @@
 
 package io.kyligence.kap.query.mockup;
 
-public abstract class AbstractQueryRecorder<T> {
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
-    /**
-     * Ihis method might be called concurrently, please consider thread-safe
-     * @param record Extracted record for a query
-     */
-    public abstract void record(QueryRecord record);
+import io.kyligence.kap.modeling.smart.cube.SqlResult;
+
+public class QueryRecord {
+    private CubeInstance cubeInstance;
+    private GTCubeStorageQueryRequest gtRequest;
+    private SqlResult sqlResult;
+    private StorageContext storageContext;
+
+    public StorageContext getStorageContext() {
+        return storageContext;
+    }
+
+    public void setStorageContext(StorageContext storageContext) {
+        this.storageContext = storageContext;
+    }
+
+    public CubeInstance getCubeInstance() {
+        return cubeInstance;
+    }
+
+    public void setCubeInstance(CubeInstance cubeInstance) {
+        this.cubeInstance = cubeInstance;
+    }
+
+    public GTCubeStorageQueryRequest getGtRequest() {
+        return gtRequest;
+    }
+
+    public void setGtRequest(GTCubeStorageQueryRequest gtRequest) {
+        this.gtRequest = gtRequest;
+    }
+
+    public SqlResult getSqlResult() {
+        return sqlResult;
+    }
+
+    public void setSqlResult(SqlResult sqlResult) {
+        this.sqlResult = sqlResult;
+    }
 }
