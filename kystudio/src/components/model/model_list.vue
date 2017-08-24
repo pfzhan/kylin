@@ -495,15 +495,11 @@ export default {
       var projectName = modelData.project
       if (command === 'edit') {
         this.getModelCheckMode(projectName, modelName, () => {
-          this.isUsedInCubes(modelName, (res) => {
-            this.useCubeDialogVisible = true
-          }, () => {
-            this.$emit('addtabs', 'model', modelName, 'modelEdit', {
-              project: projectName,
-              modelName: modelName,
-              uuid: uuid,
-              status: modelData.is_draft
-            })
+          this.$emit('addtabs', 'model', modelName, 'modelEdit', {
+            project: projectName,
+            modelName: modelName,
+            uuid: uuid,
+            status: modelData.is_draft
           })
         }, () => {
           this.$message(this.$t('kylinLang.model.modelHasJob'))
