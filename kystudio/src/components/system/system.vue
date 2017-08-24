@@ -109,7 +109,9 @@ export default {
               message: this.$t('reloadSuccessful')
             })
           })
-          this.loadAllProjects()
+          setTimeout(() => {
+            this.loadAllProjects()
+          }, 1000)
         }).catch((res) => {
           handleError(res)
         })
