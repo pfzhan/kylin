@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.SelectRule;
+import org.apache.kylin.cube.model.TooManyCuboidException;
 
 import com.google.common.collect.Lists;
 
@@ -53,7 +54,7 @@ public abstract class AbstractProposer {
 
         try {
             workCubeDesc.init(context.getKylinConfig());
-        } catch (IllegalStateException e) {
+        } catch (TooManyCuboidException e) {
             // if cube not tuned, then enlarge combination in override props to bypass init().
             Utils.setLargeCuboidCombinationConf(workCubeDesc.getOverrideKylinProps());
             workCubeDesc.init(context.getKylinConfig());
