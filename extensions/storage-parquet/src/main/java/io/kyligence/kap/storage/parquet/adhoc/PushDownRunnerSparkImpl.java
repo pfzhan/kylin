@@ -72,4 +72,10 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
                     fieldList.get(i).getTable(), Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
         }
     }
+
+    @Override
+    public boolean executeUpdate(String sql) throws Exception {
+        client.queryWithPushDown(sql);
+        return true;
+    }
 }

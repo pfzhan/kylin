@@ -165,7 +165,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             return sql;
 
         } catch (Exception e) {
-            logger.error(
+            logger.debug(
                     "Something unexpected while RestoreFromComputedColumn transforming the query, return original query",
                     e);
             return originSql;
