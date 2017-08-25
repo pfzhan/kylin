@@ -150,7 +150,7 @@ public class HdfsAppender extends AppenderSkeleton {
                     return;
 
                 while (size > 0) {
-                    LoggingEvent loggingEvent = logBufferQue.take();
+                    final LoggingEvent loggingEvent = logBufferQue.take();
                     if (isDayChanged(loggingEvent)) {
                         updateOutPutDir(loggingEvent);
                         doRollingClean(loggingEvent);
@@ -175,6 +175,7 @@ public class HdfsAppender extends AppenderSkeleton {
                         childUGI.doAs(new PrivilegedExceptionAction<Void>() {
                             public Void run() throws Exception {
                                 initWriter(file);
+                                doRollingClean(loggingEvent);
                                 return null;
                             }
                         });
