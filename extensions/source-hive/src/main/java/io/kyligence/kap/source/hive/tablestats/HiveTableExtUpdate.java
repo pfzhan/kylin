@@ -24,6 +24,13 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -45,19 +52,14 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.TreeMap;
-
 public class HiveTableExtUpdate extends AbstractHadoopJob {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtUpdate.class);
 
     public static final String JOB_TITLE = "Hive Sample Update Job";
 
     @SuppressWarnings("static-access")
-    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true).withDescription("The hive table name").create("table");
+    protected static final Option OPTION_TABLE = OptionBuilder.withArgName("table name").hasArg().isRequired(true)
+            .withDescription("The hive table name").create("table");
 
     public HiveTableExtUpdate() {
 
@@ -92,7 +94,8 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         }
     }
 
-    public void updateTableSample(String tableName, String outPath, Configuration config, String prj) throws IOException {
+    public void updateTableSample(String tableName, String outPath, Configuration config, String prj)
+            throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = null;
 
         samplers = read(new Path(outPath), config, tableName, prj);
@@ -107,12 +110,15 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             int frequency = sampler.getStatsSampleFrequency();
             long cardinality = sampler.getCardinality();
             long counter = Long.parseLong(sampler.getCounter());
+            Map<String, Long> topN = sampler.getTopN().getTopNCounter();
+            topN.remove(null);
             TableExtDesc.ColumnStats columnStats = new TableExtDesc.ColumnStats();
             columnStats.setColumnName(sampler.getColumnName());
-            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(), sampler.getMinLenValue());
+            columnStats.setColumnSamples(sampler.getMax(), sampler.getMin(), sampler.getMaxLenValue(),
+                    sampler.getMinLenValue());
             columnStats.setNullCount(Long.parseLong(sampler.getNullCounter()));
             columnStats.setCardinality(getEstimateCardinality(frequency, cardinality, counter));
-            columnStats.setDataSkewSamples(sampler.getTopN().getTopNCounter());
+            columnStats.setDataSkewSamples(topN);
             sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
             if (once) {
@@ -128,10 +134,12 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
         metaMgr.saveTableExt(tableSample, prj);
     }
 
-    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf, String tableName, String prj) throws IOException {
+    private static TreeMap<Integer, HiveTableExtSampler> read(Path path, Configuration conf, String tableName,
+            String prj) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = new TreeMap<>();
 
-        TableDesc tableDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(tableName, prj);
+        TableDesc tableDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(tableName,
+                prj);
         ColumnDesc[] columns = tableDesc.getColumns();
 
         for (Path p : getAllPaths(path, conf)) {
@@ -160,7 +168,8 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             throw new IllegalArgumentException("The frequency can not be ZERO");
 
         float ratio = 1.0f / (float) frequency;
-        long estimated = Math.max(obCardi, (long) (Math.pow(obCardi, 3) / (Math.pow(allRowCount, 2) * Math.pow(ratio, 3))));
+        long estimated = Math.max(obCardi,
+                (long) (Math.pow(obCardi, 3) / (Math.pow(allRowCount, 2) * Math.pow(ratio, 3))));
         return estimated;
     }
 
