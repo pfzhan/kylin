@@ -62,5 +62,20 @@ export default {
   },
   cancelAclSetOfTable: (tableName, project, userName) => {
     return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName + '/' + userName).delete()
+  },
+  getAclOfColumn: (tableName, project) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName).get()
+  },
+  getAclWhiteListOfColumn: (tableName, project) => {
+    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + tableName).get()
+  },
+  saveAclSetOfColumn: (tableName, project, userName) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).save()
+  },
+  updateAclSetOfColumn: (tableName, project, userName) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).update()
+  },
+  cancelAclSetOfColumn: (tableName, project, userName) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).delete()
   }
 }

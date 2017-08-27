@@ -22,7 +22,7 @@
               <template scope="scope">Query</template>
             </el-table-column>
             <el-table-column
-              width="180"
+              width="80"
               prop="Action"
               :label="$t('kylinLang.common.action')">
               <template scope="scope">

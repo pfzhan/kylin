@@ -1,11 +1,58 @@
 <template>
-    <div class="access" id="datasource">
-       
+    <div class="access">
+       <el-button type="trans" icon="plus" @click="addGrant">{{$t('grant')}}</el-button>
+       <div style="width:200px;float: right;">
+          <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
+          </el-input>
+        </div>
+       <el-table class="ksd-mt-20"
+            border
+            :data="pagerAclTableList"
+            style="width: 100%">
+            <el-table-column
+              sortable
+              prop="name"
+              :label="$t('userName')"
+              >
+            </el-table-column>
+            <el-table-column
+              :label="$t('access')"
+              width="180"
+              >
+              <template scope="scope">Query</template>
+            </el-table-column>
+            <el-table-column
+              width="80"
+              prop="Action"
+              :label="$t('kylinLang.common.action')">
+              <template scope="scope">
+              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfTable(scope.row.name)"></el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+          <pager class="ksd-center" :totalSize="totalLength" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
+          <el-dialog title="Grant" :visible.sync="addGrantDialog"  size="tiny">
+              <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
+                <el-form-item :label="$t('userName')" label-width="90px" prop="name">
+                  <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
+                  <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
+                </el-form-item>
+                <el-form-item :label="$t('access')" label-width="90px">
+                  <el-select v-model="grantObj.access">
+                    <el-option label="Query" :value="1"></el-option>
+                  </el-select>
+                </el-form-item>
+              </el-form>
+              <div slot="footer" class="dialog-footer">
+                <el-button @click="addGrantDialog = false">{{$t('kylinLang.common.cancel')}}</el-button>
+                <el-button type="primary" :loading="saveBtnLoad" @click="saveAclTable">{{$t('kylinLang.common.save')}}</el-button>
+              </div>
+          </el-dialog>
     </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
-// import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime, hasPermission } from '../../util/business'
+import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 // import { permissions } from '../../config'
 // import { changeDataAxis, isFireFox } from '../../util/index'
 // import createKafka from '../kafka/create_kafka'
@@ -14,8 +61,25 @@ import { mapActions } from 'vuex'
 // import arealabel from 'components/common/area_label'
 // import Scrollbar from 'smooth-scrollbar'
 export default {
+  name: 'tableAccess',
   data () {
-    return {}
+    return {
+      addGrantDialog: false,
+      grantObj: {
+        name: '',
+        access: 1
+      },
+      currentPage: 1,
+      serarchChar: '',
+      aclTableData: [],
+      aclBlackList: [],
+      saveBtnLoad: false,
+      aclTableRules: {
+        name: [{
+          required: true, message: '请输入用户名字！', trigger: 'change'
+        }]
+      }
+    }
   },
   components: {
   },
@@ -23,25 +87,141 @@ export default {
   },
   methods: {
     ...mapActions({
-      loadDataSourceByProject: 'LOAD_DATASOURCE'
-    })
+      getAclSetOfColumn: 'GET_ACL_SET_COLUMN',
+      saveAclSetOfColumn: 'SAVE_ACL_SET_COLUMN',
+      delAclSetOfColumn: 'DEL_ACL_SET_COLUMN',
+      updateAclSetOfColumn: 'UPDATE_ACL_SET_COLUMN',
+      getAclWhiteList: 'GET_ACL_WHITELIST_COLUMN'
+    }),
+    delAclOfTable (userName) {
+      kapConfirm(this.$t('delConfirm')).then(() => {
+        this.delAclSetOfTable({
+          tableName: this.tableName,
+          project: this.$store.state.project.selected_project,
+          userName: userName
+        }).then((res) => {
+          handleSuccess(res, (data) => {
+            this.getAllAclSetOfTable()
+            this.$message({message: this.$t('delSuccess'), type: 'success'})
+          })
+        }, (res) => {
+          handleError(res)
+        })
+      })
+    },
+    resetAclTableObj () {
+      this.grantObj = {
+        name: '',
+        access: 1
+      }
+    },
+    addGrant () {
+      this.addGrantDialog = true
+      this.resetAclTableObj()
+    },
+    saveAclTable () {
+      this.$refs.aclOfTableForm.validate((valid) => {
+        if (valid) {
+          this.saveBtnLoad = true
+          this.saveAclSetOfTable({
+            tableName: this.tableName,
+            project: this.$store.state.project.selected_project,
+            userName: this.grantObj.name
+          }).then((res) => {
+            this.saveBtnLoad = false
+            this.addGrantDialog = false
+            // handleSuccess(res, (data) => {})
+            this.getAllAclSetOfTable()
+            this.$message({message: this.$t('saveSuccess'), type: 'success'})
+          }, (res) => {
+            this.saveBtnLoad = false
+            // this.addGrantDialog = false
+            handleError(res)
+          })
+        }
+      })
+    },
+    pageCurrentChange (curpage) {
+      this.currentPage = curpage
+    },
+    getAllAclSetOfTable () {
+      this.getAclSetOfTable({
+        tableName: this.tableName,
+        project: this.$store.state.project.selected_project
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.aclTableData = data
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    getBlackListOfTable (cb) {
+      this.getAclBlackList({
+        tableName: this.tableName,
+        project: this.$store.state.project.selected_project
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.aclBlackList = data
+          if (typeof cb === 'function') {
+            var result = []
+            data.forEach((d) => {
+              result.push({value: d})
+            })
+            cb(result)
+          }
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    querySearchAsync (queryString, cb) {
+      this.getBlackListOfTable((data) => {
+        cb(data)
+      })
+    }
   },
   computed: {
-    isAdmin () {
-      // return hasRole(this, 'ROLE_ADMIN')
+    tableName () {
+      var curTableData = this.$store.state.datasource.currentShowTableData
+      return curTableData.database + '.' + curTableData.name
+    },
+    aclTableList () {
+      var result = []
+      this.aclTableData.forEach((k) => {
+        if (this.serarchChar && k.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
+          result.push({name: k})
+        }
+      })
+      return result
+    },
+    totalLength () {
+      return this.aclTableList.length
+    },
+    pagerAclTableList () {
+      var perPager = this.$refs.pager && this.$refs.pager.pageSize || 0
+      return this.aclTableList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
     }
   },
   watch: {
   },
   mounted () {
+    this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。'}
+    'en': {delConfirm: 'The action will delete this access, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', grant: 'Grant'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功提示：权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', grant: '授权'}
   }
 }
 </script>
 <style lang="less" >
 @import '../../../less/config.less';
+.access{
+  .el-dialog{
+    .el-input{
+      padding:0;
+    }
+  }
+}
 
 </style>

@@ -83,7 +83,7 @@ export default {
     [types.GET_TABLE_JOB]: function ({commit}, para) {
       return api.datasource.getTableJob(para.tableName, para.project)
     },
-    // acl
+    // acl table
     [types.GET_ACL_SET_TABLE]: function ({commit}, para) {
       return api.datasource.getAclOfTable(para.tableName, para.project)
     },
@@ -95,6 +95,22 @@ export default {
     },
     [types.GET_ACL_BLACKLIST_TABLE]: function ({commit}, para) {
       return api.datasource.getAclBlackListOfTable(para.tableName, para.project)
+    },
+    // acl column
+    [types.GET_ACL_SET_COLUMN]: function ({commit}, para) {
+      return api.datasource.getAclOfColumn(para.tableName, para.project)
+    },
+    [types.SAVE_ACL_SET_COLUMN]: function ({commit}, para) {
+      return api.datasource.saveAclSetOfColumn(para.tableName, para.project, para.userName)
+    },
+    [types.UPDATE_ACL_SET_COLUMN]: function ({commit}, para) {
+      return api.datasource.saveAclSetOfColumn(para.tableName, para.project, para.userName)
+    },
+    [types.DEL_ACL_SET_COLUMN]: function ({commit}, para) {
+      return api.datasource.cancelAclSetOfColumn(para.tableName, para.project, para.userName)
+    },
+    [types.GET_ACL_WHITELIST_COLUMN]: function ({commit}, para) {
+      return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project)
     }
   }
 }
