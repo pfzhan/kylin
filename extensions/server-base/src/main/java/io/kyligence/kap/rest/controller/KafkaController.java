@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.StreamingRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -62,6 +63,10 @@ public class KafkaController extends BasicController {
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getTopics(@RequestBody StreamingRequest streamingRequest) throws IOException {
+
+        if (null == System.getenv("KAFKA_HOME")) {
+            throw new InternalErrorException("Could not find KAFKA_HOME, please set before Kylin starts");
+        }
 
         KafkaConfig kafkaConfig = deserializeKafkaSchemalDesc(streamingRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kafkaService.getTopics(kafkaConfig, streamingRequest.getProject()), "");
