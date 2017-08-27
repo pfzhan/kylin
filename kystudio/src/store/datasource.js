@@ -7,7 +7,8 @@ export default {
     encodingMatchs: null,
     encodingCache: {},
     savedQueries: [],
-    savedQueriesSize: 0
+    savedQueriesSize: 0,
+    currentShowTableData: null
   },
   getters: {
   },
@@ -81,6 +82,19 @@ export default {
     },
     [types.GET_TABLE_JOB]: function ({commit}, para) {
       return api.datasource.getTableJob(para.tableName, para.project)
+    },
+    // acl
+    [types.GET_ACL_SET_TABLE]: function ({commit}, para) {
+      return api.datasource.getAclOfTable(para.tableName, para.project)
+    },
+    [types.SAVE_ACL_SET_TABLE]: function ({commit}, para) {
+      return api.datasource.saveAclSetOfTable(para.tableName, para.project, para.userName)
+    },
+    [types.DEL_ACL_SET_TABLE]: function ({commit}, para) {
+      return api.datasource.cancelAclSetOfTable(para.tableName, para.project, para.userName)
+    },
+    [types.GET_ACL_BLACKLIST_TABLE]: function ({commit}, para) {
+      return api.datasource.getAclBlackListOfTable(para.tableName, para.project)
     }
   }
 }

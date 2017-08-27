@@ -166,13 +166,17 @@
   .el-tabs__nav-scroll{
     border-bottom: 1px solid @grey-color;
   }
-  .el-tabs--card>.el-tabs__header{
-    .el-tabs__nav div:nth-child(1){
-      &.is-active{
-       background-color: @base-color;
-       border: 0;
+  &>.el-tabs--card>.el-tabs__header{
+    &>.el-tabs__nav-wrap{
+      &>.el-tabs__nav-scroll{
+        &.el-tabs__nav div:nth-child(1){
+          &.is-active{
+           background-color: @base-color;
+           border: 0;
+          }
+          background-color: #475568
+        }
       }
-      background-color: #475568
     }
   }
   .el-tabs__nav div:nth-child(1) .el-icon-close{

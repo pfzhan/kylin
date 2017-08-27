@@ -49,5 +49,18 @@ export default {
   },
   getTableJob: (tableName, project) => {
     return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName + '/job').get()
+  },
+  // acl
+  getAclOfTable: (tableName, project) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName).get()
+  },
+  getAclBlackListOfTable: (tableName, project) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/black/' + tableName).get()
+  },
+  saveAclSetOfTable: (tableName, project, userName) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName + '/' + userName).save()
+  },
+  cancelAclSetOfTable: (tableName, project, userName) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName + '/' + userName).delete()
   }
 }

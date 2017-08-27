@@ -22,50 +22,50 @@
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
             <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;" v-if="extendData.last_modified">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
-      	<el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
+       <el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
-        <el-input id="data-source-search" style="width:200px;" class="ksd-mb-10"
-          :placeholder="$t('kylinLang.common.pleaseFilter')"
-          icon="search"
-          v-model="filterColumn"
-          @change="filterColumnChange">
-        </el-input>
-	    	  <el-table
-			    :data="tableColumnsByFilter"
-			    border
-			    style="width: 100%">
-			    <el-table-column
-			      prop="id"
-			      label="ID"
-            sortable
-            :sort-method="idSorted"
-			      width="80">
-			    </el-table-column>
-			    <el-table-column
-			      prop="name"
-            sortable
-			      :label="$t('kylinLang.dataSource.columnName')"
-			     >
-			    </el-table-column>
-			    <el-table-column
-			      width="120"
-			      prop="datatype"
-            sortable
-			      :label="$t('kylinLang.dataSource.dataType')">
-			    </el-table-column>
-			    <el-table-column
-			      width="160"
-            sortable
-			      :label="$t('kylinLang.dataSource.cardinality')">
-             <template scope="scope">
-              {{ tableData.cardinality[scope.row.name] }}
-            </template>
-			    </el-table-column>
-			    <el-table-column
-			      prop="comment"
-			      :label="$t('kylinLang.dataSource.comment')">
-			    </el-table-column>
-			  </el-table>
+          <el-input id="data-source-search" style="width:200px;" class="ksd-mb-10"
+            :placeholder="$t('kylinLang.common.pleaseFilter')"
+            icon="search"
+            v-model="filterColumn"
+            @change="filterColumnChange">
+          </el-input>
+  	    	  <el-table
+  			    :data="tableColumnsByFilter"
+  			    border
+  			    style="width: 100%">
+  			    <el-table-column
+  			      prop="id"
+  			      label="ID"
+              sortable
+              :sort-method="idSorted"
+  			      width="80">
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="name"
+              sortable
+  			      :label="$t('kylinLang.dataSource.columnName')"
+  			     >
+  			    </el-table-column>
+  			    <el-table-column
+  			      width="120"
+  			      prop="datatype"
+              sortable
+  			      :label="$t('kylinLang.dataSource.dataType')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      width="160"
+              sortable
+  			      :label="$t('kylinLang.dataSource.cardinality')">
+               <template scope="scope">
+                {{ tableData.cardinality[scope.row.name] }}
+              </template>
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="comment"
+  			      :label="$t('kylinLang.dataSource.comment')">
+  			    </el-table-column>
+  			  </el-table>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.extendInfo')" name="second" >
 		    	<table class="extendinfo_table" v-if="extendData.data_source_properties">
@@ -121,69 +121,65 @@
 		    	</table>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.statistics')" name="third" v-if="tableData.source_type === 0">
-		    	 <el-table
-			    :data="statistics"
-			    border
-			    style="width:100%"
-			    >
-			    <el-table-column
-			      type="index"
-			      label="ID"
-			      width="58">
-			    </el-table-column>
-			    <el-table-column
-			      prop="column"
-			      :label="$t('kylinLang.dataSource.columns')"
-			     >
-			    </el-table-column>
-			    <el-table-column
-			      width="120"
-			      prop="cardinality"
-			      :label="$t('kylinLang.dataSource.cardinality')">
-			    </el-table-column>
-			    <el-table-column
-			      width="100"
-			      prop="max_value"
-			      :label="$t('kylinLang.dataSource.maximum')">
-			    </el-table-column>
-			    <el-table-column
-			      prop="min_value"
-            width="100"
-			      :label="$t('kylinLang.dataSource.minimal')">
-			    </el-table-column>
-			    <el-table-column
-			      prop="max_length_value"
-			      :label="$t('kylinLang.dataSource.maxLengthVal')">
-			    </el-table-column>
-			    <el-table-column
-			      prop="min_length_value"
-			      :label="$t('kylinLang.dataSource.minLengthVal')">
-			    </el-table-column>
-			    <el-table-column
-			      width="120"
-			      prop="null_count"
-			      :label="$t('kylinLang.dataSource.nullCount')">
-			    </el-table-column>
-			  </el-table>
-        <p style="font-size:12px;" class="ksd-mt-10">{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
+		    	<el-table :data="statistics" border style="width:100%">
+  			    <el-table-column
+  			      type="index"
+  			      label="ID"
+  			      width="58">
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="column"
+  			      :label="$t('kylinLang.dataSource.columns')"
+  			     >
+  			    </el-table-column>
+  			    <el-table-column
+  			      width="120"
+  			      prop="cardinality"
+  			      :label="$t('kylinLang.dataSource.cardinality')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      width="100"
+  			      prop="max_value"
+  			      :label="$t('kylinLang.dataSource.maximum')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="min_value"
+              width="100"
+  			      :label="$t('kylinLang.dataSource.minimal')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="max_length_value"
+  			      :label="$t('kylinLang.dataSource.maxLengthVal')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      prop="min_length_value"
+  			      :label="$t('kylinLang.dataSource.minLengthVal')">
+  			    </el-table-column>
+  			    <el-table-column
+  			      width="120"
+  			      prop="null_count"
+  			      :label="$t('kylinLang.dataSource.nullCount')">
+  			    </el-table-column>
+  			  </el-table>
+          <p style="font-size:12px;" class="ksd-mt-10">{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.sampleData')" name="fourth">
-		      <el-table
-			    :data="sampleData.slice(1)"
-			    border
-			    style="width: 100%">
-			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
-			      :prop="''+index"
-            :width="15* (sampleData[0][index] && sampleData[0][index].length || 0) + 20"
-			      :label="sampleData[0][index]">
-			    </el-table-column>
-			  </el-table>
+		      <el-table :data="sampleData.slice(1)" border style="width: 100%">
+  			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
+  			      :prop="''+index"
+              :width="15* (sampleData[0][index] && sampleData[0][index].length || 0) + 20"
+  			      :label="sampleData[0][index]">
+  			    </el-table-column>
+			    </el-table>
 		    </el-tab-pane>
-          <el-tab-pane label="Streaming Cluster" name="fifth" v-if="tableData.source_type === 1">
+        <el-tab-pane label="Streaming Cluster" name="fifth" v-if="tableData.source_type === 1">
             <el-button type="primary" icon="edit" @click="editKafkaFormVisible=true" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
             <view_kafka  ref="addkafkaForm" v-on:validSuccess="kafkaValidSuccess" :streamingData="currentStreamingTableData"  :tableName="currentStreamingTable" ></view_kafka>
-          </el-tab-pane>
-        </el-tabs>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('access')" name="sixth">
+           <access :tableData="tableData" v-if="activeName==='sixth'"></access>
+        </el-tab-pane>
+      </el-tabs>
       </div>
 
       <el-dialog size="small" :title="$t('loadhiveTables')" v-model="load_hive_dalog_visible" class="load_hive_dialog">
@@ -327,6 +323,7 @@ import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
 import viewKafka from '../kafka/view_kafka'
 import arealabel from 'components/common/area_label'
+import access from './access'
 // import Scrollbar from 'smooth-scrollbar'
 export default {
   data () {
@@ -377,7 +374,8 @@ export default {
     arealabel,
     'create_kafka': createKafka,
     'edit_kafka': editKafka,
-    'view_kafka': viewKafka
+    'view_kafka': viewKafka,
+    'access': access
   },
   created () {
     if (this.project) {
@@ -738,6 +736,7 @@ export default {
       for (var k = 0; k < tableData.length; k++) {
         if (tableData[k].database === database && tableData[k].name === tableName) {
           this.tableData = tableData[k]
+          this.$store.state.datasource.currentShowTableData = tableData[k]
           break
         }
       }
@@ -915,8 +914,8 @@ export default {
     }
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。'}
+    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.', 'access': 'Access'},
+    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。', 'access': '权限'}
   }
 }
 </script>

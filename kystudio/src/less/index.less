@@ -344,6 +344,9 @@ color: #000;
   .el-autocomplete-suggestion li:hover {
     background-color: #434b70;
   }
+  .el-autocomplete-suggestion.is-loading li:hover {
+    background-color: #434b70;
+  }
   // 编辑器皮肤覆盖
   .ace_print-margin {
     display: none;
@@ -576,7 +579,50 @@ color: #000;
   .el-button--info.is-plain:active {
     .setBtner-plain(@btn-info-active);
   }
-
+  .el-input {
+    &.show-search-btn{
+      .el-input__icon {
+        background-color: @grey-color;
+        border-radius: 0 4px 4px 0;
+        height: 34px;
+        margin-top: 1px;
+        margin-right: 1px;
+        &:hover{
+          background-color: @base-color;
+        }
+      }
+      .el-input__inner{
+        border:solid 1px @grey-color;
+        &:focus{
+          border:solid 1px @input-focus-color;
+        }
+      }
+      &:hover{
+        // .el-input__icon {
+        //   background-color: @base-color;
+        // }
+        .el-input__inner{
+          border:solid 1px @input-focus-color;
+        }
+      }
+    }
+  }
+   
+  .ksd-btn.del{
+    &.el-button--default{
+      background-color: @grey-color;
+      border:solid 1px #515465;
+      .el-icon-delete {
+        color: #99a9bf;
+      }
+      &:hover{
+        background-color: @base-color;
+        .el-icon-delete {
+          color: @fff;
+        }
+      }
+    }
+  }
 
   // 整理end点
 
@@ -848,9 +894,9 @@ color: #000;
   .tree_list{
     background: @bg-total;
   }
-  .modeltab .el-tabs--card > .el-tabs__header .el-tabs__nav div:nth-child(1){
-    background: @grey-color;
-  }
+  // .modeltab .el-tabs--card > .el-tabs__header .el-tabs__nav div:nth-child(1){
+  //   background: @grey-color;
+  // }
   .cell{
     .el-dropdown{
       .el-button{
