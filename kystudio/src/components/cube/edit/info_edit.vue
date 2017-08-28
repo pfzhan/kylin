@@ -142,7 +142,7 @@ export default {
         return !!(s.replace(/[\r\n]/g, ''))
       })
       sqls = sqls.map((s) => {
-        var r = s.replace(/[\r\n]/g, '')
+        var r = s.replace(/[\r\n](\s+)?/g, ' ')
         return r
       })
       return sqls
