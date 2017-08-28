@@ -273,7 +273,6 @@ export default {
         timeFilter: 1
       },
       allStatus: [
-        {name: 'NEW', value: 0},
         {name: 'PENDING', value: 1},
         {name: 'RUNNING', value: 2},
         {name: 'FINISHED', value: 4},
