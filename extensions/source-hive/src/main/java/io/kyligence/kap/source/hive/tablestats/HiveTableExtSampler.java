@@ -24,13 +24,6 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
-import com.google.common.collect.Maps;
-import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.measure.hllc.HLLCSerializer;
-import org.apache.kylin.measure.hllc.HLLCounter;
-import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.datatype.DataTypeSerializer;
-
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
@@ -43,6 +36,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.measure.hllc.HLLCSerializer;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.datatype.DataTypeSerializer;
+
+import com.google.common.collect.Maps;
 
 public class HiveTableExtSampler implements Serializable {
 
@@ -359,7 +360,8 @@ public class HiveTableExtSampler implements Serializable {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
         } else {
-            if (updateRawSampleIndex < SAMPLE_RAW_VALUE_NUMBER && counter % (HASH_SEED << (updateRawSampleIndex * 2)) == 0) {
+            if (updateRawSampleIndex < SAMPLE_RAW_VALUE_NUMBER
+                    && counter % (HASH_SEED << (updateRawSampleIndex * 2)) == 0) {
                 sampleValues.put(String.valueOf(updateRawSampleIndex), next);
                 updateRawSampleIndex++;
             }
@@ -753,8 +755,8 @@ public class HiveTableExtSampler implements Serializable {
         private final int poolSize = 10000;
         private final int retainSize = 1000;
         private int capability;
-        private Map<String, MutableInt> topMap = new HashMap<>();
-        private LinkedList<MutableInt> topList = new LinkedList<>();
+        private Map<String, MutableLong> topMap = new HashMap<>();
+        private LinkedList<MutableLong> topList = new LinkedList<>();
 
         private DataTypeSerializer strSer = DataTypeSerializer.create(dataType);
         private DataTypeSerializer longSer = DataTypeSerializer.create("long");
@@ -764,9 +766,9 @@ public class HiveTableExtSampler implements Serializable {
         }
 
         public void offer(String value) {
-            MutableInt count = topMap.get(value);
+            MutableLong count = topMap.get(value);
             if (count == null) {
-                MutableInt m = new MutableInt();
+                MutableLong m = new MutableLong();
                 m.setKey(value);
                 topMap.put(value, m);
                 topList.add(m);
@@ -776,10 +778,10 @@ public class HiveTableExtSampler implements Serializable {
         }
 
         public void merge(SimpleTopN s) {
-            for (Map.Entry<String, MutableInt> e : s.getTopMap().entrySet()) {
+            for (Map.Entry<String, MutableLong> e : s.getTopMap().entrySet()) {
                 String key = e.getKey();
-                MutableInt value = e.getValue();
-                MutableInt own = topMap.get(key);
+                MutableLong value = e.getValue();
+                MutableLong own = topMap.get(key);
                 if (own == null) {
                     topMap.put(key, value);
                     topList.add(value);
@@ -802,16 +804,16 @@ public class HiveTableExtSampler implements Serializable {
             }
         }
 
-        public Map<String, MutableInt> getTopMap() {
+        public Map<String, MutableLong> getTopMap() {
             return this.topMap;
         }
 
         public void code(ByteBuffer buf) {
             int s = topList.size();
             longSer.serialize((long) s, buf);
-            for (MutableInt e : topList) {
+            for (MutableLong e : topList) {
                 strSer.serialize(e.getKey(), buf);
-                longSer.serialize((long) e.getValue(), buf);
+                longSer.serialize(e.getValue(), buf);
             }
 
         }
@@ -823,9 +825,9 @@ public class HiveTableExtSampler implements Serializable {
             for (int i = 0; i < s; i++) {
                 String key = strSer.deserialize(buffer).toString();
                 long value = (long) longSer.deserialize(buffer);
-                MutableInt m = new MutableInt();
+                MutableLong m = new MutableLong();
                 m.setKey(key);
-                m.setValue((int) value);
+                m.setValue(value);
                 topList.add(m);
                 topMap.put(key, m);
             }
@@ -836,7 +838,7 @@ public class HiveTableExtSampler implements Serializable {
             for (int i = 0; i < capability && topMap.size() > 0; i++) {
                 String key = null;
                 long value = 0;
-                for (Map.Entry<String, MutableInt> e : topMap.entrySet()) {
+                for (Map.Entry<String, MutableLong> e : topMap.entrySet()) {
                     if (e.getValue().getValue() > value) {
                         key = e.getKey();
                         value = e.getValue().getValue();
@@ -848,19 +850,19 @@ public class HiveTableExtSampler implements Serializable {
             return t;
         }
 
-        class MutableInt implements Comparable<MutableInt> {
-            int value = 1;
+        class MutableLong implements Comparable<MutableLong> {
+            long value = 1L;
             String key;
 
             public void increment() {
                 ++value;
             }
 
-            public void increment(int add) {
-                value += add;
+            public void increment(long delta) {
+                value += delta;
             }
 
-            public int getValue() {
+            public long getValue() {
                 return value;
             }
 
@@ -868,7 +870,7 @@ public class HiveTableExtSampler implements Serializable {
                 this.key = key;
             }
 
-            public void setValue(int value) {
+            public void setValue(long value) {
                 this.value = value;
             }
 
@@ -877,8 +879,15 @@ public class HiveTableExtSampler implements Serializable {
             }
 
             @Override
-            public int compareTo(MutableInt o) {
-                return o.getValue() - value;
+            public int compareTo(MutableLong o) {
+                long ret = o.getValue() - value;
+                if (ret > Integer.MAX_VALUE)
+                    return Integer.MAX_VALUE;
+
+                if (ret < Integer.MIN_VALUE)
+                    return Integer.MIN_VALUE;
+
+                return (int) ret;
             }
         }
     }

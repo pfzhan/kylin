@@ -24,19 +24,23 @@
 
 package io.kyligence.kap.source.hive.tablestats;
 
-import junit.framework.TestCase;
-import org.junit.Test;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
+
+import org.junit.Test;
+
+import junit.framework.TestCase;
 
 public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testHiveSample() {
-        String[] stringValues = {"I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true", "Dinner is perfect", "Not very good"};
-        String[] decimalValues = {"1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323"};
+        String[] stringValues = { "I love China", "", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it",
+                "true", "Dinner is perfect", "Not very good" };
+        String[] decimalValues = { "1.232323232434", "3.23232323", "-1.3232", "434.223232", "232.22323" };
         HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 256);
 
         for (int i = 0; i < stringValues.length; i++) {
@@ -164,7 +168,7 @@ public class HiveTableExtSamplerTest extends TestCase {
     public void testModelStats() {
         HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100, 0, 3);
 
-        String[][] sampleValues = {{"1", "2", "3"}, {"4", "5", "6"}, {"7", "8", "9"}};
+        String[][] sampleValues = { { "1", "2", "3" }, { "4", "5", "6" }, { "7", "8", "9" } };
 
         for (int i = 0; i < sampleValues.length; i++)
             sampler.samples(sampleValues[i]);
@@ -172,5 +176,26 @@ public class HiveTableExtSamplerTest extends TestCase {
         ByteBuffer buf = sampler.code();
         buf.flip();
         sampler.decode(buf);
+    }
+
+    @Test
+    public void testMutable() {
+        LinkedList<HiveTableExtSampler.SimpleTopN.MutableLong> testList = new LinkedList<>();
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100);
+        HiveTableExtSampler.SimpleTopN topN = sampler.new SimpleTopN(10);
+        HiveTableExtSampler.SimpleTopN.MutableLong first = topN.new MutableLong();
+        HiveTableExtSampler.SimpleTopN.MutableLong second = topN.new MutableLong();
+        HiveTableExtSampler.SimpleTopN.MutableLong third = topN.new MutableLong();
+        first.increment(Integer.MAX_VALUE);
+        first.increment();
+        third.increment(first.getValue() * 2);
+        third.setValue(third.getValue());
+
+        testList.add(first);
+        testList.add(second);
+        testList.add(third);
+
+        Collections.sort(testList);
+        assertEquals(1, testList.pollLast().getValue());
     }
 }
