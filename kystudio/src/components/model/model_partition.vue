@@ -1,7 +1,7 @@
 <template>
-	<div  class="partitionBox" :style="{height:comHeight+'px'}">
+	<div  class="partitionBox">
     <el-row>
-      <el-col :span="layout.left" style="padding:10px;border-right: solid 1px #292b38; ">
+      <el-col :span="layout.left" style="padding:10px;">
         <el-form v-model="checkPartition"  label-position="top" :rules="rule" ref="partition">
           <el-form-item :label="$t('partitionDateColumn')">
             <span slot="label">{{$t('partitionDateColumn')}}
@@ -41,7 +41,7 @@
                 :value="item.label">
               </el-option>
             </el-select> -->
-               <el-autocomplete :disabled="editMode  || actionMode==='view'" style="width:100%" @select="formValid()"
+               <el-autocomplete :disabled="editMode  || actionMode==='view'" style="width:100%" @select="formValid('partition_date_format')"
                       class="inline-input"
                       v-model="checkPartition.partition_date_format"
                       :fetch-suggestions="querySearchForDate"
@@ -93,7 +93,7 @@
               </el-option>
             </el-select> -->
             <el-row>
-              <el-autocomplete style="width:100%" :disabled="editMode  || actionMode==='view'"  @select="formValid()"
+              <el-autocomplete style="width:100%" :disabled="editMode  || actionMode==='view'"  @select="formValid('partition_time_format')"
                       class="inline-input"
                       v-model="checkPartition.partition_time_format"
                       :fetch-suggestions="querySearchForTime"
@@ -111,8 +111,8 @@
           </el-form-item>
         </el-form>
       </el-col>
-      <el-col :span="layout.right" v-if="layout.right" style="padding:20px;margin-top: -30px; padding-top: 30px;">
-
+      <el-col :span="layout.right" v-if="layout.right" style="border-left:solid 1px rgb(41, 43, 56); padding:20px; margin-top: -30px; padding-top: 30px;position:relative">
+       <div class="col-line"></div>
        <p>{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
        <el-alert class="ksd-mt-20 trans" v-if="modelStatics && modelStatics.length <= 1"
         :title="$t('noSample')"
@@ -176,8 +176,10 @@ export default {
       validColumnFormat: 'VALID_PARTITION_COLUMN',
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
-    formValid () {
-      this.$refs.partition.validate()
+    formValid (filed) {
+      console.log(filed)
+      this.$refs.partition.validateField(filed)
+      // this.$refs.partition.validate()
     },
     getFullTableNameInfo (alias) {
       for (var i in this.columnsForDate) {
@@ -191,15 +193,19 @@ export default {
       return []
     },
     dateFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_date_format || this.modelStatics.length === 0) {
+      if (!this.checkPartition.partition_date_format) {
         callback()
       }
       var project = this.modelInfo.project || this.project
       var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.date_table)
       this.validColumnFormat({project: project, table: databaseAndTableName.join('.'), column: this.checkPartition.date_column, format: this.checkPartition.partition_date_format}).then((res) => {
         handleSuccess(res, (data) => {
-          if (!data) {
+          if (!data && data !== null) {
+            console.log(8888)
             callback(new Error(this.$t('validFail')))
+          } else {
+            console.log(999)
+            callback()
           }
         })
       }, (res) => {
@@ -209,15 +215,17 @@ export default {
       })
     },
     timeFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_time_format || this.modelStatics.length === 0) {
+      if (!this.checkPartition.partition_time_format) {
         callback()
       }
       var project = this.modelInfo.project || this.project
       var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.time_table)
       this.validColumnFormat({project: project, table: databaseAndTableName.join('.'), column: this.checkPartition.time_column, format: this.checkPartition.partition_time_format}).then((res) => {
         handleSuccess(res, (data) => {
-          if (!data) {
+          if (!data && data !== null) {
             callback(new Error(this.$t('validFail')))
+          } else {
+            callback()
           }
         })
       }, (res) => {
@@ -249,14 +257,14 @@ export default {
       if (databaseAndTableName.length) {
         this.loadTableStatics(databaseAndTableName[0], databaseAndTableName[1], this.checkPartition.date_column)
       }
-      this.formValid()
+      this.formValid('partition_date_format')
     },
     changeTimeColumn () {
       var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.time_table)
       if (databaseAndTableName.length) {
         this.loadTableStatics(databaseAndTableName[0], databaseAndTableName[1], this.checkPartition.time_column)
       }
-      this.formValid()
+      this.formValid('partition_time_format')
     },
     checkLockFormat () {
       // for (var i in this.columnsForDate) {
@@ -370,13 +378,23 @@ export default {
 </script>
 <style lang="less">
 .partitionBox {
-  overflow-y: auto;
+  // overflow-y: auto;
   .el-form-item{
     margin-bottom: 12px;
   }
   .el-form {
     // height: 260px;
     // overflow: hidden;
+  }
+  .col-line{
+    width: 1px;
+    height: 100%;
+    background-color: rgb(41, 43, 56);
+    position: absolute;
+    left: -1px;
+    bottom:-52px;
+    top:0px;
+    margin-top: 52px;
   }
   .el-input{
     padding: 0;

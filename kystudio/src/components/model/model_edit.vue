@@ -244,7 +244,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" >
+    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small">
        <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
        <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
        <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
