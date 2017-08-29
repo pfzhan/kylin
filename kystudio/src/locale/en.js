@@ -77,7 +77,8 @@ exports.default = {
     username: 'username',
     password: 'password',
     saveDraft: 'Responding to a request for saving drafts，Please try again later.',
-    streamingConnectHiveError: 'Can not connect hive table with streaming table'
+    streamingConnectHiveError: 'Can not connect hive table with streaming table',
+    seeDetail: 'Details >>'
   },
   model: {
     modelName: 'Model Name:',

@@ -19,10 +19,9 @@ export function handleError (res, errorcallback) {
   var responseData = res && res.data || null
   if (typeof errorcallback !== 'function') {
     var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
-    MessageBox.confirm(msg, window.kapVm.$t('kylinLang.common.tip'), {
-      type: 'error',
-      showCancelButton: false
-    })
+    window.kapVm.$store.state.config.errorMsgBox.isShow = true
+    window.kapVm.$store.state.config.errorMsgBox.msg = msg
+    window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
   }
   if (responseData && responseData.code) {
     if (typeof errorcallback === 'function') {

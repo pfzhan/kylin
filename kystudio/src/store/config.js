@@ -18,6 +18,11 @@ export default {
       briefMenu: localStorage.getItem('menu_type'),
       gloalProjectSelectShow: true
     },
+    errorMsgBox: {
+      isShow: false,
+      msg: '',
+      detail: ''
+    },
     routerConfig: {
       currentPathName: ''
     },
