@@ -24,17 +24,11 @@
 
 package io.kyligence.kap.storage.parquet.format;
 
-import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv;
-import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,9 +41,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -61,14 +53,7 @@ import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
-import com.google.common.primitives.Shorts;
-
 import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader;
-import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceReader;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilter;
 import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.filter.MassInValueProviderFactoryImpl;
@@ -94,10 +79,6 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
     public static class ParquetTarballFileReader extends RecordReader<Text, Text> {
 
-        public enum ReadStrategy {
-            KV, COMPACT
-        }
-
         public static final Logger logger = LoggerFactory.getLogger(ParquetTarballFileReader.class);
         public static ThreadLocal<GTScanRequest> gtScanRequestThreadLocal = new ThreadLocal<>();
 
@@ -110,12 +91,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
         private Text val = null; //reusing the val bytes, the returned bytes might contain useless tail, but user will use it as bytebuffer, so it's okay
 
         private ImmutableRoaringBitmap columnBitmap;
-        private ReadStrategy readStrategy;
-        private Map<Integer, Short> page2ShardMap;
-        private Map<Integer, Long> page2CuboidMap;
         private long cuboidId = -1;
-        private long curPageIndex = -1;
-        private int curKeyByteLength = -1;
 
         long profileStartTime = 0;
 
@@ -164,28 +140,6 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             // Required divs
             if (conf.get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS) != null) {
                 cuboidId = Long.valueOf(conf.get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS));
-            }
-
-            // ReadStrategy
-            readStrategy = ReadStrategy.valueOf(conf.get(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY));
-            logger.info("Read Strategy is {}", readStrategy.toString());
-
-            // This block is not access in query
-            if (readStrategy == ReadStrategy.KV) {
-                logger.info("Build page to shardId map");
-                ParquetSpliceReader spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path)
-                        .setColumnsBitmap(columnBitmap).setFileOffset(indexLength).build();
-                page2ShardMap = Maps.newHashMap();
-                page2CuboidMap = Maps.newHashMap();
-                for (String d : spliceReader.getDivs()) {
-                    long cuboidId = getCuboididFromDiv(d);
-                    short shardId = getShardidFromDiv(d);
-                    Pair<Integer, Integer> range = spliceReader.getDivPageRange(d);
-                    for (int page = range.getLeft(); page < range.getRight(); page++) {
-                        page2CuboidMap.put(page, cuboidId);
-                        page2ShardMap.put(page, shardId);
-                    }
-                }
             }
 
             // Read page index if necessary, this block is only accessed in query
@@ -252,29 +206,6 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
             profileStartTime = System.currentTimeMillis();
         }
 
-        private Map<String, List<String>> getCuboid2DivMap(Set<String> divs) {
-            Map<String, List<String>> cuboidDivMap = Maps.newHashMap();
-            for (String d : divs) {
-                String cuboid = String.valueOf(getCuboididFromDiv(d));
-                if (!cuboidDivMap.containsKey(cuboid)) {
-                    cuboidDivMap.put(cuboid, Lists.<String> newArrayList());
-                }
-                cuboidDivMap.get(cuboid).add(d);
-            }
-            return cuboidDivMap;
-        }
-
-        private Set<String> requiredDivs(String[] requiredCuboids, Set<String> divs) {
-            Set<String> result = Sets.newHashSet();
-            Map<String, List<String>> cuboidDivMap = getCuboid2DivMap(divs);
-            for (String cuboid : requiredCuboids) {
-                if (cuboidDivMap.containsKey(cuboid)) {
-                    result.addAll(cuboidDivMap.get(cuboid));
-                }
-            }
-            return result;
-        }
-
         private boolean filterIsNull(TupleFilter filter) {
             if (filter == null) {
                 return true;
@@ -309,40 +240,15 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 }
             }
 
-            if (readStrategy == ReadStrategy.KV) {
-                // key
-                byte[] keyBytes = ((Binary) data.get(0)).getBytes();
-                if (key == null) {
-                    key = new Text();
-                }
-                if (curPageIndex != reader.getPageIndex()) {
-                    curPageIndex = reader.getPageIndex();
-                    if (keyBytes.length != curKeyByteLength) {
-                        byte[] temp = new byte[keyBytes.length + RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN];//make sure length
-                        key.set(temp);
-                    }
-                    System.arraycopy(Bytes.toBytes(page2ShardMap.get(reader.getPageIndex())), 0, key.getBytes(), 0,
-                            Shorts.BYTES);
-                    System.arraycopy(Bytes.toBytes(page2CuboidMap.get(reader.getPageIndex())), 0, key.getBytes(),
-                            Shorts.BYTES, Longs.BYTES);
-                }
-                System.arraycopy(keyBytes, 0, key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
-                        keyBytes.length);
-
-                //value
-                setVal(data, 1);
-            } else if (readStrategy == ReadStrategy.COMPACT) {
-                if (key == null) {
-                    key = new Text();
-                }
-                setVal(data, 0);
-            } else {
-                throw new RuntimeException("unknown read strategy: " + readStrategy);
+            if (key == null) {
+                key = new Text();
             }
+            setVal(data);
+
             return true;
         }
 
-        private void setVal(List<Object> data, int start) {
+        private void setVal(List<Object> data) {
 
             int retry = 0;
 
@@ -351,7 +257,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                 try {
 
                     int offset = 0;
-                    for (int i = start; i < data.size(); ++i) {
+                    for (int i = 0; i < data.size(); ++i) {
                         byte[] src = ((Binary) data.get(i)).getBytes();
                         System.arraycopy(src, 0, val.getBytes(), offset, src.length);
                         offset += src.length;

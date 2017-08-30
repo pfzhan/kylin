@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -74,7 +73,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 import com.google.common.primitives.Longs;
 import com.google.common.primitives.Shorts;
 
@@ -114,6 +112,9 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
         private CubeInstance cubeInstance;
         private CubeSegment cubeSegment;
 
+        private HBaseColumnFamilyDesc[] cfDescs;
+        private MeasureCodec measureCodec;
+
         private BinaryFilter binaryFilter = null;
         private ParquetBundleReader reader = null;
         private ParquetPageIndexTable indexTable = null;
@@ -136,17 +137,28 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
 
             Path path = ((FileSplit) split).getPath();
-            conf = context.getConfiguration();
+            this.conf = context.getConfiguration();
 
             logger.info("tarball file: {}", path);
 
-            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
-
+            this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
+
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-            cubeSegment = cubeInstance.getSegmentById(segmentID);
+
+            this.cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+            this.cubeSegment = cubeInstance.getSegmentById(segmentID);
+            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+            List<MeasureDesc> cfMeasures = Lists.newArrayList();
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    MeasureDesc[] measures = colDesc.getMeasures();
+                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
+                }
+            }
+            this.measureCodec = new MeasureCodec(cfMeasures);
 
             long startTime = System.currentTimeMillis();
 
@@ -255,29 +267,6 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
             profileStartTime = System.currentTimeMillis();
         }
 
-        private Map<String, List<String>> getCuboid2DivMap(Set<String> divs) {
-            Map<String, List<String>> cuboidDivMap = Maps.newHashMap();
-            for (String d : divs) {
-                String cuboid = String.valueOf(getCuboididFromDiv(d));
-                if (!cuboidDivMap.containsKey(cuboid)) {
-                    cuboidDivMap.put(cuboid, Lists.<String> newArrayList());
-                }
-                cuboidDivMap.get(cuboid).add(d);
-            }
-            return cuboidDivMap;
-        }
-
-        private Set<String> requiredDivs(String[] requiredCuboids, Set<String> divs) {
-            Set<String> result = Sets.newHashSet();
-            Map<String, List<String>> cuboidDivMap = getCuboid2DivMap(divs);
-            for (String cuboid : requiredCuboids) {
-                if (cuboidDivMap.containsKey(cuboid)) {
-                    result.addAll(cuboidDivMap.get(cuboid));
-                }
-            }
-            return result;
-        }
-
         private boolean filterIsNull(TupleFilter filter) {
             if (filter == null) {
                 return true;
@@ -338,37 +327,21 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
 
         private void setVal(List<Object> data) {
 
+            // Step 1: transform data object list to byte array. 
             int cfValueBytesLength = 0;
             for (int i = 1; i < data.size(); ++i) {
                 cfValueBytesLength += ((Binary) data.get(i)).getBytes().length;
             }
             byte[] cfValueBytes = new byte[cfValueBytesLength];
-
-            int cfIndex = 0;
-            for (int i = 1; i < data.size(); ++i) {
+            for (int i = 1, cfIndex = 0; i < data.size(); ++i) {
                 byte[] src = ((Binary) data.get(i)).getBytes();
                 System.arraycopy(src, 0, cfValueBytes, cfIndex, src.length);
                 cfIndex += src.length;
             }
 
-            HBaseColumnFamilyDesc[] cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
-
-            List<MeasureDesc> cfMeasures = Lists.newArrayList();
-
-            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
-                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
-                for (HBaseColumnDesc colDesc : colDescs) {
-                    MeasureDesc[] measures = colDesc.getMeasures();
-                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
-                }
-            }
-
-            MeasureCodec measureCodec = new MeasureCodec(cfMeasures);
-
+            // Step 2: calculate byte array length for measures as the order they were defined.  
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(cfValueBytes));
-
             int[] valueLengthInMeasureOrder = new int[valueLength.length];
-
             int idx = 0;
             for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
                 HBaseColumnDesc[] colDescs = cfDesc.getColumns();
@@ -381,17 +354,16 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
                 }
             }
 
+            // Step 3: calculate value offsets in result byte array to which measures will be copied. 
             int[] valueOffsets = new int[valueLength.length];
-            int valueOffset = 0;
-
-            for (int i = 0; i < valueOffsets.length; i++) {
+            for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
                 valueOffsets[i] = valueOffset;
                 valueOffset += valueLengthInMeasureOrder[i];
             }
 
+            // Step 4: copy array bytes as measure order. 
             byte[] valueBytes = new byte[cfValueBytes.length];
             int cfValueOffset = 0;
-
             for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
                 HBaseColumnDesc[] colDescs = cfDesc.getColumns();
                 for (HBaseColumnDesc colDesc : colDescs) {

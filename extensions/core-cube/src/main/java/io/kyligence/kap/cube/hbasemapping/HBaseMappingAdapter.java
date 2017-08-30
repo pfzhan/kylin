@@ -43,29 +43,29 @@ public class HBaseMappingAdapter {
         int storageType = cubeDesc.getStorageType();
         HBaseMappingDesc hbaseMapping = cubeDesc.getHbaseMapping();
 
-        // For case of HBase storage engine: 
         if(storageType <= MAX_ENGINE_NUM_OF_HBASE) {
             
-            // Initiate as meta data since it's compatible with HBase mapping version 2.  
+            // Initiate as meta data indicates since current HBase mapping is compatible with original HBase mapping.  
             if (hbaseMapping != null) {
                 hbaseMapping.init(cubeDesc);
                 logger.info("init cf info for " + cubeDesc.getName() + " as cf in HBase");
             }
         
-        // For case of KyStorage storage engine: 
         } else if(storageType >= MIN_ENGINE_NUM_OF_KYSTORAGE) {
             
-            // For column family version 2: 
-            if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.1.0.20404") > 0) {
+            // For cubes with equal or higher version than column family adopted version: 
+            // initiate as meta data indicates; 
+            // For cubes with lower version than column family adopted version, or cube with no info about HBase mapping: 
+            // distribute all measures into separate column families since legacy cubes do not handle HBase mapping.  
+            if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.1.0.20405") > 0) {
                 hbaseMapping.init(cubeDesc);
                 logger.info("init cf info for " + cubeDesc.getName() + " as cf in KyStorage");
-            // For column family version 1 or no information about column family:
-            // Distribute all measures into separate column families.     
+                    
             } else {
                 cubeDesc.setHbaseMapping(new HBaseMappingDesc());
                 hbaseMapping = cubeDesc.getHbaseMapping();
                 hbaseMapping.initAsSeparatedColumns(cubeDesc);
-                logger.info("adapt cf info for " + cubeDesc.getName() + " as separated cols in KyStorage");
+                logger.info("adapt cf info for " + cubeDesc.getName() + " as separated cf in KyStorage");
             }
         }
     }
