@@ -18,7 +18,7 @@
   </el-row>
   <el-row class="tableheader">
     <el-col :span="6" class="left-part"><b>{{$t('description')}}</b></el-col>
-    <el-col :span="18">{{cubeDesc.description}}</el-col>
+    <el-col :span="18">{{cubeDesc.desc && cubeDesc.desc.description}}</el-col>
   </el-row>
 </div>
 </template>

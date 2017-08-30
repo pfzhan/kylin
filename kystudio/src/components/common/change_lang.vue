@@ -19,7 +19,6 @@
   import enKylinLocale from '../../locale/en'
   import zhKylinLocale from '../../locale/zh-CN'
   Vue.use(VueI18n)
-  Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'zh-cn'
   enLocale.kylinLang = enKylinLocale.default
   zhLocale.kylinLang = zhKylinLocale.default
   Vue.locale('en', enLocale)
@@ -36,7 +35,8 @@
     },
     data () {
       return {
-        lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : 'zh-cn',
+        defaultLang: 'en',
+        lang: localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang,
         options: [{label: '中文', value: 'zh-cn'}, {label: 'English', value: 'en'}]
       }
     },
@@ -48,6 +48,20 @@
           this.lang = 'en'
         }
       }
+    },
+    created () {
+      let currentLang = navigator.language
+      // 判断除IE外其他浏览器使用语言
+      if (!currentLang) {
+      // 判断IE浏览器使用语言
+        currentLang = navigator.browserLanguage
+      }
+      if (currentLang.indexOf('zh') >= 0) {
+        this.defaultLang = 'zh-cn'
+      }
+      Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
+      this.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
+      console.log(Vue.config.lang, navigator.language, this.lang)
     }
   }
 </script>
