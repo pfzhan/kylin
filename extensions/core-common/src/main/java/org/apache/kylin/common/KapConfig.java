@@ -324,4 +324,11 @@ public class KapConfig {
     public String getSmartModelingStrategy() {
         return config.getOptional("kap.smart.strategy", "default");
     }
+    
+    /**
+     * Query
+     */
+    public int getCalciteJoinThreshold() {
+        return Integer.parseInt(config.getOptional("kap.query.calcite-join-threshold", "-1"));
+    }
 }

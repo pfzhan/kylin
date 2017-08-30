@@ -74,8 +74,7 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
     }
 
     @Override
-    public boolean executeUpdate(String sql) throws Exception {
+    public void executeUpdate(String sql) throws Exception {
         client.queryWithPushDown(sql);
-        return true;
     }
 }

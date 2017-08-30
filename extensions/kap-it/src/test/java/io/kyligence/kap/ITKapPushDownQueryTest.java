@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.NoRealizationFoundException;
+import org.apache.kylin.query.routing.RoutingIndicatorException;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -159,6 +160,28 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
         }
     }
 
+    @Test
+    public void testCalciteCostBasedRouting() throws Exception {
+        
+        String queryFileName = "src/test/resources/query/sql_pushdown/query05.sql";
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        File sqlFile = new File(queryFileName);
+        if (sqlFile.exists()) {
+            //runSQL(sqlFile, true, true);
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY, "");
+            System.setProperty("kap.query.calcite-join-threshold", "0");
+            try {
+                runSQL(sqlFile, true, false);
+                throw new SQLException();
+            } catch (SQLException e) {
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(RoutingIndicatorException.class, findRoot(e).getClass());
+            } finally {
+                System.clearProperty("kap.query.calcite-join-threshold");
+            }
+        }
+    }
+    
     @Test
     public void testComputedColumnExpand() throws Exception {
         try {
