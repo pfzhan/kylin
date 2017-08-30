@@ -27,6 +27,7 @@ package io.kyligence.kap.source.hive.tablestats;
 import java.io.Serializable;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,16 +43,19 @@ import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
 public class HiveTableExtSampler implements Serializable {
 
+    private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampler.class);
     private static final long serialVersionUID = 1L;
 
     public static final int HASH_SEED = 7;
     public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
-    public static final int DEFAULT_BUFFER_SIZE = 1024 * 1024 * 2; // 2M
+    public static final int DEFAULT_BUFFER_SIZE = 65536;
     public static final String HLLC_DATATYPE = "hllc";
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
@@ -259,16 +263,17 @@ public class HiveTableExtSampler implements Serializable {
         return output;
     }
 
-    public ByteBuffer code() {
-        buf = null;
-        buf = ByteBuffer.allocate(DEFAULT_BUFFER_SIZE);
-        buf.clear();
-
+    public ByteBuffer serialize() {
         int allSize = sizeOfElements() + this.lastIndex - this.curIndex + 1;
         int index = 0;
         for (Map.Entry<String, String> element : sampleValues.entrySet()) {
             Object object = samplerCoder.serializers[index].valueOf(element.getValue());
-            samplerCoder.serializers[index].serialize(object, buf);
+            try {
+                samplerCoder.serializers[index].serialize(object, buf);
+            } catch (Exception e) {
+                throw new RuntimeException("ColumnName:" + getColumnName() + ", key: " + element.getKey() + ", value: "
+                        + element.getValue() + e);
+            }
             index++;
         }
 
@@ -283,6 +288,24 @@ public class HiveTableExtSampler implements Serializable {
         topN.code(buf);
 
         return buf;
+    }
+
+    public ByteBuffer code() {
+        int estimateSize = DEFAULT_BUFFER_SIZE;
+        while (true) {
+            try {
+                buf = null;
+                buf = ByteBuffer.allocate(estimateSize);
+                buf.clear();
+                ByteBuffer ret = serialize();
+                return ret;
+            } catch (BufferOverflowException e) {
+                logger.info("Buffer size {} cannot hold the filter, resizing to 2 times", estimateSize);
+                if (estimateSize == (1 << 30))
+                    throw e;
+                estimateSize = estimateSize << 1;
+            }
+        }
     }
 
     public void codeMapperRows() {
@@ -752,8 +775,8 @@ public class HiveTableExtSampler implements Serializable {
     }
 
     class SimpleTopN {
-        private final int poolSize = 10000;
-        private final int retainSize = 1000;
+        private static final int poolSize = 10000;
+        private static final int retainSize = 1000;
         private int capability;
         private Map<String, MutableLong> topMap = new HashMap<>();
         private LinkedList<MutableLong> topList = new LinkedList<>();
@@ -815,7 +838,6 @@ public class HiveTableExtSampler implements Serializable {
                 strSer.serialize(e.getKey(), buf);
                 longSer.serialize(e.getValue(), buf);
             }
-
         }
 
         public void decode(ByteBuffer buffer) {

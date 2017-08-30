@@ -86,7 +86,6 @@ public class HiveTableExtSamplerTest extends TestCase {
         for (int i = 0; i < 1200; i++) {
             longString += "K";
         }
-        System.out.println("Length: " + longString.length());
         HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 1300);
         sampler.samples(longString);
         sampler.sync();
@@ -113,16 +112,18 @@ public class HiveTableExtSamplerTest extends TestCase {
     @Test
     public void testDataSkew() {
         List<String> skewSamples = new ArrayList<>();
-        int counter = 50000;
+        int counter = 500000;
         for (int i = 0; i < counter; i++) {
             if (i > counter / 2)
                 skewSamples.add(String.valueOf(0));
             else {
                 String v = UUID.randomUUID().toString();
+                for (int j = 0 ; j < 4 ;j++)
+                    v = v+v;
                 skewSamples.add(v);
             }
         }
-        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 1000);
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 800);
 
         for (String e : skewSamples) {
             sampler.samples(e);
