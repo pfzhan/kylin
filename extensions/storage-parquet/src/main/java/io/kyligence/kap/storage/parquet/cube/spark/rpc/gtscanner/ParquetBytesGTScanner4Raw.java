@@ -47,10 +47,4 @@ public class ParquetBytesGTScanner4Raw extends ParquetBytesGTScanner {
         return new ImmutableBitSet(bs);
     }
 
-    // to be implemented. 
-    protected ImmutableBitSet[] getParquetCoveredColumnBlocks(GTScanRequest scanRequest) {
-        
-        return null;
-    }
-    
 }

@@ -88,13 +88,14 @@ public class CubeSparkRPC implements IGTStorage {
     }
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
-        List<Integer> columnFamilies = Lists.newArrayList();
-        
-        for (int i = 0; i < request.getSelectedColBlocks().trueBitCount(); i++) {
-            columnFamilies.add(request.getSelectedColBlocks().trueBitAt(i));
+        List<Integer> measures = Lists.newArrayList(0);//the row key parquet column
+        int numDim = request.getInfo().getPrimaryKey().trueBitCount();
+        for (int i = 0; i < request.getAggrMetrics().trueBitCount(); i++) {
+            int index = request.getAggrMetrics().trueBitAt(i);
+            measures.add(index - numDim + 1);
         }
+        return measures;
 
-        return columnFamilies;
     }
 
     @Override
