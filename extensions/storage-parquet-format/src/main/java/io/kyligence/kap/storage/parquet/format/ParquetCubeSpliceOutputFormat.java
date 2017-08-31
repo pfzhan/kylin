@@ -114,19 +114,6 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             writer = newWriter();
         }
 
-        // This constructor is only used for testing. 
-        protected ParquetCubeSpliceWriter(Configuration conf, Path path, CubeSegment cubeSegment)
-                throws IOException, InterruptedException {
-
-            this.config = conf;
-            this.outputDir = path;
-            this.cubeSegment = cubeSegment;
-
-            measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
-
-            writer = newWriter();
-        }
-
         protected void freshWriter(Text key) throws InterruptedException, IOException {
             byte[] keyBytes = key.getBytes();
             long cuboidId = Bytes.toLong(keyBytes, RowConstants.ROWKEY_SHARDID_LEN, RowConstants.ROWKEY_CUBOIDID_LEN);

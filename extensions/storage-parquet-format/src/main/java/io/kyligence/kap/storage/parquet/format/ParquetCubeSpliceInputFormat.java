@@ -98,25 +98,6 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
         private Text key = new Text();
         private Text val = new Text();
 
-        // Default constructor to be used normally. 
-        public ParquetCubeSpliceReader() {
-
-        }
-
-        // This constructor is only used for testing. 
-        protected ParquetCubeSpliceReader(Configuration conf, Path path, CubeSegment cubeSegment) throws IOException {
-
-            this.conf = conf;
-            this.path = path;
-            this.cubeSegment = cubeSegment;
-
-            this.spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
-
-            divs = Lists.newArrayList();
-
-            divs.add(new String("mockedDiv"));
-        }
-
         @Override
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
             FileSplit fileSplit = (FileSplit) split;
@@ -198,12 +179,6 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
 
             return true;
         }
-        
-        // This function is only used for testing. 
-        protected void nextValueWithoutKey() throws IOException {
-            List<Object> data = reader.read();
-            setVal(data);            
-        }
 
         private boolean getNextReader() throws IOException {
             if (divIndex < divs.size()) {
@@ -214,15 +189,6 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 reader = spliceReader.getDivReader(div);
                 rowKeyEncoder = new RowKeyEncoder(cubeSegment,
                         Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
-                return true;
-            }
-            return false;
-        }
-
-        // This function is only used for testing. 
-        protected boolean setInternalReader(ParquetBundleReader reader) {
-            this.reader = reader;
-            if (this.reader != null) {
                 return true;
             }
             return false;
