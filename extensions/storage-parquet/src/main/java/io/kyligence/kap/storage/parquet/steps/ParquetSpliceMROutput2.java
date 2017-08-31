@@ -56,7 +56,7 @@ import io.kyligence.kap.engine.mr.steps.KapMergeRawTableJob;
 import io.kyligence.kap.engine.mr.steps.PartitionPreparer;
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileMergeInputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 
 public class ParquetSpliceMROutput2 implements IMROutput2 {
     
@@ -192,7 +192,7 @@ public class ParquetSpliceMROutput2 implements IMROutput2 {
 
         @Override
         public void configureJobInput(Job job, String input) throws Exception {
-            job.setInputFormatClass(ParquetSpliceTarballFileMergeInputFormat.class);
+            job.setInputFormatClass(ParquetSpliceTarballFileInputFormat.class);
             FileInputFormat.setInputPathFilter(job, CuboidPathFilter.class);
         }
 
