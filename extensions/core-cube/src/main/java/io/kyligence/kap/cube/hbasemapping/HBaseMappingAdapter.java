@@ -56,7 +56,7 @@ public class HBaseMappingAdapter {
         } else if(storageType >= MIN_ENGINE_NUM_OF_KYSTORAGE) {
             
             // For column family version 2: 
-            if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.1.0.20404") > 0) {
+            if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.1.0.20404") >= 0) {
                 hbaseMapping.init(cubeDesc);
                 logger.info("init cf info for " + cubeDesc.getName() + " as cf in KyStorage");
             // For column family version 1 or no information about column family:
