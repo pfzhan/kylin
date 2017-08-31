@@ -63,8 +63,8 @@ public class ParquetSpliceWriter {
         divCache = Maps.newHashMap();
     }
 
-    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] cfValue, int[] cfValueLengths) throws Exception {
-        writer.writeRow(key, keyOffset, keyLength, cfValue, cfValueLengths);
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws Exception {
+        writer.writeRow(key, keyOffset, keyLength, value, valueLengths);
     }
 
     public void writeRow(List<Object> row) throws Exception {
