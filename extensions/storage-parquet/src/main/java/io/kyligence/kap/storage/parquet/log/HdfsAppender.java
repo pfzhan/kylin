@@ -153,7 +153,6 @@ public class HdfsAppender extends AppenderSkeleton {
                     final LoggingEvent loggingEvent = logBufferQue.take();
                     if (isDayChanged(loggingEvent)) {
                         updateOutPutDir(loggingEvent);
-                        doRollingClean(loggingEvent);
 
                         final Path file = new Path(outPutPath);
 

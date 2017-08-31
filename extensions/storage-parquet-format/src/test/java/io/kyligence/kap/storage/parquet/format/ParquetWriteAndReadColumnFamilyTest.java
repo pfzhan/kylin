@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeSegment;
@@ -75,6 +76,14 @@ public class ParquetWriteAndReadColumnFamilyTest extends AbstractParquetFormatTe
         initMeasures();
         initHBaseMapping();
         initMeasureReferenceToColumnFamily();
+    }
+
+    @Override
+    public void setup() throws IOException {
+        super.setup();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        // default compression code is SNAPPY, not supported on mac, so disable it
+        kylinConfig.setProperty("kap.storage.columnar.page-compression", "");
     }
 
     protected void initMeasures() {
