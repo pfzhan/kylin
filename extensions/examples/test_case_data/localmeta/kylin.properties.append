@@ -7,7 +7,6 @@ kylin.storage.provider.99=io.kyligence.kap.storage.parquet.ParquetSpliceStorage
 kylin.engine.default=100
 kylin.storage.default=99
 kylin.metadata.realization-providers=org.apache.kylin.cube.CubeManager,org.apache.kylin.storage.hybrid.HybridManager,io.kyligence.kap.cube.raw.RawTableManager
-kylin.metadata.hbasemapping-adapter=io.kyligence.kap.cube.hbasemapping.HBaseMappingAdapter
 
 kap.storage.columnar.shard-size-mb=256
 kap.storage.columnar.shard-min=1
