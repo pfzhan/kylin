@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
@@ -79,9 +80,9 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
         private Configuration config;
         private KylinConfig kylinConfig;
         private MeasureCodec measureCodec;
+        private CubeInstance cubeInstance;
         private CubeSegment cubeSegment;
         private Path outputDir = null;
-        private HBaseColumnFamilyDesc[] cfDescs;
 
         private ParquetSpliceWriter writer = null;
 
@@ -93,24 +94,24 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             logger.info("tmp output dir: {}", outputDir);
             logger.info("final output dir: {}", committer.getCommittedTaskPath(context));
 
-            this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
-
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-
-            this.cubeSegment = CubeManager.getInstance(kylinConfig).getCube(cubeName).getSegmentById(segmentID);
+            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+            cubeSegment = cubeInstance.getSegmentById(segmentID);
             Preconditions.checkState(cubeSegment.isEnableSharding(),
                     "Cube segment sharding not enabled " + cubeSegment.getName());
 
-            this.measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
-            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+            measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
+
             if (keyClass == Text.class && valueClass == Text.class) {
                 logger.info("KV class is Text");
             } else {
                 throw new InvalidParameterException("ParquetRecordWriter only support Text type now");
             }
-            this.writer = newWriter();
+            writer = newWriter();
         }
 
         // This constructor is only used for testing. 
@@ -121,10 +122,9 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             this.outputDir = path;
             this.cubeSegment = cubeSegment;
 
-            this.measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
-            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+            measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
 
-            this.writer = newWriter();
+            writer = newWriter();
         }
 
         protected void freshWriter(Text key) throws InterruptedException, IOException {
@@ -157,23 +157,27 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
             freshWriter(key);
 
-            // Step 1: transform test object to byte array. 
-            byte[] valueBytes = value.getBytes().clone(); //on purpose, because Parquet writer will cache
+            byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
             byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
                     key.getLength());
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
 
-            // Step 2: calculate value offsets in result byte array to which measures will be copied.
             int[] valueOffsets = new int[valueLength.length];
-            for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
+            int valueOffset = 0;
+            for (int i = 0; i < valueOffsets.length; i++) {
                 valueOffsets[i] = valueOffset;
                 valueOffset += valueLength[i];
             }
 
-            // Step 3: copy array bytes as column family order. 
             byte[] cfValueBytes = new byte[valueBytes.length];
+            int cfValueOffset = 0;
+
+            HBaseColumnFamilyDesc[] cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+
             int[] cfValueLength = new int[cfDescs.length];
-            int cfIndex = 0, cfValueOffset = 0;
+
+            int cfIndex = 0;
+
             for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
                 int cfLength = 0;
                 HBaseColumnDesc[] colDescs = cfDesc.getColumns();

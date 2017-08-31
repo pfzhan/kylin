@@ -87,10 +87,8 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
         private CubeInstance cubeInstance;
         private CubeSegment cubeSegment;
         private RowKeyEncoder rowKeyEncoder;
-        private Path path;
 
-        private HBaseColumnFamilyDesc[] cfDescs;
-        private MeasureCodec measureCodec;
+        private Path path;
 
         private ParquetSpliceReader spliceReader = null;
         private ParquetBundleReader reader = null;
@@ -112,17 +110,6 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
             this.path = path;
             this.cubeSegment = cubeSegment;
 
-            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
-            List<MeasureDesc> cfMeasures = Lists.newArrayList();
-            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
-                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
-                for (HBaseColumnDesc colDesc : colDescs) {
-                    MeasureDesc[] measures = colDesc.getMeasures();
-                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
-                }
-            }
-            this.measureCodec = new MeasureCodec(cfMeasures);
-
             this.spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
 
             divs = Lists.newArrayList();
@@ -133,31 +120,19 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
         @Override
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
             FileSplit fileSplit = (FileSplit) split;
-            this.conf = context.getConfiguration();
-            this.path = fileSplit.getPath();
-            this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            conf = context.getConfiguration();
+            path = fileSplit.getPath();
+            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
             String[] requiredCuboids;
 
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-
-            this.cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-            this.cubeSegment = cubeInstance.getSegmentById(segmentID);
+            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
+            cubeSegment = cubeInstance.getSegmentById(segmentID);
             // init with first shard file
-            this.spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
-
-            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
-            List<MeasureDesc> cfMeasures = Lists.newArrayList();
-            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
-                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
-                for (HBaseColumnDesc colDesc : colDescs) {
-                    MeasureDesc[] measures = colDesc.getMeasures();
-                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
-                }
-            }
-            this.measureCodec = new MeasureCodec(cfMeasures);
+            spliceReader = new ParquetSpliceReader.Builder().setConf(conf).setPath(path).build();
 
             if (context.getConfiguration().get(ParquetFormatConstants.KYLIN_REQUIRED_CUBOIDS).equals("All")) {
                 // "All" for all divs
@@ -223,11 +198,11 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
 
             return true;
         }
-
+        
         // This function is only used for testing. 
         protected void nextValueWithoutKey() throws IOException {
             List<Object> data = reader.read();
-            setVal(data);
+            setVal(data);            
         }
 
         private boolean getNextReader() throws IOException {
@@ -255,21 +230,37 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
 
         private void setVal(List<Object> data) {
 
-            // Step 1: transform data object list to byte array. 
             int cfValueBytesLength = 0;
             for (int i = 1; i < data.size(); ++i) {
                 cfValueBytesLength += ((Binary) data.get(i)).getBytes().length;
             }
             byte[] cfValueBytes = new byte[cfValueBytesLength];
-            for (int i = 1, cfIndex = 0; i < data.size(); ++i) {
+
+            int cfIndex = 0;
+            for (int i = 1; i < data.size(); ++i) {
                 byte[] src = ((Binary) data.get(i)).getBytes();
                 System.arraycopy(src, 0, cfValueBytes, cfIndex, src.length);
                 cfIndex += src.length;
             }
 
-            // Step 2: calculate byte array length for measures as the order they were defined.  
+            HBaseColumnFamilyDesc[] cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+
+            List<MeasureDesc> cfMeasures = Lists.newArrayList();
+
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    MeasureDesc[] measures = colDesc.getMeasures();
+                    cfMeasures.addAll(new ArrayList<MeasureDesc>(Arrays.asList(measures)));
+                }
+            }
+
+            MeasureCodec measureCodec = new MeasureCodec(cfMeasures);
+
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(cfValueBytes));
+
             int[] valueLengthInMeasureOrder = new int[valueLength.length];
+
             int idx = 0;
             for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
                 HBaseColumnDesc[] colDescs = cfDesc.getColumns();
@@ -282,16 +273,17 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 }
             }
 
-            // Step 3: calculate value offsets in result byte array to which measures will be copied. 
             int[] valueOffsets = new int[valueLength.length];
-            for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
+            int valueOffset = 0;
+
+            for (int i = 0; i < valueOffsets.length; i++) {
                 valueOffsets[i] = valueOffset;
                 valueOffset += valueLengthInMeasureOrder[i];
             }
 
-            // Step 4: copy array bytes as measure order. 
             byte[] valueBytes = new byte[cfValueBytes.length];
             int cfValueOffset = 0;
+
             for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
                 HBaseColumnDesc[] colDescs = cfDesc.getColumns();
                 for (HBaseColumnDesc colDesc : colDescs) {
