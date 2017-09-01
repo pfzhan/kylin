@@ -101,16 +101,32 @@ export default {
       return api.datasource.getAclOfColumn(para.tableName, para.project)
     },
     [types.SAVE_ACL_SET_COLUMN]: function ({commit}, para) {
-      return api.datasource.saveAclSetOfColumn(para.tableName, para.project, para.userName)
+      return api.datasource.saveAclSetOfColumn(para.tableName, para.project, para.userName, para.columns)
     },
     [types.UPDATE_ACL_SET_COLUMN]: function ({commit}, para) {
-      return api.datasource.saveAclSetOfColumn(para.tableName, para.project, para.userName)
+      return api.datasource.updateAclSetOfColumn(para.tableName, para.project, para.userName, para.columns)
     },
     [types.DEL_ACL_SET_COLUMN]: function ({commit}, para) {
       return api.datasource.cancelAclSetOfColumn(para.tableName, para.project, para.userName)
     },
     [types.GET_ACL_WHITELIST_COLUMN]: function ({commit}, para) {
       return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project)
+    },
+    // acl row
+    [types.GET_ACL_SET_ROW]: function ({commit}, para) {
+      return api.datasource.getAclOfRow(para.tableName, para.project)
+    },
+    [types.SAVE_ACL_SET_ROW]: function ({commit}, para) {
+      return api.datasource.saveAclSetOfRow(para.tableName, para.project, para.userName, para.conditions)
+    },
+    [types.UPDATE_ACL_SET_ROW]: function ({commit}, para) {
+      return api.datasource.updateAclSetOfRow(para.tableName, para.project, para.userName, para.conditions)
+    },
+    [types.DEL_ACL_SET_ROW]: function ({commit}, para) {
+      return api.datasource.cancelAclSetOfRow(para.tableName, para.project, para.userName)
+    },
+    [types.GET_ACL_WHITELIST_ROW]: function ({commit}, para) {
+      return api.datasource.getAclWhiteListOfRow(para.tableName, para.project)
     }
   }
 }

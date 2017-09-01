@@ -4,11 +4,11 @@
           <el-tab-pane :label="$t('table')" name="table">
             <table-access></table-access>
           </el-tab-pane>
-          <el-tab-pane :label="$t('row')" name="column">
-            <column-access></column-access>
-          </el-tab-pane>
-          <el-tab-pane :label="$t('column')" name="row">
+          <el-tab-pane :label="$t('row')" name="row">
             <row-access></row-access>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('column')" name="column">
+             <column-access></column-access>
           </el-tab-pane>
         </el-tabs>
     </div>

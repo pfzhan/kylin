@@ -25,7 +25,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSpecialChar', 'validateRegex'],
   data () {
     return {
       selectedL: this.selectedlabels,
@@ -62,11 +62,18 @@ export default {
       this.$nextTick(() => {
         this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
         this.$emit('change')
-        if (this.allowcreate && e.length > 0 && !/^\w+\.\w+$/.test(e[e.length - 1])) {
-          var result = this.filterCreateTag(e[e.length - 1])
-          this.selectedL.splice(this.selectedL.length - 1, 1)
-          this.selectedL = this.selectedL.concat(result)
-          this.selectedL = [...new Set(this.selectedL)]
+        if (this.allowcreate && e.length > 0) {
+          let result = this.filterCreateTag(e[e.length - 1])
+          if (!this.ignoreSpecialChar && !/^\w+\.\w+$/.test(e[e.length - 1])) {
+            if (result && result.length > 0) {
+              this.selectedL.splice(this.selectedL.length - 1, 1)
+              this.selectedL = this.selectedL.concat(result)
+              this.selectedL = [...new Set(this.selectedL)]
+            }
+          }
+          if (result && result.length <= 0) {
+            this.selectedL.splice(this.selectedL.length - 1, 1)
+          }
         }
         this.$emit('refreshData', this.selectedL, this.refreshInfo)
         this.bindTagClick()
@@ -74,12 +81,6 @@ export default {
     },
     bindTagClick () {
       this.tags = Array.prototype.slice.call(this.$el.querySelectorAll('.el-tag'))
-      // this.tags.forEach(tag => {
-      //   tag.addEventListener('click', e => {
-      //     e.stopPropagation()
-      //     this.selectTag(e)
-      //   })
-      // })
       var arealabel = this.$el.querySelectorAll('.el-select__tags > span')
       if (arealabel.length) {
         arealabel[0].onclick = (e) => {
@@ -114,6 +115,19 @@ export default {
       }
     },
     filterCreateTag (item) {
+      if (!item) {
+        return []
+      }
+      if (this.validateRegex) {
+        var regExp = new RegExp(this.validateRegex)
+        if (!regExp.test(item)) {
+          this.$emit('validateFail')
+          return []
+        }
+      }
+      if (this.ignoreSpecialChar) {
+        return [item]
+      }
       var result = []
       // 分隔符
       var regOfSeparate = /[,;$|]/
@@ -150,10 +164,17 @@ export default {
         // 处理单独录入的情况 start
         if (this.allowcreate && this.query) {
           var result = this.filterCreateTag(this.query)
-          this.selectedL = this.selectedL.concat(result)
-          this.selectedL = [...new Set(this.selectedL)]
-          this.$refs.select.$refs.input.value = ''
-          this.$refs.select.$refs.input.click()
+          if (result && result.length > 0) {
+            this.selectedL = this.selectedL.concat(result)
+            this.selectedL = [...new Set(this.selectedL)]
+          }
+          if (this.$refs.select.$refs.input) {
+            this.$refs.select.$refs.input.value = ''
+            this.$refs.select.$refs.input.click()
+            setTimeout(() => {
+              this.$refs.select.$refs.input.focus()
+            }, 0)
+          }
         }
         // 处理单独录入的情况end
       }

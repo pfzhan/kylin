@@ -1,51 +1,77 @@
 <template>
-    <div class="access">
-       <el-button type="trans" icon="plus" @click="addGrant">{{$t('grant')}}</el-button>
+    <div class="accessrow">
+       <el-button type="blue" icon="plus" @click="addGrant">{{$t('restrict')}}</el-button> <span style="color:grey" class="ksd-ml-10">{{$t('rowAclDesc')}}</span>
        <div style="width:200px;float: right;">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
        <el-table class="ksd-mt-20"
             border
-            :data="pagerAclTableList"
+            :data="pagerAclRowList"
             style="width: 100%">
             <el-table-column
               sortable
               prop="name"
               :label="$t('userName')"
-              >
-            </el-table-column>
-            <el-table-column
-              :label="$t('access')"
               width="180"
               >
-              <template scope="scope">Query</template>
             </el-table-column>
             <el-table-column
-              width="80"
+              :label="$t('condition')"
+              >
+              <template scope="scope">
+                <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key.join('、')}}</p>
+              </template>
+            </el-table-column>
+            <el-table-column
+              width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
               <template scope="scope">
-              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfTable(scope.row.name)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfRow(scope.row.name, scope.row.conditions)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfRow(scope.row.name)"></el-button>
               </template>
             </el-table-column>
           </el-table>
           <pager class="ksd-center" :totalSize="totalLength" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
-          <el-dialog title="Grant" :visible.sync="addGrantDialog"  size="tiny">
-              <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
-                <el-form-item :label="$t('userName')" label-width="90px" prop="name">
+          <el-dialog :title="$t('restrict')" :visible.sync="addGrantDialog"  size="small" @close="closeDialog">
+              <el-alert
+                :title="$t('rowAclDesc')"
+                show-icon
+                class="ksd-mb-10 trans"
+                :closable="false"
+                type="warning">
+              </el-alert>
+              <el-form :model="grantObj" ref="aclOfRowForm" :rules="aclTableRules" >
+                <el-form-item :label="$t('userName')" label-width="80px" prop="name">
                   <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
-                <el-form-item :label="$t('access')" label-width="90px">
-                  <el-select v-model="grantObj.access">
-                    <el-option label="Query" :value="1"></el-option>
-                  </el-select>
+                <el-form-item :label="$t('condition')" label-width="80px" class="ksd-mt-20">
+                  <el-row v-for="(rowset, index) in rowSetDataList" >
+                    <el-col :sm="20" :md="21" :lg="22">
+                      <el-select v-model="rowset.columnName" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectColumnName')" @change="selectColumnName(index, rowset.columnName)">
+                        <el-option v-for="(item, index) in filterHasSelected(columnList, index, rowSetDataList, 'columnName')" :key="item.name" :label="item.name" :value="item.name">
+                        <span style="float: left">{{ item.name }}</span>
+                          <span style="float: right; color: #8492a6; font-size: 13px">{{ item.datatype }}</span>
+                        </el-option>
+                      </el-select>
+                      
+
+                    </el-col>
+                    <el-col :sm="4" :md="3" :lg="2" class="ksd-right"><el-button type="danger" icon="minus" @click="removeRowSet(index)"></el-button></el-col>
+                    <el-col :span="24" class="ksd-pt-4" style="position: relative">
+                      <arealabel @click="showPicker" :placeholder="$t('pressEnter')" :ignoreSpecialChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
+                      <datepicker ref="hideDatePicker" :selectList="rowset.valueList" v-if="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
+                    </el-col>
+                    <el-col :span="24"><div class="line"></div></el-col>
+                  </el-row>
+                  <el-button type="blue" icon="plus" class="ksd-mt-10" @click="addRowSet"></el-button>
                 </el-form-item>
               </el-form>
               <div slot="footer" class="dialog-footer">
                 <el-button @click="addGrantDialog = false">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" :loading="saveBtnLoad" @click="saveAclTable">{{$t('kylinLang.common.save')}}</el-button>
+                <el-button type="primary" :loading="saveBtnLoad" @click="saveAclTable" :disabled="saveConditionListLen === 0 || saveConditionListLen !== rowSetDataList.length">{{$t('kylinLang.common.save')}}</el-button>
               </div>
           </el-dialog>
     </div>
@@ -53,6 +79,9 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
+import { timestampTransToDateStr } from '../../../util/index'
+import arealabel from 'components/common/area_label'
+import datepicker from 'components/common/date_picker'
 // import { permissions } from '../../config'
 // import { changeDataAxis, isFireFox } from '../../util/index'
 // import createKafka from '../kafka/create_kafka'
@@ -61,40 +90,105 @@ import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 // import arealabel from 'components/common/area_label'
 // import Scrollbar from 'smooth-scrollbar'
 export default {
-  name: 'tableAccess',
+  name: 'rowaccess',
   data () {
     return {
-      addGrantDialog: false,
       grantObj: {
-        name: '',
-        access: 1
+        name: ''
       },
+      addGrantDialog: false,
+      columnList: [],
       currentPage: 1,
       serarchChar: '',
-      aclTableData: [],
-      aclBlackList: [],
+      aclTableRow: {},
+      aclWhiteList: [],
       saveBtnLoad: false,
+      isEdit: false,
+      timeSelect: '',
+      rowSetDataList: [],
+      intTypeList: ['int', 'smallint', 'tinyint', 'integer', 'bigint'],
+      dateTypeList: ['date', 'timestamp'],
       aclTableRules: {
         name: [{
-          required: true, message: '请输入用户名字！', trigger: 'change'
+          required: true, message: this.$t('kylinLang.common.pleaseSelectUserName'), trigger: 'change'
         }]
       }
     }
   },
   components: {
+    arealabel,
+    datepicker
   },
   created () {
   },
   methods: {
     ...mapActions({
-      getAclSetOfTable: 'GET_ACL_SET_TABLE',
-      saveAclSetOfTable: 'SAVE_ACL_SET_TABLE',
-      delAclSetOfTable: 'DEL_ACL_SET_TABLE',
-      getAclBlackList: 'GET_ACL_BLACKLIST_TABLE'
+      getAclSetOfRow: 'GET_ACL_SET_ROW',
+      saveAclSetOfRow: 'SAVE_ACL_SET_ROW',
+      delAclSetOfRow: 'DEL_ACL_SET_ROW',
+      getAclWhiteList: 'GET_ACL_WHITELIST_ROW',
+      updateAclSetOfRow: 'UPDATE_ACL_SET_ROW'
     }),
-    delAclOfTable (userName) {
+    closeDialog () {
+      this.$refs.aclOfRowForm.resetFields()
+    },
+    selectColumnName (i, columnName) {
+      console.log(i, columnName)
+      var reg = this.getFilterRegExp(columnName)
+      // this.rowSetDataList[i] = {columnName: columnName, valueList: [], validateReg: reg}
+      this.$set(this.rowSetDataList, i, {columnName: columnName, valueList: [], validateReg: reg})
+    },
+    validateFail () {
+      this.$message(this.$t('valueValidateFail'))
+    },
+    getFilterRegExp (columnsName) {
+      var columnType = this.getColumnType(columnsName)
+      var result = ''
+      var intTypeList = this.intTypeList
+      if (intTypeList.indexOf(columnType) >= 0) {
+        result = '^\\d+$'
+      } else if (columnType.indexOf('decimal') >= 0) {
+        result = '^\\d+(.\\d+)?$'
+      } else if (this.dateTypeList.indexOf(columnType) >= 0) {
+        result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])(\\s+(20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)?$'
+      }
+      return result
+    },
+    getColumnType (columnsName) {
+      var columnLen = this.columnList && this.columnList.length || 0
+      var columnType = ''
+      for (var i = 0; i < columnLen; i++) {
+        if (this.columnList[i].name === columnsName) {
+          columnType = this.columnList[i].datatype
+          break
+        }
+      }
+      return columnType
+    },
+    refreshData (a, refreshInfo) {
+      this.rowSetDataList[refreshInfo.index].valueList = a
+    },
+    filterHasSelected (data, index, filterData, key) {
+      var len = data && data.length || 0
+      var lenfilter = filterData && filterData.length || 0
+      var result = []
+      for (var i = 0; i < len; i++) {
+        var checked = false
+        for (var s = 0; s < lenfilter; s++) {
+          if (s !== index && data[i].name === filterData[s][key]) {
+            checked = true
+            break
+          }
+        }
+        if (!checked) {
+          result.push(data[i])
+        }
+      }
+      return result
+    },
+    delAclOfRow (userName) {
       kapConfirm(this.$t('delConfirm')).then(() => {
-        this.delAclSetOfTable({
+        this.delAclSetOfRow({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
           userName: userName
@@ -108,24 +202,53 @@ export default {
         })
       })
     },
-    resetAclTableObj () {
-      this.grantObj = {
-        name: '',
-        access: 1
+    editAclOfRow (userName, conditions) {
+      this.isEdit = true
+      this.addGrantDialog = true
+      this.grantObj.name = userName
+      this.rowSetDataList = []
+      for (var i in conditions) {
+        var obj = {
+          columnName: i,
+          valueList: conditions[i]
+        }
+        this.rowSetDataList.push(obj)
       }
     },
+    resetAclRowObj () {
+      this.grantObj = {
+        name: ''
+      }
+      this.rowSetDataList = []
+    },
+    addRowSet () {
+      var obj = {
+        columnName: '',
+        valueList: []
+      }
+      this.rowSetDataList.push(obj)
+    },
+    removeRowSet (i) {
+      this.rowSetDataList.splice(i, 1)
+    },
     addGrant () {
+      this.isEdit = false
       this.addGrantDialog = true
-      this.resetAclTableObj()
+      this.resetAclRowObj()
     },
     saveAclTable () {
-      this.$refs.aclOfTableForm.validate((valid) => {
+      this.$refs.aclOfRowForm.validate((valid) => {
         if (valid) {
           this.saveBtnLoad = true
-          this.saveAclSetOfTable({
+          var action = 'saveAclSetOfRow'
+          if (this.isEdit) {
+            action = 'updateAclSetOfRow'
+          }
+          this[action]({
             tableName: this.tableName,
             project: this.$store.state.project.selected_project,
-            userName: this.grantObj.name
+            userName: this.grantObj.name,
+            conditions: this.saveConditionData
           }).then((res) => {
             this.saveBtnLoad = false
             this.addGrantDialog = false
@@ -144,24 +267,24 @@ export default {
       this.currentPage = curpage
     },
     getAllAclSetOfTable () {
-      this.getAclSetOfTable({
+      this.getAclSetOfRow({
         tableName: this.tableName,
         project: this.$store.state.project.selected_project
       }).then((res) => {
         handleSuccess(res, (data) => {
-          this.aclTableData = data
+          this.aclTableRow = data
         })
       }, (res) => {
         handleError(res)
       })
     },
-    getBlackListOfTable (cb) {
-      this.getAclBlackList({
+    getWhiteListOfTable (cb) {
+      this.getAclWhiteList({
         tableName: this.tableName,
         project: this.$store.state.project.selected_project
       }).then((res) => {
         handleSuccess(res, (data) => {
-          this.aclBlackList = data
+          this.aclWhiteList = data
           if (typeof cb === 'function') {
             var result = []
             data.forEach((d) => {
@@ -175,7 +298,7 @@ export default {
       })
     },
     querySearchAsync (queryString, cb) {
-      this.getBlackListOfTable((data) => {
+      this.getWhiteListOfTable((data) => {
         cb(data)
       })
     }
@@ -183,23 +306,64 @@ export default {
   computed: {
     tableName () {
       var curTableData = this.$store.state.datasource.currentShowTableData
+      this.columnList = curTableData.columns.slice(0)
       return curTableData.database + '.' + curTableData.name
     },
-    aclTableList () {
+    aclRowList () {
       var result = []
-      this.aclTableData.forEach((k) => {
-        if (this.serarchChar && k.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
-          result.push({name: k})
+      for (var i in this.aclTableRow) {
+        if (this.serarchChar && i.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
+          for (var c in this.aclTableRow[i]) {
+            var columnType = this.getColumnType(c)
+            this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
+              console.log(columnType)
+              if (this.dateTypeList.indexOf(columnType) >= 0) {
+                console.log(k)
+                k = timestampTransToDateStr(k)
+                console.log(k)
+                return k
+              } else {
+                return k
+              }
+            })
+          }
+          result.push({name: i, conditions: this.aclTableRow[i]})
         }
-      })
+      }
       return result
     },
     totalLength () {
-      return this.aclTableList.length
+      return this.aclRowList.length
     },
-    pagerAclTableList () {
+    pagerAclRowList () {
       var perPager = this.$refs.pager && this.$refs.pager.pageSize || 0
-      return this.aclTableList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
+      return this.aclRowList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
+    },
+    saveConditionListLen () {
+      var k = 0
+      /* eslint-disable no-unused-vars */
+      for (var i in this.saveConditionData) {
+        k++
+      }
+      return k
+    },
+    saveConditionData () {
+      var obj = {}
+      this.rowSetDataList.forEach((row) => {
+        if (row.columnName && row.valueList && row.valueList.length > 0) {
+          var columnType = this.getColumnType(row.columnName)
+          var valueList = row.valueList.map((k) => {
+            if (this.dateTypeList.indexOf(columnType) >= 0) {
+              k = +(new Date(k))
+              return k
+            } else {
+              return k
+            }
+          })
+          obj[row.columnName] = valueList
+        }
+      })
+      return obj
     }
   },
   watch: {
@@ -208,15 +372,41 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this access, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', grant: 'Grant'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功提示：权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', grant: '授权'}
+    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configure this setting, user will only be able to view data for column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Press ENTER after each input to generate a value'},
+    'zh-cn': {delConfirm: '此操作将删除该约束，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车键来生成一个值'}
   }
 }
 </script>
 <style lang="less" >
 @import '../../../less/config.less';
-.access{
+.accessrow{
+  .el-tag--primary {
+      background: rgba(33, 143, 234, 0.1);
+      color: #218fea;
+      border-color: rgba(33, 143, 234, 0.2) !important;
+  }
+  .line{
+    width: 100%;
+    height: 1px;
+    background-color: #474E6A;
+  }
+  .el-select__tags {
+    left: 0;
+  }
   .el-dialog{
+    .el-dialog__body {
+      padding-top: 10px;
+      .el-form-item{
+        margin-bottom: 10px;
+      }
+    }
+    .el-col{
+      // text-align: center;
+      
+      .el-button--danger {
+        border:none;
+      }
+    }
     .el-input{
       padding:0;
     }

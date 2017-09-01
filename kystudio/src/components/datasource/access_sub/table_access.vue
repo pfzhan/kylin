@@ -1,6 +1,6 @@
 <template>
     <div class="access">
-       <el-button type="trans" icon="plus" @click="addGrant">{{$t('grant')}}</el-button>
+       <el-button type="blue" icon="plus" @click="addGrant">{{$t('grant')}}</el-button>
        <div style="width:200px;float: right;">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
@@ -31,7 +31,7 @@
             </el-table-column>
           </el-table>
           <pager class="ksd-center" :totalSize="totalLength" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
-          <el-dialog title="Grant" :visible.sync="addGrantDialog"  size="tiny">
+          <el-dialog :title="$t('grant')" :visible.sync="addGrantDialog"  size="tiny" @close="closeDialog">
               <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
                 <el-form-item :label="$t('userName')" label-width="90px" prop="name">
                   <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
@@ -76,7 +76,7 @@ export default {
       saveBtnLoad: false,
       aclTableRules: {
         name: [{
-          required: true, message: '请输入用户名字！', trigger: 'change'
+          required: true, message: this.$t('kylinLang.common.pleaseSelectUserName'), trigger: 'change'
         }]
       }
     }
@@ -92,6 +92,9 @@ export default {
       delAclSetOfTable: 'DEL_ACL_SET_TABLE',
       getAclBlackList: 'GET_ACL_BLACKLIST_TABLE'
     }),
+    closeDialog () {
+      this.$refs.aclOfTableForm.resetFields()
+    },
     delAclOfTable (userName) {
       kapConfirm(this.$t('delConfirm')).then(() => {
         this.delAclSetOfTable({

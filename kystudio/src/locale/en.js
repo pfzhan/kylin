@@ -64,6 +64,8 @@ exports.default = {
     pleaseFilter: 'filter...',
     enterAlias: 'enter alias',
     pleaseSelect: 'Please select',
+    pleaseSelectUserName: 'Please select user name',
+    pleaseSelectColumnName: 'Please select column name',
     pleaseSelectSampleRange: 'Please select sampling percentage',
     noData: 'No data',
     checkNoChange: 'No content changed',

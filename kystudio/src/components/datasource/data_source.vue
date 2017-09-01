@@ -836,7 +836,6 @@ export default {
         database: data.database || 'Default'
       }
       data.streamingMeta.name = data.kafkaMeta.name
-      this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData, project: this.project })
       this.saveKafka({
         kafkaConfig: JSON.stringify(data.kafkaMeta),
         streamingConfig: JSON.stringify(data.streamingMeta),
@@ -848,6 +847,7 @@ export default {
             type: 'success',
             message: this.$t('saveSuccessful')
           })
+          this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData, project: this.project })
           this.kafkaFormVisible = false
           this.loadHiveTree()
           // this.showTableDetail(data.database, data.tableName)

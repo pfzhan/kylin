@@ -1,0 +1,47 @@
+<template>
+<div class="hideTime_pick">
+  <el-date-picker ref="datePicker"
+  type="datetime"
+  @change="selectDate"
+  v-model="timeSelect"
+  placeholder="选择日期时间">
+</el-date-picker>
+</div>
+</template>
+<script>
+export default {
+  name: 'about_kap',
+  props: ['selectList'],
+  data () {
+    return {
+      timeSelect: ''
+    }
+  },
+  methods: {
+    selectDate (d) {
+      if (d) {
+        this.selectList.push(d)
+      }
+      this.timeSelect = ''
+      // console.log(this.$refs.datePicker.showPicker())
+    }
+  }
+}
+</script>
+<style lang="less">
+ .hideTime_pick {
+   .el-date-editor {
+    position: absolute;
+    top: 4px;
+    width: 1px;
+    right: 0;
+    input {
+      display: none;
+    }
+    .el-icon-time{
+      top: 12px;
+      right:0px;
+    }
+  }
+ }
+</style>
