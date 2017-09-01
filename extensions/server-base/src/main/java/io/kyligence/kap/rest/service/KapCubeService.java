@@ -36,7 +36,6 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -44,7 +43,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
@@ -65,8 +63,6 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
@@ -85,14 +81,14 @@ public class KapCubeService extends BasicService implements InitializingBean {
     AclEvaluate aclEvaluate;
 
     private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        String id = segment.getUuid();
-        ColumnarResponse response = columnarInfoCache.getIfPresent(id);
+        String key = segment.getCubeInstance().getName() + "/" + segment.getUuid();
+        ColumnarResponse response = columnarInfoCache.getIfPresent(key);
         if (response != null) {
             return response;
         }
 
+        logger.debug("Loading TableIndex info " + segment + ", " + segStoragePath);
+        
         RawTableManager rawTableManager = RawTableManager.getInstance(segment.getConfig());
         RawTableInstance raw = rawTableManager.getAccompanyRawTable(segment.getCubeInstance());
 
@@ -130,7 +126,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
             }
         }
 
-        columnarInfoCache.put(id, columnarResp);
+        columnarInfoCache.put(key, columnarResp);
         return columnarResp;
     }
 
@@ -195,19 +191,9 @@ public class KapCubeService extends BasicService implements InitializingBean {
         }
     }
 
-    private void invalidateCubeColumnarCache(String cubeName) {
-        CubeInstance cube = CubeManager.getInstance(getConfig()).getCube(cubeName);
-        if (null == cube) {
-            throw new InternalErrorException("Cannot find cube " + cubeName);
-        }
-        for (CubeSegment segment : cube.getSegments()) {
-            columnarInfoCache.invalidate(segment.getUuid());
-        }
-    }
-
     @Override
     public void afterPropertiesSet() throws Exception {
-        Broadcaster.getInstance(getConfig()).registerListener(new ColumnarInfoSyncListener(), "cube");
+        Broadcaster.getInstance(getConfig()).registerStaticListener(new ColumnarInfoSyncListener(), "cube");
     }
 
     private class ColumnarInfoSyncListener extends Broadcaster.Listener {
@@ -220,7 +206,11 @@ public class KapCubeService extends BasicService implements InitializingBean {
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
                 throws IOException {
             String cubeName = cacheKey;
-            invalidateCubeColumnarCache(cubeName);
+            String keyPrefix = cubeName + "/";
+            for (String k : columnarInfoCache.asMap().keySet()) {
+                if (k.startsWith(keyPrefix))
+                    columnarInfoCache.invalidate(k);
+            }
         }
     }
 
