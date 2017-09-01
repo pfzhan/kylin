@@ -50,6 +50,7 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,8 +62,7 @@ public class CollectModelStatsJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
     private static final KylinConfig config = KylinConfig.getInstanceFromEnv();
 
-    private long dateStart;
-    private long dateEnd;
+    private SegmentRange segRange;
     private String project;
     private String modelName;
     private String submitter;
@@ -72,13 +72,12 @@ public class CollectModelStatsJob extends CubingJob {
     public CollectModelStatsJob() {
     }
 
-    public CollectModelStatsJob(String project, String modelName, String submitter, long dateStart, long dateEnd,
+    public CollectModelStatsJob(String project, String modelName, String submitter, SegmentRange segRange,
             int frequency) {
         this.project = project;
         this.modelName = modelName;
         this.submitter = submitter;
-        this.dateStart = dateStart;
-        this.dateEnd = dateEnd;
+        this.segRange = segRange;
         this.frequency = frequency;
     }
 
@@ -140,8 +139,8 @@ public class CollectModelStatsJob extends CubingJob {
         //step6: clean up intermediate table
         addTask(deleteFlatTable(flatTableDesc.getTableName()));
 
-        modelStats.setStartTime(dateStart);
-        modelStats.setEndTime(dateEnd);
+        modelStats.setStartTime((Long) segRange.start.v);
+        modelStats.setEndTime((Long) segRange.end.v);
         modelStats.setJodID(getId());
         modelStatsManager.saveModelStats(modelStats);
         return this;
@@ -226,7 +225,7 @@ public class CollectModelStatsJob extends CubingJob {
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
         final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc,
                 JobBuilderSupport.getJobWorkingDir(conf, jobId));
-        String whereStatement = dateEnd - dateStart > 0 ? appendWhereStatement(flatTableDesc, dateStart, dateEnd) : "";
+        String whereStatement = appendWhereStatement(flatTableDesc, segRange);
         String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, whereStatement);
 
         ModelStatsFlatTableStep step = new ModelStatsFlatTableStep();
@@ -249,7 +248,7 @@ public class CollectModelStatsJob extends CubingJob {
         return step;
     }
 
-    private String appendWhereStatement(IJoinedFlatTableDesc flatDesc, long dateStart, long dateEnd) {
+    private String appendWhereStatement(IJoinedFlatTableDesc flatDesc, SegmentRange<Comparable> segRange) {
         boolean hasCondition = false;
         StringBuilder whereBuilder = new StringBuilder();
         whereBuilder.append("WHERE");
@@ -263,10 +262,10 @@ public class CollectModelStatsJob extends CubingJob {
 
         PartitionDesc partDesc = model.getPartitionDesc();
         if (partDesc != null && partDesc.getPartitionDateColumn() != null) {
-            if (!(dateStart == 0 && dateEnd == Long.MAX_VALUE)) {
+            if (!segRange.isInfinite()) {
                 whereBuilder.append(hasCondition ? " AND (" : " (");
                 whereBuilder.append(
-                        partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, dateStart, dateEnd));
+                        partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, segRange));
                 whereBuilder.append(")\n");
                 hasCondition = true;
             }

@@ -34,13 +34,14 @@ import java.util.NavigableSet;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.CubeUpdate;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
@@ -165,13 +166,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
         seg1.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
-        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
+        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
         seg2.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
@@ -186,8 +187,8 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(2, cube.getSegments().size());
         assertEquals(2, raw.getSegments().size());
 
-        Pair<Long, Long> mergedSeg = mgr.autoMergeCubeSegments(cube);
-        Pair<Long, Long> mergedRawSeg = raw.autoMergeCubeSegments();
+        SegmentRange mergedSeg = cube.autoMergeCubeSegments();
+        SegmentRange mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
         assertTrue(mergedRawSeg != null);
@@ -227,13 +228,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
         seg1.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
-        CubeSegment seg3 = mgr.appendSegment(cube, 2000, 4000);
+        CubeSegment seg3 = mgr.appendSegment(cube, new TSRange(2000L, 4000L));
         seg3.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg3 = rawMgr.appendSegment(raw, seg3);
@@ -242,15 +243,15 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(2, cube.getSegments().size());
         assertEquals(2, raw.getSegments().size());
 
-        Pair<Long, Long> mergedSeg = mgr.autoMergeCubeSegments(cube);
-        Pair<Long, Long> mergedRawSeg = raw.autoMergeCubeSegments();
+        SegmentRange mergedSeg = cube.autoMergeCubeSegments();
+        SegmentRange mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg == null);
         assertTrue(mergedRawSeg == null);
 
         // append a new seg which will be merged
 
-        CubeSegment seg4 = mgr.appendSegment(cube, 4000, 8000);
+        CubeSegment seg4 = mgr.appendSegment(cube, new TSRange(4000L, 8000L));
         seg4.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg4 = rawMgr.appendSegment(raw, seg4);
@@ -259,18 +260,18 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(3, cube.getSegments().size());
         assertEquals(3, raw.getSegments().size());
 
-        mergedSeg = mgr.autoMergeCubeSegments(cube);
+        mergedSeg = cube.autoMergeCubeSegments();
         mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
-        assertTrue(mergedSeg.getFirst() == 2000 && mergedSeg.getSecond() == 8000);
+        assertTrue((Long) mergedSeg.start.v == 2000 && (Long) mergedSeg.end.v == 8000);
 
-        assertTrue(mergedRawSeg.getFirst() == 2000 && mergedRawSeg.getSecond() == 8000);
         assertTrue(mergedRawSeg != null);
+        assertTrue((Long) mergedRawSeg.start.v == 2000 && (Long) mergedRawSeg.end.v == 8000);
 
         // fill the gap
 
-        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
+        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
         seg2.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
@@ -279,13 +280,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         assertEquals(4, cube.getSegments().size());
         assertEquals(4, raw.getSegments().size());
 
-        mergedSeg = mgr.autoMergeCubeSegments(cube);
+        mergedSeg = cube.autoMergeCubeSegments();
         mergedRawSeg = raw.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
-        assertTrue(mergedSeg.getFirst() == 0 && mergedSeg.getSecond() == 8000);
+        assertTrue((Long) mergedSeg.start.v == 0 && (Long) mergedSeg.end.v == 8000);
 
         assertTrue(mergedRawSeg != null);
-        assertTrue(mergedRawSeg.getFirst() == 0 && mergedRawSeg.getSecond() == 8000);
+        assertTrue((Long) mergedRawSeg.start.v == 0 && (Long) mergedRawSeg.end.v == 8000);
     }
 }

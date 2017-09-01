@@ -24,14 +24,16 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.request.KapJobRequest;
-import io.kyligence.kap.rest.request.ModelStatusRequest;
-import io.kyligence.kap.rest.service.KapModelService;
-import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -52,11 +54,11 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.KapJobRequest;
+import io.kyligence.kap.rest.request.ModelStatusRequest;
+import io.kyligence.kap.rest.service.KapModelService;
+import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
 
 @Controller
 @RequestMapping(value = "/models")
@@ -121,8 +123,8 @@ public class KapModelController extends BasicController {
             throws IOException, JobException {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, req.getStartTime(),
-                req.getEndTime(), req.getFrequency());
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, //
+                new TSRange(req.getStartTime(), req.getEndTime()), req.getFrequency());
         String jobId = job.start();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
     }

@@ -32,6 +32,7 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,13 +112,8 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
     }
 
     @Override
-    public long getSourceOffsetStart() {
-        return 0;
-    }
-
-    @Override
-    public long getSourceOffsetEnd() {
-        return 0;
+    public SegmentRange getSegRange() {
+        return null;
     }
 
     @Override

@@ -33,7 +33,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -41,6 +40,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -248,12 +248,12 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
 
     @Override
     public long getDateRangeStart() {
-        return segments.getDateRangeStart();
+        return segments.getTSStart();
     }
 
     @Override
     public long getDateRangeEnd() {
-        return segments.getDateRangeEnd();
+        return segments.getTSEnd();
     }
 
     @Override
@@ -354,7 +354,7 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         return this.getRawTableDesc().getAutoMergeTimeRanges() != null && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
     }
 
-    public Pair<Long, Long> autoMergeCubeSegments() throws IOException {
+    public SegmentRange autoMergeCubeSegments() throws IOException {
         return segments.autoMergeCubeSegments(needAutoMerge(), getName(), getRawTableDesc().getAutoMergeTimeRanges());
     }
 

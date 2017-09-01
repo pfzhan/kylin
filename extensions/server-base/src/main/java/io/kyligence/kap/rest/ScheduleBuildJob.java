@@ -38,6 +38,7 @@ import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.service.JobService;
@@ -115,7 +116,7 @@ public class ScheduleBuildJob implements Job {
                 JobInstance jobInstance = jobService.getJobInstance(job.getId());
                 CubeSegment segment = cube.getSegmentById(jobInstance.getRelatedSegment());
 
-                if (segment != null && startTime == segment.getDateRangeStart()) {
+                if (segment != null && startTime == segment.getTSRange().start.v) {
                     jobShouldBeResumed = true;
                     errorJobId = job.getId();
                     logger.info("Scheduled job " + jobName + " failed or stopped last time, resume it this time.");
@@ -145,11 +146,11 @@ public class ScheduleBuildJob implements Job {
                 }
 
                 if (cube.getModel().getRootFactTable().getTableDesc().getSourceType() == ISourceAware.ID_STREAMING) {
-                    jobService.submitJobInternal(cube, 0, 0, 0, Long.MAX_VALUE, null, null, CubeBuildTypeEnum.BUILD,
-                            false, userName);
+                    jobService.submitJobInternal(cube, null, null, //
+                            null, null, CubeBuildTypeEnum.BUILD, false, userName);
                 } else {
-                    jobService.submitJobInternal(cube, startTime, endTime, 0, 0, null, null, CubeBuildTypeEnum.BUILD,
-                            false, userName);
+                    jobService.submitJobInternal(cube, new TSRange(startTime, endTime), null, //
+                            null, null, CubeBuildTypeEnum.BUILD, false, userName);
                 }
             } else {
                 jobService.getExecutableManager().resumeJob(errorJobId);

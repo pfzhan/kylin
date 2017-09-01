@@ -47,6 +47,8 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -58,6 +60,7 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class RawTableManager implements IRealizationProvider {
@@ -287,11 +290,9 @@ public class RawTableManager implements IRealizationProvider {
         segment.setUuid(seg.getUuid());
         segment.setName(seg.getName());
         segment.setCreateTimeUTC(System.currentTimeMillis());
-        segment.setDateRangeStart(seg.getDateRangeStart());
-        segment.setDateRangeEnd(seg.getDateRangeEnd());
-        segment.setSourceOffsetStart(
-                seg.getSourceOffsetStart() == seg.getDateRangeStart() ? 0 : seg.getSourceOffsetStart());
-        segment.setSourceOffsetEnd(seg.getSourceOffsetEnd() == seg.getDateRangeEnd() ? 0 : seg.getSourceOffsetEnd());
+        segment.setTSRange(seg.getTSRange());
+        if (seg.isOffsetCube())
+            segment.setSegRange(seg.getSegRange());
         segment.setStatus(SegmentStatusEnum.NEW);
 
         RawTableUpdate builder = new RawTableUpdate(instance);
@@ -331,10 +332,10 @@ public class RawTableManager implements IRealizationProvider {
         updateRawTable(rawBuilder);
     }
 
-    public List<RawTableSegment> getRawtableSegmentByDataRange(RawTableInstance raw, long startDate, long endDate) {
+    public List<RawTableSegment> getRawtableSegmentByTSRange(RawTableInstance raw, TSRange tsRange) {
         LinkedList<RawTableSegment> result = Lists.newLinkedList();
         for (RawTableSegment seg : raw.getSegments()) {
-            if (startDate <= seg.getDateRangeStart() && seg.getDateRangeEnd() <= endDate) {
+            if (tsRange.contains(seg.getTSRange())) {
                 result.add(seg);
             }
         }
@@ -345,59 +346,45 @@ public class RawTableManager implements IRealizationProvider {
         return seg.getStatus() == SegmentStatusEnum.READY;
     }
 
-    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate,
-            long startOffset, long endOffset, boolean force) throws IOException {
+    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, TSRange tsRange, SegmentRange segRange, boolean force) throws IOException {
         if (raw.getSegments().isEmpty())
             throw new IllegalArgumentException("RawTable " + raw + " has no segments");
-        if (startDate >= endDate && startOffset >= endOffset)
-            throw new IllegalArgumentException("Invalid merge range");
 
+        checkInputRanges(tsRange, segRange);
         checkNoBuildingSegment(raw);
         checkCubeIsPartitioned(raw);
 
-        boolean isOffsetsOn = raw.getSegments().get(0).isSourceOffsetsOn();
-
-        if (isOffsetsOn) {
+        if (raw.getSegments().getFirstSegment().isOffsetCube()) {
             // offset cube, merge by date range?
-            if (startOffset == endOffset) {
+            if (segRange == null && tsRange != null) {
                 Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY)
-                        .findMergeOffsetsByDateRange(startDate, endDate, Long.MAX_VALUE);
+                        .findMergeOffsetsByDateRange(tsRange, Long.MAX_VALUE);
                 if (pair == null)
-                    throw new IllegalArgumentException("Find no segments to merge by date range " + startDate + "-"
-                            + endDate + " for rawtable " + raw);
-                startOffset = pair.getFirst().getSourceOffsetStart();
-                endOffset = pair.getSecond().getSourceOffsetEnd();
+                    throw new IllegalArgumentException("Find no segments to merge by " + tsRange + " for raw table " + raw);
+                segRange = new SegmentRange(pair.getFirst().getSegRange().start, pair.getSecond().getSegRange().end);
             }
-            startDate = 0;
-            endDate = 0;
+            tsRange = null;
+            Preconditions.checkArgument(segRange != null);
         } else {
-            // date range cube, make sure range is on dates
-            if (startDate == endDate) {
-                startDate = startOffset;
-                endDate = endOffset;
-            }
-            startOffset = 0;
-            endOffset = 0;
+            segRange = null;
+            Preconditions.checkArgument(tsRange != null);
         }
 
-        RawTableSegment newSegment = newSegment(raw, cubeSegUuid, startDate, endDate, startOffset, endOffset);
+        RawTableSegment newSegment = newSegment(raw, cubeSegUuid, tsRange, segRange);
 
-        List<RawTableSegment> mergingSegments = raw.getMergingSegments(newSegment);
+        Segments<RawTableSegment> mergingSegments = raw.getMergingSegments(newSegment);
         if (mergingSegments.size() <= 1)
-            throw new IllegalArgumentException(
-                    "Range " + newSegment.getSourceOffsetStart() + "-" + newSegment.getSourceOffsetEnd()
-                            + " must contain at least 2 segments, but there is " + mergingSegments.size());
+            throw new IllegalArgumentException("Range " + newSegment.getSegRange()
+                    + " must contain at least 2 segments, but there is " + mergingSegments.size());
 
         RawTableSegment first = mergingSegments.get(0);
         RawTableSegment last = mergingSegments.get(mergingSegments.size() - 1);
-        if (newSegment.isSourceOffsetsOn()) {
-            newSegment.setDateRangeStart(minDateRangeStart(mergingSegments));
-            newSegment.setDateRangeEnd(maxDateRangeEnd(mergingSegments));
-            newSegment.setSourceOffsetStart(first.getSourceOffsetStart());
-            newSegment.setSourceOffsetEnd(last.getSourceOffsetEnd());
+        if (first.isOffsetCube()) {
+            newSegment.setSegRange(new SegmentRange(first.getSegRange().start, last.getSegRange().end));
+            newSegment.setTSRange(null);
         } else {
-            newSegment.setDateRangeStart(first.getSourceOffsetStart());
-            newSegment.setDateRangeEnd(last.getSourceOffsetEnd());
+            newSegment.setTSRange(new TSRange(mergingSegments.getTSStart(), mergingSegments.getTSEnd()));
+            newSegment.setSegRange(null);
         }
 
         if (force == false) {
@@ -424,17 +411,25 @@ public class RawTableManager implements IRealizationProvider {
         return newSegment;
     }
 
-    // for test
-    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, long startDate, long endDate,
-            long startOffset, long endOffset) {
+    private void checkInputRanges(TSRange tsRange, SegmentRange segRange) {
+        if (tsRange != null && segRange != null) {
+            throw new IllegalArgumentException("Build or refresh cube segment either by TSRange or by SegmentRange, not both.");
+        }
+    }
+
+    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, TSRange tsRange, SegmentRange segRange) {
         RawTableSegment segment = new RawTableSegment(raw);
         segment.setUuid(null == cubeSegUuid ? UUID.randomUUID().toString() : cubeSegUuid);
-        segment.setName(RawTableSegment.makeSegmentName(startDate, endDate, startOffset, endOffset));
+        segment.setName(CubeSegment.makeSegmentName(tsRange, segRange));
         segment.setCreateTimeUTC(System.currentTimeMillis());
-        segment.setDateRangeStart(startDate);
-        segment.setDateRangeEnd(endDate);
-        segment.setSourceOffsetStart(startOffset);
-        segment.setSourceOffsetEnd(endOffset);
+        segment.setRawTableInstance(raw);
+
+        // let full build range be backward compatible
+        if (tsRange == null && segRange == null)
+            tsRange = new TSRange(0L, Long.MAX_VALUE);
+        
+        segment.setTSRange(tsRange);
+        segment.setSegRange(segRange);
         segment.setStatus(SegmentStatusEnum.NEW);
         segment.validate();
         return segment;
@@ -460,20 +455,6 @@ public class RawTableManager implements IRealizationProvider {
             throw new IllegalStateException(
                     "there is no partition date column specified, only full build is supported");
         }
-    }
-
-    private long minDateRangeStart(List<RawTableSegment> mergingSegments) {
-        long min = Long.MAX_VALUE;
-        for (RawTableSegment seg : mergingSegments)
-            min = Math.min(min, seg.getDateRangeStart());
-        return min;
-    }
-
-    private long maxDateRangeEnd(List<RawTableSegment> mergingSegments) {
-        long max = Long.MIN_VALUE;
-        for (RawTableSegment seg : mergingSegments)
-            max = Math.max(max, seg.getDateRangeEnd());
-        return max;
     }
 
     public List<RawTableInstance> getRawTablesByDesc(String descName) {
@@ -544,7 +525,7 @@ public class RawTableManager implements IRealizationProvider {
         }
 
         Collections.sort(newSegs);
-        RawTableValidator.validate(newSegs);
+        newSegs.validate();
         raw.setSegments(newSegs);
 
         if (update.getStatus() != null) {

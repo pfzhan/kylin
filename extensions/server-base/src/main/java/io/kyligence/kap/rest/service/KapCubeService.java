@@ -97,8 +97,8 @@ public class KapCubeService extends BasicService implements InitializingBean {
         RawTableInstance raw = rawTableManager.getAccompanyRawTable(segment.getCubeInstance());
 
         ColumnarResponse columnarResp = new ColumnarResponse();
-        columnarResp.setDateRangeStart(segment.getDateRangeStart());
-        columnarResp.setDateRangeEnd(segment.getDateRangeEnd());
+        columnarResp.setDateRangeStart(segment.getTSRange().start.v);
+        columnarResp.setDateRangeEnd(segment.getTSRange().end.v);
 
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (fs.exists(new Path(segStoragePath))) {
@@ -113,8 +113,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
         columnarResp.setSegmentPath(segStoragePath);
 
         if (raw != null) {
-            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByDataRange(raw,
-                    segment.getDateRangeStart(), segment.getDateRangeEnd());
+            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByTSRange(raw, segment.getTSRange());
             if (rawSegs.size() != 0) {
                 String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
                 columnarResp.setRawTableSegmentPath(rawSegmentDir);

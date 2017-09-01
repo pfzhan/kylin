@@ -33,6 +33,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Before;
@@ -67,17 +68,13 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
         // first append, creates a new & single segment
         CubeSegment seg = mgr.appendSegment(cube);
-        assertEquals(0, seg.getDateRangeStart());
-        assertEquals(Long.MAX_VALUE, seg.getDateRangeEnd());
-        assertEquals(0, seg.getSourceOffsetStart());
-        assertEquals(Long.MAX_VALUE, seg.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), seg.getTSRange());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), seg.getSegRange());
         assertEquals(1, cube.getSegments().size());
 
         RawTableSegment rawSeg = rawMgr.appendSegment(raw, seg);
-        assertEquals(0, rawSeg.getDateRangeStart());
-        assertEquals(Long.MAX_VALUE, rawSeg.getDateRangeEnd());
-        assertEquals(0, rawSeg.getSourceOffsetStart());
-        assertEquals(Long.MAX_VALUE, rawSeg.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), rawSeg.getTSRange());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), rawSeg.getSegRange());
         assertEquals(1, raw.getSegments().size());
 
         // second append, throw IllegalStateException because the first segment is not built
@@ -98,7 +95,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
 
         // append the first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
         seg1.setStatus(SegmentStatusEnum.READY);
         assertEquals(1, cube.getSegments().size());
 
@@ -117,10 +114,8 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
         // append again, for non-partitioned cube, it becomes a full refresh
         CubeSegment seg2 = mgr.appendSegment(cube);
-        assertEquals(0, seg2.getDateRangeStart());
-        assertEquals(Long.MAX_VALUE, seg2.getDateRangeEnd());
-        assertEquals(0, seg2.getSourceOffsetStart());
-        assertEquals(Long.MAX_VALUE, seg2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), seg2.getTSRange());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), seg2.getSegRange());
         assertEquals(2, cube.getSegments().size());
 
         assertEquals(1, raw.getSegments().size());
@@ -128,15 +123,13 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(SegmentStatusEnum.READY, rawSeg.getStatus());
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
-        assertEquals(0, rawSeg2.getDateRangeStart());
-        assertEquals(Long.MAX_VALUE, rawSeg2.getDateRangeEnd());
-        assertEquals(0, rawSeg2.getSourceOffsetStart());
-        assertEquals(Long.MAX_VALUE, rawSeg2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), rawSeg2.getTSRange());
+        assertEquals(new TSRange(0L, Long.MAX_VALUE), rawSeg2.getSegRange());
         assertEquals(2, raw.getSegments().size());
 
         // non-partitioned cannot merge, throw exception
         try {
-            rawMgr.mergeSegments(raw, null, 0, 0, 0, Long.MAX_VALUE, false);
+            rawMgr.mergeSegments(raw, null, new TSRange(0L, Long.MAX_VALUE), null, false);
             fail();
         } catch (IllegalStateException ex) {
             // good
@@ -157,48 +150,40 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
         seg1.setStatus(SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
         // append second
-        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
+        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
 
         assertEquals(2, cube.getSegments().size());
-        assertEquals(1000, seg2.getDateRangeStart());
-        assertEquals(2000, seg2.getDateRangeEnd());
-        assertEquals(1000, seg2.getSourceOffsetStart());
-        assertEquals(2000, seg2.getSourceOffsetEnd());
+        assertEquals(new TSRange(1000L, 2000L), seg2.getTSRange());
+        assertEquals(new TSRange(1000L, 2000L), seg2.getSegRange());
         assertEquals(SegmentStatusEnum.NEW, seg2.getStatus());
         seg2.setStatus(SegmentStatusEnum.READY);
 
         assertEquals(2, raw.getSegments().size());
-        assertEquals(1000, rawSeg2.getDateRangeStart());
-        assertEquals(2000, rawSeg2.getDateRangeEnd());
-        assertEquals(1000, rawSeg2.getSourceOffsetStart());
-        assertEquals(2000, rawSeg2.getSourceOffsetEnd());
+        assertEquals(new TSRange(1000L, 2000L), rawSeg2.getTSRange());
+        assertEquals(new TSRange(1000L, 2000L), rawSeg2.getSegRange());
         assertEquals(SegmentStatusEnum.NEW, rawSeg2.getStatus());
         rawSeg2.setStatus(SegmentStatusEnum.READY);
 
         // merge first and second
-        CubeSegment merge = mgr.mergeSegments(cube, 0, 2000, 0, 0, true);
-        RawTableSegment rawMerge = rawMgr.mergeSegments(raw, merge.getUuid(), 0, 2000, 0, 0, true);
+        CubeSegment merge = mgr.mergeSegments(cube, new TSRange(0L, 2000L), null, true);
+        RawTableSegment rawMerge = rawMgr.mergeSegments(raw, merge.getUuid(), new TSRange(0L, 2000L), null, true);
 
         assertEquals(3, cube.getSegments().size());
-        assertEquals(0, merge.getDateRangeStart());
-        assertEquals(2000, merge.getDateRangeEnd());
-        assertEquals(0, merge.getSourceOffsetStart());
-        assertEquals(2000, merge.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 2000L), merge.getTSRange());
+        assertEquals(new TSRange(0L, 2000L), merge.getSegRange());
         assertEquals(SegmentStatusEnum.NEW, merge.getStatus());
 
         assertEquals(3, raw.getSegments().size());
-        assertEquals(0, rawMerge.getDateRangeStart());
-        assertEquals(2000, rawMerge.getDateRangeEnd());
-        assertEquals(0, rawMerge.getSourceOffsetStart());
-        assertEquals(2000, rawMerge.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 2000L), rawMerge.getTSRange());
+        assertEquals(new TSRange(0L, 2000L), rawMerge.getSegRange());
         assertEquals(SegmentStatusEnum.NEW, rawMerge.getStatus());
 
         // segments are strictly ordered
@@ -216,25 +201,21 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
         // try merge at start/end at middle of segments
         try {
-            rawMgr.mergeSegments(raw, null, 500, 2500, 0, 0, true);
+            rawMgr.mergeSegments(raw, null, new TSRange(500L, 2500L), null, true);
             fail();
         } catch (IllegalArgumentException ex) {
             // good
         }
 
-        CubeSegment merge2 = mgr.mergeSegments(cube, 0, 2500, 0, 0, true);
+        CubeSegment merge2 = mgr.mergeSegments(cube, new TSRange(0L, 2500L), null, true);
         assertEquals(3, cube.getSegments().size());
-        assertEquals(0, merge2.getDateRangeStart());
-        assertEquals(2000, merge2.getDateRangeEnd());
-        assertEquals(0, merge2.getSourceOffsetStart());
-        assertEquals(2000, merge2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 2000L), merge2.getTSRange());
+        assertEquals(new TSRange(0L, 2000L), merge2.getSegRange());
 
-        RawTableSegment rawMerge2 = rawMgr.mergeSegments(raw, merge2.getUuid(), 0, 2500, 0, 0, true);
+        RawTableSegment rawMerge2 = rawMgr.mergeSegments(raw, merge2.getUuid(), new TSRange(0L, 2500L), null, true);
         assertEquals(3, raw.getSegments().size());
-        assertEquals(0, rawMerge2.getDateRangeStart());
-        assertEquals(2000, rawMerge2.getDateRangeEnd());
-        assertEquals(0, rawMerge2.getSourceOffsetStart());
-        assertEquals(2000, rawMerge2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 2000L), rawMerge2.getTSRange());
+        assertEquals(new TSRange(0L, 2000L), rawMerge2.getSegRange());
 
         merge2.setLastBuildJobID("mockupfortest");
         mgr.promoteNewlyBuiltSegments(cube, merge2);
@@ -257,7 +238,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(0, raw.getSegments().size());
 
         // append the first
-        CubeSegment seg1 = mgr.appendSegment(cube, 0, 1000);
+        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
         seg1.setStatus(SegmentStatusEnum.READY);
         assertEquals(1, cube.getSegments().size());
 
@@ -266,7 +247,7 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(1, raw.getSegments().size());
 
         // append the third
-        CubeSegment seg3 = mgr.appendSegment(cube, 2000, 3000);
+        CubeSegment seg3 = mgr.appendSegment(cube, new TSRange(2000L, 3000L));
         seg3.setStatus(SegmentStatusEnum.READY);
         assertEquals(2, cube.getSegments().size());
 
@@ -276,14 +257,14 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
 
         // reject overlap
         try {
-            mgr.appendSegment(cube, 1000, 2500);
+            mgr.appendSegment(cube, new TSRange(1000L, 2500L));
             fail();
         } catch (IllegalStateException ex) {
             // good
         }
 
         // append the second
-        CubeSegment seg2 = mgr.appendSegment(cube, 1000, 2000);
+        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
         seg2.setStatus(SegmentStatusEnum.READY);
         assertEquals(3, cube.getSegments().size());
 
@@ -292,19 +273,15 @@ public class RawTableSegmentsTest extends LocalFileMetadataTestCase {
         assertEquals(3, raw.getSegments().size());
 
         // merge all
-        CubeSegment merge2 = mgr.mergeSegments(cube, 0, 3500, 0, 0, true);
+        CubeSegment merge2 = mgr.mergeSegments(cube, new TSRange(0L, 3500L), null, true);
         assertEquals(4, cube.getSegments().size());
-        assertEquals(0, merge2.getDateRangeStart());
-        assertEquals(3000, merge2.getDateRangeEnd());
-        assertEquals(0, merge2.getSourceOffsetStart());
-        assertEquals(3000, merge2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 3000L), merge2.getTSRange());
+        assertEquals(new TSRange(0L, 3000L), merge2.getSegRange());
 
-        RawTableSegment rawMerge2 = rawMgr.mergeSegments(raw, merge2.getUuid(), 0, 3500, 0, 0, true);
+        RawTableSegment rawMerge2 = rawMgr.mergeSegments(raw, merge2.getUuid(), new TSRange(0L, 3500L), null, true);
         assertEquals(4, raw.getSegments().size());
-        assertEquals(0, rawMerge2.getDateRangeStart());
-        assertEquals(3000, rawMerge2.getDateRangeEnd());
-        assertEquals(0, rawMerge2.getSourceOffsetStart());
-        assertEquals(3000, rawMerge2.getSourceOffsetEnd());
+        assertEquals(new TSRange(0L, 3000L), rawMerge2.getTSRange());
+        assertEquals(new TSRange(0L, 3000L), rawMerge2.getSegRange());
 
         merge2.setLastBuildJobID("mockupfortest");
         mgr.promoteNewlyBuiltSegments(cube, merge2);

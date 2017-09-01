@@ -605,8 +605,8 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         Segments<CubeSegment> segments = cube.getSegments();
 
-        if (schedule.getPartitionStartTime() < segments.getDateRangeEnd()) {
-            schedule.setPartitionStartTime(segments.getDateRangeEnd());
+        if (schedule.getPartitionStartTime() < segments.getTSEnd()) {
+            schedule.setPartitionStartTime(segments.getTSEnd());
         }
         schedulerJobService.saveSchedulerJob(schedule, cube, project);
     }
