@@ -38,7 +38,7 @@
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-server</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
             <classifier>classes</classifier>
         </dependency>
 
