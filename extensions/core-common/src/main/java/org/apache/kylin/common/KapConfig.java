@@ -132,8 +132,8 @@ public class KapConfig {
     }
 
     public int getParquetSparkExecutorInstanceMax() {
-        return Integer.parseInt(
-                config.getOptional("kap.storage.columnar.spark-conf.spark.dynamicAllocation.maxExecutors", String.valueOf(1)));
+        return Integer.parseInt(config.getOptional(
+                "kap.storage.columnar.spark-conf.spark.dynamicAllocation.maxExecutors", String.valueOf(1)));
     }
 
     public String getSparkClientHost() {
@@ -276,6 +276,10 @@ public class KapConfig {
         return config.getOptional("kap.external.kybot.url", "https://kybot.io");
     }
 
+    public String getKyBotClientPath() {
+        return config.getOptional("kybot.client.path", "kybot");
+    }
+
     public String getHttpProxyHost() {
         return config.getOptional("kap.external.http.proxy.host");
     }
@@ -324,7 +328,7 @@ public class KapConfig {
     public String getSmartModelingStrategy() {
         return config.getOptional("kap.smart.strategy", "default");
     }
-    
+
     /**
      * Query
      */
