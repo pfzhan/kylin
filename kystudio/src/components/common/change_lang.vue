@@ -8,7 +8,7 @@
     <el-button v-if="lang=='zh-cn'" @click="changeLang">English</el-button>
     <el-button v-else @click="changeLang">中文</el-button>
   </div>
-  
+
 </div>
 </template>
 <script>
@@ -61,7 +61,6 @@
       }
       Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
       this.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
-      console.log(Vue.config.lang, navigator.language, this.lang)
     }
   }
 </script>
