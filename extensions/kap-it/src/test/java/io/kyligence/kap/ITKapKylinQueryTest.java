@@ -188,6 +188,23 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         }
     }
 
+    protected void runNoAggQuery() throws Exception {
+        List<File> sqlFiles = getFilesFromFolder(
+                new File("src/test/resources/query/sql_noagg"), ".sql");
+        for (File sqlFile : sqlFiles) {
+            try {
+                runSQL(sqlFile, false, false);
+            } catch (SQLException e) {
+                String x = Throwables.getStackTraceAsString(e);
+                if (x.contains("No realization")) {
+                    //expected
+                    continue;
+                }
+            }
+            throw new RuntimeException("Not expected ");
+        }
+    }
+
     @Test
     @Override
     public void testTimeoutQuery() throws Exception {
@@ -232,6 +249,20 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     public void testPercentileQuery() throws Exception {
         if (!rawTableFirst) {
             super.testPercentileQuery();
+        }
+    }
+
+    @Test
+    public void testDisableCubeForNoAggQuery() throws Exception {
+        try {
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "true");
+            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
+            runNoAggQuery();
+        } finally {
+            KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "false");
+            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
+            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
         }
     }
 
