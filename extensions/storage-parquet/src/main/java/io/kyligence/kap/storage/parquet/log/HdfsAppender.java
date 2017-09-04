@@ -231,7 +231,8 @@ public class HdfsAppender extends AppenderSkeleton {
     private void initWriter(Path outPath) throws IOException {
         closeWriter();
         Configuration conf = new Configuration();
-        fileSystem = HadoopUtil.getWorkingFileSystem(conf);
+        String workingdir = System.getProperty("kap.hdfs.working.dir");
+        fileSystem = HadoopUtil.getFileSystem(new Path(workingdir), conf);
 
         int retry = 10;
         for (int i = 0; i < retry; i++) {
