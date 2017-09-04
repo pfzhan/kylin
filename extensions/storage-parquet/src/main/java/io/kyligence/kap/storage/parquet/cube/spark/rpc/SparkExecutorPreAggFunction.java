@@ -37,6 +37,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
+import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.spark.Accumulator;
@@ -56,7 +57,8 @@ import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputForm
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import scala.Tuple2;
 
-public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
+public class SparkExecutorPreAggFunction
+        implements IKeepClassMembers, FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
     private static final Logger logger = LoggerFactory.getLogger(SparkExecutorPreAggFunction.class);
 
     private final Accumulator<Long> scannedRecords;
@@ -69,13 +71,17 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
     private final boolean spillEnabled;
     private final long startTime;
 
-    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, String streamIdentifier) {
-        this(scannedRecords, collectedRecords, realizationType, false, false, streamIdentifier, true, Long.MAX_VALUE, System.currentTimeMillis());
+    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
+            String realizationType, String streamIdentifier) {
+        this(scannedRecords, collectedRecords, realizationType, false, false, streamIdentifier, true, Long.MAX_VALUE,
+                System.currentTimeMillis());
     }
 
     //TODO: too long parameter
-    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords, String realizationType, //
-            boolean isSplice, boolean hasPreFiltered, String streamIdentifier, boolean spillEnabled, long maxScannedBytes, long startTime) {
+    public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
+            String realizationType, //
+            boolean isSplice, boolean hasPreFiltered, String streamIdentifier, boolean spillEnabled,
+            long maxScannedBytes, long startTime) {
         this.streamIdentifier = streamIdentifier;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
@@ -93,13 +99,14 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         long localStartTime = System.currentTimeMillis();
         logger.info("Current stream identifier is {}", streamIdentifier);
 
-        Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator, new Function<Tuple2<Text, Text>, ByteBuffer>() {
-            @Nullable
-            @Override
-            public ByteBuffer apply(@Nullable Tuple2<Text, Text> input) {
-                return ByteBuffer.wrap(input._2.getBytes(), 0, input._2.getLength());
-            }
-        });
+        Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator,
+                new Function<Tuple2<Text, Text>, ByteBuffer>() {
+                    @Nullable
+                    @Override
+                    public ByteBuffer apply(@Nullable Tuple2<Text, Text> input) {
+                        return ByteBuffer.wrap(input._2.getBytes(), 0, input._2.getLength());
+                    }
+                });
 
         GTScanRequest gtScanRequest = null;
         StorageSideBehavior behavior = null;
@@ -107,25 +114,30 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
         ParquetBytesGTScanner scanner;
         if (RealizationType.CUBE.toString().equals(realizationType)) {
             if (isSplice) {
-                gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
+                gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
+                        .get();
             } else {
                 gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
             }
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes, behavior.delayToggledOn());//in
+            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes,
+                    behavior.delayToggledOn());//in
         } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
             gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
             behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes, behavior.delayToggledOn());//in
+            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes,
+                    behavior.delayToggledOn());//in
         } else {
             throw new IllegalArgumentException("Unsupported realization type " + realizationType);
         }
 
         logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(), behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
+        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(),
+                behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
 
-        SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest, gtScanRequest.getColumns());
+        SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest,
+                gtScanRequest.getColumns());
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Iterator<GTRecord> gtIterator = preAggred.iterator();
@@ -140,24 +152,29 @@ public class SparkExecutorPreAggFunction implements IKeepClassMembers, FlatMapFu
 
             if (!gtScanRequest.isDoingStorageAggregation()) {
                 //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
-                if (resultCounter >= gtScanRequest.getStoragePushDownLimit()) {
+                if (gtScanRequest.getStorageLimitLevel() != StorageLimitLevel.NO_LIMIT
+                        && resultCounter >= gtScanRequest.getStoragePushDownLimit()) {
                     //read one more record than limit
                     logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
                     break;
                 }
             }
         }
-        
-        baos.close();
 
-        logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows", scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
+        baos.close();
+        preAggred.close();
+
+        logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows",
+                scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
 
         if (scannedRecords != null)
             scannedRecords.add(scanner.getTotalScannedRowCount());
         if (collectedRecords != null)
             collectedRecords.add(resultCounter);
 
-        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter, //
-                InetAddress.getLocalHost().getHostName(), localStartTime - startTime, System.currentTimeMillis() - localStartTime)).iterator();
+        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(),
+                scanner.getTotalScannedRowBytes(), resultCounter, //
+                InetAddress.getLocalHost().getHostName(), localStartTime - startTime,
+                System.currentTimeMillis() - localStartTime)).iterator();
     }
 }

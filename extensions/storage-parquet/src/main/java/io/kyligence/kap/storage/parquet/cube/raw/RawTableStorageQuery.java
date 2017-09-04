@@ -31,6 +31,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -86,7 +87,10 @@ public class RawTableStorageQuery implements IStorageQuery {
             RawTableSegmentScanner scanner;
             if (rawTableSegment.getCubeSegment().getInputRecords() == 0) {
                 if (!skipZeroInputSegment(rawTableSegment)) {
-                    logger.warn("raw segment {} input record is 0, " + "it may caused by kylin failed to the job counter " + "as the hadoop history server wasn't running", rawTableSegment);
+                    logger.warn(
+                            "raw segment {} input record is 0, " + "it may caused by kylin failed to the job counter "
+                                    + "as the hadoop history server wasn't running",
+                            rawTableSegment);
                 } else {
                     logger.warn("raw segment {} input record is 0, skip it ", rawTableSegment);
                     continue;
@@ -94,39 +98,40 @@ public class RawTableStorageQuery implements IStorageQuery {
             }
 
             Set<TblColRef> groups = new HashSet<>();
-            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups, Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
+            scanner = new RawTableSegmentScanner(rawTableSegment, dimensions, groups,
+                    Collections.<FunctionDesc> emptySet(), sqlDigest.filter, context);
             scanners.add(scanner);
         }
-        return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo, context);
+        return new SequentialRawTableTupleIterator(scanners, rawTableInstance, dimensions, metrics, returnTupleInfo,
+                context);
     }
 
     private void enableStorageLimitIfPossible(SQLDigest sqlDigest, TupleFilter filter, StorageContext context) {
-        boolean possible = true;
+        StorageLimitLevel storageLimitLevel = StorageLimitLevel.LIMIT_ON_SCAN;
 
         boolean isRaw = sqlDigest.isRawQuery;
         if (!isRaw && !sqlDigest.limitPrecedesAggr) {
-            possible = false;
-            logger.info("Storage limit push down it's after aggregation");
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because it's after aggregation");
         }
 
         boolean goodFilter = filter == null || TupleFilter.isEvaluableRecursively(filter);
         if (!goodFilter) {
-            possible = false;
-            logger.info("Storage limit push down is impossible because the filter is unevaluatable");
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because the filter is unevaluatable");
         }
 
         boolean goodSort = !context.hasSort();
         if (!goodSort) {
-            possible = false;
-            logger.info("Storage limit push down is impossible because the query has order by");
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because the query has order by");
         }
 
-        if (possible) {
-            context.setFinalPushDownLimit(rawTableInstance);
-        }
+        context.applyLimitPushDown(rawTableInstance, storageLimitLevel);
     }
 
-    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions, Collection<FunctionDesc> metrics) {
+    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
+            Collection<FunctionDesc> metrics) {
         for (TblColRef column : sqlDigest.allColumns) {
             dimensions.add(column);
         }

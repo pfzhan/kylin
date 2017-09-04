@@ -109,8 +109,8 @@ public class SparkParquetVisit implements Serializable {
                         }
                     })
             .build();
-    private final static Cache<String, Set<String>> cubePathCache = CacheBuilder.newBuilder()
-            .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
+    private final static Cache<String, Set<String>> cubePathCache = CacheBuilder.newBuilder().maximumSize(10000)
+            .expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
                     new RemovalListener<String, Set<String>>() {
                         @Override
                         public void onRemoval(RemovalNotification<String, Set<String>> notification) {
@@ -119,6 +119,7 @@ public class SparkParquetVisit implements Serializable {
                         }
                     })
             .build();
+
     public SparkParquetVisit(JavaSparkContext sc, SparkJobProtos.SparkJobRequestPayload request,
             String streamIdentifier) {
         try {
@@ -137,7 +138,8 @@ public class SparkParquetVisit implements Serializable {
                     .deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
             this.needLazy = false;
             if (kapConfig.getParquetSparkDynamicResourceEnabled()) {
-                this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstanceMax();
+                this.parallel = kapConfig.getParquetSparkExecutorCore()
+                        * kapConfig.getParquetSparkExecutorInstanceMax();
             } else {
                 this.parallel = kapConfig.getParquetSparkExecutorCore() * kapConfig.getParquetSparkExecutorInstance();
             }
@@ -222,6 +224,7 @@ public class SparkParquetVisit implements Serializable {
     // Transform relative path to absolute path
     private class PathTransformer implements Function<String, String> {
         private String workingDir = kylinConfig.getHdfsWorkingDirectory();
+
         @Nullable
         @Override
         public String apply(@Nullable String input) {
@@ -262,8 +265,6 @@ public class SparkParquetVisit implements Serializable {
         return result;
     }
 
-
-
     private Map<Long, Set<String>> readCubeMappingInfo() throws IOException, ClassNotFoundException {
         String cubeInfoPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/")//
                 .append(request.getRealizationId()).append("/")//
@@ -290,7 +291,7 @@ public class SparkParquetVisit implements Serializable {
     }
 
     Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> executeTask() throws Exception {
-        
+
         logger.info("Start to visit cube data with Spark <<<<<<");
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records",
