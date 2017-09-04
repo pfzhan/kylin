@@ -71,7 +71,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         String src = KapConfig.wrap(srcConfig).getParquetStoragePath() + uuid;
         String tgt = KapConfig.wrap(dstConfig).getParquetStoragePath() + uuid;
         Path tgtParent = new Path(KapConfig.wrap(dstConfig).getParquetStoragePath());
-        FileSystem fs = FileSystem.get(HadoopUtil.getCurrentConfiguration());
+        FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (!fs.exists(tgtParent)) {
             fs.mkdirs(tgtParent);
         }
