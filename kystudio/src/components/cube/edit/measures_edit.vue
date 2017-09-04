@@ -102,6 +102,7 @@
       </el-table>
      <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
+   }
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
     <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">
@@ -123,6 +124,7 @@ export default {
   props: ['cubeDesc', 'modelDesc', 'cubeInstance'],
   data () {
     return {
+      selectType: ['bigint', 'int', 'integer', 'smallint', 'tinyint', 'double', 'float'],
       measureFormVisible: false,
       selected_measure: {},
       editDictionaryFormVisible: false,
@@ -183,77 +185,77 @@ export default {
       this.$refs['measureForm'].$emit('measureFormValid')
     },
     measureValidSuccess: function (data) {
-      let _this = this
       this.loadCheck = true
       let index = this.cubeDesc.measures.indexOf(this.selected_measure)
       if (data.measure.function.expression === 'TOP_N' || (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype !== 'bitmap')) {
         if (data.convertedColumns) {
-          _this.recursion(data.measure.function.parameter, data.convertedColumns, 0)
+          this.recursion(data.measure.function.parameter, data.convertedColumns, 0)
         }
         if (data.measure.function.expression === 'TOP_N' && data.convertedColumns) {
-          _this.$set(data.measure.function, 'configuration', {})
+          this.$set(data.measure.function, 'configuration', {})
           data.convertedColumns.forEach(function (column) {
-            if (needLengthMeasureType.indexOf(_this.getEncoding(column.encoding)) >= 0) {
-              _this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, _this.getEncoding(column.encoding) + ':' + column.valueLength)
+            if (needLengthMeasureType.indexOf(this.getEncoding(column.encoding)) >= 0) {
+              this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, this.getEncoding(column.encoding) + ':' + column.valueLength)
             } else {
-              _this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, _this.getEncoding(column.encoding))
+              this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, this.getEncoding(column.encoding))
             }
-            _this.$set(data.measure.function.configuration, 'topn.encoding_version.' + column.column, _this.getVersion(column.encoding))
+            this.$set(data.measure.function.configuration, 'topn.encoding_version.' + column.column, this.getVersion(column.encoding))
           })
         }
       }
       if (data.measure.function.expression === 'COUNT_DISTINCT' && data.measure.function.returntype === 'bitmap') {
         let dictionaryIndex = -1
-        let len = _this.cubeDesc.dictionaries && _this.cubeDesc.dictionaries.length || 0
+        let len = this.cubeDesc.dictionaries && this.cubeDesc.dictionaries.length || 0
         for (let i = 0; i < len; i++) {
-          if (_this.cubeDesc.dictionaries[i].column === data.measure.function.parameter.value) {
+          if (this.cubeDesc.dictionaries[i].column === data.measure.function.parameter.value) {
             dictionaryIndex = i
             break
           }
         }
         if (dictionaryIndex < 0) {
           if (data.reuseColumn !== '') {
-            if (_this.cubeDesc.dictionaries) {
-              _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            if (this.cubeDesc.dictionaries) {
+              this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, reuse: data.reuseColumn})
             }
           } else {
-            if (_this.cubeDesc.dictionaries) {
-              _this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            if (this.cubeDesc.dictionaries) {
+              this.cubeDesc.dictionaries.push({column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
             }
           }
         } else {
           if (data.reuseColumn !== '') {
-            if (_this.cubeDesc.dictionaries) {
-              _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, reuse: data.reuseColumn})
+            if (this.cubeDesc.dictionaries) {
+              this.$set(this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, reuse: data.reuseColumn})
             }
           } else {
-            if (_this.cubeDesc.dictionaries) {
-              _this.$set(_this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
+            if (this.cubeDesc.dictionaries) {
+              this.$set(this.cubeDesc.dictionaries, dictionaryIndex, {column: data.measure.function.parameter.value, builder: 'org.apache.kylin.dict.GlobalDictionaryBuilder'})
             }
           }
         }
       }
-      if (_this.selected_measure.function.expression === 'COUNT_DISTINCT' && _this.selected_measure.function.returntype === 'bitmap' && (data.measure.function.expression !== 'COUNT_DISTINCT' || _this.selected_measure.function.parameter.value !== data.measure.function.parameter.value)) {
+      if (this.selected_measure.function.expression === 'COUNT_DISTINCT' && this.selected_measure.function.returntype === 'bitmap' && (data.measure.function.expression !== 'COUNT_DISTINCT' || this.selected_measure.function.parameter.value !== data.measure.function.parameter.value)) {
         let dictionaryIndex = -1
-        let len = _this.cubeDesc.dictionaries && _this.cubeDesc.dictionaries.length || 0
+        let len = this.cubeDesc.dictionaries && this.cubeDesc.dictionaries.length || 0
         for (let i = 0; i < len; i++) {
-          if (_this.cubeDesc.dictionaries[i].column === _this.selected_measure.function.parameter.value) {
+          if (this.cubeDesc.dictionaries[i].column === this.selected_measure.function.parameter.value) {
             dictionaryIndex = i
             break
           }
         }
-        if (_this.cubeDesc.dictionaries) {
-          _this.$delete(_this.cubeDesc.dictionaries, dictionaryIndex)
+        if (this.cubeDesc.dictionaries) {
+          this.$delete(this.cubeDesc.dictionaries, dictionaryIndex)
         }
       }
       if (data.nextParam && data.measure.function.expression === 'EXTENDED_COLUMN') {
         data.measure.function.returntype = 'extendedcolumn(' + data.measure.function.returntype + ')'
-        _this.$set(data.measure.function.parameter, 'next_parameter', data.nextParam)
+        this.$set(data.measure.function.parameter, 'next_parameter', data.nextParam)
       }
       if (data.measure.function.expression === 'SUM' && data.measure.function.parameter.type === 'column') {
         if (data.selectableMeasure.type === 'decimal') {
           data.measure.function.returntype = data.selectableMeasure.type + '(' + data.selectableMeasure.value.firstNumber + ',' + data.selectableMeasure.value.secondNumber + ')'
-        } else if (data.selectableMeasure.type !== 'char' && data.selectableMeasure.type !== 'varchar') {
+        }
+        if (this.selectType.indexOf(data.selectableMeasure.type) >= 0) {
           data.measure.function.returntype = data.selectableMeasure.type
         }
       }

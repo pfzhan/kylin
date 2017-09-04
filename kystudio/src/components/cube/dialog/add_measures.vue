@@ -5,7 +5,6 @@
         <el-input v-model="measure.name"></el-input>
       </div>
     </el-form-item>
-
     <el-form-item :label="$t('expression')">
       <span slot="label">{{$t('expression')}}
         <common-tip :content="$t('kylinLang.cube.expressionTip')" ><icon name="question-circle-o"></icon></common-tip>
@@ -349,6 +348,8 @@ export default {
           if (this.selectableMeasure.type === 'decimal') {
             this.selectableMeasure.value.firstNumber = returnValue[2]
             this.selectableMeasure.value.secondNumber = returnValue[3]
+          } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
+            this.selectableMeasure.value.firstNumber = returnValue[2]
           }
         })
       }
@@ -510,6 +511,8 @@ export default {
             this.selectableMeasure.type = 'decimal'
             this.selectableMeasure.value.firstNumber = 19
             this.selectableMeasure.value.secondNumber = 4
+          } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
+            this.selectableMeasure.value.firstNumber = returnValue[2]
           }
         }
         if (this.measure.function.parameter.value === 1 && this.measure.function.expression !== 'SUM' && this.measure.function.expression !== 'COUNT' && this.measure.function.expression !== 'TOP_N') {
@@ -541,6 +544,8 @@ export default {
           this.selectableMeasure.type = 'decimal'
           this.selectableMeasure.value.firstNumber = 19
           this.selectableMeasure.value.secondNumber = 4
+        } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
+          this.selectableMeasure.value.firstNumber = returnValue[2]
         }
       }
     },
@@ -594,7 +599,6 @@ export default {
         }
         let hasExisted = []
         for (let column in this.convertedColumns) {
-          console.log(this.convertedColumns, this.convertedColumns[column], this.convertedColumns[column].name)
           if (hasExisted.indexOf(this.convertedColumns[column].column) === -1) {
             hasExisted.push(this.convertedColumns[column].column)
           } else {
@@ -664,8 +668,12 @@ export default {
     getSumReturnType: function () {
       if (this.measure.function.parameter.value !== '' && this.otherType.indexOf(this.selectableMeasure.type) === -1) {
         this.measure.function.returntype = this.selectableMeasure.type
+      } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
+        this.measure.function.returntype = this.selectableMeasure.type + '(' + this.selectableMeasure.value.firstNumber + ')'
+      } else if (this.selectableMeasure.type !== 'char' && this.selectableMeasure.type !== 'varchar') {
+        this.measure.function.returntype = this.selectableMeasure.type
       }
-      return this.selectableMeasure.type
+      return this.measure.function.returntype
     },
     getReturnType: function () {
       if (this.measure.function.parameter.type === 'constant') {
