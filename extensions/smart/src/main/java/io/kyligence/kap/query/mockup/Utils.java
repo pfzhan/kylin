@@ -24,32 +24,25 @@
 
 package io.kyligence.kap.query.mockup;
 
+import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.cube.CubeDescManager;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.dict.DictionaryManager;
-import org.apache.kylin.job.execution.ExecutableManager;
-import org.apache.kylin.metadata.MetadataManager;
-import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.draft.DraftManager;
-import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationRegistry;
-import org.apache.kylin.storage.hybrid.HybridManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.query.util.CognosParenthesesEscape;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
-import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 public class Utils {
+    private static final Logger logger = LoggerFactory.getLogger(Utils.class);
+
     public static KylinConfig newKylinConfig(String metadataUrl) {
         Properties props = new Properties();
         setLargeCuboidCombinationConf(props);
@@ -81,19 +74,8 @@ public class Utils {
         props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
     }
 
-    public static void clearCacheForKylinConfig(KylinConfig kylinConfig) {
-        BadQueryHistoryManager.clearCache(kylinConfig);
-        Broadcaster.clearCache(kylinConfig);
-        CubeDescManager.clearCache(kylinConfig);
-        CubeManager.clearCache(kylinConfig);
-        CubeOptimizeLogManager.clearCache(kylinConfig);
-        DictionaryManager.clearCache(kylinConfig);
-        DraftManager.clearCache(kylinConfig);
-        ExecutableManager.clearCache(kylinConfig);
-        HybridManager.clearCache(kylinConfig);
-        MetadataManager.clearCache(kylinConfig);
-        ModelStatsManager.clearCache(kylinConfig);
-        ProjectManager.clearCache(kylinConfig);
-        RealizationRegistry.clearCache(kylinConfig);
+    public static void clearCacheForKylinConfig(KylinConfig kylinConfig) throws IOException {
+        Broadcaster.getInstance(kylinConfig).notifyNonStaticListener(Broadcaster.SYNC_ALL, Broadcaster.Event.UPDATE,
+                Broadcaster.SYNC_ALL);
     }
 }

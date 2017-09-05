@@ -74,11 +74,6 @@ public class ModelStatsManager {
         CACHE.clear();
     }
 
-    public static void clearCache(KylinConfig kylinConfig) {
-        if (kylinConfig != null)
-            CACHE.remove(kylinConfig);
-    }
-
     // ============================================================================
 
     private KylinConfig kylinConfig;

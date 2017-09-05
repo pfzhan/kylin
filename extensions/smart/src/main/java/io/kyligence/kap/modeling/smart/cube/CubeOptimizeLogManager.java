@@ -81,11 +81,6 @@ public class CubeOptimizeLogManager {
         CACHE.clear();
     }
 
-    public static void clearCache(KylinConfig kylinConfig) {
-        if (kylinConfig != null)
-            CACHE.remove(kylinConfig);
-    }
-
     // ============================================================================
 
     private class CubeSyncListener extends Broadcaster.Listener {

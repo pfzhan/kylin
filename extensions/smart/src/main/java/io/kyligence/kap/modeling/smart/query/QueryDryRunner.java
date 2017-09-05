@@ -62,17 +62,13 @@ import io.kyligence.kap.query.mockup.QueryRecord;
 import io.kyligence.kap.query.mockup.Utils;
 
 public class QueryDryRunner implements Closeable {
+    final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
     private final CubeDesc cubeDesc;
     private final String[] sqls;
-
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
-
     private QueryStats queryStats;
     private ExecutorService executorService;
-
     private ConcurrentNavigableMap<Integer, SqlResult> queryResults = new ConcurrentSkipListMap<>();
-
-    final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
     public QueryDryRunner(CubeDesc cubeDesc, String[] sqls) {
         this(cubeDesc, sqls, 1);
@@ -131,7 +127,6 @@ public class QueryDryRunner implements Closeable {
 
             queryStats = queryRecorder.getResult();
         } finally {
-            KylinConfig.removeKylinConfigThreadLocal();
             Utils.clearCacheForKylinConfig(config);
             FileUtils.forceDelete(localMetaDir);
         }
