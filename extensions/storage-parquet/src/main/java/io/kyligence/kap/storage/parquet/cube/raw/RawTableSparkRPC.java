@@ -30,7 +30,6 @@ import java.util.List;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -79,12 +78,13 @@ public class RawTableSparkRPC implements IGTStorage {
     }
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
-        List<Integer> ret = Lists.newArrayList();
-        ImmutableBitSet immutableBitSet = request.getColumns();
-        for (int i = 0; i < immutableBitSet.trueBitCount(); i++) {
-            ret.add(immutableBitSet.trueBitAt(i));
+        List<Integer> columnFamilies = Lists.newArrayList();
+        
+        for (int i = 0; i < request.getSelectedColBlocks().trueBitCount(); i++) {
+            columnFamilies.add(request.getSelectedColBlocks().trueBitAt(i));
         }
-        return ret;
+
+        return columnFamilies;
     }
 
     @Override

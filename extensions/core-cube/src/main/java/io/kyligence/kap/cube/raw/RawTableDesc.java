@@ -24,9 +24,13 @@
 
 package io.kyligence.kap.cube.raw;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,6 +81,8 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private int storageType;
     @JsonProperty("auto_merge_time_ranges")
     private long[] autoMergeTimeRanges;
+    @JsonProperty("raw_table_mapping")
+    private RawTableMappingDesc rawTableMapping;
 
     // computed
     private KylinConfig config;
@@ -89,6 +95,8 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     private List<TblColRef> columnsInOrder;
 
+    private Map<Integer, Integer> origin2OrderMapping;
+
     // for Jackson
     public RawTableDesc() {
     }
@@ -100,6 +108,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         rawTableDesc.setModelName(desc.getModelName());
         rawTableDesc.setOriginColumns(desc.getOriginColumns());
         rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
+        rawTableDesc.setRawTableMapping(desc.rawTableMapping);
         rawTableDesc.setEngineType(desc.getEngineType());
         rawTableDesc.setStorageType(desc.getStorageType());
         rawTableDesc.updateRandomUuid();
@@ -121,12 +130,15 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
         // FIXME: Dirty code, check encoding in string
         String encoding = columnMap.get(firstSorted).getEncoding();
-        if (!encoding.startsWith("integer") && !encoding.equalsIgnoreCase("date") && !encoding.equalsIgnoreCase("time")) {
-            throw new IllegalStateException("first sortby column's encoding is" + encoding + ", it should be integer, date or time");
+        if (!encoding.startsWith("integer") && !encoding.equalsIgnoreCase("date")
+                && !encoding.equalsIgnoreCase("time")) {
+            throw new IllegalStateException(
+                    "first sortby column's encoding is" + encoding + ", it should be integer, date or time");
         }
 
         if (shardbyColumns.size() > 1) {
-            throw new IllegalStateException("Only one shardby column is supported. Now shardby columns are " + shardbyColumns);
+            throw new IllegalStateException(
+                    "Only one shardby column is supported. Now shardby columns are " + shardbyColumns);
         }
     }
 
@@ -190,6 +202,21 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
                 RawTableColumnDesc rawTableColumnDesc = columnMap.get(input);
                 Preconditions.checkNotNull(rawTableColumnDesc);
                 return Pair.newPair(rawTableColumnDesc.getEncoding(), rawTableColumnDesc.getEncodingVersion());
+            }
+        });
+    }
+
+    public List<Pair<String, Integer>> getOriginEncodings() {
+        List<RawTableColumnDesc> columnsOrigin = getOriginColumns();
+        Preconditions.checkNotNull(columnsOrigin);
+        Preconditions.checkArgument(columnsOrigin.size() != 0);
+
+        return Lists.transform(columnsOrigin, new Function<RawTableColumnDesc, Pair<String, Integer>>() {
+            @Nullable
+            @Override
+            public Pair<String, Integer> apply(@Nullable RawTableColumnDesc input) {
+                Preconditions.checkNotNull(input);
+                return Pair.newPair(input.getEncoding(), input.getEncodingVersion());
             }
         });
     }
@@ -308,6 +335,14 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.modelName = modelName;
     }
 
+    public RawTableMappingDesc getRawTableMapping() {
+        return rawTableMapping;
+    }
+
+    public void setRawTableMapping(RawTableMappingDesc rawTableMapping) {
+        this.rawTableMapping = rawTableMapping;
+    }
+
     // if no shardby columns set, all columns as shardby
     public Collection<TblColRef> getShardbyColumns() {
         if (shardbyColumns.isEmpty()) {
@@ -325,6 +360,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.shardbyColumns = new LinkedHashSet<>();
         this.fuzzyColumns = Sets.newHashSet();
         this.sortbyColumns = new LinkedHashSet<>();
+        this.origin2OrderMapping = new HashMap<>();
 
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(model);
@@ -340,6 +376,31 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             columnMap.put(colDesc.getColumn(), colDesc);
         }
 
+        int colIdx = 0;
+        int sortbyIdx = 0;
+        int nonSortbyIdx = this.sortbyColumns.size();
+
+        for (RawTableColumnDesc colDesc : columns) {
+            if (colDesc.isSortby()) {
+                this.origin2OrderMapping.put(colIdx, sortbyIdx);
+                sortbyIdx++;
+            } else {
+                this.origin2OrderMapping.put(colIdx, nonSortbyIdx);
+                nonSortbyIdx++;
+            }
+            colIdx++;
+        }
+
+        if (rawTableMapping != null) {
+            rawTableMapping.init(this);
+        } else {
+            // For raw tables with no info about raw table mapping: 
+            // distribute all columns into separate column families since legacy raw table do not handle raw table mapping.  
+            rawTableMapping = new RawTableMappingDesc();
+            rawTableMapping.initAsSeparatedColumns(this);
+        }
+        initColumnReferenceToColumnFamily();
+
         this.validate();
     }
 
@@ -348,6 +409,53 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             rawToGTMapping = new RawToGridTableMapping(this);
         }
         return rawToGTMapping;
+    }
+
+    public Map<Integer, Integer> getOrigin2OrderMapping() {
+        return origin2OrderMapping;
+    }
+
+    private void initColumnReferenceToColumnFamily() {
+        if (columns == null || columns.size() == 0)
+            return;
+
+        Map<String, RawTableColumnDesc> columnLookup = new HashMap<String, RawTableColumnDesc>();
+        for (RawTableColumnDesc c : columns) {
+            columnLookup.put(c.getName(), c);
+        }
+        Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
+        for (int i = 0; i < columns.size(); i++)
+            columnIndexLookup.put(columns.get(i).getName(), i);
+
+        BitSet checkEachColumnExist = new BitSet();
+        Set<String> columnSet = Sets.newHashSet();
+        for (RawTableColumnFamilyDesc cf : getRawTableMapping().getColumnFamily()) {
+            String[] columnRefs = cf.getColumnRefs();
+            RawTableColumnDesc[] columnDescs = new RawTableColumnDesc[columnRefs.length];
+            int[] columnIndex = new int[columnRefs.length];
+            int lastColumnIndex = -1;
+            for (int i = 0; i < columnRefs.length; i++) {
+                columnDescs[i] = columnLookup.get(columnRefs[i]);
+                checkState(columnDescs[i] != null, "column desc at (%s) is null", i);
+                columnIndex[i] = columnIndexLookup.get(columnRefs[i]);
+                checkState(columnIndex[i] >= 0, "column index at (%s) not positive", i);
+                
+                checkState(columnIndex[i] > lastColumnIndex, "column (%s) is not in order", columnRefs[i]);
+                lastColumnIndex = columnIndex[i];
+                
+                checkState(!columnSet.contains(columnRefs[i]), "column (%s) duplicates", columnRefs[i]);
+                columnSet.add(columnRefs[i]);
+
+                checkEachColumnExist.set(columnIndex[i]);
+            }
+            cf.setColumns(columnDescs);
+            cf.setColumnIndex(columnIndex);
+        }
+
+        for (int i = 0; i < columns.size(); i++) {
+            checkState(checkEachColumnExist.get(i), "column (%s) does not exist in column family, or column duplicates",
+                    columns.get(i));
+        }
     }
 
 }

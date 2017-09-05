@@ -168,6 +168,17 @@ public class ParquetRawWriter {
 
         writeRow(row);
     }
+    
+    public void writeRow(byte[] value, int[] valueLengths) throws IOException {
+        List<Object> row = new ArrayList<Object>();
+        int valueOffset = 0;
+        for (int i = 0; i < valueLengths.length; ++i) {
+            row.add(Binary.fromConstantByteArray(value, valueOffset, valueLengths[i]));
+            valueOffset += valueLengths[i];
+        }
+
+        writeRow(row);
+    }
 
     public void writeRow(List<byte[]>... byteArrayLists) throws IOException {
         List<Object> row = new ArrayList<>();

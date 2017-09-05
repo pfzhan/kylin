@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.gtrecord.RawTableSegmentScanner;
@@ -57,11 +56,9 @@ public class RawTableStorageQuery implements IStorageQuery {
     private static final Logger logger = LoggerFactory.getLogger(RawTableStorageQuery.class);
 
     private RawTableInstance rawTableInstance;
-    private RawTableDesc rawTableDesc;
 
     public RawTableStorageQuery(RawTableInstance rawTableInstance) {
         this.rawTableInstance = rawTableInstance;
-        this.rawTableDesc = rawTableInstance.getRawTableDesc();
     }
 
     private void hackSelectStar(SQLDigest sqlDigest) {

@@ -25,7 +25,6 @@
 package io.kyligence.kap.modeling.smart.domain;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +42,7 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
@@ -108,9 +108,9 @@ public class Domain {
     }
 
     private void fillMeasures(CubeDesc cubeDesc) {
-        HashSet<MeasureDesc> measureDescs = Sets.newHashSet();
-        HashSet<String> measureF1 = Sets.newHashSet();
-        HashSet<String> measureF2 = Sets.newHashSet();
+        Set<MeasureDesc> measureDescs = Sets.newHashSet();
+        List<String> measureF1 = Lists.newArrayList();
+        List<String> measureF2 = Lists.newArrayList();
 
         // Count * is a must include measure
         MeasureDesc countAll = new MeasureDesc();
@@ -126,9 +126,11 @@ public class Domain {
             measureDesc.setFunction(measureFunc);
             measureDescs.add(measureDesc);
         }
+        
+        List<MeasureDesc> measureSuggestion = new ArrayList<>(measureDescs);
 
         // Add to column family
-        for (MeasureDesc measureDesc : measureDescs) {
+        for (MeasureDesc measureDesc : measureSuggestion) {
             FunctionDesc measureFunc = measureDesc.getFunction();
             if (measureFunc.isCount() || measureFunc.isMax() || measureFunc.isMin() || measureFunc.isSum()) {
                 measureF1.add(measureDesc.getName());
@@ -137,7 +139,6 @@ public class Domain {
             }
         }
 
-        List<MeasureDesc> measureSuggestion = new ArrayList<>(measureDescs);
         cubeDesc.setMeasures(measureSuggestion);
 
         // setup hbase mapping

@@ -47,4 +47,19 @@ public class ParquetBytesGTScanner4Raw extends ParquetBytesGTScanner {
         return new ImmutableBitSet(bs);
     }
 
+    protected ImmutableBitSet[] getParquetCoveredColumnBlocks(GTScanRequest scanRequest) {
+                
+        ImmutableBitSet selectedColBlocksBitSet = scanRequest.getSelectedColBlocks();
+        
+        ImmutableBitSet[] selectedColBlocks = new ImmutableBitSet[selectedColBlocksBitSet.trueBitCount()];
+        
+        for(int i = 0; i < selectedColBlocksBitSet.trueBitCount(); i++) {
+            
+            selectedColBlocks[i] = scanRequest.getInfo().getColumnBlock(selectedColBlocksBitSet.trueBitAt(i));
+            
+        }
+
+        return selectedColBlocks;
+    }
+    
 }

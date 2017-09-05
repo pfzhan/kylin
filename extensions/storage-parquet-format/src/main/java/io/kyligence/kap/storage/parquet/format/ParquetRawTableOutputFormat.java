@@ -25,9 +25,11 @@
 package io.kyligence.kap.storage.parquet.format;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -38,10 +40,10 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTInfo;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -49,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.BufferedRawColumnCodec;
+import io.kyligence.kap.cube.raw.RawTableColumnFamilyDesc;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
@@ -60,11 +63,14 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
 
 public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListWritable, ByteArrayListWritable> {
     @Override
-    public RecordWriter<ByteArrayListWritable, ByteArrayListWritable> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetRawTableFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
+    public RecordWriter<ByteArrayListWritable, ByteArrayListWritable> getRecordWriter(TaskAttemptContext job)
+            throws IOException, InterruptedException {
+        return new ParquetRawTableFileWriter((FileOutputCommitter) this.getOutputCommitter(job), job,
+                job.getOutputKeyClass(), job.getOutputValueClass());
     }
 
-    public static class ParquetRawTableFileWriter extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
+    public static class ParquetRawTableFileWriter
+            extends ParquetOrderedFileWriter<ByteArrayListWritable, ByteArrayListWritable> {
         private static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileWriter.class);
 
         private short curShardId = (short) -1;
@@ -76,8 +82,11 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         private RawTableDesc rawTableDesc;
         private BufferedRawColumnCodec rawColumnsCodec;
         private Path outputDir = null;
-
-        public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
+        private RawTableColumnFamilyDesc[] cfDescs;
+        private Map<Integer, Integer> index2OrderMapping;
+        
+        public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
+                Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
             this.outputDir = committer.getTaskAttemptPath(context);
 
@@ -92,6 +101,8 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             rawTableDesc = rawTableInstance.getRawTableDesc();
             GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
+            cfDescs = rawTableDesc.getRawTableMapping().getColumnFamily();
+            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
 
             // FIXME: ByteArrayListWritable involves array copy every time
             if (keyClass == ByteArrayListWritable.class && valueClass == ByteArrayListWritable.class) {
@@ -102,7 +113,8 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         }
 
         @Override
-        protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException, InterruptedException {
+        protected void freshWriter(ByteArrayListWritable key, ByteArrayListWritable value)
+                throws IOException, InterruptedException {
             short shardId = BytesUtil.readShort(key.get().get(key.get().size() - 1));
 
             if (shardId != curShardId) {
@@ -129,34 +141,84 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             }
         }
 
-
         @Override
         protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
             ParquetRawWriter rawWriter;
             List<Type> types = new ArrayList<Type>();
-            List<TblColRef> columns = rawTableDesc.getColumnsInOrder();
 
-            for (TblColRef column : columns) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, column.getName()));
+            RawTableColumnFamilyDesc[] cfDescs = rawTableDesc.getRawTableMapping().getColumnFamily();
+            for (RawTableColumnFamilyDesc cf : cfDescs) {
+                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
+                        cf.getName()));
             }
 
             MessageType schema = new MessageType(rawTableDesc.getName(), types);
-            rawWriter = new ParquetRawWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+            rawWriter = new ParquetRawWriter.Builder()
+                    .setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
-                    .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config).setType(schema).setPath(getOutputPath()).build();
+                    .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config)
+                    .setType(schema).setPath(getOutputPath()).build();
             return rawWriter;
         }
 
         @Override
         protected void writeData(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException {
+            
+            // Step 1: transform text object to byte array. 
             List<byte[]> sortby = key.get().subList(0, key.get().size() - 1);
             List<byte[]> nonSortby = value.get();
-            writer.writeRow(sortby, nonSortby);
+            int valueBytesLength = 0;
+            for (byte[] objInSortby : sortby) {
+                valueBytesLength += objInSortby.length;
+            }
+            for (byte[] objInNonSortby : nonSortby) {
+                valueBytesLength += objInNonSortby.length;
+            }
+            byte[] valueBytes = new byte[valueBytesLength];
+            int idx = 0;
+            for (byte[] objInSortby : sortby) {
+                System.arraycopy(objInSortby, 0, valueBytes, idx, objInSortby.length);
+                idx += objInSortby.length;
+            }
+            for (byte[] objInNonSortby : nonSortby) {
+                System.arraycopy(objInNonSortby, 0, valueBytes, idx, objInNonSortby.length);
+                idx += objInNonSortby.length;
+            }
+            
+            // Step 2: calculate value offsets in result byte array to which measures will be copied.
+            int[] valueLength = rawColumnsCodec.peekLengths(ByteBuffer.wrap(valueBytes),
+                    new ImmutableBitSet(0, sortby.size() + nonSortby.size()));            
+            int[] valueOffsets = new int[valueLength.length];
+            for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
+                valueOffsets[i] = valueOffset;
+                valueOffset += valueLength[i];
+            }
+
+            // Step 3: copy array bytes as column family order. 
+            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
+            byte[] cfValueBytes = new byte[valueBytes.length];
+            int[] cfValueLength = new int[cfDescs.length];
+            int cfIndex = 0, cfValueOffset = 0;            
+            for (RawTableColumnFamilyDesc cfDesc : cfDescs) {
+                int cfLength = 0;
+                int[] columnIndexes = cfDesc.getColumnIndex();
+                for (int columnIndex : columnIndexes) {
+                    int columnIndexInOrder = index2OrderMapping.get(columnIndex);
+                    System.arraycopy(valueBytes, valueOffsets[columnIndexInOrder], cfValueBytes, cfValueOffset, valueLength[columnIndexInOrder]);
+                    cfValueOffset += valueLength[columnIndexInOrder];
+                    cfLength += valueLength[columnIndexInOrder];
+                }
+                cfValueLength[cfIndex] = cfLength;
+                cfIndex++;
+            }
+
+            writer.writeRow(cfValueBytes, cfValueLength);
         }
 
         @Override
         protected Path getOutputPath() {
-            Path path = new Path(outputDir, new StringBuffer().append(RawTableConstants.RawTableDir).append("/").append(curShardId).append(".parquet").toString());
+            Path path = new Path(outputDir, new StringBuffer().append(RawTableConstants.RawTableDir).append("/")
+                    .append(curShardId).append(".parquet").toString());
             return path;
         }
     }

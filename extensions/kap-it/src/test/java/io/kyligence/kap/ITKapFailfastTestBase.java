@@ -189,7 +189,7 @@ public class ITKapFailfastTestBase extends KylinTestBase {
     public void testQueryNotExceedMaxScanBytes() throws Exception {
         String key = "kylin.query.max-scan-bytes";
         long saved = KylinConfig.getInstanceFromEnv().getQueryMaxScanBytes();
-        KylinConfig.getInstanceFromEnv().setProperty(key, "2000000");//enough threshold
+        KylinConfig.getInstanceFromEnv().setProperty(key, "5000000");//enough threshold
 
         try {
             String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql/query01.sql";

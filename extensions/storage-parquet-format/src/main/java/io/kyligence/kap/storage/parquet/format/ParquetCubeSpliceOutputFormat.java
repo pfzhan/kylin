@@ -42,14 +42,14 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
+import org.apache.kylin.cube.model.HBaseColumnDesc;
+import org.apache.kylin.cube.model.HBaseColumnFamilyDesc;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.measure.MeasureCodec;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -79,9 +79,9 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
         private Configuration config;
         private KylinConfig kylinConfig;
         private MeasureCodec measureCodec;
-        private CubeInstance cubeInstance;
         private CubeSegment cubeSegment;
         private Path outputDir = null;
+        private HBaseColumnFamilyDesc[] cfDescs;
 
         private ParquetSpliceWriter writer = null;
 
@@ -97,26 +97,41 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
             if ("spark".equals(jobType)) {
                 String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
-                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
+                this.kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
             } else
-                kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+                this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
+
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-            cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
-            cubeSegment = cubeInstance.getSegmentById(segmentID);
+
+            this.cubeSegment = CubeManager.getInstance(kylinConfig).getCube(cubeName).getSegmentById(segmentID);
             Preconditions.checkState(cubeSegment.isEnableSharding(),
                     "Cube segment sharding not enabled " + cubeSegment.getName());
 
-            measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
-
+            this.measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
+            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
             if (keyClass == Text.class && valueClass == Text.class) {
                 logger.info("KV class is Text");
             } else {
                 throw new InvalidParameterException("ParquetRecordWriter only support Text type now");
             }
-            writer = newWriter();
+            this.writer = newWriter();
+        }
+
+        // This constructor is only used for testing. 
+        protected ParquetCubeSpliceWriter(Configuration conf, Path path, CubeSegment cubeSegment)
+                throws IOException, InterruptedException {
+
+            this.config = conf;
+            this.outputDir = path;
+            this.cubeSegment = cubeSegment;
+
+            this.measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
+            this.cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+
+            this.writer = newWriter();
         }
 
         protected void freshWriter(Text key) throws InterruptedException, IOException {
@@ -146,13 +161,44 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
         @Override
         public void write(Text key, Text value) throws IOException, InterruptedException {
+
             freshWriter(key);
-            byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
+
+            // Step 1: transform text object to byte array. 
+            byte[] valueBytes = value.getBytes().clone(); //on purpose, because Parquet writer will cache
             byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
                     key.getLength());
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
+
+            // Step 2: calculate value offsets in result byte array to which measures will be copied.
+            int[] valueOffsets = new int[valueLength.length];
+            for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
+                valueOffsets[i] = valueOffset;
+                valueOffset += valueLength[i];
+            }
+
+            // Step 3: copy array bytes as column family order. 
+            byte[] cfValueBytes = new byte[valueBytes.length];
+            int[] cfValueLength = new int[cfDescs.length];
+            int cfIndex = 0, cfValueOffset = 0;
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                int cfLength = 0;
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    int[] measureIndexes = colDesc.getMeasureIndex();
+                    for (int measureIndex : measureIndexes) {
+                        System.arraycopy(valueBytes, valueOffsets[measureIndex], cfValueBytes, cfValueOffset,
+                                valueLength[measureIndex]);
+                        cfValueOffset += valueLength[measureIndex];
+                        cfLength += valueLength[measureIndex];
+                    }
+                }
+                cfValueLength[cfIndex] = cfLength;
+                cfIndex++;
+            }
+
             try {
-                writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
+                writer.writeRow(keyBody, 0, keyBody.length, cfValueBytes, cfValueLength);
             } catch (Exception e) {
                 logger.error("", e);
             }
@@ -168,10 +214,15 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             List<Type> types = new ArrayList<Type>();
             // row key
             types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
-            // measures
-            for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
-                        measure.getName()));
+
+            // column families
+            HBaseColumnFamilyDesc[] cfDescs = cubeSegment.getCubeDesc().getHbaseMapping().getColumnFamily();
+            for (HBaseColumnFamilyDesc cfDesc : cfDescs) {
+                HBaseColumnDesc[] colDescs = cfDesc.getColumns();
+                for (HBaseColumnDesc colDesc : colDescs) {
+                    types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
+                            colDesc.getColumnFamilyName()));
+                }
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);

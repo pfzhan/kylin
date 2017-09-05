@@ -45,6 +45,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
@@ -99,10 +100,10 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private void initIndexWriters(Context context) throws IOException, InterruptedException {
         int hashLength = KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
 
-        List<TblColRef> columns = rawTableDesc.getColumnsInOrder();
+        List<RawTableColumnDesc> columns = rawTableDesc.getOriginColumns();
         columnSpecs = new ColumnSpec[columns.size()];
         for (int i = 0; i < columns.size(); i++) {
-            TblColRef column = columns.get(i);
+            TblColRef column = columns.get(i).getColumn();
             columnSpecs[i] = new ColumnSpec(column.getName(), hashLength, 10000, true, i);
             columnSpecs[i].setValueEncodingIdentifier('s');
         }

@@ -98,6 +98,10 @@ public class RawTableColumnDesc {
     public String getColumnName() {
         return columnName;
     }
+    
+    public String getName() {
+        return tableName + "." + columnName;
+    }
 
     public String getIndex() {
         return index;

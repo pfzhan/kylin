@@ -57,10 +57,13 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     private long scannedRows;
     private long scannedBytes;
 
+    private ImmutableBitSet[] columnBlocks;
+
     //for debug
     private boolean withDelay;
 
-    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, long maxScannedBytes, long timeout, boolean withDelay) {
+    public ParquetBytesGTScanner(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest,
+            long maxScannedBytes, long timeout, boolean withDelay) {
         this.iterator = iterator;
         this.info = info;
         this.gtrecord = new GTRecord(info);
@@ -70,6 +73,8 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
         this.maxScannedBytes = maxScannedBytes;
         this.timeout = timeout;
         this.deadline = System.currentTimeMillis() + timeout;
+
+        this.columnBlocks = getParquetCoveredColumnBlocks(scanRequest);
     }
 
     @Override
@@ -106,13 +111,22 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
                 }
 
                 int currentPos = input.position();
-                gtrecord.loadColumns(ParquetBytesGTScanner.this.columns, input);
+
+                if (ParquetBytesGTScanner.this.columnBlocks != null) {
+                    gtrecord.loadColumnsFromColumnBlocks(ParquetBytesGTScanner.this.columnBlocks,
+                            ParquetBytesGTScanner.this.columns, input);
+                } else {
+                    gtrecord.loadColumns(ParquetBytesGTScanner.this.columns, input);
+                }
+
                 scannedBytes += input.position() - currentPos;
                 if (scannedBytes > maxScannedBytes) {
-                    throw new ResourceLimitExceededException("Partition scanned bytes " + scannedBytes + " exceeds threshold " + maxScannedBytes
-                        + ", consider increase kylin.storage.partition.max-scan-bytes");
+                    throw new ResourceLimitExceededException(
+                            "Partition scanned bytes " + scannedBytes + " exceeds threshold " + maxScannedBytes
+                                    + ", consider increase kylin.storage.partition.max-scan-bytes");
                 }
-                if ((++scannedRows % GTScanRequest.terminateCheckInterval == 1) && System.currentTimeMillis() > deadline) {
+                if ((++scannedRows % GTScanRequest.terminateCheckInterval == 1)
+                        && System.currentTimeMillis() > deadline) {
                     throw new KylinTimeoutException("coprocessor timeout after " + timeout + " ms");
                 }
 
@@ -122,5 +136,7 @@ public abstract class ParquetBytesGTScanner implements IGTScanner {
     }
 
     abstract protected ImmutableBitSet getParquetCoveredColumns(GTScanRequest scanRequest);
+
+    abstract protected ImmutableBitSet[] getParquetCoveredColumnBlocks(GTScanRequest scanRequest);
 
 }

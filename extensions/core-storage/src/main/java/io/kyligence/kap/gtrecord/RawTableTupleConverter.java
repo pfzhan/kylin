@@ -46,7 +46,6 @@ public class RawTableTupleConverter {
     private final MeasureType<?>[] measureTypes;
 
     private final int nSelectedDims;
-    private final int nSelectedMetrics;
 
     public RawTableTupleConverter(RawTableInstance rawTableInstance, Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo) {
         this.tupleInfo = returnTupleInfo;
@@ -54,7 +53,6 @@ public class RawTableTupleConverter {
         RawToGridTableMapping mapping = rawTableInstance.getRawTableDesc().getRawToGridTableMapping();
 
         nSelectedDims = selectedDimensions.size();
-        nSelectedMetrics = selectedMetrics.size();
 
         gtColIdx = new int[selectedDimensions.size() + selectedMetrics.size()];
         tupleIdx = new int[selectedDimensions.size() + selectedMetrics.size()];
@@ -69,7 +67,7 @@ public class RawTableTupleConverter {
 
         // pre-calculate dimension index mapping to tuple
         for (TblColRef dim : selectedDimensions) {
-            int dimIndex = mapping.getIndexOf(dim);
+            int dimIndex = mapping.getOriginIndexOf(dim);
             if (dimIndex < 0) {
                 throw new IllegalStateException("Col '" + dim + "' is not in the mapping.");
             }

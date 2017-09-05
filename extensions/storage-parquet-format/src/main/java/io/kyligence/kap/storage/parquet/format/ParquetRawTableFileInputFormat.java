@@ -75,11 +75,6 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
     }
 
     public static class ParquetRawTableFileReader extends RecordReader<Text, Text> {
-
-        public enum ReadStrategy {
-            KV, COMPACT
-        }
-
         public static final Logger logger = LoggerFactory.getLogger(ParquetRawTableFileReader.class);
         public static ThreadLocal<GTScanRequest> gtScanRequestThreadLocal = new ThreadLocal<>();
 
@@ -181,16 +176,16 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
                 return false;
             }
 
-            setVal(data, 0);
+            setVal(data);
             return true;
         }
 
-        private void setVal(List<Object> data, int start) {
+        private void setVal(List<Object> data) {
             int retry = 0;
             while (true) {
                 try {
                     int offset = 0;
-                    for (int i = start; i < data.size(); ++i) {
+                    for (int i = 0; i < data.size(); ++i) {
                         byte[] src = ((Binary) data.get(i)).getBytes();
                         System.arraycopy(src, 0, val.getBytes(), offset, src.length);
                         offset += src.length;
