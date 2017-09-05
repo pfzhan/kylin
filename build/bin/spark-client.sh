@@ -128,8 +128,15 @@ then
     then
         HIVE_METASTORE_URI="thrift://sandbox.hortonworks.com:9083"
     else
-        source ${dir}/find-hive-dependency.sh
-        HIVE_METASTORE_URI=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.mr.HadoopConfPropertyRetriever ${hive_conf_path}/hive-site.xml hive.metastore.uris | tail -1)
+        if [[ -z $HIVE_METASTORE_URI ]]
+        then
+         source ${dir}/find-hive-dependency.sh
+        HIVE_METASTORE_URI=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.mr.HadoopConfPropertyRetriever ${hive_conf_path}/hive-site.xml hive.metastore.uris | grep -v Retrieving | tail -1)
+        fi
+        if [[ -z "$HIVE_METASTORE_URI" ]]
+        then
+            quit "Couldn't find hive.metastore.uris in hive-site.xml. hive.metastore.uris specifies Thrift URI of hive metastore . Please export HIVE_METASTORE_URI with hive.metastore.uris before starting kylin , for example: export HIVE_METASTORE_URI=thrift://sandbox.hortonworks.com:9083"
+        fi
     fi
 
     if [ -f "${KYLIN_HOME}/spark_client_pid" ]
