@@ -74,7 +74,7 @@ public class LocalTempMetadata {
             // It's a hack for engine 99
             List<String> engine99File = new ArrayList<>();
             engine99File.add("ci_left_join_cube.json");
-            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(100, 99), engine99File);
+            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(98, 99), engine99File);
             
             // Let CI cube be faster
             overrideDimCapOnCiCubes(TEMP_TEST_METADATA, 1);

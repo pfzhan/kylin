@@ -45,7 +45,8 @@ import com.google.common.collect.Maps;
 public class PartitionPreparer {
     protected static final Logger logger = LoggerFactory.getLogger(PartitionPreparer.class);
 
-    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum) throws IOException {
+    public static Map<Pair<Long, Short>, Integer> preparePartitionMapping(KylinConfig config, CubeSegment cubeSeg,
+            int reduceNum) throws IOException {
         logger.info("preparePartitionMapping in KapSpliceInMemCuboidJob");
         Map<Pair<Long, Short>, Integer> partitionMap = Maps.newHashMap();
         PriorityBuffer bucketPriorityQueue = new PriorityBuffer(new Comparator() {
@@ -95,17 +96,25 @@ public class PartitionPreparer {
 
         if (logger.isTraceEnabled()) {
             for (Pair<Long, Short> key : partitionMap.keySet()) {
-                logger.trace("Cuboid {} Shard {} --> Reducer {}", key.getFirst(), key.getSecond(), partitionMap.get(key));
+                logger.trace("Cuboid {} Shard {} --> Reducer {}", key.getFirst(), key.getSecond(),
+                        partitionMap.get(key));
             }
         }
+        return partitionMap;
+    }
 
+    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum)
+            throws IOException {
+
+        Map<Pair<Long, Short>, Integer> partitionMap = preparePartitionMapping(config, cubeSeg, reduceNum);
         // Serialize mapping
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
         oos.writeObject(partitionMap);
         oos.close();
         byte[] serialized = baos.toByteArray();
-        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING, new String(Base64.encodeBase64(serialized)));
+        job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING,
+                new String(Base64.encodeBase64(serialized)));
     }
 
     private static class SizeBucket {

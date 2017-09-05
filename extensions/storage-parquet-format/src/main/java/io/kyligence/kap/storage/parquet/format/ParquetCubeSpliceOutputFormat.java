@@ -66,7 +66,8 @@ import io.kyligence.kap.storage.parquet.format.file.ParquetSpliceWriter;
 public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> {
     @Override
     public RecordWriter<Text, Text> getRecordWriter(TaskAttemptContext job) throws IOException, InterruptedException {
-        return new ParquetCubeSpliceWriter((FileOutputCommitter) this.getOutputCommitter(job), job, job.getOutputKeyClass(), job.getOutputValueClass());
+        return new ParquetCubeSpliceWriter((FileOutputCommitter) this.getOutputCommitter(job), job,
+                job.getOutputKeyClass(), job.getOutputValueClass());
     }
 
     public static class ParquetCubeSpliceWriter extends RecordWriter<Text, Text> {
@@ -84,21 +85,29 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
         private ParquetSpliceWriter writer = null;
 
-        public ParquetCubeSpliceWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass, Class<?> valueClass) throws IOException, InterruptedException {
+        public ParquetCubeSpliceWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
+                Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
             this.outputDir = committer.getTaskAttemptPath(context);
 
             logger.info("tmp output dir: {}", outputDir);
             logger.info("final output dir: {}", committer.getCommittedTaskPath(context));
 
-            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            String jobType = context.getConfiguration().get(BatchConstants.CFG_MR_SPARK_JOB);
+
+            if ("spark".equals(jobType)) {
+                String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
+                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
+            } else
+                kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
             cubeInstance = CubeManager.getInstance(kylinConfig).getCube(cubeName);
             cubeSegment = cubeInstance.getSegmentById(segmentID);
-            Preconditions.checkState(cubeSegment.isEnableSharding(), "Cube segment sharding not enabled " + cubeSegment.getName());
+            Preconditions.checkState(cubeSegment.isEnableSharding(),
+                    "Cube segment sharding not enabled " + cubeSegment.getName());
 
             measureCodec = new MeasureCodec(cubeSegment.getCubeDesc().getMeasures());
 
@@ -139,7 +148,8 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
         public void write(Text key, Text value) throws IOException, InterruptedException {
             freshWriter(key);
             byte[] valueBytes = value.getBytes().clone(); //on purpose, because parquet writer will cache
-            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN, key.getLength());
+            byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
+                    key.getLength());
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
             try {
                 writer.writeRow(keyBody, 0, keyBody.length, valueBytes, valueLength);
@@ -160,11 +170,13 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "Row Key"));
             // measures
             for (MeasureDesc measure : cubeSegment.getCubeDesc().getMeasures()) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, measure.getName()));
+                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
+                        measure.getName()));
             }
 
             MessageType schema = new MessageType(cubeSegment.getName(), types);
-            ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder().setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
+            ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder()
+                    .setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
                     .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression())//
                     .setConf(config).setType(schema).setPath(getOutputPath()).build();
@@ -173,7 +185,8 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
         // Generate 10-length random string file name
         private Path getOutputPath() {
-            Path path = new Path(outputDir, new StringBuffer().append(RandomStringUtils.randomAlphabetic(10)).append(".parquet").toString());
+            Path path = new Path(outputDir,
+                    new StringBuffer().append(RandomStringUtils.randomAlphabetic(10)).append(".parquet").toString());
             return path;
         }
     }

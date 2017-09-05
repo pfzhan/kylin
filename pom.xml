@@ -66,6 +66,7 @@
         <module>extensions/core-job</module>
         <module>extensions/core-storage</module>
         <module>extensions/engine-mr</module>
+        <module>extensions/engine-spark</module>
         <module>extensions/storage-hbase</module>
         <module>extensions/storage-parquet</module>
         <module>extensions/storage-parquet-format</module>
@@ -135,6 +136,11 @@
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-engine-mr</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-engine-spark</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
