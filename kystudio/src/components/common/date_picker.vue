@@ -1,7 +1,7 @@
 <template>
 <div class="hideTime_pick">
   <el-date-picker ref="datePicker"
-  type="datetime"
+  :type="dateType"
   @change="selectDate"
   v-model="timeSelect"
   placeholder="选择日期时间">
@@ -11,7 +11,7 @@
 <script>
 export default {
   name: 'about_kap',
-  props: ['selectList'],
+  props: ['selectList', 'dateType'],
   data () {
     return {
       timeSelect: ''
@@ -38,7 +38,11 @@ export default {
     input {
       display: none;
     }
-    .el-icon-time{
+    // .el-icon-time{
+    //   top: 12px;
+    //   right:0px;
+    // }
+    .el-input__icon{
       top: 12px;
       right:0px;
     }

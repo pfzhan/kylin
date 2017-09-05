@@ -58,6 +58,7 @@ export const SAVE_ACL_SET_ROW = 'SAVE_ACL_SET_ROW'
 export const UPDATE_ACL_SET_ROW = 'UPDATE_ACL_SET_ROW'
 export const DEL_ACL_SET_ROW = 'DEL_ACL_SET_ROW'
 export const GET_ACL_WHITELIST_ROW = 'GET_ACL_WHITELIST_ROW'
+export const PREVIEW_ACL_SET_ROW_SQL = 'PREVIEW_ACL_SET_ROW_SQL'
 
 // model actions mutations
 export const LOAD_MODEL_LIST = 'LOAD_MODEL_LIST'

@@ -93,6 +93,9 @@ export default {
   },
   cancelAclSetOfRow: (tableName, project, userName) => {
     return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName + '/' + userName).delete()
+  },
+  previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
+    return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName + '/' + userName).save(conditions)
   }
 
 }

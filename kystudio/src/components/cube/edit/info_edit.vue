@@ -192,15 +192,15 @@ export default {
     },
     renderEditerRender (editor) {
       // var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
-      if (!(editor && editor.sesssion)) {
+      if (!(editor && editor.session)) {
         return
       }
-      editor.sesssion.gutterRenderer = {
+      editor.session.gutterRenderer = {
         getWidth: (session, lastLineNumber, config) => {
-          return lastLineNumber.toString().length * config.characterWidth
+          return lastLineNumber.toString().length * 12
         },
         getText: (session, row) => {
-          return row
+          return row + 1
         }
       }
     },

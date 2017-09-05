@@ -111,16 +111,16 @@
           </el-form-item>
         </el-form>
       </el-col>
-      <el-col :span="layout.right" v-if="layout.right" style="border-left:solid 1px rgb(41, 43, 56); padding:20px; margin-top: -30px; padding-top: 30px;position:relative">
+      <el-col :span="layout.right" v-if="layout.right" style="padding:20px 20px 20px 0 ; margin-top: -30px;">
        <div class="col-line"></div>
-       <p>{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
-       <el-alert class="ksd-mt-20 trans" v-if="modelStatics && modelStatics.length <= 1"
+       <p class="ksd-ml-20">{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
+       <el-alert class="ksd-mt-20 ksd-ml-20 trans" v-if="modelStatics && modelStatics.length <= 1"
         :title="$t('noSample')"
         show-icon
         :closable="false"
         type="warning">
       </el-alert>
-       <el-table v-if="modelStatics && modelStatics.length>1"
+       <el-table class="ksd-ml-20" v-if="modelStatics && modelStatics.length>1"
           :data="modelStatics.slice(1)"
           border>
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
@@ -177,7 +177,6 @@ export default {
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
     formValid (filed) {
-      console.log(filed)
       this.$refs.partition.validateField(filed)
       // this.$refs.partition.validate()
     },
@@ -193,7 +192,7 @@ export default {
       return []
     },
     dateFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_date_format) {
+      if (!this.checkPartition.partition_date_format || this.modelStatics.length === 0) {
         callback()
       }
       var project = this.modelInfo.project || this.project
@@ -201,10 +200,8 @@ export default {
       this.validColumnFormat({project: project, table: databaseAndTableName.join('.'), column: this.checkPartition.date_column, format: this.checkPartition.partition_date_format}).then((res) => {
         handleSuccess(res, (data) => {
           if (!data && data !== null) {
-            console.log(8888)
             callback(new Error(this.$t('validFail')))
           } else {
-            console.log(999)
             callback()
           }
         })
@@ -215,7 +212,7 @@ export default {
       })
     },
     timeFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_time_format) {
+      if (!this.checkPartition.partition_time_format || this.modelStatics.length === 0) {
         callback()
       }
       var project = this.modelInfo.project || this.project
@@ -391,9 +388,8 @@ export default {
     height: 100%;
     background-color: rgb(41, 43, 56);
     position: absolute;
-    left: -1px;
-    bottom:-52px;
-    top:0px;
+    bottom:-51px;
+    top:-82px;
     margin-top: 52px;
   }
   .el-input{

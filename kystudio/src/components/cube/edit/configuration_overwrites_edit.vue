@@ -1,9 +1,9 @@
 <template>
 <div id="overwrites">
-  <div v-show="!isPlusVersion">
+  <div>
     <h2>Cubing Engine <common-tip :content="$t('engineTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
     <p class="ksd-mt-14">Engine Type: 
-      <el-select :disabled="isPlusVersion" v-model="cubeDesc.engine_type">
+      <el-select v-model="cubeDesc.engine_type">
         <el-option  v-for="item in engineType"
         :key="item.value"
         :label="item.name"
@@ -11,7 +11,7 @@
       </el-select>
     </p>
   </div>
-  <div class="line" v-show="!isPlusVersion"></div>
+  <div class="line"></div>
   <el-row>
     <el-col :span="5">
       <div class="cube-config">
@@ -99,7 +99,7 @@
 <script>
 import { fromObjToArr } from '../../../util/index'
 import { mapActions } from 'vuex'
-import { engineType } from '../../../config/index'
+import { engineTypeKylin, engineTypeKap } from '../../../config/index'
 export default {
   name: 'configurationOverwrites',
   props: ['cubeDesc'],
@@ -108,8 +108,7 @@ export default {
       convertedProperties: [],
       hiveConvertedProperties: [],
       jobConvertedProperties: [],
-      properties: fromObjToArr(this.cubeDesc.override_kylin_properties),
-      engineType: engineType
+      properties: fromObjToArr(this.cubeDesc.override_kylin_properties)
     }
   },
   methods: {
@@ -193,9 +192,12 @@ export default {
     })
   },
   computed: {
-    isPlusVersion () {
-      var kapVersionInfo = this.$store.state.system.serverAboutKap
-      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
+    engineType () {
+      if (+this.cubeDesc.storage_type === 2) {
+        return engineTypeKylin
+      } else if (+this.cubeDesc.storage_type === 99) {
+        return engineTypeKap
+      }
     }
   },
   locales: {

@@ -127,6 +127,9 @@ export default {
     },
     [types.GET_ACL_WHITELIST_ROW]: function ({commit}, para) {
       return api.datasource.getAclWhiteListOfRow(para.tableName, para.project)
+    },
+    [types.PREVIEW_ACL_SET_ROW_SQL]: function ({commit}, para) {
+      return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
     }
   }
 }

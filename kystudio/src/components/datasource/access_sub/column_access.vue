@@ -43,15 +43,21 @@
                 type="warning">
               </el-alert>
               <el-form :model="grantObj" ref="aclOfColumnForm" :rules="aclTableRules">
-                <el-form-item  prop="name">
-                  <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
+                <el-form-item  :label="$t('userName')" label-width="80px" prop="name">
+                  <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">
+                    <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+                  </el-select>
+                  <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
+
+              </el-form>
+              <el-form>
                 <el-form-item >
                   <el-transfer filterable :titles="titles" :props="{
-      key: 'name',
-      label: 'name'
-    }" v-model="needSetColumns" :data="columnList"></el-transfer>
+                    key: 'name',
+                    label: 'name'
+                  }" v-model="needSetColumns" :data="columnList"></el-transfer>
                 </el-form-item>
               </el-form>
               <div slot="footer" class="dialog-footer">
@@ -182,6 +188,7 @@ export default {
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclColumnData = data
+          this.getWhiteListOfColumn()
         })
       }, (res) => {
         handleError(res)
@@ -193,22 +200,14 @@ export default {
         project: this.$store.state.project.selected_project
       }).then((res) => {
         handleSuccess(res, (data) => {
-          this.aclWhiteList = data
-          if (typeof cb === 'function') {
-            var result = []
-            data.forEach((d) => {
-              result.push({value: d})
-            })
-            cb(result)
-          }
+          var result = []
+          data.forEach((d) => {
+            result.push({value: d})
+          })
+          this.aclWhiteList = result
         })
       }, (res) => {
         handleError(res)
-      })
-    },
-    querySearchAsync (queryString, cb) {
-      this.getWhiteListOfColumn((data) => {
-        cb(data)
       })
     }
   },
@@ -241,8 +240,8 @@ export default {
     this.getAllAclSetOfColumn()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configure this setting, user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Selected columns'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已选择列'}
+    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configure this setting, user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
   }
 }
 </script>

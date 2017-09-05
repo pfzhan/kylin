@@ -66,9 +66,13 @@ export const permissions = {
   OPERATION: {name: 'CUBE OPERATION', value: 'OPERATION', mask: 64},
   ADMINISTRATION: {name: 'CUBE ADMIN', value: 'ADMINISTRATION', mask: 16}
 }
-export const engineType = [
+export const engineTypeKylin = [
   {name: 'MapReduce', value: 2},
   {name: 'Spark (Beta)', value: 4}
+]
+export const engineTypeKap = [
+  {name: 'MapReduce', value: 100},
+  {name: 'Spark (Beta)', value: 98}
 ]
 export const SystemPwdRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/
 export const NamedRegex = /^\w+$/

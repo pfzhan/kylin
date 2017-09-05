@@ -34,10 +34,13 @@
           <el-dialog :title="$t('grant')" :visible.sync="addGrantDialog"  size="tiny" @close="closeDialog">
               <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
                 <el-form-item :label="$t('userName')" label-width="90px" prop="name">
-                  <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
+                  <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">
+                    <el-option v-for="b in aclBlackList" :value="b.value">{{b.value}}</el-option>
+                  </el-select>
+                  <!-- <el-autocomplete    :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
-                <el-form-item :label="$t('access')" label-width="90px">
+                <el-form-item :label="$t('access')" label-width="90px" class="is-required">
                   <el-select v-model="grantObj.access">
                     <el-option label="Query" :value="1"></el-option>
                   </el-select>
@@ -153,6 +156,7 @@ export default {
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclTableData = data
+          this.getBlackListOfTable()
         })
       }, (res) => {
         handleError(res)
@@ -165,21 +169,14 @@ export default {
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclBlackList = data
-          if (typeof cb === 'function') {
-            var result = []
-            data.forEach((d) => {
-              result.push({value: d})
-            })
-            cb(result)
-          }
+          var result = []
+          data.forEach((d) => {
+            result.push({value: d})
+          })
+          this.aclBlackList = result
         })
       }, (res) => {
         handleError(res)
-      })
-    },
-    querySearchAsync (queryString, cb) {
-      this.getBlackListOfTable((data) => {
-        cb(data)
       })
     }
   },

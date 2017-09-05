@@ -315,7 +315,8 @@ export default {
       this.resultDimensionArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
         this.resultDimensionArr[this.tableList[k].alias] = this.resultDimensionArr[this.tableList[k].alias] || []
-        for (var m = 0; m < this.tableList[k].columns.length; m++) {
+        var clen = this.tableList[k] && this.tableList[k].columns && this.tableList[k].columns.length || 0
+        for (var m = 0; m < clen; m++) {
           if (this.tableList[k].columns[m].btype === 'D') {
             // this.resultDimensionArr[this.tableList[k].alias] = this.resultDimensionArr[this.tableList[k].name] || []
             this.resultDimensionArr[this.tableList[k].alias].push({name: this.tableList[k].columns[m].name, guid: this.tableList[k].guid, isComputed: this.tableList[k].columns[m].isComputed})

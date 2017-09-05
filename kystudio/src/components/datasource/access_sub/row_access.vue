@@ -44,10 +44,13 @@
               </el-alert>
               <el-form :model="grantObj" ref="aclOfRowForm" :rules="aclTableRules" >
                 <el-form-item :label="$t('userName')" label-width="80px" prop="name">
-                  <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete>
+                  <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
+                  <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">
+                    <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+                  </el-select>
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
-                <el-form-item :label="$t('condition')" label-width="80px" class="ksd-mt-20">
+                <el-form-item :label="$t('condition')" label-width="80px" class="ksd-mt-20 is-required" style="position:relative">
                   <el-row v-for="(rowset, index) in rowSetDataList" >
                     <el-col :sm="20" :md="21" :lg="22">
                       <el-select v-model="rowset.columnName" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectColumnName')" @change="selectColumnName(index, rowset.columnName)">
@@ -61,12 +64,18 @@
                     </el-col>
                     <el-col :sm="4" :md="3" :lg="2" class="ksd-right"><el-button type="danger" icon="minus" @click="removeRowSet(index)"></el-button></el-col>
                     <el-col :span="24" class="ksd-pt-4" style="position: relative">
-                      <arealabel @click="showPicker" :placeholder="$t('pressEnter')" :ignoreSpecialChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
-                      <datepicker ref="hideDatePicker" :selectList="rowset.valueList" v-if="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
+                      <arealabel  :placeholder="$t('pressEnter')" :ignoreSpecialChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
+                      <datepicker ref="hideDatePicker" :dateType="timeComponentType" :selectList="rowset.valueList" v-show="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0 || dateTimeTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
                     </el-col>
                     <el-col :span="24"><div class="line"></div></el-col>
                   </el-row>
                   <el-button type="blue" icon="plus" class="ksd-mt-10" @click="addRowSet"></el-button>
+                  <div v-show="previewDialgVisible" class="previewDialog">
+                    <div class="header_tool">SQL<span class="el-icon-close" @click="previewDialgVisible=false"></span></div>
+                    <editor class="ksd-mt-4" ref="preview" lang="sql" useWrapMode="true" v-model="previewInfo"  theme="monokai" width="100%"></editor>
+                    <span class="dot-bottom"></span>
+                  </div>
+                  <div @click="openPreview" class="action_preview" v-show="!(saveConditionListLen === 0 || saveConditionListLen !== rowSetDataList.length)">{{$t('preview')}}</div>
                 </el-form-item>
               </el-form>
               <div slot="footer" class="dialog-footer">
@@ -102,12 +111,17 @@ export default {
       serarchChar: '',
       aclTableRow: {},
       aclWhiteList: [],
+      previewInfo: '',
       saveBtnLoad: false,
+      previewDialgVisible: false,
       isEdit: false,
       timeSelect: '',
+      timeComponentType: 'date',
       rowSetDataList: [],
       intTypeList: ['int', 'smallint', 'tinyint', 'integer', 'bigint'],
-      dateTypeList: ['date', 'timestamp'],
+      dateTypeList: ['date'],
+      dateTimeTypeList: ['datetime', 'timestamp'],
+      timeTypeList: ['time'],
       aclTableRules: {
         name: [{
           required: true, message: this.$t('kylinLang.common.pleaseSelectUserName'), trigger: 'change'
@@ -127,15 +141,44 @@ export default {
       saveAclSetOfRow: 'SAVE_ACL_SET_ROW',
       delAclSetOfRow: 'DEL_ACL_SET_ROW',
       getAclWhiteList: 'GET_ACL_WHITELIST_ROW',
-      updateAclSetOfRow: 'UPDATE_ACL_SET_ROW'
+      updateAclSetOfRow: 'UPDATE_ACL_SET_ROW',
+      previewSQL: 'PREVIEW_ACL_SET_ROW_SQL'
     }),
+    openPreview () {
+      this.previewSQL({
+        tableName: this.tableName,
+        project: this.$store.state.project.selected_project,
+        userName: this.grantObj.name,
+        conditions: this.saveConditionData
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.previewInfo = data
+        })
+      }, (res) => {
+        handleError(res)
+      })
+      this.previewDialgVisible = true
+      var editor = this.$refs.preview.editor
+      if (!(editor && editor.session)) {
+        return
+      }
+      editor.setReadOnly(true)
+      editor.setOption('wrap', 'free')
+      editor.session.gutterRenderer = {
+        getWidth: (session, lastLineNumber, config) => {
+          return lastLineNumber.toString().length * 1
+        },
+        getText: function (session, row) {
+          return row + 1
+        }
+      }
+    },
     closeDialog () {
       this.$refs.aclOfRowForm.resetFields()
+      this.previewDialgVisible = false
     },
     selectColumnName (i, columnName) {
-      console.log(i, columnName)
       var reg = this.getFilterRegExp(columnName)
-      // this.rowSetDataList[i] = {columnName: columnName, valueList: [], validateReg: reg}
       this.$set(this.rowSetDataList, i, {columnName: columnName, valueList: [], validateReg: reg})
     },
     validateFail () {
@@ -150,7 +193,11 @@ export default {
       } else if (columnType.indexOf('decimal') >= 0) {
         result = '^\\d+(.\\d+)?$'
       } else if (this.dateTypeList.indexOf(columnType) >= 0) {
+        result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])$'
+        this.timeComponentType = 'date'
+      } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
         result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])(\\s+(20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)?$'
+        this.timeComponentType = 'datetime'
       }
       return result
     },
@@ -163,6 +210,7 @@ export default {
           break
         }
       }
+      console.log(columnType)
       return columnType
     },
     refreshData (a, refreshInfo) {
@@ -273,6 +321,7 @@ export default {
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclTableRow = data
+          this.getWhiteListOfTable()
         })
       }, (res) => {
         handleError(res)
@@ -284,22 +333,14 @@ export default {
         project: this.$store.state.project.selected_project
       }).then((res) => {
         handleSuccess(res, (data) => {
-          this.aclWhiteList = data
-          if (typeof cb === 'function') {
-            var result = []
-            data.forEach((d) => {
-              result.push({value: d})
-            })
-            cb(result)
-          }
+          var result = []
+          data.forEach((d) => {
+            result.push({value: d})
+          })
+          this.aclWhiteList = result
         })
       }, (res) => {
         handleError(res)
-      })
-    },
-    querySearchAsync (queryString, cb) {
-      this.getWhiteListOfTable((data) => {
-        cb(data)
       })
     }
   },
@@ -316,11 +357,10 @@ export default {
           for (var c in this.aclTableRow[i]) {
             var columnType = this.getColumnType(c)
             this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
-              console.log(columnType)
               if (this.dateTypeList.indexOf(columnType) >= 0) {
-                console.log(k)
                 k = timestampTransToDateStr(k)
-                console.log(k)
+                return k
+              } else if (this.timeTypeList.indexOf(columnType) >= 0) {
                 return k
               } else {
                 return k
@@ -372,8 +412,8 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configure this setting, user will only be able to view data for column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Press ENTER after each input to generate a value'},
-    'zh-cn': {delConfirm: '此操作将删除该约束，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车键来生成一个值'}
+    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configure this setting, user will only be able to view data for column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value.', preview: 'Preview'},
+    'zh-cn': {delConfirm: '此操作将删除该约束，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值。', preview: '预览'}
   }
 }
 </script>
@@ -394,6 +434,66 @@ export default {
     left: 0;
   }
   .el-dialog{
+    .action_preview{
+      color: @base-color;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .previewDialog{
+      box-shadow: 0 14px 6px 4px rgba(0,0,0,.3);
+      .dot-bottom {  
+        font-size: 0;  
+        line-height: 0;  
+        border-width: 10px;  
+        border-color: #272822;  
+        border-bottom-width: 0;  
+        border-style: dashed;  
+        border-top-style: solid;  
+        border-left-color: transparent;  
+        border-right-color: transparent;  
+        position: absolute;
+        left: 34px;
+      }  
+      position: absolute;
+      width: 100%;
+      height: 100px;
+      bottom:54px;
+      left: -20px;
+      z-index: 99999;
+      border-radius: 5px 5px 5px 5px;
+      background-color: #43496b;
+      padding-bottom: 10px;
+      .header_tool{
+        height: 24px;
+        line-height: 24px;
+        padding-right: 10px;
+        padding-left: 10px;
+        span{
+          display: inline-block;
+          float: right;
+          cursor: pointer;
+          font-size: 16px;
+          margin-top: 4px;
+          &:before{
+            font-size: 12px;
+          }
+        }
+      }
+      .ace_editor{
+        height: 100%;
+        border:none;
+        border-radius: 0;
+        .ace_gutter-layer{
+          background-color: #2b2f43;
+        }
+        // .ace_scroller{
+        //   left: 20px;
+        // }
+        .ace_gutter-cell{
+          background-color: #2b2f43;
+        }
+      }
+    }
     .el-dialog__body {
       padding-top: 10px;
       .el-form-item{
