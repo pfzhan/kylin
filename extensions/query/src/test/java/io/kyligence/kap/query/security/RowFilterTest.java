@@ -156,12 +156,13 @@ public class RowFilterTest {
 
     @Test
     public void testJoinWithOutWhere() {
-        String sql = "select * from T1 join (select * from T2 join (select * from T3)) GROUP BY c";
-        String exceptedSQL = "select * from T1 join (select * from T2 join (select * from T3 WHERE T3.OPS_REGION='Beijing')) WHERE T1.OPS_REGION='Shanghai' GROUP BY c";
+        String sql = "select * from T1 join (select * from T2) ta on T1.c=ta.c GROUP BY c";
+        String exceptedSQL = "select * from T1 join (select * from T2) ta on T1.c=ta.c  WHERE  T1.OPS_REGION='Shanghai' GROUP BY c";
         Map<String, String> whereCond = new HashMap<>();
         // all key needs to be uppercase
-        whereCond.put("DB.T1", "OPS_REGION='Shanghai'");
-        whereCond.put("DB.T3", "OPS_REGION='Beijing'");
+        whereCond.put("DB.T1", " OPS_REGION='Shanghai' ");
+        whereCond.put("DB.T3", " OPS_REGION='Beijing' ");
+        System.out.println(RowFilter.rowFilter("DB", sql, whereCond));
         Assert.assertEquals(exceptedSQL, RowFilter.rowFilter("DB", sql, whereCond));
     }
 

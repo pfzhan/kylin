@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -59,15 +60,13 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        logger.info("---Start to transform SQL with row ACL---");
+        logger.info("The Origin SQL:\n" + sql);
+        logger.info("\n---Start to transform SQL with row ACL, see transformed sql in hte below---");
         Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project.toUpperCase());
         if (whereCondWithTbls.isEmpty()) {
             return sql;
         }
-        String sqlWithRowACL = rowFilter(defaultSchema, sql, whereCondWithTbls);
-        logger.info("The SQL:\n" + sqlWithRowACL);
-        logger.info("---End transform SQL with row ACL---");
-        return sqlWithRowACL;
+        return rowFilter(defaultSchema, sql, whereCondWithTbls);
     }
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
@@ -118,10 +117,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
                 if (i == 0) {
                     if (!select.hasWhere()) {
                         whereCond = new StringBuilder(" WHERE " + whereCond + cond);
-                        //CALCITE-1973 get right node's pos instead of from's pos
+                        //CALCITE-1973 get right node's pos instead of from's pos.In KYLIN, join must have on operator
                         if (select.getFrom() instanceof SqlJoin) {
-                            SqlNode right = ((SqlJoin) select.getFrom()).getRight();
-                            replacePos = new ReplacePos(CalciteParser.getReplacePos(right, inputSQL).getSecond() + 1);
+                            SqlNode rightMost = Preconditions.checkNotNull(((SqlJoin) select.getFrom()).getCondition(), "Join without on");
+                            replacePos = new ReplacePos(CalciteParser.getReplacePos(rightMost, inputSQL).getSecond() + 1);
                             continue;
                         }
                         //if inputSQL doesn't have where clause, splice where clause after from clause.

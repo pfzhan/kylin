@@ -88,7 +88,7 @@ public class RowACLTest {
         rowACL.add("user1", "DB.table2", condsWithColumn3, columnWithType);
         Assert.assertEquals(3, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.table1").size());
         Assert.assertEquals(2, rowACL.getQueryUsedConds().get("user1").getSplicedCondsByTable("DB.table1").split("AND").length);
-        Assert.assertEquals("col2='a' OR col2='b'", rowACL.getQueryUsedConds().get("user1").getSplicedCondsByTable("DB.table2"));
+        Assert.assertEquals("col2='a' OR col2='b' ", rowACL.getQueryUsedConds().get("user1").getSplicedCondsByTable("DB.table2"));
 
         //add different user row
         Map<String, List<String>> condsWithColumn4 = new HashMap<>();
@@ -98,7 +98,7 @@ public class RowACLTest {
         rowACL.add("user2", "DB2.table2", condsWithColumn4, columnWithType);
         Assert.assertEquals(1, rowACL.getTableRowCondsWithUser().get("user2").size());
         Assert.assertEquals(cond4, rowACL.getTableRowCondsWithUser().get("user2").getRowCondListByTable("DB2.table2").getCondsByColumn("col2"));
-        Assert.assertEquals("col2='c'", rowACL.getQueryUsedConds().get("user2").getSplicedCondsByTable("DB2.table2"));
+        Assert.assertEquals("col2='c' ", rowACL.getQueryUsedConds().get("user2").getSplicedCondsByTable("DB2.table2"));
 
         //update
         Map<String, List<String>> condsWithColumn5 = new HashMap<>();
@@ -108,7 +108,7 @@ public class RowACLTest {
         condsWithColumn5.put("col2", cond5);
         rowACL.update("user1", "DB.table2", condsWithColumn5, columnWithType);
         Assert.assertEquals(cond5, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.table2").getCondsByColumn("col2"));
-        Assert.assertEquals("col2='f' OR col2='ff'", rowACL.getQueryUsedConds().get("user1").getSplicedCondsByTable("DB.table2"));
+        Assert.assertEquals("col2='f' OR col2='ff' ", rowACL.getQueryUsedConds().get("user1").getSplicedCondsByTable("DB.table2"));
 
         //delete
         rowACL.delete("user1", "DB.table2");

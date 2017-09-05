@@ -163,15 +163,15 @@ public class RowACL extends RootPersistentEntity {
         for (String col : trimedCondsWithColumn.keySet()) {
             List<String> conds = trimedCondsWithColumn.get(col);
             for (int i = 0; i < conds.size(); i++) {
-                String cond = conds.get(i);
+                String cond = conds.get(i) + " ";
                 if (i == 0) {
                     result.append(col).append("=").append(cond);
                     continue;
                 }
-                result.append(" OR ").append(col).append("=").append(cond);
+                result.append("OR ").append(col).append("=").append(cond);
             }
             if (j != trimedCondsWithColumn.size() - 1) {
-                result.append(" AND ");
+                result.append("AND ");
             }
             j++;
         }
