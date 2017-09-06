@@ -65,6 +65,7 @@ public class SparkSqlClient implements Serializable {
 
     public SparkSqlClient(JavaSparkContext sc, Semaphore semaphore) {
         this.sc = sc;
+        sc.setLocalProperty("spark.scheduler.pool", "query_pushdown");
         this.semaphore = semaphore;
         this.maxDriverMem = semaphore.availablePermits();
         this.allocationTimeOut = Strings.isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout"))?

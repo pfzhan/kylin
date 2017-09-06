@@ -44,7 +44,6 @@ cp -rf conf/kylin-tools-log4j.properties ${package_name}/conf/
 cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
-cp -rf conf/fairscheduler.xml ${package_name}/conf/
 
 
 
