@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.rest.service.VubeService;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
@@ -66,6 +67,9 @@ public class ScheduleBuildJob implements Job {
     @Autowired
     private SchedulerJobService schedulerJobService;
 
+    @Autowired
+    private VubeService vubeService;
+
     public synchronized void execute(JobExecutionContext context) throws JobExecutionException {
         SpringBeanAutowiringSupport.processInjectionBasedOnCurrentContext(this);
 
@@ -85,7 +89,13 @@ public class ScheduleBuildJob implements Job {
             Long startTime = dataMap.getLong("startTime");
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
             String errorJobId = null;
-            CubeInstance cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
+            CubeInstance cube = null;
+
+            if (schedulerInstance.getRealizationType().equals("vube")) {
+                cube = vubeService.getVubeInstance(schedulerInstance.getRelatedRealization()).getLatestCube();
+            } else {
+                cube = jobService.getCubeManager().getCube(schedulerInstance.getRelatedRealization());
+            }
 
             if (cube.getStatus() == RealizationStatusEnum.DISABLED && cube.getSegments().size() > 0) {
                 logger.info("Cube " + cube.getName() + " is disabled, skip the scheduler this time.");

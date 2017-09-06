@@ -61,6 +61,16 @@
       "name": "ut_cube_desc_combination_int_overflow",
       "type": "CUBE",
       "realization": "ut_cube_desc_combination_int_overflow"
+    },
+    {
+      "name": "versioned_cube_version_1",
+      "type": "CUBE",
+      "realization": "versioned_cube_version_1"
+    },
+    {
+      "name": "versioned_cube_version_2",
+      "type": "CUBE",
+      "realization": "versioned_cube_version_2"
     }
   ],
   "tables": [

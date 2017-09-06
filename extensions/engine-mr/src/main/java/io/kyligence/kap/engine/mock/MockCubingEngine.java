@@ -22,36 +22,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.engine.mock;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.engine.IBatchCubingEngine;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 
-    private long triggerTime;
+public class MockCubingEngine implements IBatchCubingEngine {
 
-    private long repeatInterval;
-
-    public boolean isEnabled() {
-        return enabled;
+    @Override
+    public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeDesc cubeDesc) {
+        return null;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    @Override
+    public IJoinedFlatTableDesc getJoinedFlatTableDesc(CubeSegment newSegment) {
+        return null;
     }
 
-    public long getTriggerTime() {
-        return triggerTime;
+    @Override
+    public DefaultChainedExecutable createBatchCubingJob(CubeSegment newSegment, String submitter) {
+        return new MockJobBuilder(newSegment, submitter).build();
     }
 
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
+    @Override
+    public DefaultChainedExecutable createBatchMergeJob(CubeSegment mergeSegment, String submitter) {
+        return new MockJobBuilder(mergeSegment, submitter).build();
     }
 
-    public long getRepeatInterval() {
-        return repeatInterval;
+    @Override
+    public Class<?> getSourceInterface() {
+        return null;
     }
 
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    @Override
+    public Class<?> getStorageInterface() {
+        return null;
     }
 }

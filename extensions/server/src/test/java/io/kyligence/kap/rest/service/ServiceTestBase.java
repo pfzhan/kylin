@@ -27,20 +27,27 @@ package io.kyligence.kap.rest.service;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.UserService;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+
+import java.util.Arrays;
 
 /*
  * This class is a dup from kylin's ServiceTestBase, because:
@@ -51,6 +58,10 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 @ContextConfiguration(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml" })
 @ActiveProfiles("testing")
 public class ServiceTestBase extends LocalFileMetadataTestCase {
+
+    @Autowired
+    @Qualifier("userService")
+    UserService userService;
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -71,6 +82,12 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Broadcaster.getInstance(config).notifyClearAll();
+
+        if (!userService.userExists("ADMIN")) {
+            userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+                    new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
+                    new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+        }
     }
 
     @After

@@ -97,7 +97,7 @@ public class KapMessage {
     public String getPERMISSION_DENIED() {
         return "Permission denied!";
     }
-    
+
     public String getSELF_DELETE_FORBIDDEN() {
         return "Cannot delete yourself!";
     }
@@ -268,4 +268,32 @@ public class KapMessage {
         return "Invalid credentials for login. Please ensure your password/user information are correct.";
     }
 
+    //Versioned Cube
+    public String getVUBE_ALREADY_EXIST() {
+        return "The vube named '%s' already exists.";
+    }
+
+    public String getVUBE_NOT_FOUND() {
+        return "Cannot find vube '%s'.";
+    }
+
+    public String getVUBE_SEGMENTS_MERGE_LESS_THAN_TWO() {
+        return "Merge action will require checking two segments at least.";
+    }
+
+    public String getVUBE_SEGMENTS_BUILD_OVERLAPED() {
+        return "Segment to be built have overlap in timeline with segment %s, please try a different time range.";
+    }
+
+    public String getVUBE_SEGMENTS_MERGE_OVERLAPED() {
+        return "Selected segments have overlap in timeline, please try a different segment.";
+    }
+
+    public String getVUBE_SEGMENTS_DIFFERENT_VERSION() {
+        return "Selected segments have difference on cube definition, please try a different segment.";
+    }
+
+    public String getINVALID_CUBE_MANAGE_DEFINITION() {
+        return "The cube manage definition is not valid.";
+    }
 }

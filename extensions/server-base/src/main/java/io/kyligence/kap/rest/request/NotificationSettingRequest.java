@@ -24,34 +24,27 @@
 
 package io.kyligence.kap.rest.request;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import java.util.ArrayList;
+import java.util.List;
 
-    private long triggerTime;
 
-    private long repeatInterval;
+public class NotificationSettingRequest {
+    private List<String> notifyList = new ArrayList<>();;
+    private List<String> statusNeedNotify = new ArrayList<>();
 
-    public boolean isEnabled() {
-        return enabled;
+    public List<String> getNotifyList() {
+        return notifyList;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public void setNotifyList(List<String> notifyList) {
+        this.notifyList = notifyList;
     }
 
-    public long getTriggerTime() {
-        return triggerTime;
+    public List<String> getStatusNeedNotify() {
+        return statusNeedNotify;
     }
 
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
-    }
-
-    public long getRepeatInterval() {
-        return repeatInterval;
-    }
-
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    public void setStatusNeedNotify(List<String> statusNeedNotify) {
+        this.statusNeedNotify = statusNeedNotify;
     }
 }

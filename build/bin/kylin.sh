@@ -118,6 +118,23 @@ function checkRestPort() {
     [[ -z ${inuse} ]] || quit "Port ${kylin_rest_address_arr[1]} is not available. Another KAP server is running?"
 }
 
+function upgradeVersionedCube() {
+    echo "Start to check whether we need to upgrade to versioned cubes"
+
+    ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.metadata.VersionedCubeUpgradeCLI CHECK
+    ec=$?
+
+    if [ $ec == 2 ]; then
+        echo "Start to upgrade cubes' metadata to versioned cubes"
+        last_line=`${KYLIN_HOME}/bin/metastore.sh backup | awk 'END {print}'`
+        location=`echo "$last_line" | awk '{a=index($0,"/");print substr($0,a)}'`
+        sub_location=`echo "$location" | awk '{b=index($0,"meta_");print substr($0,0,b-1)}'`
+        rm -rf ${sub_location}"meta_backups/no_versioned_backup"
+        mv ${location} ${sub_location}"meta_backups/no_versioned_backup"
+        ${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.metadata.VersionedCubeUpgradeCLI UPGRADE
+    fi
+}
+
 function classpathDebug() {
     if [ "${KYLIN_CLASSPATH_DEBUG}" != "" ]; then
         echo "Finding ${KYLIN_CLASSPATH_DEBUG} on classpath" $@
@@ -162,6 +179,8 @@ then
     ${dir}/check-env.sh "if-not-yet" || exit 1
 
     checkRestPort
+
+    upgradeVersionedCube
 
     # kickoff spark-client
     columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`

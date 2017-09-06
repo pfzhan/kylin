@@ -22,36 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.engine.mock;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecuteResult;
 
-    private long triggerTime;
+public class MockCubingStep extends AbstractExecutable {
 
-    private long repeatInterval;
+    @Override
+    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public long getTriggerTime() {
-        return triggerTime;
-    }
-
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
-    }
-
-    public long getRepeatInterval() {
-        return repeatInterval;
-    }
-
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+        return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
     }
 }

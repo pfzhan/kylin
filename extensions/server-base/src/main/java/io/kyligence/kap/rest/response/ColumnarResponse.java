@@ -32,6 +32,7 @@ public class ColumnarResponse implements Serializable{
     private String segmentName;
     private String segmentUUID;
     private String segmentPath;
+    private String segmentStatus;
     private long fileCount;
     private long storageSize;
     private long dateRangeStart;
@@ -119,5 +120,13 @@ public class ColumnarResponse implements Serializable{
 
     public void setRawTableFileCount(long rawTableFileCount) {
         this.rawTableFileCount = rawTableFileCount;
+    }
+
+    public String getSegmentStatus() {
+        return segmentStatus;
+    }
+
+    public void setSegmentStatus(String segmentStatus) {
+        this.segmentStatus = segmentStatus;
     }
 }

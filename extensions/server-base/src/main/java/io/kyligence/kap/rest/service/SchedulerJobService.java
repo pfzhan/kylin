@@ -34,8 +34,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.AclPermission;
 import org.apache.kylin.rest.service.AccessService;
@@ -166,7 +168,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN
             + " or hasPermission(#project, 'ADMINISTRATION') or hasPermission(#project, 'MANAGEMENT')")
-    public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job, CubeInstance cube, ProjectInstance project)
+    public SchedulerJobInstance saveSchedulerJob(SchedulerJobInstance job, IRealization realization, ProjectInstance project)
             throws IOException {
         if (job.getUuid() == null)
             job.updateRandomUuid();
@@ -174,7 +176,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         getSchedulerJobManager().addSchedulerJob(job);
 
         accessService.init(job, AclPermission.ADMINISTRATION);
-        accessService.inherit(job, cube);
+
+        if (realization instanceof AclEntity)
+            accessService.inherit(job, (AclEntity) realization);
         return job;
     }
 
@@ -188,6 +192,8 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         getSchedulerJobManager().addSchedulerJob(job);
         return job;
     }
+
+
 
     public SchedulerJobInstance updateSchedulerJobInternal(SchedulerJobInstance job, Map<String, Long> settings)
             throws Exception {
@@ -229,10 +235,10 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return job;
     }
 
-    public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+    public SchedulerJobInstance deleteSchedulerJob(SchedulerJobInstance job, ProjectInstance project)
             throws IOException, SchedulerException {
-        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
-        disableSchedulerJob(job, cube);
+        aclEvaluate.hasProjectOperationPermission(project);
+        disableSchedulerJob(job, project);
         getSchedulerJobManager().removeSchedulerJob(job);
         accessService.clean(job, true);
         return job;
@@ -243,9 +249,9 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return deleteSchedulerJobInternal(name);
     }
 
-    public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+    public SchedulerJobInstance disableSchedulerJob(SchedulerJobInstance job,  ProjectInstance project)
             throws IOException, SchedulerException {
-        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
+        aclEvaluate.hasProjectOperationPermission(project);
         if (cubeTriggerKeyMap.containsKey(job.getRelatedRealization())) {
             Trigger trigger = scheduler.getTrigger(cubeTriggerKeyMap.get(job.getRelatedRealization()));
             if (trigger != null) {
@@ -282,9 +288,8 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         return newJob;
     }
 
-    public void enableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
+    public void enableSchedulerJob(SchedulerJobInstance job, ProjectInstance project)
             throws ParseException, SchedulerException, IOException {
-        aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
         if (!validateScheduler(job))
             return;
 
@@ -295,7 +300,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
 
         JobDataMap dataMap = jobDetail.getJobDataMap();
         dataMap.put("name", job.getName());
-        dataMap.put("cube", job.getRelatedRealization());
+        dataMap.put("realization", job.getRelatedRealization());
         dataMap.put("startTime", job.getPartitionStartTime());
         dataMap.put("partitionInterval", job.getPartitionInterval());
         dataMap.put("user", "JOB_SCHEDULER");
@@ -353,6 +358,11 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         scheduler.pauseTrigger(cubeTriggerKeyMap.get(cubeName));
     }
 
+    public void updateSchedulerRealizationType(SchedulerJobInstance job, String realizationType) throws IOException {
+        job.setRealizationType(realizationType);
+        getSchedulerJobManager().updateSchedulerJobInstance(job);
+    }
+
     public void resumeSchedulers() throws IOException {
         List<SchedulerJobInstance> schedulerList = null;
         try {
@@ -364,7 +374,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         for (SchedulerJobInstance schedulerInstance : schedulerList) {
             try {
                 if (schedulerInstance.isEnabled()) {
-                    enableSchedulerJob(schedulerInstance, getCubeManager().getCube(schedulerInstance.getName()));
+                    enableSchedulerJob(schedulerInstance, getProjectManager().getProject(schedulerInstance.getProject()));
                 }
             } catch (ParseException e) {
                 throw new RuntimeException(e.getMessage(), e);

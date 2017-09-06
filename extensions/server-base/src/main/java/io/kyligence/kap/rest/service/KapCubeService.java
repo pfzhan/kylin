@@ -107,6 +107,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
         columnarResp.setSegmentName(segment.getName());
         columnarResp.setSegmentUUID(segment.getUuid());
         columnarResp.setSegmentPath(segStoragePath);
+        columnarResp.setSegmentStatus(segment.getStatus().toString());
 
         if (raw != null) {
             List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByTSRange(raw, segment.getTSRange());
@@ -160,22 +161,28 @@ public class KapCubeService extends BasicService implements InitializingBean {
         aclEvaluate.hasProjectReadPermission(cube.getProjectInstance());
         List<ColumnarResponse> columnar = new ArrayList<>();
         for (CubeSegment segment : cube.getSegments()) {
-            final KylinConfig config = KylinConfig.getInstanceFromEnv();
-            String storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
-
-            ColumnarResponse info;
-            try {
-                info = getColumnarInfo(storagePath, segment);
-            } catch (IOException ex) {
-                logger.error("Can't get columnar info, cube {}, segment {}:", cube, segment);
-                logger.error("{}", ex);
-                continue;
+            ColumnarResponse info = getColumnarInfo(segment);
+            if (info != null) {
+                columnar.add(info);
             }
-
-            columnar.add(info);
         }
 
         return columnar;
+    }
+
+    public ColumnarResponse getColumnarInfo(CubeSegment segment) {
+        final KylinConfig config = KylinConfig.getInstanceFromEnv();
+        String storagePath = ColumnarStorageUtils.getSegmentDir(config, segment.getCubeInstance(), segment);
+
+        ColumnarResponse info = null;
+        try {
+            info = getColumnarInfo(storagePath, segment);
+        } catch (IOException ex) {
+            logger.error("Can't get columnar info, cube {}, segment {}:", segment.getCubeInstance(), segment);
+            logger.error("{}", ex);
+        }
+
+        return info;
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {

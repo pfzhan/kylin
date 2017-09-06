@@ -29,7 +29,7 @@
                 "99.9908"
             ]
         ],
-        "cube": "INVERTED_INDEX[name=kylin_sales_cube]",
+        "cube": "HYBRID2[name=kylin_sales_cube]",
         "affectedRowCount": 0,
         "isException": false,
         "exceptionMessage": null,

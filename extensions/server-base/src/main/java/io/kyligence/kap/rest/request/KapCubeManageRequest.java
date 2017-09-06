@@ -24,34 +24,32 @@
 
 package io.kyligence.kap.rest.request;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+public class KapCubeManageRequest extends KapCubeRequest{
+    private String cubeManageDescData;
+    private String schedulerJobData;
+    private String project;
 
-    private long triggerTime;
-
-    private long repeatInterval;
-
-    public boolean isEnabled() {
-        return enabled;
+    public String getCubeManageDescData() {
+        return cubeManageDescData;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public void setCubeManageDescData(String cubeManageDescData) {
+        this.cubeManageDescData = cubeManageDescData;
     }
 
-    public long getTriggerTime() {
-        return triggerTime;
+    public String getSchedulerJobData() {
+        return schedulerJobData;
     }
 
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
+    public void setSchedulerJobData(String schedulerJobData) {
+        this.schedulerJobData = schedulerJobData;
     }
 
-    public long getRepeatInterval() {
-        return repeatInterval;
+    public void setProject(String project) {
+        this.project = project;
     }
 
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    public String getProject() {
+        return project;
     }
 }

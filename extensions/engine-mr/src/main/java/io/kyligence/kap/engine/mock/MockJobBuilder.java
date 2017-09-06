@@ -22,36 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.engine.mock;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.engine.mr.CubingJob;
+import org.apache.kylin.engine.mr.JobBuilderSupport;
 
-    private long triggerTime;
-
-    private long repeatInterval;
-
-    public boolean isEnabled() {
-        return enabled;
+public class MockJobBuilder extends JobBuilderSupport {
+    public MockJobBuilder(CubeSegment seg, String submitter) {
+        super(seg, submitter);
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public long getTriggerTime() {
-        return triggerTime;
-    }
-
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
-    }
-
-    public long getRepeatInterval() {
-        return repeatInterval;
-    }
-
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    public MockCubingJob build() {
+        final MockCubingJob result = new MockCubingJob(CubingJob.createBuildJob(seg, submitter, config));
+        result.addTask(new MockCubingStep());
+        return result;
     }
 }

@@ -29,7 +29,7 @@
                 "10000"
             ]
         ],
-        "cube": "CUBE[name=kylin_sales_cube]",
+        "cube": "HYBRID2[name=kylin_sales_cube]",
         "affectedRowCount": 0,
         "isException": false,
         "exceptionMessage": null,

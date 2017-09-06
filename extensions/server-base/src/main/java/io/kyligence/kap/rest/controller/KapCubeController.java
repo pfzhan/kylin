@@ -255,9 +255,9 @@ public class KapCubeController extends BasicController implements InitializingBe
                 schedule.setPartitionStartTime(cubeDesc.getPartitionDateStart());
                 bindSchedulerJobWithCube(schedule, cubeDesc.getName(), cubeDesc.getUuid(), project);
                 if (schedule.isEnabled()) {
-                    schedulerJobService.enableSchedulerJob(schedule, cube);
+                    schedulerJobService.enableSchedulerJob(schedule, project);
                 } else {
-                    schedulerJobService.disableSchedulerJob(schedule, cube);
+                    schedulerJobService.disableSchedulerJob(schedule, project);
                 }
             } else {
                 //                SchedulerJobInstance localSchedule = schedulerJobService.getSchedulerJobManager()
@@ -493,8 +493,10 @@ public class KapCubeController extends BasicController implements InitializingBe
 
             SchedulerJobInstance schedulerJobInstance = schedulerJobService.getSchedulerJobManager()
                     .getSchedulerJob(cubeName);
+            ProjectInstance project = cubeService.getProjectManager().getProject(cube.getProject());
+
             if (schedulerJobInstance != null) {
-                schedulerJobService.disableSchedulerJob(schedulerJobInstance, cube);
+                schedulerJobService.disableSchedulerJob(schedulerJobInstance, project);
             }
         } catch (Exception ex) {
             cp.rollback();
@@ -510,7 +512,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     private void deleteCube(String cubeName) throws IOException, SchedulerException {
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (cube != null) {
-            deleteScheduler(cubeName, cube);
+            deleteScheduler(cubeName);
             RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
             if (null != raw) {
                 rawTableService.deleteRaw(raw, cube);
@@ -519,10 +521,12 @@ public class KapCubeController extends BasicController implements InitializingBe
         }
     }
 
-    private void deleteScheduler(String cubeName, CubeInstance cube) throws IOException, SchedulerException {
+    private void deleteScheduler(String cubeName) throws IOException, SchedulerException {
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
+        ProjectInstance project = cubeService.getProjectManager().getProject(job.getProject());
+
         if (job != null) {
-            schedulerJobService.deleteSchedulerJob(job, cube);
+            schedulerJobService.deleteSchedulerJob(job, project);
         }
     }
 
@@ -588,7 +592,7 @@ public class KapCubeController extends BasicController implements InitializingBe
         SchedulerJobInstance older = getSchedulerJobByCubeName(cubeName);
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (null != older)
-            schedulerJobService.deleteSchedulerJob(older, cube);
+            schedulerJobService.deleteSchedulerJob(older, project);
 
         schedule.setRelatedRealization(cubeName);
         schedule.setName(cubeName);

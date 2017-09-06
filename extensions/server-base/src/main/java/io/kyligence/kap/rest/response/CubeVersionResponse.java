@@ -22,36 +22,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import java.io.Serializable;
 
-    private long triggerTime;
+public class CubeVersionResponse implements Serializable {
+    private String version;
+    private long createTime;
 
-    private long repeatInterval;
-
-    public boolean isEnabled() {
-        return enabled;
+    public CubeVersionResponse(String version, long createTime) {
+        this.version = version;
+        this.createTime = createTime;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public String getVersion() {
+        return version;
     }
 
-    public long getTriggerTime() {
-        return triggerTime;
+    public void setVersion(String version) {
+        this.version = version;
     }
 
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
+    public long getCreateTime() {
+        return createTime;
     }
 
-    public long getRepeatInterval() {
-        return repeatInterval;
-    }
-
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
     }
 }

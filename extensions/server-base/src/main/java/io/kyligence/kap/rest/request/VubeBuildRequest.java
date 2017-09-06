@@ -24,34 +24,66 @@
 
 package io.kyligence.kap.rest.request;
 
-public class ScheduleJobRequest {
-    private boolean enabled;
+import java.util.List;
 
-    private long triggerTime;
+public class VubeBuildRequest {
+    private List<String> segments;
 
-    private long repeatInterval;
+    private boolean upgrade;
 
-    public boolean isEnabled() {
-        return enabled;
+    private long startTime;
+
+    private long endTime;
+
+    private String buildType;
+
+    private boolean force;
+
+    public List<String> getSegments() {
+        return segments;
     }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
+    public void setSegments(List<String> segments) {
+        this.segments = segments;
     }
 
-    public long getTriggerTime() {
-        return triggerTime;
+    public boolean isUpgrade() {
+        return upgrade;
     }
 
-    public void setriggerTime(long triggerTime) {
-        this.triggerTime = triggerTime;
+    public void setUpgrade(boolean upgrade) {
+        this.upgrade = upgrade;
     }
 
-    public long getRepeatInterval() {
-        return repeatInterval;
+    public long getStartTime() {
+        return startTime;
     }
 
-    public void setRepeatInterval(long repeatInterval) {
-        this.repeatInterval = repeatInterval;
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getBuildType() {
+        return buildType;
+    }
+
+    public void setBuildType(String buildType) {
+        this.buildType = buildType;
+    }
+
+    public boolean isForce() {
+        return force;
+    }
+
+    public void setForce(boolean force) {
+        this.force = force;
     }
 }
