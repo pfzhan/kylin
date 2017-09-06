@@ -161,7 +161,7 @@
     </manageCard>
 
     <manageCard :title="$t('cubeConfig')" v-on:save="checkConfigFrom">
-      <configuration_overwrites :cubeDesc="saveData.cubeDescData" slot="content">
+      <configuration_overwrites class="config" :cubeDesc="saveData.cubeDescData" slot="content">
       </configuration_overwrites>
     </manageCard>
   </div>
@@ -395,6 +395,9 @@ export default {
     .el-input__inner {
       padding: 1px 5px 3px 3px;
     }
+  }
+  .config {
+    padding-left: 9px;
   }
  }
 </style>
