@@ -125,13 +125,13 @@
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
+        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.LogErrorFilter"/>
     </beans>
     <beans profile="testing">
         <bean id="ehcache"
               class="org.springframework.cache.ehcache.EhCacheManagerFactoryBean"
               p:configLocation="classpath:ehcache-test.xml" p:shared="true"/>
-        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.DoNothingFilter"/>
+        <bean id="requestResponseLoggingFilter" class="io.kyligence.kap.rest.spring.LogErrorFilter"/>
     </beans>
     <beans profile="debug-ldap,debug-saml">
         <bean id="ehcache"
