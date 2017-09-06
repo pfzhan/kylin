@@ -438,13 +438,13 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
                 columnDescs[i] = columnLookup.get(columnRefs[i]);
                 checkState(columnDescs[i] != null, "column desc at (%s) is null", i);
                 columnIndex[i] = columnIndexLookup.get(columnRefs[i]);
-                checkState(columnIndex[i] >= 0, "column index at (%s) not positive", i);
-                
-                checkState(columnIndex[i] > lastColumnIndex, "column (%s) is not in order", columnRefs[i]);
-                lastColumnIndex = columnIndex[i];
+                checkState(columnIndex[i] >= 0, "column index at (%s) not positive", i);                
                 
                 checkState(!columnSet.contains(columnRefs[i]), "column (%s) duplicates", columnRefs[i]);
                 columnSet.add(columnRefs[i]);
+                
+                checkState(columnIndex[i] > lastColumnIndex, "column (%s) is not in order", columnRefs[i]);
+                lastColumnIndex = columnIndex[i];
 
                 checkEachColumnExist.set(columnIndex[i]);
             }
