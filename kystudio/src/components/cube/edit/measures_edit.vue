@@ -1,8 +1,8 @@
 <template>
 <div id="measures">
   <div style="margin-top: 20px;">
-    <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('measuresSuggestion')}}</el-button>
-    <el-button type="default" icon="setting" @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
+    <el-button type="blue" icon="menu" @click.native="cubeSuggestions">{{$t('measuresSuggestion')}}</el-button>
+    <el-button type="default" icon="setting" @click.native="resetMeasures">{{$t('resetMeasures')}}</el-button>
      <common-tip :content="$t('measuresSuggestTip')" >
              <icon name="question-circle-o"></icon>
     </common-tip>
@@ -66,12 +66,13 @@
       align="center"
       width="100">
       <template scope="scope">
-        <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button>
-        <el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
+        <el-button type="edit"  size="mini" icon="edit"  @click="editMeasure(scope.row)"></el-button>
+        <el-button type="edit"  size="mini" icon="delete" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
     </el-table-column>
   </el-table>
-   <el-button type="blue" icon="plus" :disabled="isReadyCube" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>
+  
+   <el-button type="blue" icon="plus" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>
       <el-row v-if="!isPlusVersion">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
       </el-row>
@@ -102,15 +103,14 @@
       </el-table>
      <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
-   }
-  <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
-    <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
-    </span>
-  </el-dialog>
-</div>
+    <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
+      <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
+      </span>
+    </el-dialog>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -395,10 +395,6 @@ export default {
     isPlusVersion () {
       var kapVersionInfo = this.$store.state.system.serverAboutKap
       return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
-    },
-    isReadyCube () {
-      return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
-      // return this.cubeDesc.status === 'READY'
     }
   },
   created () {
@@ -427,6 +423,11 @@ export default {
     }
     .el-button--primary:hover{
       border-color: @base-color;
+    }
+    .el-tag--primary {
+      background: rgba(33,143,234,0.1)!important;
+      color: rgb(33,143,234)!important;
+      border-color: rgba(33,143,234,0.2);
     }
   }
 </style>

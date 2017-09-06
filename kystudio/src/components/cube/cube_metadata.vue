@@ -67,7 +67,7 @@ export default {
       this.getScheduler(commonPara).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           if (data) {
-            this.saveData.schedulerJobData = JSON.stringify(data.rawTable || data.draft)
+            this.saveData.schedulerJobData = JSON.stringify(data.schedulerJob || data.draft)
           }
         })
       })

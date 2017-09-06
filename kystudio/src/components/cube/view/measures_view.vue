@@ -1,83 +1,83 @@
 <template>
-<div> 
-  <div class="title" style="padding: 5px 0 1px 0;">{{$t('measures')}}</div>
-  <el-table
-    :data="cubeDesc.desc.measures"
-    border stripe 
-    style="width: 100%">
-    <el-table-column
-      property="name"
-      :label="$t('name')"
-      header-align="center"
-      align="center">
-    </el-table-column>
-    <el-table-column
-      property="function.expression"
-      :label="$t('expression')"
-      align="center"
-      header-align="center"
-      width="180">
-    </el-table-column>    
-    <el-table-column
-      :label="$t('parameters')"
-      header-align="center"
-      align="center">
-      <template scope="scope">
-        <parameter_tree :measure="scope.row">
-        </parameter_tree>  
-      </template>
-    </el-table-column>
-    <el-table-column
-      :label="$t('datatype')"
-      header-align="center"
-      align="center"
-      width="110"> 
-      <template scope="scope">
-        <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
-          {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
-        </span>
-      </template>  
-    </el-table-column>  
-    <el-table-column
-      :label="$t('comment')"
-      header-align="center"
-      align="center"
-      width="110">   
-      <template scope="scope">
-        <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
-          {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].comment}}
-        </span>
-      </template>  
-    </el-table-column>
-    <el-table-column
-      property="function.returntype"    
-      :label="$t('returnType')"
-      header-align="center"
-      align="center"
-      width="120">
-    </el-table-column>                  
-  </el-table>
-  <el-row v-if="!isPlusVersion">
-    <el-col :span="24" style="padding: 15px 0 1px 0;">{{$t('advancedColumnFamily')}}</el-col>
-  </el-row> 
-  <el-table v-if="!isPlusVersion"
-    :data="cubeDesc.desc.hbase_mapping.column_family"
-    style="width: 100%">
-    <el-table-column
+  <div id="measures_view"> 
+    <div class="title" style="padding: 5px 0 1px 0;">{{$t('measures')}}</div>
+    <el-table
+      :data="cubeDesc.desc.measures"
+      border stripe 
+      style="width: 100%">
+      <el-table-column
         property="name"
-        :label="$t('columnFamily')"
-        width="150">
-    </el-table-column>       
-    <el-table-column
-        :label="$t('measures')">
+        :label="$t('name')"
+        header-align="center"
+        align="center">
+      </el-table-column>
+      <el-table-column
+        property="function.expression"
+        :label="$t('expression')"
+        align="center"
+        header-align="center"
+        width="180">
+      </el-table-column>    
+      <el-table-column
+        :label="$t('parameters')"
+        header-align="center"
+        align="center">
         <template scope="scope">
-          <el-col :span="24">
-            <el-tag class="tag_margin" type="primary" v-for="(mr, index) in scope.row.columns[0].measure_refs" :key="index">{{mr}}</el-tag>
-          </el-col>
+          <parameter_tree :measure="scope.row">
+          </parameter_tree>  
         </template>
-    </el-table-column>                                             
-  </el-table>  
-</div>
+      </el-table-column>
+      <el-table-column
+        :label="$t('datatype')"
+        header-align="center"
+        align="center"
+        width="110"> 
+        <template scope="scope">
+          <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
+            {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
+          </span>
+        </template>  
+      </el-table-column>  
+      <el-table-column
+        :label="$t('comment')"
+        header-align="center"
+        align="center"
+        width="110">   
+        <template scope="scope">
+          <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
+            {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].comment}}
+          </span>
+        </template>  
+      </el-table-column>
+      <el-table-column
+        property="function.returntype"    
+        :label="$t('returnType')"
+        header-align="center"
+        align="center"
+        width="120">
+      </el-table-column>                  
+    </el-table>
+    <el-row v-if="!isPlusVersion">
+      <el-col :span="24" style="padding: 15px 0 1px 0;">{{$t('advancedColumnFamily')}}</el-col>
+    </el-row> 
+    <el-table v-if="!isPlusVersion"
+      :data="cubeDesc.desc.hbase_mapping.column_family"
+      style="width: 100%">
+      <el-table-column
+          property="name"
+          :label="$t('columnFamily')"
+          width="150">
+      </el-table-column>       
+      <el-table-column
+          :label="$t('measures')">
+          <template scope="scope">
+            <el-col :span="24">
+              <el-tag class="tag_margin" type="primary" v-for="(mr, index) in scope.row.columns[0].measure_refs" :key="index">{{mr}}</el-tag>
+            </el-col>
+          </template>
+      </el-table-column>                                             
+    </el-table>  
+  </div>
 </template>
 <script>
 import parameterTree from '../../common/parameter_tree'
@@ -99,19 +99,23 @@ export default {
   }
 }
 </script>
-<style scoped="">
- .row_padding {
-  padding-top: 5px;
-  padding-bottom: 5px;
- }
- .tag_margin {
-  margin-left: 4px;
-  margin-bottom: 2px;
-  margin-top: 2px;
-  margin-right: 4px;
- }
- .dropdown ul {
-  height: 150px;
-  overflow: scroll;
- }
+<style lang="less">
+@import '../../../less/config.less';
+  #measures_view {
+    .tag_margin {
+      margin-left: 4px;
+      margin-bottom: 2px;
+      margin-top: 2px;
+      margin-right: 4px;
+    }
+    .dropdown ul {
+      height: 150px;
+      overflow: scroll;
+    }
+    .el-tag--primary {
+      background: rgba(33,143,234,0.1)!important;
+      color: rgb(33,143,234)!important;
+      border-color: rgba(33,143,234,0.2);
+    }
+  }
 </style>

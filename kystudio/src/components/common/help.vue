@@ -52,7 +52,7 @@
   </div>
 </el-dialog>
 
-  <el-dialog :title="$t('license')" v-model="updateLicenseVisible" size="small">
+  <el-dialog class="license" :title="$t('license')" v-model="updateLicenseVisible" size="tiny">
     <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
     <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
     <div slot="footer" class="dialog-footer">
@@ -341,6 +341,9 @@
     .el-icon-caret-bottom{
       font-size: 12px;
     }
+  }
+  .license {
+    top: 20%;
   }
   #about-kap{
     .el-dialog__header{

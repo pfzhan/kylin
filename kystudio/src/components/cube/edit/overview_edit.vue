@@ -1,19 +1,25 @@
 <template>
- <el-table 
-  :data="cubeData"
-  :show-header="false"
-  border class="table_margin"
-  style="width: 100%">
+  <div id="overview">
+    <el-alert
+      :title="$t('saveTip')"
+      type="info">
+    </el-alert>
+    <el-table 
+    :data="cubeData"
+    :show-header="false"
+    border class="table_margin"
+    style="width: 100%">
+        <el-table-column
+        width="120">
+        <template scope="scope">
+          {{$t(scope.row.label)}}
+        </template>
+      </el-table-column>
       <el-table-column
-      width="120">
-      <template scope="scope">
-        {{$t(scope.row.label)}}
-      </template>
-    </el-table-column>
-    <el-table-column
-    prop="value">
-    </el-table-column>
-  </el-table>
+      prop="value">
+      </el-table-column>
+    </el-table>
+  </div>
 </template>
 
 <script>
@@ -33,14 +39,16 @@ export default {
     }
   },
   locales: {
-    'en': {modelName: 'Model Name', cubeName: 'Cube Name', factTable: 'Fact Table', lookupTable: 'Lookup Table', dimensions: 'Dimensions', measures: 'Measures'},
-    'zh-cn': {modelName: '模型名称', cubeName: 'Cube名称', factTable: '事实表', lookupTable: '维度表', dimensions: '维度', measures: '度量'}
+    'en': {modelName: 'Model Name', cubeName: 'Cube Name', factTable: 'Fact Table', lookupTable: 'Lookup Table', dimensions: 'Dimensions', measures: 'Measures', saveTip: 'Click SAVE, detected changes will be saved in a new Cube.'},
+    'zh-cn': {modelName: '模型名称', cubeName: 'Cube名称', factTable: '事实表', lookupTable: '维度表', dimensions: '维度', measures: '度量', saveTip: '点击保存后，所有修改将被保存在一个新版的Cube中。'}
   }
 }
 </script>
 <style scoped>
- .table_margin {
-   margin-top: 20px;
-   margin-bottom: 20px;
- }
+ #overview {
+   .table_margin {
+     margin-top: 20px;
+     margin-bottom: 20px;
+   }
+  }
 </style>

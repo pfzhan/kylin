@@ -124,7 +124,6 @@ export default {
     },
     getTableColumns: function () {
       let _this = this
-      // console.log(_this.modelDesc.dimensions, 'lll')
       _this.modelDesc.dimensions.forEach(function (dimension) {
         _this.multipleSelection[dimension.table] = []
         if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
@@ -157,19 +156,18 @@ export default {
       }
     },
     getCubeColumnInTable: function () {
-      let _this = this
-      _this.cubeDimensions.forEach(function (dimension) {
-        if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
-          _this.multipleSelection[dimension.table].push({table: dimension.table, column: dimension.column, name: dimension.name, isSelected: true})
-          _this.factTableColumns.forEach(function (table) {
+      this.cubeDimensions.forEach((dimension) => {
+        if (this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
+          this.multipleSelection[dimension.table].push({table: dimension.table, column: dimension.column, name: dimension.name, isSelected: true})
+          this.factTableColumns.forEach((table) => {
             if (table.tableName === dimension.table) {
-              table.columns.forEach(function (column) {
+              table.columns.forEach((column) => {
                 if (column.column === dimension.column) {
-                  _this.$nextTick(function () {
-                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  this.$nextTick(() => {
+                    this.$refs[dimension.table][0].toggleRowSelection(column, true)
                   })
-                  _this.$set(column, 'isSelected', true)
-                  _this.$set(column, 'name', dimension.name)
+                  this.$set(column, 'isSelected', true)
+                  this.$set(column, 'name', dimension.name)
                 }
               })
             }
@@ -179,17 +177,17 @@ export default {
           if (dimension.column) {
             type = 'false'
           }
-          _this.lookupTableColumns.forEach(function (table) {
+          this.lookupTableColumns.forEach((table) => {
             if (table.tableName === dimension.table) {
-              table.columns.forEach(function (column) {
+              table.columns.forEach((column) => {
                 if ((type === 'false' && column.column === dimension.column) || (type === 'true' && column.column === dimension.derived[0])) {
-                  _this.multipleSelection[dimension.table].push({table: dimension.table, column: column.column, name: dimension.name, isSelected: true, derived: type})
-                  _this.$nextTick(function () {
-                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  this.multipleSelection[dimension.table].push({table: dimension.table, column: column.column, name: dimension.name, isSelected: true, derived: type})
+                  this.$nextTick(() => {
+                    this.$refs[dimension.table][0].toggleRowSelection(column, true)
                   })
-                  _this.$set(column, 'isSelected', true)
-                  _this.$set(column, 'name', dimension.name)
-                  _this.$set(column, 'derived', type)
+                  this.$set(column, 'isSelected', true)
+                  this.$set(column, 'name', dimension.name)
+                  this.$set(column, 'derived', type)
                 }
               })
             }
@@ -198,10 +196,9 @@ export default {
       })
     },
     changeType: function (column) {
-      let _this = this
-      _this.multipleSelection[column.table].forEach(function (col) {
+      this.multipleSelection[column.table].forEach((col) => {
         if (col.column === column.column) {
-          _this.$set(col, 'derived', column.derived)
+          this.$set(col, 'derived', column.derived)
         }
       })
     },
@@ -213,20 +210,19 @@ export default {
       }
     },
     selectionAllChange: function (tableName) {
-      let _this = this
-      if (_this.$refs[tableName][0].store.states.selection.length > 0) {
-        _this.$refs[tableName][0].data.forEach(function (selection) {
-          _this.$set(selection, 'isSelected', true)
+      if (this.$refs[tableName][0].store.states.selection.length > 0) {
+        this.$refs[tableName][0].data.forEach((selection) => {
+          this.$set(selection, 'isSelected', true)
         })
-        _this.multipleSelection[tableName] = _this.$refs[tableName][0].data
+        this.multipleSelection[tableName] = this.$refs[tableName][0].data
       } else {
-        _this.$refs[tableName][0].data.forEach(function (selection) {
-          _this.$set(selection, 'isSelected', false)
+        this.$refs[tableName][0].data.forEach((selection) => {
+          this.$set(selection, 'isSelected', false)
           if (selection.derived) {
-            _this.$set(selection, 'derived', selection.derived)
+            this.$set(selection, 'derived', selection.derived)
           }
         })
-        _this.multipleSelection[tableName] = []
+        this.multipleSelection[tableName] = []
       }
     }
   },

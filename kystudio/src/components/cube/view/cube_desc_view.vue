@@ -1,77 +1,65 @@
 <template>
 <div class="cube_desc_view" id="cube-view">
-  <el-steps :active="activeStep"  finish-status="finish" process-status="wait" center >
+  <el-steps class="cube-step" :active="activeStep" space="20%"  finish-status="finish" process-status="wait" center align-center >
     <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
-    <!-- <el-step :title="$t('Sql')" @click.native="step(2)"></el-step> -->
     <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
     <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
-    <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
-    <el-step :title="$t('tableIndex')" @click.native="step(5)"></el-step>
-    <el-step :title="$t('AdvancedSetting')" @click.native="step(6)"></el-step>
-    <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
+    <el-step :title="$t('tableIndex')" @click.native="step(4)"></el-step>
+    <el-step :title="$t('overview')" @click.native="step(5)"></el-step>
   </el-steps>
-  <info v-if="activeStep===1" :cubeDesc="cube"></info>
-  <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cube"></sample_sql> -->
-  <dimensions v-if="activeStep===2" :cubeDesc="cube"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="cube"></measures>
-  <refresh_setting v-if="activeStep===4" :cubeDesc="cube"></refresh_setting>
-  <table_index v-if="activeStep===5" :cubeDesc="cube" :cubeIndex="index"></table_index>
-  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cube"></configuration_overwrites>
-  <overview v-if="activeStep===7" :desc="cube"></overview>
+  <info v-if="activeStep===1" :cubeDesc="extraoption"></info>
+  <dimensions v-if="activeStep===2" :cubeDesc="extraoption"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="extraoption"></measures>
+  <table_index v-if="activeStep===4" :cubeDesc="extraoption"></table_index>
+  <overview v-if="activeStep===5" :desc="extraoption"></overview>
 </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex'
 import info from './info_view'
-import sampleSql from './sample_sql_view'
 import dimensions from './dimensions_view'
 import measures from './measures_view'
-import refreshSetting from './refresh_setting_view'
 import tableIndex from './table_index_view'
-import configurationOverwrites from './configuration_overwrites_view'
 import overview from './overview_view'
 import { handleSuccess, handleError } from '../../../util/business'
 import { removeNameSpace } from '../../../util/index'
 export default {
   name: 'cubedesc',
-  props: ['cube', 'index'],
+  props: ['extraoption'],
   data () {
     return {
       activeStep: 1,
-      selected_project: this.cube.project,
+      selected_project: this.extraoption.project,
       aliasMap: {}
     }
   },
   components: {
     'info': info,
-    'sample_sql': sampleSql,
     'dimensions': dimensions,
     'measures': measures,
-    'refresh_setting': refreshSetting,
     'table_index': tableIndex,
-    'configuration_overwrites': configurationOverwrites,
     'overview': overview
   },
   methods: {
     ...mapActions({
       loadCubeDesc: 'LOAD_CUBE_DESC',
-      loadModelInfo: 'LOAD_MODEL_INFO'
+      loadModelInfo: 'LOAD_MODEL_INFO',
+      loadDataSourceByProject: 'LOAD_DATASOURCE'
     }),
     step: function (num) {
       this.activeStep = num
     },
     getTables: function () {
-      let _this = this
-      let rootFactTable = removeNameSpace(_this.cube.modelDesc.fact_table)
+      let rootFactTable = removeNameSpace(this.extraoption.modelDesc.fact_table)
       let factTables = []
       let lookupTables = []
       factTables.push(rootFactTable)
-      _this.$set(_this.cube.modelDesc, 'columnsDetail', {})
-      _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
-        if (_this.cube.modelDesc.fact_table === table.database + '.' + table.name) {
-          table.columns.forEach(function (column) {
-            _this.$set(_this.cube.modelDesc.columnsDetail, rootFactTable + '.' + column.name, {
+      this.$set(this.extraoption.modelDesc, 'columnsDetail', {})
+      this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
+        if (this.extraoption.modelDesc.fact_table === table.database + '.' + table.name) {
+          table.columns.forEach((column) => {
+            this.$set(this.extraoption.modelDesc.columnsDetail, rootFactTable + '.' + column.name, {
               name: column.name,
               datatype: column.datatype,
               cardinality: table.cardinality[column.name],
@@ -80,7 +68,7 @@ export default {
           this.aliasMap[table.name] = table.database + '.' + table.name
         }
       })
-      _this.cube.modelDesc.lookups.forEach((lookup) => {
+      this.extraoption.modelDesc.lookups.forEach((lookup) => {
         if (lookup.kind === 'FACT') {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
@@ -94,10 +82,10 @@ export default {
           lookupTables.push(lookup.alias)
           this.aliasMap[lookup.alias] = lookup.table
         }
-        _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
+        this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
           if (lookup.table === table.database + '.' + table.name) {
-            table.columns.forEach(function (column) {
-              _this.$set(_this.cube.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
+            table.columns.forEach((column) => {
+              this.$set(this.extraoption.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
                 name: column.name,
                 datatype: column.datatype,
                 cardinality: table.cardinality[column.name],
@@ -106,15 +94,15 @@ export default {
           }
         })
       })
-      if (_this.cube.modelDesc.computed_columns) {
-        _this.cube.modelDesc.computed_columns.forEach((co) => {
+      if (this.extraoption.modelDesc.computed_columns) {
+        this.extraoption.modelDesc.computed_columns.forEach((co) => {
           var alias = ''
           for (var i in this.aliasMap) {
             if (this.aliasMap[i] === co.tableIdentity) {
               alias = i
             }
           }
-          this.$set(_this.cube.modelDesc.columnsDetail, alias + '.' + co.columnName, {
+          this.$set(this.extraoption.modelDesc.columnsDetail, alias + '.' + co.columnName, {
             name: co.columnName,
             datatype: co.datatype,
             cardinality: 'N/A',
@@ -125,26 +113,26 @@ export default {
     }
   },
   created () {
-    let _this = this
-    if (!_this.cube.desc) {
-      this.loadCubeDesc({cubeName: _this.cube.name, project: _this.selected_project}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cube, 'desc', data.cube)
-        })
-      }).catch((res) => {
-        handleError(res, () => {})
+    this.loadCubeDesc({cubeName: this.extraoption.name, project: this.selected_project, version: {version: this.extraoption.cubeVersion || null}}).then((res) => {
+      handleSuccess(res, (data, code, status, msg) => {
+        this.$set(this.extraoption, 'desc', data.cube)
+        this.extraoption.desc.name = this.extraoption.name
       })
-    }
-    if (!_this.cube.modelDesc) {
-      _this.loadModelInfo({modelName: _this.cube.model, project: _this.selected_project}).then((res) => {
+    }, (res) => {
+      handleError(res)
+    })
+    this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
+      this.loadModelInfo({modelName: this.extraoption.model, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cube, 'modelDesc', data.model)
-          _this.getTables()
+          this.$set(this.extraoption, 'modelDesc', data.model)
+          this.getTables()
         })
-      }).catch((res) => {
-        handleError(res, () => {})
+      }, (res) => {
+        handleError(res)
       })
-    }
+    }, (res) => {
+      handleError(res)
+    })
   },
   locales: {
     'en': {cubeInfo: 'Cube Info', Sql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', configurationOverwrites: 'Configuration Overwrites', overview: 'Overview', AdvancedSetting: 'Advanced Setting'},
@@ -162,14 +150,24 @@ export default {
   }
 }
 #cube-view{
+  padding: 0px 30px 40px 30px;
   .el-step__main{
-    text-align: center;
+    width: 188px;
     transform: translateX(-50%);
     margin-left: 14px!important;
+    text-align: center;
+    margin-right: 0!important;
     padding: 0;
+  }
+  .cube-step {
+    width:100%;
+    margin:0 auto;
+    padding-top:30px;
+    margin-left: 14px;
   }
   .el-steps.is-horizontal.is-center{
     margin-left: 20px;
   }
 }
+
 </style>

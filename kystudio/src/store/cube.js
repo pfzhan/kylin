@@ -59,6 +59,9 @@ export default {
     [types.REBUILD_STREAMING_CUBE]: function ({ commit }, cubeName) {
       return api.cube.rebuildStreamingCube(cubeName)
     },
+    [types.GET_SEG_END_TIME]: function ({ commit }, cubeName) {
+      return api.cube.getSegEndTime(cubeName)
+    },
     [types.ENABLE_CUBE]: function ({ commit }, cubeName) {
       return api.cube.enableCube(cubeName)
     },
@@ -77,6 +80,9 @@ export default {
     [types.UPDATE_CUBE]: function ({ commit }, cube) {
       return api.cube.updateCube(cube)
     },
+    [types.MANAGE_CUBE]: function ({ commit }, cube) {
+      return api.cube.manageCube(cube)
+    },
     [types.GET_CUBE_SQL]: function ({ commit }, cubeName) {
       return api.cube.getCubeSql(cubeName)
     },
@@ -85,6 +91,12 @@ export default {
     },
     [types.GET_HBASE_INFO]: function ({ commit }, cubeName) {
       return api.cube.getHbaseInfo(cubeName)
+    },
+    [types.GET_CUBE_SEGMENTS]: function ({ commit }, para) {
+      return api.cube.getCubeSegments(para)
+    },
+    [types.GET_CUBE_VERSIONS]: function ({ commit }, cubeName) {
+      return api.cube.getCubeVersions(cubeName)
     },
     [types.SAVE_CUBE]: function ({ commit }, cube) {
       return api.cube.saveCube(cube)
@@ -106,6 +118,9 @@ export default {
     },
     [types.GET_RAW_TABLE]: function ({ commit }, cubeName) {
       return api.cube.getRawTable(cubeName)
+    },
+    [types.GET_RAW_TABLE_DESC]: function ({ commit }, cubeName) {
+      return api.cube.getRawTableDesc(cubeName)
     },
     [types.SAVE_RAW_TABLE]: function ({ commit }, rawTable) {
       return api.cube.saveRawTable(rawTable)

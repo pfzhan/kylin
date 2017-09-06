@@ -13,8 +13,11 @@
   import modelSubMenu from '../model/model_sub_menu'
   import modelEdit from '../model/model_edit'
   import cubeEdit from 'components/cube/edit/cube_desc_edit'
-  import cubeView from 'components/cube/cube_list'
+  import cubesList from 'components/cube/cube_list'
   import cubeMetadata from 'components/cube/cube_metadata'
+  import cubeManage from 'components/cube/manage'
+  import cubeSegment from 'components/cube/segmentDetail'
+  import cubeView from 'components/cube/view/cube_desc_view'
   import { sampleGuid } from '../../util/index'
   export default {
     data () {
@@ -141,7 +144,10 @@
       'modelSubMenu': modelSubMenu,
       'cubeEdit': cubeEdit,
       'cubeMetadata': cubeMetadata,
-      'cubeView': cubeView
+      'cubesList': cubesList,
+      'cubeView': cubeView,
+      'cubeManage': cubeManage,
+      'cubeSegment': cubeSegment
     },
     mounted () {
     },
