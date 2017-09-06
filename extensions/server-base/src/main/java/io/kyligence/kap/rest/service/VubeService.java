@@ -159,8 +159,6 @@ public class VubeService extends BasicService {
             accessService.inherit(vube, newProject);
         }
 
-        vube.getLatestCube().getName();
-
         return getVubeManager().updateVube(update);
     }
 
@@ -285,15 +283,14 @@ public class VubeService extends BasicService {
     }
 
     public VubeInstance getVubeInstance(String vubeName) {
-        VubeInstance vubeInstance = getVubeManager().getVubeInstance(vubeName);
-        return vubeInstance;
+        return getVubeManager().getVubeInstance(vubeName);
     }
 
     public VubeManager getVubeManager() {
         return VubeManager.getInstance(getConfig());
     }
 
-    protected boolean isVubeInProject(String projectName, VubeInstance target) {
+    private boolean isVubeInProject(String projectName, VubeInstance target) {
         ProjectManager projectManager = getProjectManager();
         ProjectInstance project = projectManager.getProject(projectName);
         if (project == null) {
@@ -315,7 +312,7 @@ public class VubeService extends BasicService {
         return false;
     }
 
-    public List<VubeInstance> listAllVubes(String projectName) {
+    private List<VubeInstance> listAllVubes(String projectName) {
         ProjectManager projectManager = getProjectManager();
         ProjectInstance project = projectManager.getProject(projectName);
 

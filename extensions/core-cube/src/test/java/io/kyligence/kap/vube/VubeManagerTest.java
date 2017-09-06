@@ -27,8 +27,6 @@ package io.kyligence.kap.vube;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableDescManager;
@@ -112,22 +110,11 @@ public class VubeManagerTest extends LocalFileMetadataTestCase {
         VubeUpdate update = new VubeUpdate(vube);
         update.setCubeToAdd(cube2);
 
-        // add raw
-        update.setRawTableToAdd(raw);
-
-        // add sample sql
-        List<String> sqls = new ArrayList<>();
-        sqls.add("select * from TEST_KYLIN_FACT;");
-        sqls.add("select count(*) from TEST_KYLIN_FACT;");
-        update.setSampleSqls(sqls);
-
         // set status
         update.setStatus(RealizationStatusEnum.DESCBROKEN);
         vubeManager.updateVube(update);
 
         assertEquals(2, vube.getVersionedCubes().size());
-        assertEquals(1, vube.getVersionedRawTables().size());
-        assertEquals(1, vube.getSampleSqls().size());
         assertEquals(RealizationStatusEnum.DESCBROKEN, vube.getStatus());
     }
 }

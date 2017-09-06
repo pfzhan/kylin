@@ -24,29 +24,23 @@
 
 package io.kyligence.kap.vube;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-
-import java.util.List;
 
 public class VubeUpdate {
     private VubeInstance vubeInstance;
     private CubeInstance cubeToAdd = null;
-    private RawTableInstance rawTableToAdd = null;
-    private List<String> sampleSqls = null;
     private CubeInstance[] cubesToUpdate = null;
     private RealizationStatusEnum status;
     private String owner;
     private String project;
     private int cost = -1;
-    private String version;
 
     public VubeUpdate(VubeInstance vubeInstance) {
         this.vubeInstance = vubeInstance;
     }
 
-    public VubeInstance getVubeInstance() {
+    VubeInstance getVubeInstance() {
         return vubeInstance;
     }
 
@@ -55,7 +49,7 @@ public class VubeUpdate {
         return this;
     }
 
-    public CubeInstance getCubeToAdd() {
+    CubeInstance getCubeToAdd() {
         return cubeToAdd;
     }
 
@@ -64,24 +58,7 @@ public class VubeUpdate {
         return this;
     }
 
-    public RawTableInstance getRawTableToAdd() {
-        return rawTableToAdd;
-    }
-
-    public VubeUpdate setRawTableToAdd(RawTableInstance rawTableInstance) {
-        this.rawTableToAdd = rawTableInstance;
-        return this;
-    }
-
-    public List<String> getSampleSqls() {
-        return sampleSqls;
-    }
-
-    public void setSampleSqls(List<String> sampleSqls) {
-        this.sampleSqls = sampleSqls;
-    }
-
-    public CubeInstance[] getCubesToUpdate() {
+    CubeInstance[] getCubesToUpdate() {
         return cubesToUpdate;
     }
 
@@ -108,7 +85,7 @@ public class VubeUpdate {
         return this;
     }
 
-    public int getCost() {
+    int getCost() {
         return cost;
     }
 
@@ -123,13 +100,5 @@ public class VubeUpdate {
 
     public void setProject(String project) {
         this.project = project;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public void setVersion(String version) {
-        this.version = version;
     }
 }

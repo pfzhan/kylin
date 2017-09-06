@@ -106,8 +106,6 @@ public class VersionedCubeUpgradeCLI {
                 SchedulerJobInstance scheduler = schedulerJobManager.getSchedulerJob(cube.getName());
 
                 VubeUpdate update = new VubeUpdate(vube);
-                update.setRawTableToAdd(raw);
-                update.setSampleSqls(cubeOptimizeLogManager.getCubeOptimizeLog(cube.getName()).getSampleSqls());
 
                 if (scheduler != null) {
                     scheduler.setRealizationType("vube");
