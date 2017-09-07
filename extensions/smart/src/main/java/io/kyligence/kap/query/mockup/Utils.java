@@ -25,8 +25,8 @@
 package io.kyligence.kap.query.mockup;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
@@ -66,8 +66,12 @@ public class Utils {
         props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
     }
 
-    public static void setLargeCuboidCombinationConf(LinkedHashMap<String, String> props) {
+    public static void setLargeCuboidCombinationConf(Map<String, String> props) {
         props.put("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
+    }
+
+    public static void removeCuboidCombinationConf(Map<String, String> props) {
+        props.remove("kylin.cube.aggrgroup.max-combination");
     }
 
     public static void setLargeCuboidCombinationConf(KylinConfig props) {

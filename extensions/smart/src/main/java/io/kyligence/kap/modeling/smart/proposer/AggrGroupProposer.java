@@ -50,6 +50,7 @@ import io.kyligence.kap.modeling.smart.proposer.recorder.RelationJointAggrGroupR
 import io.kyligence.kap.modeling.smart.query.QueryStats;
 import io.kyligence.kap.modeling.smart.util.CubeDescUtil;
 import io.kyligence.kap.modeling.smart.util.RangeUtil;
+import io.kyligence.kap.query.mockup.Utils;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 
 public class AggrGroupProposer extends AbstractProposer {
@@ -67,7 +68,7 @@ public class AggrGroupProposer extends AbstractProposer {
         }
 
         KylinConfigExt configExt = (KylinConfigExt) workCubeDesc.getConfig();
-        configExt.getExtendedOverrides().clear();
+        Utils.removeCuboidCombinationConf(configExt.getExtendedOverrides());
 
         // add one default aggregation group if no group exists
         if (workCubeDesc.getAggregationGroups().isEmpty()) {
