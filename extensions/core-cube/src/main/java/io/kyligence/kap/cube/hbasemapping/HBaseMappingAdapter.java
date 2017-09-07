@@ -50,7 +50,7 @@ public class HBaseMappingAdapter implements IKeepNames {
             // Initiate as meta data indicates since current HBase mapping is compatible with original HBase mapping.  
             if (hbaseMapping != null) {
                 hbaseMapping.init(cubeDesc);
-                logger.info("init cf info for " + cubeDesc.getName() + " as cf in HBase");
+                logger.trace("init cf info for " + cubeDesc.getName() + " as cf in HBase");
             }
 
         } else if (storageType >= MIN_ENGINE_NUM_OF_KYSTORAGE) {
@@ -61,13 +61,12 @@ public class HBaseMappingAdapter implements IKeepNames {
             // distribute all measures into separate column families since legacy cubes do not handle HBase mapping.  
             if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.2.0.20500") >= 0) {
                 hbaseMapping.init(cubeDesc);
-                logger.info("init cf info for " + cubeDesc.getName() + " as cf in KyStorage");
-
+                logger.trace("init cf info for " + cubeDesc.getName() + " as cf in KyStorage");
             } else {
                 cubeDesc.setHbaseMapping(new HBaseMappingDesc());
                 hbaseMapping = cubeDesc.getHbaseMapping();
                 hbaseMapping.initAsSeparatedColumns(cubeDesc);
-                logger.info("adapt cf info for " + cubeDesc.getName() + " as separated cf in KyStorage");
+                logger.trace("adapt cf info for " + cubeDesc.getName() + " as separated cf in KyStorage");
             }
         }
     }
