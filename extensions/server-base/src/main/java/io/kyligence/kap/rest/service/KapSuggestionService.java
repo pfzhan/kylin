@@ -26,16 +26,21 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.modeling.smart.ModelingContext;
 import io.kyligence.kap.modeling.smart.ModelingMaster;
@@ -98,7 +103,8 @@ public class KapSuggestionService extends BasicService {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 
-            ModelingMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName());
+            ModelingMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName(),
+                    cubeDesc.getOverrideKylinProps());
             CubeDesc rowkeyCube = master.proposeRowkey(cubeDesc);
             CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
             return aggGroupCube;
@@ -108,14 +114,24 @@ public class KapSuggestionService extends BasicService {
     public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
-            ModelingMaster master = getModelingMaster(cubeName, modelName);
+            ModelingMaster master = getModelingMaster(cubeName, modelName, null);
             CubeDesc dimMeasCube = master.proposeDerivedDimensions(master.proposeInitialCube());
             return dimMeasCube;
         }
     }
 
-    private ModelingMaster getModelingMaster(String cubeName, String modelName) throws IOException {
-        KylinConfig config = getConfig();
+    private ModelingMaster getModelingMaster(String cubeName, String modelName, Map<String, String> props)
+            throws IOException {
+        Map<String, String> overrideProps = Maps.newHashMap();
+        ProjectInstance projectInstance = ProjectManager.getInstance(getConfig()).getProjectOfModel(modelName);
+        if (projectInstance != null && projectInstance.getOverrideKylinProps() != null) {
+            overrideProps.putAll(projectInstance.getOverrideKylinProps());
+        }
+        if (props != null) {
+            overrideProps.putAll(props);
+        }
+
+        KylinConfig config = KylinConfigExt.createInstance(getConfig(), overrideProps);
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(config);
         QueryStats queryStats = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName).getQueryStats();
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
