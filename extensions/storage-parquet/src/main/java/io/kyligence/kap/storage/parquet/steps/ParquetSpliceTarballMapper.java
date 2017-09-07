@@ -47,7 +47,7 @@ public class ParquetSpliceTarballMapper extends KylinMapper<IntWritable, byte[],
     private FSDataOutputStream os;
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void doSetup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);

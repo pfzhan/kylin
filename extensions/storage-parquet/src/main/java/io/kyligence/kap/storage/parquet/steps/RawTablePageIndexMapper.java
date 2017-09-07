@@ -73,7 +73,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private double spillThresholdMB;
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void doSetup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         inputPath = ((FileSplit) context.getInputSplit()).getPath();
 

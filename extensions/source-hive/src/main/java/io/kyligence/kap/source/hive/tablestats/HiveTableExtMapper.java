@@ -59,7 +59,7 @@ public class HiveTableExtMapper<T> extends KylinMapper<T, Object, IntWritable, B
     private IMRInput.IMRTableInputFormat tableInputFormat;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void doSetup(Context context) throws IOException {
         Configuration conf = context.getConfiguration();
 
         HCatSplit hCatSplit = (HCatSplit) context.getInputSplit();

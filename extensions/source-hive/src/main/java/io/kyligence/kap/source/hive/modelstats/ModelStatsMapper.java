@@ -64,7 +64,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
     private IJoinedFlatTableDesc flatTableDesc;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void doSetup(Context context) throws IOException {
         Configuration conf = context.getConfiguration();
         bindCurrentConfiguration(conf);
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
@@ -115,11 +115,11 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
                 sampler.sync();
                 ByteBuffer buf = sampler.code();
                 context.write(new IntWritable(key), new BytesWritable(buf.array(), buf.position()));
+                sampler.clean();
             } catch (Exception e) {
                 logger.error("error when handling sampled data for column {} ", flatTableDesc.getAllColumns().get(key));
                 throw e;
             }
         }
-        logger.info("Total row size: " + counter);
     }
 }

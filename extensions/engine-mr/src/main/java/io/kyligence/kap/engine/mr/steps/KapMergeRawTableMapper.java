@@ -54,7 +54,7 @@ public class KapMergeRawTableMapper extends KylinMapper<ByteArrayListWritable, B
     private int allColumnCnt;
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void doSetup(Context context) throws IOException, InterruptedException {
         super.bindCurrentConfiguration(context.getConfiguration());
 
         rawTableName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();

@@ -38,8 +38,8 @@ public class HiveToRawTableMapper<KEYIN> extends RawTableMapperBase<KEYIN, Objec
     private IMRInput.IMRTableInputFormat flatTableInputFormat;
 
     @Override
-    protected void setup(Context context) throws IOException {
-        super.setup(context);
+    protected void doSetup(Context context) throws IOException {
+        super.doSetup(context);
         flatTableInputFormat = MRUtil.getBatchCubingInputSide(cubeSegment).getFlatTableInputFormat();
     }
 

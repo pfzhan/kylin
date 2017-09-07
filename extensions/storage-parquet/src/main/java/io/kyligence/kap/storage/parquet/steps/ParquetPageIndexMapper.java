@@ -74,7 +74,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
     private boolean[] onlyEQIndex;
 
     @Override
-    protected void setup(Context context) throws IOException, InterruptedException {
+    protected void doSetup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
 

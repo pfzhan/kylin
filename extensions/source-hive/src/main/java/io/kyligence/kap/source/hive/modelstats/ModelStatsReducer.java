@@ -62,7 +62,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
     private IJoinedFlatTableDesc flatTableDesc;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void doSetup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 

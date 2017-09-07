@@ -54,7 +54,7 @@ public class HiveTableExtReducer extends KylinReducer<IntWritable, BytesWritable
     private Map<Integer, DataType> dataTypeMap = new HashMap<>();
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void doSetup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
         KylinConfig config = AbstractHadoopJob.loadKylinPropsAndMetadata();
 

@@ -88,7 +88,7 @@ abstract public class RawTableMapperBase<KEYIN, VALUEIN> extends KylinMapper<KEY
     private Pair<Integer, Integer>[] nonSortbyMapping;
 
     @Override
-    protected void setup(Context context) throws IOException {
+    protected void doSetup(Context context) throws IOException {
         super.bindCurrentConfiguration(context.getConfiguration());
 
         rawTableName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME).toUpperCase();
