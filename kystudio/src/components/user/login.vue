@@ -91,7 +91,7 @@ export default {
       btnLock: false,
       needLicense: false,
       loadCheck: false,
-      hasLicense: true
+      hasLicense: false
     }
   },
   methods: {
