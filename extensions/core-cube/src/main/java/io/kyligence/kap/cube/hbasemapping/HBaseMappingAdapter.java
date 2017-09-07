@@ -30,29 +30,31 @@ import org.apache.kylin.cube.model.HBaseMappingDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HBaseMappingAdapter {
-    
+import io.kyligence.kap.common.obf.IKeepNames;
+
+public class HBaseMappingAdapter implements IKeepNames {
+
     private static final Logger logger = LoggerFactory.getLogger(HBaseMappingAdapter.class);
-    
+
     private static final int MAX_ENGINE_NUM_OF_HBASE = 2;
     private static final int MIN_ENGINE_NUM_OF_KYSTORAGE = 99;
 
     // Initiate HBaseMapping in CubeDesc according to storage engine type and column family version. 
     public static void initHBaseMapping(CubeDesc cubeDesc) {
-        
+
         int storageType = cubeDesc.getStorageType();
         HBaseMappingDesc hbaseMapping = cubeDesc.getHbaseMapping();
 
-        if(storageType <= MAX_ENGINE_NUM_OF_HBASE) {
-            
+        if (storageType <= MAX_ENGINE_NUM_OF_HBASE) {
+
             // Initiate as meta data indicates since current HBase mapping is compatible with original HBase mapping.  
             if (hbaseMapping != null) {
                 hbaseMapping.init(cubeDesc);
                 logger.info("init cf info for " + cubeDesc.getName() + " as cf in HBase");
             }
-        
-        } else if(storageType >= MIN_ENGINE_NUM_OF_KYSTORAGE) {
-            
+
+        } else if (storageType >= MIN_ENGINE_NUM_OF_KYSTORAGE) {
+
             // For cubes with equal or higher version than column family adopted version: 
             // initiate as meta data indicates; 
             // For cubes with lower version than column family adopted version, or cube with no info about HBase mapping: 
@@ -60,7 +62,7 @@ public class HBaseMappingAdapter {
             if (hbaseMapping != null && KylinVersion.compare(cubeDesc.getVersion(), "2.2.0.20500") >= 0) {
                 hbaseMapping.init(cubeDesc);
                 logger.info("init cf info for " + cubeDesc.getName() + " as cf in KyStorage");
-                    
+
             } else {
                 cubeDesc.setHbaseMapping(new HBaseMappingDesc());
                 hbaseMapping = cubeDesc.getHbaseMapping();
@@ -69,5 +71,5 @@ public class HBaseMappingAdapter {
             }
         }
     }
-    
+
 }
