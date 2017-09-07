@@ -378,6 +378,9 @@ export default {
   // overflow-y: auto;
   .el-form-item{
     margin-bottom: 12px;
+    .el-form-item__label{
+      font-size: 12px;
+    }
   }
   .el-form {
     // height: 260px;

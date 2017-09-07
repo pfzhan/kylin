@@ -1,7 +1,7 @@
 <template>
     <div class="accessrow">
-       <el-button type="blue" icon="plus" @click="addGrant">{{$t('restrict')}}</el-button> <span style="color:grey" class="ksd-ml-10">{{$t('rowAclDesc')}}</span>
-       <div style="width:200px;float: right;">
+       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button> <span style="color:grey" class="ksd-ml-10">{{$t('rowAclDesc')}}</span>
+       <div style="width:200px;" class="ksd-mb-10 ksd-fright">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
@@ -23,7 +23,7 @@
                 <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key.join('、')}}</p>
               </template>
             </el-table-column>
-            <el-table-column
+            <el-table-column v-show="hasSomeProjectPermission || isAdmin"
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
@@ -87,7 +87,8 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
+import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
+import { permissions } from '../../../config'
 import { timestampTransToDateStr } from '../../../util/index'
 import arealabel from 'components/common/area_label'
 import datepicker from 'components/common/date_picker'
@@ -342,6 +343,17 @@ export default {
       }, (res) => {
         handleError(res)
       })
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
     }
   },
   computed: {
@@ -404,6 +416,12 @@ export default {
         }
       })
       return obj
+    },
+    hasSomeProjectPermission () {
+      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   watch: {
@@ -412,8 +430,8 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configure this setting, user will only be able to view data for column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value.', preview: 'Preview'},
-    'zh-cn': {delConfirm: '此操作将删除该约束，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值。', preview: '预览'}
+    'en': {delConfirm: 'The action will delete this restriction, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configuring this setting, the user will only be able to view data for the column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value.', preview: 'Preview'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值。', preview: '预览'}
   }
 }
 </script>

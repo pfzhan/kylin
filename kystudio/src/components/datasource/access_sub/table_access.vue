@@ -1,7 +1,7 @@
 <template>
     <div class="access">
-       <el-button type="blue" icon="plus" @click="addGrant">{{$t('grant')}}</el-button>
-       <div style="width:200px;float: right;">
+       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('grant')}}</el-button>
+       <div style="width:200px;" class="ksd-mb-10 ksd-fright">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
@@ -21,7 +21,7 @@
               >
               <template scope="scope">Query</template>
             </el-table-column>
-            <el-table-column
+            <el-table-column v-show="hasSomeProjectPermission || isAdmin"
               width="80"
               prop="Action"
               :label="$t('kylinLang.common.action')">
@@ -55,7 +55,8 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
+import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
+import { permissions } from '../../../config'
 // import { permissions } from '../../config'
 // import { changeDataAxis, isFireFox } from '../../util/index'
 // import createKafka from '../kafka/create_kafka'
@@ -178,6 +179,17 @@ export default {
       }, (res) => {
         handleError(res)
       })
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
     }
   },
   computed: {
@@ -200,6 +212,12 @@ export default {
     pagerAclTableList () {
       var perPager = this.$refs.pager && this.$refs.pager.pageSize || 0
       return this.aclTableList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
+    },
+    hasSomeProjectPermission () {
+      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
+    },
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   watch: {

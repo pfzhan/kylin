@@ -7,11 +7,11 @@
                 <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
-                        <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
+                        <th align="right" class="ksd-pr-8"><common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip> {{$t('modelName')}} </th>
                         <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
-                        <th>{{$t('discribe')}}</th>
+                        <th align="right" class="ksd-pr-8">{{$t('discribe')}} </th>
                         <td>
                             <el-input class="model-discribe-input"
                             type="textarea"
@@ -21,8 +21,8 @@
                           </el-input>
                         </td>
                       </tr>
-                       <tr v-if="">
-                        <th>{{$t('health')}}</th>
+                       <tr>
+                        <th align="right" class="ksd-pr-8">{{$t('health')}} </th>
                         <td>
                         <icon v-if="modelHealth.status!=='RUNNING' && modelHealth.status!=='ERROR' && (modelHealth.progress===0 || modelHealth.progress===100)" :name="modelHealth.icon" :style="{color:modelHealth.color}"></icon>
                          <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='RUNNING'" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
@@ -32,7 +32,7 @@
                         </td>
                       </tr>
                        <tr v-show="currentModelInfo.owner">
-                        <th>{{$t('owner')}}</th>
+                        <th align="right" class="ksd-pr-8">{{$t('owner')}} </th>
                         <td>
                            {{currentModelInfo.owner}}
                         </td>
@@ -44,7 +44,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third" >
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;" >{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;" >{{value}}</div>
                     <div class="dimensionBox">
                       <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" type="primary" v-for="i in dimensions[value]" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -52,7 +52,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;">{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;">{{value}}</div>
                      <div class="dimensionBox">
                     <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" v-for="i in measures[value]" type="primary" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -436,7 +436,7 @@ export default {
         border-left:1px solid @grey-color;;
         border-top:1px solid @grey-color;;
         height:44px;
-        width: 220px;
+        width: 140px;
         font-weight: normal;
         font-size: 12px;
       }
