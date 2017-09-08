@@ -89,7 +89,7 @@
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
 import { permissions } from '../../../config'
-import { timestampTransToDateStr } from '../../../util/index'
+import { timestampTransToDateStr, dateTransToDateStr } from '../../../util/index'
 import arealabel from 'components/common/area_label'
 import datepicker from 'components/common/date_picker'
 // import { permissions } from '../../config'
@@ -370,9 +370,10 @@ export default {
             var columnType = this.getColumnType(c)
             this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
               if (this.dateTypeList.indexOf(columnType) >= 0) {
-                k = timestampTransToDateStr(k)
+                k = dateTransToDateStr(k)
                 return k
-              } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+              } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
+                k = timestampTransToDateStr(k)
                 return k
               } else {
                 return k

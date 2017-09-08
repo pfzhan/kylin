@@ -243,6 +243,9 @@ export function utcToConfigTimeZome (item, zone, formatSet) {
   return moment(convertedMillis).format(format) + ' ' + timezone
 }
 export function timestampTransToDateStr (convertedMillis) {
+  return moment(+convertedMillis).format('YYYY-MM-DD HH:mm:ss')
+}
+export function dateTransToDateStr (convertedMillis) {
   return moment(+convertedMillis).format('YYYY-MM-DD')
 }
 export function isIE () {
