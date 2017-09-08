@@ -84,10 +84,9 @@ export default {
   },
   computed: {
     slowQueriesList () {
-      this.$store.state.monitor.slowQueries.forEach((p) => {
+      return this.$store.state.monitor.slowQueries.forEach((p) => {
         p.start_time = transToGmtTime(p.start_time, this)
       })
-      return this.$store.state.monitor.slowQueries
     },
     slowQueiesTotal () {
       return this.$store.state.monitor.totalSlowQueries

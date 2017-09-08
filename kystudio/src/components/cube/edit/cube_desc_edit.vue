@@ -271,31 +271,29 @@ export default {
         return false
       }
       let cfMeasures = []
-      if (this.cubeDetail.hbase_mapping) {
-        this.cubeDetail.hbase_mapping.column_family.forEach(function (cf) {
-          cf.columns[0].measure_refs.forEach(function (measure, index) {
-            cfMeasures.push(measure)
-          })
+      this.cubeDetail.hbase_mapping.column_family.forEach(function (cf) {
+        cf.columns[0].measure_refs.forEach(function (measure, index) {
+          cfMeasures.push(measure)
         })
-        if (cfMeasures.length !== this.cubeDetail.measures.length) {
+      })
+      if (cfMeasures.length !== this.cubeDetail.measures.length) {
+        this.$message({
+          showClose: true,
+          duration: 3000,
+          message: this.$t('checkColumnFamily'),
+          type: 'error'
+        })
+        return false
+      }
+      for (let j = 0; j < this.cubeDetail.hbase_mapping.column_family.length; j++) {
+        if (this.cubeDetail.hbase_mapping.column_family[j].columns[0].measure_refs.length === 0) {
           this.$message({
             showClose: true,
             duration: 3000,
-            message: this.$t('checkColumnFamily'),
+            message: this.$t('checkColumnFamilyNull'),
             type: 'error'
           })
           return false
-        }
-        for (let j = 0; j < this.cubeDetail.hbase_mapping.column_family.length; j++) {
-          if (this.cubeDetail.hbase_mapping.column_family[j].columns[0].measure_refs.length === 0) {
-            this.$message({
-              showClose: true,
-              duration: 3000,
-              message: this.$t('checkColumnFamilyNull'),
-              type: 'error'
-            })
-            return false
-          }
         }
       }
       return true
@@ -452,9 +450,6 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
-      if (cloneCubeDescData && (+cloneCubeDescData.engine_type === 100 || +cloneCubeDescData.engine_type === 99)) {
-        delete cloneCubeDescData.hbase_mapping
-      }
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
@@ -535,9 +530,6 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
-      if (cloneCubeDescData && (+cloneCubeDescData.engine_type === 100 || +cloneCubeDescData.engine_type === 99)) {
-        delete cloneCubeDescData.hbase_mapping
-      }
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
@@ -660,7 +652,7 @@ export default {
             }
           }
           this.cubeDetail.oldMeasures = objectClone(this.cubeDetail.measures)
-          this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping && this.cubeDetail.hbase_mapping.column_family || [])
+          this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
             _this.getRawTableDesc({cubeName: _this.extraoption.cubeName, project: _this.extraoption.project}).then((res) => {

@@ -1,7 +1,7 @@
 <template>
     <div class="accesscolumn">
-       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button>  <span style="color:grey" class="ksd-ml-10">{{$t('columnAclDesc')}}</span>
-       <div style="width:200px;" class="ksd-mb-10 ksd-fright">
+       <el-button type="blue" icon="plus" @click="addGrant">{{$t('restrict')}}</el-button>  <span style="color:grey" class="ksd-ml-10">{{$t('columnAclDesc')}}</span>
+       <div style="width:200px;float: right;">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
@@ -23,7 +23,7 @@
                 {{ scope.row.columns.join(',')}}
               </template>
             </el-table-column>
-            <el-table-column v-show="hasSomeProjectPermission || isAdmin"
+            <el-table-column
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
@@ -69,8 +69,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
-import { permissions } from '../../../config'
+import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 // import { permissions } from '../../config'
 // import { changeDataAxis, isFireFox } from '../../util/index'
 // import createKafka from '../kafka/create_kafka'
@@ -210,17 +209,6 @@ export default {
       }, (res) => {
         handleError(res)
       })
-    },
-    getProjectIdByName (pname) {
-      var projectList = this.$store.state.project.allProject
-      var len = projectList && projectList.length || 0
-      var projectId = ''
-      for (var s = 0; s < len; s++) {
-        if (projectList[s].name === pname) {
-          projectId = projectList[s].uuid
-        }
-      }
-      return projectId
     }
   },
   computed: {
@@ -244,12 +232,6 @@ export default {
     pagerAclColumnList () {
       var perPager = this.$refs.pager && this.$refs.pager.pageSize || 0
       return this.aclColumnList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
-    },
-    hasSomeProjectPermission () {
-      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
-    },
-    isAdmin () {
-      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   watch: {
@@ -258,7 +240,7 @@ export default {
     this.getAllAclSetOfColumn()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restriction, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configure this setting, the user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
+    'en': {delConfirm: 'The action will delete this restrict, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configure this setting, user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
     'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
   }
 }
@@ -281,11 +263,6 @@ export default {
      .el-input__inner{
       width: 90%;
      }
-    }
-  }
-  .el-transfer__buttons{
-    .el-button+.el-button{
-      margin-top: -80px;
     }
   }
   .el-transfer-panel {

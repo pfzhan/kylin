@@ -32,11 +32,7 @@ export default {
         if (!JSON.parse(this.json).is_draft) {
           action = 'updateCube'
         }
-        var jsonParseData = JSON.parse(this.json)
-        if (jsonParseData && (+jsonParseData.engine_type === 100 || +jsonParseData.engine_type === 99)) {
-          delete jsonParseData.hbase_mapping
-        }
-        this.saveData.cubeDescData = JSON.stringify(jsonParseData)
+        this.saveData.cubeDescData = this.json
         this[action](this.saveData).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$message({

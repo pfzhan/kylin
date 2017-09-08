@@ -59,7 +59,7 @@
                           <span style="float: right; color: #8492a6; font-size: 13px">{{ item.datatype }}</span>
                         </el-option>
                       </el-select>
-                      
+
 
                     </el-col>
                     <el-col :sm="4" :md="3" :lg="2" class="ksd-right"><el-button type="danger" icon="minus" @click="removeRowSet(index)"></el-button></el-col>
@@ -460,19 +460,19 @@ export default {
     }
     .previewDialog{
       box-shadow: 0 14px 6px 4px rgba(0,0,0,.3);
-      .dot-bottom {  
-        font-size: 0;  
-        line-height: 0;  
-        border-width: 10px;  
-        border-color: #272822;  
-        border-bottom-width: 0;  
-        border-style: dashed;  
-        border-top-style: solid;  
-        border-left-color: transparent;  
-        border-right-color: transparent;  
+      .dot-bottom {
+        font-size: 0;
+        line-height: 0;
+        border-width: 10px;
+        border-color: #272822;
+        border-bottom-width: 0;
+        border-style: dashed;
+        border-top-style: solid;
+        border-left-color: transparent;
+        border-right-color: transparent;
         position: absolute;
         left: 34px;
-      }  
+      }
       position: absolute;
       width: 100%;
       height: 100px;
@@ -521,7 +521,7 @@ export default {
     }
     .el-col{
       // text-align: center;
-      
+
       .el-button--danger {
         border:none;
       }
