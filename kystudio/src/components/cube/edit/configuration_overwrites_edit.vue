@@ -124,7 +124,10 @@ export default {
       this.convertedProperties.splice(index, 1)
     },
     changeProperty: function () {
-      this.cubeDesc.override_kylin_properties = {}
+      let strategy = this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']
+      this.cubeDesc.override_kylin_properties = {
+        'kap.smart.conf.aggGroup.strategy': strategy
+      }
       this.convertedProperties.forEach((item, index) => {
         if (item.checked) {
           this.$set(this.cubeDesc.override_kylin_properties, this.convertedProperties[index].key, this.convertedProperties[index].value)
@@ -180,7 +183,9 @@ export default {
             }
           })
           if (!isDefault) {
-            this.convertedProperties.push({checked: true, key: key, value: this.cubeDesc.override_kylin_properties[key], isDefault: false})
+            if (key.indexOf('kap.smart.conf.aggGroup.strategy') !== 0) {
+              this.convertedProperties.push({checked: true, key: key, value: this.cubeDesc.override_kylin_properties[key], isDefault: false})
+            }
           }
         }
       }

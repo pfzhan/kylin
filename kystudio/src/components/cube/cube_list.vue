@@ -414,7 +414,7 @@ export default {
                     this.getColumnarInfo(innerCubeName).then((res) => {
                       handleSuccess(res, (data) => {
                         let totalSize = 0
-                        data[0].forEach(function (segment) {
+                        data.forEach(function (segment) {
                           totalSize += segment.storageSize
                           if (segment.rawTableStorageSize) {
                             totalSize += segment.rawTableStorageSize

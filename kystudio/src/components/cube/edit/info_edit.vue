@@ -20,24 +20,43 @@
       <span slot="label">{{$t('notificationEvents')}}
         <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
-      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents"> 
+      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents">
       </area_label>
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
   </el-form>
   <h2 class="title">{{$t('optimizerInput')}}
-        <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
+    <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" >
+      <icon name="question-circle-o"></icon>
+    </common-tip>
+  </h2>
+  <el-radio-group v-model="cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']">
+      <el-radio-button label="default">
+        <common-tip :content="$t('dataOrientedTip')"> {{$t('dataOriented')}}</common-tip>
+      </el-radio-button>
+      <el-radio-button label="mixed" style="width: 80px;"> <common-tip :content="$t('mixTip')">{{$t('mix')}} </common-tip>
+      </el-radio-button>
+      <el-radio-button label="whitelist">
+        <common-tip :content="$t('businessOrientedTip')"> {{$t('businessOriented')}}</common-tip>
+      </el-radio-button>
+  </el-radio-group>
   <ul class="list">
-    <li>{{$t('modelCheck')}}
+    <li>
+      <span v-bind:style="{color: dataColor}">*</span>
+      <span style="padding-left: 5px;">{{$t('modelCheck')}}</span>
       <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING' && healthStatus.status!=='ERROR'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
       <common-tip v-if="healthStatus.status==='RUNNING'"  :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
       <common-tip v-if="healthStatus.status==='ERROR'" :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" status="exception"  :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
     </li>
-    <li>{{$t('sqlPattens')}} <span v-show="sqlCount>0">({{sqlCount}})</span></li>
+    <li>
+      <span v-bind:style="{color: sqlColor}">*</span>
+      <span style="padding-left: 5px;">{{$t('sqlPattens')}} </span>
+      <span v-show="sqlCount>0">({{sqlCount}})</span>
+    </li>
   </ul>
   <el-row style="margin-top: 10px;">
     <el-col :span="24">
-      <el-button type="blue"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button> 
+      <el-button type="blue"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button>
     </el-col>
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
@@ -51,7 +70,7 @@
     <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
     <transition name="fade">
     <div v-if="errorMsg">
-     <el-alert class="ksd-mt-10 trans"  
+     <el-alert class="ksd-mt-10 trans"
         :title="errorMsg"
         show-icon
         :closable="false"
@@ -61,7 +80,7 @@
     </transition>
     <transition name="fade">
     <div v-if="successMsg">
-     <el-alert class="ksd-mt-10 trans"  
+     <el-alert class="ksd-mt-10 trans"
         :title="successMsg"
         show-icon
         :closable="false"
@@ -73,8 +92,8 @@
     <span slot="footer" class="dialog-footer">
       <el-button @click="addSQLFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.ok')}}</el-button>
-    </span>     
-  </el-dialog> 
+    </span>
+  </el-dialog>
 </div>
 </template>
 <script>
@@ -318,6 +337,20 @@ export default {
     isReadyCube () {
       return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
       // return this.cubeDesc.status === 'READY'
+    },
+    dataColor () {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'whitelist') {
+        return 'red'
+      } else {
+        return 'rgb(41, 43, 56)'
+      }
+    },
+    sqlColor () {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'default') {
+        return 'red'
+      } else {
+        return 'rgb(41, 43, 56)'
+      }
     }
   },
   mounted () {
@@ -336,8 +369,8 @@ export default {
     // })
   },
   locales: {
-    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens', check: 'Check', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see details.', validSuccess: 'Congratulations, the SQL statements is valid.'},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: '恭喜您，校验结果正确。'}
+    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens', check: 'Check', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see details.', validSuccess: 'Congratulations, the SQL statements is valid.', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', dataOrientedTip: 'Optimizer would mainly digest source data feature to suggest one aggregate group, which optimizes all dimensions from model.<br/> Cubes follow data-oriented preference are better to serve flexible queries.', mixTip: 'Optimizer would mix two preference to serve queries, which contains some flexible queries and some known queries.<br/> The mix will cost more time and resource on build cube to meet satisfy two scenarios.', businessOrientedTip: 'Optimizer would only digest SQL patterns to suggest multiple aggregate groups consisting of mandatory dimensions.<br/> Cubes follow business-oriented preference are designed to answer known queries.'},
+    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: '恭喜您，校验结果正确。', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', dataOrientedTip: '优化器将主要参考数据的特征，推荐一个聚合组优化了对应模型中所有的维度，生成的cube更适用于灵活度高的查询。', mixTip: '优化器将综合两种优化偏好，适用于部分查询定向、部分查询灵活的场景。<br/>综合策略为了同时满足两种查询偏好，生成的聚合组较多，后续构建所需资源较多。', businessOrientedTip: '优化器将参考输入的SQL语句，推荐N个完全由必要维度组成的聚合组，生成的cube定向回答这些SQL语句。'}
   }
 }
 </script>
@@ -346,7 +379,7 @@ export default {
   .select {
     background-color:white;
   }
-  
+
   .info-edit{
     .hasCheck{
       .ace_gutter-cell:before {
@@ -371,6 +404,29 @@ export default {
       }
       .ace_gutter-cell:hover:before{
        background-color: rgba(0,0,0, 0.5);
+      }
+    }
+    .el-radio-group {
+      margin-bottom: 5px;
+      .el-radio-button {
+        span {
+          width: 100%
+        }
+        float: left;
+      }
+      .el-radio-button__inner {
+      }
+      .el-radio-button__orig-radio:checked+.el-radio-button__inner {
+        color: #218fea;
+        background-color: rgba(33,143,234,0.1);
+      }
+      .is-active {
+        .el-radio-button__inner {
+        }
+        .el-radio-button__orig-radio {
+          color: #218fea;
+          background-color: rgba(33,143,234,0.1);
+        }
       }
     }
     .title{

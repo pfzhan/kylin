@@ -39,7 +39,10 @@
   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
     <el-col :span="6">
-      <el-input class="input_width" v-model="cubeDesc.retention_range" ></el-input>
+      <el-input class="input_width" v-model="retentionRange" @change="changeRetentionRange"></el-input> 
+    </el-col>
+    <el-col :span="1" class="ksd-left ksd-lineheight-40 ksd-mr-10">
+      {{$t('days')}}
     </el-col>
   </el-row>
   <el-row class="row_padding">
@@ -103,6 +106,7 @@ export default {
       selected_project: localStorage.getItem('selected_project'),
       partitionStartDate: 0,
       scheduledRunTime: 0,
+      retentionRange: 0,
       isSetScheduler: false,
       pickerOptionsEnd: {
         disabledDate: (time) => {
@@ -192,6 +196,11 @@ export default {
       }
       this.cubeDesc.auto_merge_time_ranges[index] = time
     },
+    changeRetentionRange (retentionRange) {
+      let time = 0
+      time = retentionRange * 86400000
+      this.cubeDesc.retention_range = time
+    },
     initScheduler: function () {
       // var schedulerName = this.cubeDesc.name + (this.cubeDesc.status === 'DRAFT' ? '_draft' : '')
       this.getScheduler({cubeName: this.cubeDesc.name, project: this.selected_project}).then((res) => {
@@ -231,6 +240,7 @@ export default {
     }
   },
   created: function () {
+    this.retentionRange = this.cubeDesc.retention_range / 86400000
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
       this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
@@ -246,8 +256,8 @@ export default {
     }
   },
   locales: {
-    'en': {autoMergeThresholds: 'Auto Merge Thresholds: ', retentionThreshold: 'Retention Threshold: ', partitionStartDate: 'Partition Start Date: ', newThresholds: 'New Thresholds', buildTrigger: 'First Build Time: ', periddicalInterval: 'Build Cycle: '},
-    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', newThresholds: '新建阈值', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：'}
+    'en': {autoMergeThresholds: 'Auto Merge Thresholds: ', retentionThreshold: 'Retention Threshold: ', partitionStartDate: 'Partition Start Date: ', newThresholds: 'New Thresholds', buildTrigger: 'First Build Time: ', periddicalInterval: 'Build Cycle: ', days: 'days'},
+    'zh-cn': {autoMergeThresholds: '触发自动合并的时间阈值：', retentionThreshold: '保留时间阈值：', partitionStartDate: '起始日期：', newThresholds: '新建阈值', buildTrigger: '首次构建触发时间：', periddicalInterval: '重复间隔：', days: '天'}
   }
 }
 </script>

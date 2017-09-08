@@ -10,7 +10,8 @@ export default {
     serverAboutKap: null,
     timeZone: '',
     securityProfile: 'testing',
-    limitlookup: 'true'
+    limitlookup: 'true',
+    strategy: 'default'
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -59,6 +60,7 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
+        commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {
