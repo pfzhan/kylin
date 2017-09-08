@@ -53,11 +53,10 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.obf.IKeepClassWithMemberNames;
+import io.kyligence.kap.cube.raw.RawTableInstance;
 
-public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvider {
-    private static final Serializer<VubeInstance> VUBE_SERIALIZER = new JsonSerializer<VubeInstance>(
-            VubeInstance.class);
+public class VubeManager implements IRealizationProvider {
+    public static final Serializer<VubeInstance> VUBE_SERIALIZER = new JsonSerializer<VubeInstance>(VubeInstance.class);
 
     private static final Logger logger = LoggerFactory.getLogger(io.kyligence.kap.vube.VubeManager.class);
 
@@ -88,7 +87,7 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         }
     }
 
-    private static void clearCache() {
+    public static void clearCache() {
         CACHE.clear();
     }
 
@@ -133,14 +132,15 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
                 throws IOException {
             if ("vube".equals(entity)) {
+                String vubeName = cacheKey;
 
                 if (event == Broadcaster.Event.DROP)
-                    vubeMap.removeLocal(cacheKey);
+                    vubeMap.removeLocal(vubeName);
                 else
-                    reloadVubeInstance(cacheKey);
+                    reloadVubeInstance(vubeName);
 
                 for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.HYBRID2,
-                        cacheKey)) {
+                        vubeName)) {
                     broadcaster.notifyProjectSchemaUpdate(prj.getName());
                 }
             } else if ("cube".equals(entity)) {
@@ -156,23 +156,27 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
                     vubeMap.removeLocal(vubeName);
                 else {
                     if (event == Broadcaster.Event.UPDATE) {
-                        VubeInstance vube = getVubeInstance(vubeName);
-                        CubeManager cubeManager = CubeManager.getInstance(config);
-                        CubeInstance cube = cubeManager.getCube(cacheKey);
+                        try {
+                            VubeInstance vube = getVubeInstance(vubeName);
+                            CubeManager cubeManager = CubeManager.getInstance(config);
+                            CubeInstance cube = cubeManager.getCube(cacheKey);
 
-                        // New cube built successfully
-                        if (vube != null && cube.getStatus() == RealizationStatusEnum.READY) {
-                            if (vube.getStatus() == RealizationStatusEnum.DESCBROKEN) {
-                                // First time built, it should be ready
-                                VubeUpdate update = new VubeUpdate(vube);
-                                update.setStatus(RealizationStatusEnum.READY);
-                                updateVube(update);
-                            } else if (vube.getStatus() == RealizationStatusEnum.DISABLED) {
-                                // Disabled vube should disable newly built cube
-                                CubeUpdate cubeBuilder = new CubeUpdate(cube);
-                                cubeBuilder.setStatus(RealizationStatusEnum.DISABLED);
-                                cubeManager.updateCube(cubeBuilder);
+                            // New cube built successfully
+                            if (vube != null && cube.getStatus() == RealizationStatusEnum.READY) {
+                                if (vube.getStatus() == RealizationStatusEnum.DESCBROKEN) {
+                                    // First time built, it should be ready
+                                    VubeUpdate update = new VubeUpdate(vube);
+                                    update.setStatus(RealizationStatusEnum.READY);
+                                    updateVube(update);
+                                } else if (vube.getStatus() == RealizationStatusEnum.DISABLED){
+                                    // Disabled vube should disable newly built cube
+                                    CubeUpdate cubeBuilder = new CubeUpdate(cube);
+                                    cubeBuilder.setStatus(RealizationStatusEnum.DISABLED);
+                                    cubeManager.updateCube(cubeBuilder);
+                                }
                             }
+                        } catch (IOException e) {
+                            throw e;
                         }
                     }
                     if (vubeMap.get(vubeName) != null) {
@@ -188,7 +192,7 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         }
     }
 
-    private void reloadAllVubeInstance() throws IOException {
+    public void reloadAllVubeInstance() throws IOException {
         ResourceStore store = getStore();
         List<String> paths = store.collectResourceRecursively(VUBE_RESOURCE_ROOT, ".json");
 
@@ -215,7 +219,7 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         return result;
     }
 
-    private void reloadVubeInstance(String name) {
+    public void reloadVubeInstance(String name) {
         reloadVubeInstanceAt(VubeInstance.concatResourcePath(name));
     }
 
@@ -225,32 +229,29 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         VubeInstance vubeInstance = null;
         try {
             vubeInstance = store.getResource(path, VubeInstance.class, VUBE_SERIALIZER);
+            vubeInstance.setConfig(config);
 
-            if (vubeInstance != null) {
-                vubeInstance.setConfig(config);
-
-                if (vubeInstance.getVersionedCubes() == null || vubeInstance.getVersionedCubes().size() == 0) {
-                    throw new IllegalStateException("VubeInstance at " + path + "must contain cubes.");
-                }
-
-                if (StringUtils.isBlank(vubeInstance.getName()))
-                    throw new IllegalStateException("VubeInstance name must not be blank, at " + path);
-
-                List<CubeInstance> cubeList = new ArrayList<>();
-
-                for (CubeInstance cube : vubeInstance.getVersionedCubes()) {
-                    CubeInstance realCube = cubeManager.getCube(cube.getName());
-
-                    if (realCube != null) {
-                        cubeList.add(realCube);
-                    }
-                }
-
-                vubeInstance.setVersionedCubes(cubeList);
-
-                final String name = vubeInstance.getName();
-                vubeMap.putLocal(name, vubeInstance);
+            if (vubeInstance.getVersionedCubes() == null || vubeInstance.getVersionedCubes().size() == 0) {
+                throw new IllegalStateException("VubeInstance at " + path + "must contain cubes.");
             }
+
+            if (StringUtils.isBlank(vubeInstance.getName()))
+                throw new IllegalStateException("VubeInstance name must not be blank, at " + path);
+
+            List<CubeInstance> cubeList = new ArrayList();
+
+            for (CubeInstance cube : vubeInstance.getVersionedCubes()) {
+                CubeInstance realCube = cubeManager.getCube(cube.getName());
+
+                if (realCube != null) {
+                    cubeList.add(realCube);
+                }
+            }
+
+            vubeInstance.setVersionedCubes(cubeList);
+
+            final String name = vubeInstance.getName();
+            vubeMap.putLocal(name, vubeInstance);
 
             return vubeInstance;
         } catch (Exception e) {
@@ -327,6 +328,14 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
             appendCube(vube, update.getCubeToAdd());
         }
 
+        if (update.getRawTableToAdd() != null) {
+            appendRawTable(vube, update.getRawTableToAdd());
+        }
+
+        if (update.getSampleSqls() != null) {
+            appendSampleSqls(vube, update.getSampleSqls());
+        }
+
         if (update.getCubesToUpdate() != null) {
             List<CubeInstance> cubeList = vube.getVersionedCubes();
             List<CubeInstance> updatedCubeList = new ArrayList<>();
@@ -337,13 +346,13 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
                     updateMap.put(newCube.getName(), newCube);
                 }
 
-                for (CubeInstance cube : cubeList) {
-                    if (updateMap.get(cube.getName()) != null) {
-                        CubeInstance cubeToUpdate = updateMap.get(cube.getName());
+                for (int idx = 0; idx < cubeList.size(); idx++) {
+                    if (updateMap.get(cubeList.get(idx).getName()) != null) {
+                        CubeInstance cubeToUpdate = updateMap.get(cubeList.get(idx).getName());
 
                         updatedCubeList.add(cubeToUpdate);
                     } else {
-                        updatedCubeList.add(cube);
+                        updatedCubeList.add(cubeList.get(idx));
                     }
                 }
             }
@@ -383,6 +392,38 @@ public class VubeManager implements IKeepClassWithMemberNames, IRealizationProvi
         }
 
         vube.getVersionedCubes().add(appendedCube);
+
+        try {
+            updateVube(vube);
+        } catch (IOException e) {
+            logger.error("Fail to update vube " + vube.getName() + "'s metadata", e);
+        }
+    }
+
+    // Add a RawTable to a Vube
+    void appendRawTable(VubeInstance vube, RawTableInstance appendedRaw) throws IOException {
+        if (!vube.getModel().equals(appendedRaw.getModel())) {
+            throw new IllegalArgumentException("Appended raw table '" + appendedRaw.getName()
+                    + "' does not have the same model with '" + vube.getName() + "'");
+        }
+
+        for (RawTableInstance raw : vube.getVersionedRawTables()) {
+            if (raw.getName().equals(appendedRaw.getName())) {
+                return;
+            }
+        }
+        vube.getVersionedRawTables().add(appendedRaw);
+
+        try {
+            updateVube(vube);
+        } catch (IOException e) {
+            logger.error("Fail to update vube " + vube.getName() + "'s metadata", e);
+        }
+    }
+
+    // Add a OptimizeLog to a Vube
+    void appendSampleSqls(VubeInstance vube, List<String> sqls) throws IOException {
+        vube.getSampleSqls().add(sqls);
 
         try {
             updateVube(vube);

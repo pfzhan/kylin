@@ -100,7 +100,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.KapCubeRequest;
@@ -118,7 +117,6 @@ import io.kyligence.kap.rest.service.SchedulerJobService;
 import io.kyligence.kap.rest.service.VubeService;
 import io.kyligence.kap.vube.VubeInstance;
 import io.kyligence.kap.vube.VubeUpdate;
-
 @Controller
 @Component("vubeController")
 @RequestMapping(value = "/vubes")
@@ -195,7 +193,7 @@ public class VubeController extends BasicController implements InitializingBean 
         for (Draft d : cubeService.listCubeDrafts(vubeName, modelName, projectName, exactMatch)) {
             CubeDesc c = (CubeDesc) d.getEntity();
 
-            if (!contains(response, c.getName())) {
+            if (contains(response, c.getName()) == false) {
                 KapCubeInstanceResponse r = createCubeInstanceResponseFromDraft(d);
                 r.setProject(d.getProject());
                 response.add(r);
@@ -410,6 +408,23 @@ public class VubeController extends BasicController implements InitializingBean 
         }
 
         return hr;
+    }
+
+    private long getHbaseSize(String vubeName) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        VubeInstance vube = vubeService.getVubeInstance(vubeName);
+        long sizeSum = 0;
+
+        if (vube == null) {
+            throw new BadRequestException(String.format(msg.getVUBE_NOT_FOUND(), vubeName));
+        }
+
+        for (CubeSegment segment : vube.getAllSegments()) {
+            sizeSum += segment.getInputRecordsSize();
+        }
+
+        return sizeSum;
     }
 
     @RequestMapping(value = "/{vubeName}/columnar", method = { RequestMethod.GET }, produces = {
@@ -678,55 +693,17 @@ public class VubeController extends BasicController implements InitializingBean 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "{projectName}/{vubeName}/raw_desc", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getRawDesc(@PathVariable String projectName, @PathVariable String vubeName,
-            @RequestParam(value = "version", required = false) String version) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-        VubeInstance vube = vubeService.getVubeInstance(vubeName);
-
-        if (vube == null) {
-            throw new BadRequestException(String.format(msg.getVUBE_NOT_FOUND(), vubeName));
-        }
-
-        String cubeName = VubeInstance.vubeNameToCubeName(vube, version);
-        RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
-        Draft draft = cubeService.getCubeDraft(cubeName, projectName);
-        HashMap<String, RawTableDesc> result = new HashMap<>();
-
-        if (raw != null) {
-            Preconditions.checkState(!raw.getRawTableDesc().isDraft());
-            result.put("rawTable", raw.getRawTableDesc());
-        }
-
-        if (draft != null) {
-            RawTableDesc draw = (RawTableDesc) draft.getEntities()[1];
-            if (draw != null)
-                Preconditions.checkState(draw.isDraft());
-            result.put("draft", draw);
-        }
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
-    }
-
     @RequestMapping(value = "{vubeName}/sample_sqls", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSampleSqls(@PathVariable String vubeName,
             @RequestParam(value = "version", required = false) String version) throws IOException {
         VubeInstance vube = vubeService.getVubeInstance(vubeName);
-        HashMap<String, Object> result = new HashMap<>();
-        CubeOptimizeLog vubeOptimizeLog = kapSuggestionService.getCubeOptLog(vubeName);
-        result.put("suggested_sqls", vubeOptimizeLog.getSampleSqls());
-        result.put("suggested_results", vubeOptimizeLog.getSqlResult());
+        HashMap<String, List<String>> result = new HashMap<>();
+        result.put("suggested", kapSuggestionService.getCubeOptLog(vubeName).getSampleSqls());
 
         if (vube != null) {
-            CubeOptimizeLog cubeOptimizeLog = kapSuggestionService
-                    .getCubeOptLog(VubeInstance.vubeNameToCubeName(vube, version));
-
-            result.put("versioned_sqls", cubeOptimizeLog.getSampleSqls());
-            result.put("versioned_results", cubeOptimizeLog.getSqlResult());
+            result.put("versioned", vube.getSampleSqlsWithVersion(version));
         }
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
@@ -762,22 +739,19 @@ public class VubeController extends BasicController implements InitializingBean 
             throw new BadRequestException(String.format(msg.getVUBE_NOT_FOUND(), vubeName));
         }
 
-        switch (req.getBuildType()) {
-        case "BUILD": {
+        if (req.getBuildType().equals("BUILD")) {
             JobInstance jobInstance = doBuild(vube, req);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
-        }
-        case "MERGE": {
+        } else if (req.getBuildType().equals("MERGE")) {
             JobInstance jobInstance = doMerge(vube, req);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
-        }
-        case "REFRESH":
+        } else if (req.getBuildType().equals("REFRESH")) {
             List<JobInstance> jobList = doRefresh(vube, req);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobList, "");
-        case "DROP":
+        } else if (req.getBuildType().equals("DROP")) {
             vube = doDrop(vube, req);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, vube, "");
-        default:
+        } else {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
         }
     }
@@ -786,7 +760,7 @@ public class VubeController extends BasicController implements InitializingBean 
         String cubeName = vubeService.getLatestCube(vube.getName()).getName();
 
         JobInstance jobInstance = buildInternal(cubeName, new TSRange(req.getStartTime(), req.getEndTime()), null, null,
-                req.getBuildType(), req.isForce());
+                null, req.getBuildType(), req.isForce());
         vubeService.updateCube(vube, cubeName);
         vubeService.addPendingCube(vube.getName(), cubeName);
         return jobInstance;
@@ -795,7 +769,7 @@ public class VubeController extends BasicController implements InitializingBean 
     private JobInstance doMerge(VubeInstance vube, VubeBuildRequest req) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
         if (req.getSegments() == null || req.getSegments().size() < 2) {
-            throw new BadRequestException(msg.getVUBE_SEGMENTS_MERGE_LESS_THAN_TWO());
+            throw new BadRequestException(String.format(msg.getVUBE_SEGMENTS_MERGE_LESS_THAN_TWO()));
         }
 
         Segments<CubeSegment> segments = vube.getSegments(req.getSegments());
@@ -808,10 +782,10 @@ public class VubeController extends BasicController implements InitializingBean 
             if (pre != null) {
                 if (pre.getTSRange().start.v < seg.getTSRange().end.v
                         && seg.getTSRange().start.v < pre.getTSRange().end.v)
-                    throw new BadRequestException(msg.getVUBE_SEGMENTS_MERGE_OVERLAPED());
+                    throw new BadRequestException(String.format(msg.getVUBE_SEGMENTS_MERGE_OVERLAPED()));
 
                 if (!VubeInstance.cubeNameToVersion(vube, seg.getCubeInstance().getName()).equals(version)) {
-                    throw new BadRequestException(msg.getVUBE_SEGMENTS_DIFFERENT_VERSION());
+                    throw new BadRequestException(String.format(msg.getVUBE_SEGMENTS_DIFFERENT_VERSION()));
                 }
             } else if (seg != null) {
                 version = VubeInstance.cubeNameToVersion(vube, seg.getCubeInstance().getName());
@@ -819,38 +793,50 @@ public class VubeController extends BasicController implements InitializingBean 
             pre = seg;
         }
 
-        JobInstance jobInstance = null;
+        String cubeName = pre.getCubeInstance().getName();
 
-        if (pre != null) {
-            String cubeName;
-            cubeName = pre.getCubeInstance().getName();
-
-            jobInstance = buildInternal(cubeName, new TSRange(segments.getTSStart(), segments.getTSEnd()), null, null,
-                    req.getBuildType(), true);
-            vubeService.updateCube(vube, cubeName);
-            vubeService.addPendingCube(vube.getName(), cubeName);
-        }
+        JobInstance jobInstance = buildInternal(cubeName, new TSRange(segments.getTSStart(), segments.getTSEnd()), null,
+                null, null, req.getBuildType(), true);
+        vubeService.updateCube(vube, cubeName);
+        vubeService.addPendingCube(vube.getName(), cubeName);
         return jobInstance;
     }
 
     private List<JobInstance> doRefresh(VubeInstance vube, VubeBuildRequest req) throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
         Segments<CubeSegment> segments = vube.getSegments(req.getSegments());
         List<JobInstance> jobList = new LinkedList<>();
 
         if (req.isUpgrade()) {
             String latestCubeName = vube.getLatestCube().getName();
+            String olderCubeName = null;
             boolean latestRefreshed = false;
-            HashSet<String> olderCubeSet = new HashSet<>();
+            boolean olderRefreshed = false;
+
+            if (vube.getVersionedCubes().size() > 1) {
+                List<CubeInstance> cubeList = vube.getVersionedCubes();
+
+                for (int i = cubeList.size() - 2; i >= 0; i--) {
+                    if (cubeList.get(i).getSegments().size() > 0) {
+                        olderCubeName = cubeList.get(i).getName();
+                        break;
+                    }
+                }
+            }
 
             for (CubeSegment segment : segments) {
-                if (segment.getCubeInstance().getName().equals(latestCubeName)) {
-                    jobList.add(
-                            buildInternal(latestCubeName, segment.getTSRange(), null, null, req.getBuildType(), true));
+                if ((!segment.getCubeInstance().getName().equals(latestCubeName))
+                        && (!segment.getCubeInstance().getName().equals(olderCubeName))) {
+                    continue;
+                } else if (segment.getCubeInstance().getName().equals(latestCubeName)) {
+                    jobList.add(buildInternal(latestCubeName, segment.getTSRange(), segment.getSegRange(), null, null,
+                            req.getBuildType(), true));
                     latestRefreshed = true;
                 } else {
-                    jobList.add(buildInternal(latestCubeName, segment.getTSRange(), null, null, "BUILD", true));
-                    olderCubeSet.add(segment.getCubeInstance().getName());
+                    jobList.add(buildInternal(latestCubeName, segment.getTSRange(), segment.getSegRange(), null, null,
+                            "BUILD", true));
                     cubeService.deleteSegment(segment.getCubeInstance(), segment.getName());
+                    olderRefreshed = true;
                 }
             }
 
@@ -859,14 +845,14 @@ public class VubeController extends BasicController implements InitializingBean 
                 vubeService.addPendingCube(vube.getName(), latestCubeName);
             }
 
-            for (String cubeName : olderCubeSet) {
-                vubeService.updateCube(vube, cubeName);
-                vubeService.addPendingCube(vube.getName(), cubeName);
+            if (olderRefreshed) {
+                vubeService.updateCube(vube, olderCubeName);
+                vubeService.addPendingCube(vube.getName(), olderCubeName);
             }
         } else {
             for (CubeSegment segment : segments) {
-                jobList.add(buildInternal(segment.getCubeInstance().getName(), segment.getTSRange(), null, null,
-                        req.getBuildType(), true));
+                jobList.add(buildInternal(segment.getCubeInstance().getName(), segment.getTSRange(),
+                        segment.getSegRange(), null, null, req.getBuildType(), true));
                 vubeService.addPendingCube(vube.getName(), segment.getCubeInstance().getName());
             }
 
@@ -1059,6 +1045,8 @@ public class VubeController extends BasicController implements InitializingBean 
             newVube = vubeService.createVube(newVubeName, project, newCube);
             VubeUpdate update = new VubeUpdate(newVube);
 
+            update.setRawTableToAdd(newRaw);
+            update.setSampleSqls(vube.getSampleSqls().get(vube.getVersionedCubes().size() - 1));
             vubeService.updateVube(newVube, update);
 
         } catch (Exception ex) {
@@ -1087,37 +1075,28 @@ public class VubeController extends BasicController implements InitializingBean 
         Set<CubeInstance> cubesSet = new HashSet<>();
         List<String> segsToDrop = req.getSegments();
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
-        ResourceStore.Checkpoint cp = store.checkpoint();
-
-        try {
-            for (CubeSegment segment : segments) {
-                if (segsToDrop.contains(segment.getName())) {
-                    cubesSet.add(segment.getCubeInstance());
-                    cubeService.deleteSegment(segment.getCubeInstance(), segment.getName());
-                }
+        for (CubeSegment segment : segments) {
+            if (segsToDrop.contains(segment.getName())) {
+                cubesSet.add(segment.getCubeInstance());
+                cubeService.deleteSegment(segment.getCubeInstance(), segment.getName());
             }
-
-            VubeUpdate update = new VubeUpdate(vube);
-            // All segments deleted and no raw table
-            if (segments.size() == segsToDrop.size()) {
-                update.setStatus(RealizationStatusEnum.DISABLED);
-            }
-
-            update.setCubesToUpdate(cubesSet.toArray(new CubeInstance[cubesSet.size()]));
-            vube = vubeService.updateVube(vube, update);
-        } catch (Exception ex) {
-            cp.rollback();
-            throw ex;
-        } finally {
-            cp.close();
         }
+
+        VubeUpdate update = new VubeUpdate(vube);
+        // All segments deleted and no raw table
+        if (segments.size() == segsToDrop.size() && vube.getVersionedRawTables().size() == 0) {
+            update.setStatus(RealizationStatusEnum.DISABLED);
+        }
+
+        update.setCubesToUpdate(cubesSet.toArray(new CubeInstance[cubesSet.size()]));
+        vube = vubeService.updateVube(vube, update);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, vube, "");
     }
 
     private JobInstance buildInternal(String cubeName, TSRange tsRange, SegmentRange segRange,
-            Map<Integer, Long> sourcePartitionOffsetEnd, String buildType, boolean force) throws IOException {
+            Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd,
+            String buildType, boolean force) throws IOException {
         Message msg = MsgPicker.getMsg();
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -1129,13 +1108,14 @@ public class VubeController extends BasicController implements InitializingBean 
         if (cube.getDescriptor().isDraft()) {
             throw new BadRequestException(msg.getBUILD_DRAFT_CUBE());
         }
-        return jobService.submitJob(cube, tsRange, segRange, null, sourcePartitionOffsetEnd,
+        return jobService.submitJob(cube, tsRange, segRange, sourcePartitionOffsetStart, sourcePartitionOffsetEnd,
                 CubeBuildTypeEnum.valueOf(buildType), force, submitter);
     }
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeDesc(@RequestBody KapCubeRequest kapCubeRequest) throws Exception {
+    public EnvelopeResponse updateCubeDesc(@RequestBody KapCubeRequest kapCubeRequest)
+            throws IOException, ParseException, SchedulerException {
         Message msg = MsgPicker.getMsg();
         KapMessage kapMessage = KapMsgPicker.getMsg();
 
@@ -1204,19 +1184,26 @@ public class VubeController extends BasicController implements InitializingBean 
                     schedulerJobService.disableSchedulerJob(schedule, project);
                 }
             } else {
+                if (vube == null) {
+                    throw new BadRequestException(String.format(kapMessage.getVUBE_NOT_FOUND(), vubeName));
+                }
+
                 update.setCubeToAdd(cube);
+                update.setVersion(version);
                 vubeService.updateVube(vube, update);
             }
+
+            RawTableInstance raw = null;
 
             if (rawTableDesc != null) {
                 rawTableDesc.setName(cubeDesc.getName());
                 rawTableDesc = rawTableService.saveRaw(rawTableDesc, cube, project);
+                raw = rawTableService.getRawTableManager().getRawTableInstance(cubeDesc.getName());
             }
 
-            kapSuggestionService.saveSampleSqls(cubeDesc.getModelName(), cubeName,
-                    kapSuggestionService.getCubeOptLog(vubeName).getSampleSqls());
-
             update.setVubeInstance(vube);
+            update.setRawTableToAdd(raw);
+            update.setSampleSqls(kapSuggestionService.getCubeOptLog(vubeName).getSampleSqls());
             vubeService.updateVube(vube, update);
 
             // remove any previous draft
@@ -1288,6 +1275,10 @@ public class VubeController extends BasicController implements InitializingBean 
             @RequestBody ScheduleJobRequest scheduleJobRequest) throws IOException, SchedulerException, ParseException {
         VubeInstance vube = vubeService.getVubeManager().getVubeInstance(vubeName);
         CubeInstance cube = cubeService.getCubeManager().getCube(vube.getLatestCube().getName());
+
+        if (vube == null) {
+            throw new InternalErrorException("Cannot find versioned cube " + vubeName);
+        }
 
         SchedulerJobInstance scheduler = new SchedulerJobInstance(vubeName, cube.getProject(), "vube", vubeName,
                 scheduleJobRequest.isEnabled(), cube.getDescriptor().getPartitionDateStart(),
@@ -1393,7 +1384,7 @@ public class VubeController extends BasicController implements InitializingBean 
             }
         }
 
-        if (cube != null && scheduler != null) {
+        if (scheduler != null) {
             schedulerJobService.pauseScheduler(vube.getName());
             ProjectInstance project = cubeService.getProjectManager().getProject(cube.getProject());
             scheduler.setPartitionStartTime(cube.getDescriptor().getPartitionDateStart());
@@ -1495,7 +1486,10 @@ public class VubeController extends BasicController implements InitializingBean 
         try {
             logger.trace("Saving cube " + kapCubeRequest.getCubeDescData());
             desc = JsonUtil.readValue(kapCubeRequest.getCubeDescData(), CubeDesc.class);
-        } catch (JsonParseException | JsonMappingException e) {
+        } catch (JsonParseException e) {
+            logger.error("The cube definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        } catch (JsonMappingException e) {
             logger.error("The cube definition is not valid.", e);
             throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
         }
@@ -1507,12 +1501,15 @@ public class VubeController extends BasicController implements InitializingBean 
 
         RawTableDesc desc = null;
         if (kapCubeRequest.getRawTableDescData() == null)
-            return null;
+            return desc;
 
         try {
             logger.trace("Saving rawtable " + kapCubeRequest.getRawTableDescData());
             desc = JsonUtil.readValue(kapCubeRequest.getRawTableDescData(), RawTableDesc.class);
-        } catch (JsonParseException | JsonMappingException e) {
+        } catch (JsonParseException e) {
+            logger.error("The rawtable definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
+        } catch (JsonMappingException e) {
             logger.error("The rawtable definition is not valid.", e);
             throw new BadRequestException(msg.getINVALID_RAWTABLE_DEFINITION());
         }
@@ -1524,12 +1521,15 @@ public class VubeController extends BasicController implements InitializingBean 
         SchedulerJobInstance schedulerJob = null;
 
         if (kapCubeRequest.getSchedulerJobData() == null)
-            return null;
+            return schedulerJob;
 
         try {
             logger.trace("Saving scheduler job " + kapCubeRequest.getSchedulerJobData());
             schedulerJob = JsonUtil.readValue(kapCubeRequest.getSchedulerJobData(), SchedulerJobInstance.class);
-        } catch (JsonParseException | JsonMappingException e) {
+        } catch (JsonParseException e) {
+            logger.error("The SchedulerJobInstance definition is not valid.", e);
+            throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
+        } catch (JsonMappingException e) {
             logger.error("The SchedulerJobInstance definition is not valid.", e);
             throw new BadRequestException(msg.getINVALID_CUBE_DEFINITION());
         }
@@ -1564,7 +1564,7 @@ public class VubeController extends BasicController implements InitializingBean 
         schedulerJobService.saveSchedulerJob(schedule, vube, project);
     }
 
-    void setCubeService(CubeService cubeService) {
+    public void setCubeService(CubeService cubeService) {
         this.cubeService = cubeService;
     }
 
@@ -1572,23 +1572,23 @@ public class VubeController extends BasicController implements InitializingBean 
         this.jobService = jobService;
     }
 
-    void setRawTableService(RawTableService rawTableService) {
+    public void setRawTableService(RawTableService rawTableService) {
         this.rawTableService = rawTableService;
     }
 
-    void setSchedulerJobService(SchedulerJobService schedulerJobService) {
+    public void setSchedulerJobService(SchedulerJobService schedulerJobService) {
         this.schedulerJobService = schedulerJobService;
     }
 
-    void setVubeService(VubeService vubeService) {
+    public void setVubeService(VubeService vubeService) {
         this.vubeService = vubeService;
     }
 
-    void setKapSuggestionService(KapSuggestionService kapSuggestionService) {
+    public void setKapSuggestionService(KapSuggestionService kapSuggestionService) {
         this.kapSuggestionService = kapSuggestionService;
     }
 
-    void setProjectService(ProjectService projectService) {
+    public void setProjectService(ProjectService projectService) {
         this.projectService = projectService;
     }
 }

@@ -24,10 +24,15 @@
 
 package io.kyligence.kap.rest.controller;
 
-import static org.apache.kylin.metadata.realization.RealizationStatusEnum.DESCBROKEN;
-
-import java.io.StringWriter;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.kyligence.kap.rest.request.KapCubeRequest;
+import io.kyligence.kap.rest.request.VubeBuildRequest;
+import io.kyligence.kap.rest.service.KapSuggestionService;
+import io.kyligence.kap.rest.service.RawTableService;
+import io.kyligence.kap.rest.service.SchedulerJobService;
+import io.kyligence.kap.rest.service.ServiceTestBase;
+import io.kyligence.kap.rest.service.VubeService;
+import io.kyligence.kap.vube.VubeInstance;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.job.JobInstance;
@@ -39,19 +44,15 @@ import org.apache.kylin.rest.service.ProjectService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.quartz.SchedulerException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.text.ParseException;
 
-import io.kyligence.kap.rest.request.KapCubeRequest;
-import io.kyligence.kap.rest.request.VubeBuildRequest;
-import io.kyligence.kap.rest.service.KapSuggestionService;
-import io.kyligence.kap.rest.service.RawTableService;
-import io.kyligence.kap.rest.service.SchedulerJobService;
-import io.kyligence.kap.rest.service.ServiceTestBase;
-import io.kyligence.kap.rest.service.VubeService;
-import io.kyligence.kap.vube.VubeInstance;
+import static org.apache.kylin.metadata.realization.RealizationStatusEnum.DESCBROKEN;
 
 public class VubeControllerTest extends ServiceTestBase {
 
@@ -104,38 +105,24 @@ public class VubeControllerTest extends ServiceTestBase {
     }
 
     @Test
-    public void testCreateVube() throws Exception {
+    public void testCreateVube() throws IOException, ParseException, SchedulerException {
         CubeDesc cubeDesc = cubeService.getCubeDescManager().getCubeDesc("versioned_cube_version_1");
         Assert.assertNotNull(cubeDesc);
-        doSave(cubeDesc);
+        createVube(cubeDesc);
         Assert.assertEquals(1, vubeService.listAllVubeNames().size());
 
         VubeInstance vube = vubeService.getVubeInstance("versioned_cube_test");
         Assert.assertEquals(1, vube.getVersionedCubes().size());
+        Assert.assertEquals("versioned_cube_test_version_1", vube.getDescName());
         Assert.assertEquals(DESCBROKEN, vube.getStatus());
     }
 
     @Test
-    public void testEditVube() throws Exception {
-        CubeDesc cubeDesc1 = cubeService.getCubeDescManager().getCubeDesc("versioned_cube_version_1");
-        CubeDesc cubeDesc2 = cubeService.getCubeDescManager().getCubeDesc("versioned_cube_version_2");
-        Assert.assertNotNull(cubeDesc1);
-        Assert.assertNotNull(cubeDesc2);
-
-        doSave(cubeDesc1);
-        doSave(cubeDesc2);
-
-        VubeInstance vube = vubeService.getVubeInstance("versioned_cube_test");
-        Assert.assertEquals(2, vube.getVersionedCubes().size());
-        Assert.assertEquals("versioned_cube_test_version_2", vube.getVersionedCubes().get(1).getName());
-    }
-
-    @Test
-    public void testBuildVube() throws Exception {
+    public void testBuildVube() throws ParseException, SchedulerException, IOException {
         CubeDesc cubeDesc = cubeService.getCubeDescManager().getCubeDesc("versioned_cube_version_1");
         VubeBuildRequest request = new VubeBuildRequest();
 
-        doSave(cubeDesc);
+        createVube(cubeDesc);
         request.setBuildType("BUILD");
         request.setStartTime(0);
         request.setEndTime(10000);
@@ -147,7 +134,7 @@ public class VubeControllerTest extends ServiceTestBase {
         Assert.assertEquals(1, jobInstance.getSteps().size());
     }
 
-    private void doSave(CubeDesc cubeDesc) throws Exception {
+    private void createVube(CubeDesc cubeDesc) throws IOException, ParseException, SchedulerException {
         CubeDesc newCube = new CubeDesc();
         String newCubeName = "versioned_cube_test";
 

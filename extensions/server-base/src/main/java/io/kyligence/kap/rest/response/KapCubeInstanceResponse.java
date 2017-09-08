@@ -31,7 +31,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class KapCubeInstanceResponse extends CubeInstanceResponse {
     @JsonProperty("cube_size")
-    private float cubeSize;
+    private Float cubeSize;
     @JsonProperty("source_records")
     private long sourceRecords;
     @JsonProperty("last_build_time")
@@ -54,7 +54,7 @@ public class KapCubeInstanceResponse extends CubeInstanceResponse {
 
     }
 
-    public void setCubeSize(float cubeSize) {
+    public void setCubeSize(Float cubeSize) {
         this.cubeSize = cubeSize;
     }
 

@@ -57,10 +57,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class VubeInstance extends HybridInstance implements IRealization, IBuildable {
-    static final String VUBE_RESOURCE_ROOT = "/vube";
+    public static final String VUBE_RESOURCE_ROOT = "/vube";
 
     @JsonIgnore
     private KylinConfig config;
@@ -71,8 +73,17 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
     @JsonProperty("owner")
     private String owner;
 
+    @JsonProperty("descriptor")
+    private String descName;
+
     @JsonProperty("cubes")
     private List<CubeInstance> versionedCubes;
+
+    @JsonProperty("rawtables")
+    private List<RawTableInstance> versionedRawTables;
+
+    @JsonProperty("sample_sqls")
+    private List<List<String>> sampleSqls;
 
     @JsonProperty("cost")
     private int cost = 50;
@@ -94,7 +105,7 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
 
     private final static Logger logger = LoggerFactory.getLogger(io.kyligence.kap.vube.VubeInstance.class);
 
-    void setVersionedCubes(List<CubeInstance> versionedCubes) {
+    public void setVersionedCubes(List<CubeInstance> versionedCubes) {
         this.versionedCubes = versionedCubes;
     }
 
@@ -109,6 +120,7 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         cubeList.add(cube);
         vubeInstance.setConfig(cube.getConfig());
         vubeInstance.setName(name);
+        vubeInstance.setDescName(cube.getName());
         vubeInstance.setCreateTimeUTC(System.currentTimeMillis());
 
         if (cube.getSegments().size() > 0) {
@@ -117,6 +129,8 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
             vubeInstance.setStatus(RealizationStatusEnum.DESCBROKEN);
         }
         vubeInstance.setVersionedCubes(cubeList);
+        vubeInstance.versionedRawTables = new ArrayList<>();
+        vubeInstance.sampleSqls = new ArrayList<>();
         vubeInstance.updateRandomUuid();
 
         return vubeInstance;
@@ -128,12 +142,14 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
                 return;
 
             List<CubeInstance> cubeList = Lists.newArrayList();
-            for (CubeInstance cubeInstance : versionedCubes) {
+            for (int i = 0; i < versionedCubes.size(); i++) {
+                CubeInstance cubeInstance = versionedCubes.get(i);
                 if (cubeInstance == null) {
-                    logger.error("Realization not found.");
+                    logger.error("Realization '" + cubeInstance.getName() + " is not found, remove from Vube '"
+                            + this.getName() + "'");
                     continue;
                 }
-                if (!cubeInstance.isReady()) {
+                if (cubeInstance.isReady() == false) {
                     logger.error("Cube '" + cubeInstance.getName() + " is disabled, remove from Vube '" + this.getName()
                             + "'");
                     continue;
@@ -201,9 +217,9 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
     }
 
     public Segments<CubeSegment> getAllSegments() {
-        Segments<CubeSegment> segments = new Segments<CubeSegment>();
+        Segments<CubeSegment> segments = new Segments();
 
-        for (CubeInstance cube : getVersionedCubes()) {
+        for (CubeInstance cube: getVersionedCubes()) {
             segments.addAll(cube.getSegments());
         }
         return segments;
@@ -215,7 +231,7 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         for (CubeInstance cube : getVersionedCubes()) {
             if (cube.getName().equals(this.getName())) {
                 versionSegments.put("version_0", cube.getSegments());
-            } else if ((cube.getName().startsWith(this.getName()) && cube.getName().contains("_version_"))) {
+            } else if((cube.getName().startsWith(this.getName()) && cube.getName().contains("_version_"))){
                 String version = cube.getName().substring(cube.getName().indexOf("_version_") + 1);
                 versionSegments.put(version, cube.getSegments());
             }
@@ -226,7 +242,7 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
     }
 
     public Segments<CubeSegment> getSegments(List<String> segNames) {
-        Segments<CubeSegment> neededSegments = new Segments<CubeSegment>();
+        Segments<CubeSegment> neededSegments = new Segments();
 
         for (CubeInstance cube : this.getVersionedCubes()) {
             Segments<CubeSegment> segments = cube.getSegments();
@@ -242,7 +258,7 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
     }
 
     public Segments<CubeSegment> getSegments(String version) {
-        Segments<CubeSegment> segments = new Segments<CubeSegment>();
+        Segments<CubeSegment> segments = new Segments();
         List<CubeInstance> cubes = this.getVersionedCubes();
 
         // Updated metadata
@@ -260,6 +276,14 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         }
 
         return segments;
+    }
+
+    public List<RawTableInstance> getVersionedRawTables() {
+        return versionedRawTables;
+    }
+
+    public void setVersionedRawTables(List<RawTableInstance> versionedRawTables) {
+        this.versionedRawTables = versionedRawTables;
     }
 
     @Override
@@ -408,8 +432,8 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
     public CubeInstance getLatestReadyCube() {
         CubeInstance cube = null;
 
-        for (int i = versionedCubes.size() - 1; i >= 0; i--) {
-            if (versionedCubes.get(i).getStatus() == RealizationStatusEnum.READY) {
+        for (int i = versionedCubes.size() - 1; i >=0; i--) {
+            if(versionedCubes.get(i).getStatus() == RealizationStatusEnum.READY) {
                 cube = versionedCubes.get(i);
             }
         }
@@ -436,9 +460,43 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         return result;
     }
 
+    public List<String> getSampleSqlsWithVersion(String version) {
+        List<String> result = null;
+        int idx = -1;
+
+        if (version == null || version.length() == 0) {
+            idx = sampleSqls.size() - 1;
+        } else if (version.equals("version_0")) {
+            if (versionedCubes.size() > 0 && !versionedCubes.get(0).getName().contains("_version_")) {
+                idx = 0;
+            }
+        } else {
+            for (CubeInstance cube : versionedCubes) {
+                if (cube.getName().equals(version)) {
+                    break;
+                }
+                idx++;
+            }
+        }
+
+        if (idx >= 0 && sampleSqls.size() > idx) {
+            result = sampleSqls.get(idx);
+        }
+
+        return result;
+    }
+
     @Override
     public int getStorageType() {
         return ID_HYBRID;
+    }
+
+    public String getDescName() {
+        return descName;
+    }
+
+    public void setDescName(String descName) {
+        this.descName = descName;
     }
 
     public RealizationStatusEnum getStatus() {
@@ -473,6 +531,14 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         return getModel().getRootFactTable().getTableDesc().getSourceType();
     }
 
+    public List<List<String>> getSampleSqls() {
+        return sampleSqls;
+    }
+
+    public void setSampleSqls(List<List<String>> sampleSqls) {
+        this.sampleSqls = sampleSqls;
+    }
+
     public static String cubeNameToVersion(VubeInstance vube, String cubeName) {
         String version = null;
 
@@ -483,22 +549,5 @@ public class VubeInstance extends HybridInstance implements IRealization, IBuild
         }
 
         return version;
-    }
-
-    public static String vubeNameToCubeName(VubeInstance vube, String version) {
-        if ((version == null || version.isEmpty()) && vube != null) {
-            return vube.getLatestCube().getName();
-        }
-
-        if (vube != null) {
-            if (version.equals("version_0")) {
-                return vube.getName();
-            } else {
-                return vube.getName() + "_" + version;
-            }
-        } else {
-            return null;
-        }
-
     }
 }

@@ -86,7 +86,7 @@ public class ScheduleBuildJob implements Job {
 
         logger.info("Scheduler of jobName " + jobName + " is triggered.");
         try {
-            long startTime = dataMap.getLong("startTime");
+            Long startTime = dataMap.getLong("startTime");
             SchedulerJobInstance schedulerInstance = schedulerJobService.getSchedulerJob(jobName);
             String errorJobId = null;
             CubeInstance cube = null;
@@ -175,7 +175,7 @@ public class ScheduleBuildJob implements Job {
 
             // Reset scheduler job
             if (!schedulerRemoved) {
-                Map<String, Long> settings = new HashMap<String, Long>();
+                Map<String, Long> settings = new HashMap();
 
                 settings.put("partitionStartTime", startTime);
                 settings.put("curRepeatCount", schedulerInstance.getCurRepeatCount() + 1);
