@@ -18,6 +18,7 @@
       :data="cubesList"
       :default-expand-all="isViewCubeMode"
       :row-class-name="showRowClass"
+      tooltip-effect="dark"
       border
       style="width:100%">
       <el-table-column type="expand" width="30">
@@ -42,15 +43,18 @@
         :label="$t('name')"
         sortable
         width="130"
+        show-overflow-tooltip
         prop="name">
          <template scope="scope" >
-            <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
+            {{scope.row.name}}
+<!--             <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
                 <span >{{scope.row.name|omit(24, '...')}}</span>
-            </el-tooltip>
+            </el-tooltip> -->
          </template>
       </el-table-column>
       <el-table-column
         :label="$t('model')"
+        show-overflow-tooltip
         sortable
         prop="model">
       </el-table-column>
@@ -84,6 +88,7 @@
       </el-table-column>
       <el-table-column
         sortable
+        show-overflow-tooltip
         :label="$t('lastBuildTime')">
         <template scope="scope">
           <span>{{scope.row.buildGMTTime}}</span>
@@ -92,12 +97,14 @@
       <el-table-column
         :label="$t('owner')"
         sortable
+        show-overflow-tooltip
         width="90"
         prop="owner">
       </el-table-column>
       <el-table-column
         :label="$t('createTime')"
         sortable
+        show-overflow-tooltip
         prop="createGMTTime">
       </el-table-column>
       <el-table-column

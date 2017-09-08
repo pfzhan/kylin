@@ -50,15 +50,14 @@
     border
     :row-class-name="showRowClass"
     stripe
+    tooltip-effect="dark"
     style="width: 100%">
     <el-table-column
+    show-overflow-tooltip
       :label="$t('kylinLang.model.modelNameGrid')"
       width="180">
        <template scope="scope" >
-          <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
-              <span @click="viewModel(scope.row)">{{scope.row.name|omit(24, '...')}}</span>
-          </el-tooltip>
-         <!-- <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span> -->
+       {{scope.row.name}}
        </template>
     </el-table-column>
     <el-table-column
@@ -87,17 +86,19 @@
     </el-table-column>
     <el-table-column
       prop="fact_table"
+      show-overflow-tooltip
       :label="$t('kylinLang.common.fact')">
     </el-table-column>
     <el-table-column
       prop="gmtTime"
+      show-overflow-tooltip
       :label="$t('kylinLang.model.modifiedGrid')">
     </el-table-column>
      <el-table-column class="ksd-center"
       width="100"
       :label="$t('kylinLang.common.action')">
        <template scope="scope">
-       <span v-if="!(hasPermissionOfProject(scope.row.project))"> N/A</span>
+       <span v-if="!(isAdmin || hasPermissionOfProject(scope.row.project))"> N/A</span>
         <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermissionOfProject(scope.row.project)">
            <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>

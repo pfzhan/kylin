@@ -4,6 +4,7 @@
  <img src="../../assets/img/no_project.png" class="null_pic" v-if="!(projectList && projectList.length)">
   <el-table v-if="projectList && projectList.length"
     :data="projectList"
+    tooltip-effect="dark"
     style="width: 100%">
     <el-table-column type="expand">
       <template scope="props">
@@ -28,21 +29,29 @@
     </el-table-column>
     <el-table-column
       :label="$t('name')"
+      show-overflow-tooltip
+      :width="320"
       prop="name">
     </el-table-column>
     <el-table-column
       :label="$t('owner')"
+      :width="220"
+      show-overflow-tooltip
       prop="owner">
     </el-table-column>
     <el-table-column
       :label="$t('description')"
+      show-overflow-tooltip
       prop="description">
     </el-table-column> 
     <el-table-column
+      show-overflow-tooltip
+      :width="196"
       :label="$t('createTime')"
       prop="gmtTime">
     </el-table-column>   
     <el-table-column 
+      :width="100"
       :label="$t('action')">
       <template scope="scope">
       <span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span>

@@ -26,6 +26,7 @@
     </el-col>
   </el-row>
     <el-table
+    tooltip-effect="dark"
     border class="table_margin"
     :data="jobsList"
     style="width:100%"
@@ -36,16 +37,19 @@
     <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column
       :label="$t('JobName')"
+      show-overflow-tooltip
       sortable
       prop="jobname"
-      width="220">
+      >
         <template scope="scope">
           <i class="el-icon-arrow-right" ></i> {{scope.row.name}}
         </template>
       </el-table-column>
       <el-table-column
       :label="$t('TableModelCube')"
+      :width="180"
       sortable
+      show-overflow-tooltip
       prop="related_cube">
       </el-table-column>
       <el-table-column
@@ -63,6 +67,8 @@
       </el-table-column>
       <el-table-column
       :label="$t('LastModifiedTime')"
+      :width="200"
+      show-overflow-tooltip
       sortable>
         <template scope="scope">
         {{scope.row.gmtTime}}
