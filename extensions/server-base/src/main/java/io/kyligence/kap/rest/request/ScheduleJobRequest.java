@@ -25,19 +25,16 @@
 package io.kyligence.kap.rest.request;
 
 public class ScheduleJobRequest {
-    private boolean enabled;
 
     private long triggerTime;
 
+    private long startTime;
+
+    private int repeatCount;
+
     private long repeatInterval;
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+    private long partitionInterval;
 
     public long getTriggerTime() {
         return triggerTime;
@@ -47,11 +44,35 @@ public class ScheduleJobRequest {
         this.triggerTime = triggerTime;
     }
 
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public int getRepeatCount() {
+        return repeatCount;
+    }
+
+    public void setRepeatCount(int repeatCount) {
+        this.repeatCount = repeatCount;
+    }
+
     public long getRepeatInterval() {
         return repeatInterval;
     }
 
     public void setRepeatInterval(long repeatInterval) {
         this.repeatInterval = repeatInterval;
+    }
+
+    public long getPartitionInterval() {
+        return partitionInterval;
+    }
+
+    public void setPartitionInterval(long partitionInterval) {
+        this.partitionInterval = partitionInterval;
     }
 }

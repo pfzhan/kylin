@@ -84,7 +84,7 @@ sleep 1m
 python testQuery.py 1                                   || { exit 1; }
 ${KYLIN_HOME}/bin/spark-client.sh stop
 
-# python testDiag.py                                      || { exit 1; }
+python testDiag.py                                      || { exit 1; }
 cd -
 
 # Tear down stage

@@ -72,7 +72,7 @@ cd $dir/smoke-test
 echo "Start to test obf package."
 python testBuildCube.py 1356998400000 1456790400000     || { exit 1; }
 python testQuery.py 0                                   || { exit 1; }
-# python testDiag.py                                      || { exit 1; }
+python testDiag.py                                      || { exit 1; }
 bash   testLib.sh                                       || { exit 1; }
 cd -
 
