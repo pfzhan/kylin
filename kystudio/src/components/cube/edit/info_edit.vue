@@ -20,7 +20,7 @@
       <span slot="label">{{$t('notificationEvents')}}
         <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
-      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents">
+      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents"> 
       </area_label>
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
@@ -33,11 +33,11 @@
       <common-tip v-if="healthStatus.status==='RUNNING'"  :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
       <common-tip v-if="healthStatus.status==='ERROR'" :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" status="exception"  :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
     </li>
-    <li>{{$t('sqlPattens')}} <span v-show="sampleSql.sqlSize>0">({{sampleSql.sqlSize}})</span></li>
+    <li>{{$t('sqlPattens')}} <span v-show="sqlCount>0">({{sqlCount}})</span></li>
   </ul>
   <el-row style="margin-top: 10px;">
     <el-col :span="24">
-      <el-button type="blue"  @click.native="collectSql" >{{$t('collectsqlPatterns')}}</el-button>
+      <el-button type="blue"  @click.native="collectSql" :disabled="isReadyCube" >{{$t('collectsqlPatterns')}}</el-button> 
     </el-col>
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
@@ -45,11 +45,13 @@
     <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
     <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <div :class="{hasCheck: hasCheck}">
-    <editor v-model="sampleSql.sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+    <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
     </div>
+    <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
+    <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
     <transition name="fade">
     <div v-if="errorMsg">
-     <el-alert class="ksd-mt-10 trans"
+     <el-alert class="ksd-mt-10 trans"  
         :title="errorMsg"
         show-icon
         :closable="false"
@@ -59,7 +61,7 @@
     </transition>
     <transition name="fade">
     <div v-if="successMsg">
-     <el-alert class="ksd-mt-10 trans"
+     <el-alert class="ksd-mt-10 trans"  
         :title="successMsg"
         show-icon
         :closable="false"
@@ -71,8 +73,8 @@
     <span slot="footer" class="dialog-footer">
       <el-button @click="addSQLFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.ok')}}</el-button>
-    </span>
-  </el-dialog>
+    </span>     
+  </el-dialog> 
 </div>
 </template>
 <script>
@@ -82,7 +84,7 @@ import { modelHealthStatus } from '../../../config/index'
 import {handleSuccess, handleError, kapConfirm} from 'util/business'
 export default {
   name: 'info',
-  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
   data () {
     return {
       modelHealthStatus: modelHealthStatus,
@@ -91,6 +93,8 @@ export default {
       errorMsg: '',
       successMsg: '',
       hasCheck: false,
+      sqlCount: 0,
+      sqlString: '',
       result: [],
       firstLoadSql: false,
       healthStatus: {
@@ -133,7 +137,7 @@ export default {
       this.loadSql()
     },
     filterSqls () {
-      var sqls = this.sampleSql.sqlString.split(/;/)
+      var sqls = this.sqlString.split(/;/)
       sqls = sqls.filter((s) => {
         return !!(s.replace(/[\r\n]/g, ''))
       })
@@ -201,7 +205,7 @@ export default {
       }
     },
     validateSql () {
-      var sqls = this.filterSqls(this.sampleSql.sqlString)
+      var sqls = this.filterSqls(this.sqlString)
       if (sqls.length === 0) {
         return
       }
@@ -210,7 +214,7 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sampleSql.sqlString = sqls.join(';\r\n')
+      this.sqlString = sqls.join(';\r\n')
       this.checkSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
           this.hasCheck = true
@@ -237,15 +241,15 @@ export default {
         this.renderEditerRender(editor)
         this.getSql(this.cubeDesc.name).then((res) => {
           handleSuccess(res, (data) => {
-            if (data.suggested_sqls) {
-              this.sampleSql.sqlSize = data.suggested_sqls.length
-              if (data.suggested_results && data.suggested_results.length) {
+            if (data.sqls) {
+              this.sqlCount = data.sqls.length
+              if (data.results && data.results.length) {
                 this.hasCheck = true
               }
-              this.result = data.suggested_results
-              this.sampleSql.sqlString = ''
+              this.result = data.results
+              this.sqlString = ''
               this.$nextTick(() => {
-                this.sampleSql.sqlString = data.suggested_sqls.join(';\r\n')
+                this.sqlString = data.sqls.join(';\r\n')
                 this.addBreakPoint(this.result, editor)
                 this.bindBreakClickEvent(editor)
                 this.$nextTick(() => {
@@ -268,12 +272,12 @@ export default {
     saveSql () {
       this.errorMsg = ''
       this.sqlBtnLoading = true
-      var sqls = this.filterSqls(this.sampleSql.sqlString)
+      var sqls = this.filterSqls(this.sqlString)
       this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         this.sqlBtnLoading = false
         handleSuccess(res, (data, code, status, msg) => {
           this.addSQLFormVisible = false
-          this.sampleSql.sqlSize = sqls.length
+          this.sqlCount = sqls.length
         })
       }, (res) => {
         this.sqlBtnLoading = false
@@ -310,6 +314,27 @@ export default {
   components: {
     'area_label': areaLabel
   },
+  computed: {
+    isReadyCube () {
+      return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
+      // return this.cubeDesc.status === 'READY'
+    }
+  },
+  mounted () {
+    this.loadSql()
+    // this.getModelDiagnose({
+    //   project: this.modelDesc.project,
+    //   modelName: this.modelDesc.name
+    // }).then((res) => {
+    //   handleSuccess(res, (data) => {
+    //     this.healthStatus.status = data.heathStatus
+    //     this.healthStatus.progress = data.progress
+    //     this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
+    //       return x.replace(/\r\n/g, '<br/>')
+    //     }) : [modelHealthStatus[data.heathStatus].message]
+    //   })
+    // })
+  },
   locales: {
     'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1.Model Check', sqlPattens: '2.SQL Pattens', check: 'Check', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see details.', validSuccess: 'Congratulations, the SQL statements is valid.'},
     'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : ', cubeNameInvalid: 'Cube名称不合法. ', cubeNameRequired: 'Cube名称不可为空.', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1.模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: '恭喜您，校验结果正确。'}
@@ -321,7 +346,7 @@ export default {
   .select {
     background-color:white;
   }
-
+  
   .info-edit{
     .hasCheck{
       .ace_gutter-cell:before {

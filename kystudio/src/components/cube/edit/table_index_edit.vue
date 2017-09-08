@@ -99,9 +99,9 @@
             <template scope="scope">
               <el-select v-model="scope.row.index" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
-                    v-for="item in rawTableIndexOptions" :key="item.value"
-                   :label="item.name"
-                   :value="item.value">
+                    v-for="(item, index) in rawTableIndexOptions" :key="index"
+                   :label="item"
+                   :value="item">
                 </el-option>             
               </el-select>
             </template>
@@ -147,6 +147,7 @@
   </div>
 </template>
 <script>
+import { mapActions } from 'vuex'
 import { loadBaseEncodings } from '../../../util/business'
 import { objectClone } from '../../../util/index'
 export default {
@@ -160,15 +161,15 @@ export default {
       convertedRawTable: [],
       ST: null,
       rawTableDetail: [],
-      rawTableIndexOptions: [
-        {name: 'discrete', value: 'discrete'},
-        {name: 'fuzzy', value: 'fuzzy'}
-      ],
+      rawTableIndexOptions: ['discrete', 'fuzzy'],
       selectEncodingCache: {},
       booleanSelect: [{name: 'true', value: true}, {name: 'false', value: false}]
     }
   },
   methods: {
+    ...mapActions({
+      loadRawTable: 'GET_RAW_TABLE'
+    }),
     changeUsed: function () {
       if (this.usedRawTable === false) {
         this.$store.state.cube.cubeRowTableIsSetting = false

@@ -1,70 +1,69 @@
 <template>
-  <div>
-    <div id="loginPage">
-      <ul class="ksd-fright">
-        <!-- 在登录页不显示onoff -->
-        <li><kap-help isLogin="login"></kap-help></li>
-        <li><kap-change-lang isLogin="login"></kap-change-lang></li>
-      </ul>
-    </div>
-    <div id="loginBox">
-      <el-row :gutter="0">
-        <el-col :span="12">
-          <div class="grid-content bg-purple content_part1">
-            <img src="../../assets/img/logo.png" class="logo">
-            <p class="welcome">{{$t('welcome')}}</p>
-            <div class="line"></div>
-            <ul>
-              <li><i class="icon_introduction"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
-              <li><i class="icon_manual"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
-              <li><i class="icon_contact"></i> <a href="mailto:support@kyligence.io" target="_blank">Contact us</a></li>
-            </ul>
-          </div>
-        </el-col>
-        <el-col :span="12" class="loginform_box">
-          <div class="grid-content bg-purple content_part2">
-             <h2>{{$t('loginIn')}}</h2>
-             <el-form   @keyup.native.enter="onLoginSubmit" class="login_form" :model="user" ref="loginForm" :rules="rules">
-             <div class="input_group">
-              <el-form-item label="" prop="username">
-                <el-input v-model="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
-              </el-form-item>
-              <el-form-item label="" prop="password" class="password">
-                <el-input  type="password" v-model="user.password" :placeholder="$t('password')"></el-input>
-              </el-form-item>
-              </div>
-              <el-form-item>
-                <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
-              </el-form-item>
-            </el-form>
-            <a class="forget_pwd" v-show="user.username==='ADMIN'">{{$t('forgetPassword')}}
-              <common-tip :content="$t('adminTip')" >
-                <icon name="question-circle-o"></icon>
-              </common-tip>
-            </a>
-          </div>
-        </el-col>
-      </el-row>
-       <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
-
-      <el-dialog class="license" @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="tiny" :before-close="closeWindow">
-        <el-alert 
-        title=""
-        type="info"
-        show-icon
-        :closable="false">
-        <p class="ksd-left">{{$t('enterLicensePartOne')}}
-         <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
-        {{$t('enterLicensePartTwo')}}
-        </p>
-        </el-alert>
-        <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
-        <div slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
-          <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+<div>
+  <div id="loginPage">
+    <ul class="ksd-fright">
+      <!-- 在登录页不显示onoff -->
+      <li><kap-help isLogin="login"></kap-help></li>
+      <li><kap-change-lang isLogin="login"></kap-change-lang></li>
+    </ul>
+  </div>
+  <div id="loginBox">
+    <el-row :gutter="0">
+      <el-col :span="12">
+        <div class="grid-content bg-purple content_part1">
+          <img src="../../assets/img/logo.png" class="logo">
+          <p class="welcome">{{$t('welcome')}}</p>
+          <div class="line"></div>
+          <ul>
+            <li><i class="icon_introduction"></i> <a href="http://kyligence.io/kap/" target="_blank">KAP Introduction</a></li>
+            <li><i class="icon_manual"></i> <a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
+            <li><i class="icon_contact"></i> <a href="mailto:support@kyligence.io" target="_blank">Contact us</a></li>
+          </ul>
         </div>
-      </el-dialog>
+      </el-col>
+      <el-col :span="12" class="loginform_box">
+        <div class="grid-content bg-purple content_part2">
+           <h2>{{$t('loginIn')}}</h2>
+           <el-form   @keyup.native.enter="onLoginSubmit" class="login_form" :model="user" ref="loginForm" :rules="rules">
+           <div class="input_group">
+            <el-form-item label="" prop="username">
+              <el-input v-model="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
+            </el-form-item>
+            <el-form-item label="" prop="password" class="password">
+              <el-input  type="password" v-model="user.password" :placeholder="$t('password')"></el-input>
+            </el-form-item>
+            </div>
+            <el-form-item>
+              <kap-icon-button type="primary"  @keyup.native.enter="onLoginSubmit" @click.native="onLoginSubmit" :useload="false" ref="loginBtn">{{$t('loginIn')}}</kap-icon-button>
+            </el-form-item>
+          </el-form>
+          <a class="forget_pwd" v-show="user.username==='ADMIN'">{{$t('forgetPassword')}}
+            <common-tip :content="$t('adminTip')" >
+              <icon name="question-circle-o"></icon>
+            </common-tip>
+          </a>
+        </div>
+      </el-col>
+    </el-row>
+     <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
+  </div>
+  <el-dialog @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small">
+    <el-alert 
+    title=""
+    type="info"
+    show-icon
+    :closable="false">
+    <p class="ksd-left">{{$t('enterLicensePartOne')}}
+     <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
+    {{$t('enterLicensePartTwo')}}
+    </p>
+    </el-alert>
+    <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
+      <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
     </div>
+  </el-dialog>
   </div>
 </template>
 <script>
@@ -90,8 +89,7 @@ export default {
       },
       btnLock: false,
       needLicense: false,
-      loadCheck: false,
-      hasLicense: true
+      loadCheck: false
     }
   },
   methods: {
@@ -134,17 +132,11 @@ export default {
       this.$refs['loginBtn'].loading = false
     },
     checkLicense () {
-      this.getAboutKap().then((res) => {
-        handleSuccess(res, (data) => {
-          if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] === null) {
-            this.hasLicense = true
-          }
-        }, (resp) => {
-          handleError(resp)
-        })
+      this.getAboutKap().then((result) => {
+      }, (resp) => {
       })
     },
-    licenseForm () {
+    licenseForm: function () {
       this.$refs['licenseEnter'].$emit('licenseFormValid')
     },
     licenseValidSuccess: function (license) {
@@ -171,9 +163,7 @@ export default {
       this.loadCheck = false
     },
     closeDialog: function () {
-      this.hasLicense = false
-    },
-    closeWindow: function (done) {
+      this.$store.state.system.serverAboutKap['kap.dates'] = ''
     }
   },
   components: {
@@ -183,6 +173,15 @@ export default {
   },
   created () {
     this.checkLicense()
+  },
+  computed: {
+    hasLicense () {
+      if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] !== null) {
+        return false
+      } else {
+        return true
+      }
+    }
   },
   locales: {
     'en': {
@@ -252,7 +251,7 @@ export default {
     color:#c0ccda;
 
   }
-  #loginBox{
+   #loginBox{
     .icon_introduction,.icon_manual,.icon_contact{
       display: inline-block;
       width: 12px;
@@ -349,27 +348,12 @@ export default {
            }
          }
        }
-      .el-input__inner{
-        border-radius: 2px 2px 0 0;
-        background: @input-bg;
-        color: @fff;
-        border-color: @input-bg;
-      }
-    }
-    .license {
-      top: 20%;
-      .el-alert--info {
-        background: rgba(33,143,234,0.1);
-        color: rgb(33,143,234);
-        border: 1px solid rgba(33,143,234,0.2);
-        a {
-          color:#ffffff;
-        }
-        .el-alert__icon {
-          padding-top: 0px;
-          top: 0%
-        }
-      }
-    }
-  }
+       .el-input__inner{
+         border-radius: 2px 2px 0 0;
+         background: @input-bg;
+         color: @fff;
+         border-color: @input-bg;
+       }
+     }
+   }
 </style>

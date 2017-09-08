@@ -6,92 +6,78 @@ Vue.use(VueResource)
 
 export default {
   getCubesList: (params) => {
-    return Vue.resource(apiUrl + 'vubes').get(params)
+    return Vue.resource(apiUrl + 'cubes').get(params)
   },
   getCubesSegmentsList: (cubesName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubesName + '/columnar').get()
+    return Vue.resource(apiUrl + 'cubes/' + cubesName + '/columnar').get()
   },
   getCubeDesc: (para) => {
-    return Vue.resource(apiUrl + 'vubes/' + para.project + '/' + para.cubeName + '/cube_desc').get(para.version)
+    return Vue.resource(apiUrl + 'cube_desc/' + para.project + '/' + para.cubeName).get()
   },
   deleteCube: (para) => {
-    return Vue.resource(apiUrl + 'vubes/' + para.project + '/' + para.cubeName).delete({})
+    return Vue.resource(apiUrl + 'cubes/' + para.project + '/' + para.cubeName).delete({})
   },
   rebuildCube: (cube) => {
-    return Vue.resource(apiUrl + 'vubes/' + cube.cubeName + '/rebuild').update(cube.para)
+    return Vue.resource(apiUrl + 'cubes/' + cube.cubeName + '/rebuild').update(cube.timeZone)
   },
   rebuildStreamingCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/rebuild_streaming').update({
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/rebuild_streaming').update({
       sourceOffsetStart: 0,
       sourceOffsetEnd: '9223372036854775807',
       buildType: 'BUILD'
     })
   },
-  getSegEndTime: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/segments_end').get()
-  },
   enableCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/enable').update({})
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/enable').update({})
   },
   disableCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/disable').update({})
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/disable').update({})
   },
   purgeCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/purge').update({})
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/purge').update({})
   },
   cloneCube: (cube) => {
-    return Vue.resource(apiUrl + 'vubes/' + cube.originalName + '/clone').update({cubeName: cube.cubeName, project: cube.project})
+    return Vue.resource(apiUrl + 'cubes/' + cube.originalName + '/clone').update({cubeName: cube.cubeName, project: cube.project})
   },
   backupCube: (cubeName) => {
     return Vue.resource(apiUrl + 'metastore/backup?cube=' + cubeName).save()
   },
   updateCube: (cube) => {
-    return Vue.resource(apiUrl + 'vubes').update(cube)
+    return Vue.resource(apiUrl + 'cubes').update(cube)
   },
   draftCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes/draft').update(cube)
   },
-  manageCube: (manage) => {
-    return Vue.resource(apiUrl + 'vubes/' + manage.name + '/manage/' + manage.type).update(manage.data)
-  },
   getCubeSql: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/sql').get()
-  },
-  checkSql: (cubeDesc) => {
-    return Vue.resource(apiUrl + 'smart/' + cubeDesc.modelName + '/' + cubeDesc.cubeName + '/check_sql').save(cubeDesc.sqls)
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/sql').get()
   },
   getColumnarInfo: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/columnar').get()
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/columnar').get()
   },
   getHbaseInfo: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/hbase').get()
-  },
-  getCubeSegments: (para) => {
-    return Vue.resource(apiUrl + 'vubes/' + para.name + '/segments').get(para.version)
-  },
-  getCubeVersions: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/versions').get()
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/hbase').get()
   },
   saveCube: (cube) => {
-    return Vue.resource(apiUrl + 'vubes').save(cube)
+    return Vue.resource(apiUrl + 'cubes').save(cube)
   },
   checkCubeNameAvailability: (para) => {
-    return Vue.resource(apiUrl + 'vubes?vubeName=' + para.cubeName + '&projectName=' + para.project).get()
+    return Vue.resource(apiUrl + 'cubes?cubeName=' + para.cubeName + '&projectName=' + para.project).get()
   },
   calCuboid: (cubeDesc) => {
+    // var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
     return Vue.resource(apiUrl + 'cubes/cuboid').save(cubeDesc.cubeDescData)
   },
+  // calAllCuboid: (cubeDesc) => {
+  //   return Vue.resource(apiUrl + 'cubes/aggregationgroups/cuboid').save(cubeDesc.cubeDescData)
+  // },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'encodings/valid_encodings').get()
   },
   getEncodingVersion: () => {
-    return Vue.resource(apiUrl + 'vubes/validEncodings').get()
+    return Vue.resource(apiUrl + 'cubes/validEncodings').get()
   },
   getRawTable: (para) => {
     return Vue.resource(apiUrl + 'raw_desc/' + para.project + '/' + para.cubeName).get()
-  },
-  getRawTableDesc: (para) => {
-    return Vue.resource(apiUrl + 'vubes/' + para.project + '/' + para.cubeName + '/raw_desc').get(para.version)
   },
   updateRawTable: (rawTable) => {
     return Vue.resource(apiUrl + 'raw_desc').update(rawTable)
@@ -106,7 +92,10 @@ export default {
     return Vue.resource(apiUrl + 'smart/' + cubeDesc.modelName + '/' + cubeDesc.cubeName + '/collect_sql').save(cubeDesc.sqls)
   },
   getSampleSql: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/sample_sqls').get()
+    return Vue.resource(apiUrl + 'smart/' + cubeName + '/get_sql').get()
+  },
+  checkSql: (cubeDesc) => {
+    return Vue.resource(apiUrl + 'smart/' + cubeDesc.modelName + '/' + cubeDesc.cubeName + '/check_sql').save(cubeDesc.sqls)
   },
   getCubeSuggestions: (cubeDesc) => {
     return Vue.resource(apiUrl + 'smart/aggregation_groups').save(cubeDesc)
@@ -115,13 +104,13 @@ export default {
     return Vue.resource(apiUrl + 'smart/' + cubeDesc.model + '/' + cubeDesc.cube + '/dimension_measure').save()
   },
   getScheduler: (para) => {
-    return Vue.resource(apiUrl + 'vubes/' + para.project + '/' + para.cubeName + '/scheduler_job').get()
+    return Vue.resource(apiUrl + 'cubes/' + para.project + '/' + para.cubeName + '/scheduler_job').get()
   },
   updateScheduler: (scheduler) => {
-    return Vue.resource(apiUrl + 'vubes/' + scheduler.cubeName + '/schedule').update(scheduler.desc)
+    return Vue.resource(apiUrl + 'cubes/' + scheduler.cubeName + '/schedule').update(scheduler.desc)
   },
   deleteScheduler: (cubeName) => {
-    return Vue.resource(apiUrl + 'vubes/' + cubeName + '/scheduler_job').delete()
+    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/scheduler_job').delete()
   },
   saveCubeAccess: (accessData, cubeId) => {
     return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).save(accessData)
@@ -140,4 +129,5 @@ export default {
       accessEntryId: aid
     })
   }
+
 }

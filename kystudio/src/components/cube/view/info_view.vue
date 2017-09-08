@@ -9,6 +9,14 @@
     <el-col :span="18">{{cubeDesc.name}}</el-col>
   </el-row>
   <el-row class="tableheader">
+    <el-col :span="6" class="left-part"><b>{{$t('notificationEmailList')}}</b></el-col>
+    <el-col :span="18">{{cubeDesc.notify_list}}</el-col>
+  </el-row>
+  <el-row class="tableheader">
+    <el-col :span="6" class="left-part"><b>{{$t('notificationEvents')}}</b></el-col>
+    <el-col :span="18">{{cubeDesc.status_need_notify}}</el-col>
+  </el-row>
+  <el-row class="tableheader">
     <el-col :span="6" class="left-part"><b>{{$t('description')}}</b></el-col>
     <el-col :span="18">{{cubeDesc.desc && cubeDesc.desc.description}}</el-col>
   </el-row>
@@ -25,8 +33,8 @@ export default {
     }
   },
   locales: {
-    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', description: 'Description : '},
-    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', description: '描述 : '}
+    'en': {modelName: 'Model Name : ', cubeName: 'Cube Name : ', notificationEmailList: 'Notification Email List : ', notificationEvents: 'Notification Events : ', description: 'Description : '},
+    'zh-cn': {modelName: '模型名称 : ', cubeName: 'Cube名称 : ', notificationEmailList: '通知邮件列表 : ', notificationEvents: '需通知的事件 : ', description: '描述 : '}
   }
 }
 </script>

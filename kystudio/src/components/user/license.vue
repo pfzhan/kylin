@@ -84,11 +84,6 @@ export default {
   @import '../../less/config.less';
   .licenseBox {
     background: @grey-color;
-    .el-alert--info {
-      background: rgba(33,143,234,0.1);
-      color: rgb(33,143,234);
-      border-color: rgba(33,143,234,0.2)!important;
-    }
     .el-input{
       width: 100%;
       display: inline-table;

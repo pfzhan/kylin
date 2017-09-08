@@ -1,27 +1,35 @@
 <template>
-  <div id="cube-edit">
-    <div class="cube-step">
-      <el-steps  :active="activeStep" space="20%" finish-status="finish" process-status="wait" center align-center>
-        <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
-        <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
-        <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
-        <el-step :title="$t('tableIndex')" @click.native="step(4)"></el-step>
-        <el-step :title="$t('overview')" @click.native="step(5)"></el-step>
-      </el-steps>
-    </div>
-
-    <div class="line margin-l-r"></div>
-    <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
-    <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"></info>
-    <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
-    <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
-    <table_index v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :rawTable="rawTable"></table_index>
-    <overview v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail"></overview>
-    </div>
-
-    <el-button class="button_right" type="primary" v-if="activeStep !== 5" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
-    <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 5" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
+<div class="paddingbox" style="padding: 0 30px 0 30px;" id="cube-edit">
+  <div>
+    <el-steps id="cube-step" :active="activeStep" space="18%" finish-status="finish" process-status="wait" center align-center style="width:100%;margin:0 auto;padding-top:30px;margin-left: 14px;">
+      <el-step :title="$t('cubeInfo')" @click.native="step(1)"></el-step>
+      <!-- <el-step :title="$t('sampleSql')" @click.native="step(2)"></el-step> -->
+      <el-step :title="$t('dimensions')" @click.native="step(2)"></el-step>
+      <el-step :title="$t('measures')" @click.native="step(3)"></el-step>
+      <el-step :title="$t('refreshSetting')" @click.native="step(4)"></el-step>
+      <el-step :title="$t('tableIndex')" @click.native="step(5)"></el-step>
+      <el-step :title="$t('AdvancedSetting')" @click.native="step(6)"></el-step>
+      <el-step :title="$t('overview')" @click.native="step(7)"></el-step>
+    </el-steps>
+  </div>
+  
+  <div class="line margin-l-r"></div>
+  <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
+  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></info>
+  <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
+  <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
+  <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
+  <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit"></configuration_overwrites>
+  <overview v-if="activeStep===7" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail"></overview>
+  </div>
+  
+<!-- <el-button  type="primary"  @click.native="saveDraft(true)">Draft</el-button> -->
+  <el-button class="button_right" type="primary" v-if="activeStep !== 7" @click.native="next">{{$t('next')}}<i class="el-icon-arrow-right el-icon--right"></i></el-button>
+  <el-button class="button_right" :loading="cubeSaving" type="primary" v-if="activeStep === 7" @click.native="saveOrUpdate">{{$t('save')}}</el-button>
     <el-button class="button_right" icon="arrow-left" v-if="activeStep !== 1" @click.native="prev">{{$t('prev')}}</el-button>
+
 
     <el-dialog :title="$t('errorMsg')" v-model="showErrorVisible">
       <el-alert
@@ -40,13 +48,16 @@
 <script>
 import { mapActions, mapMutations } from 'vuex'
 import info from './info_edit'
+import sampleSql from './sample_sql_edit'
 import dimensions from './dimensions_edit'
 import measures from './measures_edit'
+import refreshSetting from './refresh_setting_edit'
 import tableIndex from './table_index_edit'
+import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
 import { removeNameSpace, getNameSpace, objectClone } from '../../../util/index'
-import { handleSuccess, handleError, kapConfirm, loadBaseEncodings, transToGmtTime } from '../../../util/business'
+import { handleSuccess, handleError, kapConfirm, loadBaseEncodings } from '../../../util/business'
 export default {
   name: 'cubeDescEdit',
   props: ['extraoption'],
@@ -59,9 +70,11 @@ export default {
       isEdit: this.extraoption.isEdit,
       hisCubeMetaStr: '',
       hisRawTableStr: '',
+      hisSchedulerStr: '',
       renderCubeFirst: false,
       aliasMap: {},
       index: 0,
+      // 定时保存配置
       saveConfig: {
         timer: 0,
         limitTimer: 5
@@ -78,30 +91,39 @@ export default {
           storage_type: ''
         }
       },
-      sampleSql: {sqlString: '', sqlList: [], sqlSize: 0},
+      sampleSQL: {sqlString: ''},
+      scheduler: {
+        cubeName: '',
+        desc: {
+          partition_interval: 0,
+          repeat_count: 65535,
+          repeat_interval: 0,
+          startTime: 0,
+          scheduled_run_time: 0
+        }
+      },
       selected_project: this.extraoption.project,
       wizardSteps: [
         {title: 'checkCubeInfo', isComplete: false},
+        // {title: 'checkSampleSql', isComplete: false},
         {title: 'checkDimensions', isComplete: false},
         {title: 'checkMeasures', isComplete: false},
-        {title: 'checkTableIndex', isComplete: false}
+        {title: 'checkRefreshSetting', isComplete: false},
+        {title: 'checkTableIndex', isComplete: false},
+        {title: 'checkConfigurationOverwrite', isComplete: false}
       ],
       showErrorVisible: false,
-      errorMsg: '',
-      oldMetadata: {
-        cube: {},
-        tableIndex: {
-          columns: []
-        },
-        sampleSql: {}
-      }
+      errorMsg: ''
     }
   },
   components: {
     'info': info,
+    'sample_sql': sampleSql,
     'dimensions': dimensions,
     'measures': measures,
+    'refresh_setting': refreshSetting,
     'table_index': tableIndex,
+    'configuration_overwrites': configurationOverwrites,
     'overview': overview,
     'json': json
   },
@@ -110,14 +132,17 @@ export default {
       checkCubeNameAvailability: 'CHECK_CUBE_NAME_AVAILABILITY',
       loadCubeDesc: 'LOAD_CUBE_DESC',
       updateCube: 'UPDATE_CUBE',
+      saveCube: 'SAVE_CUBE',
       loadModelInfo: 'LOAD_MODEL_INFO',
       saveSampleSql: 'SAVE_SAMPLE_SQL',
-      getRawTableDesc: 'GET_RAW_TABLE_DESC',
+      loadRawTable: 'GET_RAW_TABLE',
       updateRawTable: 'UPDATE_RAW_TABLE',
       saveRawTable: 'SAVE_RAW_TABLE',
       deleteRawTable: 'DELETE_RAW_TABLE',
+      getScheduler: 'GET_SCHEDULER',
+      updateScheduler: 'UPDATE_SCHEDULER',
+      deleteScheduler: 'DELETE_SCHEDULER',
       draftCube: 'DRAFT_CUBE',
-      getSql: 'GET_SAMPLE_SQL',
       loadDataSourceByProject: 'LOAD_DATASOURCE'
     }),
     ...mapMutations({
@@ -145,29 +170,37 @@ export default {
       return num
     },
     checkCubeSteps: function (index) {
+      let _this = this
       switch (index) {
         case 1:
-          return this.checkCubeInfo()
+          return _this.checkCubeInfo()
+        // case 2:
+        //   return _this.checkSampleSql()
         case 2:
-          return this.checkDimensions()
+          return _this.checkDimensions()
         case 3:
-          return this.checkMeasures()
+          return _this.checkMeasures()
         case 4:
-          return this.checkTableIndex()
+          return _this.checkRefreshSetting()
+        case 5:
+          return _this.checkTableIndex()
+        case 6:
+          return _this.checkConfigurationOverwrite()
         default:
           return true
       }
     },
     checkCubeInfo: function () {
+      let _this = this
       let nameUsed = false
-      if (!this.isEdit) {
-        this.checkCubeNameAvailability({cubeName: this.cubeDetail.name, project: this.selected_project}).then((res) => {
+      if (!_this.isEdit) {
+        this.checkCubeNameAvailability({cubeName: _this.cubeDetail.name, project: this.selected_project}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             if (data === false) {
               this.$message({
                 showClose: true,
                 duration: 3000,
-                message: this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + this.$t('checkCubeNamePartTwo'),
+                message: _this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + _this.$t('checkCubeNamePartTwo'),
                 type: 'error'
               })
               nameUsed = true
@@ -184,36 +217,37 @@ export default {
       }
     },
     checkDimensions: function () {
-      if (this.cubeDetail.dimensions.length <= 0) {
+      let _this = this
+      if (_this.cubeDetail.dimensions.length <= 0) {
         this.$message({
           showClose: true,
           duration: 3000,
-          message: this.$t('checkDimensions'),
+          message: _this.$t('checkDimensions'),
           type: 'error'
         })
         return false
       }
-      for (let j = 0; j < this.cubeDetail.aggregation_groups.length; j++) {
-        if (!this.cubeDetail.aggregation_groups[j] || !this.cubeDetail.aggregation_groups[j].includes || this.cubeDetail.aggregation_groups[j].includes.length === 0) {
+      for (let j = 0; j < _this.cubeDetail.aggregation_groups.length; j++) {
+        if (!_this.cubeDetail.aggregation_groups[j] || !_this.cubeDetail.aggregation_groups[j].includes || _this.cubeDetail.aggregation_groups[j].includes.length === 0) {
           this.$message({
             showClose: true,
             duration: 3000,
-            message: this.$t('checkAggGroup'),
+            message: _this.$t('checkAggGroup'),
             type: 'error'
           })
           return false
         }
       }
       let shardRowkeyList = []
-      for (let i = 0; i < this.cubeDetail.rowkey.rowkey_columns.length; i++) {
-        if (this.cubeDetail.rowkey.rowkey_columns[i].isShardBy === true) {
-          shardRowkeyList.push(this.cubeDetail.rowkey.rowkey_columns[i].column)
+      for (let i = 0; i < _this.cubeDetail.rowkey.rowkey_columns.length; i++) {
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].isShardBy === true) {
+          shardRowkeyList.push(_this.cubeDetail.rowkey.rowkey_columns[i].column)
         }
-        if (this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 3) === 'int' && (this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) < 1 || this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) > 8)) {
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 3) === 'int' && (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) < 1 || _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) > 8)) {
           this.$message({
             showClose: true,
             duration: 3000,
-            message: this.$t('checkRowkeyInt'),
+            message: _this.$t('checkRowkeyInt'),
             type: 'error'
           })
           return false
@@ -222,7 +256,7 @@ export default {
       if (shardRowkeyList.length > 1) {
         this.$message({
           showClose: true,
-          message: this.$t('checkRowkeyShard'),
+          message: _this.$t('checkRowkeyShard'),
           type: 'error'
         })
         return false
@@ -239,22 +273,15 @@ export default {
         if (this.cubeDetail.measures[i].function.expression === 'COUNT_DISTINCT' && this.cubeDetail.measures[i].function.returntype === 'bitmap') {
           countDistinctColumns.push(this.cubeDetail.measures[i].function.parameter.value)
         }
-        if (this.cubeDetail.measures[i].function.returntype === '') {
-          this.$message({
-            showClose: true,
-            message: this.$t('returnTypeNullPartOne') + this.cubeDetail.measures[i].name + this.$t('returnTypeNullPartTwo'),
-            type: 'error'
-          })
-          return false
-        }
       }
       if (countDistinctColumns.length > 0) {
         for (let i = 0; i < this.cubeDetail.dimensions.length; i++) {
           let dimension = this.cubeDetail.dimensions[i]
           if (countDistinctColumns.indexOf(dimension.table + '.' + dimension.column) >= 0) {
-            this.$confirm(this.$t('checkCountDistinctPartOne') + dimension.table + '.' + dimension.column + this.$t('checkCountDistinctPartTwo') + this.$t('checkCountDistinctPartThree') + dimension.table + '.' + dimension.column + this.$t('checkCountDistinctPartFour'), this.$t('errorMsg'), {
-              showCancelButton: false,
-              showConfirmButton: false,
+            this.$message({
+              showClose: true,
+              duration: 3000,
+              message: this.$t('checkCountDistinctPartOne') + dimension.table + '.' + dimension.column + this.$t('checkCountDistinctPartTwo') + dimension.table + '.' + dimension.column + this.$t('checkCountDistinctPartThree'),
               type: 'error'
             })
             return false
@@ -271,8 +298,8 @@ export default {
         return false
       }
       let cfMeasures = []
-      this.cubeDetail.hbase_mapping.column_family.forEach(function (cf) {
-        cf.columns[0].measure_refs.forEach(function (measure, index) {
+      this.cubeDetail.hbase_mapping.column_family.forEach((cf) => {
+        cf.columns[0].measure_refs.forEach((measure, index) => {
           cfMeasures.push(measure)
         })
       })
@@ -298,8 +325,20 @@ export default {
       }
       return true
     },
+    checkRefreshSetting: function () {
+      if (this.$store.state.cube.cubeSchedulerIsSetting) {
+        if (this.scheduler.desc.scheduled_run_time === 0 || this.scheduler.desc.partition_interval === 0) {
+          this.$message(this.$t('unsetScheduler'))
+          return false
+        }
+        // console.log(this.scheduler.desc, 88911)
+        // // if (this.scheduler.desc)
+      }
+      return true
+    },
     checkTableIndex: function () {
-      if (this.rawTable.tableDetail.columns.length === 0) {
+      let _this = this
+      if (_this.rawTable.tableDetail.columns.length === 0) {
         return true
       }
       let sortedCount = 0
@@ -309,7 +348,7 @@ export default {
       for (let i = 0; i < this.rawTable.tableDetail.columns.length; i++) {
         var curColumn = this.rawTable.tableDetail.columns[i]
         if (curColumn.is_sortby === true) {
-          let _encoding = this.getEncoding(curColumn.encoding)
+          let _encoding = _this.getEncoding(curColumn.encoding)
           if (['date', 'time', 'integer'].indexOf(_encoding) < 0) {
             if (sortedCount === 0) {
               setTypeError = true
@@ -339,7 +378,7 @@ export default {
         this.$message({
           showClose: true,
           duration: 3000,
-          message: this.$t('rawtableSortedWidthDate'),
+          message: _this.$t('rawtableSortedWidthDate'),
           type: 'error'
         })
         return false
@@ -348,7 +387,7 @@ export default {
         this.$message({
           showClose: true,
           duration: 3000,
-          message: this.$t('shardCountError'),
+          message: _this.$t('shardCountError'),
           type: 'error'
         })
         return false
@@ -357,13 +396,35 @@ export default {
         this.$message({
           showClose: true,
           duration: 3000,
-          message: this.$t('rawtableSetSorted'),
+          message: _this.$t('rawtableSetSorted'),
           type: 'error'
         })
         return false
       } else {
         return true
       }
+    },
+    checkConfigurationOverwrite: function () {
+      for (var key in this.cubeDetail.override_kylin_properties) {
+        if (key === '') {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: this.$t('checkCOKey'),
+            type: 'error'
+          })
+          return false
+        }
+        if (this.cubeDetail.override_kylin_properties[key] === '') {
+          this.$message({
+            showClose: true,
+            message: this.$t('checkCOValue'),
+            type: 'error'
+          })
+          return false
+        }
+      }
+      return true
     },
     getModelColumnsDataForRawtable: function () {
       var modelColumnsData = []
@@ -450,10 +511,22 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
+      // cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
+      // if (this.$store.state.cube.cubeSchedulerIsSetting) {
+      var schedulerObj = this.scheduler.desc
+      schedulerObj.name = this.cubeDetail.name
+      schedulerObj.project = this.selected_project
+      // 将scheduler 的自动构建触发时间设置转换成UTC
+      var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
+      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+      schedulerObjClone.enabled = this.$store.state.cube.cubeSchedulerIsSetting
+      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+      saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      // }
       this.draftCube(saveData).then((res) => {
         this.cubeDraftSaving = false
         handleSuccess(res, (data, code, status, msg) => {
@@ -461,14 +534,21 @@ export default {
             var cubeData = JSON.parse(data.cubeDescData)
             this.cubeDetail.uuid = cubeData.uuid
             this.cubeDetail.last_modified = cubeData.last_modified
+            // this.cubeDetail.status = cubeData.status
           } catch (e) {
           }
           try {
             var rawTableData = JSON.parse(data.rawTableDescData)
             this.rawTable.tableDetail.uuid = rawTableData.uuid
             this.rawTable.tableDetail.last_modified = rawTableData.last_modified
+            // this.rawTable.tableDetail.status = rawTableData.status
           } catch (e) {
           }
+          // this.$message({
+          //   type: 'success',
+          //   duration: 3000,
+          //   message: '已经自动为您保存为草稿!'
+          // })
           this.$emit('reload', 'cubeList')
         })
       }, (res) => {
@@ -490,23 +570,27 @@ export default {
       var newObj = objectClone(obj)
       delete newObj.last_modified
       delete newObj.status
-      delete newObj.name
       delete newObj.uuid
-      delete newObj.oldMeasures
-      delete newObj.oldColumnFamily
       return JSON.stringify(newObj)
     },
     checkHasChanged () {
       var filterCubeMetaStr = this.filterUnCheckObject(this.cubeDetail)
       var filterRawTableStr = this.filterUnCheckObject(this.rawTable.tableDetail)
+      var filterSchedulerStr = this.scheduler.desc
       if (this.renderCubeFirst) {
         this.renderCubeFirst = false
         this.hisCubeMetaStr = filterCubeMetaStr
         this.hisRawTableStr = filterRawTableStr
+        this.hisSchedulerStr = filterSchedulerStr
         return false
+      } else {
+        if (this.hisCubeMetaStr === filterCubeMetaStr && this.hisRawTableStr === filterRawTableStr && this.hisSchedulerStr === filterSchedulerStr) {
+          return false
+        }
       }
       this.hisCubeMetaStr = filterCubeMetaStr
       this.hisRawTableStr = filterRawTableStr
+      this.hisSchedulerStr = filterSchedulerStr
       return true
     },
     saveCube () {
@@ -518,7 +602,7 @@ export default {
         return
       }
       this.cubeSaving = true
-      if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
+      if (+this.cubeDetail.engine_type === 100 || +this.cubeDetail.engine_type === 99) {
         this.rawTable.tableDetail.name = this.cubeDetail.name
         this.rawTable.tableDetail.model_name = this.cubeDetail.model_name
         this.rawTable.tableDetail.engine_type = this.cubeDetail.engine_type
@@ -530,30 +614,39 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
+      // cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
         saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
       }
+      // if (this.$store.state.cube.cubeSchedulerIsSetting) {
+      var schedulerObj = this.scheduler.desc
+      schedulerObj.name = this.cubeDetail.name
+      schedulerObj.project = this.selected_project
+      // 将scheduler 的自动构建触发时间设置转换成UTC
+      var schedulerObjClone = JSON.parse(JSON.stringify(schedulerObj))
+      schedulerObjClone.enabled = this.$store.state.cube.cubeSchedulerIsSetting
+      schedulerObjClone.repeat_interval = schedulerObjClone.partition_interval
+      // schedulerObjClone.scheduled_run_time = transToUTCMs(schedulerObjClone.scheduled_run_time)
+      saveData.schedulerJobData = JSON.stringify(schedulerObjClone)
+      // }
+      // if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
+      //   saveData.rawTableDescData = JSON.stringify(this.rawTable.tableDetail)
+      // }
+      // var schedulerObj = this.scheduler.desc
+      // schedulerObj.name = this.cubeDetail.name
+      // schedulerObj.project = this.selected_project
+      // saveData.schedulerJobData = JSON.stringify(schedulerObj)
       this.updateCube(saveData).then((res) => {
         this.cubeSaving = false
         handleSuccess(res, (data, code, status, msg) => {
-          const h = this.$createElement
-          let createTime = transToGmtTime(parseInt(data.createTime))
-          this.$msgbox({
-            title: '消息',
-            message: h('p', null, [
-              h('span', null, this.$t('kylinLang.common.saveSuccess')),
-              h('br', null),
-              h('span', { style: 'color: #218fea' }, 'Version ' + data.version.substr(8) + '  ' + createTime)
-            ]),
-            showCancelButton: true,
-            confirmButtonText: this.$t('kylinLang.common.ok'),
-            cancelButtonText: this.$t('kylinLang.common.cancel'),
-            callback: action => {
-              this.$emit('reload', 'cubeList')
-              this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
-            }
+          this.$message({
+            type: 'success',
+            duration: 3000,
+            message: this.$t('kylinLang.common.saveSuccess')
           })
+          this.$emit('reload', 'cubeList')
+          this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
         })
       }, (res) => {
         this.cubeSaving = false
@@ -561,20 +654,82 @@ export default {
       })
     },
     saveOrUpdate: function () {
-      let oldCubeMeta = this.filterUnCheckObject(this.oldMetadata.cube)
-      let oldTableIndexMeta = this.filterUnCheckObject(this.oldMetadata.tableIndex.columns)
-      let oldSqlMeta = this.filterUnCheckObject(this.oldMetadata.sampleSql)
-      let newCubeMeta = this.filterUnCheckObject(this.cubeDetail)
-      let newTableIndexMeta = this.filterUnCheckObject(this.rawTable.tableDetail.columns)
-      let newSqlMeta = this.filterUnCheckObject(this.sampleSql.sqlList)
-      if (oldCubeMeta === newCubeMeta && oldTableIndexMeta === newTableIndexMeta && oldSqlMeta === newSqlMeta) {
-        this.$emit('removetabs', 'cube' + this.extraoption.cubeName, 'Overview')
-      } else {
-        kapConfirm(this.$t('kylinLang.cube.saveCubeTip')).then(() => {
-          this.saveCube()
-        })
-      }
+      kapConfirm(this.$t('kylinLang.cube.saveCubeTip')).then(() => {
+        this.saveCube()
+      })
     },
+    // saveOrUpdateRawTable: function () {
+    //   if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
+    //     let _this = this
+    //     _this.rawTable.tableDetail.name = _this.cubeDetail.name
+    //     _this.rawTable.tableDetail.model_name = _this.cubeDetail.model_name
+    //     _this.rawTable.tableDetail.engine_type = _this.cubeDetail.engine_type
+    //     _this.rawTable.tableDetail.storage_type = _this.cubeDetail.storage_type
+    //     _this.loadRawTable(_this.cubeDetail.name).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //         if (_this.rawTable.tableDetail.columns.length > 0) {
+    //           _this.updateRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail), rawTableName: this.cubeDetail.name}).then((res) => {
+    //             handleSuccess(res, (data, code, status, msg) => {
+    //             })
+    //           }).catch((res) => {
+    //             handleError(res, (data, code, status, msg) => {
+    //             })
+    //           })
+    //         } else {
+    //           if (_this.rawTable.needDelete) {
+    //             _this.deleteRawTable(this.cubeDetail.name).then((res) => {
+    //               handleSuccess(res, (data, code, status, msg) => {
+    //               })
+    //             }).catch((res) => {
+    //               handleError(res, (data, code, status, msg) => {
+    //               })
+    //             })
+    //           }
+    //         }
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         if (_this.rawTable.tableDetail.columns.length > 0) {
+    //           _this.saveRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)}).then((res) => {
+    //             handleSuccess(res, (data, code, status, msg) => {
+    //             })
+    //           }).catch((res) => {
+    //             handleError(res, (data, code, status, msg) => {
+    //             })
+    //           })
+    //         }
+    //       })
+    //     })
+    //   }
+    // },
+    // saveOrUpdateScheduler: function () {
+    //   let _this = this
+    //   if (_this.isEdit) {
+    //     _this.updateScheduler(_this.scheduler).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         this.$message({
+    //           type: 'error',
+    //           message: msg
+    //         })
+    //       })
+    //     })
+    //   } else {
+    //     _this.saveScheduler(_this.scheduler).then((res) => {
+    //       handleSuccess(res, (data, code, status, msg) => {
+    //       })
+    //     }).catch((res) => {
+    //       handleError(res, (data, code, status, msg) => {
+    //         this.$message({
+    //           type: 'error',
+    //           message: msg
+    //         })
+    //       })
+    //     })
+    //   }
+    // },
     getEncoding: function (encode) {
       let code = encode.split(':')
       return code[0]
@@ -629,8 +784,6 @@ export default {
       this.loadCubeDesc({cubeName: this.extraoption.cubeName, project: this.extraoption.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubeDetail = data.cube || data.draft
-          this.cubeDetail.name = this.extraoption.cubeName
-          this.oldMetadata.cube = objectClone(data.cube) || {}
           if (data.cube && data.draft) {
             kapConfirm(this.$t('kylinLang.common.checkDraft'), {
               confirmButtonText: 'OK',
@@ -638,16 +791,20 @@ export default {
             }).then(() => {
               this.cubeDetail = data.draft
               loadRowTable(true)
+              loadScheduler(true)
             }).catch(() => {
               this.cubeDetail = data.cube
               this.cubeDetail.status = this.extraoption.cubeStatus
               loadRowTable(false)
+              loadScheduler(false)
             })
           } else {
             if (data.cube) {
               this.cubeDetail.status = this.extraoption.cubeStatus
               loadRowTable(false)
+              loadScheduler(false)
             } else {
+              loadScheduler(true)
               loadRowTable(true)
             }
           }
@@ -655,13 +812,29 @@ export default {
           this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
-            _this.getRawTableDesc({cubeName: _this.extraoption.cubeName, project: _this.extraoption.project}).then((res) => {
+            _this.loadRawTable({cubeName: _this.extraoption.cubeName, project: _this.selected_project}).then((res) => {
               handleSuccess(res, (data, code, status, msg) => {
                 var rawtableData = isDraft ? data.draft : data.rawTable
-                _this.oldMetadata.tableIndex = objectClone(data.rawTable) || {columns: []}
                 if (rawtableData) {
                   _this.$set(_this.rawTable, 'tableDetail', rawtableData)
                   _this.$store.state.cube.cubeRowTableIsSetting = true
+                }
+              })
+            })
+          }
+          function loadScheduler (isDraft) {
+            _this.$store.state.cube.cubeSchedulerIsSetting = false
+            _this.getScheduler({cubeName: _this.extraoption.cubeName, project: _this.selected_project}).then((res) => {
+              handleSuccess(res, (data, code, status, msg) => {
+                var schedulerData = isDraft ? data.draft : data.schedulerJob
+                // this.initRepeatInterval(schedulerData)
+                if (schedulerData) {
+                  _this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
+                  // this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+                  _this.scheduler.desc.partition_interval = schedulerData.partition_interval
+                  if (schedulerData.enabled) {
+                    _this.$store.state.cube.cubeSchedulerIsSetting = true
+                  }
                 }
               })
             })
@@ -733,24 +906,14 @@ export default {
       }
       this.$set(this.modelDetail, 'lookupTables', lookupTables)
       this.$set(this.modelDetail, 'factTables', factTables)
-    },
-    loadSql: function () {
-      this.getSql(this.cubeDetail.name).then((res) => {
-        handleSuccess(res, (data) => {
-          this.oldMetadata.sampleSql = objectClone(data.versioned_sqls) || {}
-          this.sampleSql.sqlList = data.suggested_sqls || data.versioned_sqls
-          this.sampleSql.sqlString = this.sampleSql.sqlList.join(';')
-          this.sampleSql.sqlSize = this.sampleSql.sqlList.length
-        })
-      })
     }
   },
   created () {
     this.createNewCube()
+    this.$store.state.cube.cubeSchedulerIsSetting = false
     this.$store.state.cube.cubeRowTableIsSetting = false
     if (this.isEdit) {
       this.loadCubeDetail()
-      this.loadSql()
     }
     this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
       this.loadModelInfo({modelName: this.extraoption.modelName, project: this.selected_project}).then((res) => {
@@ -783,8 +946,8 @@ export default {
     clearTimeout(this.cubeSaveST)
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: 'Error Message', shardCountError: 'Max shard by column number is 1', unsetScheduler: 'Scheduler configuration is imperfect', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type data only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure.', checkCountDistinctPartThree: 'Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartFour: '] from cube dimension list.', returnTypeNullPartOne: 'Measure[', returnTypeNullPartTwo: ']的返回类型为空，请重新设置该度量。'},
-    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息', shardCountError: 'Shard by最多可以设置一列', unsetScheduler: 'Scheduler 参数设置不完整', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: '当前版本中，[', checkCountDistinctPartTwo: ']无法既做cube维度也作为count distinct(bitmap) 的度量参数。', checkCountDistinctPartThree: '请使用count distinct(hllc) 替换该度量，或从cube维度列表中删除[', checkCountDistinctPartFour: ']。', returnTypeNullPartOne: '度量[', returnTypeNullPartTwo: ']的返回类型为空，请重新设置该度量。'}
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample Sql', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The CUBE named [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Dimension can\'t be null!', checkAggGroup: 'Each aggregation group can\'t be empty!', checkMeasuresCount: '[ COUNT] metric is required!', checkRowkeyInt: 'int encoding column length should between 1 and 8!', checkRowkeyShard: 'At most one \'shard by\' column is allowed!', checkColumnFamily: 'All measures need to be assigned to column family!', checkColumnFamilyNull: 'Each column family can\'t not be empty!', checkCOKey: 'Property name is required!', checkCOValue: 'Property value is required!', rawtableSetSorted: 'You must set one column with an index value of sorted! ', rawtableSortedWidthDate: 'The first column with "sorted" index must be a column with "integer", "time" or "date" encoding! ', rawtableSingleSorted: 'Only one column is allowed to set with an index value of sorted! ', errorMsg: '错误信息', shardCountError: 'Max shard by column number is 1', unsetScheduler: 'Scheduler configuration is imperfect', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type data only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure. Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartThree: '] from cube dimension list.'},
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的CUBE已经存在!', checkDimensions: '维度不能为空!', checkAggGroup: '任意聚合组不能为空!', checkMeasuresCount: '[ COUNT] 度量是必须的!', checkRowkeyInt: '编码为int的列的长度应该在1-8之间!', checkRowkeyShard: '最多只允许一个\'shard by\'的列!', checkColumnFamily: '所有度量都需要被分配到列族中!', checkColumnFamilyNull: '任一列族不能为空!', checkCOKey: '属性名不能为空!', checkCOValue: '属性值不能为空!', rawtableSetSorted: '必须设置一个列的index的值为sorted! ', rawtableSortedWidthDate: '第一个sorted列必须是编码为integer、date或time的列', rawtableSingleSorted: '只允许设置一个列的index的值为sorted', errorMsg: '错误信息', shardCountError: 'Shard by最多可以设置一列', unsetScheduler: 'Scheduler 参数设置不完整', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: '当前版本中，［', checkCountDistinctPartTwo: '］无法既做cube维度也作为count distinct(bitmap) 的度量参数。请使用count distinct(hllc) 替换该度量，或从cube维度列表中删除［', checkCountDistinctPartThree: ']。'}
   }
 }
 </script>
@@ -796,11 +959,6 @@ export default {
     margin-bottom: 20px;
   }
   #cube-edit{
-    padding: 0 30px 0 30px;
-    .cube-step {
-      width:100%;
-      padding-top:30px;
-    }
     .el-input__inner{
       border-color: @grey-color;
     }
@@ -818,13 +976,6 @@ export default {
       text-align: center;
       margin-right: 0!important;
       padding: 0;
-    }
-    .el-alert--info {
-      width: 70%;
-      background-color: rgba(33,143,234,0.1);
-      color: rgb(33,143,234);
-      font-weight:bold;
-      border: 1px solid rgba(33,143,234,0.2);
     }
   }
   #cube-main{

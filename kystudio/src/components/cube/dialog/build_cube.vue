@@ -18,15 +18,14 @@
   </el-form>
 </template>
 <script>
-import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs } from '../../../util/business'
-import { mapActions } from 'vuex'
+import { transToUtcTimeFormat, transToUTCMs } from '../../../util/business'
 export default {
   name: 'build_cube',
   props: ['cubeDesc'],
   data () {
     return {
       timeZone: {
-        startDate: 0,
+        startDate: transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart),
         endDate: null
       },
       rules: {
@@ -40,9 +39,6 @@ export default {
     }
   },
   methods: {
-    ...mapActions({
-      getSegEndTime: 'GET_SEG_END_TIME'
-    }),
     validateStartDate: function (rule, value, callback) {
       let endTime = (new Date(this.timeZone.endDate)).getTime()
       let startTime = (new Date(value)).getTime()
@@ -67,30 +63,19 @@ export default {
     }
   },
   created () {
-    this.getSegEndTime(this.cubeDesc.name).then((res) => {
-      handleSuccess(res, (data) => {
-        this.timeZone.startDate = transToUtcTimeFormat(data)
-      })
-    }, (res) => {
-      handleError(res)
-    })
+    let _this = this
     this.$on('buildCubeFormValid', (t) => {
-      this.$refs['buildCubeForm'].validate((valid) => {
+      _this.$refs['buildCubeForm'].validate((valid) => {
         if (valid) {
-          this.$emit('validSuccess', {start: transToUTCMs(this.timeZone.startDate), end: transToUTCMs(this.timeZone.endDate)})
+          _this.$emit('validSuccess', {start: transToUTCMs(this.timeZone.startDate), end: transToUTCMs(this.timeZone.endDate)})
         }
       })
     })
   },
+
   watch: {
     cubeDesc (cubeDesc) {
-      this.getSegEndTime(this.cubeDesc.name).then((res) => {
-        handleSuccess(res, (data) => {
-          this.timeZone.startDate = transToUtcTimeFormat(data)
-        })
-      }, (res) => {
-        handleError(res)
-      })
+      this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart) // new Date((this.cubeDesc.segments[this.cubeDesc.segments.length - 1]) ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].last_build_time : this.cubeDesc.partitionDateStart)
       this.timeZone.endDate = null
     }
   },

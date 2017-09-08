@@ -1,81 +1,78 @@
 <template>
  <div>
   <p v-if="!cubeDesc.rawTable" class="noRawTable">{{$t('noRawTable')}}</p>
-  <div v-else>
-    <el-table  
-      :data="currentTableIndex"
-      border stripe
-      style="width: 100%">
-      <el-table-column
-        :label="$t('ID')"
+  <el-table  v-else
+    :data="cubeDesc.rawTable.columns"
+    border stripe
+    style="width: 100%">
+    <el-table-column
+      :label="$t('ID')"
+      header-align="center"
+      align="center"
+      width="80">
+      <template scope="scope">
+        <el-tag class="index-tag">{{scope.$index}}</el-tag>
+      </template>
+    </el-table-column>
+    <el-table-column
+      :label="$t('column')"
+      header-align="center"
+      prop="column"
+      align="center">
+    </el-table-column>
+    <el-table-column
+        :label="$t('dataType')"
         header-align="center"
-        align="center"
-        width="80">
+        align="center">      
         <template scope="scope">
-          <el-tag class="index-tag">{{scope.$index + 1 + 15*(currentPage-1)}}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column
-        :label="$t('column')"
+        {{cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
+      </template>
+    </el-table-column>  
+    <el-table-column
+        :label="$t('tableAlias')"
+        prop="table"
         header-align="center"
-        prop="column"
-        align="center">
-      </el-table-column>
-      <el-table-column
-          :label="$t('dataType')"
-          header-align="center"
-          align="center">      
-          <template scope="scope">
-          {{cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
+        align="center">   
+    </el-table-column>    
+    <el-table-column
+        :label="$t('Encoding')"
+        header-align="center"
+        align="center">   
+        <template scope="scope">
+          {{getEncoding(scope.row.encoding)}}
         </template>
-      </el-table-column>  
-      <el-table-column
-          :label="$t('tableAlias')"
-          prop="table"
-          header-align="center"
-          align="center">   
-      </el-table-column>    
-      <el-table-column
-          :label="$t('Encoding')"
-          header-align="center"
-          align="center">   
-          <template scope="scope">
-            {{getEncoding(scope.row.encoding)}}
-          </template>
-      </el-table-column>  
-      <el-table-column
-          :label="$t('Length')"
-          header-align="center"
-          align="center">   
-          <template scope="scope">
-            {{getLength(scope.row.encoding)}}          
-          </template> 
-      </el-table-column>
-      <el-table-column
-          label="Sorted By"
-          header-align="center"
-          align="center">   
-              <template scope="scope">
-              {{scope.row.is_sortby}}
-              </template>
-        </el-table-column>   
-      <el-table-column
-          label="Shard By"
-          header-align="center"
-          align="center">   
-          <template scope="scope">
-            {{scope.row.is_shardby}}          
-          </template> 
-      </el-table-column>     
-      <el-table-column
-          :label="$t('Index')"
-          prop="index"
-          header-align="center"
-          align="center">   
-      </el-table-column>       
-    </el-table> 
-    <pager ref="pager" :perPageSize="15" :totalSize="cubeDesc.rawTable.columns.length"  v-on:handleCurrentChange='currentChange' ></pager>
-   </div>
+    </el-table-column>  
+    <el-table-column
+        :label="$t('Length')"
+        header-align="center"
+        align="center">   
+        <template scope="scope">
+          {{getLength(scope.row.encoding)}}          
+        </template> 
+    </el-table-column>
+    <el-table-column
+        label="Sorted By"
+        header-align="center"
+        align="center">   
+            <template scope="scope">
+            {{scope.row.is_sortby}}
+            </template>
+      </el-table-column>   
+    <el-table-column
+        label="Shard By"
+        header-align="center"
+        align="center">   
+        <template scope="scope">
+          {{scope.row.is_shardby}}          
+        </template> 
+    </el-table-column>     
+    <el-table-column
+        :label="$t('Index')"
+        prop="index"
+        header-align="center"
+        align="center">   
+    </el-table-column>       
+  </el-table> 
   </div>
 </template>
 <script>
@@ -84,20 +81,11 @@ import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'tableIndex',
   props: ['cubeDesc'],
-  data () {
-    return {
-      currentTableIndex: [],
-      currentPage: 1
-    }
-  },
   methods: {
     ...mapActions({
-      getRawTableDesc: 'GET_RAW_TABLE_DESC'
+      loadRawTable: 'GET_RAW_TABLE',
+      loadDataSourceByProject: 'LOAD_DATASOURCE'
     }),
-    currentChange: function (value) {
-      this.currentPage = value
-      this.currentTableIndex = this.cubeDesc.rawTable.columns.slice(15 * (value - 1), 15 * value)
-    },
     getEncoding: function (encode) {
       let code = encode.split(':')
       return code[0]
@@ -108,17 +96,18 @@ export default {
     }
   },
   created () {
-    if (!this.cubeDesc.rawTable) {
-      this.getRawTableDesc({cubeName: this.cubeDesc.name, project: this.cubeDesc.project, version: {version: this.cubeDesc.cubeVersion || null}}).then((res) => {
+    let _this = this
+    if (!_this.cubeDesc.rawTable) {
+      _this.loadRawTable({cubeName: this.cubeDesc.name, project: this.cubeDesc.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           var rawData = data.rawTable || data.draft
-          this.$set(this.cubeDesc, 'rawTable', rawData)
-          this.currentChange(1)
+          _this.$set(_this.cubeDesc, 'rawTable', rawData)
         })
       }).catch((res) => {
         handleError(res, () => {})
       })
     }
+    this.loadDataSourceByProject({project: this.cubeDesc.project, isExt: true})
   },
   locales: {
     'en': {noRawTable: 'No Raw Table Configuration Information', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},

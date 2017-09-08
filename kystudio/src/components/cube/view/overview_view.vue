@@ -1,11 +1,11 @@
 <template>
   <div id="over-view">
-    <div class="cube-info-view ksd-common-table ksd-mt-10">
-      <el-row class="tableheader" v-for="(d, index) in cubeData" :key="d.name">
-        <el-col :span="4" class="left-part"> <b>{{$t(d.label)}}</b></el-col>
-        <el-col :span="20"> {{d.value}}</el-col>
-      </el-row>
-    </div>
+  <div class="cube-info-view ksd-common-table ksd-mt-10">
+  <el-row class="tableheader" v-for="d in cubeData">
+    <el-col :span="4" class="left-part"> <b>{{$t(d.label)}}</b></el-col>
+    <el-col :span="20"> {{d.value}}</el-col>
+  </el-row>
+  </div>
   </div>
 </template>
 
@@ -20,7 +20,7 @@ export default {
         {label: 'cubeName', value: this.desc.name},
         {label: 'factTable', value: this.desc.modelDesc.fact_table},
         {label: 'lookupTable', value: this.desc.modelDesc.lookups.length},
-        {label: 'dimensions', value: this.desc.desc.dimensions.length},
+         {label: 'dimensions', value: this.desc.desc.dimensions.length},
         {label: 'measures', value: this.desc.desc.measures.length}]
       return cubeDetail
     }
