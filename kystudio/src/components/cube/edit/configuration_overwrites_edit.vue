@@ -1,7 +1,19 @@
 <template>
 <div id="overwrites">
-  <el-row :gutter="20">
-    <el-col :span="10" :offset="1" >
+  <div>
+    <h2>Cubing Engine <common-tip :content="$t('engineTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
+    <p class="ksd-mt-14">Engine Type:
+      <el-select v-model="cubeDesc.engine_type">
+        <el-option  v-for="item in engineType"
+        :key="item.value"
+        :label="item.name"
+        :value="item.value"></el-option>
+      </el-select>
+    </p>
+  </div>
+  <div class="line"></div>
+  <el-row>
+    <el-col :span="5">
       <div class="cube-config">
         <h2>{{$t('cubeDefault')}}</h2>
         <el-button type="default" icon="plus" @click.native="addNewProperty">
@@ -10,8 +22,8 @@
     </el-col>
   </el-row>
 
-  <el-row :gutter="20">
-    <el-col :span="20" style="font-size: 14px;margin-bottom: 10px;" :offset="1" >
+  <el-row>
+    <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;">
       <span style="color:#20a0ff;font-size: 14px;">{{$t('tip')}}:</span>
       {{$t('propertyTip')}}
     </el-col>
@@ -32,8 +44,8 @@
     </el-col>
   </el-row>
   <div class="line"></div>
-    <el-row :gutter="20">
-    <el-col :span="10" :offset="1">
+    <el-row>
+    <el-col :span="5">
       <div class="cube-config">
         <h2>{{$t('jobRelated')}}</h2>
         <el-button type="default" icon="plus" @click.native="addNewJobProperty">
@@ -57,8 +69,8 @@
     </el-col>
   </el-row>
   <div class="line"></div>
-    <el-row :gutter="20">
-    <el-col :span="10" :offset="1">
+    <el-row>
+    <el-col :span="5">
       <div class="cube-config">
         <h2>{{$t('hiveRelated')}}</h2>
         <el-button type="default" icon="plus" @click.native="addNewHiveProperty">
@@ -208,7 +220,6 @@ export default {
       padding-bottom: 10px;
       h2 {
         float:left;
-        font-size: 12px;
         line-height: 250%
       }
       .el-button--default{

@@ -12,6 +12,18 @@
       <el-input v-model="cubeDesc.description"></el-input>
     </el-form-item>
     <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
+    <h2 class="title">{{$t('noticeSetting')}}</h2>
+    <el-form-item :label="$t('notificationEmailList')">
+      <el-input v-model="getNotifyList" placeholder="Comma Separated" @change="changeNotifyList"></el-input>
+    </el-form-item>
+    <el-form-item :label="$t('notificationEvents')">
+      <span slot="label">{{$t('notificationEvents')}}
+        <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
+      </span>
+      <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents">
+      </area_label>
+    </el-form-item>
+    <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
   </el-form>
   <h2 class="title">{{$t('optimizerInput')}}
         <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
