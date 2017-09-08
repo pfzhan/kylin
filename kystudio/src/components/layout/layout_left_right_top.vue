@@ -700,6 +700,7 @@
 		background-color: #218fea;
     width: 200px;
     height: 100%;
+    box-shadow: 0 12px 35px 0 rgba(0,0,0,.12), 0 0 16px 0 rgba(0,0,0,.04);
 	}
   .el-icon-arrow-down:before{
 		content: ''

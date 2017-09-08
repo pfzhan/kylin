@@ -89,7 +89,7 @@
 	          {{$t('kylinLang.common.edit')}}
 	        </el-button>
            <el-button  v-if="isAdmin || hasProjectAdminPermission()"
-            @click="removeAccess(scope.row.id)"
+            @click="removeAccess(scope.row.id, scope.row.roleOrName)"
             type="danger" size="small">
             {{$t('kylinLang.common.delete')}}
           </el-button>
@@ -184,10 +184,10 @@ export default {
         })
       })
     },
-    removeAccess (id) {
+    removeAccess (id, username) {
       kapConfirm(this.$t('deleteAccess')).then(() => {
         var actionType = this.own === 'cube' ? 'delCubeAccess' : 'delProjectAccess'
-        this[actionType]({id: this.accessId, aid: id}).then((res) => {
+        this[actionType]({id: this.accessId, aid: id, userName: username}).then((res) => {
           this.$message({
             type: 'success',
             message: this.$t('kylinLang.common.delSuccess')

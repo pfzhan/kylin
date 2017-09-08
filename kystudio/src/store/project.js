@@ -93,8 +93,8 @@ export default {
         return res
       })
     },
-    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid}) {
-      return api.project.delProjectAccess(id, aid)
+    [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName}) {
+      return api.project.delProjectAccess(id, aid, userName)
     },
     [types.ADD_PROJECT_FILTER]: function ({ commit }, filterData) {
       return api.project.saveProjectFilter(filterData)

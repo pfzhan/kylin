@@ -29,9 +29,10 @@ export default {
   getProjectEndAccess: (projectId) => {
     return Vue.resource(apiUrl + 'access/all/ProjectInstance/' + projectId).get()
   },
-  delProjectAccess: (projectId, aid) => {
+  delProjectAccess: (projectId, aid, userName) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).delete({
-      accessEntryId: aid
+      accessEntryId: aid,
+      sid: userName
     })
   },
   saveProjectFilter: (filterData) => {
