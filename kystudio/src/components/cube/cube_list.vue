@@ -410,7 +410,7 @@ export default {
               this.loadCubeDesc({cubeName: cubename, project: this.selected_project}).then((res) => {
                 var innerCubeName = cubename
                 handleSuccess(res, (data) => {
-                  if (data.cube.storage_type === 100 || data.cube.storage_type === 99) {
+                  if (data.cube && (data.cube.storage_type === 100 || data.cube.storage_type === 99)) {
                     this.getColumnarInfo(innerCubeName).then((res) => {
                       handleSuccess(res, (data) => {
                         let totalSize = 0

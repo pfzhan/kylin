@@ -72,10 +72,10 @@
     </el-table-column>
   </el-table>
    <el-button type="blue" icon="plus" :disabled="isReadyCube" @click="addMeasure" class="ksd-mb-20">{{$t('addMeasure')}}</el-button>
-      <el-row v-if="!isPlusVersion">
+      <el-row v-if="useColumnFamily">
         <el-col :span="24">{{$t('advancedColumnFamily')}}</el-col>
       </el-row>
-      <el-table class="table_margin" v-if="!isPlusVersion"
+      <el-table class="table_margin" v-if="useColumnFamily"
         :data="cubeDesc.hbase_mapping.column_family"
         style="width: 100%">
         <el-table-column
@@ -100,7 +100,7 @@
             </template>
         </el-table-column>
       </el-table>
-     <el-button type="blue" icon="plus" v-if="!isPlusVersion" @click="addColumnFamily">
+     <el-button type="blue" icon="plus" v-if="useColumnFamily" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
    }
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
@@ -392,13 +392,20 @@ export default {
     }
   },
   computed: {
-    isPlusVersion () {
-      var kapVersionInfo = this.$store.state.system.serverAboutKap
-      return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
-    },
+    // isPlusVersion () {
+    //   var kapVersionInfo = this.$store.state.system.serverAboutKap
+    //   return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
+    // },
     isReadyCube () {
       return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
       // return this.cubeDesc.status === 'READY'
+    },
+    useColumnFamily () {
+      if (this.cubeDesc && this.cubeDesc.engine_type && (+this.cubeDesc.engine_type === 100 || +this.cubeDesc.engine_type === 99)) {
+        return false
+      } else {
+        return true
+      }
     }
   },
   created () {
