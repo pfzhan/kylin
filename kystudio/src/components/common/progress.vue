@@ -109,7 +109,7 @@ export default {
       }  
     }
     position: relative;
-    height: 40px;
+    height: 24px;
     padding-right: 10px;
     padding-top: 16px;
     .fa-icon {

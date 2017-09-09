@@ -39,6 +39,7 @@
       :label="$t('JobName')"
       show-overflow-tooltip
       sortable
+      :width="280"
       prop="jobname"
       >
         <template scope="scope">
@@ -47,7 +48,6 @@
       </el-table-column>
       <el-table-column
       :label="$t('TableModelCube')"
-      :width="180"
       sortable
       show-overflow-tooltip
       prop="related_cube">
