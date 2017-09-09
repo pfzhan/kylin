@@ -842,7 +842,7 @@ export default {
         project: this.project,
         tableData: JSON.stringify(tableData)
       }).then((res) => {
-        handleSuccess(res, (data) => {
+        handleSuccess(res, () => {
           this.$message({
             type: 'success',
             message: this.$t('saveSuccessful')
