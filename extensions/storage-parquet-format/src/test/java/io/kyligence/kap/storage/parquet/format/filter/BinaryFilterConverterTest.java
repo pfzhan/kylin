@@ -67,7 +67,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         seg = mgr.appendSegment(cube);
         desc = seg.getCubeDesc();
-        cuboid = Cuboid.findById(desc, (long) 0xff);
+        cuboid = Cuboid.findById(seg, (long) 0xff);
         converter = new BinaryFilterConverter(seg, cuboid);
         expectedValue = new ByteArray(new byte[] { 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f });
     }

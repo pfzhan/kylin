@@ -141,7 +141,7 @@ public class KapSparkCubingByLayer extends SparkCubingByLayer {
             reducerFunction2 = new CuboidReducerFunction2(cubeName, metaUrl, needAggr);
         }
 
-        final int totalLevels = cubeDesc.getBuildLevel();
+        final int totalLevels = cubeSegment.getCuboidScheduler().getBuildLevel();
         JavaPairRDD<ByteArray, Object[]>[] allRDDs = new JavaPairRDD[totalLevels + 1];
         int level = 0;
         long baseRDDSize = SizeEstimator.estimate(encodedBaseRDD) / (1024 * 1024);
@@ -179,7 +179,7 @@ public class KapSparkCubingByLayer extends SparkCubingByLayer {
     protected int repartitionForOutput(CubeSegment segment, long rddSize, int level)
             throws ClassNotFoundException, JobException, InterruptedException, IOException {
         int partition = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, (double) rddSize, level);
-        List<List<Long>> layeredCuboids = segment.getCubeDesc().getCuboidScheduler().getCuboidsByLayer();
+        List<List<Long>> layeredCuboids = segment.getCuboidScheduler().getCuboidsByLayer();
         for (Long cuboidId : layeredCuboids.get(level)) {
             partition = Math.max(partition, segment.getCuboidShardNum(cuboidId));
         }

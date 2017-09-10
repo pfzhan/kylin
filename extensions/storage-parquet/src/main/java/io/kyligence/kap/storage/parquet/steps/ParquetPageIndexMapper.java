@@ -93,7 +93,7 @@ public class ParquetPageIndexMapper extends KylinMapper<Text, IntWritable, Text,
 
         cube = CubeManager.getInstance(config).getCube(cubeName);
         cubeDesc = cube.getDescriptor();
-        cuboid = Cuboid.findById(cubeDesc, cuboidId);
+        cuboid = Cuboid.findById(cube, cuboidId);
         cubeSegment = cube.getSegmentById(segmentID);
 
         logger.info("Input path: " + inputPath.toUri().toString());

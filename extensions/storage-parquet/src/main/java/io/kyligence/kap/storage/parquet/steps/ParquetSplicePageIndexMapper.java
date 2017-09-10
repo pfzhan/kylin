@@ -120,7 +120,7 @@ public class ParquetSplicePageIndexMapper extends KylinMapper<ByteArrayListWrita
     private void refreshWriter() throws IOException {
         indexSpliceWriter.endDiv();
 
-        cuboid = Cuboid.findById(cubeDesc, curCuboidId);
+        cuboid = Cuboid.findById(cube, curCuboidId);
         RowKeyEncoder rowKeyEncoder = (RowKeyEncoder) AbstractRowKeyEncoder.createInstance(cubeSegment, cuboid);
         int columnNum = cuboid.getColumns().size();
         columnLength = new int[columnNum];

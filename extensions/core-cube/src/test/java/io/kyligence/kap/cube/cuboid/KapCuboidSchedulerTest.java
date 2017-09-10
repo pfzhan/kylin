@@ -55,20 +55,20 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(0);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(7, set.size());
         }
         
         {
             AggregationGroup agg = cube.getAggregationGroups().get(1);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(1, set.size());
         }
 
         {
-            Set<Long> set = cube.getCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(8, set.size());
         }
@@ -80,20 +80,20 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(0);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(19, set.size());
         }
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(1);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
-            Set<Long> set = cube.getCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(33, set.size());
         }
@@ -105,20 +105,20 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(0);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(1);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(11, set.size());
         }
 
         {
-            Set<Long> set = cube.getCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(25, set.size());
         }
@@ -130,20 +130,20 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(0);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(6, set.size());
         }
 
         {
             AggregationGroup agg = cube.getAggregationGroups().get(1);
-            Set<Long> set = cube.getCuboidScheduler().calculateCuboidsForAggGroup(agg);
+            Set<Long> set = cube.getInitialCuboidScheduler().calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(5, set.size());
         }
 
         {
-            Set<Long> set = cube.getCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(11, set.size());
         }

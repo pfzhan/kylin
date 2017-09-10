@@ -52,6 +52,10 @@ public class KapCuboidScheduler extends CuboidScheduler implements IKeep {
         return delegate.getAllCuboidIds();
     }
 
+    public boolean isValid(long requestCuboid) {
+        return delegate.isValid(requestCuboid);
+    }
+    
     public int getCuboidCount() {
         return delegate.getCuboidCount();
     }
@@ -66,6 +70,10 @@ public class KapCuboidScheduler extends CuboidScheduler implements IKeep {
 
     public Set<Long> calculateCuboidsForAggGroup(AggregationGroup agg) {
         return delegate.calculateCuboidsForAggGroup(agg);
+    }
+
+    public String getCuboidCacheKey() {
+        return delegate.getCuboidCacheKey();
     }
     
 }

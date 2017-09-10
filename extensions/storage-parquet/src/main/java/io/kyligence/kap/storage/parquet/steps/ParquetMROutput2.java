@@ -123,7 +123,7 @@ public class ParquetMROutput2 implements IMROutput2 {
                 // layer
                 job.setPartitionerClass(ShardCuboidPartitioner.class);
                 reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), level);
-                List<List<Long>> layeredCuboids = segment.getCubeDesc().getCuboidScheduler().getCuboidsByLayer();
+                List<List<Long>> layeredCuboids = segment.getCuboidScheduler().getCuboidsByLayer();
                 for (Long cuboidId : layeredCuboids.get(level)) {
                     reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
                 }
@@ -195,7 +195,7 @@ public class ParquetMROutput2 implements IMROutput2 {
         public void configureJobOutput(Job job, String output, CubeSegment segment) throws Exception {
             int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), -1);
             job.setPartitionerClass(ShardCuboidPartitioner.class);
-            Set<Long> allCuboids = segment.getCubeDesc().getCuboidScheduler().getAllCuboidIds();
+            Set<Long> allCuboids = segment.getCuboidScheduler().getAllCuboidIds();
             for (Long cuboidId : allCuboids) {
                 reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
             }

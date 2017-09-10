@@ -64,7 +64,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
         CubeDesc desc = seg.getCubeDesc();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg.getCubeDesc(), 0xffL), new CubeDimEncMap(seg));
+        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 
@@ -108,7 +108,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
 
-        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg.getCubeDesc(), 0xffL), new CubeDimEncMap(seg));
+        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 

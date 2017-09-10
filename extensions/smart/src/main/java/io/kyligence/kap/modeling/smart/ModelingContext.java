@@ -104,7 +104,7 @@ public class ModelingContext {
         for (int i = 0; i < rowkeyDescCols.length; i++) {
             cuboidId = 1L << i;
             if (!cuboidRows.containsKey(cuboidId)) {
-                Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
+                Cuboid cuboid = Cuboid.findById(cubeDesc.getInitialCuboidScheduler(), cuboidId); // if exact cuboid not existed, then use parent cuboid rows
                 if (Long.bitCount(cuboid.getId()) > 2) { // skip if parent cuboids has too many dimensions.
                     return;
                 }
@@ -123,7 +123,7 @@ public class ModelingContext {
             TblColRef rowkeyColRef1 = rowkeyDescCols[rowkeyDescCols.length - 1 - i].getColRef();
             for (int j = i + 1; j < rowkeyDescCols.length; j++) {
                 cuboidId = (1L << i) | (1L << j);
-                Cuboid cuboid = Cuboid.findById(cubeDesc, cuboidId); // if exact cuboid not existed, then use parent cuboid rows
+                Cuboid cuboid = Cuboid.findById(cubeDesc.getInitialCuboidScheduler(), cuboidId); // if exact cuboid not existed, then use parent cuboid rows
                 rows = cuboidRows.get(cuboid.getId()); // do not ignore large cuboid because this only makes check stronger in agg group proposing
                 if (rows != null) {
                     TblColRef rowkeyColRef2 = rowkeyDescCols[rowkeyDescCols.length - 1 - j].getColRef();

@@ -88,13 +88,34 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
         return Sets.newHashSet(allCuboidIds);
     }
 
-    /**
-     * Get the parent cuboid really on the spanning tree.
-     * @param child an on-tree cuboid
-     * @return
-     */
+    /** Returns a valid cuboid that best matches the request cuboid. */
     @Override
-    public long findBestMatchCuboid(long child) {
+    public long findBestMatchCuboid(long cuboid) {
+        if (isValid(cuboid)) {
+            return cuboid;
+        }
+
+        List<Long> onTreeCandidates = Lists.newArrayList();
+        for (AggregationGroup agg : cubeDesc.getAggregationGroups()) {
+            Long candidate = agg.translateToOnTreeCuboid(cuboid);
+            if (candidate != null) {
+                onTreeCandidates.add(candidate);
+            }
+        }
+
+        if (onTreeCandidates.size() == 0) {
+            return getBaseCuboidId();
+        }
+
+        long onTreeCandi = Collections.min(onTreeCandidates, Cuboid.cuboidSelectComparator);
+        if (isValid(onTreeCandi)) {
+            return onTreeCandi;
+        }
+
+        return doFindBestMatchCuboid(onTreeCandi);
+    }
+    
+    private long doFindBestMatchCuboid(long child) {
         long parent = getOnTreeParent(child);
         while (parent > 0) {
             if (cubeDesc.getAllCuboids().contains(parent)) {

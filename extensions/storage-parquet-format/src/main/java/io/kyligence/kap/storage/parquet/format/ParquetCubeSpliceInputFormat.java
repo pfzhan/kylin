@@ -238,7 +238,7 @@ public class ParquetCubeSpliceInputFormat extends FileInputFormat<Text, Text> {
                 String div = divs.get(divIndex++);
                 reader = spliceReader.getDivReader(div);
                 rowKeyEncoder = new RowKeyEncoder(cubeSegment,
-                        Cuboid.findById(cubeInstance.getDescriptor(), getCuboididFromDiv(div)));
+                        Cuboid.findById(cubeInstance, getCuboididFromDiv(div)));
                 return true;
             }
             return false;

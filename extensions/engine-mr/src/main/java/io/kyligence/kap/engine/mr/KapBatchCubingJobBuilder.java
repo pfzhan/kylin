@@ -28,7 +28,6 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
-import org.apache.kylin.cube.model.RowKeyDesc;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.IMROutput2;
@@ -115,9 +114,7 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     }
 
     protected void addLayerCubingSteps(final CubingJob result, final String jobId, final String cuboidRootPath) {
-        RowKeyDesc rowKeyDesc = seg.getCubeDesc().getRowkey();
-        final int maxLevel = seg.getCubeDesc().getBuildLevel();
-        final int totalRowkeyColumnsCount = rowKeyDesc.getRowKeyColumns().length;
+        final int maxLevel = seg.getCuboidScheduler().getBuildLevel();
         // base cuboid step
         result.addTask(createBaseCuboidStep(getCuboidOutputPathsByLevel(cuboidRootPath, 0), jobId));
         // n dim cuboid steps

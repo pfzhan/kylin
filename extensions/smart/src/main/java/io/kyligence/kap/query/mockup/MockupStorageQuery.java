@@ -103,13 +103,13 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
     }
 
     @Override
-    protected Cuboid findCuboid(CubeDesc cubeDesc, Set<TblColRef> dimensionsD, Set<FunctionDesc> metrics) {
+    protected Cuboid findCuboid(CubeInstance cube, Set<TblColRef> dimensionsD, Set<FunctionDesc> metrics) {
         long cuboidId = Cuboid.identifyCuboidId(cubeDesc, dimensionsD, metrics);
         String cuboidTrans = getThreadLocalParameter(CUBOID_TRANSLATATION);
         if (cuboidTrans != null && cuboidTrans.equals("true")) {
-            return Cuboid.findById(cubeDesc, cuboidId);
+            return Cuboid.findById(cube, cuboidId);
         } else {
-            return Cuboid.findForFullCube(cubeDesc, cuboidId);
+            return new Cuboid(cubeDesc, cuboidId, cuboidId);
         }
     }
 
