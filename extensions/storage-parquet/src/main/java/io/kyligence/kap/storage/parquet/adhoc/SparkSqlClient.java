@@ -26,6 +26,8 @@ package io.kyligence.kap.storage.parquet.adhoc;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -34,7 +36,6 @@ import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Strings;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -46,6 +47,7 @@ import org.apache.spark.sql.types.StructField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 import io.grpc.Status;
@@ -60,7 +62,7 @@ public class SparkSqlClient implements Serializable {
     private final transient Semaphore semaphore;
     private HiveContext hiveContext;
     private Map<UUID, Integer> uuidSizeMap = new HashMap<>();
-    private final int maxDriverMem ;
+    private final int maxDriverMem;
     private final int allocationTimeOut;
 
     public SparkSqlClient(JavaSparkContext sc, Semaphore semaphore) {
@@ -68,8 +70,9 @@ public class SparkSqlClient implements Serializable {
         sc.setLocalProperty("spark.scheduler.pool", "query_pushdown");
         this.semaphore = semaphore;
         this.maxDriverMem = semaphore.availablePermits();
-        this.allocationTimeOut = Strings.isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout"))?
-            60:Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
+        this.allocationTimeOut = Strings
+                .isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout")) ? 60
+                        : Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
         hiveContext = new HiveContext(sc);
         hiveContext.sql(
                 "CREATE TEMPORARY FUNCTION timestampadd AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampAdd'");
@@ -122,19 +125,20 @@ public class SparkSqlClient implements Serializable {
             int estimateSize = (int) Math.ceil((double) (rowRdd.count() * sampleLen) / (1024 * 1024));
             uuidSizeMap.put(uuid, estimateSize);
 
-            if(estimateSize > this.maxDriverMem){
+            if (estimateSize > this.maxDriverMem) {
                 throw new RuntimeException("Estimate size exceeds the maximum driver memory size");
             }
 
-            if(!this.semaphore.tryAcquire(estimateSize, allocationTimeOut, TimeUnit.SECONDS)){
-                throw new RuntimeException(String.format("spark driver allocation memory more than %s s," +
-                    "please increase driver memory or" +
-                    " set kap.storage.columnar.driver-allocation-timeout " , allocationTimeOut));
+            if (!this.semaphore.tryAcquire(estimateSize, allocationTimeOut, TimeUnit.SECONDS)) {
+                throw new RuntimeException(String.format("spark driver allocation memory more than %s s,"
+                        + "please increase driver memory or" + " set kap.storage.columnar.driver-allocation-timeout ",
+                        allocationTimeOut));
             }
 
             logger.info("Estimate size of dataframe is " + estimateSize + "m.");
 
             List<StructField> originFieldList = JavaConversions.seqAsJavaList(df.schema());
+            List columnNameList = Arrays.asList(df.columns());
             List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
 
             for (StructField field : originFieldList) {
@@ -143,7 +147,8 @@ public class SparkSqlClient implements Serializable {
                 builder.setDataType(field.dataType().toString());
                 builder.setNullable(field.nullable());
 
-                if (!df.resolve(field.name()).qualifier().isEmpty()) {
+                if (Collections.frequency(columnNameList, field.name()) == 1
+                        && !df.resolve(field.name()).qualifier().isEmpty()) {
                     String tableName = df.resolve(field.name()).qualifier().get();
                     builder.setTable(tableName);
                 }
