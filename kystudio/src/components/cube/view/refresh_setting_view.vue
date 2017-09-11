@@ -12,7 +12,7 @@
  <div class="refresh-settion-view ksd-common-table ksd-mt-10">
   <el-row class="tableheader">
     <el-col :span="6" class="left-part"><b>{{$t('retentionThreshold')}}</b></el-col>
-    <el-col :span="18"> {{cubeDesc.desc.retention_range}} {{$t('days')}}</el-col>
+    <el-col :span="18"> {{cubeDesc.desc.retention_range/86400000}} {{$t('days')}}</el-col>
   </el-row>
   <el-row class="tableheader">
     <el-col :span="6" class="left-part"><b>{{$t('partitionStartDate')}}</b></el-col>

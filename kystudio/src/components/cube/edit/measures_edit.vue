@@ -102,7 +102,6 @@
       </el-table>
      <el-button type="blue" icon="plus" v-if="useColumnFamily" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
-   }
   <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
     <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
     <span slot="footer" class="dialog-footer">

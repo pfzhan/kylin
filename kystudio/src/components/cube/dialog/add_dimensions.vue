@@ -2,7 +2,8 @@
 <div class="add_dimensions">  
   <div v-for="(table, index) in factTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
-    <el-tag>[ Fact table ]</el-tag>    
+    <el-tag v-if="index === 0">[ Fact Table ]</el-tag>   
+    <el-tag v-else>[ Lookup Table (limited) ]</el-tag>  
     <el-table  
       border
       :data="table.columns"
@@ -44,7 +45,7 @@
 
   <div v-for="(table, index) in lookupTableColumns" style="margin-top: 20px;">
     <el-tag>{{table.tableName}} </el-tag>
-    <el-tag>[ Lookup table ]</el-tag>       
+    <el-tag>[ Lookup Table ]</el-tag>       
     <el-table  
       border
       :data="table.columns" :ref="table.tableName"
@@ -92,6 +93,7 @@
 </div>  
 </template>
 <script>
+import { removeNameSpace } from '../../../util/index'
 export default {
   name: 'adddimensions',
   props: ['modelDesc', 'cubeDimensions'],
@@ -124,7 +126,6 @@ export default {
     },
     getTableColumns: function () {
       let _this = this
-      // console.log(_this.modelDesc.dimensions, 'lll')
       _this.modelDesc.dimensions.forEach(function (dimension) {
         _this.multipleSelection[dimension.table] = []
         if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
@@ -133,7 +134,11 @@ export default {
           dimension.columns.forEach(function (col) {
             colArr.push({table: dimension.table, column: col, name: col, isSelected: false})
           })
-          _this.factTableColumns.push(tableObj)
+          if (dimension.table === removeNameSpace(_this.modelDesc.fact_table)) {
+            _this.factTableColumns.unshift(tableObj)
+          } else {
+            _this.factTableColumns.push(tableObj)
+          }
         } else {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
