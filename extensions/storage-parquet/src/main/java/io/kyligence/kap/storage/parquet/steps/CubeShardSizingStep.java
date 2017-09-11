@@ -91,7 +91,7 @@ public class CubeShardSizingStep extends AbstractExecutable {
         HashMap<Long, Short> cuboidShards = Maps.newHashMap();
         for (long cuboidId : allCuboids) {
             double estimatedSize = cuboidSizeMap.get(cuboidId);
-            int shardNum = (int) Math.ceil(1.0 * estimatedSize / mbPerShard);
+            int shardNum = (int) Math.ceil(getShardExpandFactor() * estimatedSize / mbPerShard);
 
             if (shardNum > shardMax) {
                 shardNum = shardMax;
@@ -104,6 +104,10 @@ public class CubeShardSizingStep extends AbstractExecutable {
 
         CuboidShardUtil.saveCuboidShards(seg, cuboidShards, 0);
 
+    }
+
+    protected double getShardExpandFactor() {
+        return 1.0;
     }
 
 }

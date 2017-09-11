@@ -30,6 +30,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.CubingJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
+import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -76,6 +77,16 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
         appendExecCmdParameters(cmd, BatchConstants.ARG_OUTPUT, getCubeTarballTmpFolderPath(seg));
 
         result.setMapReduceParams(cmd.toString());
+        return result;
+    }
+
+    @Override
+    public CubeShardSizingStep createCubeShardSizingStep(String jobId) {
+        CubeShardSizingStep result = new CubeSpliceShardSizingStep();
+        result.setName("Sizing Columnar Shards");
+        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+        CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
         return result;
     }
 

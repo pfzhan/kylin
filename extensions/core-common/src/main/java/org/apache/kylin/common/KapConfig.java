@@ -192,6 +192,10 @@ public class KapConfig {
                 String.valueOf(defaultBlockSize < 0 ? Integer.MAX_VALUE : defaultBlockSize)));
     }
 
+    public int getParquetSpliceShardExpandFactor() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-expand-factor", "10"));
+    }
+
     /**
      * Rawtable column
      */
