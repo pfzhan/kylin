@@ -23,7 +23,7 @@
                 {{ scope.row.columns.join(',')}}
               </template>
             </el-table-column>
-            <el-table-column v-show="hasSomeProjectPermission || isAdmin"
+            <el-table-column v-if="hasSomeProjectPermission || isAdmin"
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">

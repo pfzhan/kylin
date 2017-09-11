@@ -21,7 +21,7 @@
               >
               <template scope="scope">Query</template>
             </el-table-column>
-            <el-table-column v-show="hasSomeProjectPermission || isAdmin"
+            <el-table-column v-if="hasSomeProjectPermission || isAdmin"
               width="80"
               prop="Action"
               :label="$t('kylinLang.common.action')">

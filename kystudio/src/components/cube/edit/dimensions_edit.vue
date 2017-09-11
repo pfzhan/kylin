@@ -203,22 +203,23 @@
        </el-row>
         <el-row  :disabled="isReadyCube"  id="dimension-row" v-show="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
-          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap">{{row.column}}<!--  <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip> --></el-col>
-          <el-col :span="4">
+          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
+           <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
+          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
             </select>
           </el-col>
-          <el-col :span="2">
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input>
           </el-col>
-          <el-col :span="2">
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
             <select class="rowkeySelect" v-model="row.isShardBy" @change="changeRowkey(row, index)">
               <option v-for="item in shardByType" :key="item.name" :value="item.value">{{item.name}}</option>
             </select>
           </el-col>
-          <el-col :span="4"> {{row.datatype}}</el-col>
-          <el-col :span="2">{{row.cardinality}}</el-col>
+          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;"> {{row.datatype}}</el-col>
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">{{row.cardinality}}</el-col>
         </el-row>
         </div>
 

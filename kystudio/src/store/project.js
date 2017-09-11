@@ -42,6 +42,9 @@ export default {
         localStorage.setItem('selected_project', '')
         state.selected_project = ''
       }
+    },
+    [types.REMOVE_ALL_PROJECTS]: function (state) {
+      state.allProject = []
     }
   },
   actions: {
@@ -61,6 +64,8 @@ export default {
           }
         }
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
+      }, () => {
+        commit(types.REMOVE_ALL_PROJECTS)
       })
     },
     [types.DELETE_PROJECT]: function ({ commit }, projectName) {

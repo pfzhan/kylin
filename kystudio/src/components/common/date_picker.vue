@@ -29,7 +29,20 @@ export default {
 }
 </script>
 <style lang="less">
+ .available{
+    color: #fff;
+   }
+   .prev-month{
+    color:#48576a;
+   }
+   .next-month{
+    color:#48576a;
+   }
+  .el-date-picker__header-label{
+    color:#fff;
+  }
  .hideTime_pick {
+
    .el-date-editor {
     position: absolute;
     top: 4px;
