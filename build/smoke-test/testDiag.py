@@ -37,7 +37,7 @@ class testDiag(unittest.TestCase):
         base_dir = file_list[0].split("/")[0]
         print "base dir: " + base_dir
 
-        self.assertTrue(base_dir + "/metadata/table/DEFAULT.KYLIN_SALES.json" in file_list)
+        self.assertTrue(base_dir + "/metadata/table/DEFAULT.KYLIN_SALES--learn_kylin.json" in file_list)
         self.assertTrue(base_dir + "/metadata/model_desc/kylin_sales_model.json" in file_list)
         self.assertTrue(base_dir + "/metadata/cube/kylin_sales_cube.json" in file_list)
         self.assertTrue(base_dir + "/metadata/cube_desc/kylin_sales_cube.json" in file_list)
