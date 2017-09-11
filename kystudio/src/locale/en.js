@@ -160,7 +160,7 @@ exports.default = {
     name: 'Name:',
     desc: 'Description:',
     querySql: 'Query SQL:',
-    queryEngine: 'Query Engine:',
+    queryEngine: 'Query Engine: ',
     visualization: 'Visualization',
     grid: 'Grid',
     export: 'Export',

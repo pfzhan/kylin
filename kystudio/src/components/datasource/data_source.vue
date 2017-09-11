@@ -845,7 +845,7 @@ export default {
         handleSuccess(res, () => {
           this.$message({
             type: 'success',
-            message: this.$t('saveSuccessful')
+            message: this.$t('kylinLang.common.saveSuccess')
           })
           this.saveSampleData({ tableName: data.database + '.' + data.tableName, sampleData: data.sampleData, project: this.project })
           this.kafkaFormVisible = false
