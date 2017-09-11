@@ -73,7 +73,7 @@ import changeLang from '../common/change_lang'
 import license from './license'
 import help from '../common/help'
 import Vue from 'vue'
-import { Base64 } from 'js-base64'
+import Base64 from 'js-base64'
 import { SystemPwdRegex } from '../../config/index'
 export default {
   name: 'login',
