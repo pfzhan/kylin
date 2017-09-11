@@ -100,9 +100,8 @@ public class LogErrorFilter implements Filter {
     public void destroy() {
     }
 
-    private static class RequestLoggingWrapper extends HttpServletRequestWrapper {
-        private static final Logger logger = LoggerFactory.getLogger(RequestLoggingWrapper.class);
-        private static final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private class RequestLoggingWrapper extends HttpServletRequestWrapper {
+        private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         /**
          * Constructs a request object wrapping the given request.
@@ -119,14 +118,13 @@ public class LogErrorFilter implements Filter {
             return new DelegatingServletInputStream(new TeeInputStream(super.getInputStream(), baos));
         }
 
-        public static ByteArrayOutputStream getBaos() {
+        public ByteArrayOutputStream getBaos() {
             return baos;
         }
     }
 
-    private static class ResponseLoggingWrapper extends HttpServletResponseWrapper {
-        private static final Logger logger = LoggerFactory.getLogger(ResponseLoggingWrapper.class);
-        private static final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    private class ResponseLoggingWrapper extends HttpServletResponseWrapper {
+        private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
         /**
          * Constructs a response adaptor wrapping the given response.
@@ -143,7 +141,7 @@ public class LogErrorFilter implements Filter {
             return new DelegatingServletOutputStream(new TeeOutputStream(super.getOutputStream(), baos));
         }
 
-        public static ByteArrayOutputStream getBaos() {
+        public ByteArrayOutputStream getBaos() {
             return baos;
         }
     }
