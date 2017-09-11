@@ -176,6 +176,7 @@ public class CubeControllerV2 extends BasicController {
         r.setModel(desc.getModelName());
         r.setProject(d.getProject());
         r.setDraft(true);
+        r.setLastModified(desc.getLastModified());
 
         return r;
     }
@@ -186,6 +187,7 @@ public class CubeControllerV2 extends BasicController {
         CubeInstanceResponse r = new CubeInstanceResponse(cube);
 
         r.setModel(cube.getDescriptor().getModelName());
+        r.setLastModified(cube.getDescriptor().getLastModified());
         r.setPartitionDateStart(cube.getDescriptor().getPartitionDateStart());
         // cuz model doesn't have a state the label a model is broken,
         // so in some case the model can not be loaded due to some check failed,
