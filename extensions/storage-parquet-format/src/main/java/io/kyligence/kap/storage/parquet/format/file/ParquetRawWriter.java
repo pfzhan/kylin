@@ -36,6 +36,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
+import org.apache.hadoop.io.compress.Compressor;
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.Encoding;
@@ -88,10 +89,13 @@ public class ParquetRawWriter {
     private Encoding dlEncodings;
     private List<Encoding> dataEncodings;
     private CompressionCodecName codecName;
+    private CompressionCodec codec;
     private ParquetProperties parquetProperties;
 
     private Map<String, String> indexMap;
     private boolean onIndexV2;
+
+    private static ThreadLocal<Map<CompressionCodecName, Compressor>> compressorMap = new ThreadLocal<>();
 
     public ParquetRawWriter(Configuration conf, // hadoop configuration
             MessageType schema, // parquet file row schema
@@ -114,11 +118,19 @@ public class ParquetRawWriter {
         this.rowsPerPage = rowsPerPage;
         this.pagesPerGroup = pagesPerGroup;
         this.onIndexV2 = onIndexV2;
-        columnCnt = schema.getColumns().size();
-        indexMap = new HashMap<>();
+        this.columnCnt = schema.getColumns().size();
+        this.indexMap = new HashMap<>();
         indexMap.put("pagesPerGroup", String.valueOf(pagesPerGroup));
 
+        this.codec = CodecFactory.getCodec(codecName, conf);
         parquetProperties = ParquetProperties.builder().build();
+        if (compressorMap.get() == null) {
+            compressorMap.set(new HashMap<CompressionCodecName, Compressor>());
+        }
+
+        if (codec != null && !compressorMap.get().containsKey(codecName)) {
+            compressorMap.get().put(codecName, codec.createCompressor());
+        }
 
         writer.start();
         initRowBuffer();
@@ -276,16 +288,16 @@ public class ParquetRawWriter {
                     addIndex(currentRowGroup, i, j, writer.getPos());
                 }
                 BytesInput bi = pageBuffer[i][j].getBi();
-                CompressionCodec compressionCodec = CodecFactory.getCodec(codecName, conf);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                if (compressionCodec == null) {
+                if (codec == null) {
                     bi.writeAllTo(baos);
                     baos.close();
                 } else {
-                    CompressionOutputStream os = compressionCodec.createOutputStream(baos, compressionCodec.createCompressor());
+                    Compressor compressor = compressorMap.get().get(codecName);
+                    CompressionOutputStream os = codec.createOutputStream(baos, compressor);
                     bi.writeAllTo(os);
-                    os.finish();
                     os.close();
+                    compressor.reset();
                 }
 
                 writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()), Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings, dataEncodings.get(i));

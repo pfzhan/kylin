@@ -24,19 +24,19 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.Decompressor;
-import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.ValuesType;
 import org.apache.parquet.column.values.ValuesReader;
@@ -64,17 +64,21 @@ public class ParquetRawReader {
     private FSDataInputStream inputStream;
     private Configuration config;
     private long fileOffset;
+    private static ThreadLocal<Map<CompressionCodecName, Decompressor>> decompressorMap = new ThreadLocal<>();
 
     protected int pagesPerGroup = 0;
     protected Map<String, String> indexMap;
 
     public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, long fileOffset) throws IOException {
         this.config = configuration;
-
         if (metadata == null) {
             this.parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
         } else {
             this.parquetMetadata = metadata;
+        }
+
+        if (decompressorMap.get() == null) {
+            decompressorMap.set(new HashMap<CompressionCodecName, Decompressor>());
         }
 
         FileSystem fileSystem = path.getFileSystem(configuration);
@@ -136,25 +140,36 @@ public class ParquetRawReader {
         return parquetMetadata.getFileMetaData().getSchema().getColumns().size();
     }
 
+    private Decompressor getDecompressorByName(CompressionCodecName codecName) {
+        Map<CompressionCodecName, Decompressor> localDecompressorMap = decompressorMap.get();
+        Decompressor decompressor = null;
+        if (localDecompressorMap.containsKey(codecName)) {
+            decompressor = localDecompressorMap.get(codecName);
+        } else {
+            CompressionCodec codec = CodecFactory.getCodec(codecName, config);
+            if (codec != null) {
+                decompressor = CodecFactory.getCodec(codecName, config).createDecompressor();
+            }
+            localDecompressorMap.put(codecName, decompressor);
+        }
+        return decompressor;
+    }
+
     protected GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 
         ColumnDescriptor columnDescriptor = getSchema().getColumns().get(column);
         CompressionCodecName codecName = columnChunkMetaData.getCodec();
-        CompressionCodec codec = CodecFactory.getCodec(codecName, config);
-        Decompressor decompressor = null;
-        if (codec != null) {
-            decompressor = CodecFactory.getCodec(codecName, config).createDecompressor();
-        }
+        Decompressor decompressor = getDecompressorByName(codecName);
 
         inputStream.seek(offset);
         PageHeader pageHeader = Util.readPageHeader(inputStream);
         if (pageHeader.getType() == PageType.DATA_PAGE) {
             DataPageHeader dataPageHeader = pageHeader.getData_page_header();
             int numValues = dataPageHeader.getNum_values();
-            BytesInput decompressedData = readAndDecompress(codecName, decompressor, pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
-            byte[] decompressedDataBytes = decompressedData.toByteArray();
+            byte[] decompressedDataBytes = readAndDecompress(codecName, decompressor,
+                    pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
 
             offset = skipLevels(numValues, columnDescriptor, dataPageHeader.getRepetition_level_encoding(), dataPageHeader.getDefinition_level_encoding(), decompressedDataBytes, 0);
 
@@ -168,14 +183,14 @@ public class ParquetRawReader {
             // Skip levels
             inputStream.seek(inputStream.getPos() + dataPageHeader.repetition_levels_byte_length + dataPageHeader.definition_levels_byte_length);
 
-            BytesInput decompressedData;
+            byte[] decompressedDataBytes;
             if (dataPageHeader.is_compressed) {
-                decompressedData = readAndDecompress(codecName, decompressor, pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
+                decompressedDataBytes = readAndDecompress(codecName, decompressor, pageHeader.getCompressed_page_size(),
+                        pageHeader.getUncompressed_page_size());
             } else {
                 assert (pageHeader.getCompressed_page_size() == pageHeader.getUncompressed_page_size());
-                decompressedData = readAsBytesInput(pageHeader.getCompressed_page_size());
+                decompressedDataBytes = readAsBytesInput(pageHeader.getCompressed_page_size());
             }
-            byte[] decompressedDataBytes = decompressedData.toByteArray();
             ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
             dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), 0);
             return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
@@ -227,21 +242,26 @@ public class ParquetRawReader {
     }
 
     // TODO: refactor these wrapper to improve performance
-    private BytesInput readAndDecompress(CompressionCodecName codec, Decompressor decompressor, int compressedSize, int uncompressedSize) throws IOException {
-        CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
-        BytesInput compressedData = readAsBytesInput(compressedSize);
+    private byte[] readAndDecompress(CompressionCodecName codec, Decompressor decompressor, int compressedSize,
+            int uncompressedSize) throws IOException {
         if (decompressor == null) {
-            return compressedData;
+            byte[] buffer = new byte[compressedSize];
+            inputStream.read(buffer, 0, compressedSize);
+            return buffer;
         } else {
-            InputStream is = compressionCodec.createInputStream(new ByteArrayInputStream(compressedData.toByteArray()), decompressor);
-            
-            return BytesInput.from(is, uncompressedSize);
+            CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
+            byte[] buffer = new byte[uncompressedSize];
+            InputStream is = compressionCodec.createInputStream(new BoundedInputStream(inputStream, compressedSize),
+                    decompressor);
+            is.read(buffer, 0, uncompressedSize);
+            return buffer;
         }
     }
 
-    private BytesInput readAsBytesInput(int size) throws IOException {
-        final BytesInput r = BytesInput.from(inputStream, size);
-        return r;
+    private byte[] readAsBytesInput(int size) throws IOException {
+        byte[] buffer = new byte[size];
+        inputStream.read(buffer, 0, size);
+        return buffer;
     }
 
     private long jumpToPage(int index, long pageOffset) throws IOException {
