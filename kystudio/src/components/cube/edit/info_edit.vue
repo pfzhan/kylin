@@ -60,7 +60,7 @@
     </el-col>
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
-  <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible">
+  <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible" :close-on-click-modal="false">
     <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
     <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <div :class="{hasCheck: hasCheck}">
