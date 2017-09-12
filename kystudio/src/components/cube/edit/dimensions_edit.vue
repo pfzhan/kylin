@@ -201,7 +201,7 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row  :disabled="isReadyCube"  id="dimension-row" v-show="convertedRowkeys.length" class="tablebody" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
+        <el-row  :disabled="isReadyCube"  v-show="convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
            <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
@@ -1070,8 +1070,12 @@ export default {
   .add-d:hover{
     color: rgba(33, 143, 234, 1);
   }
-  #dimension-row{
+  .dimension-row{
     cursor: move;
+    .el-col{
+      padding-left:10px;
+      padding-right:10px;
+    }
     .el-icon-caret-top{
       height: 28px;
       margin-right: 1px;
