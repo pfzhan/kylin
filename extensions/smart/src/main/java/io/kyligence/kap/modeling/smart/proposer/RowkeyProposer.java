@@ -36,6 +36,7 @@ import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
 import org.apache.kylin.dimension.IntegerDimEnc;
+import org.apache.kylin.dimension.TimeDimEnc;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -138,7 +139,6 @@ public class RowkeyProposer extends AbstractProposer {
         rowKeyDescs = allRowkeys.toArray(rowKeyDescs);
 
         logger.trace("After sorting row keys: {}", StringUtils.join(rowKeyDescs, ","));
-
     }
 
     private String selectDimEncoding(final RowKeyColDesc colDesc, final long cardinality) {
@@ -146,19 +146,29 @@ public class RowkeyProposer extends AbstractProposer {
         // eg. date, tinyint, integer, smallint, bigint
         // TODO: we can set boolean encoding according to column type and cardinality, but cardinality is not precise.
         DataType dataType = colDesc.getColRef().getType();
+
+        // datatime family
         if (dataType.isDate()) {
             return DateDimEnc.ENCODING_NAME;
-        } else if (dataType.isTinyInt()) {
+        } else if (dataType.isDateTimeFamily()) {
+            return TimeDimEnc.ENCODING_NAME;
+        }
+
+        // number family
+        if (dataType.isTinyInt()) {
             return String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 1);
         } else if (dataType.isSmallInt()) {
             return String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 2);
         } else if (dataType.isInt()) {
             return String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 4);
-        } else if (dataType.isBigInt()) {
+        } else if (dataType.isIntegerFamily()) {
             return String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 8);
+        } else if (dataType.isNumberFamily()) {
+            return DictionaryDimEnc.ENCODING_NAME;
         }
 
-        // select dict or fixlen for other type columns according to cardinality
+        // string family
+        // select dict or fixlen for according to cardinality
         if (context.hasTableStats() && cardinality > modelingConfig.getRowkeyDictEncCardinalityMax()) {
             TableExtDesc.ColumnStats colStats = context.getTableColumnStats(colDesc.getColRef());
             // TODO: currently used max length, better to use 95%ile length
