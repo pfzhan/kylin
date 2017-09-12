@@ -34,7 +34,7 @@
             </el-table-column>
           </el-table>
           <pager class="ksd-center" :totalSize="totalLength" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
-          <el-dialog :title="$t('restrict')" :visible.sync="addGrantDialog"  size="small" @close="closeDialog">
+          <el-dialog :title="$t('restrict')" :visible.sync="addGrantDialog"  size="small" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
               <el-alert
                 :title="$t('rowAclDesc')"
                 show-icon

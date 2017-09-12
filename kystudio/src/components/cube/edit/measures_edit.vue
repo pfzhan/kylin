@@ -102,14 +102,14 @@
       </el-table>
      <el-button type="blue" icon="plus" v-if="useColumnFamily" @click="addColumnFamily">
       {{$t('addColumnFamily')}}</el-button>
-  <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small">
-    <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="measureFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
-    </span>
-  </el-dialog>
-</div>
+    <el-dialog :title="$t('editMeasure')" v-model="measureFormVisible" top="5%" size="small" :before-close="measureClose" :close-on-press-escape="false" :close-on-click-modal="false">
+      <add_measures  ref="measureForm" :cubeDesc="cubeDesc" :modelDesc="modelDesc" :measureDesc="selected_measure" :measureFormVisible="measureFormVisible" v-on:validSuccess="measureValidSuccess"></add_measures>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="measureClose()">{{$t('cancel')}}</el-button>
+        <el-button type="primary" @click="checkMeasureForm" :loading="loadCheck">{{$t('yes')}}</el-button>
+      </span>
+    </el-dialog>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -175,6 +175,14 @@ export default {
         }
       }
       this.measureFormVisible = true
+    },
+    measureClose: function () {
+      kapConfirm(this.$t('kylinLang.common.willClose'), {
+        confirmButtonText: this.$t('kylinLang.common.close'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.measureFormVisible = false
+      })
     },
     editMeasure: function (measure) {
       this.selected_measure = measure

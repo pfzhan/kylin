@@ -118,7 +118,7 @@
 
 		<pager class="ksd-center ksd-mb-20" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
 
-    <el-dialog title="Clone Model" v-model="cloneFormVisible" size="tiny">
+    <el-dialog title="Clone Model" v-model="cloneFormVisible" size="tiny" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">
         <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-model="cloneModelMeta.newName" auto-complete="off"></el-input>

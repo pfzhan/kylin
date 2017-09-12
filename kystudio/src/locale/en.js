@@ -81,7 +81,8 @@ exports.default = {
     password: 'password',
     saveDraft: 'Responding to a request for saving drafts，Please try again later.',
     streamingConnectHiveError: 'Can not connect hive table with streaming table',
-    seeDetail: 'Details >>'
+    seeDetail: 'Details >>',
+    willClose: 'You have unsaved information detected, do you want to continue?'
   },
   model: {
     modelName: 'Model Name:',

@@ -31,7 +31,7 @@
             </el-table-column>
           </el-table>
           <pager class="ksd-center" :totalSize="totalLength" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
-          <el-dialog :title="$t('grant')" :visible.sync="addGrantDialog"  size="tiny" @close="closeDialog">
+          <el-dialog :title="$t('grant')" :visible.sync="addGrantDialog"  size="tiny" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
               <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
                 <el-form-item :label="$t('userName')" label-width="90px" prop="name">
                   <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">

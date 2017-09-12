@@ -182,7 +182,7 @@
       </el-tabs>
       </div>
 
-      <el-dialog size="small" :title="$t('loadhiveTables')" v-model="load_hive_dalog_visible" class="load_hive_dialog">
+      <el-dialog size="small" :title="$t('loadhiveTables')" v-model="load_hive_dalog_visible" class="load_hive_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
         <!-- <el-input v-model="filterVal" :placeholder="$t('filterInputTips')"></el-input> -->
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
@@ -219,7 +219,7 @@
 	    </el-dialog>
 
      <!-- reload table dialog -->
-     <el-dialog :title="$t('reload')" v-model="scanRatioDialogVisible" @close="cancelReloadTable">
+     <el-dialog :title="$t('reload')" v-model="scanRatioDialogVisible" @close="cancelReloadTable" :close-on-press-escape="false" :close-on-click-modal="false">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">
@@ -247,7 +247,7 @@
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
-      <el-dialog :title="$t('setScanRange')" size="tiny" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample">
+      <el-dialog :title="$t('setScanRange')" size="tiny" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample" :close-on-press-escape="false" :close-on-click-modal="false">
         <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
                  <icon name="question-circle-o"></icon></common-tip></span>
         <el-row :gutter="20">
@@ -267,7 +267,7 @@
         </div>
       </el-dialog>
 
-     <el-dialog title="Load Kafka Topic" v-model="kafkaFormVisible" top="10%" size="small">
+     <el-dialog title="Load Kafka Topic" v-model="kafkaFormVisible" top="10%" size="small" :close-on-press-escape="false" :close-on-click-modal="false">
         <create_kafka  ref="kafkaForm" v-on:validSuccess="kafkaValidSuccess" :show="kafkaFormVisible"></create_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="kafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -276,17 +276,15 @@
       </el-dialog>
 
 
-     <el-dialog title="Load Kafka Topic" v-model="editKafkaFormVisible" top="10%" size="small">
+     <el-dialog title="Load Kafka Topic" v-model="editKafkaFormVisible" top="10%" size="small":close-on-press-escape="false" :close-on-click-modal="false">
         <edit_kafka  ref="kafkaFormEdit"  v-on:validEditSuccess="kafkaEditValidSuccess" :streamingData="currentStreamingTableData" :streamingConfig="currentStreamingConfig"  :tableName="currentStreamingTable" ></edit_kafka>
         <span slot="footer" class="dialog-footer">
           <el-button @click="editKafkaFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
           <el-button type="primary" @click="checkKafkaFormEdit">{{$t('kylinLang.common.submit')}}</el-button>
         </span>
       </el-dialog>
-      <el-dialog
-        :title="$t('kylinLang.common.tip')"
-        v-model="loadResultVisible"
-        >
+      <el-dialog  :title="$t('kylinLang.common.tip')"
+        v-model="loadResultVisible" :close-on-press-escape="false" :close-on-click-modal="false">
          <el-alert v-for=" su in loadResult.success" :key="su"
             :title="currentAction + ' ' + $t('kylinLang.common.success') + ' ! ' + '['+su+']'"
             type="success"

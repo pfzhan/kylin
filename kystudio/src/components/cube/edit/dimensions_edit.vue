@@ -272,13 +272,13 @@
     </el-col>
   </el-row>
   <div class="line" style="margin: 0px -30px 0 -30px;"></div>
-    <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible">
+    <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible" :before-close="dimensionsClose" :close-on-press-escape="false" :close-on-click-modal="false">
       <span slot="title">{{$t('addDimensions')}}
         <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
       <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="addDimensionsFormVisible = false">{{$t('cancel')}}</el-button>
+        <el-button @click="dimensionsClose()">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
       </span>
     </el-dialog>
@@ -439,6 +439,14 @@ export default {
     },
     addDimensions: function () {
       this.addDimensionsFormVisible = true
+    },
+    dimensionsClose () {
+      kapConfirm(this.$t('kylinLang.common.willClose'), {
+        confirmButtonText: this.$t('kylinLang.common.close'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.addDimensionsFormVisible = false
+      })
     },
     loadSpecial (database, tableName) {
       this.loadTableExt({tableName: database + '.' + tableName, project: this.selected_project}).then((res) => {

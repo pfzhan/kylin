@@ -146,8 +146,8 @@
     mounted () {
     },
     locales: {
-      'en': {'willGo': 'There is unsaved information. Are you sure to continue?', 'go': 'Continue go', willClose: 'You have unsaved information detected, Do you want to continue?', close: 'Continue'},
-      'zh-cn': {'willGo': '检测到您有未保存的信息，是否继续跳转？', 'go': '继续跳转', willClose: '检测到您有未保存的信息，是否继续关闭？', close: '继续关闭'}
+      'en': {'willGo': 'You have unsaved information detected, do you want to continue?', 'go': 'Continue', willClose: 'You have unsaved information detected, do you want to continue?', close: 'Continue'},
+      'zh-cn': {'willGo': '检测到您有未保存的信息，是否继续跳转？', 'go': '跳转', willClose: '检测到您有未保存的信息，是否继续关闭？', close: '关闭'}
     }
   }
 </script>

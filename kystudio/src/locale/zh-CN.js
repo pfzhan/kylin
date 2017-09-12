@@ -80,7 +80,8 @@ exports.default = {
     password: '密码',
     saveDraft: '系统正在响应保存草稿的请求，请稍后!',
     streamingConnectHiveError: 'hive表不允许和streaming表关联',
-    seeDetail: '详情 >>'
+    seeDetail: '详情 >>',
+    willClose: '检测到您有未保存的信息，是否继续关闭?'
   },
   model: {
     modelName: '模型名称：',

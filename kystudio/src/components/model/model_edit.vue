@@ -69,7 +69,7 @@
      
 
     </div>
-     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid, true)">
+     <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid, true)" :close-on-press-escape="false" :close-on-click-modal="false">
         <span>
             <br/>
              <el-row :gutter="20" class="ksd-mb10" style="line-height:49px;">
@@ -149,7 +149,7 @@
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.ok')}}</el-button>
           </span> 
       </el-dialog>
-       <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small">
+       <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small" :close-on-press-escape="false" :close-on-click-modal="false">
           <div>
             <el-button type="trans" class="ksd-mb-10 radius" icon="plus" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="addComputedForm">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top" :model="computedColumn"  ref="computedColumnForm"  :rules="computedRules" v-show="openAddComputedColumnForm">
@@ -232,7 +232,7 @@
 
        <!-- 添加cube -->
 
-    <el-dialog :title="$t('kylinLang.cube.addCube')"  v-model="createCubeVisible" size="tiny">
+    <el-dialog :title="$t('kylinLang.cube.addCube')"  v-model="createCubeVisible" size="tiny" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item label="Cube Name" prop="cubeName">
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
@@ -244,7 +244,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small">
+    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small" :close-on-press-escape="false" :close-on-click-modal="false" >
        <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
        <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
        <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >

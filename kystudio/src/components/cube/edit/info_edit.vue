@@ -60,7 +60,7 @@
     </el-col>
   </el-row>
   <div class="line" style="margin-left: -30px;margin-right: -30px;margin-top: 105px;"></div>
-  <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible" :close-on-click-modal="false">
+  <el-dialog :title="$t('collectsqlPatterns')" v-model="addSQLFormVisible" :before-close="sqlClose" :close-on-press-escape="false" :close-on-click-modal="false">
     <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
     <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <div :class="{hasCheck: hasCheck}">
@@ -90,7 +90,7 @@
     </transition>
     <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
-      <el-button @click="addSQLFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
   </el-dialog>
@@ -154,6 +154,14 @@ export default {
       this.addSQLFormVisible = true
       this.hasCheck = false
       this.loadSql()
+    },
+    sqlClose () {
+      kapConfirm(this.$t('kylinLang.common.willClose'), {
+        confirmButtonText: this.$t('kylinLang.common.close'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.addSQLFormVisible = false
+      })
     },
     filterSqls () {
       var sqls = this.sqlString.split(/;/)
