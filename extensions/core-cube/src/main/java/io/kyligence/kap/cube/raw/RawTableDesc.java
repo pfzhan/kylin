@@ -92,8 +92,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     private Set<TblColRef> fuzzyColumns;
     private LinkedHashSet<TblColRef> sortbyColumns;
     private RawToGridTableMapping rawToGTMapping;
+    private LinkedHashSet<RawTableColumnDesc> sortbyColumnDescs;
 
     private List<TblColRef> columnsInOrder;
+    private List<RawTableColumnDesc> columnDescsInOrder;
 
     private Map<Integer, Integer> origin2OrderMapping;
 
@@ -164,6 +166,24 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             if (sortbyColumns.contains(colDesc.getColumn()))
                 continue;
             cols.add(colDesc.getColumn());
+        }
+        return cols;
+    }
+    
+    public Collection<RawTableColumnDesc> getSortbyColumnDescs() {
+        if (sortbyColumnDescs.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        return sortbyColumnDescs;
+    }
+
+    public List<RawTableColumnDesc> getNonSortbyColumnDescs() {
+        List<RawTableColumnDesc> cols = new ArrayList<>();
+        for (RawTableColumnDesc colDesc : columns) {
+            if (sortbyColumnDescs.contains(colDesc))
+                continue;
+            cols.add(colDesc);
         }
         return cols;
     }
@@ -244,6 +264,15 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             columnsInOrder.addAll(getNonSortbyColumns());
         }
         return columnsInOrder;
+    }
+    
+    public List<RawTableColumnDesc> getColumnDescsInOrder() {
+        if (columnDescsInOrder == null) {
+            columnDescsInOrder = Lists.newArrayList();
+            columnDescsInOrder.addAll(getSortbyColumnDescs());
+            columnDescsInOrder.addAll(getNonSortbyColumnDescs());
+        }
+        return columnDescsInOrder;
     }
 
     // ============================================================================
@@ -361,6 +390,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.fuzzyColumns = Sets.newHashSet();
         this.sortbyColumns = new LinkedHashSet<>();
         this.origin2OrderMapping = new HashMap<>();
+        this.sortbyColumnDescs = new LinkedHashSet<>();
 
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(model);
@@ -372,6 +402,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             }
             if (colDesc.isSortby()) {
                 sortbyColumns.add(colDesc.getColumn());
+                sortbyColumnDescs.add(colDesc);
             }
             columnMap.put(colDesc.getColumn(), colDesc);
         }

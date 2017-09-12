@@ -66,12 +66,13 @@ public class RawTableMappingDesc implements java.io.Serializable {
     public void initAsSeparatedColumns(RawTableDesc rawTableDesc) {
         this.rawTableRef = rawTableDesc;
 
-        int cfNum = rawTableDesc.getOriginColumns().size();
+        // In raw table with no column family, columns are ordered in sortby-columns-first manner. 
+        int cfNum = rawTableDesc.getColumnDescsInOrder().size();        
         columnFamily = new RawTableColumnFamilyDesc[cfNum];
 
         for (int i = 0; i < cfNum; i++) {
             RawTableColumnFamilyDesc cf = new RawTableColumnFamilyDesc();   
-            RawTableColumnDesc col = rawTableDesc.getOriginColumns().get(i);
+            RawTableColumnDesc col = rawTableDesc.getColumnDescsInOrder().get(i);
             String columnRef = col.getName();
             cf.setColumnRefs(new String[] { columnRef });
             cf.setName("F" + (i + 1));
