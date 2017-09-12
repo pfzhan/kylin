@@ -1,6 +1,6 @@
 <template>
 <div >
-  <el-tabs v-model="activeName" :type="type||'card'" :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
+  <el-tabs v-model="active" :type="type||'card'" :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
     <el-tab-pane
       v-for="(item, index) in tabs" :key="index"
       :label="item.title"
@@ -25,9 +25,6 @@
       }
     },
     computed: {
-      activeName () {
-        return this.active
-      },
       tabs () {
         return this.tabslist
       }

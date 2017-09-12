@@ -205,10 +205,10 @@
             this.defaultActive = 'projectActive'
           } else {
             this.defaultActive = hash
-            if (hash.indeOf('studio') >= 0) {
+            if (hash.indexOf('studio') >= 0) {
               this.defaultActive = '/studio/datasource'
             }
-            if (hash.indeOf('system') >= 0) {
+            if (hash.indexOf('system') >= 0) {
               this.defaultActive = ''
               this.$nextTick(() => {
                 this.defaultActive = '/system/config'
