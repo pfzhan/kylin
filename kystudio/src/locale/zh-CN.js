@@ -9,6 +9,7 @@ exports.default = {
     cancel: '取消',
     close: '关闭',
     update: '更新',
+    copy: '复制',
     save: '保存',
     ok: '确定',
     submit: '提交',

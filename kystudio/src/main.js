@@ -28,6 +28,7 @@ import progressbar from 'components/common/progress'
 import commonPopover from 'components/common/common_popover'
 import fakeProgress from 'components/common/fake_progress'
 import editor from 'vue2-ace-editor'
+import VueClipboard from 'vue-clipboard2'
 // import draggable from 'vuedraggable'
 import nprogress from 'nprogress'
 
@@ -64,7 +65,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 // Vue.prototype.introJs = introJs
 Vue.use(ElementUI)
-
+Vue.use(VueClipboard)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'
 Vue.http.interceptors.push(function (request, next) {
   request.headers['Cache-Control'] = 'no-cache'

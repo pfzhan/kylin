@@ -9,6 +9,7 @@ exports.default = {
     cancel: 'Cancel',
     close: 'Close',
     update: 'Update',
+    copy: 'Copy',
     save: 'Save',
     ok: 'OK',
     submit: 'Submit',

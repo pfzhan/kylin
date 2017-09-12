@@ -113,7 +113,7 @@
 
      
     
-     <div class="ksd-common-table ksd-mt-20" v-if="usedRawTable && rawTable.tableDetail.columns.length">
+     <div class="ksd-common-table ksd-mt-20" v-if="usedRawTable && rawTable.tableDetail && rawTable.tableDetail.columns.length">
      <!-- <p class="ksd-left" style="margin-bottom: 15px;">{{$t('dragSorted')}}</p> -->
        <el-row class="tableheader">
          <el-col :span="1">{{$t('ID')}}</el-col>

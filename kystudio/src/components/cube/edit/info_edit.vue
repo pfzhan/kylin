@@ -355,6 +355,9 @@ export default {
   },
   mounted () {
     this.loadSql()
+    if (this.modelDesc) {
+      this.getModelHelthInfo(this.modelDesc.project, this.modelDesc.name)
+    }
     // this.getModelDiagnose({
     //   project: this.modelDesc.project,
     //   modelName: this.modelDesc.name
