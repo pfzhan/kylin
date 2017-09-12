@@ -18,7 +18,7 @@
         <!-- <div @click="toggleDetail()" class="ksd-mb-10" v-html="$t('kylinLang.common.seeDetail')"></div> -->
         <el-input :rows="4" ref="detailBox" readonly type="textarea" v-show="showDetail" id="errorDetail" v-model="$store.state.config.errorMsgBox.detail"></el-input>
         <el-button v-clipboard:copy="$store.state.config.errorMsgBox.detail"
-      v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" @click="copyError" v-show="showDetail" class="ksd-fleft ksd-mt-10 ksd-mb-20">{{$t('kylinLang.common.copy')}}</el-button>
+      v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" v-show="showDetail" class="ksd-fleft ksd-mt-10 ksd-mb-20">{{$t('kylinLang.common.copy')}}</el-button>
       <transition name="fade">
         <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('copySuccess')}}</span></div>
       </transition>

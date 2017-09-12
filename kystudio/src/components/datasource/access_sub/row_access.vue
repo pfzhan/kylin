@@ -20,7 +20,7 @@
               :label="$t('condition')"
               >
               <template scope="scope">
-                <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key.join('、')}}</p>
+                <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key.join(',')}}</p>
               </template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"

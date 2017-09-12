@@ -74,6 +74,7 @@ export default {
           this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
         })
       }).catch((data) => {
+        this.errinfo = data || 'network abort!'
         this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
       })
     },

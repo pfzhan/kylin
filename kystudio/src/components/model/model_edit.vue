@@ -2355,6 +2355,7 @@ export default {
     jsPlumb.ready(() => {
       this.plumbInstance = jsPlumb.getInstance({
         DragOptions: { cursor: 'pointer', zIndex: 2000 },
+        HoverPaintStyle: { stroke: '#fdd9a4' },
         ConnectionOverlays: [
           [ 'Arrow', {
             location: 1,
@@ -2588,6 +2589,9 @@ export default {
       cursor: pointer;
       overflow: hidden;
       background-color: #393e52;
+      &:hover{
+        background-color: #4e5574;
+      }
       span{
         display: block;
         width: 10px;
@@ -2713,6 +2717,9 @@ export default {
        &.rootfact{
           .table_name{
             background-color: #2b91e7;
+            &:hover{
+              background-color: #49adf8;
+            }
           }
        }
        &.fact{
@@ -2803,6 +2810,9 @@ export default {
          background-color: #8492a6;
          padding-left:10px;
          color:#fff;
+         &:hover{
+          background-color: #a1b1c3;
+         }
        }
        .drag_bar{
         span{
@@ -2833,6 +2843,11 @@ export default {
             font-weight: bold;
             color:#2eb3fc;
           }
+          &:hover{
+            .column{
+              color:#218fea;
+            }
+          }
           .kind{
             color: #20a0ff;
             width: 20px;
@@ -2850,7 +2865,7 @@ export default {
               color: #48b5cd;
             }
             &:hover{
-              background-color:#59697f;
+              background-color:#6d707e;
             }
           }
           .column_type{
@@ -2877,11 +2892,19 @@ export default {
     line-height: 18px;
     &.label_left{
       border: 2px solid #f5a623;
-      color:#fff
+      color:#fff;
+      &:hover{
+        border: 2px solid #fdd9a4;
+        background-color: #6f8daf;
+      }
     }
     &.label_inner{
       border: 2px solid #f5a623;
-      color:#fff
+      color:#fff;
+      &:hover{
+        background-color: #6f8daf;
+        border: 2px solid #fdd9a4;
+      }
     }
   }
 </style>
