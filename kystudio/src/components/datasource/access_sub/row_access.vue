@@ -406,7 +406,7 @@ export default {
         if (row.columnName && row.valueList && row.valueList.length > 0) {
           var columnType = this.getColumnType(row.columnName)
           var valueList = row.valueList.map((k) => {
-            if (this.dateTypeList.indexOf(columnType) >= 0) {
+            if (this.dateTypeList.indexOf(columnType) >= 0 || this.dateTimeTypeList.indexOf(columnType) >= 0) {
               k = +(new Date(k))
               return k
             } else {
