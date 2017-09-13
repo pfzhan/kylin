@@ -61,6 +61,12 @@ cd ${KYLIN_HOME}/conf/
 ln -sfn profile_min profile
 cd -
 
+# Enable query push down
+echo "kylin.query.pushdown.runner-class-name=org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl" >> conf/kylin.properties
+echo "kylin.query.pushdown.jdbc.driver=org.apache.hive.jdbc.HiveDriver" >> conf/kylin.properties
+echo "kylin.query.pushdown.jdbc.url=jdbc:hive2://sandbox:10000/default" >> conf/kylin.properties
+echo "kylin.query.pushdown.jdbc.username=hive" >> conf/kylin.properties
+
 ${KYLIN_HOME}/bin/kylin.sh start
 
 echo "Wait 2 minutes for service start KAP obf package."

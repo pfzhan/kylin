@@ -63,6 +63,9 @@ cd ${KYLIN_HOME}/conf/
 ln -sfn profile_min profile
 cd -
 
+# Enable query push down
+sed -i 's/#*\(kylin.query.pushdown.runner-class-name*\)/\1/' conf/kylin.properties
+
 ${KYLIN_HOME}/bin/kylin.sh start
 
 echo "Wait 2 minutes for service start KAP obf package."
