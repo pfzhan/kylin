@@ -89,7 +89,7 @@ public class QueryControllerV2 extends BasicController {
     @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse queryV2(@RequestBody SQLRequest sqlRequest) {
+    public EnvelopeResponse queryV2(@RequestBody PrepareSqlRequest sqlRequest) {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
