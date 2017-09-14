@@ -35,6 +35,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import javax.annotation.Nullable;
 
@@ -424,6 +425,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
         if (rawTableMapping != null) {
             rawTableMapping.init(this);
+            reorderColumnsInColumnFamily();
         } else {
             // For raw tables with no info about raw table mapping: 
             // distribute all columns into separate column families since legacy raw table do not handle raw table mapping.  
@@ -445,6 +447,26 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     public Map<Integer, Integer> getOrigin2OrderMapping() {
         return origin2OrderMapping;
     }
+    
+    private void reorderColumnsInColumnFamily() {
+        Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
+        for (int i = 0; i < columns.size(); i++) {
+            columnIndexLookup.put(columns.get(i).getName(), i);
+        }
+        
+        for (RawTableColumnFamilyDesc cf : getRawTableMapping().getColumnFamily()) {
+            Map<Integer, String> mapInOrder = new TreeMap<Integer, String>();
+            for (String columnRef : cf.getColumnRefs()) {
+                mapInOrder.put(columnIndexLookup.get(columnRef), columnRef);            
+            }
+            String[] columnRefInOrder = new String[cf.getColumnRefs().length];
+            int idx = 0;
+            for (Integer i : mapInOrder.keySet()) {
+                columnRefInOrder[idx++] = mapInOrder.get(i);
+            }
+            cf.setColumnRefs(columnRefInOrder);
+        }
+    }
 
     private void initColumnReferenceToColumnFamily() {
         if (columns == null || columns.size() == 0)
@@ -455,8 +477,9 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             columnLookup.put(c.getName(), c);
         }
         Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
-        for (int i = 0; i < columns.size(); i++)
+        for (int i = 0; i < columns.size(); i++) {
             columnIndexLookup.put(columns.get(i).getName(), i);
+        }
 
         BitSet checkEachColumnExist = new BitSet();
         Set<String> columnSet = Sets.newHashSet();
