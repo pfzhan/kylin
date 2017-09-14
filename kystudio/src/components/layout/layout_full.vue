@@ -12,7 +12,7 @@
       <span style="margin-left: 48px;display:inline-block;">{{$store.state.config.errorMsgBox.msg}}</span>
       <span slot="footer" class="dialog-footer">
         <div class="ksd-mb-10">
-          <el-button type="primary" @click="$store.state.config.errorMsgBox.isShow = false">{{$t('kylinLang.common.ok')}}</el-button>
+          <el-button type="primary" @click="handleClose">{{$t('kylinLang.common.ok')}}</el-button>
           <el-button type="default" @click="toggleDetail()">{{$t('kylinLang.common.seeDetail')}}</el-button>
         </div>
         <!-- <div @click="toggleDetail()" class="ksd-mb-10" v-html="$t('kylinLang.common.seeDetail')"></div> -->
