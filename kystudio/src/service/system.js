@@ -46,7 +46,10 @@ export default {
   saveLicenseContent: (license) => {
     return Vue.resource(apiUrl + 'kap/system/license/content').save(license)
   },
-  saveLicenseFile: (formData) => {
-    return Vue.resource(apiUrl + 'kap/system/license/file', formData).save({})
+  saveLicenseFile: () => {
+    return Vue.resource(apiUrl + 'kap/system/license/file').save({})
+  },
+  trialLicenseFile: (para) => {
+    return Vue.resource(apiUrl + 'kap/system/license/trial').save(para)
   }
 }

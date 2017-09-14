@@ -24,6 +24,23 @@
 
 package io.kyligence.kap.rest.service;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.rest.client.HttpClient;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinVersion;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.service.BasicService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
@@ -37,19 +54,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinVersion;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.stereotype.Component;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
 @Component("licenseInfoService")
 public class LicenseInfoService extends BasicService {
+    private static final Logger logger = LoggerFactory.getLogger(LicenseInfoService.class);
+    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
     public Map<String, String> extractLicenseInfo() {
         Map<String, String> result = new HashMap<>();
@@ -148,5 +156,22 @@ public class LicenseInfoService extends BasicService {
         } catch (Exception e) {
             return StringUtils.EMPTY;
         }
+    }
+
+    public RemoteLicenseResponse getTrialLicense(LicenseRequest licenseRequest) {
+        String proxyServer = kapConfig.getHttpProxyHost();
+        int proxyPort = kapConfig.getHttpProxyPort();
+        String url = String.format(kapConfig.getKyAccountSiteUrl() + "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
+                licenseRequest.getUserName(), licenseRequest.getEmail(),
+                licenseRequest.getCompany(), licenseRequest.getLang());
+        String response = HttpClient.doGet(url, proxyServer, proxyPort);
+        if(response == null)
+            return null;
+        try {
+            return JsonUtil.readValue(response, RemoteLicenseResponse.class);
+        } catch (IOException e) {
+            logger.error("from json to RemoteLicenseResponse error", e);
+        }
+        return null;
     }
 }

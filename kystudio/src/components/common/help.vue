@@ -1,81 +1,107 @@
 <template>
-<div class="help_box" id="help">
-<el-dropdown trigger="click" @visible-change="dropHelp" @command="handleCommand">
-  <span class="el-dropdown-link">
-    {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
-  </span>
-  <el-dropdown-menu slot="dropdown" >
-    <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
-    <el-dropdown-item command="kybot">
-      <div v-if='!isLogin'>
-        <el-button style="color: #fff;font-size: 12px;" type="text" @click="alertkybot=true">{{$t('kybotAuto')}}</el-button>
-        <el-switch
-          id="header-switch"
-          v-model="isopend"
-          on-color="#13ce66"
-          off-color="#ff4949"
-          @change="changeKystaus"
-          @click.native.stop
-          @openSwitch="openSwitch"
-          @closeSwitch="closeSwitch">
-        </el-switch>
+  <div class="help_box" id="help">
+    <el-dropdown trigger="click" @visible-change="dropHelp" @command="handleCommand">
+      <span class="el-dropdown-link">
+        {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
+      </span>
+      <el-dropdown-menu slot="dropdown" >
+        <el-dropdown-item command="kapmanual">{{$t('Manual')}}</el-dropdown-item>
+        <el-dropdown-item command="kybot">
+          <div v-if='!isLogin'>
+            <el-button style="color: #fff;font-size: 12px;" type="text" @click="alertkybot=true">{{$t('kybotAuto')}}</el-button>
+            <el-switch
+              id="header-switch"
+              v-model="isopend"
+              on-color="#13ce66"
+              off-color="#ff4949"
+              @change="changeKystaus"
+              @click.native.stop
+              @openSwitch="openSwitch"
+              @closeSwitch="closeSwitch">
+            </el-switch>
+          </div>
+        </el-dropdown-item>
+        <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
+        <el-dropdown-item command="updatelicense" style="border-top:solid 1px #444b67">{{$t('updateLicense')}}</el-dropdown-item>
+        <el-dropdown-item command="aboutkap" >{{$t('aboutKap')}}</el-dropdown-item>
+      </el-dropdown-menu>
+    </el-dropdown>
+
+
+    <a :href="url" target="_blank"></a>
+    <el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')" id="about-kap" :close-on-click-modal="false">
+      <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
+      </about_kap>
+    </el-dialog>
+    <el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" :title="$t('signIn')" size="tiny" @close="resetLoginKybotForm" :close-on-click-modal="false">
+      <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
+    </el-dialog>
+    <el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny" :close-on-click-modal="false">
+      <start_kybot @closeStartLayer="closeStartLayer" @openSwitch="openSwitch" :propAgreement="infoKybotVisible"></start_kybot>
+    </el-dialog>
+    <el-dialog v-model="alertkybot" :title="$t('autoUpload')" size="tiny">
+      <div v-if="$lang=='en'"  >
+        <div class="ksd-left">By analyzing diagnostic package, <a href='https://kybot.io/'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly</div>
+        <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
+      </span>
       </div>
-    </el-dropdown-item>
-    <el-dropdown-item command="kybotservice">{{$t('kybotService')}}</el-dropdown-item>
-    <el-dropdown-item command="updatelicense" style="border-top:solid 1px #444b67">{{$t('updateLicense')}}</el-dropdown-item>
-    <el-dropdown-item command="aboutkap" >{{$t('aboutKap')}}</el-dropdown-item>
-  </el-dropdown-menu>
-</el-dropdown>
+      <div v-if="$lang=='zh-cn'" >
+        <div class="ksd-left"><a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传</div>
+        <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
+      </span>
+      </div>
+    </el-dialog>
 
+    <el-dialog :title="$t('license')" v-model="updateLicenseVisible" :close-on-click-modal="false" class="kapLicense" size="tiny">
+      <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
+      <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
+      <p style="margin-bottom: 50px;cursor:pointer" @click="apply" v-if="!isPlusVersion">{{$t('applyLicense')}}</p>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
+        <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+      </div>
+    </el-dialog>
 
-<a :href="url" target="_blank"></a>
-<el-dialog v-model="aboutKapVisible" :title="$t('aboutKap')" id="about-kap">
-  <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
-  </about_kap>
-</el-dialog>
-<el-dialog id="login-kybotAccount" v-model="kyBotUploadVisible" :title="$t('signIn')" size="tiny" @close="resetLoginKybotForm">
-  <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
-</el-dialog>
-<el-dialog v-model="infoKybotVisible" :title="$t('kybotAuto')" size="tiny">
-  <start_kybot @closeStartLayer="closeStartLayer" @openSwitch="openSwitch" :propAgreement="infoKybotVisible"></start_kybot>
-</el-dialog>
-<el-dialog v-model="alertkybot" :title="$t('autoUpload')" size="tiny">
-  <div v-if="$lang=='en'"  >
-    <div class="ksd-left">By analyzing diagnostic package, <a href='https://kybot.io/'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly</div>
-    <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
-  </span>
+    <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" v-model="applyLicense" size="tiny" v-if="!isPlusVersion" :close-on-click-modal="false">
+      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm" v-loading.body="applyLoading">
+        <el-form-item prop="email">
+          <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
+        </el-form-item>
+        <el-form-item prop="company">
+          <el-input v-model="userMessage.company" :placeholder="$t('companyName')"></el-input>
+        </el-form-item>
+        <el-form-item prop="userName">
+          <el-input v-model="userMessage.userName" :placeholder="$t('yourName')"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="submitApply" type="primary" :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
+    </el-dialog>
   </div>
-  <div v-if="$lang=='zh-cn'" >
-    <div class="ksd-left"><a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传</div>
-    <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
-  </span>
-  </div>
-</el-dialog>
-
-  <el-dialog :title="$t('license')" v-model="updateLicenseVisible" size="small">
-    <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
-    <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
-    </div>
-  </el-dialog>
-</div>
 </template>
 <script>
   import { mapActions } from 'vuex'
-
   import aboutKap from '../common/about_kap.vue'
   import loginKybot from '../common/login_kybot.vue'
   import startKybot from '../common/start_kybot.vue'
   import updateLicense from '../user/license'
   import { handleSuccess, handleError } from '../../util/business'
-
+  import { personalEmail } from '../../config/index'
   export default {
     name: 'help',
     props: ['isLogin'],
     data () {
       return {
+        userRules: {
+          email: [
+            { required: true, message: this.$t('noEmail'), trigger: 'blur' },
+            { type: 'email', message: this.$t('noEmailStyle'), trigger: 'blur' },
+            { validator: this.validateEmail, trigger: 'blur' }
+          ],
+          company: [{ required: true, message: this.$t('noCompany'), trigger: 'blur' }],
+          userName: [{ required: true, message: this.$t('noUserName'), trigger: 'blur' }]
+        },
         aboutKapVisible: false,
         url: '',
         kyBotUploadVisible: false,
@@ -90,7 +116,16 @@
         switchTimer: 0,
         alertkybot: false,
         updateLicenseVisible: false,
-        loadCheck: false
+        loadCheck: false,
+        applyLicense: false,
+        userMessage: {
+          email: '',
+          company: '',
+          userName: '',
+          lang: 'en'
+        },
+        applyLoading: false,
+        changeDialog: true
       }
     },
     methods: {
@@ -102,8 +137,7 @@
         startKybot: 'START_KYBOT',
         stopKybot: 'STOP_KYBOT',
         getAgreement: 'GET_AGREEMENT',
-        saveLicenseContent: 'SAVE_LICENSE_CONTENT',
-        saveLicenseFile: 'SAVE_LICENSE_FILE'
+        trialLicenseFile: 'TRIAL_LICENSE_FILE'
       }),
       handleCommand (val) {
         var _this = this
@@ -259,29 +293,11 @@
       },
       licenseForm: function () {
         this.$refs['licenseEnter'].$emit('licenseFormValid')
+        this.loadCheck = true
       },
       licenseValidSuccess: function (license) {
-        this.loadCheck = true
-        if (license.useFile) {
-          let formData = new FormData()
-          formData.append('file', license.file[0].raw)
-          this.saveLicenseFile(formData).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.updateLicenseVisible = false
-              this.loadCheck = false
-            })
-          }, (res) => {
-            handleError({data: res})
-          })
-        } else {
-          this.saveLicenseContent(license.content).then((res) => {
-            handleSuccess(res, (data, code, status, msg) => {
-              this.updateLicenseVisible = false
-              this.loadCheck = false
-            })
-          }, (res) => {
-            handleError(res)
-          })
+        if (license === true) {
+          this.hasLicense = false
         }
         this.loadCheck = false
       },
@@ -291,6 +307,77 @@
         } else {
           return obj
         }
+      },
+      apply: function () {
+        this.hasLicense = false
+        this.applyLicense = true
+        this.changeDialog = true
+      },
+      closeApplyLicense: function () {
+        if (this.changeDialog) {
+          this.hasLicense = true
+        }
+      },
+      submitApply: function () {
+        this.$refs['applyLicenseForm'].validate((valid) => {
+          if (valid) {
+            this.applyLoading = true
+            this.trialLicenseFile(this.userMessage).then((res) => {
+              handleSuccess(res, (data) => {
+                if (data && data['kap.dates']) {
+                  if (this.lastTime(data['kap.dates']) > 0) {
+                    this.$alert(this.$t('evaluationPeriod') + data['kap.dates'], this.$t('evaluationLicense'), {
+                      cancelConfirmButton: true,
+                      type: 'success'
+                    })
+                  } else {
+                    var splitTime = data['kap.dates'].split(',')
+                    var endTime = splitTime[1]
+                    this.$alert(this.$t('expiredOn') + endTime, this.$t('evaluationLicense'), {
+                      cancelConfirmButton: true,
+                      type: 'warning'
+                    })
+                  }
+                  this.changeDialog = false
+                  this.applyLicense = false
+                  this.hasLicense = false
+                  this.applyLoading = false
+                  this.$store.state.system.serverAboutKap['kap.dates'] = data['kap.dates']
+                }
+              })
+            }, (res) => {
+              handleError(res)
+              this.applyLoading = false
+            })
+          }
+        })
+      },
+      validateEmail: function (rule, value, callback) {
+        if (value) {
+          for (let key in personalEmail) {
+            if (value.indexOf(key) !== -1) {
+              callback(new Error(this.$t('enterpriseEmail')))
+            }
+          }
+          callback()
+        } else {
+          callback()
+        }
+      },
+      lastTime (date) {
+        var splitTime = date.split(',')
+        if (splitTime.length >= 2) {
+          var endTime = splitTime[1]
+          var lastTimes = (new Date(endTime + ' 23:59:59')) - (new Date())
+          var days = Math.ceil(lastTimes / 1000 / 60 / 60 / 24)
+          if (days >= 0) {
+            days = Math.ceil(Math.abs(days))
+          } else {
+            days = 0
+          }
+          return days
+        }
+        return 0
       }
     },
     computed: {
@@ -302,6 +389,10 @@
       },
       serverAboutKap () {
         return this.$store.state.system.serverAboutKap
+      },
+      isPlusVersion () {
+        var kapVersionInfo = this.$store.state.system.serverAboutKap
+        return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
       }
     },
     components: {
@@ -311,8 +402,8 @@
       'update_license': updateLicense
     },
     locales: {
-      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', updateLicense: 'Update License', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK', cancel: 'Cancel', save: 'Save', license: 'Update License', validPeriod: 'Valid Period:'},
-      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', updateLicense: '更新许可证', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定', cancel: '取消', save: '保存', license: '更新许可证', validPeriod: '有效期限：'}
+      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', updateLicense: 'Update License', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK', cancel: 'Cancel', save: 'Save', license: 'Update License', validPeriod: 'Valid Period:', applyLicense: 'Apply Evaluation License', evaluationLicense: 'Evaluation License', evaluationPeriod: 'Evaluation Period:', noEmail: 'please enter your email', noEmailStyle: 'please enter a usable email', noCompany: 'please enter your company', enterpriseEmail: 'please enter your enterprise email', businessEmail: 'Business Mail', companyName: 'Company Name', yourName: 'Your Name', expiredOn: 'Expired On:'},
+      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', updateLicense: '更新许可证', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定', cancel: '取消', save: '保存', license: '更新许可证', validPeriod: '有效期限：', applyLicense: '申请许可证', evaluationLicense: '有效许可证', evaluationPeriod: '有效期限：', noEmail: '请输入邮箱', noEmailStyle: '请输入一个可用邮箱', noCompany: '请输入公司名', enterpriseEmail: '请输入企业邮箱', businessEmail: '企业邮箱', companyName: '公司名称', yourName: '用户名称', expiredOn: '过期时间：'}
     }
   }
 </script>
@@ -340,6 +431,55 @@
     }
     .el-icon-caret-bottom{
       font-size: 12px;
+    }
+  }
+  .kapLicense {
+    .el-dialog {
+      .el-dialog__header {
+        .el-dialog__title {
+          font-size: 12px;
+        }
+      }
+      .el-dialog__body {
+        padding: 0px 20px 0px 20px; 
+      }
+      .el-input__inner {
+        font-size: 12px;
+      }
+    }
+    p {
+      margin-bottom: 50px;
+      cursor:pointer;
+      color:#218fea;
+      font-size:12px;
+      text-decoration-line: underline;
+    }
+  }
+  .applyLicense {
+    .el-dialog {
+      .el-dialog__title {
+        font-size: 12px;
+      }
+    }
+    .el-input__inner {
+      font-size: 12px;
+    }
+    .el-form-item {
+      margin-bottom: 0px;
+      .el-form-item__error {
+        position: relative;
+      }
+      .el-input {
+        padding: 3px 0px 3px 0px;
+      }
+    }
+    .dialog-footer {
+      .el-button {
+        width: 100%;
+        span {
+
+        }
+      }
     }
   }
   #about-kap{

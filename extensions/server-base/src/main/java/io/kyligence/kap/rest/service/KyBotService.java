@@ -147,7 +147,7 @@ public class KyBotService extends BasicService {
 
     private HttpResponse requestKyAccountLogin(String username, String password) {
         DefaultHttpClient client = getHttpClient();
-        String url = kapConfig.getKyAccountSiteUrl() + "/uaa/api/tokens";
+        String url = kapConfig.getKyAccountSSOUrl() + "/uaa/api/tokens";
 
         // try token
         HttpPost request = new HttpPost(url);

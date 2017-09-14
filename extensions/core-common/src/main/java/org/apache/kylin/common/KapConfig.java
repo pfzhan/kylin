@@ -272,8 +272,12 @@ public class KapConfig {
         return config.getOptional("kap.kyaccount.token");
     }
 
-    public String getKyAccountSiteUrl() {
+    public String getKyAccountSSOUrl() {
         return config.getOptional("kap.kyaccount.url", "https://sso.kyligence.com");
+    }
+
+    public String getKyAccountSiteUrl() {
+        return config.getOptional("kap.kyaccount.site.url", "http://account.kyligence.io");
     }
 
     public String getKyBotSiteUrl() {

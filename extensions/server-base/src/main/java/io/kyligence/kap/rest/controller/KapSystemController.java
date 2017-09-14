@@ -24,15 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.Charset;
-
-import javax.servlet.http.HttpServletResponse;
-
+import io.kyligence.kap.rest.LicenseGatherUtil;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.service.LicenseInfoService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -41,7 +38,10 @@ import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.parquet.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,28 +51,32 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.multipart.MultipartFile;
 
-import io.kyligence.kap.rest.LicenseGatherUtil;
-import io.kyligence.kap.rest.msg.KapMessage;
-import io.kyligence.kap.rest.msg.KapMsgPicker;
-import io.kyligence.kap.rest.service.LicenseInfoService;
+import javax.servlet.http.HttpServletResponse;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.Charset;
 
 @Controller
 @Component("kapSystemController")
 @RequestMapping(value = "/kap/system")
 public class KapSystemController extends BasicController {
+    private final static String CODE_UNDEFINED = "400";
 
     @Autowired
     private LicenseInfoService licenseInfoService;
 
-    @RequestMapping(value = "/license", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/license", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse listLicense() {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @RequestMapping(value = "/license/file", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/license/file", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse uploadLisense(@RequestParam("file") MultipartFile uploadfile) throws IOException {
 
@@ -87,8 +91,8 @@ public class KapSystemController extends BasicController {
     }
 
     //either content or file is okay
-    @RequestMapping(value = "/license/content", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/license/content", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse uploadLisense(@RequestBody String licenseContent) throws IOException {
 
@@ -129,8 +133,8 @@ public class KapSystemController extends BasicController {
     private void checkLicense(byte[] bytes) {
     }
 
-    @RequestMapping(value = "/requestLicense", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/requestLicense", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public void requestLicense(final HttpServletResponse response) throws IOException {
 
@@ -140,11 +144,28 @@ public class KapSystemController extends BasicController {
         setDownloadResponse(licenseInfo, "license.info", response);
     }
 
+    @RequestMapping(value = "/license/trial", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public ResponseEntity trialLicense(@RequestBody LicenseRequest licenseRequest) throws IOException {
+        if (licenseRequest == null || Strings.isNullOrEmpty(licenseRequest.getEmail())
+                || Strings.isNullOrEmpty(licenseRequest.getUserName())
+                || Strings.isNullOrEmpty(licenseRequest.getCompany())) {
+            return ResponseEntity.badRequest().body(new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, "", "wrong parameter"));
+        }
+        RemoteLicenseResponse trialLicense = licenseInfoService.getTrialLicense(licenseRequest);
+        if (trialLicense == null || !trialLicense.isSuccess()) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new EnvelopeResponse(CODE_UNDEFINED, "", "get license error"));
+        }
+
+        return ResponseEntity.ok().body(uploadLisense(trialLicense.getData()));
+    }
+
     private void setDownloadResponse(File downloadFile, String filename, final HttpServletResponse response) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         try (InputStream fileInputStream = new FileInputStream(downloadFile);
-                OutputStream output = response.getOutputStream()) {
+             OutputStream output = response.getOutputStream()) {
             response.reset();
             response.setContentType("application/octet-stream");
             response.setContentLength((int) (downloadFile.length()));

@@ -174,6 +174,7 @@ export const GET_KYBOT_DUMP = 'GET_KYBOT_DUMP'
 export const GET_JOB_KYBOT = 'GET_JOB_KYBOT'
 export const SAVE_LICENSE_CONTENT = 'SAVE_LICENSE_CONTENT'
 export const SAVE_LICENSE_FILE = 'SAVE_LICENSE_FILE'
+export const TRIAL_LICENSE_FILE = 'TRIAL_LICENSE_FILE'
 
 // kybot account and upload
 export const GET_KYACCOUNT = 'GET_KYACCOUNT'
