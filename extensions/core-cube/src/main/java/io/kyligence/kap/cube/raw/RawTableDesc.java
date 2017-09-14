@@ -29,7 +29,6 @@ import static com.google.common.base.Preconditions.checkState;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -163,7 +162,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public List<TblColRef> getNonSortbyColumns() {
         List<TblColRef> cols = new ArrayList<>();
-        for (RawTableColumnDesc colDesc : columns) {
+        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
             if (sortbyColumns.contains(colDesc.getColumn()))
                 continue;
             cols.add(colDesc.getColumn());
@@ -202,7 +201,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
 
     public int getEstimateRowSize() {
         int size = 0;
-        for (RawTableColumnDesc col : columns) {
+        for (RawTableColumnDesc col : getColumnDescsInOrder()) {
             size += col.getColumn().getType().getStorageBytesEstimate();
         }
         return size;
@@ -243,11 +242,11 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     public List<RawTableColumnDesc> getOriginColumns() {
-        return this.columns == null ? null : Collections.unmodifiableList(this.columns);
+        return getColumnDescsInOrder();
     }
 
-    public void setOriginColumns(List<RawTableColumnDesc> columns) {
-        this.columns = columns;
+    public void setOriginColumns(List<RawTableColumnDesc> columnDescsInOrder) {
+        this.columnDescsInOrder = columnDescsInOrder;
     }
 
     public String getResourcePath() {
@@ -392,8 +391,14 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.sortbyColumns = new LinkedHashSet<>();
         this.origin2OrderMapping = new HashMap<>();
         this.sortbyColumnDescs = new LinkedHashSet<>();
-
+        
         for (RawTableColumnDesc colDesc : columns) {
+            if (colDesc.isSortby()) {
+                sortbyColumnDescs.add(colDesc);
+            }
+        }
+
+        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
             colDesc.init(model);
             if (colDesc.isShardby()) {
                 shardbyColumns.add(colDesc.getColumn());
@@ -403,7 +408,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             }
             if (colDesc.isSortby()) {
                 sortbyColumns.add(colDesc.getColumn());
-                sortbyColumnDescs.add(colDesc);
             }
             columnMap.put(colDesc.getColumn(), colDesc);
         }
@@ -412,7 +416,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         int sortbyIdx = 0;
         int nonSortbyIdx = this.sortbyColumns.size();
 
-        for (RawTableColumnDesc colDesc : columns) {
+        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
             if (colDesc.isSortby()) {
                 this.origin2OrderMapping.put(colIdx, sortbyIdx);
                 sortbyIdx++;
@@ -450,8 +454,8 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     
     private void reorderColumnsInColumnFamily() {
         Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
-        for (int i = 0; i < columns.size(); i++) {
-            columnIndexLookup.put(columns.get(i).getName(), i);
+        for (int i = 0; i < getColumnDescsInOrder().size(); i++) {
+            columnIndexLookup.put(getColumnDescsInOrder().get(i).getName(), i);
         }
         
         for (RawTableColumnFamilyDesc cf : getRawTableMapping().getColumnFamily()) {
@@ -469,16 +473,16 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     private void initColumnReferenceToColumnFamily() {
-        if (columns == null || columns.size() == 0)
+        if (getColumnDescsInOrder() == null || getColumnDescsInOrder().size() == 0)
             return;
 
         Map<String, RawTableColumnDesc> columnLookup = new HashMap<String, RawTableColumnDesc>();
-        for (RawTableColumnDesc c : columns) {
+        for (RawTableColumnDesc c : getColumnDescsInOrder()) {
             columnLookup.put(c.getName(), c);
         }
         Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
-        for (int i = 0; i < columns.size(); i++) {
-            columnIndexLookup.put(columns.get(i).getName(), i);
+        for (int i = 0; i < getColumnDescsInOrder().size(); i++) {
+            columnIndexLookup.put(getColumnDescsInOrder().get(i).getName(), i);
         }
 
         BitSet checkEachColumnExist = new BitSet();
@@ -506,9 +510,9 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             cf.setColumnIndex(columnIndex);
         }
 
-        for (int i = 0; i < columns.size(); i++) {
+        for (int i = 0; i < getColumnDescsInOrder().size(); i++) {
             checkState(checkEachColumnExist.get(i), "column (%s) does not exist in column family, or column duplicates",
-                    columns.get(i));
+                    getColumnDescsInOrder().get(i));
         }
     }
 
