@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.query.security;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -31,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -49,23 +47,20 @@ import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.RowACLManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        logger.info("The Origin SQL:\n" + sql);
-        logger.info("\n---Start to transform SQL with row ACL, see transformed sql in hte below---");
         Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project.toUpperCase());
-        if (whereCondWithTbls.isEmpty()) {
-            return sql;
-        }
         return rowFilter(defaultSchema, sql, whereCondWithTbls);
     }
 
@@ -73,99 +68,117 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         if (StringUtils.isEmpty(schema) || StringUtils.isEmpty(inputSQL)) {
             return "";
         }
-        if (whereCondWithTbls.size() == 0) {
+        if (whereCondWithTbls.isEmpty()) {
             return inputSQL;
         }
 
-        Map<SqlSelect, List<Table>> selectClausesWithTables = getSelectClausesWithTable(inputSQL, schema);
-        List<Pair<ReplacePos, String>> toBeReplacedPosAndExprs = getReplacePosWithFilterExpr(inputSQL, whereCondWithTbls, selectClausesWithTables);
+        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
+        List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls, selectClausesWithTbls);
 
         StrBuilder convertedSQL = new StrBuilder(inputSQL);
-        for (Pair<ReplacePos, String> toBeReplaced : toBeReplacedPosAndExprs) {
-            int start = toBeReplaced.getFirst().getStart();
-            int end = toBeReplaced.getFirst().getEnd();
-            convertedSQL.replace(start, end, toBeReplaced.getSecond());
+
+        if (toBeInsertedPosAndExprs.size() > 0) {
+            logger.info("\n---Start to transform SQL with row ACL, see transformed sql in the below---");
+        }
+        for (Pair<Integer, String> toBeInserted : toBeInsertedPosAndExprs) {
+            int insertPos = toBeInserted.getFirst();
+            convertedSQL.insert(insertPos, toBeInserted.getSecond());
         }
         return convertedSQL.toString();
     }
 
-    // Pair<ReplacePos, String> : [replacePos : toBeReplacedExpr]
-    private static List<Pair<ReplacePos, String>> getReplacePosWithFilterExpr(
+    // concat all table's row ACL defined condition and insert to user's inputSQL as where clause.
+    // return [insertPos : toBeInsertExpr]
+    private static List<Pair<Integer, String>> getInsertPosAndExpr(
             String inputSQL,
             Map<String, String> whereCondWithTbls,
-            Map<SqlSelect, List<Table>> selectClausesWithTables) {
+            Map<SqlSelect, List<Table>> selectClausesWithTbls) {
 
-        List<Pair<ReplacePos, String>> toBeReplacedPosAndExprs = new ArrayList<>();
+        List<Pair<Integer, String>> toBeReplacedPosAndExprs = new ArrayList<>();
 
-        for (SqlSelect select : selectClausesWithTables.keySet()) {
-            ReplacePos replacePos = null;
-            StringBuilder whereCond = new StringBuilder();
+        for (SqlSelect select : selectClausesWithTbls.keySet()) {
+            int insertPos = getInsertPos(inputSQL, select);
 
-            List<Table> tables = selectClausesWithTables.get(select);
+            //Will concat one select clause's all tables's row ACL conditions into one where clause.
+            List<Table> tables = selectClausesWithTbls.get(select);
+            String whereCond = getToBeInsertCond(whereCondWithTbls, select, tables);
 
-            //insert row ACL defined condition to user's inputSQL as where clause.
-            //Will splice one select clause's all tables's row ACL conditions into one where clause
-            for (int i = 0; i < tables.size(); i++) {
-                Table table = tables.get(i);
-                String cond = whereCondWithTbls.get(table.getName());
-                if (StringUtils.isEmpty(cond)) {
-                    continue;
-                }
-
-                //complete conditions in where clauses with alias
-                cond = CalciteParser.insertAliasInExpr(cond, table.getAlias());
-                if (i == 0) {
-                    if (!select.hasWhere()) {
-                        whereCond = new StringBuilder(" WHERE " + whereCond + cond);
-                        //CALCITE-1973 get right node's pos instead of from's pos.In KYLIN, join must have on operator
-                        if (select.getFrom() instanceof SqlJoin) {
-                            SqlNode rightMost = Preconditions.checkNotNull(((SqlJoin) select.getFrom()).getCondition(), "Join without on");
-                            replacePos = new ReplacePos(CalciteParser.getReplacePos(rightMost, inputSQL).getSecond() + 1);
-                            continue;
-                        }
-                        //if inputSQL doesn't have where clause, splice where clause after from clause.
-                        replacePos = new ReplacePos(CalciteParser.getReplacePos(select.getFrom(), inputSQL).getSecond());
-                    } else {
-                        //if inputSQL have where clause, splice row ACL conditions after where clause.
-                        replacePos = new ReplacePos(CalciteParser.getReplacePos(select.getWhere(), inputSQL));
-                        whereCond = new StringBuilder(inputSQL.substring(replacePos.getStart(), replacePos.getEnd()) + " AND " + cond);
-                    }
-                } else {
-                    whereCond.append(" AND ").append(cond);
-                }
-            }
-
-            if (!whereCond.toString().equals("")) {
-                toBeReplacedPosAndExprs.add(Pair.newPair(replacePos, whereCond.toString()));
+            if (!whereCond.isEmpty()) {
+                toBeReplacedPosAndExprs.add(Pair.newPair(insertPos, whereCond));
             }
         }
 
         // latter replace position in the front of the list.
-        Collections.sort(toBeReplacedPosAndExprs, new Comparator<Pair<ReplacePos, String>>() {
-            @Override
-            public int compare(Pair<ReplacePos, String> o1, Pair<ReplacePos, String> o2) {
-                return -(o1.getFirst().getEnd() - o2.getFirst().getEnd());
-            }
-        });
-
+        reverseOrder(toBeReplacedPosAndExprs);
         return toBeReplacedPosAndExprs;
     }
 
-    //selectClause1:{database.table1:alias1, database.table2:alias2}
-    private static Map<SqlSelect, List<Table>> getSelectClausesWithTable(String inputSQL, String schema) {
+    private static int getInsertPos(String inputSQL, SqlSelect select) {
+        SqlNode insertAfter = getInsertAfterNode(select);
+        return CalciteParser.getReplacePos(insertAfter, inputSQL).getSecond();
+    }
+
+    private static void reverseOrder(List<Pair<Integer, String>> toBeReplacedPosAndExprs) {
+        Collections.sort(toBeReplacedPosAndExprs, new Comparator<Pair<Integer, String>>() {
+            @Override
+            public int compare(Pair<Integer, String> o1, Pair<Integer, String> o2) {
+                return -(o1.getFirst() - o2.getFirst());
+            }
+        });
+    }
+
+    private static String getToBeInsertCond(Map<String, String> whereCondWithTbls, SqlSelect select, List<Table> tables) {
+        StringBuilder whereCond = new StringBuilder();
+        for (int i = 0; i < tables.size(); i++) {
+            Table table = tables.get(i);
+            String cond = whereCondWithTbls.get(table.getName());
+            if (StringUtils.isEmpty(cond)) {
+                continue;
+            }
+
+            //complete condition expr with alias
+            cond = CalciteParser.insertAliasInExpr(cond, table.getAlias());
+            if (i == 0 && !select.hasWhere()) {
+                whereCond = new StringBuilder(" WHERE " + cond);
+            } else {
+                whereCond.append(" AND ").append(cond);
+            }
+        }
+        return whereCond.toString();
+    }
+
+    private static SqlNode getInsertAfterNode(SqlSelect select) {
+        SqlNode rightMost;
+        if (!select.hasWhere()) {
+            //CALCITE-1973 get right node's pos instead of from's pos.In KYLIN, join must have on operator
+            if (select.getFrom() instanceof SqlJoin) {
+                rightMost = Preconditions.checkNotNull(((SqlJoin) select.getFrom()).getCondition(),
+                        "Join without \"ON\"");
+            } else {
+                //if inputSQL doesn't have where clause, concat where clause after from clause.
+                rightMost = select.getFrom();
+            }
+        } else {
+            rightMost = select.getWhere();
+        }
+        return rightMost;
+    }
+
+    //{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}
+    private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
         Map<SqlSelect, List<Table>> selectWithTables = new HashMap<>();
 
         for (SqlSelect select : SelectClauseFinder.getSelectClauses(inputSQL)) {
-            List<Table> tablesWithAlias = NonSubqueryTablesFinder.getTablesWithAlias(select.getFrom());
-            if (tablesWithAlias.size() > 0) {
-                for (int i = 0; i < tablesWithAlias.size(); i++) {
-                    Table table = tablesWithAlias.get(i);
+            List<Table> tblsWithAlias = NonSubqueryTablesFinder.getTblsWithAlias(select.getFrom());
+            if (tblsWithAlias.size() > 0) {
+                for (int i = 0; i < tblsWithAlias.size(); i++) {
+                    Table t = tblsWithAlias.get(i);
                     // complete table with database schema if table hasn't
-                    if (table.getName().split("\\.").length == 1) {
-                        tablesWithAlias.set(i, new Table(schema + "." + table.getName(), table.getAlias()));
+                    if (t.getName().split("\\.").length == 1) {
+                        tblsWithAlias.set(i, new Table(schema + "." + t.getName(), t.getAlias()));
                     }
                 }
-                selectWithTables.put(select, tablesWithAlias);
+                selectWithTables.put(select, tblsWithAlias);
             }
         }
         return selectWithTables;
@@ -229,15 +242,15 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
             this.tablesWithAlias = new ArrayList<>();
         }
 
-        private List<Table> getTablesWithAlias() {
+        private List<Table> getTblsWithAlias() {
             return tablesWithAlias;
         }
 
         //please pass SqlSelect.getFrom.Pass other sql nodes will lead error.
-        static List<Table> getTablesWithAlias(SqlNode node) {
+        static List<Table> getTblsWithAlias(SqlNode node) {
             NonSubqueryTablesFinder sv = new NonSubqueryTablesFinder();
             node.accept(sv);
-            return sv.getTablesWithAlias();
+            return sv.getTblsWithAlias();
         }
 
         @Override
@@ -287,28 +300,6 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         }
     }
 
-    private static class ReplacePos {
-        private int start;
-        private int end;
-
-        ReplacePos(Pair<Integer, Integer> pos) {
-            this.start = pos.getFirst();
-            this.end = pos.getSecond();
-        }
-
-        ReplacePos(int pos) {
-            this.start = this.end = pos;
-        }
-
-        public int getStart() {
-            return start;
-        }
-
-        public int getEnd() {
-            return end;
-        }
-    }
-
     //immutable class only for replacing Pair<String, String> for tableWithAlias
     private static class Table {
         private String name;
@@ -340,12 +331,6 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     private Map<String, String> getWhereCondWithTbls(String project) {
         RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
-        Map<String, String> whereCondWithTbls = new HashMap<>();
-        try {
-            whereCondWithTbls = rowACLManager.getRowACL(project).getQueryUsedCondsByUser(getUsername());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to get user defined row ACL");
-        }
-        return whereCondWithTbls;
+        return rowACLManager.getRowACLByCache(project).getQueryUsedCondsByUser(getUsername());
     }
 }

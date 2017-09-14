@@ -25,14 +25,15 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.acl.ColumnACL;
 
@@ -49,39 +50,34 @@ public class ColumnACLServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, emptyBlackList.getUserColumnBlackList().size());
 
         //test add and get
-        List<String> columns = new ArrayList<>();
-        List<String> columns2 = new ArrayList<>();
-        List<String> columns3 = new ArrayList<>();
-        columns.add("c1");
-        columns.add("c2");
-        columns.add("c3");
-        columns.add("c4");
-        columns.add("c5");
-        columns2.add("c1");
-        columns3.add("c1");
+        Set<String> columns = Sets.newHashSet("C1", "C2", "C3", "C4", "C5");
+        Set<String> columns2 =Sets.newHashSet("C1") ;
+        Set<String> columns3 = Sets.newHashSet("C1");
 
         columnACLService.addToColumnBlackList(PROJECT, "ADMIN", "DB.TABLE", columns);
         columnACLService.addToColumnBlackList(PROJECT, "MODELER", "DB.TABLE1", columns2);
         columnACLService.addToColumnBlackList(PROJECT, "ANALYST", "DB.TABLE", columns3);
-        Map<String, List<String>> userWithBlackColumn = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE");
+        Map<String, Set<String>> userWithBlackColumn = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE");
         Assert.assertEquals(5, userWithBlackColumn.get("ADMIN").size());
         Assert.assertEquals(1, userWithBlackColumn.get("ANALYST").size());
         Assert.assertNull(userWithBlackColumn.get("MODELER"));
 
         //test update
-        List<String> columns4 = new ArrayList<>();
-        columns4.add("c6");
+        Set<String> columns4 = Sets.newHashSet("C6");
+
         columnACLService.updateColumnBlackList(PROJECT, "ANALYST", "DB.TABLE", columns4);
-        Map<String, List<String>> userWithBlackColumn1 = columnACLService.getColumnBlackListByTable(PROJECT,
+        Map<String, Set<String>> userWithBlackColumn1 = columnACLService.getColumnBlackListByTable(PROJECT,
                 "DB.TABLE");
         Assert.assertTrue(userWithBlackColumn1.get("ANALYST").equals(columns4));
 
         //test delete
         columnACLService.deleteFromTableBlackList(PROJECT, "ANALYST", "DB.TABLE");
-        Map<String, List<String>> userWithBlackColumn2 = columnACLService.getColumnBlackListByTable(PROJECT,
-                "DB.TABLE");
+        Map<String, Set<String>> userWithBlackColumn2 = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE");
         Assert.assertNull(userWithBlackColumn2.get("ANALYST"));
 
+        //test delete
+        Assert.assertEquals(1, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1").size());
+        columnACLService.deleteFromTableBlackList(PROJECT, "MODELER");
+        Assert.assertEquals(0, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1").size());
     }
-
 }

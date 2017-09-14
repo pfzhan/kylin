@@ -25,22 +25,22 @@
 package io.kyligence.kap.metadata.acl;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
+import java.util.TreeMap;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
-/*remember add         Preconditions.checkNotNull(columnName, "columnName is null");
-        Preconditions.checkState(tableIdentity.equals(tableIdentity.trim()),
-                "tableIdentity of ComputedColumnDesc has heading/tailing whitespace");
-*/
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
@@ -55,7 +55,7 @@ public class RowACL extends RootPersistentEntity {
     @JsonProperty()
     private Map<String, QueryUsedCondList> queryUsedCondsWithTable;
 
-    public RowACL() {
+    RowACL() {
         tableRowCondsWithUser = new HashMap<>();
         queryUsedCondsWithTable = new HashMap<>();
     }
@@ -64,7 +64,7 @@ public class RowACL extends RootPersistentEntity {
         return tableRowCondsWithUser;
     }
 
-    public Map<String, QueryUsedCondList> getQueryUsedConds() {
+    Map<String, QueryUsedCondList> getQueryUsedConds() {
         return queryUsedCondsWithTable;
     }
 
@@ -86,7 +86,7 @@ public class RowACL extends RootPersistentEntity {
         if (queryUsedCondList == null) {
             queryUsedCondList = new QueryUsedCondList();
         }
-        return queryUsedCondList.getSplicedCondsWithTable();
+        return queryUsedCondList.getConcatedCondsWithTable();
     }
 
     public RowACL add(String username, String table, Map<String, List<String>> condsWithColumn, Map<String, String> columnWithType) {
@@ -135,7 +135,20 @@ public class RowACL extends RootPersistentEntity {
         TableRowCondList tableRowConds = tableRowCondsWithUser.get(username);
         QueryUsedCondList queryUsedConds = queryUsedCondsWithTable.get(username);
         tableRowConds.remove(table);
+        if (tableRowConds.isEmpty()) {
+            tableRowCondsWithUser.remove(username);
+        }
         queryUsedConds.remove(table);
+        if (queryUsedConds.isEmpty()) {
+            queryUsedCondsWithTable.remove(username);
+        }
+        return this;
+    }
+
+    public RowACL delete(String username) {
+        validateUserHasRowACL(username);
+        tableRowCondsWithUser.remove(username);
+        queryUsedCondsWithTable.remove(username);
         return this;
     }
 
@@ -152,7 +165,7 @@ public class RowACL extends RootPersistentEntity {
             queryUsedConds = new QueryUsedCondList();
         }
         Map<String, List<String>> condsWithColumn = tableRowCondList.getRowCondListByTable(table).getCondsWithColumn();
-        queryUsedConds.putSplicedConds(table, concatConds(condsWithColumn, columnWithType));
+        queryUsedConds.putConcatedConds(table, concatConds(condsWithColumn, columnWithType));
         queryUsedCondsWithTable.put(username, queryUsedConds);
     }
 
@@ -162,16 +175,26 @@ public class RowACL extends RootPersistentEntity {
         int j = 0;
         for (String col : trimedCondsWithColumn.keySet()) {
             List<String> conds = trimedCondsWithColumn.get(col);
+
             for (int i = 0; i < conds.size(); i++) {
-                String cond = conds.get(i) + " ";
-                if (i == 0) {
+                String cond = conds.get(i);
+                if (conds.size() == 1) {
                     result.append(col).append("=").append(cond);
                     continue;
                 }
-                result.append("OR ").append(col).append("=").append(cond);
+                if (i == 0) {
+                    result.append("(").append(col).append("=").append(cond);
+                    continue;
+                }
+                if (i == conds.size() - 1) {
+                    result.append(" OR ").append(col).append("=").append(cond).append(")");
+                    continue;
+                }
+                result.append(" OR ").append(col).append("=").append(cond);
             }
+
             if (j != trimedCondsWithColumn.size() - 1) {
-                result.append("AND ");
+                result.append(" AND ");
             }
             j++;
         }
@@ -179,24 +202,53 @@ public class RowACL extends RootPersistentEntity {
     }
 
     //add cond with single quote and escape single quote
-    private static  Map<String, List<String>> trimConds(Map<String, List<String>> condsWithCol, Map<String, String> columnWithType) {
+    static Map<String, List<String>> trimConds(Map<String, List<String>> condsWithCol, Map<String, String> columnWithType) {
         Map<String, List<String>> result = new HashMap<>();
         for (String col : condsWithCol.keySet()) {
             List<String> conds = condsWithCol.get(col);
             String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type note found");
-            if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
-                List<String> trimedConds = new ArrayList<>();
-                for (String cond : conds) {
-                    cond = cond.replaceAll("'", "''");
-                    cond = "'" + cond + "'";
-                    trimedConds.add(cond);
-                }
-                result.put(col, trimedConds);
-                continue;
-            }
+            trimStringType(conds, type);
+            trimDateType(conds, type);
             result.put(col, conds);
         }
         return result;
+    }
+
+    private static void trimDateType(List<String> conds, String type) {
+        if (isDateType(type)) {
+            for (int i = 0; i < conds.size(); i++) {
+                String cond = conds.get(i);
+                if (type.equals("date")) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    cond = sdf.format(new Date(Long.valueOf(cond)));
+                }
+                if (type.equals("timestamp") || type.equals("datetime")) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    cond = sdf.format(new Date(Long.valueOf(cond)));
+                }
+                // for time type,the front end pass direct pass, so only add ''
+                cond = "'" + cond + "'";
+                conds.set(i, cond);
+            }
+        }
+    }
+
+    private static boolean isDateType(String type) {
+        final Set<String> DATETIME_FAMILY = Sets.newHashSet("date", "time", "datetime", "timestamp");
+        return DATETIME_FAMILY.contains(type);
+    }
+
+    private static void trimStringType(List<String> conds, String type) {
+        if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
+            for (int i = 0; i < conds.size(); i++) {
+                String cond = conds.get(i);
+                cond = cond.replaceAll("'", "''");
+                cond = "'" + cond + "'";
+                conds.set(i, cond);
+            }
+        }
     }
 
     private void validateNotExists(String username, String table, TableRowCondList tableRowCondList) {
@@ -225,6 +277,14 @@ public class RowACL extends RootPersistentEntity {
         }
     }
 
+    private void validateUserHasRowACL(String username) {
+        TableRowCondList tableRowConds = tableRowCondsWithUser.get(username);
+        if (tableRowConds == null) {
+            throw new RuntimeException(
+                    "Operation fail, user:" + username + " not have any row acl conds!");
+        }
+    }
+
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
@@ -232,10 +292,11 @@ public class RowACL extends RootPersistentEntity {
     static class TableRowCondList implements Serializable {
         //all row conds in the table
         @JsonProperty()
-        private Map<String, RowCondList> rowCondsWithTable; //t1:rowCondList1, t2:rowCondList2
+        private Map<String, RowCondList> rowCondsWithTable; //T1:rowCondList1, T2:rowCondList2
+
 
         private TableRowCondList() {
-            rowCondsWithTable = new HashMap<>();
+            rowCondsWithTable = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
 
         public int size() {
@@ -246,7 +307,7 @@ public class RowACL extends RootPersistentEntity {
             return rowCondsWithTable.isEmpty();
         }
 
-        public RowCondList getRowCondListByTable(String table) {
+        RowCondList getRowCondListByTable(String table) {
             RowCondList rowCondList = rowCondsWithTable.get(table);
             if (rowCondList == null) {
                 rowCondList = new RowCondList();
@@ -254,8 +315,8 @@ public class RowACL extends RootPersistentEntity {
             return rowCondList;
         }
 
-        public RowCondList putRowCondlist(String key, RowCondList value) {
-            return rowCondsWithTable.put(key, value);
+        void putRowCondlist(String key, RowCondList value) {
+            rowCondsWithTable.put(key, value);
         }
 
         public RowCondList remove(String table) {
@@ -270,14 +331,15 @@ public class RowACL extends RootPersistentEntity {
     static class RowCondList implements Serializable {
         //all row conds in the table
         @JsonProperty()
-        private Map<String, List<String>> condsWithColumn; //c1:{cond1, cond2},c2{cond1, cond3}
+        private Map<String, List<String>> condsWithColumn; //C1:{cond1, cond2},C2{cond1, cond3}
 
         private RowCondList() {
-            this.condsWithColumn = new HashMap<>();
+            this.condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
 
-        public RowCondList(Map<String, List<String>> condsWithColumn) {
-            this.condsWithColumn = condsWithColumn;
+        RowCondList(Map<String, List<String>> condsWithColumn) {
+            this.condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            this.condsWithColumn.putAll(condsWithColumn);
         }
 
         public int size() {
@@ -288,31 +350,19 @@ public class RowACL extends RootPersistentEntity {
             return condsWithColumn.isEmpty();
         }
 
-        private boolean containsKey(String key) {
-            return condsWithColumn.containsKey(key);
+        List<String> getCondsByColumn(String column) {
+            return condsWithColumn.get(column);
         }
 
-        List<String> getCondsByColumn(String key) {
-            return condsWithColumn.get(key);
-        }
-
-        public Map<String, List<String>> getCondsWithColumn() {
+        Map<String, List<String>> getCondsWithColumn() {
             if (condsWithColumn == null) {
-                condsWithColumn = new HashMap<>();
+                condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             }
             return condsWithColumn;
         }
 
-        void put(String column, List<String> conds) {
-            condsWithColumn.put(column, conds);
-        }
-
         public Set<String> keySet() {
             return condsWithColumn.keySet();
-        }
-
-        void remove(String key) {
-            condsWithColumn.remove(key);
         }
     }
 
@@ -322,38 +372,34 @@ public class RowACL extends RootPersistentEntity {
             setterVisibility = JsonAutoDetect.Visibility.NONE)
     static class QueryUsedCondList {
         @JsonProperty()
-        private Map<String, String> splicedCondsWithTable; //TABLE1: C1 = A OR C1 = B AND C2 = C
+        private Map<String, String> concatedCondsWithTable; //TABLE1: C1 = A OR C1 = B AND C2 = C
 
-        public QueryUsedCondList() {
-            splicedCondsWithTable = new HashMap<>();
+        QueryUsedCondList() {
+            concatedCondsWithTable = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
 
         public int size() {
-            return splicedCondsWithTable.size();
+            return concatedCondsWithTable.size();
         }
 
         public boolean isEmpty() {
-            return splicedCondsWithTable.isEmpty();
+            return concatedCondsWithTable.isEmpty();
         }
 
-        public boolean containsKey(String table) {
-            return splicedCondsWithTable.containsKey(table);
+        Map<String, String> getConcatedCondsWithTable() {
+            return concatedCondsWithTable;
         }
 
-        public Map<String, String> getSplicedCondsWithTable() {
-            return splicedCondsWithTable;
-        }
-
-        public String getSplicedCondsByTable(String table) {
-            return splicedCondsWithTable.get(table);
+        String getConcatedCondsByTable(String table) {
+            return concatedCondsWithTable.get(table);
         }
 
         public String remove(String table) {
-            return splicedCondsWithTable.remove(table);
+            return concatedCondsWithTable.remove(table);
         }
 
-        public String putSplicedConds(String table, String splicedConds) {
-            return splicedCondsWithTable.put(table, splicedConds);
+        void putConcatedConds(String table, String splicedConds) {
+            concatedCondsWithTable.put(table, splicedConds);
         }
     }
 }

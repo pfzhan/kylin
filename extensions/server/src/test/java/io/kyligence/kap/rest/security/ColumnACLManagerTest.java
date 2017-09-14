@@ -24,38 +24,30 @@
 
 package io.kyligence.kap.rest.security;
 
-import java.util.List;
-import java.util.Set;
+import io.kyligence.kap.rest.util.MultiNodeManagerTestBase;
+import org.junit.Assert;
+import org.junit.Test;
 
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.security.QueryIntercept;
-import org.apache.kylin.query.security.QueryInterceptUtil;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 
-public class ColumnIntercept extends QueryIntercept implements IKeep {
+public class ColumnACLManagerTest extends MultiNodeManagerTestBase {
 
-    @Override
-    public Set<String> getQueryIdentifiers(List<OLAPContext> contexts) {
-        String project = getProject(contexts);
-        return QueryInterceptUtil.getAllColsWithTblAndSchema(project, contexts);
-    }
+    @Test
+    public void test() throws Exception {
+        final ColumnACLManager columnACLManagerA = new ColumnACLManager(configA);
+        final ColumnACLManager columnACLManagerB = new ColumnACLManager(configB);
 
-    @Override
-    protected Set<String> getIdentifierBlackList(List<OLAPContext> contexts) {
-        String project = getProject(contexts);
-        String username = getUser(contexts);
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).isEmpty());
+        columnACLManagerA.addColumnACL(PROJECT, USER, TABLE, Sets.newHashSet("c1", "c2"));
+        // if not sleep, manager B's get method is faster than notify
+        Thread.sleep(1000);
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).contains("T1.C1"));
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).contains("T1.C2"));
+        columnACLManagerB.deleteColumnACL(PROJECT, USER, TABLE);
+        Thread.sleep(1000);
+        Assert.assertEquals(0, columnACLManagerA.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).size());
 
-        return ColumnACLManager
-                .getInstance(KylinConfig.getInstanceFromEnv())
-                .getColumnACLByCache(project)
-                .getColumnBlackListByUser(username);
-    }
-
-    @Override
-    protected String getIdentifierType() {
-        return "column";
     }
 }

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -32,6 +33,7 @@ import java.util.regex.Pattern;
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -40,6 +42,8 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.ProjectService;
+import org.apache.kylin.rest.service.TableACLService;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +72,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.PasswdChangeRequest;
+import io.kyligence.kap.rest.service.ColumnACLService;
+import io.kyligence.kap.rest.service.RowACLService;
 
 @Controller
 @Component("kapUserController")
@@ -79,6 +85,22 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @Autowired
     @Qualifier("userService")
     private UserService userService;
+
+    @Autowired
+    @Qualifier("TableAclService")
+    private TableACLService tableACLService;
+
+    @Autowired
+    @Qualifier("ColumnAclService")
+    private ColumnACLService columnACLService;
+
+    @Autowired
+    @Qualifier("RowAclService")
+    private RowACLService rowACLService;
+
+    @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
 
     private Pattern passwordPattern;
     private Pattern bcryptPattern;
@@ -281,7 +303,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void delete(@PathVariable("userName") String userName) {
+    public void delete(@PathVariable("userName") String userName) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
         if (!"testing".equals(System.getProperty("spring.profiles.active"))) {
@@ -292,11 +314,35 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throw new ForbiddenException(msg.getSELF_DELETE_FORBIDDEN());
         }
 
+        //delete user's table/row/column ACL
+        delLowLevelACL(userName);
+
         checkUserName(userName);
         userService.deleteUser(userName);
 
         //someone is deleted
         userService.setEvictCacheFlag(true);
+    }
+
+    private void delLowLevelACL(String userName) throws IOException {
+        List<String> allPrjs = new ArrayList<>();
+        List<ProjectInstance> projectInstances = projectService.listProjects(null, null);
+        for (ProjectInstance pi : projectInstances) {
+            allPrjs.add(pi.getName().toUpperCase());
+        }
+
+        for (String prj : allPrjs) {
+            if (tableACLService.exists(prj, userName)) {
+                tableACLService.deleteFromTableBlackList(prj, userName);
+            }
+            if (columnACLService.exists(prj, userName)) {
+                columnACLService.deleteFromTableBlackList(prj, userName);
+
+            }
+            if (rowACLService.exists(prj, userName)) {
+                rowACLService.deleteFromRowCondList(prj, userName);
+            }
+        }
     }
 
     @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = {

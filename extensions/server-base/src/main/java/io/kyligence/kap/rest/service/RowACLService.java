@@ -48,7 +48,7 @@ public class RowACLService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     RowACL getRowACL(String project) throws IOException {
-        return RowACLManager.getInstance(getConfig()).getRowACL(project);
+        return RowACLManager.getInstance(getConfig()).getRowACLByCache(project);
     }
 
     //get user's row cond list.Like {user1:{col1[a,b,c], col2[d]}.
@@ -57,23 +57,8 @@ public class RowACLService extends BasicService {
         return getRowACL(project).getRowCondListByTable(table);
     }
 
-    //get user's available cols only for frontend to select.
-    public List<String> getAvailableColumnsByUser(String project, String table, String user, List<String> allCols)
-            throws IOException {
-        aclEvaluate.checkProjectWritePermission(project);
-        Set<String> usedCols = getRowACL(project).getRowCondListByTable(table).get(user).keySet();
-        List<String> availableCols = new ArrayList<>();
-
-        for (String c : allCols) {
-            if (!usedCols.contains(c)) {
-                availableCols.add(c);
-            }
-        }
-        return availableCols;
-    }
-
     //get available users only for frontend to select.
-    public List<String> getAvailableUsersByTable(String project, String table, List<String> allUsers)
+    public List<String> getUsersCanAddRowACL(String project, String table, Set<String> allUsers)
             throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         Set<String> users = getRowACL(project).getRowCondListByTable(table).keySet();
@@ -85,6 +70,11 @@ public class RowACLService extends BasicService {
             }
         }
         return availableUsers;
+    }
+
+    public boolean exists(String project, String username) throws IOException {
+        aclEvaluate.checkProjectWritePermission(project);
+        return RowACLManager.getInstance(getConfig()).getRowACLByCache(project).getTableRowCondsWithUser().containsKey(username);
     }
 
     public String preview(String project, String table, Map<String, List<String>> condsWithColumn) throws IOException {
@@ -119,6 +109,11 @@ public class RowACLService extends BasicService {
     public void deleteFromRowCondList(String project, String username, String table) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         RowACLManager.getInstance(getConfig()).deleteRowACL(project, username, table);
+    }
+
+    public void deleteFromRowCondList(String project, String username) throws IOException {
+        aclEvaluate.checkProjectAdminPermission(project);
+        RowACLManager.getInstance(getConfig()).deleteRowACL(project, username);
     }
 
     private void checkInputConds(Map<String, List<String>> condsWithColumn) {

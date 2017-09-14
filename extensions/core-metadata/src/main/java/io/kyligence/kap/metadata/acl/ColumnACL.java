@@ -25,10 +25,11 @@
 package io.kyligence.kap.metadata.acl;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
@@ -42,9 +43,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ColumnACL extends RootPersistentEntity {
     @JsonProperty()
-    private Map<String, ColumnBlackList> userColumnBlackList; // USER :{DB.TABLE1:{COLUMN1, COLUMN2}, DB.TABLE2:{COLUMN1, COLUMN3}}
+    private Map<String, ColumnBlackList> userColumnBlackList; // user :{DB.TABLE1:{COLUMN1, COLUMN2}, DB.TABLE2:{COLUMN1, COLUMN3}}
 
-    public ColumnACL() {
+    ColumnACL() {
         userColumnBlackList = new HashMap<>();
     }
 
@@ -53,11 +54,11 @@ public class ColumnACL extends RootPersistentEntity {
     }
 
     // TABLE :{USER1:[COLUMN1, COLUMN2], USER2:[COLUMN1, COLUMN3]}, only for frontend to display
-    public Map<String, List<String>> getColumnBlackListByTable(String table) {
-        Map<String, List<String>> results = new HashMap<>();
+    public Map<String, Set<String>> getColumnBlackListByTable(String table) {
+        Map<String, Set<String>> results = new HashMap<>();
         for (String user : userColumnBlackList.keySet()) {
             ColumnBlackList columnsWithTable = userColumnBlackList.get(user);
-            List<String> columns = columnsWithTable.getColumnBlackListByTable(table);
+            Set<String> columns = columnsWithTable.getColumnBlackListByTbl(table);
             if (columns != null && columns.size() > 0) {
                 results.put(user, columns);
             }
@@ -65,16 +66,16 @@ public class ColumnACL extends RootPersistentEntity {
         return results;
     }
 
-    // USER1:{[DB.TABLE.COLUMN1, DB.TABLE.COLUMN2], DB.TABLE.COLUMN1, DB.TABLE.COLUMN3]}, only for column filter to use to intercept query.
-    public List<String> getColumnBlackListByUser(String username) {
+    // USER1:[DB.TABLE.COLUMN1, DB.TABLE.COLUMN2], only for column filter to use to intercept query.
+    public Set<String> getColumnBlackListByUser(String username) {
         ColumnBlackList columnBlackList = userColumnBlackList.get(username);
         if (columnBlackList == null) {
             columnBlackList = new ColumnBlackList();
         }
-        return columnBlackList.getColumnsWithTablePrefix();
+        return columnBlackList.getColumnsWithTblPrefix();
     }
     
-    public ColumnACL add(String username, String table, List<String> columns) {
+    public ColumnACL add(String username, String table, Set<String> columns) {
         if (userColumnBlackList == null) {
             userColumnBlackList = new HashMap<>();
         }
@@ -90,15 +91,15 @@ public class ColumnACL extends RootPersistentEntity {
             userColumnBlackList.put(username, columnBlackList);
         }
 
-        if (columnBlackList.containsKey(table)) {
+        if (columnBlackList.containsTbl(table)) {
             throw new RuntimeException("Operation fail, user:" + username + " already in table's columns blacklist!");
         }
 
-        columnBlackList.putColumnsToTable(table, columns);
+        columnBlackList.putColumnsToTbl(table, columns);
         return this;
     }
 
-    public ColumnACL update(String username, String table, List<String> columns) {
+    public ColumnACL update(String username, String table, Set<String> columns) {
         if (userColumnBlackList == null) {
             userColumnBlackList = new HashMap<>();
         }
@@ -109,11 +110,11 @@ public class ColumnACL extends RootPersistentEntity {
 
         ColumnBlackList columnBlackList = userColumnBlackList.get(username);
 
-        if (columnBlackList == null || (!columnBlackList.containsKey(table))) {
+        if (columnBlackList == null || (!columnBlackList.containsTbl(table))) {
             throw new RuntimeException("Operation fail, user:" + username + " not found in table's columns blacklist!");
         }
 
-        columnBlackList.putColumnsToTable(table, columns);
+        columnBlackList.putColumnsToTbl(table, columns);
         return this;
     }
 
@@ -122,14 +123,30 @@ public class ColumnACL extends RootPersistentEntity {
             throw new RuntimeException("Operation fail, user:" + username + " is not found in column black list");
         }
         ColumnBlackList columnBlackList = userColumnBlackList.get(username);
-        columnBlackList.remove(table);
+        columnBlackList.removeByTbl(table);
+        if (columnBlackList.isEmpty()) {
+            userColumnBlackList.remove(username);
+        }
         return this;
     }
 
+    public ColumnACL delete(String username) {
+        if (isUserHasColumnACL(username)) {
+            throw new RuntimeException("Operation fail, user:" + username + " is not found in column black list");
+        }
+        userColumnBlackList.remove(username);
+        return this;
+    }
+
+    private boolean isUserHasColumnACL(String username) {
+        return userColumnBlackList == null
+                || userColumnBlackList.get(username) == null;
+    }
+
     private boolean isColumnInBlackList(String username, String table) {
-        return  userColumnBlackList == null
+        return userColumnBlackList == null
                 || userColumnBlackList.get(username) == null
-                || (!userColumnBlackList.get(username).containsKey(table));
+                || (!userColumnBlackList.get(username).containsTbl(table));
     }
 
     @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -138,36 +155,40 @@ public class ColumnACL extends RootPersistentEntity {
             setterVisibility = JsonAutoDetect.Visibility.NONE)
      static class ColumnBlackList implements Serializable {
         @JsonProperty()
-        Map<String, List<String>> columnsWithTable; //{DB.TABLE1:[COL1, COL2]}
+        Map<String, Set<String>> columnsWithTable; //{DB.TABLE1:[COL1, COL2]}
 
         private ColumnBlackList() {
-            this.columnsWithTable = new HashMap<>();
+            this.columnsWithTable = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
 
         public int size() {
             return columnsWithTable.size();
         }
 
-        private boolean containsKey(String column) {
-            return columnsWithTable.containsKey(column);
+        public boolean isEmpty() {
+            return columnsWithTable.isEmpty();
         }
 
-        List<String> getColumnBlackListByTable(String table) {
+        private boolean containsTbl(String table) {
+            return columnsWithTable.containsKey(table);
+        }
+
+        Set<String> getColumnBlackListByTbl(String table) {
             return columnsWithTable.get(table);
         }
 
-        private void putColumnsToTable(String table, List<String> columns) {
+        private void putColumnsToTbl(String table, Set<String> columns) {
             columnsWithTable.put(table, columns);
         }
 
-        private void remove(String table) {
+        private void removeByTbl(String table) {
             columnsWithTable.remove(table);
         }
 
-        List<String> getColumnsWithTablePrefix() {
-            List<String> result = new ArrayList<>();
+        Set<String> getColumnsWithTblPrefix() {
+            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
             for (String tbl : columnsWithTable.keySet()) {
-                List<String> cols = columnsWithTable.get(tbl);
+                Set<String> cols = columnsWithTable.get(tbl);
                 for (String col : cols) {
                     result.add(tbl + "." + col);
                 }

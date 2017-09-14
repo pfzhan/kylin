@@ -31,16 +31,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import com.google.common.base.Preconditions;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  */
@@ -48,7 +51,7 @@ public class RowACLManager {
 
     private static final Logger logger = LoggerFactory.getLogger(RowACLManager.class);
 
-    public static final Serializer<RowACL> ROW_ACL_SERIALIZER = new JsonSerializer<>(RowACL.class);
+    private static final Serializer<RowACL> ROW_ACL_SERIALIZER = new JsonSerializer<>(RowACL.class);
     private static final String DIR_PREFIX = "/row_acl/";
 
     // static cached instances
@@ -78,7 +81,7 @@ public class RowACLManager {
         }
     }
 
-    public static void clearCache() {
+    private static void clearCache() {
         CACHE.clear();
     }
 
@@ -90,9 +93,27 @@ public class RowACLManager {
     // ============================================================================
 
     private KylinConfig config;
+    // user ==> RowACL
+    private CaseInsensitiveStringCache<RowACL> rowACLMap;
 
-    private RowACLManager(KylinConfig config) throws IOException {
+    public RowACLManager(KylinConfig config) throws IOException {
+        logger.info("Initializing RowACLManager with config " + config);
         this.config = config;
+        this.rowACLMap = new CaseInsensitiveStringCache<>(config, "row_acl");
+        loadAllRowACL();
+        Broadcaster.getInstance(config).registerListener(new RowACLSyncListener(), "row_acl");
+    }
+
+    private class RowACLSyncListener extends Broadcaster.Listener {
+        @Override
+        public void onClearAll(Broadcaster broadcaster) throws IOException {
+            clearCache();
+        }
+
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey) throws IOException {
+            reloadRowACL(cacheKey);
+        }
     }
 
     public KylinConfig getConfig() {
@@ -103,7 +124,31 @@ public class RowACLManager {
         return ResourceStore.getStore(this.config);
     }
 
-    public RowACL getRowACL(String project) throws IOException {
+    public RowACL getRowACLByCache(String project){
+        RowACL tableACL = rowACLMap.get(project);
+        if (tableACL == null) {
+            return new RowACL();
+        }
+        return tableACL;
+    }
+
+    private void loadAllRowACL() throws IOException {
+        ResourceStore store = getStore();
+        List<String> paths = store.collectResourceRecursively("/row_acl", "");
+        final int prefixLen = DIR_PREFIX.length();
+        for (String path : paths) {
+            String project = path.substring(prefixLen, path.length());
+            reloadRowACL(project);
+        }
+        logger.info("Loading row ACL from folder " + store.getReadableResourcePath("/row_acl"));
+    }
+
+    private void reloadRowACL(String project) throws IOException {
+        RowACL tableACLRecord = getRowACL(project);
+        rowACLMap.putLocal(project, tableACLRecord);
+    }
+
+    private RowACL getRowACL(String project) throws IOException {
         String path = DIR_PREFIX + project;
         RowACL rowACLRecord = getStore().getResource(path, RowACL.class, ROW_ACL_SERIALIZER);
         if (rowACLRecord == null || rowACLRecord.getTableRowCondsWithUser() == null) {
@@ -121,25 +166,33 @@ public class RowACLManager {
     public void addRowACL(String project, String username, String table, Map<String, List<String>> condsWithColumn)
             throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project);
         Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        getStore().putResource(path, rowACL.add(username, table, condsWithColumn, columnWithType), System.currentTimeMillis(),
-                ROW_ACL_SERIALIZER);
+        RowACL rowACL = getRowACL(project).add(username, table, condsWithColumn, columnWithType);
+        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        rowACLMap.put(project, rowACL);
     }
 
     public void updateRowACL(String project, String username, String table, Map<String, List<String>> condsWithColumn)
             throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project);
         Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        getStore().putResource(path, rowACL.update(username, table, condsWithColumn, columnWithType), System.currentTimeMillis(),
-                ROW_ACL_SERIALIZER);
+        RowACL rowACL = getRowACL(project).update(username, table, condsWithColumn, columnWithType);
+        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        rowACLMap.put(project, rowACL);
     }
 
     public void deleteRowACL(String project, String username, String table) throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project);
-        getStore().putResource(path, rowACL.delete(username, table), System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        RowACL rowACL = getRowACL(project).delete(username, table);
+        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        rowACLMap.put(project, rowACL);
+    }
+
+    public void deleteRowACL(String project, String username) throws IOException {
+        String path = DIR_PREFIX + project;
+        RowACL rowACL = getRowACL(project).delete(username);
+        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        rowACLMap.put(project, rowACL);
     }
 
     private Map<String, String> getColumnWithType(String project, String table) {

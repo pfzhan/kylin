@@ -36,24 +36,42 @@ import org.junit.Test;
 
 public class RowFilterTest {
     @Test
-    public void testRowFilter() throws SqlParseException {
-        String sql = "select a, ( select count(*) from DB3.aa a1 order by a) "
-                + "from ttt join (select a,b from (select * from DB.t t1), (select * from DB.bb)), tt "
-                + "where c in (select * from tt ) and d > 10 order by abc";
+    public void testSimpleRowFilter() {
+        String sql = "select count(*) from t join tt on t.a = tt.a group by c";
+        String sql2 = "select count(*) from t join tt on t.a = tt.a where (b1 = 'v1') group by c";
+        String sql3 = "select count(*) from t where t.c > 10";
         Map<String, String> whereCond = new HashMap<>();
         // all key needs to be uppercase
-        whereCond.put("DB.T", "a > 0 OR b < 0");
-        whereCond.put("DB2.TT", "aa > 0 OR bb < 0");
-        whereCond.put("DB2.TTT", "aaa > 0 OR bbb < 0");
-        String expectedSQL = "select a, ( select count(*) from DB3.aa a1 order by a) "
-                + "from ttt join (select a,b from (select * from DB.t t1 WHERE T1.a > 0 OR T1.b < 0), (select * from DB.bb)), tt "
-                + "where c in (select * from tt WHERE TT.aa > 0 OR TT.bb < 0 ) and d > 10 AND TTT.aaa > 0 OR TTT.bbb < 0 AND TT.aa > 0 OR TT.bb < 0 "
-                + "order by abc";
+        whereCond.put("DB.T", "(a > 0 OR b < 0)");
+        whereCond.put("DB.TT", "(aa > 0 OR bb < 0)");
+
+        String expectedSQL = "select count(*) from t join tt on t.a = tt.a WHERE (T.a > 0 OR T.b < 0) AND (TT.aa > 0 OR TT.bb < 0) group by c";
+        String expectedSQL2 = "select count(*) from t join tt on t.a = tt.a where (b1 = 'v1' AND (T.a > 0 OR T.b < 0) AND (TT.aa > 0 OR TT.bb < 0)) group by c";
+        String expectedSQL3 = "select count(*) from t where t.c > 10 AND (T.a > 0 OR T.b < 0)";
+
+        Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB", sql, whereCond));
+        Assert.assertEquals(expectedSQL2, RowFilter.rowFilter("DB", sql2, whereCond));
+        Assert.assertEquals(expectedSQL3, RowFilter.rowFilter("DB", sql3, whereCond));
+    }
+
+    @Test
+    public void testRowFilter() throws SqlParseException {
+        String sql = "select a, (select count(*) from DB3.aa a1 order by a)\n"
+                + "from ttt join (select a,b from (select * from DB.t t1), (select * from DB.bb)), tt\n"
+                + "where c in (select * from tt) and d > 10 order by abc";
+        Map<String, String> whereCond = new HashMap<>();
+        // all key needs to be uppercase
+        whereCond.put("DB.T", "(a > 0 OR b < 0)");
+        whereCond.put("DB2.TT", "(aa > 0 OR bb < 0)");
+        whereCond.put("DB2.TTT", "(aaa > 0 OR bbb < 0)");
+        String expectedSQL = "select a, (select count(*) from DB3.aa a1 order by a)\n" +
+                "from ttt join (select a,b from (select * from DB.t t1 WHERE (T1.a > 0 OR T1.b < 0)), (select * from DB.bb)), tt\n" +
+                "where c in (select * from tt WHERE (TT.aa > 0 OR TT.bb < 0)) and d > 10 AND (TTT.aaa > 0 OR TTT.bbb < 0) AND (TT.aa > 0 OR TT.bb < 0) order by abc";
         Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB2", sql, whereCond));
     }
 
     @Test
-    public void test2() throws SqlParseException {
+    public void testWithFunc() throws SqlParseException {
         String sql =
                 "with avg_tmp as (\n" +
                 "    select\n" +
@@ -95,13 +113,13 @@ public class RowFilterTest {
                 "    from\n" +
                 "        customer\n" +
                 "    where\n" +
-                "        c_acctbal > 0.00 and substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17') AND CUSTOMER.a > 0 OR CUSTOMER.b < 0\n" +
+                "        c_acctbal > 0.00 and substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17') AND (CUSTOMER.a > 0 OR CUSTOMER.b < 0)\n" +
                 "),\n" +
                 "cus_tmp as (\n" +
                 "    select c_custkey as noordercus\n" +
                 "    from\n" +
                 "        customer left join v_orders on c_custkey = o_custkey\n" +
-                "    where o_orderkey is null AND CUSTOMER.a > 0 OR CUSTOMER.b < 0\n" +
+                "    where o_orderkey is null AND (CUSTOMER.a > 0 OR CUSTOMER.b < 0)\n" +
                 ")\n" +
                 "\n" +
                 "select\n" +
@@ -116,14 +134,14 @@ public class RowFilterTest {
                 "        customer inner join cus_tmp on c_custkey = noordercus, avg_tmp\n" +
                 "    where \n" +
                 "        substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17')\n" +
-                "        and c_acctbal > avg_acctbal AND CUSTOMER.a > 0 OR CUSTOMER.b < 0 AND CUS_TMP.aa > 0 OR CUS_TMP.bb < 0\n" +
+                "        and c_acctbal > avg_acctbal AND (CUSTOMER.a > 0 OR CUSTOMER.b < 0) AND (CUS_TMP.aa > 0 OR CUS_TMP.bb < 0)\n" +
                 ") t\n" +
                 "group by\n" +
                 "    cntrycode\n" +
                 "order by\n" +
                 "    cntrycode";
-        whereCond.put("DB.CUSTOMER", "a > 0 OR b < 0");
-        whereCond.put("DB.CUS_TMP", "aa > 0 OR bb < 0");
+        whereCond.put("DB.CUSTOMER", "(a > 0 OR b < 0)");
+        whereCond.put("DB.CUS_TMP", "(aa > 0 OR bb < 0)");
         Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB", sql, whereCond));
     }
 
@@ -131,9 +149,9 @@ public class RowFilterTest {
     public void testRowFilter2() throws SqlParseException {
         String sql = "";
         Map<String, String> whereCond = new HashMap<>();
-        whereCond.put("DB.T", "a > 0 OR b < 0");
-        whereCond.put("DB2.TT", "aa > 0 OR bb < 0");
-        whereCond.put("DB2.TTT", "aaa > 0 OR bbb < 0");
+        whereCond.put("DB.T", "(a > 0 OR b < 0)");
+        whereCond.put("DB2.TT", "(aa > 0 OR bb < 0)");
+        whereCond.put("DB2.TTT", "(aaa > 0 OR bbb < 0)");
         String expectedSQL = "";
         Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB2", sql, whereCond));
     }
@@ -145,23 +163,22 @@ public class RowFilterTest {
                 "union\n" +
                 "select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01'";
         Map<String, String> whereCond = new HashMap<>();
-        whereCond.put("DB.TEST_KYLIN_FACT", "a > 0 OR b < 0");
-        whereCond.put("DB.TEST_KYLIN_FACT", "a > 0 OR b < 0");
+        whereCond.put("DB.TEST_KYLIN_FACT", "(a > 0 OR b < 0)");
         String expectedSQL =
-                "select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' AND TEST_KYLIN_FACT.a > 0 OR TEST_KYLIN_FACT.b < 0\n" +
+                "select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' AND (TEST_KYLIN_FACT.a > 0 OR TEST_KYLIN_FACT.b < 0)\n" +
                 "union\n" +
-                "select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01' AND TEST_KYLIN_FACT.a > 0 OR TEST_KYLIN_FACT.b < 0";
+                "select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01' AND (TEST_KYLIN_FACT.a > 0 OR TEST_KYLIN_FACT.b < 0)";
         Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB", sql, whereCond));
     }
 
     @Test
     public void testJoinWithOutWhere() {
         String sql = "select * from T1 join (select * from T2) ta on T1.c=ta.c GROUP BY c";
-        String exceptedSQL = "select * from T1 join (select * from T2) ta on T1.c=ta.c  WHERE  T1.OPS_REGION='Shanghai' GROUP BY c";
+        String exceptedSQL = "select * from T1 join (select * from T2) ta on T1.c=ta.c WHERE T1.OPS_REGION='Shanghai' GROUP BY c";
         Map<String, String> whereCond = new HashMap<>();
         // all key needs to be uppercase
-        whereCond.put("DB.T1", " OPS_REGION='Shanghai' ");
-        whereCond.put("DB.T3", " OPS_REGION='Beijing' ");
+        whereCond.put("DB.T1", "OPS_REGION='Shanghai'");
+        whereCond.put("DB.T3", "OPS_REGION='Beijing'");
         System.out.println(RowFilter.rowFilter("DB", sql, whereCond));
         Assert.assertEquals(exceptedSQL, RowFilter.rowFilter("DB", sql, whereCond));
     }

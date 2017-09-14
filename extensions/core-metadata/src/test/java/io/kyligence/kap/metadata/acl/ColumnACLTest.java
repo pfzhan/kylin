@@ -24,69 +24,79 @@
 
 package io.kyligence.kap.metadata.acl;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ColumnACLTest {
+    @Test
+    public void testCaseInsensitive() {
+        ColumnACL columnACL = new ColumnACL();
+        columnACL.add("u1", "t1", Sets.newHashSet("c1", "c2"));
+        Assert.assertEquals(columnACL.getColumnBlackListByTable("T1").size(), columnACL.getColumnBlackListByTable("t1").size());
+        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("T1.C1"));
+        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("t1.c1"));
+        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("T1.C2"));
+        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("t1.c2"));
+    }
 
     @Test
     public void testColumnACL() {
         ColumnACL empty = new ColumnACL();
         try {
-            empty.delete("a", "b");
+            empty.delete("a", "DB.TABLE1");
+            Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
             Assert.assertEquals("Operation fail, user:a is not found in column black list", e.getMessage());
         }
 
         //add
         ColumnACL columnACL = new ColumnACL();
-        List<String> c1 = new ArrayList<>();
-        c1.add("c2");
-        c1.add("c2");
-        c1.add("c3");
-        columnACL.add("user1", "DB.table1", c1);
+        Set<String> c1 = Sets.newHashSet("C2", "C3");
+        columnACL.add("user1", "DB.TABLE1", c1);
         Assert.assertEquals(1, columnACL.getUserColumnBlackList().size());
 
         //add duplicated
         try {
-            columnACL.add("user1", "DB.table1", new ArrayList<String>());
+            columnACL.add("user1", "DB.TABLE1", c1);
+            Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
-            Assert.assertEquals("Operation fail, user:user1 already in this table's columns blacklist!", e.getMessage());
+            Assert.assertEquals("Operation fail, user:user1 already in table's columns blacklist!", e.getMessage());
         }
 
         //add null column list
-        columnACL.add("user1", "DB.table2", new ArrayList<String>());
+        columnACL.add("user1", "DB.TABLE2", new TreeSet<String>());
         Assert.assertEquals(1, columnACL.getUserColumnBlackList().size());
 
         //add different table column list
-        columnACL.add("user2", "DB.table2", c1);
+        columnACL.add("user2", "DB.TABLE2", c1);
         Assert.assertEquals(2, columnACL.getUserColumnBlackList().size());
 
         //add different user column list
-        List<String> c2 = new ArrayList<>();
-        c2.add("c2");
-        c2.add("c2");
-        c2.add("c3");
-        columnACL.add("user1", "DB.table2", c2);
+        Set<String> c2 = Sets.newHashSet("C2", "C3");
+        columnACL.add("user1", "DB.TABLE2", c2);
         Assert.assertEquals(2, columnACL.getUserColumnBlackList().get("user1").size());
 
         //update
-        List<String> c3 = new ArrayList<>();
-        c3.add("c3");
-        columnACL.update("user1", "DB.table2", c3);
-        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTable("DB.table2").equals(c3));
+        Set<String> c3 = Sets.newHashSet("C3");
+        columnACL.update("user1", "DB.TABLE2", c3);
+        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2").equals(c3));
 
         //update
-        columnACL.update("user1", "DB.table2", new ArrayList<String>());
-        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTable("DB.table2").equals(c3));
+        columnACL.update("user1", "DB.TABLE2", new TreeSet<String>());
+        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2").equals(c3));
 
         //delete
-        columnACL.delete("user1", "DB.table2");
+        columnACL.delete("user1", "DB.TABLE2");
         Assert.assertEquals(1, columnACL.getUserColumnBlackList().get("user1").size());
-        Assert.assertNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTable("DB.table2"));
-        Assert.assertNotNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTable("DB.table1"));
+        Assert.assertNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2"));
+        Assert.assertNotNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE1"));
+
+        //delete
+        columnACL.delete("user1");
+        Assert.assertNull(columnACL.getUserColumnBlackList().get("user1"));
     }
 }

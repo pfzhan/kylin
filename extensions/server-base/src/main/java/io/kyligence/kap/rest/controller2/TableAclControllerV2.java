@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller2;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -54,52 +55,48 @@ public class TableAclControllerV2 extends BasicController {
 
     @RequestMapping(value = "/table/{project}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getTableWhiteListByTable(@PathVariable String project, @PathVariable String table) throws IOException {
-        validateUtil.vaildateArgs(project, table);
-        project = project.toUpperCase();
+    public EnvelopeResponse<List<String>> getUsersCanQueryTheTbl(@PathVariable String project, @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        List<String> allUsers = validateUtil.getAllUsers();
-        List<String> whiteList = tableACLService.getTableWhiteListByTable(project, table, allUsers);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, whiteList, "get table acl");
+        Set<String> allUsers = validateUtil.getAllUsers(project);
+        List<String> whiteList = tableACLService.getUsersCanQueryTheTbl(project, table, allUsers);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, whiteList, "get table acl");
     }
 
     @RequestMapping(value = "/table/{project}/black/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getTableBlackListByTable(@PathVariable String project, @PathVariable String table) throws IOException {
-        validateUtil.vaildateArgs(project, table);
-        project = project.toUpperCase();
+    public EnvelopeResponse<List<String>> getUsersCannotQueryTheTbl(@PathVariable String project, @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        List<String> blackList = tableACLService.getBlockedUserByTable(project, table);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, blackList, "get table acl");
+        List<String> blackList = tableACLService.getUsersCannotQueryTheTbl(project, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blackList, "get table acl");
     }
 
     // because the frontend passes user can not visit, so that means put it to the table black list
     @RequestMapping(value = "/table/{project}/{table}/{username}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse putUserToTableBlackList(
+    public EnvelopeResponse<String> putUserToTableBlackList(
             @PathVariable String project,
             @PathVariable String table,
             @PathVariable String username) throws IOException {
-        validateUtil.vaildateArgs(project, table, username);
-        project = project.toUpperCase();
+        validateUtil.validateArgs(project, table, username);
         validateUtil.validateUser(username);
         validateUtil.validateTable(project, table);
         tableACLService.addToTableBlackList(project, username, table);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "revoke user table query permission and add user to table black list.");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "revoke user table query permission and add user to table black list.");
     }
 
     // because the frontend passes user can visit, so that means remove the user from the table black list
     @RequestMapping(value = "/table/{project}/{table}/{username}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse deleteUserFromTableBlackList(
+    public EnvelopeResponse<String> deleteUserFromTableBlackList(
             @PathVariable String project,
             @PathVariable String table,
             @PathVariable String username) throws IOException {
-        validateUtil.vaildateArgs(project, table, username);
-        project = project.toUpperCase();
+        validateUtil.validateArgs(project, table, username);
         validateUtil.validateUser(username);
         validateUtil.validateTable(project, table);
         tableACLService.deleteFromTableBlackList(project, username, table);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "grant user table query permission and remove user from table black list.");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "grant user table query permission and remove user from table black list.");
     }
 }

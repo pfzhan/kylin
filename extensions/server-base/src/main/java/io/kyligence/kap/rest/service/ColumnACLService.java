@@ -47,19 +47,14 @@ public class ColumnACLService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    //get user's black column list.Like user:{DB1.col1, DB2.col2}.
-    public List<String> getColumnBlackListByUser(String project, String username) throws IOException {
-        return getColumnBlackListByProject(project).getColumnBlackListByUser(username);
-    }
-
-    //get user's black column list by table. Like user:{col1, col2}.
-    public Map<String, List<String>> getColumnBlackListByTable(String project, String table) throws IOException {
+    //get user's black column list by table. Like {user:[col1, col2]}.
+    public Map<String, Set<String>> getColumnBlackListByTable(String project, String table) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         return getColumnBlackListByProject(project).getColumnBlackListByTable(table);
     }
 
     //get available users only for frontend to select to add column ACL.
-    public List<String> getColumnUserWhiteListByTable(String project, String table, List<String> allUsers)
+    public List<String> getUsersCanAddColumnACL(String project, String table, Set<String> allUsers)
             throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
         Set<String> blockedUsers = getColumnBlackListByTable(project, table).keySet();
@@ -73,16 +68,21 @@ public class ColumnACLService extends BasicService {
     }
 
     ColumnACL getColumnBlackListByProject(String project) throws IOException {
-        return ColumnACLManager.getInstance(getConfig()).getColumnACL(project);
+        return ColumnACLManager.getInstance(getConfig()).getColumnACLByCache(project);
     }
 
-    public void addToColumnBlackList(String project, String username, String table, List<String> columns)
+    public boolean exists(String project, String username) throws IOException {
+        aclEvaluate.checkProjectWritePermission(project);
+        return ColumnACLManager.getInstance(getConfig()).getColumnACLByCache(project).getUserColumnBlackList().containsKey(username);
+    }
+
+    public void addToColumnBlackList(String project, String username, String table, Set<String> columns)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).addColumnACL(project, username, table, columns);
     }
 
-    public void updateColumnBlackList(String project, String username, String table, List<String> columns)
+    public void updateColumnBlackList(String project, String username, String table, Set<String> columns)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).updateColumnACL(project, username, table, columns);
@@ -91,5 +91,10 @@ public class ColumnACLService extends BasicService {
     public void deleteFromTableBlackList(String project, String username, String table) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, username, table);
+    }
+
+    public void deleteFromTableBlackList(String project, String username) throws IOException {
+        aclEvaluate.checkProjectAdminPermission(project);
+        ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, username);
     }
 }

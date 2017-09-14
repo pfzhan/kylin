@@ -35,6 +35,8 @@ import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.metadata.acl.RowACL;
 
 public class RowACLServiceTest extends ServiceTestBase {
@@ -54,17 +56,10 @@ public class RowACLServiceTest extends ServiceTestBase {
         Map<String, List<String>> condsWithColumn3 = new HashMap<>();
         Map<String, List<String>> condsWithColumn4 = new HashMap<>();
 
-        List<String> conds1 = new ArrayList<>();
-        List<String> conds2 = new ArrayList<>();
-        List<String> conds3 = new ArrayList<>();
-        List<String> conds4 = new ArrayList<>();
-        conds1.add("a");
-        conds1.add("b");
-        conds1.add("c");
-        conds2.add("d");
-        conds2.add("e");
-        conds3.add("f");
-        conds4.add("g");
+        List<String> conds1 = Lists.newArrayList("a", "b", "c");
+        List<String> conds2 = Lists.newArrayList("d", "e");
+        List<String> conds3 = Lists.newArrayList("f");
+        List<String> conds4 = Lists.newArrayList("g");
 
         condsWithColumn1.put("COUNTRY", conds1);
         condsWithColumn1.put("NAME", conds2);
@@ -104,8 +99,7 @@ public class RowACLServiceTest extends ServiceTestBase {
 
         //test update
         Map<String, List<String>> condsWithColumn5 = new HashMap<>();
-        List<String> conds5 = new ArrayList<>();
-        conds5.add("h");
+        List<String> conds5 = Lists.newArrayList("h");
         condsWithColumn5.put("NAME", conds5);
         rowACLService.updateToRowCondList(PROJECT, "user1", "DEFAULT.TEST_COUNTRY", condsWithColumn5);
         Map<String, Map<String, List<String>>> columnBlackListByTable2 = rowACLService.getRowCondsByTable(PROJECT,
@@ -115,6 +109,10 @@ public class RowACLServiceTest extends ServiceTestBase {
         //test delete
         rowACLService.deleteFromRowCondList(PROJECT, "user1", "DEFAULT.TEST_COUNTRY");
         Assert.assertNull(rowACLService.getRowCondsByTable(PROJECT, "DEFAULT.TEST_COUNTRY").get("user1"));
-    }
 
+        //test delete
+        Assert.assertEquals(1, rowACLService.getRowCondsByTable(PROJECT, "DEFAULT.TEST_COUNTRY").get("user2").size());
+        rowACLService.deleteFromRowCondList(PROJECT, "user2");
+        Assert.assertNull(rowACLService.getRowCondsByTable(PROJECT, "DEFAULT.TEST_COUNTRY").get("user2"));
+    }
 }

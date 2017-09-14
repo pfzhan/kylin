@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.acl;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -33,6 +34,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +45,7 @@ public class ColumnACLManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ColumnACLManager.class);
 
-    public static final Serializer<ColumnACL> COLUMN_ACL_SERIALIZER = new JsonSerializer<>(ColumnACL.class);
+    private static final Serializer<ColumnACL> COLUMN_ACL_SERIALIZER = new JsonSerializer<>(ColumnACL.class);
     private static final String DIR_PREFIX = "/column_acl/";
 
     // static cached instances
@@ -72,7 +75,7 @@ public class ColumnACLManager {
         }
     }
 
-    public static void clearCache() {
+    private static void clearCache() {
         CACHE.clear();
     }
 
@@ -84,9 +87,28 @@ public class ColumnACLManager {
     // ============================================================================
 
     private KylinConfig config;
+    // user ==> TableACL
+    private CaseInsensitiveStringCache<ColumnACL> columnACLMap;
 
-    private ColumnACLManager(KylinConfig config) throws IOException {
+    public ColumnACLManager(KylinConfig config) throws IOException {
+        logger.info("Initializing ColumnACLManager with config " + config);
         this.config = config;
+        this.columnACLMap = new CaseInsensitiveStringCache<>(config, "column_acl");
+        loadAllColumnACL();
+        Broadcaster.getInstance(config).registerListener(new ColumnACLSyncListener(), "column_acl");
+    }
+
+    private class ColumnACLSyncListener extends Broadcaster.Listener {
+        @Override
+        public void onClearAll(Broadcaster broadcaster) throws IOException {
+            clearCache();
+        }
+
+        @Override
+        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
+                throws IOException {
+            reloadColumnACL(cacheKey);
+        }
     }
 
     public KylinConfig getConfig() {
@@ -97,7 +119,32 @@ public class ColumnACLManager {
         return ResourceStore.getStore(this.config);
     }
 
-    public ColumnACL getColumnACL(String project) throws IOException {
+    public ColumnACL getColumnACLByCache(String project) {
+        ColumnACL columnACL = columnACLMap.get(project);
+        if (columnACL == null) {
+            return new ColumnACL();
+        }
+        return columnACL;
+    }
+
+    private void loadAllColumnACL() throws IOException {
+        ResourceStore store = getStore();
+        List<String> paths = store.collectResourceRecursively("/column_acl", "");
+        final int prefixLen = DIR_PREFIX.length();
+        for (String path : paths) {
+            String project = path.substring(prefixLen, path.length());
+            reloadColumnACL(project);
+        }
+        logger.info("Loading row ACL from folder " + store.getReadableResourcePath("/column_acl"));
+    }
+
+
+    private void reloadColumnACL(String project) throws IOException {
+        ColumnACL tableACLRecord = getColumnACL(project);
+        columnACLMap.putLocal(project, tableACLRecord);
+    }
+
+    private ColumnACL getColumnACL(String project) throws IOException {
         String path = DIR_PREFIX + project;
         ColumnACL columnACLRecord = getStore().getResource(path, ColumnACL.class, COLUMN_ACL_SERIALIZER);
         if (columnACLRecord == null || columnACLRecord.getUserColumnBlackList() == null) {
@@ -106,21 +153,31 @@ public class ColumnACLManager {
         return columnACLRecord;
     }
 
-    public void addColumnACL(String project, String username, String table, List<String> columns) throws IOException {
+    public void addColumnACL(String project, String username, String table, Set<String> columns) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL tableACL = getColumnACL(project);
-        getStore().putResource(path, tableACL.add(username, table, columns), System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        ColumnACL columnACL = getColumnACL(project).add(username, table, columns);
+        getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        columnACLMap.put(project, columnACL);
     }
 
-    public void updateColumnACL(String project, String username, String table, List<String> columns) throws IOException {
+    public void updateColumnACL(String project, String username, String table, Set<String> columns) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL tableACL = getColumnACL(project);
-        getStore().putResource(path, tableACL.update(username, table, columns), System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        ColumnACL columnACL = getColumnACL(project).update(username, table, columns);
+        getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        columnACLMap.put(project, columnACL);
     }
 
     public void deleteColumnACL(String project, String username, String table) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL tableACL = getColumnACL(project);
-        getStore().putResource(path, tableACL.delete(username, table), System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        ColumnACL columnACL = getColumnACL(project).delete(username, table);
+        getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        columnACLMap.put(project, columnACL);
+    }
+
+    public void deleteColumnACL(String project, String username) throws IOException {
+        String path = DIR_PREFIX + project;
+        ColumnACL columnACL = getColumnACL(project).delete(username);
+        getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        columnACLMap.put(project, columnACL);
     }
 }

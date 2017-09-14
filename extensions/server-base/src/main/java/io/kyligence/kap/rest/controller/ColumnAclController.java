@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -56,66 +57,61 @@ public class ColumnAclController extends BasicController {
 
     @RequestMapping(value = "/column/{project}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getUserColumnBlackListByTable(@PathVariable String project, @PathVariable String table) throws IOException {
-        validateUtil.vaildateArgs(project, table);
-        project = project.toUpperCase();
+    public EnvelopeResponse<java.util.Map<String, Set<String>>> getUserColumnBlackListByTable(@PathVariable String project, @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnACLService.getColumnBlackListByTable(project, table), "get table acl");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, columnACLService.getColumnBlackListByTable(project, table), "get table acl");
     }
 
     @RequestMapping(value = "/column/white/{project}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getUserColumnWhiteListByTable(@PathVariable String project, @PathVariable String table) throws IOException {
-        project = project.toUpperCase();
+    public EnvelopeResponse<List<String>> getUsersCanAddColumnACL(@PathVariable String project, @PathVariable String table) throws IOException {
         validateUtil.validateTable(project, table);
-        List<String> allUsers = validateUtil.getAllUsers();
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnACLService.getColumnUserWhiteListByTable(project, table, allUsers), "get available user");
+        Set<String> allUsers = validateUtil.getAllUsers(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, columnACLService.getUsersCanAddColumnACL(project, table, allUsers), "get available user");
     }
 
     @RequestMapping(value = "/column/{project}/{table}/{username}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse putUserToColumnBlackList(
+    public EnvelopeResponse<String> putUserToColumnBlackList(
             @PathVariable String project,
             @PathVariable String table,
             @PathVariable String username,
-            @RequestBody List<String> columns) throws IOException {
-        validateUtil.vaildateArgs(project, table, username);
-        project = project.toUpperCase();
+            @RequestBody Set<String> columns) throws IOException {
+        validateUtil.validateArgs(project, table, username);
         validateUtil.validateUser(username);
         validateUtil.validateTable(project, table);
         validateUtil.validateColumn(project, table, columns);
         columnACLService.addToColumnBlackList(project, username, table, columns);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "add user to column balck list.");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user to column balck list.");
     }
 
     @RequestMapping(value = "/column/{project}/{table}/{username}", method = {RequestMethod.PUT}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse updateUserColumnBlackList(
+    public EnvelopeResponse<String> updateUserColumnBlackList(
             @PathVariable String project,
             @PathVariable String table,
             @PathVariable String username,
-            @RequestBody List<String> columns) throws IOException {
-        validateUtil.vaildateArgs(project, table, username);
-        project = project.toUpperCase();
+            @RequestBody Set<String> columns) throws IOException {
+        validateUtil.validateArgs(project, table, username);
         validateUtil.validateUser(username);
         validateUtil.validateTable(project, table);
         validateUtil.validateColumn(project, table, columns);
         columnACLService.updateColumnBlackList(project, username, table, columns);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "update user's black column list");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "update user's black column list");
     }
 
     @RequestMapping(value = "/column/{project}/{table}/{username}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse deleteUserFromColumnBlackList(
+    public EnvelopeResponse<String> deleteUserFromColumnBlackList(
             @PathVariable String project,
             @PathVariable String table,
             @PathVariable String username) throws IOException {
-        validateUtil.vaildateArgs(project, table, username);
-        project = project.toUpperCase();
+        validateUtil.validateArgs(project, table, username);
         validateUtil.validateUser(username);
         validateUtil.validateTable(project, table);
         columnACLService.deleteFromTableBlackList(project, username, table);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "",
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "",
                 "delete user from " + table + "'s column black list");
     }
 }
