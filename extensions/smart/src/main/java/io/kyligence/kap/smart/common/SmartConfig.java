@@ -139,6 +139,10 @@ public class SmartConfig {
         return getOptional("domain.query-enabled", strategy.getDomainQueryEnabled());
     }
 
+    public boolean getMeasureQueryEnabled() {
+        return getOptional("measure.query-enabled", strategy.getMeasureQueryEnabled());
+    }
+
     public boolean getAggGroupKeepLegacy() {
         return getOptional("aggGroup.keep-legacy", strategy.getAggGroupKeepLegacy());
     }

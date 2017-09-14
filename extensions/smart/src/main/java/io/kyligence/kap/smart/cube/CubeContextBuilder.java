@@ -25,39 +25,29 @@
 package io.kyligence.kap.smart.cube;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
+import io.kyligence.kap.smart.cube.domain.DefaultDomainBuilder;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.cube.domain.Domain;
 import io.kyligence.kap.smart.cube.domain.ModelDomainBuilder;
-import io.kyligence.kap.smart.cube.domain.QueryDomainBuilder;
 import io.kyligence.kap.smart.cube.stats.ICubeStats;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
-import io.kyligence.kap.smart.util.CubeDescUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
@@ -121,38 +111,6 @@ public class CubeContextBuilder {
         return internalBuild(initCubeDesc, initDomain, queryStats, queryResults);
     }
 
-    private Domain getOutputDomain(CubeDesc origCubeDesc, QueryStats queryStats) {
-        // setup dimensions
-        DataModelDesc modelDesc = origCubeDesc.getModel();
-        RowKeyColDesc[] rowKeyCols = origCubeDesc.getRowkey().getRowKeyColumns();
-        Set<TblColRef> dimensionCols = Sets.newHashSet();
-        for (int i = 0; i < rowKeyCols.length; i++) {
-            dimensionCols.add(rowKeyCols[rowKeyCols.length - i - 1].getColRef());
-        }
-
-        // setup measures
-        List<TblColRef> measureCols = new ArrayList<>();
-        for (String col : modelDesc.getMetrics()) {
-            TblColRef colRef = modelDesc.findColumn(col);
-            if (colRef != null) {
-                measureCols.add(colRef);
-            }
-        }
-        List<FunctionDesc> measureFuncs = Lists.newArrayList();
-        if (queryStats != null) {
-            measureFuncs.addAll(queryStats.getMeasures());
-        }
-        for (TblColRef colRef : measureCols) {
-            if (colRef.getType().isNumberFamily()) {
-                // SUM
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "SUM", ParameterDesc.newInstance(colRef),
-                        colRef.getDatatype()));
-            }
-        }
-
-        return new Domain(origCubeDesc.getModel(), dimensionCols, measureFuncs);
-    }
-
     private CubeContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats) {
         return internalBuild(initCubeDesc, initDomain, queryStats, null);
     }
@@ -161,13 +119,7 @@ public class CubeContextBuilder {
             Map<String, SQLResult> sqlResults) {
         CubeContext context = new CubeContext(kylinConfig);
 
-        Domain usedDomain = initDomain;
-        if (!smartConfig.getDomainQueryEnabled()) {
-            usedDomain = getOutputDomain(initCubeDesc, queryStats);
-        } else if (queryStats != null) {
-            usedDomain = new QueryDomainBuilder(queryStats, initCubeDesc).build();
-        }
-
+        Domain usedDomain = new DefaultDomainBuilder(smartConfig, queryStats, initCubeDesc).build();
         MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
         DataModelDesc modelDesc = initCubeDesc.getModel();
@@ -177,8 +129,7 @@ public class CubeContextBuilder {
         try {
             modelStats = modelStatsManager.getModelStats(modelDesc.getName());
             if (modelStats.getSingleColumnCardinality().isEmpty()) {
-                // An empty modelStats will return from
-                // ModelStatsManager.getModelStats() if not existed.
+                // An empty modelStats will return from ModelStatsManager.getModelStats() if not existed.
                 modelStats = null;
             }
         } catch (IOException e) {

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +116,11 @@ public class KapSuggestionService extends BasicService {
             CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
             return aggGroupCube;
         }
+    }
+
+    public Collection<String> getQueryDimensions(String cubeName) throws IOException {
+        CubeOptimizeLog cubeOptLog = getCubeOptLog(cubeName);
+        return cubeOptLog.getQueryStats().getAppears().keySet();
     }
 
     public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {

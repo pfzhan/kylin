@@ -94,6 +94,13 @@ public class KapSuggestionController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
+    @RequestMapping(value = "{cubeName}/sql_dimension", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getQueryDimensions(@PathVariable String cubeName) throws IOException {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getQueryDimensions(cubeName), "");
+    }
+
     @RequestMapping(value = "{modelName}/{cubeName}/dimension_measure", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

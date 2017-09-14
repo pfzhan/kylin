@@ -57,6 +57,8 @@ interface ISmartStrategy {
 
     boolean getDomainQueryEnabled();
 
+    boolean getMeasureQueryEnabled();
+
     boolean getAggGroupKeepLegacy();
 
     boolean getAggGroupStrictEnabled();

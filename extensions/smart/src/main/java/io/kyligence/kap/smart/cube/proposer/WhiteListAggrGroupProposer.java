@@ -60,6 +60,10 @@ public class WhiteListAggrGroupProposer extends AbstractCubeProposer {
             Set<String> includeCandidate = Sets.newHashSet();
             for (String cuboidCol : cuboidCols) {
                 TblColRef cuboidColRef = modelDesc.findColumn(cuboidCol);
+                if (!workCubeDesc.listDimensionColumnsIncludingDerived().contains(cuboidColRef)) {
+                    continue;
+                }
+
                 if (workCubeDesc.isDerived(cuboidColRef)) {
                     TblColRef[] hostRefs = workCubeDesc.getHostInfo(cuboidColRef).columns;
                     for (TblColRef hostRef : hostRefs) {
@@ -69,7 +73,9 @@ public class WhiteListAggrGroupProposer extends AbstractCubeProposer {
                     includeCandidate.add(cuboidCol);
                 }
             }
-            includeCandidates.add(includeCandidate);
+
+            if (!includeCandidate.isEmpty())
+                includeCandidates.add(includeCandidate);
         }
 
         List<AggregationGroup> aggGroups = Lists.newArrayList();

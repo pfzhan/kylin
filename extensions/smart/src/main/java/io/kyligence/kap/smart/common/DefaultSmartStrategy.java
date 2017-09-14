@@ -98,6 +98,10 @@ public class DefaultSmartStrategy implements ISmartStrategy {
         return false;
     }
 
+    public boolean getMeasureQueryEnabled() {
+        return true;
+    }
+
     public boolean getAggGroupKeepLegacy() {
         return true;
     }

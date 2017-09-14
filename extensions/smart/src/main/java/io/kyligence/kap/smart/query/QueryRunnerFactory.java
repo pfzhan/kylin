@@ -40,7 +40,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.smart.common.MasterFactory;
 
 public final class QueryRunnerFactory {
-    
+
     public static AbstractQueryRunner createForCubeSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
             CubeDesc cubeDesc) {
         return new LocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithCubeDescs(cubeDesc.getProject(),
@@ -75,8 +75,11 @@ public final class QueryRunnerFactory {
         MetadataManager metadataManager = MetadataManager.getInstance(srcKylinConfig);
         List<DataModelDesc> modelDescs = metadataManager.getModels(modelDesc.getProject());
         List<CubeDesc> mockupCubes = Lists.newArrayListWithExpectedSize(modelDescs.size());
+
+        KylinConfig config = KylinConfig.createKylinConfig(srcKylinConfig);
+        config.setProperty("kap.smart.conf.measure.query-enabled", "false");
         for (DataModelDesc m : modelDescs) {
-            CubeDesc mockupCube = MasterFactory.createCubeMaster(srcKylinConfig, m).proposeInitialCube();
+            CubeDesc mockupCube = MasterFactory.createCubeMaster(config, m).proposeInitialCube();
             mockupCubes.add(mockupCube);
         }
 
