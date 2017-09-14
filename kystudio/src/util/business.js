@@ -277,6 +277,14 @@ export function transToUtcTimeFormat (ms) {
   var result = y + '-' + toDoubleNumber(m + 1) + '-' + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
   return result
 }
+export function transToUtcDateFormat (ms) {
+  var date = new Date(ms)
+  var y = date.getUTCFullYear()
+  var m = date.getUTCMonth()
+  var d = date.getUTCDate()
+  var result = y + '-' + toDoubleNumber(m + 1) + '-' + toDoubleNumber(d)
+  return result
+}
 export function transToUTCMs (date) {
   date = new Date(date)
   var y = date.getFullYear()

@@ -20,7 +20,7 @@
               :label="$t('condition')"
               >
               <template scope="scope">
-                <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key.join(',')}}</p>
+                <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key && key.join(',')}}</p>
               </template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"
@@ -65,7 +65,7 @@
                     <el-col :sm="4" :md="3" :lg="2" class="ksd-right"><el-button type="danger" icon="minus" @click="removeRowSet(index)"></el-button></el-col>
                     <el-col :span="24" class="ksd-pt-4" style="position: relative">
                       <arealabel  :placeholder="$t('pressEnter')" :ignoreSpecialChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
-                      <datepicker ref="hideDatePicker" :dateType="timeComponentType" :selectList="rowset.valueList" v-show="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0 || dateTimeTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
+                      <datepicker ref="hideDatePicker" :dateType="rowset.timeComponentType" :selectList="rowset.valueList" v-show="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0 || dateTimeTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
                     </el-col>
                     <el-col :span="24"><div class="line"></div></el-col>
                   </el-row>
@@ -87,9 +87,9 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
+import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission, transToUtcTimeFormat, transToUtcDateFormat, transToUTCMs } from '../../../util/business'
 import { permissions } from '../../../config'
-import { timestampTransToDateStr, dateTransToDateStr } from '../../../util/index'
+// import {transToUtcTimeFormat, transToUtcDateFormat} from '../../../util/index'
 import arealabel from 'components/common/area_label'
 import datepicker from 'components/common/date_picker'
 // import { permissions } from '../../config'
@@ -106,6 +106,7 @@ export default {
       grantObj: {
         name: ''
       },
+      needInit: true,
       addGrantDialog: false,
       columnList: [],
       currentPage: 1,
@@ -117,7 +118,6 @@ export default {
       previewDialgVisible: false,
       isEdit: false,
       timeSelect: '',
-      timeComponentType: 'date',
       rowSetDataList: [],
       intTypeList: ['int', 'smallint', 'tinyint', 'integer', 'bigint'],
       dateTypeList: ['date'],
@@ -135,6 +135,8 @@ export default {
     datepicker
   },
   created () {
+    // console.log('2012-1-1')
+    // console.log(transToUtcDateFormat(1325347200000))
   },
   methods: {
     ...mapActions({
@@ -179,8 +181,12 @@ export default {
       this.previewDialgVisible = false
     },
     selectColumnName (i, columnName) {
-      var reg = this.getFilterRegExp(columnName)
-      this.$set(this.rowSetDataList, i, {columnName: columnName, valueList: [], validateReg: reg})
+      if (!this.needInit) {
+        this.needInit = true
+        return
+      }
+      var result = this.getFilterRegExp(columnName)
+      this.$set(this.rowSetDataList, i, {columnName: columnName, valueList: [], validateReg: result.reg, timeComponentType: result.timeComponentType})
     },
     validateFail () {
       this.$message(this.$t('valueValidateFail'))
@@ -188,6 +194,7 @@ export default {
     getFilterRegExp (columnsName) {
       var columnType = this.getColumnType(columnsName)
       var result = ''
+      var timeComponentType = ''
       var intTypeList = this.intTypeList
       if (intTypeList.indexOf(columnType) >= 0) {
         result = '^\\d+$'
@@ -195,12 +202,12 @@ export default {
         result = '^\\d+(.\\d+)?$'
       } else if (this.dateTypeList.indexOf(columnType) >= 0) {
         result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])$'
-        this.timeComponentType = 'date'
+        timeComponentType = 'date'
       } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
-        result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])(\\s+(20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)?$'
-        this.timeComponentType = 'datetime'
+        result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])(\\s+(20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)$'
+        timeComponentType = 'datetime'
       }
-      return result
+      return {reg: result, timeComponentType: timeComponentType}
     },
     getColumnType (columnsName) {
       var columnLen = this.columnList && this.columnList.length || 0
@@ -211,7 +218,6 @@ export default {
           break
         }
       }
-      console.log(columnType)
       return columnType
     },
     refreshData (a, refreshInfo) {
@@ -252,16 +258,24 @@ export default {
       })
     },
     editAclOfRow (userName, conditions) {
+      this.needInit = false
       this.isEdit = true
       this.addGrantDialog = true
       this.grantObj.name = userName
       this.rowSetDataList = []
+      var index = 0
       for (var i in conditions) {
         var obj = {
           columnName: i,
           valueList: conditions[i]
         }
-        this.rowSetDataList.push(obj)
+        var result = this.getFilterRegExp(i)
+        obj.timeComponentType = result.timeComponentType
+        obj.validateReg = result.reg
+        this.$set(this.rowSetDataList, index, obj)
+        // Object.assign(this.rowSetDataList, this.rowSetDataList.length, obj)
+        index++
+        // this.rowSetDataList.push(obj)
       }
     },
     resetAclRowObj () {
@@ -370,10 +384,10 @@ export default {
             var columnType = this.getColumnType(c)
             this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
               if (this.dateTypeList.indexOf(columnType) >= 0) {
-                k = dateTransToDateStr(k)
+                k = transToUtcDateFormat(+k)
                 return k
               } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
-                k = timestampTransToDateStr(k)
+                k = transToUtcTimeFormat(+k)
                 return k
               } else {
                 return k
@@ -407,7 +421,7 @@ export default {
           var columnType = this.getColumnType(row.columnName)
           var valueList = row.valueList.map((k) => {
             if (this.dateTypeList.indexOf(columnType) >= 0 || this.dateTimeTypeList.indexOf(columnType) >= 0) {
-              k = +(new Date(k))
+              k = transToUTCMs(k)
               return k
             } else {
               return k
