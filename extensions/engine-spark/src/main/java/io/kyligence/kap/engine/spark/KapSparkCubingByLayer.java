@@ -28,37 +28,21 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.engine.mr.common.CubeStatsReader;
 import org.apache.kylin.engine.mr.steps.ReducerNumSizing;
 import org.apache.kylin.engine.spark.SparkCubingByLayer;
 import org.apache.kylin.job.exception.JobException;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.spark.Partitioner;
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.hive.HiveContext;
-import org.apache.spark.storage.StorageLevel;
 import org.apache.spark.util.SizeEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,107 +57,18 @@ public class KapSparkCubingByLayer extends SparkCubingByLayer {
     }
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
-        String metaUrl = optionsHelper.getOptionValue(OPTION_META_URL);
-        String hiveTable = optionsHelper.getOptionValue(OPTION_INPUT_TABLE);
-        String cubeName = optionsHelper.getOptionValue(OPTION_CUBE_NAME);
-        String segmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_ID);
-        String outputPath = optionsHelper.getOptionValue(OPTION_OUTPUT_PATH);
-
-        Class[] kryoClassArray = new Class[] { org.apache.hadoop.io.Text.class,
-                Class.forName("scala.reflect.ClassTag$$anon$1"), java.lang.Class.class };
-
-        SparkConf conf = new SparkConf().setAppName("Cubing for:" + cubeName + " segment " + segmentId);
-        //serialization conf
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.kryo.registrator", "org.apache.kylin.engine.spark.KylinKryoRegistrator");
-        conf.set("spark.kryo.registrationRequired", "true").registerKryoClasses(kryoClassArray);
-
-        JavaSparkContext sc = new JavaSparkContext(conf);
-        HadoopUtil.deletePath(sc.hadoopConfiguration(), new Path(outputPath));
-
-        KylinConfig envConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
-
-        final CubeInstance cubeInstance = CubeManager.getInstance(envConfig).getCube(cubeName);
-        final CubeDesc cubeDesc = cubeInstance.getDescriptor();
-        final CubeSegment cubeSegment = cubeInstance.getSegmentById(segmentId);
-
-        Configuration confOverwrite = new Configuration(sc.hadoopConfiguration());
-        confOverwrite.set("dfs.replication", "2"); // cuboid intermediate files, replication=2
-        final Job job = Job.getInstance(confOverwrite);
-
-        logger.info("RDD Output path: {}", outputPath);
-        setHadoopConf(job, cubeSegment, metaUrl);
-
-        int countMeasureIndex = 0;
-        for (MeasureDesc measureDesc : cubeDesc.getMeasures()) {
-            if (measureDesc.getFunction().isCount() == true) {
-                break;
-            } else {
-                countMeasureIndex++;
-            }
+    protected JavaPairRDD<ByteArray, Object[]> prepareOutput(JavaPairRDD<ByteArray, Object[]> rdd, KylinConfig config,
+            CubeSegment segment, int level) {
+        long levelRddSize = SizeEstimator.estimate(rdd) / (1024 * 1024);
+        int repartition;
+        Map<Pair<Long, Short>, Integer> partitionMap;
+        try {
+            repartition = repartitionForOutput(segment, levelRddSize, level);
+            partitionMap = PartitionPreparer.preparePartitionMapping(config, segment, repartition);
+        } catch (ClassNotFoundException | JobException | InterruptedException | IOException e) {
+            throw new RuntimeException("Failed to get partiton during Spark cubing: " + e);
         }
-        final CubeStatsReader cubeStatsReader = new CubeStatsReader(cubeSegment, envConfig);
-        boolean[] needAggr = new boolean[cubeDesc.getMeasures().size()];
-        boolean allNormalMeasure = true;
-        for (int i = 0; i < cubeDesc.getMeasures().size(); i++) {
-            needAggr[i] = !cubeDesc.getMeasures().get(i).getFunction().getMeasureType().onlyAggrInBaseCuboid();
-            allNormalMeasure = allNormalMeasure && needAggr[i];
-        }
-        logger.info("All measure are normal (agg on all cuboids) ? : " + allNormalMeasure);
-        StorageLevel storageLevel = StorageLevel.MEMORY_AND_DISK_SER();
-
-        HiveContext sqlContext = new HiveContext(sc.sc());
-        final Dataset<Row> intermediateTable = sqlContext.table(hiveTable);
-
-        // encode with dimension encoding, transform to <ByteArray, Object[]> RDD
-        final JavaPairRDD<ByteArray, Object[]> encodedBaseRDD = intermediateTable.javaRDD()
-                .mapToPair(new SparkCubingByLayer.EncodeBaseCuboid(cubeName, segmentId, metaUrl));
-
-        Long totalCount = 0L;
-        if (envConfig.isSparkSanityCheckEnabled()) {
-            totalCount = encodedBaseRDD.count();
-        }
-
-        final BaseCuboidReducerFunction2 baseCuboidReducerFunction = new BaseCuboidReducerFunction2(cubeName, metaUrl);
-        BaseCuboidReducerFunction2 reducerFunction2 = baseCuboidReducerFunction;
-        if (allNormalMeasure == false) {
-            reducerFunction2 = new CuboidReducerFunction2(cubeName, metaUrl, needAggr);
-        }
-
-        final int totalLevels = cubeSegment.getCuboidScheduler().getBuildLevel();
-        JavaPairRDD<ByteArray, Object[]>[] allRDDs = new JavaPairRDD[totalLevels + 1];
-        int level = 0;
-        long baseRDDSize = SizeEstimator.estimate(encodedBaseRDD) / (1024 * 1024);
-        int repartition = repartitionForOutput(cubeSegment, baseRDDSize, level);
-
-        Map<Pair<Long, Short>, Integer> partitionMap = PartitionPreparer.preparePartitionMapping(envConfig, cubeSegment,
-                repartition);
-        // aggregate to calculate base cuboid
-        allRDDs[0] = encodedBaseRDD.reduceByKey(baseCuboidReducerFunction)
-                .repartitionAndSortWithinPartitions(new SparkCubingPartitioner(repartition, partitionMap))
-                .persist(storageLevel);
-
-        saveToHDFS(allRDDs[0], metaUrl, cubeName, cubeSegment, outputPath, 0, job);
-
-        // aggregate to ND cuboids
-        for (level = 1; level <= totalLevels; level++) {
-            long levelRddSize = SizeEstimator.estimate(allRDDs[level - 1]) / (1024 * 1024);
-            repartition = repartitionForOutput(cubeSegment, levelRddSize, level);
-            partitionMap = PartitionPreparer.preparePartitionMapping(envConfig, cubeSegment, repartition);
-            allRDDs[level] = allRDDs[level - 1].flatMapToPair(new CuboidFlatMap(cubeName, segmentId, metaUrl))
-                    .reduceByKey(reducerFunction2)
-                    .repartitionAndSortWithinPartitions(new SparkCubingPartitioner(repartition, partitionMap))
-                    .persist(storageLevel);
-            if (envConfig.isSparkSanityCheckEnabled() == true) {
-                sanityCheck(allRDDs[level], totalCount, level, cubeStatsReader, countMeasureIndex);
-            }
-            saveToHDFS(allRDDs[level], metaUrl, cubeName, cubeSegment, outputPath, level, job);
-            allRDDs[level - 1].unpersist();
-        }
-        allRDDs[totalLevels].unpersist();
-        logger.info("Finished on calculating all level cuboids.");
-        deleteHDFSMeta(metaUrl);
+        return rdd.repartitionAndSortWithinPartitions(new SparkCubingPartitioner(repartition, partitionMap));
     }
 
     protected int repartitionForOutput(CubeSegment segment, long rddSize, int level)
@@ -183,10 +78,11 @@ public class KapSparkCubingByLayer extends SparkCubingByLayer {
         for (Long cuboidId : layeredCuboids.get(level)) {
             partition = Math.max(partition, segment.getCuboidShardNum(cuboidId));
         }
-        logger.info("Repartition for output, level: {}, rdd size: {}, partition: {}", level, rddSize, partition);
+        logger.info("Repartition for Kystorage, level: {}, rdd size: {}, partition: {}", level, rddSize, partition);
         return partition;
     }
 
+    @Override
     protected void setHadoopConf(Job job, CubeSegment segment, String metaUrl) throws Exception {
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);
