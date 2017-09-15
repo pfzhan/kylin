@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeSegment;
@@ -50,7 +51,9 @@ import org.apache.kylin.cube.model.HBaseMappingDesc;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceInputFormat.ParquetCubeSpliceReader;
@@ -69,12 +72,24 @@ public class ParquetWriteAndReadColumnFamilyTest extends AbstractParquetFormatTe
     protected final long f2Long = 2147483648L;
     protected final double f1Double = 0.0;
     protected final double f2Double = 4.0;
+    private String backupCompression;
 
     public ParquetWriteAndReadColumnFamilyTest() throws IOException {
         super();
         initMeasures();
         initHBaseMapping();
         initMeasureReferenceToColumnFamily();
+    }
+
+    @Before
+    public void setUp() {
+        backupCompression = KapConfig.wrap(getTestConfig()).getParquetPageCompression();
+        getTestConfig().setProperty("kap.storage.columnar.page-compression", "");
+    }
+
+    @After
+    public void tearDown() {
+        getTestConfig().setProperty("kap.storage.columnar.page-compression", backupCompression);
     }
 
     protected void initMeasures() {
