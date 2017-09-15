@@ -199,7 +199,7 @@
           <!-- <span class="demonstration">Sample percentage</span> -->
           <!-- <el-slider :min="0" show-stops :step="20" @change="changeBarVal" v-model="tableStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
           <slider @changeBar="changeBar" :show="load_hive_dalog_visible">
-            <span slot="label">{{$t('sampling')}} 
+            <span slot="label">{{$t('sampling')}}
               <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
                  <icon name="question-circle-o"></icon>
               </common-tip>
@@ -227,7 +227,7 @@
                 <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
                <!--   <el-slider v-model="tableStaticsRange" :min="0"  show-stops :step="20" :max="100" :format-tooltip="formatTooltip" :disabled = '!openCollectRange'></el-slider> -->
                  <slider @changeBar="changeBar" :show="scanRatioDialogVisible">
-                   <span slot="label">{{$t('sampling')}} 
+                   <span slot="label">{{$t('sampling')}}
                     <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
                        <icon name="question-circle-o"></icon>
                     </common-tip>
@@ -967,7 +967,7 @@ export default {
   .el-button--danger{
     border-color: #4cb050;
   }
- 
+
   .normalTable:before{
       // content:"N";
       // background-color:yellow;
@@ -1023,8 +1023,8 @@ export default {
             border: 1px solid @base-color;
           }
         }
-      } 
-    } 
+      }
+    }
     .ksd-ml-30{
       margin-left: 45px!important;
       margin-top: 30px!important;
