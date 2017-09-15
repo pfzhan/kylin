@@ -141,7 +141,24 @@ export default {
       margin-top: 5px;
       left: 0px;
       li {
-        width: 100%
+        height: 25px;
+        width: 100%;
+        display: inline-block;
+        margin-right: 40px;
+      }
+      .el-upload-list__item {
+        transition: all .5s cubic-bezier(.55,0,.1,1);
+        font-size: 12px;
+        color: #48576a;
+        line-height: 1.8;
+        margin-top: 10px;
+        box-sizing: border-box;
+        border-radius: 4px;
+        width: 100%;
+        position: relative;
+        a {
+          text-decoration-line: none;
+        }
       }
     }
     .textArea {

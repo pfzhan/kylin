@@ -53,17 +53,17 @@
     </el-dialog>
 
     <el-dialog :title="$t('license')" v-model="updateLicenseVisible" :close-on-click-modal="false" class="kapLicense" size="tiny">
-      <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
+      <span style="float: left;font-size: 12px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
       <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
-      <p style="margin-bottom: 50px;cursor:pointer" @click="apply" v-if="!isPlusVersion">{{$t('applyLicense')}}</p>
+      <p @click="apply" v-if="!isPlusVersion">{{$t('applyLicense')}}</p>
       <div slot="footer" class="dialog-footer">
         <el-button @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
-        <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+        <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
     <el-dialog class="applyLicense" @close="closeApplyLicense" :title="$t('applyLicense')" v-model="applyLicense" size="tiny" v-if="!isPlusVersion" :close-on-click-modal="false">
-      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm" v-loading.body="applyLoading">
+      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
         <el-form-item prop="email">
           <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
         </el-form-item>
@@ -297,7 +297,11 @@
       },
       licenseValidSuccess: function (license) {
         if (license === true) {
-          this.hasLicense = false
+          this.updateLicenseVisible = false
+          this.$alert(this.$t('evaluationPeriod') + this.$store.state.system.serverAboutKap['kap.dates'], this.$t('evaluationLicense'), {
+            cancelConfirmButton: true,
+            type: 'success'
+          })
         }
         this.loadCheck = false
       },
@@ -309,13 +313,13 @@
         }
       },
       apply: function () {
-        this.hasLicense = false
+        this.updateLicenseVisible = false
         this.applyLicense = true
         this.changeDialog = true
       },
       closeApplyLicense: function () {
         if (this.changeDialog) {
-          this.hasLicense = true
+          this.updateLicenseVisible = true
         }
       },
       submitApply: function () {
@@ -340,7 +344,7 @@
                   }
                   this.changeDialog = false
                   this.applyLicense = false
-                  this.hasLicense = false
+                  this.updateLicenseVisible = false
                   this.applyLoading = false
                   this.$store.state.system.serverAboutKap['kap.dates'] = data['kap.dates']
                 }
@@ -446,13 +450,13 @@
       .el-input__inner {
         font-size: 12px;
       }
-    }
-    p {
-      margin-bottom: 50px;
-      cursor:pointer;
-      color:#218fea;
-      font-size:12px;
-      text-decoration-line: underline;
+      p {
+        margin-bottom: 50px;
+        cursor:pointer;
+        color:#218fea;
+        text-decoration-line: underline;
+        text-align: left;
+      }
     }
   }
   .applyLicense {
