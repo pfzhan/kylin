@@ -48,10 +48,8 @@ public class CheckLookupStep extends AbstractExecutable {
         String modelName = getParam(MODEL_NAME);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         DataModelDesc dataModelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
-        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
         try {
-            ModelStats modelStats = modelStatsManager.getModelStats(modelName);
-            ModelDiagnose.checkDuplicatePKOnLookups(modelStats, dataModelDesc, kylinConfig);
+            ModelDiagnose.checkDuplicatePKOnLookups(dataModelDesc, kylinConfig);
             stepLogger.log("Success");
             return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
         } catch (IOException e) {

@@ -31,10 +31,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.dict.lookup.LookupStringTable;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
 import org.apache.kylin.metadata.MetadataManager;
@@ -56,8 +55,6 @@ public class ModelDiagnose {
     private static final long FACT_SKEW_THRESHOLD = KapConfig.getInstanceFromEnv().getJointDataSkewThreshold();
     private static final float FLAT_TABLE_RECORDS_RATIO = 0.01F;
     private static final float LEFT_JOIN_NULL_TOLERANCE = 0.1F;
-    private static final float DUPLICATION_TOLERANCE = 0.1F;
-    private static final int DUPLICATION_THRESHOLD = 10;
 
     /**
      *
@@ -65,11 +62,11 @@ public class ModelDiagnose {
      * all lookup tables can be built as snapshot.
      * @throws java.io.IOException
      */
-    public static void checkDuplicatePKOnLookups(ModelStats modelStats, DataModelDesc dataModelDesc, KylinConfig config)
-            throws IOException {
-        List<ModelStats.DuplicatePK> dupPKList = new ArrayList<>();
+    public static void checkDuplicatePKOnLookups(DataModelDesc dataModelDesc, KylinConfig config) throws IOException {
         MetadataManager metadataManager = MetadataManager.getInstance(config);
         List<String> tables = new ArrayList<>();
+
+        LookupStringTable tryToCreateLookup = null;
 
         for (TableRef tblRef : dataModelDesc.getLookupTables()) {
             JoinTableDesc fTable = getJoinTableDesc(tblRef, dataModelDesc.getJoinTables());
@@ -83,16 +80,16 @@ public class ModelDiagnose {
                 continue;
             else
                 tables.add(tableName);
+
             TableDesc tableDesc = metadataManager.getTableDesc(fTable.getTable(), dataModelDesc.getProject());
-            List<TblColRef> primaryKeys = new ArrayList<>();
-            primaryKeys.addAll(Arrays.asList(fTable.getJoin().getPrimaryKeyColumns()));
             IReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
             SnapshotTable snapshot = SnapshotManager.getInstance(config).buildSnapshot(hiveTable, tableDesc);
-            ModelStats.DuplicatePK dupPK = checkLookup(tableDesc, primaryKeys, snapshot);
-            dupPKList.add(dupPK);
+
+            tryToCreateLookup = new LookupStringTable(tableDesc, fTable.getJoin().getPrimaryKey(), snapshot);
+
+            logger.info("Table: {}, has no duplicate keys with row count: {}", fTable.getTable(),
+                    tryToCreateLookup.getAllRows().size());
         }
-        modelStats.setDuplicatePrimaryKeys(dupPKList);
-        ModelStatsManager.getInstance(config).saveModelStats(modelStats);
     }
 
     private static JoinTableDesc getJoinTableDesc(TableRef tbl, JoinTableDesc[] joinTableDescs) {
@@ -101,79 +98,6 @@ public class ModelDiagnose {
                 return joinTableDesc;
         }
         return null;
-    }
-
-    private static ModelStats.DuplicatePK checkLookup(TableDesc tableDesc, List<TblColRef> keyColumns,
-            SnapshotTable table) throws IOException {
-        int[] keyIndex = new int[keyColumns.size()];
-        String[] keyValues = new String[keyColumns.size()];
-        String[] keyNames = new String[keyColumns.size()];
-
-        long rowCount = 0;
-        for (int i = 0; i < keyColumns.size(); i++) {
-            String keyName = keyColumns.get(i).getCanonicalName();
-            keyNames[i] = keyName;
-            keyIndex[i] = tableDesc.findColumnByName(keyName).getZeroBasedIndex();
-        }
-
-        Map<String, MutableInt> dupMap = new HashedMap();
-        ModelStats.DuplicatePK dupPK = new ModelStats.DuplicatePK();
-        dupPK.setLookUpTable(tableDesc.getName());
-        dupPK.setPrimaryKeys(toString(keyNames));
-        IReadableTable.TableReader reader = table.getReader();
-        while (reader.next()) {
-            for (int i = 0; i < keyColumns.size(); i++) {
-                keyValues[i] = reader.getRow()[keyIndex[i]];
-            }
-
-            String key = getUniqueKey(keyValues);
-
-            MutableInt m = dupMap.get(key);
-            if (null == m) {
-                dupMap.put(key, MutableInt.getInstance());
-            } else
-                m.increment();
-            rowCount++;
-        }
-        Map<String, Integer> tmpMap = new HashMap<>();
-        for (Map.Entry<String, MutableInt> e : dupMap.entrySet()) {
-            int count = e.getValue().getCount();
-            if (count > 1) {
-                tmpMap.put(e.getKey(), e.getValue().getCount());
-                if ((float) count / (float) rowCount > DUPLICATION_TOLERANCE && count > DUPLICATION_THRESHOLD) {
-                    throw new IllegalStateException("Duplicate key found and can not be tolerant: (Key=" + e.getKey()
-                            + ", Value=" + count + ")");
-                }
-            }
-        }
-        dupPK.setDuplication(tmpMap);
-        IOUtils.closeQuietly(reader);
-        return dupPK;
-    }
-
-    private static String getUniqueKey(String[] cols) {
-        StringBuilder sb = new StringBuilder();
-        int i = 0;
-        for (String s : cols) {
-            s.replace(',', '.');
-            if (i > 0)
-                sb.append(',');
-            sb.append(s);
-            i++;
-        }
-        return sb.toString();
-    }
-
-    private static String toString(String[] cols) {
-        StringBuilder b = new StringBuilder();
-        b.append("{");
-        for (int i = 0; i < cols.length; i++) {
-            if (i > 0)
-                b.append(",");
-            b.append(cols[i]);
-        }
-        b.append("}");
-        return b.toString();
     }
 
     /**
