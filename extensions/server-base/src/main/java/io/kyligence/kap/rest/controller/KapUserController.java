@@ -328,7 +328,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         List<String> allPrjs = new ArrayList<>();
         List<ProjectInstance> projectInstances = projectService.listProjects(null, null);
         for (ProjectInstance pi : projectInstances) {
-            allPrjs.add(pi.getName().toUpperCase());
+            allPrjs.add(pi.getName());
         }
 
         for (String prj : allPrjs) {

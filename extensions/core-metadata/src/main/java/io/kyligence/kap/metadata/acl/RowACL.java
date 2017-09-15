@@ -39,6 +39,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @SuppressWarnings("serial")
@@ -205,7 +206,7 @@ public class RowACL extends RootPersistentEntity {
     static Map<String, List<String>> trimConds(Map<String, List<String>> condsWithCol, Map<String, String> columnWithType) {
         Map<String, List<String>> result = new HashMap<>();
         for (String col : condsWithCol.keySet()) {
-            List<String> conds = condsWithCol.get(col);
+            List<String> conds = Lists.newArrayList(condsWithCol.get(col));
             String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type note found");
             trimStringType(conds, type);
             trimDateType(conds, type);

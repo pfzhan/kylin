@@ -184,7 +184,7 @@ public class AccessControllerV2 extends BasicController {
 
     private void revokeLowLevelACL(String type, String uuid, String username) throws IOException {
         if (AclEntityType.PROJECT_INSTANCE.equals(type)) {
-            String prj = projectService.getProjectManager().getPrjByUuid(uuid).getName().toUpperCase();
+            String prj = projectService.getProjectManager().getPrjByUuid(uuid).getName();
             if (tableACLService.exists(prj, username)) {
                 tableACLService.deleteFromTableBlackList(prj, username);
             }
