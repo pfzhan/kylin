@@ -628,6 +628,12 @@ export default {
             datasourceTreeData.children.push(obj)
           }
           this.hiveAssets = [datasourceTreeData]
+          this.$nextTick(() => {
+            // 可视区高 - 66（header的高）- 48（面包屑的占位）- 33（tab高）- 33（子tab高）- 79（列表上方那几块的高）
+            let iTop = this.$el.querySelectorAll('.tree_box')[0].offsetTop
+            let iHeight = window.innerHeight - 66 - 48 - 33 - 33 - iTop
+            this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
+          })
         })
       }, (res) => {
         handleError(res)
@@ -905,8 +911,6 @@ export default {
     }
   },
   mounted () {
-    let iHeight = screen.availHeight - 65 - 50 - 188
-    this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
     if (isFireFox()) {
       // Scrollbar.init(document.querySelector('.sub_menu .el-tabs__content'))
     }

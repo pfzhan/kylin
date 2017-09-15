@@ -257,7 +257,7 @@ export default {
           {validator: this.checkName, trigger: 'blur'}
         ],
         modelName: [
-          {required: true, message: this.$t('kylinLang.cube.selectModelName'), trigger: 'blur'}
+          {required: true, message: this.$t('kylinLang.cube.selectModelName'), trigger: 'change'}
         ]
       }
     }
