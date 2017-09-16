@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -142,13 +143,28 @@ public class KapSuggestionService extends BasicService {
         }
     }
 
-    public List<String> getModelSqls(String modelName) throws IOException {
+    public Map<String, SQLValidateResult> getModelSqls(String modelName) throws IOException {
+
+        Map<String, SQLValidateResult> sqlResults = new HashMap<>();
 
         ModelOptimizeLog modelOptimizeLog = getModelOptimizeLog(modelName);
         if (null == modelOptimizeLog) {
-            return new ArrayList<>();
+            return sqlResults;
         }
-        return modelOptimizeLog.getSampleSqls();
+
+        List<String> sqls = modelOptimizeLog.getSampleSqls();
+        if (null == sqls || sqls.isEmpty()) {
+            return sqlResults;
+        }
+
+        List<SQLValidateResult> results = modelOptimizeLog.getSqlValidateResult();
+        for (int i = 0; i < sqls.size(); i++) {
+            String sql = sqls.get(i);
+            SQLValidateResult result = (null != results && i < results.size()) ? results.get(i) : null;
+            sqlResults.put(sql, result);
+        }
+
+        return sqlResults;
     }
 
     public DataModelDesc proposeDataModel(String project, String modelName, String factTable, List<String> sqls)

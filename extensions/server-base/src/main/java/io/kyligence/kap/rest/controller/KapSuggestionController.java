@@ -166,7 +166,7 @@ public class KapSuggestionController extends BasicController {
     @ResponseBody
     public EnvelopeResponse getModelSqls(@PathVariable String modelName) {
         KapMessage msg = KapMsgPicker.getMsg();
-        List<String> ret = null;
+        Map<String, SQLValidateResult> ret = null;
         try {
             ret = kapSuggestionService.getModelSqls(modelName);
         } catch (IOException e) {
