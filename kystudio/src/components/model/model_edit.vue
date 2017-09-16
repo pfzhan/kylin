@@ -36,14 +36,17 @@
             <span >
               <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
             </span>
-            <span>
-              <icon name="calculator" v-show="table.kind !== 'LOOKUP'"  class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+            <span v-show="table.kind !== 'LOOKUP'">
+              <icon name="calculator"   class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             </span>
             <span >
               <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
             </span>
+             <span v-show="table.kind == 'ROOTFACT'" style="line-height:26px;font-weight:bold;" @click="inputSql">
+              SQL
+            </span>
             <i class="fa fa-window-close"></i>
-            <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
+            <el-dropdown @command="selectTableKind" class="ksd-fright" style="padding-right: 6px;" v-if="actionMode!=='view'">
               <span class="el-dropdown-link">
                <i class="el-icon-setting" style="color:#fff"></i>
               </span>
@@ -257,6 +260,42 @@
         <el-button type="primary" @click="saveAndCheckModel" :loading="saveBtnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
+
+    <el-dialog :title="$t('sqlPatterns')" v-model="addSQLFormVisible" :before-close="sqlClose" :close-on-press-escape="false" :close-on-click-modal="false">
+    <p style="font-size:12px">{{$t('autoModelTip1')}}</p>
+    <p style="font-size:12px">{{$t('autoModelTip2')}}</p>
+    <p style="font-size:12px">{{$t('autoModelTip3')}}</p>
+    <div :class="{hasCheck: hasCheck}">
+    <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+    </div>
+    <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
+    <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
+    <transition name="fade">
+    <div v-if="errorMsg">
+     <el-alert class="ksd-mt-10 trans"
+        :title="errorMsg"
+        show-icon
+        :closable="false"
+        type="error">
+      </el-alert>
+    </div>
+    </transition>
+    <transition name="fade">
+    <div v-if="successMsg">
+     <el-alert class="ksd-mt-10 trans"
+        :title="successMsg"
+        show-icon
+        :closable="false"
+        type="success">
+      </el-alert>
+    </div>
+    </transition>
+    <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
+    <span slot="footer" class="dialog-footer">
+      <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel">{{$t('kylinLang.common.ok')}}</el-button>
+    </span>
+  </el-dialog>
 </div>
 </template>
 <script>
@@ -270,7 +309,7 @@ import modelassets from './model_assets'
 import Draggable from 'draggable'
 import modelEditTool from 'components/model/model_edit_panel'
 import partitionColumn from 'components/model/model_partition.vue'
-import { handleSuccess, handleError, hasRole, filterNullValInObj, kapConfirm, hasPermission } from 'util/business'
+import { handleSuccess, handleError, hasRole, filterNullValInObj, kapConfirm, hasPermission, filterMutileSqlsToOneLine } from 'util/business'
 export default {
   name: 'modeledit',
   components: {
@@ -281,6 +320,14 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      sqlBtnLoading: false,
+      addSQLFormVisible: false,
+      checkSqlLoadBtn: false,
+      errorMsg: '',
+      successMsg: '',
+      hasCheck: false,
+      sqlString: '',
+      result: [],
       checkExpressionBtnLoad: false,
       checkExpressResult: {},
       currentTableComputedColumns: [],
@@ -465,8 +512,148 @@ export default {
       getCubesList: 'GET_CUBES_LIST',
       checkCubeName: 'CHECK_CUBE_NAME_AVAILABILITY',
       statsModel: 'COLLECT_MODEL_STATS',
-      checkComputedExpression: 'CHECK_COMPUTED_EXPRESSION'
+      checkComputedExpression: 'CHECK_COMPUTED_EXPRESSION',
+      autoModelApi: 'AUTO_MODEL',
+      checkSql: 'VALID_AUTOMODEL_SQL',
+      getAutoModelSql: 'GET_AUTOMODEL_SQL'
     }),
+    sqlClose () {
+      kapConfirm(this.$t('kylinLang.common.willClose'), {
+        confirmButtonText: this.$t('kylinLang.common.close'),
+        cancelButtonText: this.$t('kylinLang.common.cancel')
+      }).then(() => {
+        this.addSQLFormVisible = false
+      })
+    },
+    autoModel () {
+      var sqls = filterMutileSqlsToOneLine(this.sqlString)
+      if (sqls.length === 0) {
+        return
+      }
+      var rootFact = this.getRootFact()
+      if (rootFact.length) {
+        var rootFactName = rootFact[0].database + '.' + rootFact[0].name
+        this.autoModelApi({ modelName: this.modelInfo.modelName, project: this.project, sqls: sqls, factTable: rootFactName }).then(() => {
+
+        }, (res) => {
+          handleError(res)
+        })
+      }
+    },
+    validateSql () {
+      var sqls = filterMutileSqlsToOneLine(this.sqlString)
+      if (sqls.length === 0) {
+        return
+      }
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      this.renderEditerRender(editor)
+      editor && editor.removeListener('change', this.editerChangeHandle)
+      this.errorMsg = false
+      this.checkSqlLoadBtn = true
+      editor.setOption('wrap', 'free')
+      this.sqlString = sqls.join(';\r\n')
+      var rootFact = this.getRootFact()
+      if (rootFact.length) {
+        var rootFactName = rootFact[0].database + '.' + rootFact[0].name
+        this.checkSql({ modelName: this.modelInfo.modelName, project: this.project, sqls: sqls, factTable: rootFactName }).then((res) => {
+          handleSuccess(res, (data, code, msg) => {
+            this.hasCheck = true
+            this.checkSqlLoadBtn = false
+            this.result = data
+            this.$nextTick(() => {
+              this.addBreakPoint(data, editor, msg)
+              this.bindBreakClickEvent(editor)
+              editor && editor.on('change', this.editerChangeHandle)
+            })
+          })
+        }, (res) => {
+          this.checkSqlLoadBtn = false
+          handleError(res)
+        })
+      }
+    },
+    editerChangeHandle () {
+      this.hasCheck = false
+    },
+    inputSql () {
+      this.addSQLFormVisible = true
+    },
+    cancelCheckSql () {
+      this.checkSqlLoadBtn = false
+    },
+    addBreakPoint (data, editor, msg) {
+      this.errorMsg = ''
+      this.successMsg = ''
+      if (!editor) {
+        return
+      }
+      if (data && data.length) {
+        var hasFailValid = false
+        data.forEach((r, index) => {
+          if (r.capable === false) {
+            hasFailValid = true
+            editor.session.setBreakpoint(index)
+          } else {
+            editor.session.clearBreakpoint(index)
+          }
+        })
+        if (hasFailValid) {
+          this.errorMsg = this.$t('validFail')
+        } else {
+          this.successMsg = this.$t('validSuccess')
+        }
+      } else {
+        this.errorMsg = msg
+      }
+    },
+    bindBreakClickEvent (editor) {
+      if (!editor) {
+        return
+      }
+      editor.on('guttermousedown', (e) => {
+        var row = +e.domEvent.target.innerHTML
+        // var row = e.getDocumentPosition().row
+        var pointDoms = this.$el.querySelectorAll('.ace_gutter-cell')
+        pointDoms.forEach((dom) => {
+          if (+dom.innerHTML === row) {
+            dom.className += ' active'
+          } else {
+            dom.className = dom.className.replace(/\s+active/g, '')
+          }
+        })
+        var data = this.result
+        row = row - 1
+        if (data && data.length) {
+          if (data[row].capable === false) {
+            if (data[row].sqladvices) {
+              this.errorMsg = ''
+              data[row].sqladvices.forEach((err) => {
+                this.errorMsg += err.incapableReason + ' '
+              })
+              this.currentSqlErrorMsg = data[row].sqladvices
+            }
+          } else {
+            this.errorMsg = ''
+            this.successMsg = ''
+          }
+        }
+        e.stop()
+      })
+    },
+    renderEditerRender (editor) {
+      // var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      if (!(editor && editor.session)) {
+        return
+      }
+      editor.session.gutterRenderer = {
+        getWidth: (session, lastLineNumber, config) => {
+          return lastLineNumber.toString().length * 12
+        },
+        getText: (session, row) => {
+          return row + 1
+        }
+      }
+    },
     checkExpression () {
       if (!this.computedColumn.returnType) {
         this.$message(this.$t('plsCheckReturnType'))
@@ -1929,8 +2116,139 @@ export default {
       }
       return JSON.stringify(kylinData)
     },
+    loadEditData (modelData) {
+      this.editLock = !!(this.modelData && this.modelData.uuid)
+      if (!modelData.fact_table) {
+        return
+      }
+      Object.assign(this.modelInfo, {
+        uuid: modelData.uuid,
+        modelDiscribe: modelData.description,
+        modelName: modelData.name,
+        is_draft: modelData.is_draft,
+        last_modified: modelData.last_modified,
+        owner: modelData.owner,
+        project: modelData.project
+      })
+      // 加载原来设置的partition
+      var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
+      var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
+      Object.assign(this.partitionSelect, {
+        'date_table': partitionDate[0],
+        'date_column': partitionDate[1],
+        'time_table': partitionTime[0],
+        'time_column': partitionTime[1],
+        'partition_date_column': modelData.partition_desc.partition_date_column,
+        'partition_time_column': modelData.partition_desc.partition_time_column,
+        'partition_date_start': 0,
+        'partition_date_format': modelData.partition_desc.partition_date_format,
+        'partition_time_format': modelData.partition_desc.partition_time_format,
+        'partition_type': 'APPEND'
+      })
+      // 加载原来设置的partition
+      this.modelInfo.filterStr = modelData.filter_condition
+      this.modelInfo.computed_columns = modelData.computed_columns || []
+      var lookups = modelData.lookups
+      var baseTables = {}
+      for (var i = 0; i < lookups.length; i++) {
+        baseTables[lookups[i].alias] = {
+          database: lookups[i].table.split('.')[0],
+          table: lookups[i].table.split('.')[1],
+          kind: lookups[i].kind,
+          guid: sampleGuid(),
+          alias: lookups[i].alias
+        }
+      }
+      baseTables[modelData.fact_table.split('.')[1]] = {
+        database: modelData.fact_table.split('.')[0],
+        table: modelData.fact_table.split('.')[1],
+        kind: 'ROOTFACT',
+        guid: sampleGuid(),
+        alias: modelData.fact_table.split('.')[1]
+      }
+      if (modelData.fact_table) {
+        this.currentSelectTable = {
+          database: modelData.fact_table.split('.')[0],
+          tablename: modelData.fact_table.split('.')[1],
+          columnname: ''
+        }
+      }
+      for (var table in baseTables) {
+        this.createTableData(this.extraoption.project, baseTables[table].database, baseTables[table].table, {
+          pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
+          kind: baseTables[table].kind,
+          guid: baseTables[table].guid,
+          alias: baseTables[table].alias || baseTables[table].name
+        })
+      }
+      var baseLinks = []
+      for (let i = 0; i < lookups.length; i++) {
+        for (let j = 0; j < lookups[i].join.primary_key.length; j++) {
+          let priFullColumn = lookups[i].join.primary_key[j]
+          let foriFullColumn = lookups[i].join.foreign_key[j]
+          let priAlias = priFullColumn.split('.')[0]
+          let foriAlias = foriFullColumn.split('.')[0]
+          let pcolumn = priFullColumn.split('.')[1]
+          let fcolumn = foriFullColumn.split('.')[1]
+          let bArr = [baseTables[foriAlias].guid, baseTables[priAlias].guid, fcolumn, pcolumn, lookups[i].join.type]
+          baseLinks.push(bArr)
+        }
+      }
+      this.links = baseLinks
+      this.$nextTick(() => {
+        Scrollbar.initAll()
+        for (let i = 0; i < lookups.length; i++) {
+          let priAlias = lookups[i].alias
+          let foriFullColumn = lookups[i].join.foreign_key[0]
+          var pGuid = baseTables[priAlias].guid
+          var fGuid = baseTables[foriFullColumn.split('.')[0]].guid
+          var hisConn = this.showLinkCons[pGuid + '$' + fGuid]
+          if (!hisConn) {
+            var joinType = lookups[i].join.type
+            this.addShowLink(fGuid, pGuid, joinType)
+          }
+        }
+        if (!modelData.pos) {
+          this.autoLayerPosition()
+        }
+      })
+      var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
+      // computed column add  new method to init computed column
+      for (let i = 0; i < computedColumnsLen; i++) {
+        var alias = modelData.computed_columns[i].tableAlias
+        var tableInfo = this.getTableInfo('alias', alias)
+        if (tableInfo) {
+          this.computedColumn = {
+            guid: tableInfo.guid,
+            name: modelData.computed_columns[i].columnName,
+            expression: modelData.computed_columns[i].expression,
+            returnType: modelData.computed_columns[i].datatype
+            // columnType: modelData.computed_columns[i].datatype
+          }
+          this.addComputedColumnToDatabase(() => {}, true)
+        }
+      }
+      var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
+      for (let i = 0; i < modelDimensionsLen; i++) {
+        var currentD = modelData.dimensions[i]
+        for (let j = 0; j < currentD.columns.length; j++) {
+          this.editTableColumnInfo(baseTables[currentD.table].guid, 'name', currentD.columns[j], 'btype', 'D')
+        }
+      }
+      var modelMetricsLen = modelData.metrics && modelData.metrics.length || 0
+      for (let i = 0; i < modelMetricsLen; i++) {
+        var currentM = modelData.metrics[i]
+        this.editTableColumnInfo(baseTables[currentM.split('.')[0]].guid, 'name', currentM.split('.')[1], 'btype', 'M')
+      }
+      // partition time setting
+      this.getPartitionDateColumns()
+      this.firstRenderServerData = true
+      this.modelDataLoadEnd = true
+      this.$nextTick(() => {
+        this.resizeWindow(this.briefMenu)
+      })
+    },
     serverDataToDragData: function () {
-      var _this = this
       // 添加模式
       if (!this.extraoption.uuid) {
         this.$set(this.modelInfo, 'modelDiscribe', this.extraoption.modelDesc)
@@ -1955,175 +2273,14 @@ export default {
               cancelButtonText: this.$t('kylinLang.common.cancel')
             }).then(() => {
               modelData = data.draft
-              loadEditData()
+              this.loadEditData(modelData)
             }).catch(() => {
               modelData = data.model
-              loadEditData()
+              this.loadEditData(modelData)
             })
           } else {
-            loadEditData()
+            this.loadEditData(modelData || {})
           }
-          // 处理初始化数据
-          function loadEditData () {
-            _this.editLock = !!(_this.modelData && _this.modelData.uuid)
-            if (!modelData.fact_table) {
-              return
-            }
-            Object.assign(_this.modelInfo, {
-              uuid: modelData.uuid,
-              modelDiscribe: modelData.description,
-              modelName: modelData.name,
-              is_draft: modelData.is_draft,
-              last_modified: modelData.last_modified,
-              owner: modelData.owner,
-              project: modelData.project
-            })
-            // 加载原来设置的partition
-            var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
-            var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
-            Object.assign(_this.partitionSelect, {
-              'date_table': partitionDate[0],
-              'date_column': partitionDate[1],
-              'time_table': partitionTime[0],
-              'time_column': partitionTime[1],
-              'partition_date_column': modelData.partition_desc.partition_date_column,
-              'partition_time_column': modelData.partition_desc.partition_time_column,
-              'partition_date_start': 0,
-              'partition_date_format': modelData.partition_desc.partition_date_format,
-              'partition_time_format': modelData.partition_desc.partition_time_format,
-              'partition_type': 'APPEND'
-            })
-            // 加载原来设置的partition
-            _this.modelInfo.filterStr = modelData.filter_condition
-            _this.modelInfo.computed_columns = modelData.computed_columns || []
-            var lookups = modelData.lookups
-            var baseTables = {}
-            for (var i = 0; i < lookups.length; i++) {
-              baseTables[lookups[i].alias] = {
-                database: lookups[i].table.split('.')[0],
-                table: lookups[i].table.split('.')[1],
-                kind: lookups[i].kind,
-                guid: sampleGuid(),
-                alias: lookups[i].alias
-              }
-            }
-            baseTables[modelData.fact_table.split('.')[1]] = {
-              database: modelData.fact_table.split('.')[0],
-              table: modelData.fact_table.split('.')[1],
-              kind: 'ROOTFACT',
-              guid: sampleGuid(),
-              alias: modelData.fact_table.split('.')[1]
-            }
-            if (modelData.fact_table) {
-              _this.currentSelectTable = {
-                database: modelData.fact_table.split('.')[0],
-                tablename: modelData.fact_table.split('.')[1],
-                columnname: ''
-              }
-            }
-            for (var table in baseTables) {
-              _this.createTableData(_this.extraoption.project, baseTables[table].database, baseTables[table].table, {
-                pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
-                kind: baseTables[table].kind,
-                guid: baseTables[table].guid,
-                alias: baseTables[table].alias || baseTables[table].name
-              })
-            }
-            var baseLinks = []
-            for (let i = 0; i < lookups.length; i++) {
-              for (let j = 0; j < lookups[i].join.primary_key.length; j++) {
-                let priFullColumn = lookups[i].join.primary_key[j]
-                let foriFullColumn = lookups[i].join.foreign_key[j]
-                let priAlias = priFullColumn.split('.')[0]
-                let foriAlias = foriFullColumn.split('.')[0]
-                let pcolumn = priFullColumn.split('.')[1]
-                let fcolumn = foriFullColumn.split('.')[1]
-                let bArr = [baseTables[foriAlias].guid, baseTables[priAlias].guid, fcolumn, pcolumn, lookups[i].join.type]
-                baseLinks.push(bArr)
-              }
-            }
-            _this.links = baseLinks
-            _this.$nextTick(function () {
-              Scrollbar.initAll()
-              for (let i = 0; i < lookups.length; i++) {
-                let priAlias = lookups[i].alias
-                let foriFullColumn = lookups[i].join.foreign_key[0]
-                var pGuid = baseTables[priAlias].guid
-                var fGuid = baseTables[foriFullColumn.split('.')[0]].guid
-                var hisConn = _this.showLinkCons[pGuid + '$' + fGuid]
-                if (!hisConn) {
-                  var joinType = lookups[i].join.type
-                  _this.addShowLink(fGuid, pGuid, joinType)
-                }
-              }
-              if (!modelData.pos) {
-                _this.autoLayerPosition()
-              }
-            })
-            var computedColumnsLen = modelData.computed_columns && modelData.computed_columns.length || 0
-            // computed column add  old method to init computed column
-            // for (let i = 0; i < computedColumnsLen; i++) {
-            //   var fullName = modelData.computed_columns[i].tableIdentity.split('.')
-            //   var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
-            //   if (tableList && tableList.length) {
-            //     _this.computedColumn = {
-            //       guid: tableList[0].guid,
-            //       name: modelData.computed_columns[i].columnName,
-            //       expression: modelData.computed_columns[i].expression,
-            //       returnType: modelData.computed_columns[i].datatype
-            //       // columnType: modelData.computed_columns[i].datatype
-            //     }
-            //     _this.addComputedColumnToDatabase(() => {}, true)
-            //   }
-            // }
-            // computed column add  new method to init computed column
-            for (let i = 0; i < computedColumnsLen; i++) {
-              var alias = modelData.computed_columns[i].tableAlias
-              var tableInfo = _this.getTableInfo('alias', alias)
-              if (tableInfo) {
-                _this.computedColumn = {
-                  guid: tableInfo.guid,
-                  name: modelData.computed_columns[i].columnName,
-                  expression: modelData.computed_columns[i].expression,
-                  returnType: modelData.computed_columns[i].datatype
-                  // columnType: modelData.computed_columns[i].datatype
-                }
-                _this.addComputedColumnToDatabase(() => {}, true)
-              }
-              // var tableList = _this.getSameOriginTables(fullName[0], fullName[1])
-              // if (tableList && tableList.length) {
-              //   _this.computedColumn = {
-              //     guid: tableList[0].guid,
-              //     name: modelData.computed_columns[i].columnName,
-              //     expression: modelData.computed_columns[i].expression,
-              //     returnType: modelData.computed_columns[i].datatype
-              //     // columnType: modelData.computed_columns[i].datatype
-              //   }
-              //   _this.addComputedColumnToDatabase(() => {}, true)
-              // }
-            }
-
-            var modelDimensionsLen = modelData.dimensions && modelData.dimensions.length || 0
-            for (let i = 0; i < modelDimensionsLen; i++) {
-              var currentD = modelData.dimensions[i]
-              for (let j = 0; j < currentD.columns.length; j++) {
-                _this.editTableColumnInfo(baseTables[currentD.table].guid, 'name', currentD.columns[j], 'btype', 'D')
-              }
-            }
-            var modelMetricsLen = modelData.metrics && modelData.metrics.length || 0
-            for (let i = 0; i < modelMetricsLen; i++) {
-              var currentM = modelData.metrics[i]
-              _this.editTableColumnInfo(baseTables[currentM.split('.')[0]].guid, 'name', currentM.split('.')[1], 'btype', 'M')
-            }
-            // partition time setting
-            _this.getPartitionDateColumns()
-            _this.firstRenderServerData = true
-            _this.modelDataLoadEnd = true
-            _this.$nextTick(() => {
-              _this.resizeWindow(_this.briefMenu)
-            })
-          }
-          // 处理编辑数据完毕
         })
       }, (res) => {
         handleError(res)
@@ -2460,8 +2617,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了', 'cannotSetFact': '不能设置一个有外键的表为事实表', 'cannotSetFTableToFKTable': '数据模型中，表关系的建立是从外键开始，指向主键。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1.This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2.Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3.Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.'},
+    'zh-cn': {addJoinCondition: '添加连接条件', hasRootFact: '已经有一个事实表了', cannotSetFact: '不能设置一个有外键的表为事实表', cannotSetFTableToFKTable: '数据模型中，表关系的建立是从外键开始，指向主键。', tableHasOppositeLinks: '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', delTableTip: '请先删除掉该表和其他表的关联关系', sameNameComputedColumn: '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1.本功能将根据您输入的SQL语句自动补全建模。', autoModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', autoModelTip3: '3.语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。'}
   }
 }
 </script>
@@ -2770,10 +2927,10 @@ export default {
        }
        .tool_box{
           position: absolute;
-          padding:8px 6px;
+          // padding:8px 6px;
           top:36px;
-          height: 16px;
-          line-height: 16px;
+          height: 30px;
+          line-height: 30px;
           left: 0;
           right: 0;
           font-size: 12px;
@@ -2781,7 +2938,28 @@ export default {
           cursor: pointer;
           background-color: #4f5572;
           span{
+            &:hover{
+              background-color: #3ad6e8;
+            }
+          }
+          .el-dropdown{
+            width: 28px;
+            text-align: center;
+            &:hover{
+              background-color: #3ad6e8;
+            }
+          }
+          >span{
+            float: left;
             margin-right: 4px;
+            display: block;
+            height: 26px;
+            margin-top: 0px;
+            padding-top: 4px;
+            font-weight: blod;
+            // line-height: 30px;
+            width: 28px;
+            text-align:center;
           }
           i{
             cursor: pointer;

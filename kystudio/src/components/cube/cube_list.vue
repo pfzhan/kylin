@@ -115,6 +115,7 @@
             <i class="el-icon-more"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
+            <el-dropdown-item v-show="scope.row.status !=='READY' && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="openValidateSql(scope.row)">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !=='READY' && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)" v-show="isAdmin || hasSomePermissionOfProject(selected_project)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
@@ -209,6 +210,47 @@
         <el-button type="primary" @click="createCube" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
+
+
+
+    <el-dialog :title="$t('kylinLang.common.verifySql')" v-model="checkSQLFormVisible" :before-close="sqlVerifyClose" :close-on-press-escape="false" :close-on-click-modal="false">
+        <p style="font-size:12px">{{$t('verifyModelTip1')}}</p>
+        <p style="font-size:12px">{{$t('verifyModelTip2')}}</p>
+        <div :class="{hasCheck: hasCheck}">
+        <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+        </div>
+        <div class="ksd-mt-10"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('kylinLang.common.verify')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql" style="font-size:12px">{{$t('kylinLang.common.cancel')}}</el-button></div>
+        <div class="line" v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg"></div>
+        <div v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg" class="suggestBox">
+          <div v-if="successMsg">
+           <el-alert class="pure"
+              :title="successMsg"
+              show-icon
+              :closable="false"
+              type="success">
+            </el-alert>
+          </div>
+          <div v-if="errorMsg">
+           <el-alert class="pure"
+              :title="errorMsg"
+              show-icon
+              :closable="false"
+              type="error">
+            </el-alert>
+          </div>
+          <div v-for="sug in currentSqlErrorMsg">
+            <h3>{{$t('kylinLang.common.errorDetail')}}</h3>
+            <p>{{sug.incapableReason}}</p>
+            <h3>{{$t('kylinLang.common.suggest')}}</h3>
+            <p>{{sug.suggestion}}</p>
+          </div>
+        </div>
+
+        <span slot="footer" class="dialog-footer">
+          <!-- <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button> -->
+          <el-button type="primary" :loading="sqlBtnLoading" @click="sqlVerifyClose()">{{$t('kylinLang.common.ok')}}</el-button>
+        </span>
+      </el-dialog>
 </div>
 </template>
 
@@ -224,12 +266,21 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermission, kapConfirm } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermission, kapConfirm, filterMutileSqlsToOneLine } from '../../util/business'
 export default {
   name: 'cubeslist',
   props: ['extraoption'],
   data () {
     return {
+      sqlString: '',
+      checkSQLFormVisible: false,
+      sqlBtnLoading: false,
+      checkSqlLoadBtn: false,
+      hasCheck: false,
+      successMsg: '',
+      errorMsg: '',
+      checkSqlResult: [],
+      currentSqlErrorMsg: [],
       lockST: null,
       btnLoading: false,
       cubesList: [],
@@ -297,8 +348,131 @@ export default {
       loadModels: 'LOAD_ALL_MODEL',
       loadCubeDesc: 'LOAD_CUBE_DESC',
       getHbaseInfo: 'GET_HBASE_INFO',
-      getColumnarInfo: 'GET_COLUMNAR_INFO'
+      getColumnarInfo: 'GET_COLUMNAR_INFO',
+      verifyCubeSql: 'VERIFY_CUBE_SQL'
     }),
+    openValidateSql (cube) {
+      this.selected_cube = cube
+      this.checkSQLFormVisible = true
+      this.sqlString = ''
+      this.hasCheck = false
+      this.currentSqlErrorMsg = false
+      this.errorMsg = ''
+      this.successMsg = ''
+    },
+    // 渲染编辑器行号列尺寸
+    renderEditerRender (editor) {
+      // var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      if (!(editor && editor.sesssion)) {
+        return
+      }
+      editor.sesssion.gutterRenderer = {
+        getWidth: (session, lastLineNumber, config) => {
+          return lastLineNumber.toString().length * config.characterWidth
+        },
+        getText: (session, row) => {
+          return row
+        }
+      }
+    },
+    // 取消校验sql
+    cancelCheckSql () {
+      this.checkSqlLoadBtn = false
+    },
+    // 校验sql
+    validateSql () {
+      var sqls = filterMutileSqlsToOneLine(this.sqlString)
+      if (sqls.length === 0) {
+        return
+      }
+      this.hasCheck = false
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      editor && editor.removeListener('change', this.editerChangeHandle)
+      this.renderEditerRender(editor)
+      this.errorMsg = false
+      this.checkSqlLoadBtn = true
+      editor.setOption('wrap', 'free')
+      this.sqlString = sqls.join(';\r\n')
+      this.verifyCubeSql({
+        sqls: sqls,
+        cubeName: this.selected_cube.name
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.hasCheck = true
+          this.checkSqlResult = data
+          this.currentSqlErrorMsg = []
+          this.addBreakPoint(data, editor)
+          this.bindBreakClickEvent(editor)
+          this.checkSqlLoadBtn = false
+          editor && editor.on('change', this.editerChangeHandle)
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    // 添加错误标志
+    addBreakPoint (data, editor) {
+      this.errorMsg = ''
+      this.successMsg = ''
+      if (!editor) {
+        return
+      }
+      if (data && data.length) {
+        var hasFailValid = false
+        data.forEach((r, index) => {
+          if (r.capable === false) {
+            hasFailValid = true
+            editor.session.setBreakpoint(index)
+          } else {
+            editor.session.clearBreakpoint(index)
+          }
+        })
+        if (hasFailValid) {
+          this.errorMsg = this.$t('validFail')
+        } else {
+          this.successMsg = this.$t('validSuccess')
+        }
+      }
+    },
+    // 绑定错误标记事件
+    bindBreakClickEvent (editor) {
+      if (!editor) {
+        return
+      }
+      editor.on('guttermousedown', (e) => {
+        var row = +e.domEvent.target.innerHTML
+        // var row = e.getDocumentPosition().row
+        var pointDoms = this.$el.querySelectorAll('.ace_gutter-cell')
+        pointDoms.forEach((dom) => {
+          if (+dom.innerHTML === row) {
+            dom.className += ' active'
+          } else {
+            dom.className = dom.className.replace(/\s+active/g, '')
+          }
+        })
+        var data = this.checkSqlResult
+        row = row - 1
+        if (data && data.length) {
+          if (data[row].capable === false) {
+            if (data[row].sqladvices) {
+              this.errorMsg = ''
+              this.currentSqlErrorMsg = data[row].sqladvices
+            }
+          } else {
+            this.errorMsg = ''
+            this.successMsg = ''
+            this.currentSqlErrorMsg = []
+          }
+        }
+        e.stop()
+      })
+    },
+    sqlVerifyClose () {
+      this.checkSQLFormVisible = false
+    },
+    editerChangeHandle () {
+      this.hasCheck = false
+    },
     initCube () {
       this.cubeMeta = {
         cubeName: '',
@@ -771,14 +945,37 @@ export default {
     }
   },
   locales: {
-    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', updateTime: 'Update Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit Cube Desc', viewCube: 'View Cube', backup: 'Backup', storage: 'Storage', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successfully.', deleteCube: 'Once it\'s deleted, your cube schema and segment will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successfully.', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successfully.', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successfully.', backupCube: 'Are you sure to backup the cube?', backupSuccessful: 'Backup the cube successfully.', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successfully.', cubeBuildConfirm: 'CUBE BUILD CONFIRMATION', cubeRefreshConfirm: 'CUBE REFRESH CONFIRMATION', refreshSuccessful: 'Refresh the cube successfully.', cubeMergeConfirm: 'CUBE MERGE CONFIRMATION', mergeSuccessful: 'Merge the cube successfully.', cubeCloneConfirm: 'CUBE CLONE CONFIRMATION', cloneSuccessful: 'Clone the cube successfully.', chooseModel: 'Choose model to filter'},
-    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: '存储空间', sourceTableSize: '源表大小：', expansionRate: '膨胀率：', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', updateTime: '更新时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑Cube详细信息', viewCube: '查看Cube', backup: '备份', storage: '存储', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除Cube成功。', deleteCube: '请注意，删除后，Cube定义及Segment会被清除，且不能恢复。', enableCube: '请注意，如果在禁用期间，Cube定义发生改变，所有的Segment会被丢弃。确定要启用Cube？', enableSuccessful: '启用cube成功。', disableCube: '确定要禁用此Cube？', disableSuccessful: '禁用cube成功。', purgeCube: '确定要清空此Cube？', purgeSuccessful: '清空cube成功。', backupCube: '确定要备份此Cube？', backupSuccessful: '备份cube成功。', buildCube: '确定要构建此Cube？', buildSuccessful: '构建cube成功。', cubeBuildConfirm: 'Cube构建', cubeRefreshConfirm: 'Cube刷新', refreshSuccessful: '刷新Cube成功。', cubeMergeConfirm: 'Cube合并', mergeSuccessful: '合并Cube成功。', cubeCloneConfirm: 'Cube克隆', cloneSuccessful: '克隆Cube成功。', chooseModel: '选择model过滤'}
+    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup', storage: 'Storage', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!', chooseModel: 'choose model to filter', verifyModelTip1: '1.This function will help you to verify if the cube can answer following SQL statements.', verifyModelTip2: '2.Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this cube.'},
+    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: '存储空间', sourceTableSize: '源表大小：', expansionRate: '膨胀率：', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份', storage: '存储', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功!', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功!', purgeCube: '确定要清空此Cube?', purgeSuccessful: '清理cube成功!', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功!', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功!', cubeBuildConfirm: 'Cube构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功!', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功!', chooseModel: '选择model过滤', verifyModelTip1: '1.系统将帮助您检验以下SQL是否能被本Cube回答。', verifyModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本Cube验证。'}
   }
 }
 </script>
 <style lang="less">
   @import '../../less/config.less';
   .cube-list {
+    .line{
+      background: #292b38;
+      margin-left: -20px;
+      margin-right: -20px;
+    }
+    .suggestBox{
+      border-radius: 4px;
+      background-color: #20222e;
+      padding: 10px 10px;
+      font-size: 12px;
+      color:#9DA3B3;
+      max-height: 200px;
+      overflow-y: auto;
+      h3{
+        margin-bottom:10px;
+        // margin-top: 10px;
+        color:#F44236;
+        font-size: 12px;
+      }
+      p{
+        margin-bottom: 10px;
+      }
+    }
     margin-left: 30px;
     margin-right: 30px;
     .el-form-item__label{

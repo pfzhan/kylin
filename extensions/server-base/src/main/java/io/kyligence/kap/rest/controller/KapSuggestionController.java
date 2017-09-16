@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -47,9 +48,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
-import io.kyligence.kap.modeling.smart.cube.SqlResult;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.request.SmartModelRequest;
 import io.kyligence.kap.rest.service.KapSuggestionService;
+import io.kyligence.kap.smart.cube.CubeOptimizeLog;
+import io.kyligence.kap.smart.query.SQLResult;
+import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
 @Controller
 @RequestMapping(value = "/smart")
@@ -74,7 +79,7 @@ public class KapSuggestionController extends BasicController {
     @ResponseBody
     public EnvelopeResponse checkSampleSqls(@PathVariable String modelName, @PathVariable String cubeName,
             @RequestBody List<String> sqls) throws Exception {
-        List<SqlResult> data = kapSuggestionService.checkSampleSqls(modelName, cubeName, sqls);
+        List<SQLResult> data = kapSuggestionService.checkSampleSqls(modelName, cubeName, sqls);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
@@ -111,5 +116,54 @@ public class KapSuggestionController extends BasicController {
         logger.debug("Saving cube " + cubeRequest.getCubeDescData());
         CubeDesc desc = JsonUtil.readValue(cubeRequest.getCubeDescData(), CubeDesc.class);
         return desc;
+    }
+
+    @RequestMapping(value = "validate_sqls", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse validateSqlsForProposeModel(@RequestBody SmartModelRequest request) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        List<SQLValidateResult> ret = null;
+        try {
+            ret = kapSuggestionService.validateSqls(request.getProject(), request.getModelName(),
+                    request.getFactTable(), request.getSqls());
+        } catch (IOException e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_VERIFY_MODEL_SQL());
+        }
+
+        if (ret == null)
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getREPEAT_VERIFY_MODEL_SQL());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
+    }
+
+    @RequestMapping(value = "model", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse proposeDataModel(@RequestBody SmartModelRequest request) {
+        KapMessage msg = KapMsgPicker.getMsg();
+        DataModelDesc dataModelDesc = null;
+        try {
+            dataModelDesc = kapSuggestionService.proposeDataModel(request.getProject(), request.getModelName(),
+                    request.getFactTable(), request.getSqls());
+        } catch (IOException e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_PROPOSE_MODEL());
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, dataModelDesc, "");
+    }
+
+    @RequestMapping(value = "{modelName}/model_sqls", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getModelSqls(@PathVariable String modelName) {
+        KapMessage msg = KapMsgPicker.getMsg();
+        List<String> ret = null;
+        try {
+            ret = kapSuggestionService.getModelSqls(modelName);
+        } catch (IOException e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_GET_MODEL_SQL());
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
     }
 }

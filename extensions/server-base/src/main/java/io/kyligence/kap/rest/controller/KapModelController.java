@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.DimensionAdvisor;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -94,7 +95,7 @@ public class KapModelController extends BasicController {
     @ResponseBody
     public EnvelopeResponse getModelDimensionSuggestions(@RequestParam(value = "table") String table, @PathVariable String project) throws IOException {
 
-        Map<String, KapModelService.MODEL_COLUMN_SUGGESTION> result = kapModelService.inferDimensionSuggestions(table, project);
+        Map<String, DimensionAdvisor.ColumnSuggestionType> result = kapModelService.inferDimensionSuggestions(table, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 

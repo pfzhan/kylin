@@ -114,6 +114,18 @@ export default {
     },
     [types.CHECK_COMPUTED_EXPRESSION]: function ({ commit }, para) {
       return api.model.checkComputedExpression(para)
+    },
+    [types.VERIFY_MODEL_SQL]: function ({ commit }, para) {
+      return api.model.sqlValidate(para)
+    },
+    [types.AUTO_MODEL]: function ({ commit }, para) {
+      return api.model.autoModel(para)
+    },
+    [types.VALID_AUTOMODEL_SQL]: function ({ commit }, para) {
+      return api.model.validAutoModelSql(para)
+    },
+    [types.GET_AUTOMODEL_SQL]: function ({ commit }, para) {
+      return api.model.getAutoModelSql(para)
     }
   },
   getters: {

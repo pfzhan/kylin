@@ -37,6 +37,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.smart.query.AbstractQueryRecorder;
+import io.kyligence.kap.smart.query.QueryRecord;
+import io.kyligence.kap.smart.query.Utils;
+import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 
 public class MockupQueryExecutorTest extends LocalFileMetadataTestCase {
     @After

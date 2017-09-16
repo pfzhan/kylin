@@ -222,4 +222,8 @@ public class KapCnMessage extends KapMessage {
     public String getUSER_AUTHFAILED() {
         return "登陆认证信息错误，请确认您的用户和密码正确。";
     }
+
+    public String getSQL_VALIDATE_FAILED(){
+        return "sql校验错误";
+    }
 }

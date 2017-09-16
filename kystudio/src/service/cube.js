@@ -128,6 +128,9 @@ export default {
     return Vue.resource(apiUrl + 'access/CubeInstance/' + cubeId).delete({
       accessEntryId: aid
     })
+  },
+  sqlValidate: (para) => {
+    return Vue.resource(apiUrl + 'sql_validate/cube').save(para)
   }
 
 }

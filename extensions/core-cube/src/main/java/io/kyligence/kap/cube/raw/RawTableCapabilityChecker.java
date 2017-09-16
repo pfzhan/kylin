@@ -50,14 +50,21 @@ public class RawTableCapabilityChecker {
 
         //raw table cannot handle lookup queries
         if (!StringUtils.equals(digest.factTable, rawTable.getRootFactTable())) {
-            logger.info("Exclude RawTableInstance " + rawTable.getName() + " because the query does not contain fact table");
+            logger.info("Exclude RawTableInstance " + rawTable.getName()
+                    + " because the query does not contain fact table");
+            result.incapableCause = CapabilityResult.IncapableCause
+                    .create(CapabilityResult.IncapableType.II_UNMATCHED_FACT_TABLE);
             return result;
         }
 
         Collection<TblColRef> missingColumns = Sets.newHashSet(digest.allColumns);
         missingColumns.removeAll(rawTable.getAllColumns());
         if (missingColumns.size() > 0) {
-            logger.info("Exclude rawtable " + rawTable.getName() + " because missing column(s):" + missingColumns);
+            logger.info(
+                    "Exclude RawTableInstance " + rawTable.getName() + " because missing column(s):" + missingColumns);
+            result.incapableCause = CapabilityResult.IncapableCause
+                    .create(CapabilityResult.IncapableType.II_MISSING_COLS);
+            return result;
         }
 
         //handle distinct count by kylin, cuz calcite can't
@@ -73,7 +80,8 @@ public class RawTableCapabilityChecker {
             ParameterDesc parameterDesc = functionDesc.getParameter();
             if (parameterDesc != null) {
                 List<TblColRef> neededCols = parameterDesc.getColRefs();
-                if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumnsInOrder().containsAll(neededCols) && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
+                if (neededCols.size() > 0 && rawTable.getRawTableDesc().getColumnsInOrder().containsAll(neededCols)
+                        && FunctionDesc.FUNC_COUNT_DISTINCT.equals(functionDesc.getExpression())) {
                     result.influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
                 }
             }

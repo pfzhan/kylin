@@ -1,0 +1,141 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.smart.model.proposer;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.query.relnode.OLAPContext;
+
+import io.kyligence.kap.smart.model.ModelContext;
+import io.kyligence.kap.smart.util.JoinDescUtil;
+
+public class JoinProposer extends AbstractModelProposer {
+
+    public JoinProposer(ModelContext modelContext) {
+        super(modelContext);
+    }
+
+    @Override
+    public void doPropose(DataModelDesc modelDesc) {
+
+        Map<String, JoinTableDesc> joinTables = new HashMap<>();
+        Map<TableRef, String> tableAliasMap = getModelContext().getAllTableRefAlias();
+
+        for (OLAPContext ctx : getModelContext().getOLAPContexts()) {
+            if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
+                continue;
+            }
+
+            // Save context updates and apply later
+            Map<String, JoinTableDesc> joinTablesModification = new HashMap<>();
+
+            Map<JoinDesc, TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
+
+            for (Entry<JoinDesc, TableKind> entry : tableKindByJoins.entrySet()) {
+                JoinDesc join = entry.getKey();
+                TableKind kind = entry.getValue();
+                String pkTblAlias = tableAliasMap.get(join.getPKSide());
+                String fkTblAlias = tableAliasMap.get(join.getFKSide());
+
+                JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, pkTblAlias, fkTblAlias);
+
+                if (!joinTables.containsKey(joinTable.getAlias())) {
+                    joinTablesModification.put(joinTable.getAlias(), joinTable);
+                    continue;
+                }
+
+                JoinTableDesc oldJoinTable = joinTables.get(joinTable.getAlias());
+
+                // duplication check
+                if (oldJoinTable.equals(joinTable)) {
+                    continue;
+                }
+                // conflict check
+                if (!isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                    // add and resolve alias 
+                    String newAlias = getNewAlias(joinTables.keySet(), joinTable.getAlias());
+                    joinTable.setAlias(newAlias);
+                    joinTables.put(newAlias, JoinDescUtil.convert(join, kind, newAlias, fkTblAlias));
+                    tableAliasMap.put(join.getPKSide(), newAlias);
+                    continue;
+                }
+                if (!isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                    // join conflict inner <-> left
+                    continue;
+                }
+                if (!oldJoinTable.getKind().equals(joinTable.getKind())) {
+                    // LOOKUP vs FACT, use FACT
+                    joinTable.setKind(TableKind.FACT);
+                    joinTablesModification.put(joinTable.getAlias(), joinTable);
+                }
+            }
+            joinTables.putAll(joinTablesModification);
+        }
+
+        // Add joins
+        modelDesc.setJoinTables(joinTables.values().toArray(new JoinTableDesc[0]));
+    }
+
+    private String getNewAlias(Set<String> aliasSet, String oldAlias) {
+        int i = 1;
+        while (aliasSet.contains(aliasSet + "_" + i)) {
+            i++;
+        }
+        return oldAlias + "_" + i;
+    }
+
+    private List<TableRef> getTableRefByAlias(Map<TableRef, String> tableAliasMap, String alias) {
+        List<TableRef> result = new ArrayList<>();
+        for (Entry<TableRef, String> entry : tableAliasMap.entrySet()) {
+            if (entry.getKey().equals(alias)) {
+                result.add(entry.getKey());
+            }
+        }
+        return result;
+    }
+
+    private static boolean isJoinTypeEqual(JoinDesc a, JoinDesc b) {
+        return (a.isInnerJoin() && b.isInnerJoin()) || (a.isLeftJoin() && b.isLeftJoin());
+    }
+
+    private static boolean isJoinKeysEqual(JoinDesc a, JoinDesc b) {
+        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
+            return false;
+        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
+            return false;
+        return true;
+    }
+}

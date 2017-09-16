@@ -160,6 +160,9 @@ export default {
     },
     [types.DEL_CUBE_ACCESS]: function ({ commit }, {id, aid}) {
       return api.cube.delCubeAccess(id, aid)
+    },
+    [types.VERIFY_CUBE_SQL]: function ({ commit }, para) {
+      return api.cube.sqlValidate(para)
     }
   },
   getters: {}

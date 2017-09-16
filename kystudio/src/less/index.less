@@ -304,6 +304,9 @@ color: #000;
 .kapApp {
   .el-alert--warning.trans{
     background:rgba(247,186,42, 0.1);
+    .el-alert__title{
+      font-size: 12px;
+    }
     .el-alert__icon {
       color:#e3ab29;
     }
@@ -312,6 +315,9 @@ color: #000;
   }
   .el-alert--error.trans{
     background:rgba(255,73,73, 0.1);
+    .el-alert__title{
+      font-size: 12px;
+    }
     .el-alert__icon {
       color:red;
     }
@@ -320,11 +326,47 @@ color: #000;
   }
   .el-alert--success.trans{
     background:rgba(0,128,0, 0.1);
+    .el-alert__title{
+      font-size: 12px;
+    }
     .el-alert__icon {
       color:green;
     }
     color:green;
     border:solid 1px rgba(0,128,0, 0.1);
+  }
+  .el-alert--warning.pure{
+    .el-alert__title{
+      font-size: 12px;
+    }
+    background:none;
+    .el-alert__icon {
+      color:#e3ab29;
+    }
+    color:#e3ab29;
+    border:solid 1px none;
+  }
+  .el-alert--error.pure{
+    .el-alert__title{
+      font-size: 12px;
+    }
+    background:none;
+    .el-alert__icon {
+      color:#F44236 ;
+    }
+    color:#fff;
+    border:none;
+  }
+  .el-alert--success.pure{
+    .el-alert__title{
+      font-size: 12px;
+    }
+    background: none;
+    .el-alert__icon {
+      color:green;
+    }
+    color:#fff;
+    border:none;
   }
   .el-popover{
     background: @grey-color;
@@ -412,6 +454,39 @@ color: #000;
   }
   .ace_gutter-layer{
     background: #444863;
+  }
+  // 编辑器校验sql业务级别样式
+  .hasCheck{
+    .ace_gutter-cell{
+      cursor: pointer;
+    }
+    .ace_gutter-cell:before {
+      content:"✓";
+      text-align: center;
+      font-weight: bolder;
+      cursor: pointer;
+      font-size: 12px;
+      position: absolute;
+      left: 4px;
+      color:green;
+      background-color: rgba(0,0,0, 0.3);
+      width: 12px;
+      height: 12px;
+      line-height: 12px;
+      margin-top: 2px;
+    }
+    .ace_gutter-cell.ace_breakpoint:before{
+      content:"x";
+      color:red;
+      display: block;
+    }
+    .ace_gutter-cell.ace_breakpoint.active {
+      background-color: rgba(0,0,0, 0.3);
+      // border-radius: 6px;
+    }
+    .ace_gutter-cell:hover:before{
+     background-color: rgba(0,0,0, 0.5);
+    }
   }
   // 编辑器皮肤覆盖end
 

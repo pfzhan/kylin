@@ -97,7 +97,7 @@ public class KapMessage {
     public String getPERMISSION_DENIED() {
         return "Permission denied!";
     }
-    
+
     public String getSELF_DELETE_FORBIDDEN() {
         return "Cannot delete yourself!";
     }
@@ -268,4 +268,23 @@ public class KapMessage {
         return "Invalid credentials for login. Please ensure your password/user information are correct.";
     }
 
+    public String getSQL_VALIDATE_FAILED() {
+        return "sql validate error";
+    }
+
+    public String getFAIL_TO_PROPOSE_MODEL() {
+        return "Failed to propose model.";
+    }
+
+    public String getFAIL_TO_GET_MODEL_SQL() {
+        return "Failed to get sqls for proposing model. It might be caused by ModelOptimizeLog errors";
+    }
+
+    public String getFAIL_TO_VERIFY_MODEL_SQL() {
+        return "Failed to verify sqls for proposing model.";
+    }
+
+    public String getREPEAT_VERIFY_MODEL_SQL() {
+        return "The input sqls are not changed, please modify them first.";
+    }
 }

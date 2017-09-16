@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,13 +43,18 @@ import org.springframework.stereotype.Component;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.modeling.smart.ModelingContext;
-import io.kyligence.kap.modeling.smart.ModelingMaster;
-import io.kyligence.kap.modeling.smart.ModelingMasterFactory;
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLog;
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
-import io.kyligence.kap.modeling.smart.cube.SqlResult;
-import io.kyligence.kap.modeling.smart.query.QueryStats;
+import io.kyligence.kap.smart.common.MasterFactory;
+import io.kyligence.kap.smart.cube.CubeContext;
+import io.kyligence.kap.smart.cube.CubeMaster;
+import io.kyligence.kap.smart.cube.CubeOptimizeLog;
+import io.kyligence.kap.smart.cube.CubeOptimizeLogManager;
+import io.kyligence.kap.smart.cube.ModelOptimizeLog;
+import io.kyligence.kap.smart.cube.ModelOptimizeLogManager;
+import io.kyligence.kap.smart.model.ModelMaster;
+import io.kyligence.kap.smart.query.QueryStats;
+import io.kyligence.kap.smart.query.SQLResult;
+import io.kyligence.kap.smart.query.validator.RawModelSQLValidator;
+import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
 @Component("kapSuggestionService")
 public class KapSuggestionService extends BasicService {
@@ -63,16 +69,16 @@ public class KapSuggestionService extends BasicService {
         sampleSqls.toArray(sqlArray);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
-        ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc, sqlArray);
+        CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
-        ModelingContext modelingContext = modelingMaster.getContext();
+        CubeContext modelingContext = modelingMaster.getContext();
         cubeOptimizeLog.setSampleSqls(sampleSqls);
         cubeOptimizeLog.setQueryStats(modelingContext.getQueryStats());
-        cubeOptimizeLog.setSqlResult(modelingContext.getSqlResults());
+        cubeOptimizeLog.setSqlResult(modelingContext.getSQLResultList(sampleSqls));
         cubeOptimizeLogManager.saveCubeOptimizeLog(cubeOptimizeLog);
     }
 
-    public List<SqlResult> checkSampleSqls(String modelName, String cubeName, List<String> sampleSqls)
+    public List<SQLResult> checkSampleSqls(String modelName, String cubeName, List<String> sampleSqls)
             throws Exception {
         if (sampleSqls.size() == 0)
             return Lists.newArrayList();
@@ -87,10 +93,10 @@ public class KapSuggestionService extends BasicService {
         sampleSqls.toArray(sqlArray);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
-        ModelingMaster modelingMaster = ModelingMasterFactory.create(getConfig(), dataModelDesc, sqlArray);
+        CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
-        ModelingContext modelingContext = modelingMaster.getContext();
-        return modelingContext.getSqlResults();
+        CubeContext modelingContext = modelingMaster.getContext();
+        return modelingContext.getSQLResultList(sampleSqls);
     }
 
     public CubeOptimizeLog getCubeOptLog(String cubeName) throws IOException {
@@ -103,7 +109,7 @@ public class KapSuggestionService extends BasicService {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 
-            ModelingMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName(),
+            CubeMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName(),
                     cubeDesc.getOverrideKylinProps());
             CubeDesc rowkeyCube = master.proposeRowkey(cubeDesc);
             CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
@@ -114,13 +120,91 @@ public class KapSuggestionService extends BasicService {
     public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
-            ModelingMaster master = getModelingMaster(cubeName, modelName, null);
+            CubeMaster master = getModelingMaster(cubeName, modelName, null);
             CubeDesc dimMeasCube = master.proposeDerivedDimensions(master.proposeInitialCube());
             return dimMeasCube;
         }
     }
 
-    private ModelingMaster getModelingMaster(String cubeName, String modelName, Map<String, String> props)
+    public List<SQLValidateResult> validateSqls(String project, String modelName, String factTable,
+            List<String> sqls) throws IOException {
+        try (SetThreadName ignored = new SetThreadName("Suggestion %s",
+                Long.toHexString(Thread.currentThread().getId()))) {
+
+            ModelOptimizeLog modelOptimizeLog = updateModelOptimizeLog(project, modelName, factTable, sqls);
+            return modelOptimizeLog.getSqlValidateResult();
+        }
+    }
+
+    public List<String> getModelSqls(String modelName) throws IOException {
+
+        ModelOptimizeLog modelOptimizeLog = getModelOptimizeLog(modelName);
+        if (null == modelOptimizeLog) {
+            return new ArrayList<>();
+        }
+        return modelOptimizeLog.getSampleSqls();
+    }
+
+    public DataModelDesc proposeDataModel(String project, String modelName, String factTable, List<String> sqls)
+            throws IOException {
+        try (SetThreadName ignored = new SetThreadName("Suggestion %s",
+                Long.toHexString(Thread.currentThread().getId()))) {
+
+            ModelOptimizeLog optimizeLog = updateModelOptimizeLog(project, modelName, factTable, sqls);
+
+            String[] sqlArray = optimizeLog.getValidatedSqls().toArray(new String[0]);
+            KylinConfig config = getConfig();
+            ModelMaster master = MasterFactory.createModelMaster(config, project, sqlArray, factTable);
+            master.getContext().setModelName(modelName);
+            DataModelDesc modelDesc = master.proposeAll();
+            return modelDesc;
+        }
+    }
+
+    private ModelOptimizeLog updateModelOptimizeLog(String project, String modelName, String factTable,
+            List<String> sqls) throws IOException {
+        boolean isUpdated = true;
+        ModelOptimizeLog modelOptimizeLog = getModelOptimizeLog(modelName);
+
+        if (modelOptimizeLog != null) {
+            isUpdated = isSampleSqlUpdated(sqls, modelOptimizeLog.getSampleSqls());
+        }
+
+        if (!isUpdated) {
+            return modelOptimizeLog;
+        }
+
+        // Do validation to get updated
+        RawModelSQLValidator validator = new RawModelSQLValidator(getConfig(), project, factTable);
+        Map<String, SQLValidateResult> results = validator.batchValidate(sqls);
+        List<SQLValidateResult> orderedResult = new ArrayList<>(sqls.size());
+        for (String sql : sqls) {
+            orderedResult.add(results.get(sql));
+        }
+
+        if (modelOptimizeLog == null) {
+            modelOptimizeLog = new ModelOptimizeLog();
+            modelOptimizeLog.setModelName(modelName);
+        }
+        modelOptimizeLog.setSampleSqls(sqls);
+        modelOptimizeLog.setSqlValidateResult(orderedResult);
+        saveModelOptimizeLog(modelOptimizeLog);
+
+        return modelOptimizeLog;
+    }
+
+    private ModelOptimizeLog getModelOptimizeLog(String modelName) throws IOException {
+        ModelOptimizeLogManager modelOptimizeLogManager = ModelOptimizeLogManager.getInstance(getConfig());
+        return modelOptimizeLogManager.getModelOptimizeLog(modelName);
+
+    }
+
+    private void saveModelOptimizeLog(ModelOptimizeLog modelOptimizeLog) throws IOException {
+        ModelOptimizeLogManager modelOptimizeLogManager = ModelOptimizeLogManager.getInstance(getConfig());
+        modelOptimizeLogManager.saveModelOptimizeLog(modelOptimizeLog);
+    }
+
+    private CubeMaster getModelingMaster(String cubeName, String modelName, Map<String, String> props)
             throws IOException {
         Map<String, String> overrideProps = Maps.newHashMap();
         ProjectInstance projectInstance = ProjectManager.getInstance(getConfig()).getProjectOfModel(modelName);
@@ -135,7 +219,7 @@ public class KapSuggestionService extends BasicService {
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(config);
         QueryStats queryStats = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName).getQueryStats();
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
-        ModelingMaster modelingMaster = ModelingMasterFactory.create(config, dataModelDesc, queryStats);
+        CubeMaster modelingMaster = MasterFactory.createCubeMaster(config, dataModelDesc, queryStats);
         return modelingMaster;
     }
 

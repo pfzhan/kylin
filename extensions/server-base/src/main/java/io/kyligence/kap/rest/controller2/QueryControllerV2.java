@@ -51,7 +51,6 @@ import org.apache.kylin.rest.request.SaveSqlRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
-import org.apache.kylin.rest.service.QueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,6 +70,8 @@ import org.supercsv.prefs.CsvPreference;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.rest.service.KapQueryService;
+
 /**
  * Handle query requests.
  * 
@@ -83,14 +84,13 @@ public class QueryControllerV2 extends BasicController {
     private static final Logger logger = LoggerFactory.getLogger(QueryControllerV2.class);
 
     @Autowired
-    @Qualifier("queryService")
-    private QueryService queryService;
+    @Qualifier("kapQueryService")
+    private KapQueryService queryService;
 
     @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse queryV2(@RequestBody PrepareSqlRequest sqlRequest) {
-
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
     }
 
@@ -167,8 +167,8 @@ public class QueryControllerV2 extends BasicController {
     @RequestMapping(value = "/query/format/{format}", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" }, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
-    public void downloadQueryResultV2(@PathVariable String format, SQLRequest sqlRequest,
-            HttpServletResponse response) throws IOException {
+    public void downloadQueryResultV2(@PathVariable String format, SQLRequest sqlRequest, HttpServletResponse response)
+            throws IOException {
 
         SQLResponse result = queryService.doQueryWithCache(sqlRequest);
 
@@ -212,7 +212,7 @@ public class QueryControllerV2 extends BasicController {
                 "");
     }
 
-    public void setQueryService(QueryService queryService) {
+    public void setQueryService(KapQueryService queryService) {
         this.queryService = queryService;
     }
 }

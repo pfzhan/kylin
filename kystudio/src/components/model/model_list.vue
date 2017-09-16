@@ -16,6 +16,7 @@
 					    <icon name="ellipsis-h"></icon>
 					  </span>
 					  <el-dropdown-menu slot="dropdown"  :uuid='o.uuid' >
+              <el-dropdown-item command="verify" v-if="!o.is_draft">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
               <el-dropdown-item command="cube" v-if="!o.is_draft">{{$t('addCube')}}</el-dropdown-item>
 					    <el-dropdown-item command="edit">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
 					    <el-dropdown-item command="clone" v-if="!o.is_draft">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
@@ -104,6 +105,7 @@
             <i class="el-icon-more"></i>
           </el-button >
          <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid'>
+              <el-dropdown-item command="verify" v-if="!scope.row.is_draft">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
               <el-dropdown-item command="cube" v-if="!scope.row.is_draft">{{$t('addCube')}}</el-dropdown-item>
               <el-dropdown-item command="edit">{{$t('kylinLang.common.edit')}}</el-dropdown-item>
               <el-dropdown-item command="clone" v-if="!scope.row.is_draft">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
@@ -255,17 +257,65 @@
           <el-button type="primary" @click="gotoView">{{$t('kylinLang.common.view')}}</el-button>
         </span>
       </el-dialog>
+
+
+      <el-dialog :title="$t('kylinLang.common.verifySql')" v-model="checkSQLFormVisible" :before-close="sqlVerifyClose" :close-on-press-escape="false" :close-on-click-modal="false">
+        <p style="font-size:12px">{{$t('verifyModelTip1')}}</p>
+        <p style="font-size:12px">{{$t('verifyModelTip2')}}</p>
+        <div :class="{hasCheck: hasCheck}">
+        <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+        </div>
+        <div class="ksd-mt-10"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('kylinLang.common.verify')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql" style="font-size:12px">{{$t('kylinLang.common.cancel')}}</el-button></div>
+        <div class="line" v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg"></div>
+        <div v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg" class="suggestBox">
+          <div v-if="successMsg">
+           <el-alert class="pure"
+              :title="successMsg"
+              show-icon
+              :closable="false"
+              type="success">
+            </el-alert>
+          </div>
+          <div v-if="errorMsg">
+           <el-alert class="pure"
+              :title="errorMsg"
+              show-icon
+              :closable="false"
+              type="error">
+            </el-alert>
+          </div>
+          <div v-for="sug in currentSqlErrorMsg">
+            <h3>{{$t('kylinLang.common.errorDetail')}}</h3>
+            <p>{{sug.incapableReason}}</p>
+            <h3>{{$t('kylinLang.common.suggest')}}</h3>
+            <p>{{sug.suggestion}}</p>
+          </div>
+        </div>
+        
+        <span slot="footer" class="dialog-footer">
+          <!-- <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button> -->
+          <el-button type="primary" :loading="sqlBtnLoading" @click="sqlVerifyClose()">{{$t('kylinLang.common.ok')}}</el-button>
+        </span>
+      </el-dialog>
 	</div>
 </template>
 <script>
 import { mapActions } from 'vuex'
 import cubeList from '../cube/cube_list'
 import { pageCount, modelHealthStatus, permissions, NamedRegex } from '../../config'
-import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermission } from 'util/business'
+import { transToGmtTime, handleError, handleSuccess, kapConfirm, hasRole, hasPermission, filterMutileSqlsToOneLine } from 'util/business'
 export default {
   data () {
     return {
       modelHealthStatus: modelHealthStatus,
+      checkSQLFormVisible: false,
+      sqlBtnLoading: false,
+      checkSqlLoadBtn: false,
+      hasCheck: false,
+      successMsg: '',
+      errorMsg: '',
+      checkSqlResult: [],
+      currentSqlErrorMsg: [],
       useCubeDialogVisible: false,
       scanRatioDialogVisible: false,
       openCollectRange: true,
@@ -275,6 +325,7 @@ export default {
       modelStaticsRange: 1,
       startTime: '',
       endTime: '',
+      sqlString: '',
       pickerOptionsEnd: {},
       viewModal: 'card',
       hasPartition: false,
@@ -334,7 +385,8 @@ export default {
       getCubesList: 'GET_CUBES_LIST',
       getModelProgress: 'GET_MODEL_PROGRESS',
       getModelCheckable: 'MODEL_CHECKABLE',
-      diagnose: 'DIAGNOSE'
+      diagnose: 'DIAGNOSE',
+      verifySql: 'VERIFY_MODEL_SQL'
     }),
     changeGridModal (val) {
       this.viewModal = val
@@ -485,6 +537,119 @@ export default {
         uuid: modelData.uuid
       })
     },
+    // 渲染编辑器行号列尺寸
+    renderEditerRender (editor) {
+      // var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      if (!(editor && editor.sesssion)) {
+        return
+      }
+      editor.sesssion.gutterRenderer = {
+        getWidth: (session, lastLineNumber, config) => {
+          return lastLineNumber.toString().length * config.characterWidth
+        },
+        getText: (session, row) => {
+          return row
+        }
+      }
+    },
+    // 取消校验sql
+    cancelCheckSql () {
+      this.checkSqlLoadBtn = false
+    },
+    // 校验sql
+    validateSql () {
+      var sqls = filterMutileSqlsToOneLine(this.sqlString)
+      if (sqls.length === 0) {
+        return
+      }
+      this.hasCheck = false
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      editor && editor.removeListener('change', this.editerChangeHandle)
+      this.renderEditerRender(editor)
+      this.errorMsg = false
+      this.checkSqlLoadBtn = true
+      editor.setOption('wrap', 'free')
+      this.sqlString = sqls.join(';\r\n')
+      this.verifySql({
+        sqls: sqls,
+        modelName: this.currentModelData.name
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.hasCheck = true
+          this.checkSqlResult = data
+          this.currentSqlErrorMsg = []
+          this.addBreakPoint(data, editor)
+          this.bindBreakClickEvent(editor)
+          this.checkSqlLoadBtn = false
+          editor && editor.on('change', this.editerChangeHandle)
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    // 添加错误标志
+    addBreakPoint (data, editor) {
+      this.errorMsg = ''
+      this.successMsg = ''
+      if (!editor) {
+        return
+      }
+      if (data && data.length) {
+        var hasFailValid = false
+        data.forEach((r, index) => {
+          if (r.capable === false) {
+            hasFailValid = true
+            editor.session.setBreakpoint(index)
+          } else {
+            editor.session.clearBreakpoint(index)
+          }
+        })
+        if (hasFailValid) {
+          this.errorMsg = this.$t('validFail')
+        } else {
+          this.successMsg = this.$t('validSuccess')
+        }
+      }
+    },
+    // 绑定错误标记事件
+    bindBreakClickEvent (editor) {
+      if (!editor) {
+        return
+      }
+      editor.on('guttermousedown', (e) => {
+        var row = +e.domEvent.target.innerHTML
+        // var row = e.getDocumentPosition().row
+        var pointDoms = this.$el.querySelectorAll('.ace_gutter-cell')
+        pointDoms.forEach((dom) => {
+          if (+dom.innerHTML === row) {
+            dom.className += ' active'
+          } else {
+            dom.className = dom.className.replace(/\s+active/g, '')
+          }
+        })
+        var data = this.checkSqlResult
+        row = row - 1
+        if (data && data.length) {
+          if (data[row].capable === false) {
+            if (data[row].sqladvices) {
+              this.errorMsg = ''
+              this.currentSqlErrorMsg = data[row].sqladvices
+            }
+          } else {
+            this.errorMsg = ''
+            this.successMsg = ''
+            this.currentSqlErrorMsg = []
+          }
+        }
+        e.stop()
+      })
+    },
+    sqlVerifyClose () {
+      this.checkSQLFormVisible = false
+    },
+    editerChangeHandle () {
+      this.hasCheck = false
+    },
     handleCommand (command, component) {
       var handleData = component.$parent.$el
       var uuid = handleData.getAttribute('uuid')
@@ -494,7 +659,14 @@ export default {
       // this.currentModelData.project = modelData.project
       var modelName = modelData.name
       var projectName = modelData.project
-      if (command === 'edit') {
+      if (command === 'verify') {
+        this.checkSQLFormVisible = true
+        this.sqlString = ''
+        this.hasCheck = false
+        this.currentSqlErrorMsg = false
+        this.errorMsg = ''
+        this.successMsg = ''
+      } else if (command === 'edit') {
         this.getModelCheckMode(projectName, modelName, () => {
           this.$emit('addtabs', 'model', modelName, 'modelEdit', {
             project: projectName,
@@ -767,8 +939,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!', canNotChecked: 'This model can not be checked', chooseStartDate: 'Select start time', chooseEndDate: 'Select end time'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!', canNotChecked: '该模型无法进行检测', chooseStartDate: '选择起始时间', chooseEndDate: '选择结束时间'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by cubes as follows，you can only view the Model！', 'inputCloneName': 'Please input new name', 'inputModelName': 'Please input model name', 'inputCubeName': 'Please input cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Not checked health yet', hasChecked: 'There has been a running check job!You can go to Monitor page to watch the progress!', canNotChecked: 'This model can not be checked', chooseStartDate: 'Select start time', chooseEndDate: 'Select end time', verifyModelTip1: '1.This function will help you to verify if the model can answer following SQL statements.', verifyModelTip2: '2.Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该Model已经被下列cube使用过，无法编辑！您可以预览该Model！', 'inputCloneName': '请输入克隆后的名字', 'inputModelName': '请输入model名称', 'inputCubeName': '请输入cube名称', 'delModelTip': '你确认删除该model吗?', 'hasNotChecked': '还未进行健康检测', hasChecked: '已有一个检测作业正在进行中，您可以去Monitor页面查看进度!', canNotChecked: '该模型无法进行检测', chooseStartDate: '选择起始时间', chooseEndDate: '选择结束时间', verifyModelTip1: '1.系统将帮助您检验以下SQL是否能被本模型回答。', verifyModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。'}
   }
 }
 </script>
@@ -778,6 +950,29 @@ export default {
   margin-left: 30px;
   min-height:600px;
   margin-right: 30px;
+  .line{
+    background: #292b38;
+    margin-left: -20px;
+    margin-right: -20px;
+  }
+  .suggestBox{
+    border-radius: 4px;
+    background-color: #20222e;
+    padding: 10px 10px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 12px;
+    color:#9DA3B3;
+    h3{
+      margin-bottom:10px;
+      // margin-top: 10px;
+      color:#F44236;
+      font-size: 12px;
+    }
+    p{
+      margin-bottom: 10px;
+    }
+  }
   .modelCheck{
     .el-date-editor.el-input{
       width: 100%;

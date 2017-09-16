@@ -62,8 +62,8 @@ import com.google.common.cache.CacheBuilder;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.modeling.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 
 @Component("kapCubeService")

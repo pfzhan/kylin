@@ -68,5 +68,17 @@ export default {
   },
   checkComputedExpression: (para) => {
     return Vue.resource(apiUrl + 'models/validness').save(para)
+  },
+  sqlValidate: (para) => {
+    return Vue.resource(apiUrl + 'sql_validate/model').save(para)
+  },
+  autoModel: (para) => {
+    return Vue.resource(apiUrl + 'smart/model').save(para)
+  },
+  validAutoModelSql: (para) => {
+    return Vue.resource(apiUrl + 'smart/validate_sqls').save(para)
+  },
+  getAutoModelSql: (para) => {
+    return Vue.resource(apiUrl + 'smart/model_sqls').get(para)
   }
 }

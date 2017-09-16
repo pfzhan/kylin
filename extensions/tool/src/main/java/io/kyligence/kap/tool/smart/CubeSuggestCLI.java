@@ -46,8 +46,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.modeling.smart.ModelingMaster;
-import io.kyligence.kap.modeling.smart.ModelingMasterFactory;
+import io.kyligence.kap.smart.common.MasterFactory;
+import io.kyligence.kap.smart.cube.CubeMaster;
 
 public class CubeSuggestCLI implements IKeepNames {
 
@@ -116,7 +116,7 @@ public class CubeSuggestCLI implements IKeepNames {
             logger.info(sqls[i]);
         }
 
-        ModelingMaster master = ModelingMasterFactory.create(kylinConfig, modelDesc, sqls);
+        CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
 
         // propose initial cube
         CubeDesc initCube = master.proposeInitialCube();

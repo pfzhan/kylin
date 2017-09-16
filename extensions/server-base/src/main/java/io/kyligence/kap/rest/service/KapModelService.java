@@ -24,26 +24,25 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.rest.request.ModelStatusRequest;
-import io.kyligence.kap.source.hive.modelstats.ModelStats;
-import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.rest.service.BasicService;
-import org.springframework.stereotype.Component;
-
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.rest.service.BasicService;
+import org.springframework.stereotype.Component;
+
+import io.kyligence.kap.metadata.model.DimensionAdvisor;
+import io.kyligence.kap.rest.request.ModelStatusRequest;
+import io.kyligence.kap.source.hive.modelstats.ModelStats;
+import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Component("kapModelService")
 public class KapModelService extends BasicService {
@@ -53,78 +52,8 @@ public class KapModelService extends BasicService {
         return modelStatus;
     }
 
-    public Map<String, MODEL_COLUMN_SUGGESTION> inferDimensionSuggestions(String tableName, String prj) {
-        Map<String, MODEL_COLUMN_SUGGESTION> result = new HashMap<String, MODEL_COLUMN_SUGGESTION>();
-        TableDesc tableDesc = getMetadataManager().getTableDesc(tableName, prj);
-        if (tableDesc == null)
-            return result;
-        ColumnDesc[] columns = tableDesc.getColumns();
-        TableExtDesc tableExt = getMetadataManager().getTableExt(tableName, prj);
-        List<TableExtDesc.ColumnStats> columnStats = tableExt.getColumnStats();
-        for (int i = 0; i < columns.length; i++) {
-            ColumnDesc column = columns[i];
-            TableExtDesc.ColumnStats stat = columnStats.size() > i ? columnStats.get(i) : null;
-            MODEL_COLUMN_SUGGESTION suggestion = inferDimensionSuggestion(column, stat);
-            result.put(column.getName(), suggestion);
-        }
-
-        return result;
-    }
-
-    private MODEL_COLUMN_SUGGESTION inferDimensionSuggestion(ColumnDesc column, TableExtDesc.ColumnStats stat) {
-        if (column.getType().isIntegerFamily()) {
-            if (column.getName().toUpperCase().endsWith("ID") || column.getName().toUpperCase().endsWith("KEY")) {
-                return MODEL_COLUMN_SUGGESTION.DIMENSION;
-            }
-            if (column.getType().isTinyInt() || column.getType().isSmallInt()) {
-                return inferDimensionByCardinality(stat);
-            } else {
-                return MODEL_COLUMN_SUGGESTION.MEASURE;
-            }
-        } else if (column.getType().isNumberFamily()) {
-            return MODEL_COLUMN_SUGGESTION.MEASURE;
-        } else if (column.getType().isDateTimeFamily()) {
-            if (column.getType().isDate() || column.getType().isDatetime()) {
-                return inferDimensionByCardinality(stat);
-            } else {
-                return MODEL_COLUMN_SUGGESTION.MEASURE;
-            }
-        } else if (column.getType().isStringFamily()) {
-            return inferDimensionByCardinality(stat);
-        } else {
-            return inferDimensionByCardinality(stat);
-        }
-    }
-
-    private MODEL_COLUMN_SUGGESTION inferDimensionByCardinality(TableExtDesc.ColumnStats stat) {
-        if (stat == null) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION;
-        }
-        long cardinality = stat.getCardinality();
-        if (cardinality < 20) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_TINY;
-        } else if (cardinality < 100) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_SMALL;
-        } else if (cardinality < 1000) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_MEDIUM;
-        } else if (cardinality < 10000) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_HIGH;
-        } else if (cardinality < 100000) {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_VERY_HIGH;
-        } else {
-            return MODEL_COLUMN_SUGGESTION.DIMENSION_ULTRA_HIGH;
-        }
-    }
-
-    public enum MODEL_COLUMN_SUGGESTION {
-        MEASURE, // measure
-        DIMENSION, // dimension without cardinality info
-        DIMENSION_TINY, // cardinality<20
-        DIMENSION_SMALL, //cardinality<100
-        DIMENSION_MEDIUM, //cardinality<1,000
-        DIMENSION_HIGH, //cardinality<10,000
-        DIMENSION_VERY_HIGH, //cardinality<100,000
-        DIMENSION_ULTRA_HIGH//cardinality>=100,000
+    public Map<String, DimensionAdvisor.ColumnSuggestionType> inferDimensionSuggestions(String tableName, String prj) {
+        return new DimensionAdvisor(getConfig()).inferDimensionSuggestions(tableName, prj);
     }
 
     private ModelStatusRequest extractStatus(String modelName) throws IOException {
@@ -157,21 +86,21 @@ public class KapModelService extends BasicService {
     private ModelStatusRequest.HealthStatus judgeHealthStatus(int sign) {
         ModelStatusRequest.HealthStatus healthStatus;
         switch (sign) {
-            case 0:
-                healthStatus = ModelStatusRequest.HealthStatus.GOOD;
-                break;
-            case 1:
-                healthStatus = ModelStatusRequest.HealthStatus.WARN;
-                break;
-            case 2:
-                healthStatus = ModelStatusRequest.HealthStatus.BAD;
-                break;
-            case 3:
-                healthStatus = ModelStatusRequest.HealthStatus.TERRIBLE;
-                break;
-            default:
-                healthStatus = ModelStatusRequest.HealthStatus.NONE;
-                break;
+        case 0:
+            healthStatus = ModelStatusRequest.HealthStatus.GOOD;
+            break;
+        case 1:
+            healthStatus = ModelStatusRequest.HealthStatus.WARN;
+            break;
+        case 2:
+            healthStatus = ModelStatusRequest.HealthStatus.BAD;
+            break;
+        case 3:
+            healthStatus = ModelStatusRequest.HealthStatus.TERRIBLE;
+            break;
+        default:
+            healthStatus = ModelStatusRequest.HealthStatus.NONE;
+            break;
         }
         return healthStatus;
     }

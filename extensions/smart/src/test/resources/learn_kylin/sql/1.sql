@@ -1,0 +1,1 @@
+select lstg_format_name, sum(price) from kylin_sales group by lstg_format_name

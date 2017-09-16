@@ -18,6 +18,8 @@ exports.default = {
     sync: '同步',
     clone: '克隆',
     check: '检测',
+    verify: '校验',
+    verifySql: '验证SQL',
     view: '预览',
     draft: '草稿',
     overview: '概览',
@@ -47,6 +49,8 @@ exports.default = {
     manual: '文档',
     tutorial: '使用教程',
     qa: '常见问题',
+    errorDetail: '错误详情：',
+    suggest: '修改建议：',
     // 通用提示
     unknownError: '未知错误。',
     submitSuccess: '提交成功。',
