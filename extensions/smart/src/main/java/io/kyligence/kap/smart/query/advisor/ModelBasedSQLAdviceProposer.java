@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -154,7 +155,17 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
         }
         String tableName = chain.getTable().getTableName();
         String joinTable = chain.getFkSide().getTable().getTableName();
-        return String.format("%s JOIN %s %s", tableName, joinTable, chain.getJoin().toString().replace("JoinDesc [", "["));
+        List<String> joinConditions = Lists.newArrayList();
+        String[] primaryKeys = chain.getJoin().getPrimaryKey();
+        String[] foreignKeys = chain.getJoin().getForeignKey();
+        for(int i = 0; i < primaryKeys.length; i++){
+            if(primaryKeys[i].startsWith(tableName)){
+                joinConditions.add(String.format("%s=%s", primaryKeys[i], foreignKeys[i]));
+            } else {
+                joinConditions.add(String.format("%s.%s=%s.%s", tableName, primaryKeys[i], joinTable, foreignKeys[i]));
+            }
+        }
+        return String.format("%s JOIN: %s", chain.getJoin().getType().toUpperCase(), StringUtils.join(joinConditions, ","));
     }
 
     private JoinUnmatchedType getJoinUnmatchedType(JoinsTree.Chain chain, JoinsTree joinsTree, Map<JoinsTree.Chain, JoinsTree.Chain> unmatched) {

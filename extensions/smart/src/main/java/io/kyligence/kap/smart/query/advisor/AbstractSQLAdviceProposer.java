@@ -59,12 +59,19 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     private static final Pattern PTN_SYNTAX_TABLE_CASE_ERR = Pattern.compile(
             "Object '([^']*)' not found within '[^']*'; did you mean '([^']*)'\\?", Pattern.MULTILINE | Pattern.DOTALL);
     private static final Pattern PTN_SYNTAX_UNEXPECTED_TOKEN = Pattern.compile(
-            "Encountered \"(.*)\" at line \\d+, column \\d+. Was expecting one of: .*",
+            "Encountered \"(.*)\" at line (\\d+), column (\\d+). Was expecting one of: .*",
             Pattern.MULTILINE | Pattern.DOTALL);
     private static final Pattern PTN_CALCITE_COMPILE = Pattern.compile("Error while compiling generated Java code: .*",
             Pattern.MULTILINE | Pattern.DOTALL);
     private static final Pattern PTN_DEFAULT_MESSAGE = Pattern.compile("(.*)\nwhile executing SQL: \".*\"",
             Pattern.MULTILINE | Pattern.DOTALL);
+    private static final Pattern PTN_CARTESIAN_JOIN = Pattern.compile(
+            "(Cartesian Join is not supported.)\nwhile executing SQL: \".*\"", Pattern.MULTILINE | Pattern.DOTALL);
+
+    private static final Pattern PTN_NO_REALIZATION_FOUND = Pattern.compile(
+            "No realization found for [^\\s]+:OLAPTableScan\\.OLAP\\.\\[\\]\\(table=\\[([^\\s]+), ([^\\s]+)\\].*",
+            Pattern.MULTILINE | Pattern.DOTALL);
+
     protected AdviceMessage msg = AdviceMsgPicker.getMsg();
 
     @Override
@@ -96,7 +103,8 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
         // parse error from calcite
         Matcher m = PTN_SYNTAX_UNEXPECTED_TOKEN.matcher(message);
         if (m.matches()) {
-            return SQLAdvice.build(String.format(msg.getUNEXPECTED_TOKEN(), m.group(1)), msg.getBAD_SQL_SUGGEST());
+            return SQLAdvice.build(String.format(msg.getUNEXPECTED_TOKEN(), m.group(1), m.group(2), m.group(3)),
+                    msg.getBAD_SQL_SUGGEST());
         }
 
         // syntax error from calcite
@@ -108,6 +116,17 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
         m = PTN_CALCITE_COMPILE.matcher(message);
         if (m.matches()) {
             return SQLAdvice.build(String.format(msg.getDEFAULT_REASON(), ""), msg.getDEFAULT_SUGGEST());
+        }
+
+        m = PTN_NO_REALIZATION_FOUND.matcher(message);
+        if (m.matches()) {
+            return SQLAdvice.build(msg.getNO_REALIZATION_FOUND_REASON(),
+                    String.format(msg.getNO_REALIZATION_FOUND_SUGGEST(), m.group(1), m.group(2)));
+        }
+
+        m = PTN_CARTESIAN_JOIN.matcher(message);
+        if (m.matches()) {
+            return SQLAdvice.build(m.group(1), msg.getBAD_SQL_SUGGEST());
         }
 
         // by default, return origin message
@@ -133,19 +152,25 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
         if (m.matches()) {
             String actual = m.group(1);
             String expected = m.group(2);
-            return SQLAdvice.build(msg.getBAD_SQL_TABLE_CASE_ERR_REASON(actual),
-                    msg.getBAD_SQL_TABLE_CASE_ERR_SUGGEST(actual, expected));
+            return SQLAdvice.build(String.format(msg.getBAD_SQL_TABLE_CASE_ERR_REASON(), actual),
+                    String.format(msg.getBAD_SQL_TABLE_CASE_ERR_SUGGEST(), actual, expected));
         }
 
         m = PTN_SYNTAX_COLUMN_MISSING.matcher(message);
         if (m.matches()) {
             String colName = m.group(1);
             String tblName = m.group(2);
-            return SQLAdvice.build(msg.getBAD_SQL_COLUMN_NOT_FOUND_REASON(colName, tblName),
-                    msg.getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(colName, tblName));
+            if (tblName == null) {
+                return SQLAdvice.build(String.format(msg.getBAD_SQL_COLUMN_NOT_FOUND_REASON(), colName),
+                        String.format(msg.getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(), colName));
+            } else {
+                return SQLAdvice.build(
+                        String.format(msg.getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON(), colName, tblName),
+                        String.format(msg.getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST(), colName, tblName));
+            }
         }
 
-        return SQLAdvice.build(message, msg.getBAD_SQL_SUGGEST());
+        return SQLAdvice.build(String.format(msg.getBAD_SQL_REASON(), message), msg.getBAD_SQL_SUGGEST());
     }
 
     protected String formatTblColRefs(Collection<TblColRef> tblColRefs) {

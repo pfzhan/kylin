@@ -47,7 +47,11 @@ public class AdviceMessage {
     }
 
     public String getUNEXPECTED_TOKEN() {
-        return "Encountered unexpected token: \"%s\"";
+        return "Syntax error: encountered un expected token:\" %s\". At line %s, column %s.";
+    }
+
+    public String getBAD_SQL_REASON() {
+        return "Syntax error:\"%s\".";
     }
 
     public String getBAD_SQL_SUGGEST() {
@@ -62,28 +66,28 @@ public class AdviceMessage {
         return "Please add table %s to data source.";
     }
 
-    public String getBAD_SQL_TABLE_CASE_ERR_REASON(String id) {
-        return String.format("UPPER case is required for double-quoted identifiers '%s'", id);
+    public String getBAD_SQL_TABLE_CASE_ERR_REASON() {
+        return "Database/table/column name within a pair of double quotation should be in upper case.";
     }
 
-    public String getBAD_SQL_TABLE_CASE_ERR_SUGGEST(String id1, String id2) {
-        return String.format("Please change \"%s\" to \"%s\" in sql. ", id1, id2);
+    public String getBAD_SQL_TABLE_CASE_ERR_SUGGEST() {
+        return "Please change \"%s\" to \"%s\" in SQL.";
     }
 
-    public String getBAD_SQL_COLUMN_NOT_FOUND_REASON(String colName, String tblName) {
-        if (tblName == null) {
-            return String.format("Column '%s' not found in any table.", colName);
-        } else {
-            return String.format("Column '%s' not found in table '%s'.", colName, tblName);
-        }
+    public String getBAD_SQL_COLUMN_NOT_FOUND_REASON() {
+        return "Column '%s' not found in any table.";
     }
 
-    public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST(String colName, String tblName) {
-        if (tblName == null) {
-            return String.format("Please add column %s to data source.", colName);
-        } else {
-            return String.format("Please add column %s to table %s in data source.", colName, tblName);
-        }
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_REASON() {
+        return "Column '%s' not found in table '%s'.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_SUGGEST() {
+        return "Please add column %s to data source.";
+    }
+
+    public String getBAD_SQL_COLUMN_NOT_FOUND_IN_TABLE_SUGGEST() {
+        return "Please add column %s to table %s in data source.";
     }
 
     //bad sequence of join
@@ -106,7 +110,7 @@ public class AdviceMessage {
 
     //join type unmatched in model
     public String getMODEL_JOIN_TYPE_UNMATCHED_REASON() {
-        return "Join type unmatched. %s  from SQL  is unmatched with %s from model %s.";
+        return "Join type unmatched. %s from SQL is unmatched with %s from model %s.";
     }
 
     public String getMODEL_JOIN_TYPE_UNMATCHED_SUGGEST() {
@@ -115,7 +119,7 @@ public class AdviceMessage {
 
     //join condition unmatched in model
     public String getMODEL_JOIN_CONDITION_UNMATCHED_REASON() {
-        return "Join condition unmatched. %s  from SQL  is unmatched with %s from model %s.";
+        return "Join condition unmatched. %s from SQL is unmatched with %s from model %s.";
     }
 
     public String getMODEL_JOIN_CONDITION_UNMATCHED_SUGGEST() {
@@ -124,7 +128,7 @@ public class AdviceMessage {
 
     //join type and condition unmatched in model
     public String getMODEL_JOIN_TYPE_CONDITION_UNMATCHED_REASON() {
-        return "Join unmatched. %s  from SQL  is unmatched with %s from model %s.";
+        return "Join unmatched. %s from SQL is unmatched with %s from model %s.";
     }
 
     public String getMODEL_JOIN_TYPE_CONDITION_UNMATCHED_SUGGEST() {
@@ -146,7 +150,7 @@ public class AdviceMessage {
     }
 
     public String getMODEL_NOT_CONTAIN_ALL_DIMENSION_SUGGEST() {
-        return "Please add the columns %s  as dimension to model %s.";
+        return "Please add the columns %s as dimension to model %s.";
     }
 
     //measures not found in cube
@@ -155,7 +159,7 @@ public class AdviceMessage {
     }
 
     public String getMODEL_NOT_CONTAIN_ALL_MEASURE_SUGGEST() {
-        return "Please add the columns %s  as measure to model %s.";
+        return "Please add the columns %s as measure to model %s.";
     }
 
     //table not found in model
@@ -173,7 +177,7 @@ public class AdviceMessage {
     }
 
     public String getMODEL_UNMATCHED_DIMENSION_SUGGEST() {
-        return "Please add the columns %s  as dimension to model %s.";
+        return "Please add the columns %s as dimension to model %s.";
     }
 
     //fact table unmatched in model
@@ -209,7 +213,7 @@ public class AdviceMessage {
     }
 
     public String getCUBE_NOT_CONTAIN_ALL_DIMENSION_SUGGEST() {
-        return "Please add the columns %s  as dimension to cube %s.";
+        return "Please add the columns %s as dimension to cube %s.";
     }
 
     //measures not found in cube
@@ -218,7 +222,7 @@ public class AdviceMessage {
     }
 
     public String getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST() {
-        return "Please add the columns %s  as measure to cube %s.";
+        return "Please add the columns %s as measure to cube %s.";
     }
 
     //CUBE_BLACK_OUT_REALIZATION
@@ -277,7 +281,7 @@ public class AdviceMessage {
     }
 
     public String getCUBE_UNMATCHED_AGGREGATION_SUGGEST() {
-        return "Please add measures  %s in the cube %s.";
+        return "Please add measures %s in the cube %s.";
     }
 
     public String getCUBE_OTHER_CUBE_INCAPABLE_REASON() {
@@ -294,5 +298,13 @@ public class AdviceMessage {
 
     public String getSPARK_DRIVER_NOT_RUNNING_SUGGEST() {
         return "Please make sure the spark driver is working by running \"$KYLIN_HOME/bin/spark-client.sh start\".";
+    }
+
+    public String getNO_REALIZATION_FOUND_REASON() {
+        return "Cube not found.";
+    }
+
+    public String getNO_REALIZATION_FOUND_SUGGEST() {
+        return "Please ensure you have the cube which including fact table %s.%s. Another suggested way is using Verify SQL(action for cube) among the desired cube to shape it as your will.";
     }
 }

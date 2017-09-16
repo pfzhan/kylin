@@ -147,6 +147,7 @@ public class KapSuggestionController extends BasicController {
         try {
             dataModelDesc = kapSuggestionService.proposeDataModel(request.getProject(), request.getModelName(),
                     request.getFactTable(), request.getSqls());
+            logger.debug("Proposed model:\n" + JsonUtil.writeValueAsIndentString(dataModelDesc));
         } catch (IOException e) {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_PROPOSE_MODEL());
         }
