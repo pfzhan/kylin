@@ -55,7 +55,7 @@ public class CubeBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
                     cubeDesc.getName()));
             break;
         case CUBE_NOT_CONTAIN_ALL_MEASURE:
-            String notFoundMeasureMsg = formatTblColRefs(incapableReason.getNotFoundMeasures());
+            String notFoundMeasureMsg = formatFunctionDescs(incapableReason.getNotFoundMeasures());
             sqlAdvice.setIncapableReason(String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg,
                     cubeDesc.getName()));
             sqlAdvice.setSuggestion(String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,

@@ -30,6 +30,8 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -41,6 +43,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.query.SQLResult;
+import org.apache.kylin.query.routing.RealizationCheck;
 
 public abstract class AbstractSQLAdvisor implements ISQLAdvisor {
 
@@ -50,6 +53,16 @@ public abstract class AbstractSQLAdvisor implements ISQLAdvisor {
         if (sqlResult.getException() != null && !(sqlResult.getException() instanceof NoRealizationFoundException)
                 && !(sqlResult.getException().getCause() instanceof NoRealizationFoundException)) {
             return getAdviceProposer().propose(sqlResult);
+        }
+        return null;
+    }
+
+    protected SQLAdvice adviceNotFoundTable(Set<TableRef> allTables, OLAPContext olapContext) {
+        Collection<OLAPTableScan> notFoundTables = notFoundTables(allTables, olapContext);
+        if (CollectionUtils.isNotEmpty(notFoundTables)) {
+            RealizationCheck.IncapableReason tableNotFoundReason = RealizationCheck.IncapableReason
+                    .notFoundTables(notFoundTables);
+            return getAdviceProposer().propose(tableNotFoundReason, olapContext);
         }
         return null;
     }
@@ -82,13 +95,14 @@ public abstract class AbstractSQLAdvisor implements ISQLAdvisor {
         return dimensions;
     }
 
-    protected Collection<TblColRef> findMeasures(Collection<TblColRef> tblColRefs, OLAPContext ctx) {
-        Set<TblColRef> measures = Sets.newHashSet();
-        Collection<TblColRef> ctxDimensions = getDimensionColumns(ctx);
+    protected Collection<FunctionDesc> findMeasures(Collection<TblColRef> tblColRefs, OLAPContext ctx) {
+        Set<FunctionDesc> measures = Sets.newHashSet();
 
         for (TblColRef tblColRef : tblColRefs) {
-            if (!ctxDimensions.contains(tblColRef)) {
-                measures.add(tblColRef);
+            for (FunctionDesc functionDesc : ctx.aggregations) {
+                if (functionDesc.getParameter().getColRefs().contains(tblColRef)) {
+                    measures.add(functionDesc);
+                }
             }
         }
         return measures;

@@ -48,7 +48,7 @@ public class CubeSQLAdvisorTest extends TestBase {
     @Test
     public void testColumnNotFound() {
         String sql = "with tmp3 as (\n" +
-                "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n" +
+                "    select sum(l_partkey), l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n" +
                 "    from v_lineitem\n" +
                 "    inner join supplier on l_suppkey = S_SUPPKEY\n" +
                 "    inner join nation on s_nationkey = n_nationkey\n" +

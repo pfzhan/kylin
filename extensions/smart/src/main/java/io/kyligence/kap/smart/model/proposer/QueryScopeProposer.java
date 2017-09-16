@@ -41,6 +41,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.model.ModelContext;
+import org.apache.kylin.query.relnode.OLAPTableScan;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -67,6 +68,12 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 aggColumns.add(candidate);
             }
             Set<TblColRef> allColumns = ctx.allColumns;
+            if (allColumns == null || allColumns.size() == 0) {
+                allColumns = new HashSet<>();
+                for (OLAPTableScan tableScan : ctx.allTableScans) {
+                    allColumns.addAll(tableScan.getTableRef().getColumns());
+                }
+            }
             for (TblColRef tblColRef : allColumns) {
                 if (dimCandidate.contains(tblColRef)) {
                     continue;

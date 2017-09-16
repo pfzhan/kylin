@@ -31,6 +31,7 @@ import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -79,6 +80,7 @@ public class SqlValidatorTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testModel() throws Exception {
         CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc("ci_inner_join_cube");
         AbstractSQLValidator sqlValidator = new ModelSQLValidator(config, cubeDesc.getModel());
@@ -87,6 +89,7 @@ public class SqlValidatorTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testCube() throws Exception {
         CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc("ci_inner_join_cube");
         AbstractSQLValidator sqlValidator = new CubeSQLValidator(config, cubeDesc);

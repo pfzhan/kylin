@@ -40,12 +40,14 @@ public class UserDataTest extends TestBase {
     }
 
     @Test
+    @Ignore
     public void smilingmoon() throws IOException {
         validateModel("/Users/dong/Desktop/User_Test_Cases/890cffe8ab3906fd1296c3a0da6bbb72/metadata", "yzl_test_wd",
                 "/Users/dong/Desktop/User_Test_Cases/890cffe8ab3906fd1296c3a0da6bbb72/sql.txt");
     }
 
     @Test
+    @Ignore
     public void testModel() throws IOException {
         validateModel("src/test/resources/tpch/meta", "lineitem_model", "src/test/resources/tpch/sql_lineitem");
     }
@@ -58,17 +60,20 @@ public class UserDataTest extends TestBase {
 
     //bad sql
     @Test
+    @Ignore
     public void testCubeBadSql() throws IOException {
         validateCube("src/test/resources/tpch/meta", "customer_cube", "src/test/resources/tpch/bad_sql");
     }
 
     @Test
+    @Ignore
     public void testModelBadSql() throws IOException {
         validateModel("src/test/resources/tpch/meta", "lineitem_model", "src/test/resources/tpch/bad_sql");
     }
 
     //model
     @Test
+    @Ignore
     public void testModelJoin() throws IOException {
         validateModel("src/test/resources/tpch/modelJoin", "lineitem_model", "src/test/resources/tpch/modelJoin/sql");
     }

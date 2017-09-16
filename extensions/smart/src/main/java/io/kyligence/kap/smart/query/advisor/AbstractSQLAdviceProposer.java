@@ -188,7 +188,8 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
             @Nullable
             @Override
             public String apply(@Nullable FunctionDesc functionDesc) {
-                return functionDesc.toString().replace("FunctionDesc [", "[");
+                return String.format("%s(%s)", functionDesc.getExpression(),
+                        formatTblColRefs(functionDesc.getParameter().getColRefs()));
             }
         }));
     }

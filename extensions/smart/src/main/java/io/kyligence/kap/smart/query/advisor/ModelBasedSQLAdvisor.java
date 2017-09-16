@@ -32,9 +32,9 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.routing.RealizationCheck;
 
 import com.google.common.collect.Lists;
@@ -127,19 +127,13 @@ public class ModelBasedSQLAdvisor extends AbstractSQLAdvisor {
                     //just check not all column found and unmatched dimensions
                     if (incapableReason
                             .getIncapableType() == RealizationCheck.IncapableType.CUBE_NOT_CONTAIN_ALL_COLUMN) {
-                        Collection<OLAPTableScan> notFoundTables = notFoundTables(dataModelDesc.getAllTables(),
-                                olapContext);
-                        if (CollectionUtils.isNotEmpty(notFoundTables)) {
-                            RealizationCheck.IncapableReason tableNotFoundReason = RealizationCheck.IncapableReason
-                                    .notFoundTables(notFoundTables);
-                            SQLAdvice advice = adviceProposer.propose(tableNotFoundReason, olapContext);
-                            if (advice != null)
-                                currentContextAdvisors.add(advice);
-                        }
+                        SQLAdvice notFoundTableAdvice = adviceNotFoundTable(dataModelDesc.getAllTables(), olapContext);
+                        if (notFoundTableAdvice != null)
+                            currentContextAdvisors.add(notFoundTableAdvice);
 
                         Collection<TblColRef> dimensions = findDimensions(incapableReason.getNotFoundColumns(),
                                 olapContext);
-                        Collection<TblColRef> measures = findMeasures(incapableReason.getNotFoundColumns(),
+                        Collection<FunctionDesc> measures = findMeasures(incapableReason.getNotFoundColumns(),
                                 olapContext);
                         if (CollectionUtils.isNotEmpty(dimensions)) {
                             SQLAdvice advice = adviceProposer.propose(
