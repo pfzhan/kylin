@@ -79,6 +79,6 @@ export default {
     return Vue.resource(apiUrl + 'smart/validate_sqls').save(para)
   },
   getAutoModelSql: (para) => {
-    return Vue.resource(apiUrl + 'smart/model_sqls').get(para)
+    return Vue.resource(apiUrl + 'smart/' + para.modelName + '/model_sqls').get()
   }
 }

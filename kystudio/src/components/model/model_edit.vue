@@ -517,6 +517,32 @@ export default {
       checkSql: 'VALID_AUTOMODEL_SQL',
       getAutoModelSql: 'GET_AUTOMODEL_SQL'
     }),
+    resetModelEditArea () {
+      this.tableList = []
+      this.currentTableComputedColumns = []
+      this.modelInfo = {
+        uuid: null,
+        last_modified: '',
+        filterStr: '',
+        owner: '',
+        modelName: '',
+        modelDiscribe: '',
+        computed_columns: [],
+        partition_desc: {
+          partition_date_column: '',
+          partition_time_column: null,
+          partition_date_start: 0,
+          partition_date_format: '',
+          partition_time_format: ''
+        }
+      }
+      this.currentSelectTable = {
+        database: '',
+        tablename: '',
+        columnname: ''
+      }
+      this.tableList = []
+    },
     sqlClose () {
       kapConfirm(this.$t('kylinLang.common.willClose'), {
         confirmButtonText: this.$t('kylinLang.common.close'),
@@ -533,8 +559,21 @@ export default {
       var rootFact = this.getRootFact()
       if (rootFact.length) {
         var rootFactName = rootFact[0].database + '.' + rootFact[0].name
-        this.autoModelApi({ modelName: this.modelInfo.modelName, project: this.project, sqls: sqls, factTable: rootFactName }).then(() => {
-
+        this.autoModelApi({ modelName: this.modelInfo.modelName, project: this.project, sqls: sqls, factTable: rootFactName }).then((res) => {
+          handleSuccess(res, (data) => {
+            this.addSQLFormVisible = false
+            this.removeAllLinks()
+            delete data.uuid
+            delete data.last_modified
+            data.last_modified = this.modelInfo.last_modified
+            data.uuid = this.modelInfo.uuid
+            // 清空画布数据
+            this.resetModelEditArea()
+            this.$nextTick(() => {
+              // 重新绘制
+              this.loadEditData(data)
+            })
+          })
         }, (res) => {
           handleError(res)
         })
@@ -576,7 +615,16 @@ export default {
       this.hasCheck = false
     },
     inputSql () {
+      this.sqlString = ''
+      this.errorMsg = ''
+      this.successMsg = ''
       this.addSQLFormVisible = true
+      this.getAutoModelSql({
+        modelName: this.modelInfo.modelName
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+        })
+      })
     },
     cancelCheckSql () {
       this.checkSqlLoadBtn = false
@@ -1673,6 +1721,12 @@ export default {
         }
       }
     },
+    removeAllLinks () {
+      for (var i in this.showLinkCons) {
+        var conn = this.showLinkCons[i]
+        this.plumbInstance.deleteConnection(conn)
+      }
+    },
     addJoinCondition: function (p1, p2, col1, col2, joinType, newCondition) {
       var link = [p1, p2, col1, col2, joinType, newCondition]
       this.links.push(link)
@@ -2173,6 +2227,7 @@ export default {
           columnname: ''
         }
       }
+      console.log(baseTables, 991)
       for (var table in baseTables) {
         this.createTableData(this.extraoption.project, baseTables[table].database, baseTables[table].table, {
           pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
