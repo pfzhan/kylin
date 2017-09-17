@@ -112,6 +112,6 @@ class LocalQueryRunnerBuilder {
             mockupResources.put(cubeInstance.getResourcePath(), cubeInstance);
         }
 
-        return new LocalQueryRunner(projectName, sqls, dumpResources, mockupResources, nThreads);
+        return new LocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
     }
 }

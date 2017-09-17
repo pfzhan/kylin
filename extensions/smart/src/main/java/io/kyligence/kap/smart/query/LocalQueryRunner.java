@@ -38,11 +38,13 @@ import org.apache.kylin.common.util.JsonUtil;
 class LocalQueryRunner extends AbstractQueryRunner {
     final private Set<String> dumpResources;
     final private Map<String, RootPersistentEntity> mockupResources;
+    final KylinConfig srcKylinConfig;
 
-    LocalQueryRunner(String projectName, String[] sqls, Set<String> dumpResources,
+    LocalQueryRunner(KylinConfig srcKylinConfig, String projectName, String[] sqls, Set<String> dumpResources,
             Map<String, RootPersistentEntity> mockupResources, int threads) {
         super(projectName, sqls, threads);
 
+        this.srcKylinConfig = srcKylinConfig;
         this.dumpResources = dumpResources;
         this.mockupResources = mockupResources;
     }

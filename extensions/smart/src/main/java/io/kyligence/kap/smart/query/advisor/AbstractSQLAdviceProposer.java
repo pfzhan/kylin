@@ -29,16 +29,16 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 
 import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Collections2;
 
 import io.kyligence.kap.smart.query.SQLResult;
 
@@ -48,6 +48,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     private static final String MSG_UNSUPPORTED_SQL = "Not Supported SQL.";
     private static final String MSG_UNSUPPORTED_SQL2 = "Non-query expression encountered in illegal context";
     private static final String MSG_SYS_DRIVER_STOPPED = "Unknown error! Please make sure the spark driver is working by running \"bin/spark-client.sh start\"";
+    private static final String MSG_CARTESIAN_JOIN = "Cartesian Join is not supported.";
 
     private static final Pattern PTN_SYNTAX_ERROR = Pattern.compile(
             "(?:At line \\d+, column \\d+|From line \\d+, column \\d+ to line \\d+, column \\d+): ([^\n]+)\nwhile executing SQL: \"(.*)\"",
@@ -65,8 +66,6 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
             Pattern.MULTILINE | Pattern.DOTALL);
     private static final Pattern PTN_DEFAULT_MESSAGE = Pattern.compile("(.*)\nwhile executing SQL: \".*\"",
             Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern PTN_CARTESIAN_JOIN = Pattern.compile(
-            "(Cartesian Join is not supported.)\nwhile executing SQL: \".*\"", Pattern.MULTILINE | Pattern.DOTALL);
 
     private static final Pattern PTN_NO_REALIZATION_FOUND = Pattern.compile(
             "No realization found for [^\\s]+:OLAPTableScan\\.OLAP\\.\\[\\]\\(table=\\[([^\\s]+), ([^\\s]+)\\].*",
@@ -94,8 +93,6 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
             return SQLAdvice.build(MSG_UNSUPPORTED_SQL, msg.getBAD_SQL_SUGGEST());
         case MSG_UNSUPPORTED_SQL2:
             return SQLAdvice.build(MSG_UNSUPPORTED_SQL, msg.getBAD_SQL_SUGGEST());
-        case MSG_SYS_DRIVER_STOPPED:
-            return SQLAdvice.build(msg.getSPARK_DRIVER_NOT_RUNNING_REASON(), msg.getSPARK_DRIVER_NOT_RUNNING_SUGGEST());
         default:
             break;
         }
@@ -124,15 +121,20 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
                     String.format(msg.getNO_REALIZATION_FOUND_SUGGEST(), m.group(1), m.group(2)));
         }
 
-        m = PTN_CARTESIAN_JOIN.matcher(message);
-        if (m.matches()) {
-            return SQLAdvice.build(m.group(1), msg.getBAD_SQL_SUGGEST());
-        }
-
         // by default, return origin message
         m = PTN_DEFAULT_MESSAGE.matcher(message);
         if (m.matches()) {
             message = m.group(1);
+
+            switch (message) {
+            case MSG_SYS_DRIVER_STOPPED:
+                return SQLAdvice.build(msg.getSPARK_DRIVER_NOT_RUNNING_REASON(),
+                        msg.getSPARK_DRIVER_NOT_RUNNING_SUGGEST());
+            case MSG_CARTESIAN_JOIN:
+                return SQLAdvice.build(MSG_CARTESIAN_JOIN, msg.getBAD_SQL_SUGGEST());
+            default:
+                break;
+            }
         }
         return SQLAdvice.build(String.format(msg.getDEFAULT_REASON(), message), msg.getDEFAULT_SUGGEST());
     }
@@ -174,7 +176,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatTblColRefs(Collection<TblColRef> tblColRefs) {
-        return StringUtils.join(Iterables.transform(tblColRefs, new Function<TblColRef, String>() {
+        return Joiner.on(',').join(Collections2.transform(tblColRefs, new Function<TblColRef, String>() {
             @Nullable
             @Override
             public String apply(@Nullable TblColRef tblColRef) {
@@ -184,7 +186,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatFunctionDescs(Collection<FunctionDesc> functionDescs) {
-        return StringUtils.join(Iterables.transform(functionDescs, new Function<FunctionDesc, String>() {
+        return Joiner.on(',').join(Collections2.transform(functionDescs, new Function<FunctionDesc, String>() {
             @Nullable
             @Override
             public String apply(@Nullable FunctionDesc functionDesc) {
@@ -195,7 +197,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatJoins(Collection<JoinDesc> joins) {
-        return StringUtils.join(Iterables.transform(joins, new Function<JoinDesc, String>() {
+        return Joiner.on(',').join(Collections2.transform(joins, new Function<JoinDesc, String>() {
             @Nullable
             @Override
             public String apply(@Nullable JoinDesc input) {
@@ -205,7 +207,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatTables(Collection<OLAPTableScan> olapTableScans) {
-        return StringUtils.join(Iterables.transform(olapTableScans, new Function<OLAPTableScan, String>() {
+        return Joiner.on(',').join(Collections2.transform(olapTableScans, new Function<OLAPTableScan, String>() {
             @Nullable
             @Override
             public String apply(@Nullable OLAPTableScan input) {

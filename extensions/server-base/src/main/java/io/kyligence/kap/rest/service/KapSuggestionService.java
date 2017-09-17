@@ -25,9 +25,9 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -44,6 +44,7 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.cube.CubeContext;
@@ -121,6 +122,10 @@ public class KapSuggestionService extends BasicService {
 
     public Collection<String> getQueryDimensions(String cubeName) throws IOException {
         CubeOptimizeLog cubeOptLog = getCubeOptLog(cubeName);
+        if (cubeOptLog == null || cubeOptLog.getQueryStats() == null
+                || cubeOptLog.getQueryStats().getAppears() == null) {
+            return Sets.newHashSet();
+        }
         return cubeOptLog.getQueryStats().getAppears().keySet();
     }
 
@@ -133,8 +138,8 @@ public class KapSuggestionService extends BasicService {
         }
     }
 
-    public List<SQLValidateResult> validateSqls(String project, String modelName, String factTable,
-            List<String> sqls) throws IOException {
+    public List<SQLValidateResult> validateSqls(String project, String modelName, String factTable, List<String> sqls)
+            throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 
