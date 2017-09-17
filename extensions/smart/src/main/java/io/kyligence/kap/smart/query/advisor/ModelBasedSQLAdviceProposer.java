@@ -46,76 +46,63 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
 
     @Override
     public SQLAdvice propose(RealizationCheck.IncapableReason incapableReason, OLAPContext context) {
-        SQLAdvice SQLAdvice = new SQLAdvice();
         switch (incapableReason.getIncapableType()) {
         case MODEL_UNMATCHED_JOIN:
-            SQLAdvice = getSqlJoinAdvisor(context.joinsTree, dataModelDesc.getJoinsTree());
-            break;
+            return getSqlJoinAdvisor(context.joinsTree, dataModelDesc.getJoinsTree());
         case MODEL_BAD_JOIN_SEQUENCE:
-            SQLAdvice.setIncapableReason(
-                    String.format(msg.getMODEL_BAD_JOIN_SEQUENCE_REASON(), dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(String.format(msg.getMODEL_BAD_JOIN_SEQUENCE_SUGGEST(), formatJoins(context.joins),
-                    dataModelDesc.getName()));
-            break;
+            return SQLAdvice.build(String.format(msg.getMODEL_BAD_JOIN_SEQUENCE_REASON(), dataModelDesc.getName()),
+                    String.format(msg.getMODEL_BAD_JOIN_SEQUENCE_SUGGEST(), formatJoins(context.joins),
+                            dataModelDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_DIMENSION:
             String notFoundDimensionMsg = formatTblColRefs(incapableReason.getNotFoundDimensions());
-            SQLAdvice.setIncapableReason(String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_REASON(),
-                    notFoundDimensionMsg, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(),
-                    notFoundDimensionMsg, dataModelDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_REASON(), notFoundDimensionMsg,
+                            dataModelDesc.getName()),
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(), notFoundDimensionMsg,
+                            dataModelDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_MEASURE:
             String notFoundMeasureMsg = formatFunctionDescs(incapableReason.getNotFoundMeasures());
-            SQLAdvice.setIncapableReason(String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_REASON(),
-                    notFoundMeasureMsg, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
-                    dataModelDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg,
+                            dataModelDesc.getName()),
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
+                            dataModelDesc.getName()));
         case CUBE_UNMATCHED_DIMENSION:
             String message = formatTblColRefs(incapableReason.getUnmatchedDimensions());
-            SQLAdvice.setIncapableReason(
-                    String.format(msg.getMODEL_UNMATCHED_DIMENSION_REASON(), message, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_UNMATCHED_DIMENSION_REASON(), message, dataModelDesc.getName()),
                     String.format(msg.getMODEL_UNMATCHED_DIMENSION_SUGGEST(), message, dataModelDesc.getName()));
-            break;
         case CUBE_NOT_CONTAIN_TABLE:
-            SQLAdvice = getTableNotFoundSqlAdvisor(incapableReason, context);
-            break;
+            return getTableNotFoundSqlAdvisor(incapableReason, context);
         case MODEL_FACT_TABLE_NOT_FOUND:
             String tableName = context.firstTableScan.getOlapTable().getTableName();
-            SQLAdvice.setIncapableReason(
-                    String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(
-                    String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, dataModelDesc.getName()));
-            break;
+            if (!dataModelDesc.isLookupTable(tableName)) {
+                return SQLAdvice.build(
+                        String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, dataModelDesc.getName()),
+                        String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, dataModelDesc.getName()));
+            } else {
+                return null;
+            }
         case MODEL_OTHER_MODEL_INCAPABLE:
-            SQLAdvice.setIncapableReason(msg.getMODEL_OTHER_MODEL_INCAPABLE_REASON());
-            SQLAdvice.setSuggestion(String.format(msg.getMODEL_OTHER_MODEL_INCAPABLE_SUGGEST(),
-                    context.firstTableScan.getTableRef().getTableDesc().getIdentity()));
-            break;
+            return SQLAdvice.build(msg.getMODEL_OTHER_MODEL_INCAPABLE_REASON(),
+                    String.format(msg.getMODEL_OTHER_MODEL_INCAPABLE_SUGGEST(),
+                            context.firstTableScan.getTableRef().getTableDesc().getIdentity()));
         default:
-            break;
+            return null;
         }
-        return SQLAdvice;
     }
 
     private SQLAdvice getFactUnmatchedSqlAdvisor(String factTbl) {
-        SQLAdvice SQLAdvice = new SQLAdvice();
-        SQLAdvice.setIncapableReason(
-                String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), factTbl, dataModelDesc.getName()));
-        SQLAdvice.setSuggestion(
+        return SQLAdvice.build(
+                String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), factTbl, dataModelDesc.getName()),
                 String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), factTbl, dataModelDesc.getName()));
-        return SQLAdvice;
     }
 
     private SQLAdvice getTableNotFoundSqlAdvisor(RealizationCheck.IncapableReason incapableReason, OLAPContext ctx) {
         String message = formatTables(incapableReason.getNotFoundTables());
-        SQLAdvice SQLAdvice = new SQLAdvice();
-        SQLAdvice.setIncapableReason(
-                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLE_REASON(), message, dataModelDesc.getName()));
-        SQLAdvice.setSuggestion(
+        return SQLAdvice.build(
+                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLE_REASON(), message, dataModelDesc.getName()),
                 String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLE_SUGGEST(), message, dataModelDesc.getName()));
-        return SQLAdvice;
     }
 
     private SQLAdvice getSqlJoinAdvisor(JoinsTree contextJoinTree, JoinsTree modelJoinTree) {
@@ -138,39 +125,33 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
 
     private SQLAdvice getSqlJoinAdvice(JoinUnmatchedType joinUnmatchedType,
             Map<JoinsTree.Chain, JoinsTree.Chain> unmatched) {
-        SQLAdvice SQLAdvice = new SQLAdvice();
         List<Map.Entry<JoinsTree.Chain, JoinsTree.Chain>> entries = Lists.newArrayList(unmatched.entrySet());
         String contextJoin = format(entries.get(0).getKey());
         String modelJoin = format(entries.get(0).getValue());
         switch (joinUnmatchedType) {
         case TABLE_NOT_FOUND:
             String tableName = entries.get(0).getKey().getTable().getTableName();
-            SQLAdvice.setIncapableReason(
-                    String.format(msg.getMODEL_JOIN_TABLE_NOT_FOUND_REASON(), tableName, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_JOIN_TABLE_NOT_FOUND_REASON(), tableName, dataModelDesc.getName()),
                     String.format(msg.getMODEL_JOIN_TABLE_NOT_FOUND_SUGGEST(), tableName, dataModelDesc.getName()));
-            break;
         case JOIN_TYPE_UNMATCHED:
-            SQLAdvice.setIncapableReason(String.format(msg.getMODEL_JOIN_TYPE_UNMATCHED_REASON(), contextJoin,
-                    modelJoin, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(String.format(msg.getMODEL_JOIN_TYPE_UNMATCHED_SUGGEST(), dataModelDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_JOIN_TYPE_UNMATCHED_REASON(), contextJoin, modelJoin,
+                            dataModelDesc.getName()),
+                    String.format(msg.getMODEL_JOIN_TYPE_UNMATCHED_SUGGEST(), dataModelDesc.getName()));
         case JOIN_CONDITION_UNMATCHED:
-            SQLAdvice.setIncapableReason(String.format(msg.getMODEL_JOIN_CONDITION_UNMATCHED_REASON(), contextJoin,
-                    modelJoin, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_JOIN_CONDITION_UNMATCHED_REASON(), contextJoin, modelJoin,
+                            dataModelDesc.getName()),
                     String.format(msg.getMODEL_JOIN_CONDITION_UNMATCHED_SUGGEST(), dataModelDesc.getName()));
-            break;
         case JOIN_TYPE_AND_CONDITION_UNMATCHED:
-            SQLAdvice.setIncapableReason(String.format(msg.getMODEL_JOIN_TYPE_CONDITION_UNMATCHED_REASON(), contextJoin,
-                    modelJoin, dataModelDesc.getName()));
-            SQLAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getMODEL_JOIN_TYPE_CONDITION_UNMATCHED_REASON(), contextJoin, modelJoin,
+                            dataModelDesc.getName()),
                     String.format(msg.getMODEL_JOIN_TYPE_CONDITION_UNMATCHED_SUGGEST(), dataModelDesc.getName()));
-            break;
         default:
-            break;
+            return null;
         }
-        return SQLAdvice;
     }
 
     private String format(JoinsTree.Chain chain) {

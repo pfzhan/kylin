@@ -41,81 +41,70 @@ public class CubeBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
 
     @Override
     public SQLAdvice propose(RealizationCheck.IncapableReason incapableReason, OLAPContext context) {
-        SQLAdvice sqlAdvice = new SQLAdvice();
         switch (incapableReason.getIncapableType()) {
         case CUBE_NOT_READY:
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_NOT_READY_REASON(), cubeDesc.getName()));
-            sqlAdvice.setSuggestion(String.format(msg.getCUBE_NOT_READY_SUGGEST(), cubeDesc.getName()));
-            break;
+            return SQLAdvice.build(String.format(msg.getCUBE_NOT_READY_REASON(), cubeDesc.getName()),
+                    String.format(msg.getCUBE_NOT_READY_SUGGEST(), cubeDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_DIMENSION:
             String notFoundDimensionMsg = formatTblColRefs(incapableReason.getNotFoundDimensions());
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_REASON(),
-                    notFoundDimensionMsg, cubeDesc.getName()));
-            sqlAdvice.setSuggestion(String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(), notFoundDimensionMsg,
-                    cubeDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_REASON(), notFoundDimensionMsg,
+                            cubeDesc.getName()),
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(), notFoundDimensionMsg,
+                            cubeDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_MEASURE:
             String notFoundMeasureMsg = formatFunctionDescs(incapableReason.getNotFoundMeasures());
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg,
-                    cubeDesc.getName()));
-            sqlAdvice.setSuggestion(String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
-                    cubeDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg, cubeDesc.getName()),
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
+                            cubeDesc.getName()));
         case CUBE_NOT_CONTAIN_TABLE:
             String notContainTblMessage = formatTables(incapableReason.getNotFoundTables());
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_NOT_CONTAIN_ALL_TABLE_REASON(), notContainTblMessage,
-                    cubeDesc.getName()));
-            sqlAdvice.setSuggestion(String.format(msg.getCUBE_NOT_CONTAIN_ALL_TABLE_SUGGEST(), notContainTblMessage,
-                    cubeDesc.getName()));
-            break;
+            return SQLAdvice.build(
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_TABLE_REASON(), notContainTblMessage, cubeDesc.getName()),
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_TABLE_SUGGEST(), notContainTblMessage,
+                            cubeDesc.getName()));
         case MODEL_FACT_TABLE_NOT_FOUND:
             String tableName = context.firstTableScan.getOlapTable().getTableName();
-            sqlAdvice.setIncapableReason(
-                    String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, cubeDesc.getModelName()));
-            sqlAdvice.setSuggestion(
-                    String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, cubeDesc.getModelName()));
-            break;
-        case CUBE_BLACK_OUT_REALIZATION:
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_BLACK_OUT_REALIZATION_REASON(), cubeDesc.getName()));
-            sqlAdvice.setSuggestion(msg.getDEFAULT_SUGGEST());
-            break;
-        case CUBE_UN_SUPPORT_MASSIN:
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_UN_SUPPORT_MASSIN_REASON(), cubeDesc.getName()));
-            sqlAdvice.setSuggestion(msg.getCUBE_UN_SUPPORT_MASSIN_SUGGEST());
-            break;
-        case CUBE_UN_SUPPORT_RAWQUERY:
-            RawTableDesc rawTableDesc = rawTableDescManager.getRawTableDesc(cubeDesc.getName());
-            if (rawTableDesc != null) {
+            if (!cubeDesc.getModel().isLookupTable(tableName)) { // get pass if table snapshot can contribute
+                return SQLAdvice.build(
+                        String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, cubeDesc.getModelName()),
+                        String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, cubeDesc.getModelName()));
+            } else {
                 return null;
             }
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_UN_SUPPORT_RAWQUERY_REASON(), cubeDesc.getName()));
-            sqlAdvice.setSuggestion(msg.getCUBE_UN_SUPPORT_RAWQUERY_SUGGEST());
-            break;
+        case CUBE_BLACK_OUT_REALIZATION:
+            return SQLAdvice.build(String.format(msg.getCUBE_BLACK_OUT_REALIZATION_REASON(), cubeDesc.getName()),
+                    msg.getDEFAULT_SUGGEST());
+        case CUBE_UN_SUPPORT_MASSIN:
+            return SQLAdvice.build(String.format(msg.getCUBE_UN_SUPPORT_MASSIN_REASON(), cubeDesc.getName()),
+                    msg.getCUBE_UN_SUPPORT_MASSIN_SUGGEST());
+        case CUBE_UN_SUPPORT_RAWQUERY:
+            RawTableDesc rawTableDesc = rawTableDescManager.getRawTableDesc(cubeDesc.getName());
+            if (rawTableDesc == null) { // get pass if raw_table can contribute
+                return SQLAdvice.build(String.format(msg.getCUBE_UN_SUPPORT_RAWQUERY_REASON(), cubeDesc.getName()),
+                        msg.getCUBE_UN_SUPPORT_RAWQUERY_SUGGEST());
+            } else {
+                return null;
+            }
         case CUBE_UNMATCHED_DIMENSION:
             String dimensions = formatTblColRefs(incapableReason.getUnmatchedDimensions());
-            sqlAdvice.setIncapableReason(
-                    String.format(msg.getCUBE_UNMATCHED_DIMENSION_REASON(), dimensions, cubeDesc.getName()));
-            sqlAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getCUBE_UNMATCHED_DIMENSION_REASON(), dimensions, cubeDesc.getName()),
                     String.format(msg.getCUBE_UNMATCHED_DIMENSION_SUGGEST(), dimensions, cubeDesc.getName()));
-            break;
         case CUBE_LIMIT_PRECEDE_AGGR:
-            sqlAdvice.setIncapableReason(String.format(msg.getCUBE_LIMIT_PRECEDE_AGGR_REASON(), cubeDesc.getName()));
-            sqlAdvice.setSuggestion(msg.getCUBE_LIMIT_PRECEDE_AGGR_SUGGEST());
-            break;
+            return SQLAdvice.build(String.format(msg.getCUBE_LIMIT_PRECEDE_AGGR_REASON(), cubeDesc.getName()),
+                    msg.getCUBE_LIMIT_PRECEDE_AGGR_SUGGEST());
         case CUBE_UNMATCHED_AGGREGATION:
             String aggregations = formatFunctionDescs(incapableReason.getUnmatchedAggregations());
-            sqlAdvice.setIncapableReason(
-                    String.format(msg.getCUBE_UNMATCHED_AGGREGATION_REASON(), aggregations, cubeDesc.getName()));
-            sqlAdvice.setSuggestion(
+            return SQLAdvice.build(
+                    String.format(msg.getCUBE_UNMATCHED_AGGREGATION_REASON(), aggregations, cubeDesc.getName()),
                     String.format(msg.getCUBE_UNMATCHED_AGGREGATION_SUGGEST(), aggregations, cubeDesc.getName()));
-            break;
         case CUBE_OTHER_CUBE_INCAPABLE:
-            sqlAdvice.setIncapableReason(msg.getCUBE_OTHER_CUBE_INCAPABLE_REASON());
-            sqlAdvice.setSuggestion(msg.getCUBE_OTHER_CUBE_INCAPABLE_SUGGEST());
-            break;
+            return SQLAdvice.build(msg.getCUBE_OTHER_CUBE_INCAPABLE_REASON(),
+                    msg.getCUBE_OTHER_CUBE_INCAPABLE_SUGGEST());
         default:
-            break;
+            return null;
         }
-        return sqlAdvice;
     }
 }

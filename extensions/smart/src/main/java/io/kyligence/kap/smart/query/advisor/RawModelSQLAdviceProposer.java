@@ -31,16 +31,13 @@ public class RawModelSQLAdviceProposer extends AbstractSQLAdviceProposer {
 
     @Override
     public SQLAdvice propose(IncapableReason incapableReason, OLAPContext context) {
-        SQLAdvice SQLAdvice = new SQLAdvice();
         switch (incapableReason.getIncapableType()) {
-            case MODEL_FACT_TABLE_NOT_FOUND:
-                String tableName = context.firstTableScan.getOlapTable().getTableName();
-                SQLAdvice.setIncapableReason(String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, "auto-model"));
-                SQLAdvice.setSuggestion(String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, "auto-model"));
-                break;
-            default:
-                break;
+        case MODEL_FACT_TABLE_NOT_FOUND:
+            String tableName = context.firstTableScan.getOlapTable().getTableName();
+            return SQLAdvice.build(String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_REASON(), tableName, "auto-model"),
+                    String.format(msg.getMODEL_FACT_TABLE_UNMATCHED_SUGGEST(), tableName, "auto-model"));
+        default:
+            return null;
         }
-        return SQLAdvice;
     }
 }
