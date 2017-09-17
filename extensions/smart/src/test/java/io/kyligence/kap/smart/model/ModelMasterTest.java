@@ -38,6 +38,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -64,6 +65,15 @@ public class ModelMasterTest {
     public void testE2E_LearnKylin() throws Exception {
         testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
                 "src/test/resources/learn_kylin/sql");
+    }
+
+    @Ignore
+    @Test
+    public void testE2E_LearnKylin_dupJoins() throws Exception {
+        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
+                "src/test/resources/learn_kylin/sql_dupJoins");
+        Assert.assertNotNull(modelDesc);
+        Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }
 
     @Ignore
@@ -97,7 +107,7 @@ public class ModelMasterTest {
         testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss_selfjoin");
     }
 
-    private void testInternal(String metaDir, String project, String factTable, String sqlDir) throws Exception {
+    private DataModelDesc testInternal(String metaDir, String project, String factTable, String sqlDir) throws Exception {
         KylinConfig kylinConfig = prepareConfig(metaDir);
         String[] sqls = loadQueries(sqlDir);
 
@@ -109,6 +119,7 @@ public class ModelMasterTest {
                 Lists.<DataModelDesc> newArrayList());
 
         System.out.println(JsonUtil.writeValueAsIndentString(modelDesc));
+        return modelDesc;
     }
 
     private void testInternal(String metaDir, String project, String sqlDir) throws Exception {

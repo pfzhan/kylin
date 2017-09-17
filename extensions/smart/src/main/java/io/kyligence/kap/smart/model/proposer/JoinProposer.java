@@ -26,11 +26,11 @@ package io.kyligence.kap.smart.model.proposer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
@@ -61,6 +61,7 @@ public class JoinProposer extends AbstractModelProposer {
 
             // Save context updates and apply later
             Map<String, JoinTableDesc> joinTablesModification = new HashMap<>();
+            boolean skipModification = false;
 
             Map<JoinDesc, TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
 
@@ -72,12 +73,15 @@ public class JoinProposer extends AbstractModelProposer {
 
                 JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, pkTblAlias, fkTblAlias);
 
-                if (!joinTables.containsKey(joinTable.getAlias())) {
-                    joinTablesModification.put(joinTable.getAlias(), joinTable);
+                String joinTableAlias = joinTable.getAlias();
+                JoinTableDesc oldJoinTable = joinTables.get(joinTableAlias);
+                if (oldJoinTable == null) {
+                    oldJoinTable = joinTablesModification.get(joinTableAlias);
+                }
+                if (oldJoinTable == null) {
+                    joinTablesModification.put(joinTableAlias, joinTable);
                     continue;
                 }
-
-                JoinTableDesc oldJoinTable = joinTables.get(joinTable.getAlias());
 
                 // duplication check
                 if (oldJoinTable.equals(joinTable)) {
@@ -86,15 +90,16 @@ public class JoinProposer extends AbstractModelProposer {
                 // conflict check
                 if (!isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
                     // add and resolve alias 
-                    String newAlias = getNewAlias(joinTables.keySet(), joinTable.getAlias());
+                    String newAlias = getNewAlias(tableAliasMap.values(), joinTable.getAlias());
                     joinTable.setAlias(newAlias);
-                    joinTables.put(newAlias, JoinDescUtil.convert(join, kind, newAlias, fkTblAlias));
+                    joinTablesModification.put(newAlias, JoinDescUtil.convert(join, kind, newAlias, fkTblAlias));
                     tableAliasMap.put(join.getPKSide(), newAlias);
                     continue;
                 }
                 if (!isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
                     // join conflict inner <-> left
-                    continue;
+                    skipModification = true;
+                    break;
                 }
                 if (!oldJoinTable.getKind().equals(joinTable.getKind())) {
                     // LOOKUP vs FACT, use FACT
@@ -102,14 +107,16 @@ public class JoinProposer extends AbstractModelProposer {
                     joinTablesModification.put(joinTable.getAlias(), joinTable);
                 }
             }
-            joinTables.putAll(joinTablesModification);
+            if (!skipModification) {
+                joinTables.putAll(joinTablesModification);
+            }
         }
 
         // Add joins
         modelDesc.setJoinTables(joinTables.values().toArray(new JoinTableDesc[0]));
     }
 
-    private String getNewAlias(Set<String> aliasSet, String oldAlias) {
+    private String getNewAlias(Collection<String> aliasSet, String oldAlias) {
         int i = 1;
         while (aliasSet.contains(aliasSet + "_" + i)) {
             i++;
@@ -132,6 +139,10 @@ public class JoinProposer extends AbstractModelProposer {
     }
 
     private static boolean isJoinKeysEqual(JoinDesc a, JoinDesc b) {
+        if (!Arrays.equals(a.getForeignKey(), b.getForeignKey()))
+            return false;
+        if (!Arrays.equals(a.getPrimaryKey(), b.getPrimaryKey()))
+            return false;
         if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
             return false;
         if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
