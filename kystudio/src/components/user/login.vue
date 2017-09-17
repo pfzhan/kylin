@@ -48,7 +48,7 @@
        <p class="ksd_footer">&copy;2016 <a href="http://kyligence.io/" target="_blank">Kyligence Inc.</a> All rights reserved.</p>
     </div>
 
-    <el-dialog @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small" v-if="isPlusVersion" :close-on-click-modal="false">
+    <el-dialog class="kapLicense" @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="small" v-if="isPlusVersion" :close-on-click-modal="false">
       <el-alert  title="" type="info" show-icon :closable="false">
         <p class="ksd-left">{{$t('enterLicensePartOne')}}
            <a href="http://account.kyligence.io" target="_blank">Kyligence Account</a>
@@ -67,7 +67,7 @@
       <p @click="apply">{{$t('applyLicense')}}</p>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
-        <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('save')}}</el-button>
+        <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -190,6 +190,10 @@ export default {
     licenseValidSuccess: function (license) {
       if (license === true) {
         this.hasLicense = false
+        this.$alert(this.$t('evaluationPeriod') + this.$store.state.system.serverAboutKap['kap.dates'], this.$t('evaluationLicense'), {
+          cancelConfirmButton: true,
+          type: 'success'
+        })
       }
       this.loadCheck = false
     },
@@ -213,7 +217,6 @@ export default {
           this.trialLicenseFile(this.userMessage).then((res) => {
             handleSuccess(res, (data) => {
               if (data && data['kap.dates']) {
-                console.log(this.lastTime(data['kap.dates']), 8888)
                 if (this.lastTime(data['kap.dates']) > 0) {
                   this.$alert(this.$t('evaluationPeriod') + data['kap.dates'], this.$t('evaluationLicense'), {
                     cancelConfirmButton: true,
@@ -413,7 +416,7 @@ export default {
     }
   }
   .ksd_footer{
-    font-size: 14px;
+    font-size: 12px;
     text-align: center;
     bottom: -54px;
     position: absolute;

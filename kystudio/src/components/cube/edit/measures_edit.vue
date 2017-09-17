@@ -1,8 +1,9 @@
 <template>
 <div id="measures">
   <div style="margin-top: 20px;">
-    <el-button type="blue" icon="menu" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('measuresSuggestion')}}</el-button>
-    <el-button type="default" icon="setting" @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
+    <el-button type="blue" class="measures-button" @click.native="cubeSuggestions" :disabled="isReadyCube || !getSqlResult">{{$t('sqlOutput')}}
+    <common-tip :content="$t('outputTipOne') + $t(getStrategy) + $t('outputTipTwo')" ><icon name="question-circle" style="color:gray"></icon></common-tip></el-button>
+    <el-button type="default" class="measures-button" icon="setting"  @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
      <common-tip :content="$t('measuresSuggestTip')" >
              <icon name="question-circle-o"></icon>
     </common-tip>
@@ -120,7 +121,7 @@ import { needLengthMeasureType } from '../../../config/index'
 import { handleSuccess, handleError, kapConfirm } from 'util/business'
 export default {
   name: 'measures',
-  props: ['cubeDesc', 'modelDesc', 'cubeInstance'],
+  props: ['cubeDesc', 'modelDesc', 'cubeInstance', 'sampleSql'],
   data () {
     return {
       selectType: ['bigint', 'int', 'integer', 'smallint', 'tinyint', 'double', 'float'],
@@ -150,16 +151,14 @@ export default {
       })
     },
     cubeSuggestions: function () {
-      kapConfirm(this.$t('overwriteMeasuresTip')).then(() => {
-        this.getCubeSuggestions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            this.$set(this.cubeDesc, 'measures', data.measures)
-            this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
-            this.initColumnFamily()
-          })
-        }, (res) => {
-          handleError(res)
+      this.getCubeSuggestions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$set(this.cubeDesc, 'measures', data.measures)
+          this.$set(this.cubeDesc.hbase_mapping, 'column_family', data.hbase_mapping.column_family)
+          this.initColumnFamily()
         })
+      }, (res) => {
+        handleError(res)
       })
     },
     addMeasure: function () {
@@ -413,6 +412,23 @@ export default {
       } else {
         return true
       }
+    },
+    getStrategy: function () {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'default') {
+        return 'dataOriented'
+      } else if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
+        return 'mix'
+      } else {
+        return 'businessOriented'
+      }
+    },
+    getSqlResult: function () {
+      this.sampleSql.result.forEach((row) => {
+        if (row.status !== 'FAILED') {
+          return true
+        }
+      })
+      return false
     }
   },
   created () {
@@ -421,8 +437,8 @@ export default {
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', measuresSuggestion: 'Optimize', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the optimize will output the suggested type. Reset will call last saving back and overwrite existing measures.', overwriteMeasuresTip: 'Optimizer will suggest you all measures from the model, and overwrite existing measures. Please confirm to continue?', deleteMeasuresTip: 'Reset will call last saving back and overwrite existing measures. Please confirm to continue?'},
-    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', measuresSuggestion: '度量优化', resetMeasures: '重置', measuresSuggestTip: '点击优化度量将输出优化器推荐的度量类型 。重置操作会返回上一次保存过的度量列表，并覆盖现有的度量。', overwriteMeasuresTip: '优化操作会推荐模型中所有度量，并覆盖现有的度量，请确认是否继续此操作？', deleteMeasuresTip: '重置操作会返回上一次保存过的度量列表，并覆盖现有的度量，请确认是否继续此操作？'}
+    'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', sqlOutput: 'SQL Output', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the \'SQL Output\' will output the suggested type. \'Reset\' will call last saving back and overwrite existing measures.', outputTipOne: 'Based on "', outputTipTwo: '" preference, and inputed SQL, these measures are suggesting.', deleteMeasuresTip: 'Reset will call last saving back and overwrite existing measures. Please confirm to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented'},
+    'zh-cn': {name: '名称', expression: '表达式', parameters: '参数', datatype: '数据类型', comment: '注释', returnType: '返回类型', action: '操作', addMeasure: '添加度量', editMeasure: '编辑度量', cancel: '取消', yes: '确定', advancedDictionaries: '高级字典', addDictionary: '添加字典', editDictionary: '编辑字典', builderClass: '构造类', reuse: '复用', advancedColumnFamily: '高级列簇', addColumnFamily: '添加列簇', columnFamily: '列簇', measures: '度量', sqlOutput: '推荐度量', resetMeasures: '重置', measuresSuggestTip: '点击“推荐度量”将输出优化器推荐的度量类型。“重置”操作会返回上一次保存过的度量列表，并覆盖现有的度量。', outputTipOne: '根据您选择的“', outputTipTwo: '”偏好与输入的SQL查询，系统推荐的度量。', deleteMeasuresTip: '重置操作会返回上一次保存过的度量列表，并覆盖现有的度量，请确认是否继续此操作？', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先'}
   }
 }
 </script>
@@ -441,6 +457,13 @@ export default {
     }
     .el-button--primary:hover{
       border-color: @base-color;
+    }
+    .measures-button {
+      height: 40px;
+    }
+    .measures-button:hover {
+      border-color: #218fea !important;
+      background: transparent!important;
     }
   }
 </style>

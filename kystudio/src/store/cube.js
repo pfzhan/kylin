@@ -131,6 +131,9 @@ export default {
     [types.GET_CUBE_DIMENSIONS]: function ({ commit }, cubeDesc) {
       return api.cube.getCubeSuggestDimensions(cubeDesc)
     },
+    [types.GET_SQL_DIMENSIONS]: function ({ commit }, cubeName) {
+      return api.cube.getSqlDimensions(cubeName)
+    },
     [types.GET_SCHEDULER]: function ({ commit }, cubeName) {
       return api.cube.getScheduler(cubeName)
     },

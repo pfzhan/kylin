@@ -26,9 +26,9 @@
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
       <el-button type="primary" @click="saveCurrentModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
-    </div>  
+    </div>
     <div class="tips_group">
-      
+
     </div>
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
@@ -55,9 +55,9 @@
                 <el-dropdown-item command="FACT" v-show="useLimitFact" :data="table.guid">{{$t('kylinLang.common.limitfact')}}</el-dropdown-item>
                 <el-dropdown-item command="LOOKUP" :data="table.guid">{{$t('kylinLang.common.lookup')}}</el-dropdown-item>
               </el-dropdown-menu>
-              </el-dropdown> 
+              </el-dropdown>
         </div>
-        <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)" v-if="actionMode!=='view'"></i> 
+        <i class="el-icon-close close_table" v-on:click="removeTable(table.guid)" v-if="actionMode!=='view'"></i>
         <p class="table_name  drag_bar" v-on:dblclick="editAlias(table.guid)" v-visible="aliasEditTableId!=table.guid">
         <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
         <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" :placeholder="$t('kylinLang.common.enterAlias')" v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
@@ -69,7 +69,7 @@
         </section>
         <div class="more_tool"></div>
       </div>
-     
+
 
     </div>
      <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid, true)" :close-on-press-escape="false" :close-on-click-modal="false">
@@ -150,7 +150,7 @@
         </span>
          <span slot="footer" class="dialog-footer">
             <el-button type="primary" @click="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid)">{{$t('kylinLang.common.ok')}}</el-button>
-          </span> 
+          </span>
       </el-dialog>
        <el-dialog :title="$t('kylinLang.common.computedColumn')" v-model="computedColumnFormVisible" size="small" :close-on-press-escape="false" :close-on-click-modal="false">
           <div>
@@ -170,7 +170,7 @@
                 <el-button size="small" @click="checkExpression" :loading="checkExpressionBtnLoad">Expression Check</el-button>
                 <common-tip :content="$t('longTimeTip')" >
                    <icon name="question-circle-o"></icon>
-                </common-tip> 
+                </common-tip>
                 <el-button type="text" size="mini" v-show="checkExpressionBtnLoad" @click="cancelCheckExpression" >{{$t('kylinLang.common.cancel')}}</el-button>
               </div>
               </el-form-item>
@@ -184,7 +184,7 @@
                   </el-option>
                 </el-select>
                 <!-- <el-input  auto-complete="off" v-model="computedColumn.returnType"></el-input> -->
-              </el-form-item>  
+              </el-form-item>
               <el-form-item>
                 <el-button type="trans" class="radius" @click="cancelComputedEditForm">{{$t('kylinLang.common.cancel')}}</el-button>
                 <el-button type="trans" class="radius" @click="saveComputedColumn">{{$t('kylinLang.common.submit')}}</el-button>
@@ -2704,8 +2704,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1.This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2.Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3.Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.'},
-    'zh-cn': {addJoinCondition: '添加连接条件', hasRootFact: '已经有一个事实表了', cannotSetFact: '不能设置一个有外键的表为事实表', cannotSetFTableToFKTable: '数据模型中，表关系的建立是从外键开始，指向主键。', tableHasOppositeLinks: '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', delTableTip: '请先删除掉该表和其他表的关联关系', sameNameComputedColumn: '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1.本功能将根据您输入的SQL语句自动补全建模。', autoModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', autoModelTip3: '3.语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。'}
+    'en': {'addJoinCondition': 'Add join condition', 'hasRootFact': 'There is already a fact table.', 'cannotSetFact': 'This table has a primary key already, so it cannot be a fact table. Please remove or redefine the join condition.', 'cannotSetFTableToFKTable': 'In model, table join condition should start from fact table(foreign key), then pointing it to the lookup table(primary key).', 'tableHasOppositeLinks': 'There is an reverse link between tables.', 'tableHasOtherFKTable': 'There is already a foreign key within this table.', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1. This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2. Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3. Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了。', 'cannotSetFact': '本表包含一个主键，因而无法被设置为事实表。请删除或重新定义该连接（join）。', 'cannotSetFTableToFKTable': '模型中，连接（join）条件的建立是从事实表（外键）开始，指向维度表（主键）。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', 'delTableTip': '请先删除掉该表和其他表的关联关系', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1. 本功能将根据您输入的SQL语句自动补全建模。', autoModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', autoModelTip3: '3. 语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。'}
   }
 }
 </script>
@@ -2745,7 +2745,7 @@ export default {
       }
       #breadcrumb_box{
         display: none;
-      } 
+      }
       .btn_group{
         bottom:46px;
       }
@@ -2851,7 +2851,7 @@ export default {
         background-image: url('../../assets/img/outin.png');
         background-position: 0 0;
       }
-   
+
      }
      .tool_jian{
        span {
@@ -2928,7 +2928,7 @@ export default {
      p{
        color:green;
      }
-     .el-table { 
+     .el-table {
       background:none;
       tr{
         background-color: #393e53;
@@ -2969,7 +2969,7 @@ export default {
        &.fact{
         .table_name{
          background-color: #52b9dc;
-        } 
+        }
        }
        &.lookup{
 
@@ -2994,7 +2994,7 @@ export default {
        width: 220px;
        left: 440px;
        z-index:1;
-       background-color: #2f3242; 
+       background-color: #2f3242;
        position: absolute;
        height: 420px;
        .link_box{
@@ -3124,7 +3124,7 @@ export default {
             cursor:pointer;
             font-weight: bold;
             &.dimension{
-              
+
             }
             &.measure{
               color: #48b5cd;

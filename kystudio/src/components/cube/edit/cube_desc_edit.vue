@@ -15,10 +15,10 @@
 
   <div class="line margin-l-r"></div>
   <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
-  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></info>
+  <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :healthStatus="healthStatus"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
-  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit"></measures>
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"></measures>
   <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
   <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
   <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit"></configuration_overwrites>
@@ -56,6 +56,7 @@ import tableIndex from './table_index_edit'
 import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
+import { modelHealthStatus } from '../../../config/index'
 import { removeNameSpace, getNameSpace, objectClone } from '../../../util/index'
 import { handleSuccess, handleError, kapConfirm, loadBaseEncodings } from '../../../util/business'
 export default {
@@ -65,6 +66,8 @@ export default {
     return {
       cubeSaveST: null,
       activeStep: 1,
+      skipStep: 1,
+      checkStrategy: true,
       cubeSaving: false,
       cubeDraftSaving: false,
       isEdit: this.extraoption.isEdit,
@@ -91,7 +94,16 @@ export default {
           storage_type: ''
         }
       },
-      sampleSQL: {sqlString: ''},
+      sampleSql: {
+        sqlString: '',
+        sqlCount: 0,
+        result: []
+      },
+      healthStatus: {
+        status: 'NONE',
+        progress: 0,
+        messages: []
+      },
       scheduler: {
         cubeName: '',
         desc: {
@@ -143,18 +155,23 @@ export default {
       updateScheduler: 'UPDATE_SCHEDULER',
       deleteScheduler: 'DELETE_SCHEDULER',
       draftCube: 'DRAFT_CUBE',
-      loadDataSourceByProject: 'LOAD_DATASOURCE'
+      loadDataSourceByProject: 'LOAD_DATASOURCE',
+      getSql: 'GET_SAMPLE_SQL',
+      getModelDiagnose: 'DIAGNOSE'
     }),
     ...mapMutations({
       cacheRawTableBaseData: 'CACHE_RAWTABLE__BASEDATA'
     }),
     step: function (num) {
+      this.skipStep = num
       this.activeStep = this.stepsCheck(num)
     },
     prev: function () {
+      this.skipStep = this.activeStep - 1
       this.activeStep = this.activeStep - 1
     },
     next: function () {
+      this.skipStep = this.activeStep + 1
       this.wizardSteps[this.activeStep - 1].isComplete = this.checkCubeSteps(this.activeStep)
       if (this.wizardSteps[this.activeStep - 1].isComplete) {
         this.activeStep = this.activeStep + 1
@@ -191,16 +208,15 @@ export default {
       }
     },
     checkCubeInfo: function () {
-      let _this = this
       let nameUsed = false
-      if (!_this.isEdit) {
-        this.checkCubeNameAvailability({cubeName: _this.cubeDetail.name, project: this.selected_project}).then((res) => {
+      if (!this.isEdit) {
+        this.checkCubeNameAvailability({cubeName: this.cubeDetail.name, project: this.selected_project}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             if (data === false) {
               this.$message({
                 showClose: true,
                 duration: 3000,
-                message: _this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + _this.$t('checkCubeNamePartTwo'),
+                message: this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + this.$t('checkCubeNamePartTwo'),
                 type: 'error'
               })
               nameUsed = true
@@ -212,9 +228,17 @@ export default {
       }
       if (nameUsed) {
         return false
-      } else {
-        return true
       }
+      if (this.checkStrategy && (((this.healthStatus.status === 'RUNNING' || this.healthStatus.status === 'ERROR' || this.healthStatus.status === 'NONE') && (this.getStrategy === 'dataOriented' || this.getStrategy === 'mix')) || (!this.getSqlResult && (this.getStrategy === 'businessOriented' || this.getStrategy === 'mix')))) {
+        kapConfirm(this.$t('strategyTip1') + this.$t(this.getStrategy) + this.$t('strategyTip2'), {
+          confirmButtonText: this.$t('kylinLang.common.continue')
+        }).then(() => {
+          this.checkStrategy = false
+          this.step(this.skipStep)
+        })
+        return false
+      }
+      return true
     },
     checkDimensions: function () {
       let _this = this
@@ -248,6 +272,24 @@ export default {
             showClose: true,
             duration: 3000,
             message: _this.$t('checkRowkeyInt'),
+            type: 'error'
+          })
+          return false
+        }
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 12) === 'fixed_length' && _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(13) === '') {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('fixedLengthTip'),
+            type: 'error'
+          })
+          return false
+        }
+        if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 16) === 'fixed_length_hex' && _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(17) === '') {
+          this.$message({
+            showClose: true,
+            duration: 3000,
+            message: _this.$t('fixedLengthHexTip'),
             type: 'error'
           })
           return false
@@ -669,78 +711,6 @@ export default {
         this.saveCube()
       })
     },
-    // saveOrUpdateRawTable: function () {
-    //   if (this.cubeDetail.engine_type === 100 || this.cubeDetail.engine_type === 99) {
-    //     let _this = this
-    //     _this.rawTable.tableDetail.name = _this.cubeDetail.name
-    //     _this.rawTable.tableDetail.model_name = _this.cubeDetail.model_name
-    //     _this.rawTable.tableDetail.engine_type = _this.cubeDetail.engine_type
-    //     _this.rawTable.tableDetail.storage_type = _this.cubeDetail.storage_type
-    //     _this.loadRawTable(_this.cubeDetail.name).then((res) => {
-    //       handleSuccess(res, (data, code, status, msg) => {
-    //         if (_this.rawTable.tableDetail.columns.length > 0) {
-    //           _this.updateRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail), rawTableName: this.cubeDetail.name}).then((res) => {
-    //             handleSuccess(res, (data, code, status, msg) => {
-    //             })
-    //           }).catch((res) => {
-    //             handleError(res, (data, code, status, msg) => {
-    //             })
-    //           })
-    //         } else {
-    //           if (_this.rawTable.needDelete) {
-    //             _this.deleteRawTable(this.cubeDetail.name).then((res) => {
-    //               handleSuccess(res, (data, code, status, msg) => {
-    //               })
-    //             }).catch((res) => {
-    //               handleError(res, (data, code, status, msg) => {
-    //               })
-    //             })
-    //           }
-    //         }
-    //       })
-    //     }).catch((res) => {
-    //       handleError(res, (data, code, status, msg) => {
-    //         if (_this.rawTable.tableDetail.columns.length > 0) {
-    //           _this.saveRawTable({project: this.selected_project, rawTableDescData: JSON.stringify(_this.rawTable.tableDetail)}).then((res) => {
-    //             handleSuccess(res, (data, code, status, msg) => {
-    //             })
-    //           }).catch((res) => {
-    //             handleError(res, (data, code, status, msg) => {
-    //             })
-    //           })
-    //         }
-    //       })
-    //     })
-    //   }
-    // },
-    // saveOrUpdateScheduler: function () {
-    //   let _this = this
-    //   if (_this.isEdit) {
-    //     _this.updateScheduler(_this.scheduler).then((res) => {
-    //       handleSuccess(res, (data, code, status, msg) => {
-    //       })
-    //     }).catch((res) => {
-    //       handleError(res, (data, code, status, msg) => {
-    //         this.$message({
-    //           type: 'error',
-    //           message: msg
-    //         })
-    //       })
-    //     })
-    //   } else {
-    //     _this.saveScheduler(_this.scheduler).then((res) => {
-    //       handleSuccess(res, (data, code, status, msg) => {
-    //       })
-    //     }).catch((res) => {
-    //       handleError(res, (data, code, status, msg) => {
-    //         this.$message({
-    //           type: 'error',
-    //           message: msg
-    //         })
-    //       })
-    //     })
-    //   }
-    // },
     getEncoding: function (encode) {
       let code = encode.split(':')
       return code[0]
@@ -824,6 +794,7 @@ export default {
           if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy']) {
             this.$set(this.cubeDetail.override_kylin_properties, 'kap.smart.conf.aggGroup.strategy', this.$store.state.system.strategy || 'default')
           }
+          this.cubeDetail.oldDimensions = objectClone(this.cubeDetail.dimensions)
           this.cubeDetail.oldMeasures = objectClone(this.cubeDetail.measures)
           this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
@@ -922,6 +893,31 @@ export default {
       }
       this.$set(this.modelDetail, 'lookupTables', lookupTables)
       this.$set(this.modelDetail, 'factTables', factTables)
+    },
+    getModelHelthInfo (project, modelName) {
+      this.getModelDiagnose({
+        project: project,
+        modelName: modelName
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          this.healthStatus.status = data.heathStatus
+          this.healthStatus.progress = data.progress
+          this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
+            return x.replace(/\r\n/g, '<br/>')
+          }) : [modelHealthStatus[data.heathStatus].message]
+        })
+      })
+    },
+    loadSql () {
+      this.getSql(this.cubeDetail.name).then((res) => {
+        handleSuccess(res, (data) => {
+          if (data.sqls) {
+            this.sampleSql.sqlCount = data.sqls.length
+            this.sampleSql.result = data.results
+            this.sampleSql.sqlString = data.sqls.join(';\r\n')
+          }
+        })
+      })
     }
   },
   created () {
@@ -931,6 +927,10 @@ export default {
     if (this.isEdit) {
       this.loadCubeDetail()
     }
+    if (this.modelDetail) {
+      this.loadSql()
+      this.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
+    }
     this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
       this.loadModelInfo({modelName: this.extraoption.modelName, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
@@ -939,9 +939,6 @@ export default {
           this.getTables()
           var rawtableBaseData = this.getModelColumnsDataForRawtable()
           this.cacheRawTableBaseData({project: this.selected_project, modelName: this.extraoption.modelName, data: rawtableBaseData})
-          if (this.$refs.infoForm) {
-            this.$refs.infoForm.getModelHelthInfo(this.selected_project, this.extraoption.modelName)
-          }
         })
       }, (res) => {
         handleError(res)
@@ -953,6 +950,23 @@ export default {
   computed: {
     selected_cube: function () {
       return this.$store.state.cube.cubeAdd
+    },
+    getStrategy: function () {
+      if (this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'default') {
+        return 'dataOriented'
+      } else if (this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
+        return 'mix'
+      } else {
+        return 'businessOriented'
+      }
+    },
+    getSqlResult: function () {
+      this.sampleSql.result.forEach((row) => {
+        if (row.status !== 'FAILED') {
+          return true
+        }
+      })
+      return false
     }
   },
   mounted () {
@@ -962,8 +976,8 @@ export default {
     clearTimeout(this.cubeSaveST)
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample SQL', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The Cube name [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Please select at least one dimension.', checkAggGroup: 'Each aggregation group can\'t be empty.', checkMeasuresCount: '[COUNT] measure is required.', checkRowkeyInt: 'Int encoding column length should between 1 and 8.', checkRowkeyShard: 'At most one \'shard by\' column is allowed.', checkColumnFamily: 'All measures need to be assigned to column family.', checkColumnFamilyNull: 'Each column family can\'t not be empty.', checkCOKey: 'Property name is required.', checkCOValue: 'Property value is required.', rawtableSetSorted: 'Please set at least one column with Sort By value of "true".', rawtableSortedWidthDate: 'The first "sorted" column should be a column with encoding "integer", "time" or "date".', rawtableSingleSorted: 'Only one column is allowed to set with an index value of "sorted".', errorMsg: 'Error Message', shardCountError: 'Max Shard By column number is 1.', unsetScheduler: 'Please complete the Scheduler setting.', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type column only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure.', checkCountDistinctPartThree: 'Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartFour: '] from cube dimension list.', returnTypeNullPartOne: 'Measure[', returnTypeNullPartTwo: ']\'s return type is null. Please edit it to fill the blank.'},
-    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: '上一步', next: '下一步', save: '保存', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的Cube已经存在。', checkDimensions: '维度不能为空。', checkAggGroup: '任意聚合组不能为空。', checkMeasuresCount: '[COUNT] 度量是必须的。', checkRowkeyInt: '编码为int的列的长度应该在1至8之间。', checkRowkeyShard: '最多只允许一个\'shard by\'的列。', checkColumnFamily: '所有度量都应被分配到列簇中。', checkColumnFamilyNull: '任一列簇不能为空!', checkCOKey: '属性名不能为空。', checkCOValue: '属性值不能为空。', rawtableSetSorted: '至少设置一个列的Sort By值为"true"。', rawtableSortedWidthDate: '第一个sorted列应为编码为integer、date或time的列。', rawtableSingleSorted: '只允许设置一个列的index的值为sorted。', errorMsg: '错误信息', shardCountError: 'Shard By最多可以设置一列。', unsetScheduler: 'Scheduler参数设置不完整。', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: '当前版本中，[', checkCountDistinctPartTwo: ']无法既做cube维度也作为count distinct(bitmap) 的度量参数。', checkCountDistinctPartThree: '请使用count distinct(hllc) 替换该度量，或从cube维度列表中删除[', checkCountDistinctPartFour: ']。', returnTypeNullPartOne: '度量[', returnTypeNullPartTwo: ']的返回类型为空，请重新设置该度量。'}
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample SQL', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The Cube name [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Please select at least one dimension.', checkAggGroup: 'Each aggregation group can\'t be empty.', checkMeasuresCount: '[COUNT] measure is required.', checkRowkeyInt: 'Int encoding column length should between 1 and 8.', checkRowkeyShard: 'At most one \'shard by\' column is allowed.', checkColumnFamily: 'All measures need to be assigned to column family.', checkColumnFamilyNull: 'Each column family can\'t not be empty.', checkCOKey: 'Property name is required.', checkCOValue: 'Property value is required.', rawtableSetSorted: 'Please set at least one column with Sort By value of "true".', rawtableSortedWidthDate: 'The first "sorted" column should be a column with encoding "integer", "time" or "date".', rawtableSingleSorted: 'Only one column is allowed to set with an index value of "sorted".', errorMsg: 'Error Message', shardCountError: 'Max Shard By column number is 1.', unsetScheduler: 'Please complete the Scheduler setting.', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type column only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure.', checkCountDistinctPartThree: 'Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartFour: '] from cube dimension list.', returnTypeNullPartOne: 'Measure[', returnTypeNullPartTwo: ']\'s return type is null. Please edit it to fill the blank.', strategyTip1: 'On the selected optimize preference "', strategyTip2: '", cube optimizer and SQL output can barely work for model check/SQL pattens uncompleted. Are you sure to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', fixedLengthTip: 'The length parameter of Fixed Length encoding is required.', fixedLengthHexTip: 'The length parameter of Fixed Length Hex encoding is required.'},
+    'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: '上一步', next: '下一步', save: '保存', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的Cube已经存在。', checkDimensions: '维度不能为空。', checkAggGroup: '任意聚合组不能为空。', checkMeasuresCount: '[COUNT] 度量是必须的。', checkRowkeyInt: '编码为int的列的长度应该在1至8之间。', checkRowkeyShard: '最多只允许一个\'shard by\'的列。', checkColumnFamily: '所有度量都应被分配到列簇中。', checkColumnFamilyNull: '任一列簇不能为空!', checkCOKey: '属性名不能为空。', checkCOValue: '属性值不能为空。', rawtableSetSorted: '至少设置一个列的Sort By值为"true"。', rawtableSortedWidthDate: '第一个sorted列应为编码为integer、date或time的列。', rawtableSingleSorted: '只允许设置一个列的index的值为sorted。', errorMsg: '错误信息', shardCountError: 'Shard By最多可以设置一列。', unsetScheduler: 'Scheduler参数设置不完整。', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: '当前版本中，[', checkCountDistinctPartTwo: ']无法既做cube维度也作为count distinct(bitmap) 的度量参数。', checkCountDistinctPartThree: '请使用count distinct(hllc) 替换该度量，或从cube维度列表中删除[', checkCountDistinctPartFour: ']。', returnTypeNullPartOne: '度量[', returnTypeNullPartTwo: ']的返回类型为空，请重新设置该度量。', strategyTip1: '当前优化偏好“', strategyTip2: '”下，模型检测／输入SQL尚未完成，后续优化与推荐可能无法完成。您确定要继续下一步吗？', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', fixedLengthTip: 'Fixed Length Hex编码时需要长度参数。', fixedLengthHexTip: 'Fixed Length Hex编码时需要长度参数。'}
   }
 }
 </script>

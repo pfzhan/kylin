@@ -13,6 +13,7 @@ exports.default = {
     save: 'Save',
     ok: 'OK',
     submit: 'Submit',
+    continue: 'Continue',
     setting: 'Settings',
     logout: 'Log Out',
     sync: 'Sync',

@@ -42,16 +42,16 @@
   </el-radio-group>
   <ul class="list">
     <li>
-      <span v-bind:style="{color: dataColor}">*</span>
       <span style="padding-left: 5px;">{{$t('modelCheck')}}</span>
       <common-tip :content="healthStatus.messages.join('<br/>')" ><icon v-if="healthStatus.status!=='RUNNING' && healthStatus.status!=='ERROR'" :name="modelHealthStatus[healthStatus.status].icon" :style="{color:modelHealthStatus[healthStatus.status].color}"></icon></common-tip>
       <common-tip v-if="healthStatus.status==='RUNNING'"  :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
       <common-tip v-if="healthStatus.status==='ERROR'" :content="healthStatus.messages.join('<br/>')" ><el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" status="exception"  :percentage="healthStatus.progress||0" style="width:20px;vertical-align: baseline;"></el-progress></common-tip>
+      <span v-bind:style="{color: dataColor}">{{$t('required')}}</span>
     </li>
     <li>
-      <span v-bind:style="{color: sqlColor}">*</span>
       <span style="padding-left: 5px;">{{$t('sqlPattens')}} </span>
-      <span v-show="sqlCount>0">({{sqlCount}})</span>
+      <span v-show="sampleSql.sqlCount>0">({{sampleSql.sqlCount}})</span>
+      <span v-bind:style="{color: sqlColor}">{{$t('required')}}</span>
     </li>
   </ul>
   <el-row style="margin-top: 10px;">
@@ -64,7 +64,7 @@
     <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
     <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <div :class="{hasCheck: hasCheck}">
-    <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+    <editor v-model="sampleSql.sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
     </div>
     <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
     <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
@@ -103,7 +103,7 @@ import { modelHealthStatus } from '../../../config/index'
 import {handleSuccess, handleError, kapConfirm} from 'util/business'
 export default {
   name: 'info',
-  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql', 'healthStatus'],
   data () {
     return {
       modelHealthStatus: modelHealthStatus,
@@ -112,15 +112,7 @@ export default {
       errorMsg: '',
       successMsg: '',
       hasCheck: false,
-      sqlCount: 0,
-      sqlString: '',
-      result: [],
       firstLoadSql: false,
-      healthStatus: {
-        status: 'NONE',
-        progress: 0,
-        messages: []
-      },
       addSQLFormVisible: false,
       getNotifyList: this.cubeDesc.notify_list && this.cubeDesc.notify_list.toString() || '',
       options: [{label: 'ERROR', value: 'ERROR'}, {label: 'DISCARDED', value: 'DISCARDED'}, {label: 'SUCCEED', value: 'SUCCEED'}],
@@ -137,8 +129,7 @@ export default {
     ...mapActions({
       saveSampleSql: 'SAVE_SAMPLE_SQL',
       getSql: 'GET_SAMPLE_SQL',
-      checkSql: 'CHECK_SQL',
-      getModelDiagnose: 'DIAGNOSE'
+      checkSql: 'CHECK_SQL'
     }),
     changeNotifyList: function () {
       this.cubeDesc.notify_list = this.getNotifyList.split(',')
@@ -164,7 +155,7 @@ export default {
       })
     },
     filterSqls () {
-      var sqls = this.sqlString.split(/;/)
+      var sqls = this.sampleSql.sqlString.split(/;/)
       sqls = sqls.filter((s) => {
         return !!(s.replace(/[\r\n]/g, ''))
       })
@@ -203,7 +194,7 @@ export default {
       }
       editor.on('guttermousedown', (e) => {
         var row = e.getDocumentPosition().row
-        var data = this.result
+        var data = this.sampleSql.result
         if (data && data.length) {
           if (data[row].status === 'FAILED') {
             if (data[row].message) {
@@ -232,7 +223,7 @@ export default {
       }
     },
     validateSql () {
-      var sqls = this.filterSqls(this.sqlString)
+      var sqls = this.filterSqls(this.sampleSql.sqlString)
       if (sqls.length === 0) {
         return
       }
@@ -241,12 +232,12 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sqlString = sqls.join(';\r\n')
+      this.sampleSql.sqlString = sqls.join(';\r\n')
       this.checkSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
           this.hasCheck = true
           this.checkSqlLoadBtn = false
-          this.result = data
+          this.sampleSql.result = data
           this.$nextTick(() => {
             this.addBreakPoint(data, editor)
             this.bindBreakClickEvent(editor)
@@ -269,15 +260,15 @@ export default {
         this.getSql(this.cubeDesc.name).then((res) => {
           handleSuccess(res, (data) => {
             if (data.sqls) {
-              this.sqlCount = data.sqls.length
+              this.sampleSql.sqlCount = data.sqls.length
               if (data.results && data.results.length) {
                 this.hasCheck = true
               }
-              this.result = data.results
-              this.sqlString = ''
+              this.sampleSql.result = data.results
+              this.sampleSql.sqlString = ''
               this.$nextTick(() => {
-                this.sqlString = data.sqls.join(';\r\n')
-                this.addBreakPoint(this.result, editor)
+                this.sampleSql.sqlString = data.sqls.join(';\r\n')
+                this.addBreakPoint(this.sampleSql.result, editor)
                 this.bindBreakClickEvent(editor)
                 this.$nextTick(() => {
                   editor && editor.on('change', this.editerChangeHandle)
@@ -290,7 +281,7 @@ export default {
     },
     editerChangeHandle () {
       if (!this.firstLoadSql) {
-        this.result = []
+        this.sampleSql.result = []
         this.hasCheck = false
       }
       this.firstLoadSql = false
@@ -299,12 +290,12 @@ export default {
     saveSql () {
       this.errorMsg = ''
       this.sqlBtnLoading = true
-      var sqls = this.filterSqls(this.sqlString)
+      var sqls = this.filterSqls(this.sampleSql.sqlString)
       this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         this.sqlBtnLoading = false
         handleSuccess(res, (data, code, status, msg) => {
           this.addSQLFormVisible = false
-          this.sqlCount = sqls.length
+          this.sampleSql.sqlCount = sqls.length
         })
       }, (res) => {
         this.sqlBtnLoading = false
@@ -319,20 +310,6 @@ export default {
       } else {
         this.saveSql()
       }
-    },
-    getModelHelthInfo (project, modelName) {
-      this.getModelDiagnose({
-        project: project,
-        modelName: modelName
-      }).then((res) => {
-        handleSuccess(res, (data) => {
-          this.healthStatus.status = data.heathStatus
-          this.healthStatus.progress = data.progress
-          this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
-            return x.replace(/\r\n/g, '<br/>')
-          }) : [modelHealthStatus[data.heathStatus].message]
-        })
-      })
     },
     refreshNotificationEvents (data) {
       this.$set(this.cubeDesc, 'status_need_notify', data)
@@ -361,27 +338,9 @@ export default {
       }
     }
   },
-  mounted () {
-    this.loadSql()
-    if (this.modelDesc) {
-      this.getModelHelthInfo(this.modelDesc.project, this.modelDesc.name)
-    }
-    // this.getModelDiagnose({
-    //   project: this.modelDesc.project,
-    //   modelName: this.modelDesc.name
-    // }).then((res) => {
-    //   handleSuccess(res, (data) => {
-    //     this.healthStatus.status = data.heathStatus
-    //     this.healthStatus.progress = data.progress
-    //     this.healthStatus.messages = data.messages && data.messages.length ? data.messages.map((x) => {
-    //       return x.replace(/\r\n/g, '<br/>')
-    //     }) : [modelHealthStatus[data.heathStatus].message]
-    //   })
-    // })
-  },
   locales: {
-    'en': {modelName: 'Model Name: ', cubeName: 'Cube Name: ', notificationEmailList: 'Notification Email List: ', notificationEvents: 'Notification Events: ', description: 'Description: ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1. Model Check', sqlPattens: '2. SQL Pattens', check: 'Validate', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see error details.', validSuccess: 'Great, the SQL statements are valid.', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', dataOrientedTip: 'Optimizer would mainly digest source data feature to suggest one aggregate group, which optimizes all dimensions from model.<br/> Cubes follow data oriented preference are better to serve flexible queries.', mixTip: 'Optimizer would mix two preference to serve queries, which contains some flexible queries and some known queries.<br/> The mix will cost more time and resource on build cube to meet satisfy two scenarios.', businessOrientedTip: 'Optimizer would only digest SQL patterns to suggest multiple aggregate groups consisting of mandatory dimensions.<br/> Cubes follow business oriented preference are designed to answer known queries.'},
-    'zh-cn': {modelName: '模型名称：', cubeName: 'Cube名称：', notificationEmailList: '通知邮件列表：', notificationEvents: '需通知的事件：', description: '描述：', cubeNameInvalid: 'Cube名称不合法。', cubeNameRequired: 'Cube名称不可为空。', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1. 模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: 'SQL校验结果正确。', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', dataOrientedTip: '优化器将主要参考数据的特征，推荐一个聚合组优化了对应模型中所有的维度，生成的cube更适用于灵活度高的查询。', mixTip: '优化器将综合两种优化偏好，适用于部分查询定向、部分查询灵活的场景。<br/>综合策略为了同时满足两种查询偏好，生成的聚合组较多，后续构建所需资源较多。', businessOrientedTip: '优化器将参考输入的SQL语句，推荐N个完全由必要维度组成的聚合组，生成的cube定向回答这些SQL语句。'}
+    'en': {modelName: 'Model Name: ', cubeName: 'Cube Name: ', notificationEmailList: 'Notification Email List: ', notificationEvents: 'Notification Events: ', description: 'Description: ', cubeNameInvalid: 'Cube name is invalid. ', cubeNameRequired: 'Cube name is required. ', basicInfo: 'Basic Info', collectsqlPatterns: 'Collect SQL Patterns', noticeSetting: 'Notification Setting', optimizerInput: 'Optimizer Inputs', modelCheck: '1. Model Check', sqlPattens: '2. SQL Pattens', check: 'Validate', checkingTip: 'The SQL statements check is about to complete, are you sure to break it and save?', 'validFail': 'Some SQL statements are not checked through, click on \'x\' before the line number of SQL statements to see error details.', validSuccess: 'Great, the SQL statements are valid.', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', required: '(Rquired)', dataOrientedTip: 'Optimizer would mainly digest source data feature to suggest one aggregate group, which optimizes all dimensions from model.<br/> Cubes follow data oriented preference are better to serve flexible queries.', mixTip: 'Optimizer would mix two preference to serve queries, which contains some flexible queries and some known queries.<br/> The mix will cost more time and resource on build cube to meet satisfy two scenarios.', businessOrientedTip: 'Optimizer would only digest SQL patterns to suggest multiple aggregate groups consisting of mandatory dimensions.<br/> Cubes follow business oriented preference are designed to answer known queries.'},
+    'zh-cn': {modelName: '模型名称：', cubeName: 'Cube名称：', notificationEmailList: '通知邮件列表：', notificationEvents: '需通知的事件：', description: '描述：', cubeNameInvalid: 'Cube名称不合法。', cubeNameRequired: 'Cube名称不可为空。', basicInfo: '基本信息', collectsqlPatterns: '输入SQL', noticeSetting: '通知设置', optimizerInput: '优化器输入', modelCheck: '1. 模型检测', sqlPattens: '2. SQL查询记录', check: '校验', checkingTip: 'SQL语句校验即将完成，您确定要现在保存？', 'validFail': 'SQL检测未通过，您可以通过点击SQL语句行号前的x号查看详细错误。', validSuccess: 'SQL校验结果正确。', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', required: '（必要）', dataOrientedTip: '优化器将主要参考数据的特征，推荐一个聚合组优化了对应模型中所有的维度，生成的cube更适用于灵活度高的查询。', mixTip: '优化器将综合两种优化偏好，适用于部分查询定向、部分查询灵活的场景。<br/>综合策略为了同时满足两种查询偏好，生成的聚合组较多，后续构建所需资源较多。', businessOrientedTip: '优化器将参考输入的SQL语句，推荐N个完全由必要维度组成的聚合组，生成的cube定向回答这些SQL语句。'}
   }
 }
 </script>

@@ -12,6 +12,7 @@ exports.default = {
     copy: '复制',
     save: '保存',
     ok: '确定',
+    continue: '继续',
     submit: '提交',
     setting: '设置',
     logout: '注销',

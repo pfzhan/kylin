@@ -1,5 +1,10 @@
 <template>
-<div class="add_dimensions">  
+<div class="add_dimensions"> 
+  <el-button type="blue" class="dimensions-button" @click="suggestionDimensions"  :loading="suggestLoading" :disabled="!getSqlResult">{{$t('sqlOutput')}}      
+    <common-tip :content="$t('outputTipOne') + $t(getStrategy) + $t('outputTipTwo')" ><icon name="question-circle" style="color:gray"></icon></common-tip></el-button>
+  <el-button type="blue" class="dimensions-button" @click="reset">{{$t('reset')}}</el-button>
+  <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;"></div>
+  <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
   <div v-for="(table, index) in factTableColumns">
     <el-tag>{{table.tableName}} </el-tag>
     <el-tag v-if="index === 0">[ Fact Table ]</el-tag>   
@@ -93,20 +98,27 @@
 </div>  
 </template>
 <script>
-import { removeNameSpace } from '../../../util/index'
+import { mapActions } from 'vuex'
+import { removeNameSpace, getNameSpaceTopName } from '../../../util/index'
+import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 export default {
   name: 'adddimensions',
-  props: ['modelDesc', 'cubeDimensions'],
+  props: ['modelDesc', 'cubeDesc', 'sampleSql'],
   data () {
     return {
       rootFactTable: null,
       factTableColumns: [],
       lookupTableColumns: [],
       multipleSelection: {},
+      suggestLoading: false,
+      sqlDimensions: [],
       selected_project: localStorage.getItem('selected_project')
     }
   },
   methods: {
+    ...mapActions({
+      getSqlDimensions: 'GET_SQL_DIMENSIONS'
+    }),
     dimensionRowClick: function (row, event, column) {
       this.$set(row, 'isSelected', !row.isSelected)
       this.$refs[row.table][0].toggleRowSelection(row)
@@ -125,56 +137,54 @@ export default {
       }
     },
     getTableColumns: function () {
-      let _this = this
-      _this.modelDesc.dimensions.forEach(function (dimension) {
-        _this.multipleSelection[dimension.table] = []
-        if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
+      this.modelDesc.dimensions.forEach((dimension) => {
+        this.multipleSelection[dimension.table] = []
+        if (this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
-          dimension.columns.forEach(function (col) {
+          dimension.columns.forEach((col) => {
             colArr.push({table: dimension.table, column: col, name: col, isSelected: false})
           })
-          if (dimension.table === removeNameSpace(_this.modelDesc.fact_table)) {
-            _this.factTableColumns.unshift(tableObj)
+          if (dimension.table === removeNameSpace(this.modelDesc.fact_table)) {
+            this.factTableColumns.unshift(tableObj)
           } else {
-            _this.factTableColumns.push(tableObj)
+            this.factTableColumns.push(tableObj)
           }
         } else {
           let colArr = []
           let tableObj = {tableName: dimension.table, columns: colArr}
-          dimension.columns.forEach(function (col) {
-            var suggestDerivedInfo = suggestDerived(dimension.table, col) === null ? 'false' : 'true'
+          dimension.columns.forEach((col) => {
+            var suggestDerivedInfo = this.suggestDerived(dimension.table, col) === null ? 'false' : 'true'
             colArr.push({table: dimension.table, column: col, name: col, derived: suggestDerivedInfo, isSelected: false})
           })
-          _this.lookupTableColumns.push(tableObj)
+          this.lookupTableColumns.push(tableObj)
         }
       })
-      function suggestDerived (table, column) {
-        var derivedList = _this.modelDesc.suggestionDerived
-        for (var s = 0; s < (derivedList && derivedList.length || 0); s++) {
-          if (table === derivedList[s].table && derivedList[s].derived) {
-            if (derivedList[s].derived.indexOf(column) >= 0) {
-              return true
-            }
+    },
+    suggestDerived: function (table, column) {
+      var derivedList = this.modelDesc.suggestionDerived
+      for (var s = 0; s < (derivedList && derivedList.length || 0); s++) {
+        if (table === derivedList[s].table && derivedList[s].derived) {
+          if (derivedList[s].derived.indexOf(column) >= 0) {
+            return true
           }
         }
-        return null
       }
+      return null
     },
-    getCubeColumnInTable: function () {
-      let _this = this
-      _this.cubeDimensions.forEach(function (dimension) {
-        if (_this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
-          _this.multipleSelection[dimension.table].push({table: dimension.table, column: dimension.column, name: dimension.name, isSelected: true})
-          _this.factTableColumns.forEach(function (table) {
+    getCubeColumnInTable: function (dimensions) {
+      dimensions.forEach((dimension) => {
+        if (this.modelDesc.factTables.indexOf(dimension.table) !== -1) {
+          this.multipleSelection[dimension.table].push({table: dimension.table, column: dimension.column, name: dimension.name, isSelected: true})
+          this.factTableColumns.forEach((table) => {
             if (table.tableName === dimension.table) {
-              table.columns.forEach(function (column) {
+              table.columns.forEach((column) => {
                 if (column.column === dimension.column) {
-                  _this.$nextTick(function () {
-                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  this.$nextTick(() => {
+                    this.$refs[dimension.table][0].toggleRowSelection(column, true)
                   })
-                  _this.$set(column, 'isSelected', true)
-                  _this.$set(column, 'name', dimension.name)
+                  this.$set(column, 'isSelected', true)
+                  this.$set(column, 'name', dimension.name)
                 }
               })
             }
@@ -184,17 +194,17 @@ export default {
           if (dimension.column) {
             type = 'false'
           }
-          _this.lookupTableColumns.forEach(function (table) {
+          this.lookupTableColumns.forEach((table) => {
             if (table.tableName === dimension.table) {
-              table.columns.forEach(function (column) {
+              table.columns.forEach((column) => {
                 if ((type === 'false' && column.column === dimension.column) || (type === 'true' && column.column === dimension.derived[0])) {
-                  _this.multipleSelection[dimension.table].push({table: dimension.table, column: column.column, name: dimension.name, isSelected: true, derived: type})
-                  _this.$nextTick(function () {
-                    _this.$refs[dimension.table][0].toggleRowSelection(column, true)
+                  this.multipleSelection[dimension.table].push({table: dimension.table, column: column.column, name: dimension.name, isSelected: true, derived: type})
+                  this.$nextTick(() => {
+                    this.$refs[dimension.table][0].toggleRowSelection(column, true)
                   })
-                  _this.$set(column, 'isSelected', true)
-                  _this.$set(column, 'name', dimension.name)
-                  _this.$set(column, 'derived', type)
+                  this.$set(column, 'isSelected', true)
+                  this.$set(column, 'name', dimension.name)
+                  this.$set(column, 'derived', type)
                 }
               })
             }
@@ -203,10 +213,9 @@ export default {
       })
     },
     changeType: function (column) {
-      let _this = this
-      _this.multipleSelection[column.table].forEach(function (col) {
+      this.multipleSelection[column.table].forEach((col) => {
         if (col.column === column.column) {
-          _this.$set(col, 'derived', column.derived)
+          this.$set(col, 'derived', column.derived)
         }
       })
     },
@@ -218,33 +227,103 @@ export default {
       }
     },
     selectionAllChange: function (tableName) {
-      let _this = this
-      if (_this.$refs[tableName][0].store.states.selection.length > 0) {
-        _this.$refs[tableName][0].data.forEach(function (selection) {
-          _this.$set(selection, 'isSelected', true)
+      if (this.$refs[tableName][0].store.states.selection.length > 0) {
+        this.$refs[tableName][0].data.forEach((selection) => {
+          this.$set(selection, 'isSelected', true)
         })
-        _this.multipleSelection[tableName] = _this.$refs[tableName][0].data
+        this.multipleSelection[tableName] = this.$refs[tableName][0].data
       } else {
-        _this.$refs[tableName][0].data.forEach(function (selection) {
-          _this.$set(selection, 'isSelected', false)
+        this.$refs[tableName][0].data.forEach((selection) => {
+          this.$set(selection, 'isSelected', false)
           if (selection.derived) {
-            _this.$set(selection, 'derived', selection.derived)
+            this.$set(selection, 'derived', selection.derived)
           }
         })
-        _this.multipleSelection[tableName] = []
+        this.multipleSelection[tableName] = []
       }
+    },
+    suggestionDimensions: function () {
+      this.suggestLoading = true
+      let sqlSuggestdimensions = []
+      this.sqlDimensions.forEach((col) => {
+        let table = getNameSpaceTopName(col)
+        let colName = removeNameSpace(col)
+        let suggestDerivedInfo = this.suggestDerived(table, colName) === null ? 'false' : 'true'
+        let dimensionObj = {table: table, column: null, name: colName, derived: null}
+        if (!suggestDerivedInfo) {
+          dimensionObj.derived = [colName]
+        } else {
+          dimensionObj.column = colName
+        }
+        sqlSuggestdimensions.push(dimensionObj)
+      })
+      this.getTableColumns()
+      this.getCubeColumnInTable(sqlSuggestdimensions)
+      this.suggestLoading = false
+    },
+    reset: function () {
+      kapConfirm(this.$t('resetTip')).then(() => {
+        this.getTableColumns()
+        this.getCubeColumnInTable(this.cubeDesc.oldDimensions || [])
+      })
+    }
+  },
+  computed: {
+    getStrategy: function () {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'default') {
+        return 'dataOriented'
+      } else if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
+        return 'mix'
+      } else {
+        return 'businessOriented'
+      }
+    },
+    getSqlResult: function () {
+      this.sampleSql.result.forEach((row) => {
+        if (row.status !== 'FAILED') {
+          return true
+        }
+      })
+      return false
     }
   },
   created () {
     this.getTableColumns()
-    this.getCubeColumnInTable()
+    this.getCubeColumnInTable(this.cubeDesc.dimensions)
+    if (this.getSqlResult) {
+      this.getSqlDimensions(this.cubeDesc.name).then((res) => {
+        handleSuccess(res, (data) => {
+          this.sqlDimensions = data
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    }
     this.$on('addDimensionsFormValid', (t) => {
-      this.$emit('validSuccess', this.multipleSelection)
+      let coincide = false
+      for (let table in this.multipleSelection) {
+        if (this.multipleSelection[table] && this.multipleSelection[table].length > 0) {
+          this.multipleSelection[table].forEach((column) => {
+            if (this.sqlDimensions.indexOf(table + '.' + column.name) >= 0) {
+              coincide = true
+            }
+          })
+        }
+      }
+      if (!coincide && this.getSqlResult && this.getSqlResult === 'businessOriented') {
+        kapConfirm(this.$t('noCoincide'), {
+          confirmButtonText: this.$t('kylinLang.common.continue')
+        }).then(() => {
+          this.$emit('validSuccess', this.multipleSelection)
+        })
+      } else {
+        this.$emit('validSuccess', this.multipleSelection)
+      }
     })
   },
   locales: {
-    'en': {name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment'},
-    'zh-cn': {name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释'}
+    'en': {name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', reset: 'Reset', sqlOutput: 'SQL Output', outputTipOne: 'Based on "', outputTipTwo: '" preference, and inputed SQL, these dimensions are suggesting.', resetTip: 'Reset will call last saving back and overwrite existing dimensions. Please confirm to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', noCoincide: 'On the business oriented preference, you are suggested to use most dimensions from SQL patterns. Otherwise, optimizer can barely offer useful suggestion.'},
+    'zh-cn': {name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', reset: '重制', sqlOutput: '推荐维度', outputTipOne: '根据您选择的“', outputTipTwo: '”偏好与输入的SQL查询，系统推荐的维度。', resetTip: '重置操作会返回上一次保存过的维度列表，并覆盖现有的纬度，请确认是否继续此操作？', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', noCoincide: '在业务优先的优化偏好下，您未选择输入的SQL中出现的维度。优化器将难以提供合适的优化建议。'}
   }
 }
 </script>
@@ -268,6 +347,13 @@ export default {
     }
     .el-table{
       margin-top: 10px;
+    }
+    .dimensions-button {
+      height: 40px;
+    }
+    .dimensions-button:hover {
+      border-color: #218fea !important;
+      background: transparent!important;
     }
   }
 </style>

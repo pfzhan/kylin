@@ -204,7 +204,7 @@
         <el-row  :disabled="isReadyCube"  v-show="convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
-           <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
+           <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}} {{row.encoding}}</common-tip></el-col>
           <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
@@ -276,7 +276,7 @@
       <span slot="title">{{$t('addDimensions')}}
         <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
-      <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDimensions="cubeDesc.dimensions"></add_dimensions>
+      <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDesc="cubeDesc" :sampleSql="sampleSql"></add_dimensions>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dimensionsClose()">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
@@ -292,7 +292,7 @@ import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
 export default {
   name: 'dimensions',
-  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql'],
   data () {
     return {
       activeName: 'first',
@@ -587,6 +587,7 @@ export default {
       }
       let datatype = this.modelDesc.columnsDetail[rowkey.column].datatype
       if (this.selectEncodingCache[datatype]) {
+        console.log(this.selectEncodingCache, 66565)
         return this.selectEncodingCache[datatype]
       }
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)

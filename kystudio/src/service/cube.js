@@ -103,6 +103,9 @@ export default {
   getCubeSuggestDimensions: (cubeDesc) => {
     return Vue.resource(apiUrl + 'smart/' + cubeDesc.model + '/' + cubeDesc.cube + '/dimension_measure').save()
   },
+  getSqlDimensions: (cubeName) => {
+    return Vue.resource(apiUrl + 'smart/' + cubeName + '/sql_dimension').get()
+  },
   getScheduler: (para) => {
     return Vue.resource(apiUrl + 'cubes/' + para.project + '/' + para.cubeName + '/scheduler_job').get()
   },
