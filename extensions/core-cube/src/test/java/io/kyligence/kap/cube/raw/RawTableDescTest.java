@@ -85,6 +85,8 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
         }
 
         rawDesc.init(getTestConfig());
+        Assert.assertEquals(1, rawDesc.getSortbyColumnDescs().size());
+        Assert.assertEquals(1, rawDesc.getSortbyColumns().size());
     }
 
     @Test

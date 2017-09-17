@@ -393,21 +393,16 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.sortbyColumnDescs = new LinkedHashSet<>();
         
         for (RawTableColumnDesc colDesc : columns) {
+            colDesc.init(model);
             if (colDesc.isSortby()) {
+                sortbyColumns.add(colDesc.getColumn());
                 sortbyColumnDescs.add(colDesc);
             }
-        }
-
-        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
-            colDesc.init(model);
             if (colDesc.isShardby()) {
                 shardbyColumns.add(colDesc.getColumn());
             }
             if (colDesc.getFuzzyIndex()) {
                 fuzzyColumns.add(colDesc.getColumn());
-            }
-            if (colDesc.isSortby()) {
-                sortbyColumns.add(colDesc.getColumn());
             }
             columnMap.put(colDesc.getColumn(), colDesc);
         }
