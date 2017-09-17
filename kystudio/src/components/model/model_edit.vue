@@ -293,7 +293,7 @@
     <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" :disabled="actionMode==='view' || sqlString === ''" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
       <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
-      <common-tip :content="$t('ignoreTip')" class="ksd-fleft ksd-ml-4">
+      <common-tip :content="$t('ignoreTip')" class="ksd-fleft ksd-ml-4" v-show="hasValidFailSql">
         <icon name="question-circle-o"></icon>
       </common-tip>
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -634,6 +634,7 @@ export default {
       this.$nextTick(() => {
         var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor
         if (editor) {
+          editor && editor.removeListener('change', this.editerChangeHandle)
           if (this.actionMode === 'view') {
             editor.setReadOnly(true)
           } else {
@@ -653,6 +654,7 @@ export default {
               }
               this.sqlString = sqls.join(';\r\n')
               this.addBreakPoint(errorInfo, editor)
+              editor && editor.on('change', this.editerChangeHandle)
               this.result = errorInfo
             })
           })
@@ -668,7 +670,7 @@ export default {
       if (!editor) {
         return
       }
-      this.bindBreakClickEvent(editor, data)
+      this.bindBreakClickEvent(editor)
       if (data && data.length) {
         this.hasValidFailSql = false
         data.forEach((r, index) => {
@@ -688,7 +690,7 @@ export default {
         this.errorMsg = msg
       }
     },
-    bindBreakClickEvent (editor, result) {
+    bindBreakClickEvent (editor) {
       if (!editor) {
         return
       }
@@ -703,7 +705,7 @@ export default {
             dom.className = dom.className.replace(/\s+active/g, '')
           }
         })
-        var data = result
+        var data = this.result
         row = row - 1
         if (data && data.length) {
           if (data[row].capable === false) {

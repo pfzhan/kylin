@@ -242,7 +242,7 @@
             <h3>{{$t('kylinLang.common.errorDetail')}}</h3>
             <p>{{sug.incapableReason}}</p>
             <h3>{{$t('kylinLang.common.suggest')}}</h3>
-            <p>{{sug.suggestion}}</p>
+            <p v-html="sug.suggestion"></p>
           </div>
         </div>
 
