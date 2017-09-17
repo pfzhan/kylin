@@ -272,7 +272,7 @@ public class AdviceMessage {
     }
 
     public String getCUBE_LIMIT_PRECEDE_AGGR_SUGGEST() {
-        return "Please take a look at this FAQ and try to convert SQL to get a better answer.";
+        return "Please take a look at this FAQ and try to convert SQL to get a better answer. <a href='https://kybot.io/#/kybot/searchDetail/115002099473'>https://kybot.io/#/kybot/searchDetail/115002099473</a>";
     }
 
     //CUBE_UNMATCHED_AGGREGATION
