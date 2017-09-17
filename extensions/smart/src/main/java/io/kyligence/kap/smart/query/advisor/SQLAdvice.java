@@ -29,8 +29,8 @@ import io.kyligence.kap.common.obf.IKeep;
 
 public class SQLAdvice implements IKeep, Serializable {
     private static final long serialVersionUID = -1L;
-    private final String incapableReason;
-    private final String suggestion;
+    private String incapableReason;
+    private String suggestion;
 
     public static SQLAdvice build(String reason, String suggest) {
         return new SQLAdvice(reason, suggest);
@@ -44,9 +44,21 @@ public class SQLAdvice implements IKeep, Serializable {
         return suggestion;
     }
 
-    private SQLAdvice(String incapableReason, String suggestion) {
+    public SQLAdvice(String incapableReason, String suggestion) {
         this.incapableReason = incapableReason;
         this.suggestion = suggestion;
+    }
+
+    void setIncapableReason(String incapableReason) {
+        this.incapableReason = incapableReason;
+    }
+
+    void setSuggestion(String suggestion) {
+        this.suggestion = suggestion;
+    }
+
+    public SQLAdvice() {
+
     }
 
     @Override

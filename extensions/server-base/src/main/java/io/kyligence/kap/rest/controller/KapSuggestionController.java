@@ -32,6 +32,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.controller.BasicController;
+import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.CubeRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -136,11 +137,8 @@ public class KapSuggestionController extends BasicController {
             ret = kapSuggestionService.validateSqls(request.getProject(), request.getModelName(),
                     request.getFactTable(), request.getSqls());
         } catch (IOException e) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_VERIFY_MODEL_SQL());
+            throw new InternalErrorException(msg.getFAIL_TO_VERIFY_MODEL_SQL(), e);
         }
-
-        if (ret == null)
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getREPEAT_VERIFY_MODEL_SQL());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
     }
@@ -156,7 +154,7 @@ public class KapSuggestionController extends BasicController {
                     request.getFactTable(), request.getSqls());
             logger.debug("Proposed model:\n" + JsonUtil.writeValueAsIndentString(dataModelDesc));
         } catch (IOException e) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_PROPOSE_MODEL());
+            throw new InternalErrorException(msg.getFAIL_TO_PROPOSE_MODEL(), e);
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, dataModelDesc, "");
     }
@@ -170,7 +168,7 @@ public class KapSuggestionController extends BasicController {
         try {
             ret = kapSuggestionService.getModelSqls(modelName);
         } catch (IOException e) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getFAIL_TO_GET_MODEL_SQL());
+            throw new InternalErrorException(msg.getFAIL_TO_GET_MODEL_SQL(), e);
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
     }

@@ -48,7 +48,7 @@ public class JoinDescUtil {
 
         JoinDesc joinDesc = new JoinDesc();
 
-        joinDesc.setType(join.getType());
+        joinDesc.setType(join.getType().toLowerCase());
         String[] pkCols = new String[join.getPrimaryKey().length];
         for (int i = 0; i < pkCols.length; i++) {
             pkCols[i] = pkTblAlias + "." + join.getPrimaryKeyColumns()[i].getName();
