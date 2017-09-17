@@ -69,6 +69,8 @@ class LocalQueryRunner extends AbstractQueryRunner {
         Utils.exposeAllTableAndColumn(config);
         Utils.setLargeCuboidCombinationConf(config);
         Utils.setLargeRowkeySizeConf(config);
+        config.setProperty("kylin.query.disable-cube-noagg-sql",
+                Boolean.toString(srcKylinConfig.isDisableCubeNoAggSQL()));
         return config;
     }
 
