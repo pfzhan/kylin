@@ -60,7 +60,7 @@ export default {
     this.showCopyStatus = false
   },
   locales: {
-    'en': {'copySuccess': 'Copied Successfully!', 'copyfail': 'Failed to copy! Your browser does not support paste boards!'},
+    'en': {'copySuccess': 'Content has been copied to the Clipboard.', 'copyfail': 'Failed to copy! Your browser does not support paste boards!'},
     'zh-cn': {'copySuccess': '复制成功！', 'copyfail': '复制失败，您的浏览器不支持粘贴板功能!'}
   }
 }

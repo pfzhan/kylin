@@ -39,14 +39,14 @@
             <span v-show="table.kind !== 'LOOKUP'">
               <icon name="calculator"   class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             </span>
-            <span >
+            <span>
               <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
             </span>
              <span v-show="table.kind == 'ROOTFACT'" style="line-height:26px;font-weight:bold;" @click="inputSql">
               SQL
             </span>
             <i class="fa fa-window-close"></i>
-            <el-dropdown @command="selectTableKind" class="ksd-fright" style="padding-right: 6px;" v-if="actionMode!=='view'">
+            <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
               <span class="el-dropdown-link">
                <i class="el-icon-setting" style="color:#fff"></i>
               </span>
@@ -290,10 +290,11 @@
       </el-alert>
     </div>
     </transition>
-    <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
+    <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" :disabled="actionMode==='view' || sqlString === ''" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
+      <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel" :disabled="actionMode==='view' || ignoreErrorSql === false" >{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </div>
@@ -320,9 +321,11 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      ignoreErrorSql: true,
       sqlBtnLoading: false,
       addSQLFormVisible: false,
       checkSqlLoadBtn: false,
+      hasValidFailSql: false,
       errorMsg: '',
       successMsg: '',
       hasCheck: false,
@@ -544,6 +547,10 @@ export default {
       this.tableList = []
     },
     sqlClose () {
+      if (this.actionMode === 'view') {
+        this.addSQLFormVisible = false
+        return
+      }
       kapConfirm(this.$t('kylinLang.common.willClose'), {
         confirmButtonText: this.$t('kylinLang.common.close'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
@@ -556,12 +563,12 @@ export default {
       if (sqls.length === 0) {
         return
       }
+      this.sqlBtnLoading = true
       var rootFact = this.getRootFact()
       if (rootFact.length) {
         var rootFactName = rootFact[0].database + '.' + rootFact[0].name
         this.autoModelApi({ modelName: this.modelInfo.modelName, project: this.project, sqls: sqls, factTable: rootFactName }).then((res) => {
           handleSuccess(res, (data) => {
-            this.addSQLFormVisible = false
             this.removeAllLinks()
             delete data.uuid
             delete data.last_modified
@@ -569,12 +576,15 @@ export default {
             data.uuid = this.modelInfo.uuid
             // 清空画布数据
             this.resetModelEditArea()
+            this.sqlBtnLoading = false
+            this.addSQLFormVisible = false
             this.$nextTick(() => {
               // 重新绘制
               this.loadEditData(data)
             })
           })
         }, (res) => {
+          this.sqlBtnLoading = false
           handleError(res)
         })
       }
@@ -601,7 +611,6 @@ export default {
             this.result = data
             this.$nextTick(() => {
               this.addBreakPoint(data, editor, msg)
-              this.bindBreakClickEvent(editor)
               editor && editor.on('change', this.editerChangeHandle)
             })
           })
@@ -619,11 +628,32 @@ export default {
       this.errorMsg = ''
       this.successMsg = ''
       this.addSQLFormVisible = true
-      this.getAutoModelSql({
-        modelName: this.modelInfo.modelName
-      }).then((res) => {
-        handleSuccess(res, (data) => {
-        })
+      this.$nextTick(() => {
+        var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor
+        if (editor) {
+          if (this.actionMode === 'view') {
+            editor.setReadOnly(true)
+          } else {
+            editor.setReadOnly(false)
+          }
+          this.getAutoModelSql({
+            modelName: this.modelInfo.modelName
+          }).then((res) => {
+            handleSuccess(res, (data) => {
+              var result = data
+              var sqls = []
+              var errorInfo = []
+              for (var i in result) {
+                sqls.push(i)
+                errorInfo.push(result[i])
+                this.hasCheck = true
+              }
+              this.sqlString = sqls.join(';\r\n')
+              this.addBreakPoint(errorInfo, editor)
+              this.result = errorInfo
+            })
+          })
+        }
       })
     },
     cancelCheckSql () {
@@ -635,17 +665,18 @@ export default {
       if (!editor) {
         return
       }
+      this.bindBreakClickEvent(editor, data)
       if (data && data.length) {
-        var hasFailValid = false
+        this.hasValidFailSql = false
         data.forEach((r, index) => {
           if (r.capable === false) {
-            hasFailValid = true
+            this.hasValidFailSql = true
             editor.session.setBreakpoint(index)
           } else {
             editor.session.clearBreakpoint(index)
           }
         })
-        if (hasFailValid) {
+        if (this.hasValidFailSql) {
           this.errorMsg = this.$t('validFail')
         } else {
           this.successMsg = this.$t('validSuccess')
@@ -654,7 +685,7 @@ export default {
         this.errorMsg = msg
       }
     },
-    bindBreakClickEvent (editor) {
+    bindBreakClickEvent (editor, result) {
       if (!editor) {
         return
       }
@@ -669,7 +700,7 @@ export default {
             dom.className = dom.className.replace(/\s+active/g, '')
           }
         })
-        var data = this.result
+        var data = result
         row = row - 1
         if (data && data.length) {
           if (data[row].capable === false) {
@@ -1195,13 +1226,13 @@ export default {
       if (this.actionMode === 'view') {
         return
       }
-      var tableInfo = this.getTableInfoByGuid(id)
-      var alias = tableInfo.alias
-      var usedCubes = this.checkColsUsedStatus(alias, columnName)
-      if (usedCubes && usedCubes.length) {
-        this.warnAlert('已经在名称为' + usedCubes.join(',').replace(/cube\[name=(.*?)\]/gi, '$1') + '的cube中用过该列，不允许修改')
-        return
-      }
+      // var tableInfo = this.getTableInfoByGuid(id)
+      // var alias = tableInfo.alias
+      // var usedCubes = this.checkColsUsedStatus(alias, columnName)
+      // if (usedCubes && usedCubes.length) {
+      //   this.warnAlert('已经在名称为' + usedCubes.join(',').replace(/cube\[name=(.*?)\]/gi, '$1') + '的cube中用过该列，不允许修改')
+      //   return
+      // }
       if (columnBType === 'D' && this.isColumnUsedInConnect(id, columnName)) {
         this.warnAlert(this.$t('changeUsedForConnectColumnTypeWarn'))
         return
@@ -2227,7 +2258,6 @@ export default {
           columnname: ''
         }
       }
-      console.log(baseTables, 991)
       for (var table in baseTables) {
         this.createTableData(this.extraoption.project, baseTables[table].database, baseTables[table].table, {
           pos: modelData.pos && modelData.pos[modelData.fact_table.split('.')[1]] || {x: 20000, y: 20000},
@@ -2341,26 +2371,26 @@ export default {
         handleError(res)
       })
     },
-    checkColsUsedStatus (alias, columnName) {
-      if (this.columnUsedInfo) {
-        for (var i in this.columnUsedInfo) {
-          if (alias + '.' + columnName === i) {
-            return this.columnUsedInfo[i]
-          }
-        }
-      }
-      return null
-    },
-    checkTableUsedStatus (alias) {
-      if (this.columnUsedInfo) {
-        for (var i in this.columnUsedInfo) {
-          if (alias === i.split('.')[0]) {
-            return true
-          }
-        }
-      }
-      return false
-    },
+    // checkColsUsedStatus (alias, columnName) {
+    //   if (this.columnUsedInfo) {
+    //     for (var i in this.columnUsedInfo) {
+    //       if (alias + '.' + columnName === i) {
+    //         return this.columnUsedInfo[i]
+    //       }
+    //     }
+    //   }
+    //   return null
+    // },
+    // checkTableUsedStatus (alias) {
+    //   if (this.columnUsedInfo) {
+    //     for (var i in this.columnUsedInfo) {
+    //       if (alias === i.split('.')[0]) {
+    //         return true
+    //       }
+    //     }
+    //   }
+    //   return false
+    // },
     autoCalcLayer: function (root, result, deep) {
       var rootGuid = root || this.getRootFact().length && this.getRootFact()[0].guid
       var index = ++deep || 1
@@ -2386,7 +2416,6 @@ export default {
       var boxH = 420
       var boxML = 100
       var boxMT = 150
-      var _this = this
       for (let k = 0; k < layers.length; k++) {
         for (let m = 0; m < layers[k].length; m++) {
           var currentT = baseT + (boxH + boxMT) * k
@@ -2404,8 +2433,8 @@ export default {
               top: currentT + 'px'
             })
           }
-          this.$nextTick(function () {
-            _this.refreshPlumbObj()
+          this.$nextTick(() => {
+            this.refreshPlumbObj()
           })
         }
       }
@@ -2610,12 +2639,12 @@ export default {
     briefMenu () {
       return this.$store.state.config.layoutConfig.briefMenu
     },
-    usedInCube () {
-      for (var i in this.columnUsedInfo) {
-        return true
-      }
-      return false
-    },
+    // usedInCube () {
+    //   for (var i in this.columnUsedInfo) {
+    //     return true
+    //   }
+    //   return false
+    // },
     useLimitFact () {
       return this.$store.state.system.limitlookup === 'false'
     },
@@ -2672,8 +2701,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1.This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2.Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3.Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.'},
-    'zh-cn': {addJoinCondition: '添加连接条件', hasRootFact: '已经有一个事实表了', cannotSetFact: '不能设置一个有外键的表为事实表', cannotSetFTableToFKTable: '数据模型中，表关系的建立是从外键开始，指向主键。', tableHasOppositeLinks: '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', delTableTip: '请先删除掉该表和其他表的关联关系', sameNameComputedColumn: '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1.本功能将根据您输入的SQL语句自动补全建模。', autoModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', autoModelTip3: '3.语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。'}
+    'en': {'addJoinCondition': 'New join condition', 'hasRootFact': 'There is already a fact table', 'cannotSetFact': 'Can not set a fact table that has foreign key', 'cannotSetFTableToFKTable': 'In data model, table join link should start from setting foreign key, then pointing it to the primary key.', 'tableHasOppositeLinks': 'There is an reverse link between tables', 'tableHasOtherFKTable': 'There is already a foreign key table with this table', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Congratulations, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1.This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2.Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3.Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)'},
+    'zh-cn': {addJoinCondition: '添加连接条件', hasRootFact: '已经有一个事实表了', cannotSetFact: '不能设置一个有外键的表为事实表', cannotSetFTableToFKTable: '数据模型中，表关系的建立是从外键开始，指向主键。', tableHasOppositeLinks: '两表之间已经存在一个反向的连接了！', 'tableHasOtherFKTable': '该表已经有一个关联的外键表', delTableTip: '请先删除掉该表和其他表的关联关系', sameNameComputedColumn: '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '恭喜您，表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1.本功能将根据您输入的SQL语句自动补全建模。', autoModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', autoModelTip3: '3.语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL'}
   }
 }
 </script>
