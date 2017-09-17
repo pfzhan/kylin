@@ -95,15 +95,18 @@ public abstract class AbstractSQLAdvisor implements ISQLAdvisor {
         return dimensions;
     }
 
-    protected Collection<FunctionDesc> findMeasures(Collection<TblColRef> tblColRefs, OLAPContext ctx) {
-        Set<FunctionDesc> measures = Sets.newHashSet();
-
-        for (TblColRef tblColRef : tblColRefs) {
+    protected Collection<FunctionDesc> splitMeasureDimension(Collection<TblColRef> allColumns, OLAPContext ctx,
+                                                             Set<TblColRef> dimensions, Set<FunctionDesc> measures) {
+        for (TblColRef tblColRef : allColumns) {
+            boolean isMeasure = false;
             for (FunctionDesc functionDesc : ctx.aggregations) {
                 if (functionDesc.getParameter().getColRefs().contains(tblColRef)) {
                     measures.add(functionDesc);
+                    isMeasure = true;
                 }
             }
+            if(!isMeasure)
+                dimensions.add(tblColRef);
         }
         return measures;
     }

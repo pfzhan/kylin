@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.query.advisor;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
@@ -38,6 +39,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationCheck;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.query.SQLResult;
 
@@ -131,10 +133,9 @@ public class ModelBasedSQLAdvisor extends AbstractSQLAdvisor {
                         if (notFoundTableAdvice != null)
                             currentContextAdvisors.add(notFoundTableAdvice);
 
-                        Collection<TblColRef> dimensions = findDimensions(incapableReason.getNotFoundColumns(),
-                                olapContext);
-                        Collection<FunctionDesc> measures = findMeasures(incapableReason.getNotFoundColumns(),
-                                olapContext);
+                        Set<TblColRef> dimensions = Sets.newHashSet();
+                        Set<FunctionDesc> measures = Sets.newHashSet();
+                        splitMeasureDimension(incapableReason.getNotFoundColumns(), olapContext, dimensions, measures);
                         if (CollectionUtils.isNotEmpty(dimensions)) {
                             SQLAdvice advice = adviceProposer.propose(
                                     RealizationCheck.IncapableReason.notContainAllDimension(dimensions), olapContext);
