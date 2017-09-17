@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.acl;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -123,7 +124,7 @@ public class ColumnACL extends RootPersistentEntity {
             throw new RuntimeException("Operation fail, user:" + username + " is not found in column black list");
         }
         ColumnBlackList columnBlackList = userColumnBlackList.get(username);
-        columnBlackList.removeByTbl(table);
+        columnBlackList.removeTbl(table);
         if (columnBlackList.isEmpty()) {
             userColumnBlackList.remove(username);
         }
@@ -135,6 +136,20 @@ public class ColumnACL extends RootPersistentEntity {
             throw new RuntimeException("Operation fail, user:" + username + " is not found in column black list");
         }
         userColumnBlackList.remove(username);
+        return this;
+    }
+
+    public ColumnACL deleteByTbl(String table) {
+        Iterator<Map.Entry<String, ColumnBlackList>> it = userColumnBlackList.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, ColumnBlackList> entry = it.next();
+            ColumnBlackList columnBlackList = entry.getValue();
+            columnBlackList.removeTbl(table);
+            if (columnBlackList.isEmpty()) {
+                it.remove();
+            }
+        }
+
         return this;
     }
 
@@ -181,7 +196,7 @@ public class ColumnACL extends RootPersistentEntity {
             columnsWithTable.put(table, columns);
         }
 
-        private void removeByTbl(String table) {
+        private void removeTbl(String table) {
             columnsWithTable.remove(table);
         }
 

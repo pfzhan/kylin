@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -135,11 +136,11 @@ public class RowACL extends RootPersistentEntity {
         validateRowCondsExists(username, table);
         TableRowCondList tableRowConds = tableRowCondsWithUser.get(username);
         QueryUsedCondList queryUsedConds = queryUsedCondsWithTable.get(username);
-        tableRowConds.remove(table);
+        tableRowConds.removeTbl(table);
         if (tableRowConds.isEmpty()) {
             tableRowCondsWithUser.remove(username);
         }
-        queryUsedConds.remove(table);
+        queryUsedConds.removeTbl(table);
         if (queryUsedConds.isEmpty()) {
             queryUsedCondsWithTable.remove(username);
         }
@@ -150,6 +151,30 @@ public class RowACL extends RootPersistentEntity {
         validateUserHasRowACL(username);
         tableRowCondsWithUser.remove(username);
         queryUsedCondsWithTable.remove(username);
+        return this;
+    }
+
+    public RowACL deleteByTbl(String table) {
+        Iterator<Map.Entry<String, TableRowCondList>> it = tableRowCondsWithUser.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, TableRowCondList> entry = it.next();
+            TableRowCondList tableRowCondList = entry.getValue();
+            tableRowCondList.removeTbl(table);
+            if (tableRowCondList.isEmpty()) {
+                it.remove();
+            }
+        }
+
+        Iterator<Map.Entry<String, QueryUsedCondList>> it2 = queryUsedCondsWithTable.entrySet().iterator();
+        while (it2.hasNext()) {
+            Map.Entry<String, QueryUsedCondList> entry2 = it2.next();
+            QueryUsedCondList queryUsedCondList = entry2.getValue();
+            queryUsedCondList.removeTbl(table);
+            if (queryUsedCondList.isEmpty()) {
+                it2.remove();
+            }
+        }
+
         return this;
     }
 
@@ -223,14 +248,18 @@ public class RowACL extends RootPersistentEntity {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
                     sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                     cond = sdf.format(new Date(Long.valueOf(cond)));
+                    cond = "DATE '" + cond + "'";
                 }
                 if (type.equals("timestamp") || type.equals("datetime")) {
                     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
                     cond = sdf.format(new Date(Long.valueOf(cond)));
+                    cond = "TIMESTAMP '" + cond + "'";
                 }
-                // for time type,the front end pass direct pass, so only add ''
-                cond = "'" + cond + "'";
+                if (type.equals("time")) {
+                    // for time type, the front end pass direct pass
+                    cond = "TIME '" + cond + "'";
+                }
                 conds.set(i, cond);
             }
         }
@@ -320,7 +349,7 @@ public class RowACL extends RootPersistentEntity {
             rowCondsWithTable.put(key, value);
         }
 
-        public RowCondList remove(String table) {
+        public RowCondList removeTbl(String table) {
             return rowCondsWithTable.remove(table);
         }
     }
@@ -395,7 +424,7 @@ public class RowACL extends RootPersistentEntity {
             return concatedCondsWithTable.get(table);
         }
 
-        public String remove(String table) {
+        public String removeTbl(String table) {
             return concatedCondsWithTable.remove(table);
         }
 

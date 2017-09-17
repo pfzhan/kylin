@@ -97,4 +97,9 @@ public class ColumnACLService extends BasicService {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, username);
     }
+
+    public void deleteFromTableBlackListByTbl(String project, String table) throws IOException {
+        aclEvaluate.checkProjectAdminPermission(project);
+        ColumnACLManager.getInstance(getConfig()).deleteColumnACLByTbl(project, table);
+    }
 }

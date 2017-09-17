@@ -195,6 +195,13 @@ public class RowACLManager {
         rowACLMap.put(project, rowACL);
     }
 
+    public void deleteRowACLByTbl(String project, String table) throws IOException {
+        String path = DIR_PREFIX + project;
+        RowACL rowACL = getRowACL(project).deleteByTbl(table);
+        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
+        rowACLMap.put(project, rowACL);
+    }
+
     private Map<String, String> getColumnWithType(String project, String table) {
         Map<String, String> columnWithType = new HashMap<>();
         TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(table, project);

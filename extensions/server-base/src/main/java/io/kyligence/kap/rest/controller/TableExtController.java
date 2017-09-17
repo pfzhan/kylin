@@ -29,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.rest.service.ColumnACLService;
+import io.kyligence.kap.rest.service.RowACLService;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.controller.BasicController;
@@ -36,6 +38,7 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.service.TableACLService;
 import org.apache.kylin.rest.service.TableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,6 +74,18 @@ public class TableExtController extends BasicController {
     @Autowired
     @Qualifier("tableService")
     private TableService tableService;
+
+    @Autowired
+    @Qualifier("TableAclService")
+    private TableACLService tableACLService;
+
+    @Autowired
+    @Qualifier("ColumnAclService")
+    private ColumnACLService columnACLService;
+
+    @Autowired
+    @Qualifier("RowAclService")
+    private RowACLService rowACLService;
 
     // FIXME prj-table
     @RequestMapping(value = "/{project}/{database}.{tableName}", method = { RequestMethod.GET }, produces = {
@@ -153,6 +168,7 @@ public class TableExtController extends BasicController {
             throws Exception {
         String jobID;
         for (String tableName : tables.split(",")) {
+            delLowLevelACL(project, tableName);
             if ((jobID = new HiveTableExtSampleJob(project, tableName).findRunningJob()) != null) {
                 jobService.cancelJob(jobService.getJobInstance(jobID));
             }
@@ -165,5 +181,11 @@ public class TableExtController extends BasicController {
 
     private String[] toArray(List<String> list) {
         return list.toArray(new String[list.size()]);
+    }
+
+    private void delLowLevelACL(String project, String table) throws IOException {
+        tableACLService.deleteFromTableBlackListByTbl(project, table);
+        columnACLService.deleteFromTableBlackListByTbl(project, table);
+        rowACLService.deleteFromRowCondListByTbl(project, table);
     }
 }

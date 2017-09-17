@@ -44,6 +44,25 @@ public class ColumnACLTest {
     }
 
     @Test
+    public void testDelColumnACLByTable() {
+        ColumnACL columnACL = new ColumnACL();
+        Set<String> c1 = Sets.newHashSet("C2", "C3");
+        columnACL.add("u1", "DB.TABLE1", c1);
+        columnACL.add("u2", "DB.TABLE1", c1);
+        columnACL.add("u2", "DB.TABLE2", c1);
+        columnACL.add("u2", "DB.TABLE3", c1);
+        columnACL.add("u3", "DB.TABLE3", c1);
+
+        columnACL.deleteByTbl("DB.TABLE1");
+
+        ColumnACL expected = new ColumnACL();
+        expected.add("u2", "DB.TABLE2", c1);
+        expected.add("u2", "DB.TABLE3", c1);
+        expected.add("u3", "DB.TABLE3", c1);
+        Assert.assertEquals(expected, columnACL);
+    }
+
+    @Test
     public void testColumnACL() {
         ColumnACL empty = new ColumnACL();
         try {

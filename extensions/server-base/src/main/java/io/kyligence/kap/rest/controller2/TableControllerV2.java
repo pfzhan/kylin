@@ -34,6 +34,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.HiveTableRequestV2;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.TableACLService;
 import org.apache.kylin.rest.service.TableService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.service.ColumnACLService;
+import io.kyligence.kap.rest.service.RowACLService;
+
 /**
  * @author xduo
  */
@@ -61,6 +65,18 @@ public class TableControllerV2 extends BasicController {
     @Autowired
     @Qualifier("tableService")
     private TableService tableService;
+
+    @Autowired
+    @Qualifier("TableAclService")
+    private TableACLService tableACLService;
+
+    @Autowired
+    @Qualifier("ColumnAclService")
+    private ColumnACLService columnACLService;
+
+    @Autowired
+    @Qualifier("RowAclService")
+    private RowACLService rowACLService;
 
     /**
      * Get available table list of the project
@@ -111,7 +127,9 @@ public class TableControllerV2 extends BasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse unLoadHiveTablesV2(@RequestBody HiveTableRequestV2 requestV2) throws IOException {
-
+        for (String table : requestV2.getTables()) {
+            delLowLevelACL(requestV2.getProject(), table);
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
                 tableService.unloadHiveTables(requestV2.getTables(), requestV2.getProject()), "");
     }
@@ -167,4 +185,9 @@ public class TableControllerV2 extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableService.getHiveTableNames(database), "");
     }
 
+    private void delLowLevelACL(String project, String table) throws IOException {
+        tableACLService.deleteFromTableBlackListByTbl(project, table);
+        columnACLService.deleteFromTableBlackListByTbl(project, table);
+        rowACLService.deleteFromRowCondListByTbl(project, table);
+    }
 }

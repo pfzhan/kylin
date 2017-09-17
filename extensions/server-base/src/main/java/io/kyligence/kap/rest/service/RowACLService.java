@@ -116,6 +116,11 @@ public class RowACLService extends BasicService {
         RowACLManager.getInstance(getConfig()).deleteRowACL(project, username);
     }
 
+    public void deleteFromRowCondListByTbl(String project, String table) throws IOException {
+        aclEvaluate.checkProjectAdminPermission(project);
+        RowACLManager.getInstance(getConfig()).deleteRowACLByTbl(project, table);
+    }
+
     private void checkInputConds(Map<String, List<String>> condsWithColumn) {
         for (String c : condsWithColumn.keySet()) {
             List<String> conds = condsWithColumn.get(c);

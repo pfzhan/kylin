@@ -60,7 +60,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project.toUpperCase());
+        Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project);
         return rowFilter(defaultSchema, sql, whereCondWithTbls);
     }
 
@@ -165,23 +165,29 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     //{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}
-    private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
+    static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
         Map<SqlSelect, List<Table>> selectWithTables = new HashMap<>();
 
         for (SqlSelect select : SelectClauseFinder.getSelectClauses(inputSQL)) {
-            List<Table> tblsWithAlias = NonSubqueryTablesFinder.getTblsWithAlias(select.getFrom());
+            List<Table> tblsWithAlias = getTblWithAlias(schema, select);
             if (tblsWithAlias.size() > 0) {
-                for (int i = 0; i < tblsWithAlias.size(); i++) {
-                    Table t = tblsWithAlias.get(i);
-                    // complete table with database schema if table hasn't
-                    if (t.getName().split("\\.").length == 1) {
-                        tblsWithAlias.set(i, new Table(schema + "." + t.getName(), t.getAlias()));
-                    }
-                }
                 selectWithTables.put(select, tblsWithAlias);
             }
         }
         return selectWithTables;
+    }
+
+    static List<Table> getTblWithAlias(String schema, SqlSelect select) {
+        List<Table> tblsWithAlias = NonSubqueryTablesFinder.getTblsWithAlias(select.getFrom());
+
+        // complete table with database schema if table hasn't
+        for (int i = 0; i < tblsWithAlias.size(); i++) {
+            Table t = tblsWithAlias.get(i);
+            if (t.getName().split("\\.").length == 1) {
+                tblsWithAlias.set(i, new Table(schema + "." + t.getName(), t.getAlias()));
+            }
+        }
+        return tblsWithAlias;
     }
 
     /*visitor classes.Get all select nodes, include select clause in subquery*/
@@ -247,9 +253,9 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         }
 
         //please pass SqlSelect.getFrom.Pass other sql nodes will lead error.
-        static List<Table> getTblsWithAlias(SqlNode node) {
+        static List<Table> getTblsWithAlias(SqlNode fromNode) {
             NonSubqueryTablesFinder sv = new NonSubqueryTablesFinder();
-            node.accept(sv);
+            fromNode.accept(sv);
             return sv.getTblsWithAlias();
         }
 
@@ -301,7 +307,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     //immutable class only for replacing Pair<String, String> for tableWithAlias
-    private static class Table {
+    static class Table {
         private String name;
         private String alias;
 

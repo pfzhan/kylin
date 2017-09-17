@@ -64,10 +64,10 @@ public class RowACLTest {
 
         List<String> cond11 = Lists.newArrayList("'a'", "'a''b'");
         List<String> cond22 = Lists.newArrayList("'a'", "'a''b'");
-        List<String> cond33 = Lists.newArrayList("'2017-08-30'"); //date
-        List<String> cond44 = Lists.newArrayList("'20:17:40'"); //time
-        List<String> cond55 = Lists.newArrayList("'2017-09-13 04:12:12'"); //datetime
-        List<String> cond66 = Lists.newArrayList("'2017-09-13 04:12:12'"); //timestamp
+        List<String> cond33 = Lists.newArrayList("DATE '2017-08-30'"); //date
+        List<String> cond44 = Lists.newArrayList("TIME '20:17:40'"); //time
+        List<String> cond55 = Lists.newArrayList("TIMESTAMP '2017-09-13 04:12:12'"); //datetime
+        List<String> cond66 = Lists.newArrayList("TIMESTAMP '2017-09-13 04:12:12'"); //timestamp
         List<String> cond77 = Lists.newArrayList("7"); //normal type
         Assert.assertEquals(cond11, result.get("COL1"));
         Assert.assertEquals(cond22, result.get("COL2"));
@@ -76,6 +76,32 @@ public class RowACLTest {
         Assert.assertEquals(cond55, result.get("COL5"));
         Assert.assertEquals(cond66, result.get("COL6"));
         Assert.assertEquals(cond77, result.get("COL7"));
+    }
+
+    @Test
+    public void testDelRowACLByTable() {
+        RowACL rowACL = new RowACL();
+
+        Map<String, String> columnWithType = new HashMap<>();
+        columnWithType.put("COL1", "varchar(256)");
+        columnWithType.put("COL11", "varchar(256)");
+
+        Map<String, List<String>> condsWithColumn = new HashMap<>();
+        List<String> cond1 = Lists.newArrayList("a", "b", "c");
+        List<String> cond11 = Lists.newArrayList("d", "e");
+        condsWithColumn.put("COL1", cond1);
+        condsWithColumn.put("COL11", cond11);
+        rowACL.add("u1", "DB.TABLE1", condsWithColumn, columnWithType);
+        rowACL.add("u2", "DB.TABLE1", condsWithColumn, columnWithType);
+        rowACL.add("u2", "DB.TABLE2", condsWithColumn, columnWithType);
+        rowACL.add("u2", "DB.TABLE3", condsWithColumn, columnWithType);
+        rowACL.add("u3", "DB.TABLE3", condsWithColumn, columnWithType);
+
+        RowACL expected = new RowACL();
+        expected.add("u2", "DB.TABLE2", condsWithColumn, columnWithType);
+        expected.add("u2", "DB.TABLE3", condsWithColumn, columnWithType);
+        expected.add("u3", "DB.TABLE3", condsWithColumn, columnWithType);
+        Assert.assertEquals(expected, rowACL);
     }
 
     @Test

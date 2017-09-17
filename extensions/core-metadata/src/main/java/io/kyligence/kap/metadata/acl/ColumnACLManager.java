@@ -180,4 +180,11 @@ public class ColumnACLManager {
         getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
         columnACLMap.put(project, columnACL);
     }
+
+    public void deleteColumnACLByTbl(String project, String table) throws IOException {
+        String path = DIR_PREFIX + project;
+        ColumnACL columnACL = getColumnACL(project).deleteByTbl(table);
+        getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
+        columnACLMap.put(project, columnACL);
+    }
 }
