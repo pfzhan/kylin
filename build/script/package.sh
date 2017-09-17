@@ -23,7 +23,8 @@ if [ "$1" == "-noPlus" ] || [ "$2" == "-noPlus" ]; then
     done
     
     # remove raw table from sample cube template
-    mv -f extensions/examples/sample_cube/template/raw_table* ./
+    mkdir -p ./sample_raw_table_bak/
+    mv -f extensions/examples/sample_cube/template/raw_table* ./sample_raw_table_bak/
     
     shift
     
@@ -36,6 +37,9 @@ else
     do 
         restoreKAPPlusConfigs $file
     done
+
+    # restore raw table to sample cube template
+    mv -f ./sample_raw_table_bak/* extensions/examples/sample_cube/template/
     
 	echo "Packing for KAP Plus..."
 fi
