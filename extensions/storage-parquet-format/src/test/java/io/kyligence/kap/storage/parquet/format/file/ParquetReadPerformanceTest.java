@@ -54,6 +54,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 /**
+ * Performance test of reading parquet and loading data into application memory.
+ * 
  * Write performance:
  * - Writen 10,000,000 rows in 20.473 seconds, speed 0.4884482 M/s
  * - Writen 10,000,000 rows in 12.249 seconds, speed 0.8163932 M/s
@@ -85,8 +87,8 @@ import org.junit.Test;
  */
 
 @Ignore("Performance test don't run by default")
-public class ParquetPerformanceTest extends AbstractParquetFormatTest {
-    public ParquetPerformanceTest() throws IOException {
+public class ParquetReadPerformanceTest extends AbstractParquetFormatTest {
+    public ParquetReadPerformanceTest() throws IOException {
         super();
         type = new MessageType("test",
                 new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, 50, "key"),

@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -35,53 +37,91 @@ import org.apache.kylin.common.util.Bytes;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import sun.misc.Unsafe;
+
 /**
  * 
 1.filterRowLayout - running the 1st time ... 
-Filtered rows 24979400
-1.filterRowLayout - processed 50000000 rows in 3.161 seconds, 15.81778 million rows/s
+Filtered rows 35027510
+1.filterRowLayout - processed 70000000 rows in 3.123 seconds, 22.414345 million rows/s
 1.filterRowLayout - running the 2nd time ... 
-Filtered rows 24979400
-1.filterRowLayout - processed 50000000 rows in 3.169 seconds, 15.777848 million rows/s
+Filtered rows 35027510
+1.filterRowLayout - processed 70000000 rows in 3.123 seconds, 22.414345 million rows/s
 1.filterRowLayout - running the 3rd time ... 
-Filtered rows 24979400
-1.filterRowLayout - processed 50000000 rows in 2.531 seconds, 19.755037 million rows/s
+Filtered rows 35027510
+1.filterRowLayout - processed 70000000 rows in 2.402 seconds, 29.142382 million rows/s
 2.filterCompactRowLayout - running the 1st time ... 
-Filtered rows 24979400
-2.filterCompactRowLayout - processed 50000000 rows in 0.425 seconds, 117.64706 million rows/s
+Filtered rows 35027510
+2.filterCompactRowLayout - processed 70000000 rows in 0.331 seconds, 211.48036 million rows/s
 2.filterCompactRowLayout - running the 2nd time ... 
-Filtered rows 24979400
-2.filterCompactRowLayout - processed 50000000 rows in 0.422 seconds, 118.48341 million rows/s
+Filtered rows 35027510
+2.filterCompactRowLayout - processed 70000000 rows in 0.372 seconds, 188.17204 million rows/s
 2.filterCompactRowLayout - running the 3rd time ... 
-Filtered rows 24979400
-2.filterCompactRowLayout - processed 50000000 rows in 0.39 seconds, 128.20512 million rows/s
-3.filterCompactRowLayoutUsingIntBuffer - running the 1st time ... 
-Filtered rows 24979400
-3.filterCompactRowLayoutUsingIntBuffer - processed 50000000 rows in 0.436 seconds, 114.6789 million rows/s
-3.filterCompactRowLayoutUsingIntBuffer - running the 2nd time ... 
-Filtered rows 24979400
-3.filterCompactRowLayoutUsingIntBuffer - processed 50000000 rows in 0.386 seconds, 129.53368 million rows/s
-3.filterCompactRowLayoutUsingIntBuffer - running the 3rd time ... 
-Filtered rows 24979400
-3.filterCompactRowLayoutUsingIntBuffer - processed 50000000 rows in 0.374 seconds, 133.68983 million rows/s
-4.filterColumnLayout - running the 1st time ... 
-Filtered rows 24979400
-4.filterColumnLayout - processed 50000000 rows in 0.184 seconds, 271.73914 million rows/s
-4.filterColumnLayout - running the 2nd time ... 
-Filtered rows 24979400
-4.filterColumnLayout - processed 50000000 rows in 0.187 seconds, 267.37967 million rows/s
-4.filterColumnLayout - running the 3rd time ... 
-Filtered rows 24979400
-4.filterColumnLayout - processed 50000000 rows in 0.159 seconds, 314.46542 million rows/s
-5.filterColumnLayoutLikeCompiledCode - running the 1st time ... 
-Filtered rows 24979400
-5.filterColumnLayoutLikeCompiledCode - processed 50000000 rows in 0.026 seconds, 1923.0769 million rows/s
-5.filterColumnLayoutLikeCompiledCode - running the 2nd time ... 
-Filtered rows 24979400
-5.filterColumnLayoutLikeCompiledCode - processed 50000000 rows in 0.035 seconds, 1428.5714 million rows/s
-5.filterColumnLayoutLikeCompiledCode - running the 3rd time ... 
-Filtered rows 24979400
-5.filterColumnLayoutLikeCompiledCode - processed 50000000 rows in 0.054 seconds, 925.9259 million rows/s
+Filtered rows 35027510
+2.filterCompactRowLayout - processed 70000000 rows in 0.314 seconds, 222.92993 million rows/s
+3.filterCompactRowLayoutUsingBuffer - running the 1st time ... 
+Filtered rows 35027510
+3.filterCompactRowLayoutUsingBuffer - processed 70000000 rows in 0.294 seconds, 238.09525 million rows/s
+3.filterCompactRowLayoutUsingBuffer - running the 2nd time ... 
+Filtered rows 35027510
+3.filterCompactRowLayoutUsingBuffer - processed 70000000 rows in 0.299 seconds, 234.11371 million rows/s
+3.filterCompactRowLayoutUsingBuffer - running the 3rd time ... 
+Filtered rows 35027510
+3.filterCompactRowLayoutUsingBuffer - processed 70000000 rows in 0.263 seconds, 266.1597 million rows/s
+3e.filterCompactRowLayoutUsingCustomGetInt - running the 1st time ... 
+Filtered rows 35027510
+3e.filterCompactRowLayoutUsingCustomGetInt - processed 70000000 rows in 0.2 seconds, 350.0 million rows/s
+3e.filterCompactRowLayoutUsingCustomGetInt - running the 2nd time ... 
+Filtered rows 35027510
+3e.filterCompactRowLayoutUsingCustomGetInt - processed 70000000 rows in 0.2 seconds, 350.0 million rows/s
+3e.filterCompactRowLayoutUsingCustomGetInt - running the 3rd time ... 
+Filtered rows 35027510
+3e.filterCompactRowLayoutUsingCustomGetInt - processed 70000000 rows in 0.201 seconds, 348.2587 million rows/s
+4.filterColumnBytesUsingByteBuffer - running the 1st time ... 
+Filtered rows 35027510
+4.filterColumnBytesUsingByteBuffer - processed 70000000 rows in 0.237 seconds, 295.35864 million rows/s
+4.filterColumnBytesUsingByteBuffer - running the 2nd time ... 
+Filtered rows 35027510
+4.filterColumnBytesUsingByteBuffer - processed 70000000 rows in 0.285 seconds, 245.61403 million rows/s
+4.filterColumnBytesUsingByteBuffer - running the 3rd time ... 
+Filtered rows 35027510
+4.filterColumnBytesUsingByteBuffer - processed 70000000 rows in 0.265 seconds, 264.15094 million rows/s
+5.filterColumnBytesUsingIntBuffer - running the 1st time ... 
+Filtered rows 35027510
+5.filterColumnBytesUsingIntBuffer - processed 70000000 rows in 0.149 seconds, 469.79865 million rows/s
+5.filterColumnBytesUsingIntBuffer - running the 2nd time ... 
+Filtered rows 35027510
+5.filterColumnBytesUsingIntBuffer - processed 70000000 rows in 0.2 seconds, 350.0 million rows/s
+5.filterColumnBytesUsingIntBuffer - running the 3rd time ... 
+Filtered rows 35027510
+5.filterColumnBytesUsingIntBuffer - processed 70000000 rows in 0.1 seconds, 700.0 million rows/s
+6.filterColumnBytesUsingUnsafe (slow & broken) - running the 1st time ... 
+Filtered rows 34921530
+6.filterColumnBytesUsingUnsafe (slow & broken) - processed 70000000 rows in 0.284 seconds, 246.47887 million rows/s
+6.filterColumnBytesUsingUnsafe (slow & broken) - running the 2nd time ... 
+Filtered rows 34921530
+6.filterColumnBytesUsingUnsafe (slow & broken) - processed 70000000 rows in 0.379 seconds, 184.69656 million rows/s
+6.filterColumnBytesUsingUnsafe (slow & broken) - running the 3rd time ... 
+Filtered rows 34921530
+6.filterColumnBytesUsingUnsafe (slow & broken) - processed 70000000 rows in 0.338 seconds, 207.10059 million rows/s
+7.filterColumnIntsUsingUnsafe - running the 1st time ... 
+Filtered rows 35027510
+7.filterColumnIntsUsingUnsafe - processed 70000000 rows in 0.047 seconds, 1489.3617 million rows/s
+7.filterColumnIntsUsingUnsafe - running the 2nd time ... 
+Filtered rows 35027510
+7.filterColumnIntsUsingUnsafe - processed 70000000 rows in 0.053 seconds, 1320.7548 million rows/s
+7.filterColumnIntsUsingUnsafe - running the 3rd time ... 
+Filtered rows 35027510
+7.filterColumnIntsUsingUnsafe - processed 70000000 rows in 0.031 seconds, 2258.0645 million rows/s
+8.filterColumnIntsLikeCompiledCode - running the 1st time ... 
+Filtered rows 35027510
+8.filterColumnIntsLikeCompiledCode - processed 70000000 rows in 0.031 seconds, 2258.0645 million rows/s
+8.filterColumnIntsLikeCompiledCode - running the 2nd time ... 
+Filtered rows 35027510
+8.filterColumnIntsLikeCompiledCode - processed 70000000 rows in 0.054 seconds, 1296.2963 million rows/s
+8.filterColumnIntsLikeCompiledCode - running the 3rd time ... 
+Filtered rows 35027510
+8.filterColumnIntsLikeCompiledCode - processed 70000000 rows in 0.084 seconds, 833.3333 million rows/s
  *
  */
 @Ignore("Performance test don't run by default")
@@ -119,9 +159,9 @@ public class ColumnarPerformanceTest {
     // ============================================================================
 
     int testRows = 1000000;
-    int scanCycles = 50;
+    int scanCycles = 70;
 
-    int rowLen = 100;
+    int rowLen = 40;
     List<ByteArray> rowLayout;
     byte[] compactRowLayout;
 
@@ -129,7 +169,10 @@ public class ColumnarPerformanceTest {
     byte[] colLayout;
     int[] compiledColLayout;
 
+    Unsafe unsafe = getUnsafe();
+
     private void setup() {
+
         rowLayout = randomBytes(testRows, rowLen);
 
         // build compact row layout
@@ -164,10 +207,21 @@ public class ColumnarPerformanceTest {
         return arrList;
     }
 
+    private Unsafe getUnsafe() {
+        try {
+            Field f = Unsafe.class.getDeclaredField("theUnsafe");
+            f.setAccessible(true);
+            return (Unsafe) f.get(null);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @SuppressWarnings("checkstyle:methodlength")
     @Test
     public void test() {
         setup();
-        
+
         repeat("1.filterRowLayout", new TestToRepeat() {
 
             @Override
@@ -186,9 +240,9 @@ public class ColumnarPerformanceTest {
             }
 
         });
-        
+
         repeat("2.filterCompactRowLayout", new TestToRepeat() {
-            
+
             @Override
             public long test() {
                 long filteredCnt = 0;
@@ -202,11 +256,11 @@ public class ColumnarPerformanceTest {
                 System.out.println("Filtered rows " + filteredCnt);
                 return (long) scanCycles * testRows;
             }
-            
+
         });
-        
-        repeat("3.filterCompactRowLayoutUsingIntBuffer", new TestToRepeat() {
-            
+
+        repeat("3.filterCompactRowLayoutUsingBuffer", new TestToRepeat() {
+
             @Override
             public long test() {
                 long filteredCnt = 0;
@@ -221,11 +275,29 @@ public class ColumnarPerformanceTest {
                 System.out.println("Filtered rows " + filteredCnt);
                 return (long) scanCycles * testRows;
             }
-            
+
         });
-        
-        repeat("4.filterColumnLayout", new TestToRepeat() {
-            
+
+        repeat("3e.filterCompactRowLayoutUsingCustomGetInt", new TestToRepeat() {
+
+            @Override
+            public long test() {
+                long filteredCnt = 0;
+                for (int cycle = 0; cycle < scanCycles; cycle++) {
+                    for (int i = 0, offset = 0; i < testRows; i++, offset += rowLen) {
+                        int v = getIntB(compactRowLayout, offset);
+                        if (filter(v))
+                            filteredCnt++;
+                    }
+                }
+                System.out.println("Filtered rows " + filteredCnt);
+                return (long) scanCycles * testRows;
+            }
+
+        });
+
+        repeat("4.filterColumnBytesUsingByteBuffer", new TestToRepeat() {
+
             @Override
             public long test() {
                 long filteredCnt = 0;
@@ -240,11 +312,73 @@ public class ColumnarPerformanceTest {
                 System.out.println("Filtered rows " + filteredCnt);
                 return (long) scanCycles * testRows;
             }
-            
+
         });
-        
-        repeat("5.filterColumnLayoutLikeCompiledCode", new TestToRepeat() {
-            
+
+        repeat("5.filterColumnBytesUsingIntBuffer", new TestToRepeat() {
+
+            @Override
+            public long test() {
+                long filteredCnt = 0;
+                for (int cycle = 0; cycle < scanCycles; cycle++) {
+                    IntBuffer buf = ByteBuffer.wrap(colLayout).asIntBuffer();
+                    for (int i = 0; i < testRows; i++) {
+                        int v = buf.get(i);
+                        if (filter(v))
+                            filteredCnt++;
+                    }
+                }
+                System.out.println("Filtered rows " + filteredCnt);
+                return (long) scanCycles * testRows;
+            }
+
+        });
+
+        repeat("6.filterColumnBytesUsingUnsafe (slow & broken)", new TestToRepeat() {
+
+            @Override
+            public long test() {
+                int scale = unsafe.arrayIndexScale(colLayout.getClass());
+                int len = scale * colLen;
+
+                long filteredCnt = 0;
+                for (int cycle = 0; cycle < scanCycles; cycle++) {
+                    long offset = unsafe.arrayBaseOffset(colLayout.getClass());
+                    for (int i = 0; i < testRows; i++, offset += len) {
+                        int v = unsafe.getInt(colLayout, offset);
+                        if (filter(v))
+                            filteredCnt++;
+                    }
+                }
+                System.out.println("Filtered rows " + filteredCnt);
+                return (long) scanCycles * testRows;
+            }
+
+        });
+
+        repeat("7.filterColumnIntsUsingUnsafe", new TestToRepeat() {
+
+            @Override
+            public long test() {
+                int scale = unsafe.arrayIndexScale(compiledColLayout.getClass());
+
+                long filteredCnt = 0;
+                for (int cycle = 0; cycle < scanCycles; cycle++) {
+                    long offset = unsafe.arrayBaseOffset(compiledColLayout.getClass());
+                    for (int i = 0; i < testRows; i++, offset += scale) {
+                        int v = unsafe.getInt(compiledColLayout, offset);
+                        if (filter(v))
+                            filteredCnt++;
+                    }
+                }
+                System.out.println("Filtered rows " + filteredCnt);
+                return (long) scanCycles * testRows;
+            }
+
+        });
+
+        repeat("8.filterColumnIntsLikeCompiledCode", new TestToRepeat() {
+
             @Override
             public long test() {
                 long filteredCnt = 0;
@@ -258,10 +392,18 @@ public class ColumnarPerformanceTest {
                 System.out.println("Filtered rows " + filteredCnt);
                 return (long) scanCycles * testRows;
             }
-            
+
         });
     }
-    
+
+    static int getIntB(byte[] bb, int bi) {
+        return makeInt(bb[bi], bb[bi + 1], bb[bi + 2], bb[bi + 3]);
+    }
+
+    static private int makeInt(byte b3, byte b2, byte b1, byte b0) {
+        return (((b3) << 24) | ((b2 & 0xff) << 16) | ((b1 & 0xff) << 8) | ((b0 & 0xff)));
+    }
+
     private boolean filter(int v) {
         return v > 1000;
     }
