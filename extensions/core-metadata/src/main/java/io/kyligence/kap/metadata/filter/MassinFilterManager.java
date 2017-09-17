@@ -155,29 +155,35 @@ public class MassinFilterManager {
                 return cached.getSecond();
             }
 
-            ResourceStore store = getStore();
-            RawResource rawResource = store.getResource(resourceIdentifier);
-            InputStream inputStream = rawResource.inputStream;
-            List<String> lines = IOUtils.readLines(inputStream, Charset.defaultCharset());
-
+            InputStream inputStream = null;
             Set<ByteArray> ret = Sets.newHashSet();
+            try {
+                ResourceStore store = getStore();
+                RawResource rawResource = store.getResource(resourceIdentifier);
+                inputStream = rawResource.inputStream;
+                List<String> lines = IOUtils.readLines(inputStream, Charset.defaultCharset());
 
-            DimensionEncoding encoding = EncodingMapping.get(resourceIdentifier);
-            for (String line : lines) {
-                if (StringUtils.isEmpty(line)) {
-                    continue;
-                }
-
-                try {
-                    if (encoding != null) {
-                        ByteArray byteArray = ByteArray.allocate(encoding.getLengthOfEncoding());
-                        encoding.encode(line, byteArray.array(), 0);
-                        ret.add(byteArray);
-                    } else {
-                        ret.add(new ByteArray(line.getBytes()));
+                DimensionEncoding encoding = EncodingMapping.get(resourceIdentifier);
+                for (String line : lines) {
+                    if (StringUtils.isEmpty(line)) {
+                        continue;
                     }
-                } catch (Exception e) {
-                    logger.warn("{}", e);
+
+                    try {
+                        if (encoding != null) {
+                            ByteArray byteArray = ByteArray.allocate(encoding.getLengthOfEncoding());
+                            encoding.encode(line, byteArray.array(), 0);
+                            ret.add(byteArray);
+                        } else {
+                            ret.add(new ByteArray(line.getBytes()));
+                        }
+                    } catch (Exception e) {
+                        throw e;
+                    }
+                }
+            } finally {
+                if (inputStream != null) {
+                    IOUtils.closeQuietly(inputStream);
                 }
             }
             return ret;
