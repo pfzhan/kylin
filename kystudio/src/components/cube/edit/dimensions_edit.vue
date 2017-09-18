@@ -204,7 +204,7 @@
         <el-row  :disabled="isReadyCube"  v-show="convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
-           <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}} {{row.encoding}}</common-tip></el-col>
+           <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
           <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
@@ -597,9 +597,11 @@ export default {
         let _version = parseInt(this.getVersion(rowkey.encoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         this.selectEncodingCache[datatype] = addEncodings
+        console.log(this.selectEncodingCache, 878787)
         return addEncodings
       } else {
         this.selectEncodingCache[datatype] = filterEncodings
+        console.log(this.selectEncodingCache, 343434)
         return filterEncodings
       }
     },

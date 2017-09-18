@@ -423,12 +423,13 @@ export default {
       }
     },
     getSqlResult: function () {
+      let sqlResult = false
       this.sampleSql.result.forEach((row) => {
         if (row.status !== 'FAILED') {
-          return true
+          sqlResult = true
         }
       })
-      return false
+      return sqlResult
     }
   },
   created () {
