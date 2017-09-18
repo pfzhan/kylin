@@ -2,7 +2,7 @@
   <div class="result_box">
     <el-row  class="resultTips" >
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:green"> success</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|timeFormatHasTimeZone}}</span></p></div></el-col>
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.duration')}}<span> {{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span></p></div></el-col>
       <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{queryInfo.project}}</span></p></div></el-col>
       <el-col :span="5">

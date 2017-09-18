@@ -2,7 +2,7 @@
   <div class="query_panel_box">
    <el-row  class="resultTips"  v-show="errinfo" >
       <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:red"> error</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{startTime|gmtTime}}</span></p></div></el-col>
+      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{startTime|timeFormatHasTimeZone}}</span></p></div></el-col>
       <el-col :span="3"><div class="grid-content bg-purple"><p style="visibility:hidden">{{$t('kylinLang.query.duration')}}<span> </span></p></div></el-col>
       <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{extraoption.project}}</span></p></div></el-col>
       <el-col :span="5"><div class="grid-content bg-purple" style="text-align:right" >

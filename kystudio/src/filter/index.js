@@ -31,6 +31,22 @@ Vue.filter('gmtTime', function (value) {
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
 })
 
+Vue.filter('timeFormatHasTimeZone', function (value) {
+  if (/[^\d]/.test(value) || value === '') {
+    return ''
+  }
+
+  var dateObj = new Date(value)
+  var year = dateObj.getFullYear()
+  var month = (dateObj.getMonth() + 1) < 10 ? '0' + (dateObj.getMonth() + 1) : (dateObj.getMonth() + 1)
+  var date = dateObj.getDate() < 10 ? '0' + dateObj.getDate() : dateObj.getDate()
+  var hour = dateObj.getHours() < 10 ? '0' + dateObj.getHours() : dateObj.getHours()
+  var mins = dateObj.getMinutes() < 10 ? '0' + dateObj.getMinutes() : dateObj.getMinutes()
+  var seconds = dateObj.getSeconds() < 10 ? '0' + dateObj.getSeconds() : dateObj.getSeconds()
+  var gmtHours = -(dateObj.getTimezoneOffset() / 60)
+  return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds + ' GMT' + (gmtHours >= 0 ? '+' + gmtHours : gmtHours)
+})
+
 Vue.filter('fixed', function (value, len) {
   var filterValue = value || ''
   var reg = new RegExp('^(\\d+?(?:\\.\\d{' + len + '})).*$')
