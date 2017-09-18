@@ -64,8 +64,23 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 if (agg.getParameter() == null) {
                     continue;
                 }
-                TblColRef candidate = agg.getParameter().getColRef();
-                aggColumns.add(candidate);
+
+                List<TblColRef> candidates = agg.getParameter().getColRefs();
+                boolean useAsMeasure = true;
+                if (agg.isMax() || agg.isMin()) {
+                    // Cube measure does not support max and min on string columns, and we need to
+                    // add these columns in dimension as workaround.
+                    for (TblColRef colRef : candidates) {
+                        if (colRef.getType().isStringFamily()) {
+                            useAsMeasure = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (useAsMeasure) {
+                    aggColumns.addAll(candidates);
+                }
             }
             Set<TblColRef> allColumns = ctx.allColumns;
             if (allColumns == null || allColumns.size() == 0) {
@@ -97,7 +112,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
         for (TblColRef dimension : dimCandidate) {
             String tableName = getModelContext().getTableRefAlias(dimension.getTableRef());
             if (dimensionsMap.get(tableName) == null) {
-                dimensionsMap.put(tableName, Sets.<String>newHashSet());
+                dimensionsMap.put(tableName, Sets.<String> newHashSet());
             }
             dimensionsMap.get(tableName).add(dimension.getName());
         }
