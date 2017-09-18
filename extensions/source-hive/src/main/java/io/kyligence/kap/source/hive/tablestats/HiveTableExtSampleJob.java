@@ -60,7 +60,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     // for reflection only
     public HiveTableExtSampleJob() {
     }
-    
+
     public HiveTableExtSampleJob(String project, String tableName) {
         this(project, null, tableName, 0);
     }
@@ -175,11 +175,14 @@ public class HiveTableExtSampleJob extends CubingJob {
         TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName, project);
         if (tableExtDesc == null)
             return null;
-        
+
         String jobID = tableExtDesc.getJodID();
         if (null == jobID || jobID.isEmpty()) {
             return null;
         }
+
+        if (false == isJobExist(jobID))
+            return null;
 
         AbstractExecutable job = null;
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
@@ -202,6 +205,11 @@ public class HiveTableExtSampleJob extends CubingJob {
             return jobID;
         }
         return null;
+    }
+
+    private boolean isJobExist(String jobId) {
+        ExecutableManager executableManager = ExecutableManager.getInstance(config);
+        return executableManager.getAllJobIds().contains(jobId);
     }
 
     private ShellExecutable materializedView(TableDesc desc, JobEngineConfig conf) throws IOException {
