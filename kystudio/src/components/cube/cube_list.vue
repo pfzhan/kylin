@@ -44,18 +44,14 @@
     <el-table-column
       :label="$t('name')"
       sortable
+      show-overflow-tooltip
       width="130"
       prop="name">
-       <template scope="scope" >
-          <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.name" placement="top">
-              <span >{{scope.row.name|omit(24, '...')}}</span>
-          </el-tooltip>
-         <!-- <span @click="viewModel(scope.row)" style="cursor:pointer;">{{scope.row.name}}</span> -->
-       </template>
     </el-table-column>
     <el-table-column
       :label="$t('model')"
       sortable
+      show-overflow-tooltip
       prop="model">
     </el-table-column>
     <el-table-column
@@ -85,10 +81,12 @@
     <el-table-column
       :label="$t('sourceRecords')"
       sortable
+      show-overflow-tooltip
       prop="input_records_count">
     </el-table-column>
     <el-table-column
       sortable
+      show-overflow-tooltip
       :label="$t('lastBuildTime')">
       <template scope="scope">
         <span v-if="scope.row.segments[scope.row.segments.length-1]">{{scope.row.buildGMTTime}}</span>
@@ -97,12 +95,14 @@
     <el-table-column
       :label="$t('owner')"
       sortable
+      show-overflow-tooltip
       width="90"
       prop="owner">
     </el-table-column>
     <el-table-column
       :label="$t('updateTime')"
       sortable
+      show-overflow-tooltip
       prop="lastModifiedGMT">
     </el-table-column>
     <el-table-column

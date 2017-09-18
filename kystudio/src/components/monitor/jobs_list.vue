@@ -5,7 +5,7 @@
       <el-input
         icon="search"
         v-model="filterCubeName"
-        :placeholder="$t('kylinLang.common.pleaseFilter')" 
+        :placeholder="$t('kylinLang.common.pleaseFilter')"
         @change="filterChange">
       </el-input>
     </el-col>
@@ -37,7 +37,6 @@
     <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column
       :label="$t('JobName')"
-      show-overflow-tooltip
       sortable
       :width="280"
       prop="jobname"
@@ -124,7 +123,7 @@
                 <tr>
                    <td>{{$t('kylinLang.common.status')}}</td>
                   <td>
-                    <el-tag 
+                    <el-tag
                     :type="getJobStatusTag">
                         {{selected_job.job_status}}
                       </el-tag>
@@ -146,7 +145,7 @@
       Job Details
     </p>
     <ul class="timeline">
-      
+
         <!--Start Label-->
         <!-- <li class="time-label">
             <span class="bg-blue">
@@ -190,7 +189,7 @@
                 <i class="el-icon-time"></i>
                 {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
               </span>
-              
+
               <div v-if="step.info.hdfs_bytes_written">
                 <span>Data Size: </span>
                 <span class="blue">{{step.info.hdfs_bytes_written|dataSize}}</span>

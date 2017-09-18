@@ -64,10 +64,12 @@
     <el-table-column
       prop="project"
       :label="$t('kylinLang.common.project')"
+      show-overflow-tooltip
       width="180">
     </el-table-column>
     <el-table-column
       prop="owner"
+      show-overflow-tooltip
       width="100"
       :label="$t('kylinLang.model.ownerGrid')">
     </el-table-column>
@@ -1044,6 +1046,7 @@ export default {
         // border:dashed 1px @fff;
         background-size: 20px;
         background-position: 90% 80%;
+        padding-right:30px;
        }
       }
     }
