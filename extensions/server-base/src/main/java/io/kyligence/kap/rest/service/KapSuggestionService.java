@@ -138,7 +138,7 @@ public class KapSuggestionService extends BasicService {
         }
     }
 
-    public List<SQLValidateResult> validateSqls(String project, String modelName, String factTable, List<String> sqls)
+    public List<SQLValidateResult> validateModelSqls(String project, String modelName, String factTable, List<String> sqls)
             throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
@@ -220,7 +220,7 @@ public class KapSuggestionService extends BasicService {
         return modelOptimizeLog;
     }
 
-    private ModelOptimizeLog getModelOptimizeLog(String modelName) throws IOException {
+    public ModelOptimizeLog getModelOptimizeLog(String modelName) throws IOException {
         ModelOptimizeLogManager modelOptimizeLogManager = ModelOptimizeLogManager.getInstance(getConfig());
         return modelOptimizeLogManager.getModelOptimizeLog(modelName);
 

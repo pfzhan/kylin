@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,5 +87,36 @@ public class JoinDescUtil {
             }
         }
         return tableKindByJoins;
+    }
+
+    public static boolean isJoinTypeEqual(JoinDesc a, JoinDesc b) {
+        return (a.isInnerJoin() && b.isInnerJoin()) || (a.isLeftJoin() && b.isLeftJoin());
+    }
+
+    public static boolean isJoinKeysEqual(JoinDesc a, JoinDesc b) {
+        if (!Arrays.equals(a.getForeignKey(), b.getForeignKey()))
+            return false;
+        if (!Arrays.equals(a.getPrimaryKey(), b.getPrimaryKey()))
+            return false;
+        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
+            return false;
+        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
+            return false;
+        return true;
+    }
+
+    public static String toString(JoinTableDesc join) {
+        StringBuilder result = new StringBuilder();
+        result.append(join.getJoin().getType()).append(" JOIN ").append(join.getTable()).append(" AS ")
+                .append(join.getAlias()).append(" ON ");
+        for (int i = 0; i < join.getJoin().getForeignKey().length; i++) {
+            String fk = join.getJoin().getForeignKey()[i];
+            String pk = join.getJoin().getPrimaryKey()[i];
+            if (i > 0) {
+                result.append(" AND ");
+            }
+            result.append(fk).append("=").append(pk);
+        }
+        return result.toString();
     }
 }

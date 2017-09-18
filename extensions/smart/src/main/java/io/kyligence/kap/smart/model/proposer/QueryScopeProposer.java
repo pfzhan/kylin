@@ -57,7 +57,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         Set<TblColRef> dimCandidate = new HashSet<>();
         Set<TblColRef> measCandidate = new HashSet<>();
-        for (OLAPContext ctx : getModelContext().getOLAPContexts()) {
+        for (OLAPContext ctx : getModelContext().getAllOLAPContexts()) {
             List<FunctionDesc> aggregations = ctx.aggregations;
             Set<TblColRef> aggColumns = new HashSet<>();
             for (FunctionDesc agg : aggregations) {

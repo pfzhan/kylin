@@ -56,6 +56,24 @@ public class RawModelSQLValidatorTest extends ModelMasterTest {
             Assert.assertTrue(result.isCapable());
         }
     }
+    
+    @Ignore
+    @Test
+    public void testE2E_LearnKylin_conflictJoins() throws Exception {
+        Map<String, SQLValidateResult> results = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
+                "src/test/resources/learn_kylin/sql_conflictJoins");
+        Assert.assertEquals(3, results.size());
+        int countSucc = 0, countFail = 0;
+        for (SQLValidateResult result : results.values()) {
+            if (result.isCapable()) {
+                countSucc++;
+            } else {
+                countFail++;
+            }
+        }
+        Assert.assertEquals(2, countSucc);
+        Assert.assertEquals(1, countFail);
+    }
 
     @Ignore
     @Test

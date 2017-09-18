@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart.model.proposer;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +53,7 @@ public class JoinProposer extends AbstractModelProposer {
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
         Map<TableRef, String> tableAliasMap = getModelContext().getAllTableRefAlias();
 
-        for (OLAPContext ctx : getModelContext().getOLAPContexts()) {
+        for (OLAPContext ctx : getModelContext().getAllOLAPContexts()) {
             if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
                 continue;
             }
@@ -88,7 +87,7 @@ public class JoinProposer extends AbstractModelProposer {
                     continue;
                 }
                 // conflict check
-                if (!isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                if (!JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
                     // add and resolve alias 
                     String newAlias = getNewAlias(tableAliasMap.values(), joinTable.getAlias());
                     joinTable.setAlias(newAlias);
@@ -96,7 +95,7 @@ public class JoinProposer extends AbstractModelProposer {
                     tableAliasMap.put(join.getPKSide(), newAlias);
                     continue;
                 }
-                if (!isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                if (!JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
                     // join conflict inner <-> left
                     skipModification = true;
                     break;
@@ -116,7 +115,7 @@ public class JoinProposer extends AbstractModelProposer {
         modelDesc.setJoinTables(joinTables.values().toArray(new JoinTableDesc[0]));
     }
 
-    private String getNewAlias(Collection<String> aliasSet, String oldAlias) {
+    public static String getNewAlias(Collection<String> aliasSet, String oldAlias) {
         int i = 1;
         while (aliasSet.contains(aliasSet + "_" + i)) {
             i++;
@@ -124,7 +123,7 @@ public class JoinProposer extends AbstractModelProposer {
         return oldAlias + "_" + i;
     }
 
-    private List<TableRef> getTableRefByAlias(Map<TableRef, String> tableAliasMap, String alias) {
+    public List<TableRef> getTableRefByAlias(Map<TableRef, String> tableAliasMap, String alias) {
         List<TableRef> result = new ArrayList<>();
         for (Entry<TableRef, String> entry : tableAliasMap.entrySet()) {
             if (entry.getKey().equals(alias)) {
@@ -132,21 +131,5 @@ public class JoinProposer extends AbstractModelProposer {
             }
         }
         return result;
-    }
-
-    private static boolean isJoinTypeEqual(JoinDesc a, JoinDesc b) {
-        return (a.isInnerJoin() && b.isInnerJoin()) || (a.isLeftJoin() && b.isLeftJoin());
-    }
-
-    private static boolean isJoinKeysEqual(JoinDesc a, JoinDesc b) {
-        if (!Arrays.equals(a.getForeignKey(), b.getForeignKey()))
-            return false;
-        if (!Arrays.equals(a.getPrimaryKey(), b.getPrimaryKey()))
-            return false;
-        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
-            return false;
-        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
-            return false;
-        return true;
     }
 }

@@ -54,6 +54,7 @@ import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.SmartModelRequest;
 import io.kyligence.kap.rest.service.KapSuggestionService;
 import io.kyligence.kap.smart.cube.CubeOptimizeLog;
+import io.kyligence.kap.smart.cube.ModelOptimizeLog;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
@@ -134,7 +135,7 @@ public class KapSuggestionController extends BasicController {
 
         List<SQLValidateResult> ret = null;
         try {
-            ret = kapSuggestionService.validateSqls(request.getProject(), request.getModelName(),
+            ret = kapSuggestionService.validateModelSqls(request.getProject(), request.getModelName(),
                     request.getFactTable(), request.getSqls());
         } catch (IOException e) {
             throw new InternalErrorException(msg.getFAIL_TO_VERIFY_MODEL_SQL(), e);
@@ -164,9 +165,12 @@ public class KapSuggestionController extends BasicController {
     @ResponseBody
     public EnvelopeResponse getModelSqls(@PathVariable String modelName) {
         KapMessage msg = KapMsgPicker.getMsg();
-        Map<String, SQLValidateResult> ret = null;
+        Map<String, Object> ret = null;
         try {
-            ret = kapSuggestionService.getModelSqls(modelName);
+            ret = Maps.newHashMap();
+            ModelOptimizeLog optLog = kapSuggestionService.getModelOptimizeLog(modelName);
+            ret.put("sqls", optLog.getSampleSqls());
+            ret.put("results", optLog.getSqlValidateResult());
         } catch (IOException e) {
             throw new InternalErrorException(msg.getFAIL_TO_GET_MODEL_SQL(), e);
         }

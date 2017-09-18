@@ -69,9 +69,18 @@ public class ModelMasterTest {
 
     @Ignore
     @Test
-    public void testE2E_LearnKylin_dupJoins() throws Exception {
+    public void testE2E_LearnKylin_dupJoins_1() throws Exception {
         DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
-                "src/test/resources/learn_kylin/sql_dupJoins");
+                "src/test/resources/learn_kylin/sql_dupJoins_1");
+        Assert.assertNotNull(modelDesc);
+        Assert.assertEquals(modelDesc.getJoinTables().length, 6);
+    }
+
+    @Ignore
+    @Test
+    public void testE2E_LearnKylin_dupJoins_2() throws Exception {
+        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
+                "src/test/resources/learn_kylin/sql_dupJoins_2");
         Assert.assertNotNull(modelDesc);
         Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }

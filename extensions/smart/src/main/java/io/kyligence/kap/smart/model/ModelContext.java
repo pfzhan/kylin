@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang.ArrayUtils;
@@ -47,7 +49,7 @@ public class ModelContext extends AbstractContext {
 
     private String project;
     private TableDesc rootFactTable = null;
-    private Map<String, OLAPContext> contexts = new HashMap<>();
+    private Map<String, Collection<OLAPContext>> contexts = new HashMap<>();
 
     private TableAliasGenerator.TableAliasDict dict;
     private Map<TableRef, String> tableRefAlias;
@@ -66,7 +68,10 @@ public class ModelContext extends AbstractContext {
     }
 
     public void addContext(String sql, OLAPContext ctx) {
-        this.contexts.put(sql, ctx);
+        if (!this.contexts.containsKey(sql)) {
+            this.contexts.put(sql, new ArrayList<OLAPContext>());
+        }
+        this.contexts.get(sql).add(ctx);
         this.tableRefAlias.putAll(getTableAliasMap(ctx, dict));
     }
 
@@ -74,11 +79,15 @@ public class ModelContext extends AbstractContext {
         return contexts.keySet();
     }
 
-    public Collection<OLAPContext> getOLAPContexts() {
-        return contexts.values();
+    public Collection<OLAPContext> getAllOLAPContexts() {
+        List<OLAPContext> result = new ArrayList<>();
+        for (Collection<OLAPContext> contextsBySQL : contexts.values()) {
+            result.addAll(contextsBySQL);
+        }
+        return result;
     }
 
-    public OLAPContext getOLAPContext(String sql) {
+    public Collection<OLAPContext> getOLAPContext(String sql) {
         return contexts.get(sql);
     }
 
