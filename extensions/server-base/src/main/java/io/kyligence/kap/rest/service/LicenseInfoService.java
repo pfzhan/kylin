@@ -24,11 +24,21 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.rest.client.HttpClient;
-import io.kyligence.kap.rest.request.LicenseRequest;
-import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.InterfaceAddress;
+import java.net.NetworkInterface;
+import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -41,18 +51,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.InetAddress;
-import java.net.InterfaceAddress;
-import java.net.NetworkInterface;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.rest.client.HttpClient;
+import io.kyligence.kap.rest.request.LicenseRequest;
+import io.kyligence.kap.rest.response.RemoteLicenseResponse;
 
 @Component("licenseInfoService")
 public class LicenseInfoService extends BasicService {
@@ -161,11 +165,20 @@ public class LicenseInfoService extends BasicService {
     public RemoteLicenseResponse getTrialLicense(LicenseRequest licenseRequest) {
         String proxyServer = kapConfig.getHttpProxyHost();
         int proxyPort = kapConfig.getHttpProxyPort();
-        String url = String.format(kapConfig.getKyAccountSiteUrl() + "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
-                licenseRequest.getUserName(), licenseRequest.getEmail(),
-                licenseRequest.getCompany(), licenseRequest.getLang());
+        String url;
+        try {
+            url = kapConfig.getKyAccountSiteUrl() + String.format("/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
+                    URLEncoder.encode(licenseRequest.getUserName(), "UTF-8"),
+                    URLEncoder.encode(licenseRequest.getEmail(), "UTF-8"),
+                    URLEncoder.encode(licenseRequest.getCompany(), "UTF-8"), licenseRequest.getLang());
+        } catch (UnsupportedEncodingException e) {
+            url = kapConfig.getKyAccountSiteUrl() + String.format(
+                    "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s", licenseRequest.getUserName(),
+                    licenseRequest.getEmail(), licenseRequest.getCompany(), licenseRequest.getLang());
+            logger.error("URLDecoder decode url error, url=" + url, e);
+        }
         String response = HttpClient.doGet(url, proxyServer, proxyPort);
-        if(response == null)
+        if (response == null)
             return null;
         try {
             return JsonUtil.readValue(response, RemoteLicenseResponse.class);
