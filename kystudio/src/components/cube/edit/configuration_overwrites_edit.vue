@@ -45,7 +45,7 @@
   </el-row>
   <div class="line"></div>
     <el-row>
-    <el-col :span="5">
+    <el-col :span="12">
       <div class="cube-config">
         <h2>{{$t('jobRelated')}}</h2>
         <el-button type="default" icon="plus" @click.native="addNewJobProperty">
@@ -70,7 +70,7 @@
   </el-row>
   <div class="line"></div>
     <el-row>
-    <el-col :span="5">
+    <el-col :span="12">
       <div class="cube-config">
         <h2>{{$t('hiveRelated')}}</h2>
         <el-button type="default" icon="plus" @click.native="addNewHiveProperty">

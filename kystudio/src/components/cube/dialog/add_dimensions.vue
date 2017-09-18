@@ -106,7 +106,6 @@ export default {
   props: ['modelDesc', 'cubeDesc', 'sampleSql'],
   data () {
     return {
-      rootFactTable: null,
       factTableColumns: [],
       lookupTableColumns: [],
       multipleSelection: {},
@@ -137,6 +136,8 @@ export default {
       }
     },
     getTableColumns: function () {
+      this.factTableColumns = []
+      this.lookupTableColumns = []
       this.modelDesc.dimensions.forEach((dimension) => {
         this.multipleSelection[dimension.table] = []
         if (this.modelDesc.factTables.indexOf(dimension.table) !== -1) {

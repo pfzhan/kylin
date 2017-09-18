@@ -61,7 +61,7 @@ export function loadBaseEncodings (state) {
       }
       var matchArr = []
       for (let i in state.encodingMatchs) {
-        if (i.indexOf(columnType.replace(/\(\d+\)/g, '')) >= 0) {
+        if (i.indexOf(columnType.replace(/\([\d,]+\)/g, '')) >= 0) {
           matchArr = state.encodingMatchs[i]
           break
         }

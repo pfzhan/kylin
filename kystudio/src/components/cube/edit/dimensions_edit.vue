@@ -587,7 +587,6 @@ export default {
       }
       let datatype = this.modelDesc.columnsDetail[rowkey.column].datatype
       if (this.selectEncodingCache[datatype]) {
-        console.log(this.selectEncodingCache, 66565)
         return this.selectEncodingCache[datatype]
       }
       let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
@@ -597,11 +596,9 @@ export default {
         let _version = parseInt(this.getVersion(rowkey.encoding))
         let addEncodings = baseEncodings.addEncoding(_encoding, _version)
         this.selectEncodingCache[datatype] = addEncodings
-        console.log(this.selectEncodingCache, 878787)
         return addEncodings
       } else {
         this.selectEncodingCache[datatype] = filterEncodings
-        console.log(this.selectEncodingCache, 343434)
         return filterEncodings
       }
     },

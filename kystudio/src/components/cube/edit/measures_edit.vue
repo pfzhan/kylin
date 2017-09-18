@@ -161,6 +161,21 @@ export default {
         handleError(res)
       })
     },
+    autoAddMeasures: function (arr) {
+      this.cubeDesc.measures.push({
+        name: '_COUNT_',
+        function: {
+          expression: 'COUNT',
+          returntype: 'bigint',
+          parameter: {
+            type: 'constant',
+            value: '1',
+            next_parameter: null
+          }
+        }
+      })
+      this.initColumnFamily()
+    },
     addMeasure: function () {
       this.selected_measure = {
         name: '',
@@ -433,6 +448,9 @@ export default {
     }
   },
   created () {
+    if (this.cubeDesc.measures.length === 0) {
+      this.autoAddMeasures()
+    }
     this.initColumnFamily()
     this.loadHiddenFeature({feature_name: 'raw-measure'})
     this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
