@@ -37,11 +37,11 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPTableScan;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.model.ModelContext;
-import org.apache.kylin.query.relnode.OLAPTableScan;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -97,7 +97,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
         for (TblColRef dimension : dimCandidate) {
             String tableName = getModelContext().getTableRefAlias(dimension.getTableRef());
             if (dimensionsMap.get(tableName) == null) {
-                dimensionsMap.put(tableName, Sets.<String> newHashSet());
+                dimensionsMap.put(tableName, Sets.<String>newHashSet());
             }
             dimensionsMap.get(tableName).add(dimension.getName());
         }
@@ -113,7 +113,11 @@ public class QueryScopeProposer extends AbstractModelProposer {
         Set<String> metrics = Sets.newHashSet();
         for (TblColRef measure : measCandidate) {
             String tableName = getModelContext().getTableRefAlias(measure.getTableRef());
-            metrics.add(tableName + "." + measure.getName());
+            String columnName = measure.getName();
+            if (dimensionsMap.containsKey(tableName) && dimensionsMap.get(tableName).contains(columnName)) {
+                continue; // skip this as already defined as dimension
+            }
+            metrics.add(tableName + "." + columnName);
         }
         modelDesc.setMetrics(metrics.toArray(new String[0]));
     }
