@@ -23,9 +23,9 @@
  */
 package io.kyligence.kap.query.security;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
@@ -72,9 +72,9 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
     static String getNewSelectClause(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
         StringBuilder newSelectClause = new StringBuilder();
-        TreeSet<String> allCols = getColsCanAccess(sql, project, defaultSchema, columnBlackList);
+        List<String> allCols = getColsCanAccess(sql, project, defaultSchema, columnBlackList);
         for (String col : allCols) {
-            if (!col.equals(allCols.last())) {
+            if (!col.equals(allCols.get(allCols.size() - 1))) {
                 newSelectClause.append(col).append(", ");
             } else {
                 newSelectClause.append(col);
@@ -83,8 +83,8 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    private static TreeSet<String> getColsCanAccess(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
-        TreeSet<String> cols = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+    private static List<String> getColsCanAccess(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
+        List<String> cols = new ArrayList<>();
 
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sql));
         for (RowFilter.Table table : tblWithAlias) {

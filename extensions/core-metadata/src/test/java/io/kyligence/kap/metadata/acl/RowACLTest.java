@@ -48,7 +48,7 @@ public class RowACLTest {
         List<String> cond1 = Lists.newArrayList("a", "a'b");
         List<String> cond2 = Lists.newArrayList("a", "a'b");
         List<String> cond3 = Lists.newArrayList("1504051200000"); //date
-        List<String> cond4 = Lists.newArrayList("20:17:40"); //time
+        List<String> cond4 = Lists.newArrayList("73060000"); //time
         List<String> cond5 = Lists.newArrayList("1505275932000"); //datetime
         List<String> cond6 = Lists.newArrayList("1505275932000"); //timestamp
         List<String> cond7 = Lists.newArrayList("7"); //normal type

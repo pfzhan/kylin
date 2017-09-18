@@ -257,8 +257,12 @@ public class RowACL extends RootPersistentEntity {
                     cond = "TIMESTAMP '" + cond + "'";
                 }
                 if (type.equals("time")) {
-                    // for time type, the front end pass direct pass
-                    cond = "TIME '" + cond + "'";
+                    final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    cond = sdf.format(new Date(Long.valueOf(cond)));
+                    //transform "1970-01-01 00:00:59" into "00:00:59"
+                    cond = "TIME '" + cond.substring(TIME_START_POS, cond.length()) + "'";
                 }
                 conds.set(i, cond);
             }
