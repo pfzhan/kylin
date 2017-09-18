@@ -25,6 +25,8 @@
 package io.kyligence.kap.smart.cube;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
@@ -34,13 +36,14 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.smart.cube.domain.DefaultDomainBuilder;
 import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.cube.domain.DefaultDomainBuilder;
 import io.kyligence.kap.smart.cube.domain.Domain;
 import io.kyligence.kap.smart.cube.domain.ModelDomainBuilder;
 import io.kyligence.kap.smart.cube.stats.ICubeStats;
@@ -48,6 +51,9 @@ import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
+import io.kyligence.kap.smart.query.advisor.ISQLAdvisor;
+import io.kyligence.kap.smart.query.advisor.ModelBasedSQLAdvisor;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
@@ -98,12 +104,29 @@ public class CubeContextBuilder {
     private CubeContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, String[] sqls) {
         QueryStats queryStats = null;
         Map<String, SQLResult> queryResults = null;
+        Map<String, Collection<OLAPContext>> olapContexts = null;
         if (sqls != null && sqls.length > 0) {
             try (AbstractQueryRunner extractor = QueryRunnerFactory.createForCubeSuggestion(kylinConfig, sqls,
                     smartConfig.getQueryDryRunThreads(), initCubeDesc)) {
+                ISQLAdvisor sqlAdvisor = new ModelBasedSQLAdvisor(initCubeDesc.getModel());
                 extractor.execute();
                 queryStats = extractor.getQueryStats();
                 queryResults = extractor.getQueryResults();
+                olapContexts = extractor.getAllOLAPContexts();
+                for (Map.Entry<String, SQLResult> queryResult : queryResults.entrySet()) {
+                    SQLResult sqlResult = queryResult.getValue();
+                    if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
+                        List<SQLAdvice> advices = sqlAdvisor.provideAdvice(sqlResult,
+                                olapContexts.get(queryResult.getKey()));
+                        if (!advices.isEmpty()) {
+                            StringBuilder msgBuilder = new StringBuilder();
+                            for (SQLAdvice advice : advices) {
+                                msgBuilder.append(advice.getIncapableReason()).append(' ');
+                            }
+                            sqlResult.setMessage(msgBuilder.toString());
+                        }
+                    }
+                }
             } catch (Exception e) {
                 logger.error("Failed to execute query stats. ", e);
             }
