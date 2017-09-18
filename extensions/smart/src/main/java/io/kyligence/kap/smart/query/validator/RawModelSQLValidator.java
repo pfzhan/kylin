@@ -115,11 +115,16 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
         Map<TableRef, String> tableAliasMap = context.getAllTableRefAlias();
 
         for (String sql : sqlList) {
+            Collection<OLAPContext> olapContexts = context.getOLAPContext(sql);
+            if (null == olapContexts || olapContexts.isEmpty()) {
+                continue;
+            }
+
             // Save context updates and apply later
             Map<String, JoinTableDesc> joinTablesModification = new HashMap<>();
             boolean skipModification = false;
 
-            for (OLAPContext ctx : context.getOLAPContext(sql)) {
+            for (OLAPContext ctx : olapContexts) {
                 if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
                     continue;
                 }
@@ -162,7 +167,8 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
                         }
                         result.setCapable(false);
                         Set<SQLAdvice> advice = result.getSQLAdvices();
-                        String reason = "[" + JoinDescUtil.toString(joinTable) + "] is incapable with [" + JoinDescUtil.toString(oldJoinTable) + "]";
+                        String reason = "[" + JoinDescUtil.toString(joinTable) + "] is incapable with ["
+                                + JoinDescUtil.toString(oldJoinTable) + "]";
                         String suggest = "Use the same join type";
                         advice.add(SQLAdvice.build(reason, suggest));
                         result.setSQLAdvices(advice);
