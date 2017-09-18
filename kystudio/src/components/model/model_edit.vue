@@ -292,12 +292,12 @@
     </transition>
     <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" size="mini" @click="validateSql" :disabled="actionMode==='view' || sqlString === ''" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
-      <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
-      <common-tip :content="$t('ignoreTip')" class="ksd-fleft ksd-ml-4" v-show="hasValidFailSql">
+      <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql && hasValidSuccessSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
+      <common-tip :content="$t('ignoreTip')" class="ksd-fleft ksd-ml-4" v-show="hasValidFailSql && hasValidSuccessSql">
         <icon name="question-circle-o"></icon>
       </common-tip>
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel" :disabled="actionMode==='view' || ignoreErrorSql === false" >{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel" :disabled="actionMode==='view' || ignoreErrorSql === false || !hasValidSuccessSql" >{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </div>
@@ -324,11 +324,13 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      firstLoad: false,
       ignoreErrorSql: true,
       sqlBtnLoading: false,
       addSQLFormVisible: false,
       checkSqlLoadBtn: false,
       hasValidFailSql: false,
+      hasValidSuccessSql: false,
       errorMsg: '',
       successMsg: '',
       hasCheck: false,
@@ -624,7 +626,10 @@ export default {
       }
     },
     editerChangeHandle () {
-      this.hasCheck = false
+      if (!this.firstLoad) {
+        this.hasCheck = false
+      }
+      this.firstLoad = false
     },
     inputSql () {
       this.sqlString = ''
@@ -645,14 +650,16 @@ export default {
           }).then((res) => {
             handleSuccess(res, (data) => {
               var result = data
-              var sqls = []
-              var errorInfo = []
-              for (var i in result) {
-                sqls.push(i)
-                errorInfo.push(result[i])
-                this.hasCheck = true
-              }
+              var sqls = result.sqls
+              var errorInfo = result.results
+              // for (var i in result) {
+              //   sqls.push(i)
+              //   errorInfo.push(result[i])
+              //   this.hasCheck = true
+              // }
+              this.hasCheck = true
               this.sqlString = sqls.join(';\r\n')
+              this.firstLoad = true
               this.addBreakPoint(errorInfo, editor)
               editor && editor.on('change', this.editerChangeHandle)
               this.result = errorInfo
@@ -678,6 +685,7 @@ export default {
             this.hasValidFailSql = true
             editor.session.setBreakpoint(index)
           } else {
+            this.hasValidSuccessSql = true
             editor.session.clearBreakpoint(index)
           }
         })

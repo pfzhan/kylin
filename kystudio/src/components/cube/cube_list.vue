@@ -115,7 +115,7 @@
             <i class="el-icon-more"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item @click.native="openValidateSql(scope.row)">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
+            <el-dropdown-item @click.native="openValidateSql(scope.row)" v-show="scope.row.is_draft">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !=='READY' && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
             <el-dropdown-item @click.native="edit(scope.row)" v-show="isAdmin || hasSomePermissionOfProject(selected_project)">{{$t('edit')}}</el-dropdown-item>
             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>

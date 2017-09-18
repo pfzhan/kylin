@@ -893,7 +893,7 @@ export default {
   },
   computed: {
     modelsList () {
-      if (this.$store.state.model.modelsList) {
+      if (this.$store.state.model.modelsList && this.$store.state.model.modelsDianoseList) {
         return this.$store.state.model.modelsList.map((m) => {
           m.gmtTime = transToGmtTime(m.last_modified, this)
           this.$store.state.model.modelsDianoseList.forEach((d) => {

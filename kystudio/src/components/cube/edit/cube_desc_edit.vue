@@ -558,9 +558,10 @@ export default {
       }
       // 将cube的起始时间设置转换成UTC
       var cloneCubeDescData = JSON.parse(saveData.cubeDescData)
-      if (cloneCubeDescData && cloneCubeDescData.engine_type && (+cloneCubeDescData.engine_type === 100 || +cloneCubeDescData.engine_type === 99)) {
-        delete cloneCubeDescData.hbase_mapping
-      }
+      // draft 的情况不需要加删除逻辑
+      // if (cloneCubeDescData && cloneCubeDescData.engine_type && (+cloneCubeDescData.engine_type === 100 || +cloneCubeDescData.engine_type === 99)) {
+      //   delete cloneCubeDescData.hbase_mapping
+      // }
       // cloneCubeDescData.partition_date_start = transToUTCMs(cloneCubeDescData.partition_date_start)
       saveData.cubeDescData = JSON.stringify(cloneCubeDescData)
       if (this.rawTable.tableDetail.columns && this.rawTable.tableDetail.columns.length) {
