@@ -30,7 +30,7 @@
                 <el-input v-model="user.username" auto-complete="on" :autofocus="true"  :placeholder="$t('userName')" name="username"></el-input>
               </el-form-item>
               <el-form-item label="" prop="password" class="password">
-                <el-input  type="password" v-model="user.password" :placeholder="$t('password')"></el-input>
+                <el-input  type="password" v-model="user.password" name="password" :placeholder="$t('password')"></el-input>
               </el-form-item>
               </div>
               <el-form-item>
@@ -352,7 +352,7 @@ export default {
         }
       }
       .el-dialog__body {
-        padding: 0px 20px 0px 20px; 
+        padding: 0px 20px 0px 20px;
       }
       .el-input__inner {
         font-size: 12px;
@@ -455,7 +455,7 @@ export default {
     box-shadow: 0 0 10px #222;
     background: @grey-color;
     .logo{
-      height: 65px; 
+      height: 65px;
       margin-top: 25px;
       margin-bottom: 15px;
     }
@@ -473,7 +473,7 @@ export default {
         background: #4fa6ee;
         width: 90%;
         margin: 0 auto;
-        margin-top: 15px; 
+        margin-top: 15px;
        }
        ul{
         margin: 20px 0 0 30px;
