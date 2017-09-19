@@ -120,11 +120,13 @@ public class JoinProposer extends AbstractModelProposer {
     }
 
     public static String getNewAlias(Collection<String> aliasSet, String oldAlias) {
+        String newAlias = oldAlias;
         int i = 1;
-        while (aliasSet.contains(aliasSet + "_" + i)) {
+        while (aliasSet.contains(newAlias)) {
+            newAlias = oldAlias + "_" + i;
             i++;
         }
-        return oldAlias + "_" + i;
+        return newAlias;
     }
 
     public List<TableRef> getTableRefByAlias(Map<TableRef, String> tableAliasMap, String alias) {

@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -52,7 +53,8 @@ public class ModelContext extends AbstractContext {
     private Map<String, Collection<OLAPContext>> contexts = new HashMap<>();
 
     private TableAliasGenerator.TableAliasDict dict;
-    private Map<TableRef, String> tableRefAlias;
+    private Map<TableRef, String> innerTableRefAlias;
+    private Map<TableRef, String> correctedTableAlias;
 
     public ModelContext(KylinConfig kylinConfig, String project, TableDesc rootFactTable) {
         super(kylinConfig);
@@ -60,7 +62,8 @@ public class ModelContext extends AbstractContext {
         this.rootFactTable = rootFactTable;
         Map<String, TableDesc> tableMap = MetadataManager.getInstance(kylinConfig).getAllTablesMap(project);
         this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
-        this.tableRefAlias = new HashMap<>();
+        this.innerTableRefAlias = new HashMap<>();
+        this.correctedTableAlias = new HashMap<>();
     }
 
     public TableDesc getRootTable() {
@@ -72,7 +75,31 @@ public class ModelContext extends AbstractContext {
             this.contexts.put(sql, new ArrayList<OLAPContext>());
         }
         this.contexts.get(sql).add(ctx);
-        this.tableRefAlias.putAll(getTableAliasMap(ctx, dict));
+        this.innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
+        correctTableAlias();
+    }
+
+    private void correctTableAlias() {
+        Map<String, TableDesc> classifiedAlias = new HashMap<>();
+        for (Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
+            classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());
+        }
+        Map<String, String> orig2corrected = new HashMap<>();
+        for (Entry<String, TableDesc> entry : classifiedAlias.entrySet()) {
+            String original = entry.getKey();
+            String tableName = entry.getValue().getName();
+            String corrected = tableName;
+            int i = 1;
+            while (orig2corrected.containsValue(corrected)) {
+                corrected = tableName + "_" + i;
+                i++;
+            }
+            orig2corrected.put(original, corrected);
+        }
+        for (Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
+            String corrected = orig2corrected.get(entry.getValue());
+            correctedTableAlias.put(entry.getKey(), corrected);
+        }
     }
 
     public Collection<String> getAllQueries() {
@@ -92,11 +119,11 @@ public class ModelContext extends AbstractContext {
     }
 
     public Map<TableRef, String> getAllTableRefAlias() {
-        return this.tableRefAlias;
+        return this.correctedTableAlias;
     }
 
     public String getTableRefAlias(TableRef tableRef) {
-        return tableRefAlias.get(tableRef);
+        return correctedTableAlias.get(tableRef);
     }
 
     public String getModelName() {

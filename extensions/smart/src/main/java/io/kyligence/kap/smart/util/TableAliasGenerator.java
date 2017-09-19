@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 // Utility to generate shortest readable table alias
 public class TableAliasGenerator {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(TableAliasGenerator.class);
 
     public static TableAliasDict generateNewDict(String[] tableNames) {
@@ -49,20 +49,20 @@ public class TableAliasGenerator {
             if (StringUtils.isEmpty(tableIdentity)) {
                 continue;
             }
-            
+
             String schema = "N/A";
             int spliterIndex = tableIdentity.indexOf('.');
             if (spliterIndex >= 0) {
                 schema = tableIdentity.substring(0, spliterIndex);
             }
-            String table = tableIdentity.substring(spliterIndex+1);
-            
+            String table = tableIdentity.substring(spliterIndex + 1);
+
             if (!schemaMap.containsKey(schema)) {
                 schemaMap.put(schema, new ArrayList<String>());
             }
             schemaMap.get(schema).add(table);
         }
-        
+
         Map<String, String> schemaDict = schemaMap.size() > 1 ? quickDict(schemaMap.keySet().toArray(new String[0]))
                 : null;
         Map<String, String> dict = new HashMap<>();
@@ -84,7 +84,7 @@ public class TableAliasGenerator {
 
         return new TableAliasDict(dict);
     }
-    
+
     private static Map<String, String> quickDict(String[] sourceNames) {
         Map<String, String> dict = new HashMap<>();
         for (String name : sourceNames) {
@@ -101,23 +101,23 @@ public class TableAliasGenerator {
         }
         return dict;
     }
-    
+
     public static class TableAliasDict {
         private Map<String, String> alias2TblName;
         private Map<String, String> tblName2Alias;
-        
+
         public TableAliasDict() {
             this.alias2TblName = new HashMap<>();
             this.tblName2Alias = new HashMap<>();
         }
-        
+
         public TableAliasDict(Map<String, String> dict) {
             this();
             for (Entry<String, String> pair : dict.entrySet()) {
                 addPair(pair.getKey(), pair.getValue());
             }
         }
-        
+
         public void addPair(String tableName, String alias) {
             if (alias2TblName.containsKey(alias)) {
                 if (alias2TblName.get(alias).equals(tableName)) {
@@ -135,15 +135,15 @@ public class TableAliasGenerator {
             alias2TblName.put(alias, tableName);
             tblName2Alias.put(tableName, alias);
         }
-        
+
         public String getAlias(String tableName) {
             return tblName2Alias.get(tableName);
         }
-        
+
         public String getTableName(String alias) {
             return alias2TblName.get(alias);
         }
-        
+
         public String getHierachyAlias(String[] tables) {
             if (tables.length == 0) {
                 return "";
