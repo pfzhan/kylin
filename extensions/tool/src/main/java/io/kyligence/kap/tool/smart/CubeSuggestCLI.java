@@ -45,11 +45,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.cube.CubeMaster;
 
-public class CubeSuggestCLI implements IKeepNames {
+public class CubeSuggestCLI implements IKeep {
 
     private static final Logger logger = LoggerFactory.getLogger(CubeSuggestCLI.class);
 

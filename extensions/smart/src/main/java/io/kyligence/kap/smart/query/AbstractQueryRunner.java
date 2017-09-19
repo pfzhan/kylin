@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -41,7 +42,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 public abstract class AbstractQueryRunner implements Closeable {
 

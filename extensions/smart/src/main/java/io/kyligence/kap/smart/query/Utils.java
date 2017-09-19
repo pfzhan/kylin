@@ -55,6 +55,7 @@ public class Utils {
         props.setProperty("kylin.storage.provider.100", MockupStorage.class.getName());
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
+        props.setProperty("kylin.cube.aggrgroup.is-mandatory-only-valid", "true");
 
         List<String> queryTransformers = Lists.newArrayList();
         queryTransformers.add(ConvertToComputedColumn.class.getName());
