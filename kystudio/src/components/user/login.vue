@@ -113,7 +113,7 @@ export default {
           { validator: this.validateEmail, trigger: 'blur' }
         ],
         company: [{ required: true, message: this.$t('noCompany'), trigger: 'blur' }],
-        userName: [{ required: true, message: this.$t('noUserName'), trigger: 'blur' }]
+        userName: [{ required: true, message: this.$t('noName'), trigger: 'blur' }]
       },
       user: {
         username: '' || localStorage.getItem('username'),
@@ -206,6 +206,7 @@ export default {
       this.changeDialog = true
     },
     closeApplyLicense: function () {
+      this.$refs['applyLicenseForm'].resetFields()
       if (this.changeDialog) {
         this.hasLicense = true
       }
@@ -217,6 +218,7 @@ export default {
           this.trialLicenseFile(this.userMessage).then((res) => {
             handleSuccess(res, (data) => {
               if (data && data['kap.dates']) {
+                console.log(this.lastTime(data['kap.dates']), 7777)
                 if (this.lastTime(data['kap.dates']) > 0) {
                   this.$alert(this.$t('evaluationPeriod') + data['kap.dates'], this.$t('evaluationLicense'), {
                     cancelConfirmButton: true,
@@ -293,8 +295,8 @@ export default {
       userName: 'Username',
       password: 'Password',
       forgetPassword: 'Forget your password?',
-      noUserName: 'please enter your username',
-      noUserPwd: 'please enter your password',
+      noUserName: 'Please enter your username.',
+      noUserPwd: 'Please enter your password.',
       adminTip: 'Apply the reset password command "kylin.sh admin-password-reset" in the "$KYLIN_HOME/bin" , <br/>the ADMIN account password will back to the initial password, <br/>and the other account password will remain unchanged.',
       license: 'Update License',
       cancel: 'Cancel',
@@ -304,10 +306,11 @@ export default {
       applyLicense: 'Apply Evaluation License',
       evaluationLicense: 'Evaluation License',
       evaluationPeriod: 'Evaluation Period:',
-      noEmail: 'please enter your email',
-      noEmailStyle: 'please enter a usable email',
-      noCompany: 'please enter your company',
-      nenterpriseEmail: 'please enter your enterprise email',
+      noEmail: 'Please enter your email.',
+      noEmailStyle: 'Please enter a usable email.',
+      noCompany: 'Please enter your company name.',
+      noName: 'Please enter your name.',
+      nenterpriseEmail: 'Please enter your enterprise email.',
       businessEmail: 'Business Mail',
       companyName: 'Company Name',
       yourName: 'Your Name',
@@ -330,9 +333,10 @@ export default {
       applyLicense: '申请许可证',
       evaluationLicense: '有效许可证',
       evaluationPeriod: '有效期限：',
-      noEmail: '请输入邮箱',
-      noEmailStyle: '请输入一个可用邮箱',
-      noCompany: '请输入公司名',
+      noEmail: '请输入邮箱。',
+      noEmailStyle: '请输入一个可用邮箱。',
+      noCompany: '请输入公司名称。',
+      noName: '请输入用户名称。',
       enterpriseEmail: '请输入企业邮箱',
       businessEmail: '企业邮箱',
       companyName: '公司名称',

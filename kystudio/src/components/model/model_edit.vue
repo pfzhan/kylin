@@ -645,6 +645,7 @@ export default {
       this.sqlString = ''
       this.errorMsg = ''
       this.successMsg = ''
+      this.ignoreErrorSql = false
       this.addSQLFormVisible = true
       this.$nextTick(() => {
         var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor

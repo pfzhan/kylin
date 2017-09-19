@@ -100,7 +100,7 @@
             { validator: this.validateEmail, trigger: 'blur' }
           ],
           company: [{ required: true, message: this.$t('noCompany'), trigger: 'blur' }],
-          userName: [{ required: true, message: this.$t('noUserName'), trigger: 'blur' }]
+          userName: [{ required: true, message: this.$t('noName'), trigger: 'blur' }]
         },
         aboutKapVisible: false,
         url: '',
@@ -318,6 +318,7 @@
         this.changeDialog = true
       },
       closeApplyLicense: function () {
+        this.$refs.applyLicenseForm.resetFields()
         if (this.changeDialog) {
           this.updateLicenseVisible = true
         }
@@ -406,8 +407,8 @@
       'update_license': updateLicense
     },
     locales: {
-      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', updateLicense: 'Update License', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK', cancel: 'Cancel', save: 'Save', license: 'Update License', validPeriod: 'Valid Period:', applyLicense: 'Apply Evaluation License', evaluationLicense: 'Evaluation License', evaluationPeriod: 'Evaluation Period:', noEmail: 'please enter your email', noEmailStyle: 'please enter a usable email', noCompany: 'please enter your company', enterpriseEmail: 'please enter your enterprise email', businessEmail: 'Business Mail', companyName: 'Company Name', yourName: 'Your Name', expiredOn: 'Expired On:', noUserName: 'please enter your username'},
-      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', updateLicense: '更新许可证', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定', cancel: '取消', save: '保存', license: '更新许可证', validPeriod: '有效期限：', applyLicense: '申请许可证', evaluationLicense: '有效许可证', evaluationPeriod: '有效期限：', noEmail: '请输入邮箱', noEmailStyle: '请输入一个可用邮箱', noCompany: '请输入公司名', enterpriseEmail: '请输入企业邮箱', businessEmail: '企业邮箱', companyName: '公司名称', yourName: '用户名称', expiredOn: '过期时间：', noUserName: '请输入用户名'}
+      'en': {autoUpload: 'Auto Upload', usernameEmpty: 'Please enter username', usernameRule: 'username contains only numbers, letters and character "_"', noUserPwd: 'password required', agreeAndOpen: 'agree the protocol and open the automatic service', kybotAuto: 'KyBot Auto Upload', openSuccess: 'open successfully', closeSuccess: 'close successfully', Manual: 'KAP Manual', kybotService: 'KyBot Service', updateLicense: 'Update License', aboutKap: 'About KAP', kybot: "By analyzing diagnostic package, <a href='https://kybot.io/#/home?src=kap240'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly.", signIn: 'Kyligence Account | Sign In', ok: 'OK', cancel: 'Cancel', save: 'Save', license: 'Update License', validPeriod: 'Valid Period:', applyLicense: 'Apply Evaluation License', evaluationLicense: 'Evaluation License', evaluationPeriod: 'Evaluation Period:', noEmail: 'Please enter your email.', noEmailStyle: 'Please enter a usable email.', noCompany: 'Please enter your company name.', enterpriseEmail: 'Please enter your enterprise email.', businessEmail: 'Business Mail', companyName: 'Company Name', yourName: 'Your Name', expiredOn: 'Expired On:', noName: 'Please enter your name.'},
+      'zh-cn': {autoUpload: '自动上传', usernameEmpty: '请输入用户名', usernameRule: '名字只能包含数字字母下划线', noUserPwd: '密码不能为空', agreeAndOpen: '同意协议并开启自动服务', kybotAuto: 'KyBot自动上传', openSuccess: '成功开启', closeSuccess: '成功关闭', Manual: 'KAP手册', kybotService: 'KyBot服务', updateLicense: '更新许可证', aboutKap: '关于KAP', kybot: '<a href="https://kybot.io/#/home?src=kap240">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传', signIn: 'Kyligence 帐号 | 登录', ok: '确定', cancel: '取消', save: '保存', license: '更新许可证', validPeriod: '有效期限：', applyLicense: '申请许可证', evaluationLicense: '有效许可证', evaluationPeriod: '有效期限：', noEmail: '请输入邮箱。', noEmailStyle: '请输入一个可用邮箱。', noCompany: '请输入公司名称。', enterpriseEmail: '请输入企业邮箱。', businessEmail: '企业邮箱', companyName: '公司名称', yourName: '用户名称', expiredOn: '过期时间：', noName: '请输入用户名称。'}
     }
   }
 </script>
