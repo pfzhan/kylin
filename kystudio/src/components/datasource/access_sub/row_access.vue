@@ -5,7 +5,7 @@
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
-       <el-table class="ksd-mt-20"
+       <el-table class="ksd-mt-20" v-show="pagerAclRowList && pagerAclRowList.length"
             border
             :data="pagerAclRowList"
             style="width: 100%">
@@ -75,7 +75,7 @@
                     <editor class="ksd-mt-4" ref="preview" lang="sql" useWrapMode="true" v-model="previewInfo"  theme="monokai" width="100%"></editor>
                     <span class="dot-bottom"></span>
                   </div>
-                  <div @click="openPreview" class="action_preview" v-show="!(saveConditionListLen === 0 || saveConditionListLen !== rowSetDataList.length)">{{$t('preview')}}</div>
+                  <div @click="openPreview" style="width:40px;" class="action_preview" v-show="!(saveConditionListLen === 0 || saveConditionListLen !== rowSetDataList.length)">{{$t('preview')}}</div>
                 </el-form-item>
               </el-form>
               <div slot="footer" class="dialog-footer">
@@ -206,6 +206,9 @@ export default {
       } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
         result = '^[1-9]\\d{3}[-/](0?[1-9]|1[0-2])[-/](0?[1-9]|[1-2][0-9]|3[0-1])(\\s+(20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)$'
         timeComponentType = 'datetime'
+      } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+        result = '^((20|21|22|23|[0-1]\\d):[0-5]\\d:[0-5]\\d)$'
+        // timeComponentType = 'datetime'
       }
       return {reg: result, timeComponentType: timeComponentType}
     },
@@ -389,6 +392,13 @@ export default {
               } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
                 k = transToUtcTimeFormat(+k)
                 return k
+              } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+                k = transToUtcTimeFormat(+k)
+                var result = k.split(/\s+/)
+                if (result.length >= 2) {
+                  return result[1]
+                }
+                return k
               } else {
                 return k
               }
@@ -422,6 +432,12 @@ export default {
           var valueList = row.valueList.map((k) => {
             if (this.dateTypeList.indexOf(columnType) >= 0 || this.dateTimeTypeList.indexOf(columnType) >= 0) {
               k = transToUTCMs(k)
+              return k
+            } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+              var timeContent = k.split(/[^\d]+/)
+              if (timeContent && timeContent.length === 3) {
+                return Date.UTC(1970, 0, 1, timeContent[0], timeContent[1], timeContent[2])
+              }
               return k
             } else {
               return k
