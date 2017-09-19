@@ -80,7 +80,7 @@ exports.default = {
     // 其他
     users: 'Users',
     tip: 'Notice',
-    action: 'Action',
+    action: 'Actions',
     help: 'Help',
     username: 'Username',
     password: 'Password',

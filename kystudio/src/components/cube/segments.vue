@@ -8,7 +8,7 @@
           <el-col :span="20">{{segment.segmentUUID}}</el-col>
        </el-row>
        <el-row class="tableheader" >
-          <el-col :span="4" class="left-part">Htable:</el-col>
+          <el-col :span="4" class="left-part">HTable:</el-col>
           <el-col :span="20">{{segment.tableName}}</el-col>
        </el-row>
        <el-row class="tableheader" >
@@ -32,19 +32,19 @@
           <el-col :span="20">{{segment.sourceOffsetEnd}}</el-col>
        </el-row>
        <el-row class="tableheader">
-          <el-col :span="4" class="left-part">{{$t('cubeHBRegionCount')}}:</el-col>
+          <el-col :span="4" class="left-part">{{$t('cubeHBRegionCount')}}</el-col>
           <el-col :span="20">{{segment.regionCount}}</el-col>
        </el-row>
        <el-row class="tableheader">
-          <el-col :span="4" class="left-part">{{$t('cubeHBSize')}}:</el-col>
-          <el-col :span="20">{{segment.tableSize}}</el-col>
+          <el-col :span="4" class="left-part">{{$t('cubeHBSize')}}</el-col>
+          <el-col :span="20">{{segment.tableSize|dataSize}}</el-col>
        </el-row>
        <el-row class="tableheader">
-          <el-col :span="4" class="left-part">{{$t('cubeHBStartTime')}}:</el-col>
+          <el-col :span="4" class="left-part">{{$t('cubeHBStartTime')}}</el-col>
           <el-col :span="20">{{segment.dateRangeStart| utcTime}}</el-col>
        </el-row>
        <el-row class="tableheader">
-          <el-col :span="4" class="left-part">{{$t('cubeHBEndTime')}}:</el-col>
+          <el-col :span="4" class="left-part">{{$t('cubeHBEndTime')}}</el-col>
           <el-col :span="20">{{segment.dateRangeEnd| utcTime}}</el-col>
        </el-row>
      </div>
@@ -223,7 +223,7 @@ export default {
     }
   },
   locales: {
-    'en': {SegmentID: 'Segment ID:', SegmentName: 'Segment Name:', SegmentPath: 'Segment Path:', FileNumber: 'File Number:', StorageSize: 'Storage Size:', RangeStartTime: 'Start Time:', RangeEndTime: 'End Time:', RawTableSegmentPath: 'Table Index Segment Path:', RawTableFileNumber: 'Table Index File Number:', RawTableStorageSize: 'Table Index Storage Size:', TotalSize: 'Total Size:', TotalNumber: 'Total Segment Number:', CubeID: 'Cube ID:', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count: ', cubeHBSize: 'Size: ', cubeHBStartTime: 'Start Time: ', cubeHBEndTime: 'End Time: '},
+    'en': {SegmentID: 'Segment ID:', SegmentName: 'Segment Name:', SegmentPath: 'Segment Path:', FileNumber: 'File Number:', StorageSize: 'Storage Size:', RangeStartTime: 'Start Time:', RangeEndTime: 'End Time:', RawTableSegmentPath: 'Table Index Segment Path:', RawTableFileNumber: 'Table Index File Number:', RawTableStorageSize: 'Table Index Storage Size:', TotalSize: 'Total Size:', TotalNumber: 'Total Segment Number:', CubeID: 'Cube ID:', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count: ', cubeHBSize: 'Storage Size: ', cubeHBStartTime: 'Start Time: ', cubeHBEndTime: 'End Time: '},
     'zh-cn': {SegmentID: 'Segment ID：', SegmentName: 'Segment 名称：', SegmentPath: 'Segment 路径：', FileNumber: '索引文件数：', StorageSize: '存储空间：', RangeStartTime: '起始时间：', RangeEndTime: '结束时间：', RawTableSegmentPath: 'Table Index Segment 路径：', RawTableFileNumber: 'Table Index 索引文件数：', RawTableStorageSize: 'Table Index 存储空间：', TotalSize: '总大小：', TotalNumber: '总个数：', CubeID: 'Cube ID：', NoStorageInfo: '没有存储的相关信息。', cubeHBRegionCount: 'Region数量: ', cubeHBSize: '存储空间: ', cubeHBStartTime: '起始时间: ', cubeHBEndTime: '结束时间: '}
   }
 }
@@ -244,6 +244,7 @@ export default {
         border-right:solid 1px #393e53;
         text-align: right;
         padding-right: 20px;
+        font-weight:bold;
       }
     }
     // .el-card{

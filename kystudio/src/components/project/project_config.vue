@@ -5,11 +5,11 @@
       style="width: 100%">
       </el-table-column>
       <el-table-column
-        label="key"
+        label="Key"
         prop="key">
       </el-table-column>
       <el-table-column
-        label="value"
+        label="Value"
         prop="value">
       </el-table-column>
     </el-table>
