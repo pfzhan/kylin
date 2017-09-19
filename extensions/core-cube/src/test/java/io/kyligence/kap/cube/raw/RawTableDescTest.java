@@ -28,7 +28,6 @@ import static io.kyligence.kap.cube.raw.RawTableColumnDesc.INDEX_DISCRETE;
 import static io.kyligence.kap.cube.raw.RawTableColumnDesc.INDEX_SORTED;
 
 import java.util.Collection;
-import java.util.List;
 
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
@@ -57,7 +56,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
         Assert.assertNotNull(result);
 
         // remove all sorted columns
-        for (RawTableColumnDesc column : result.getOriginColumns()) {
+        for (RawTableColumnDesc column : result.getColumnDescsInOrder()) {
             if (column.getIndex().equals(INDEX_SORTED)) {
                 column.setIndex(INDEX_DISCRETE);
             }
@@ -77,7 +76,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
     @Test
     public void backwardCompatibleTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+        for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
             if (column.getEncoding().equals("date")) {
                 column.setIndex(INDEX_SORTED);
                 break;
@@ -92,7 +91,6 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
     @Test
     public void noSortedColumnTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        List<RawTableColumnDesc> rawColumns = rawDesc.getOriginColumns();
 
         try {
             rawDesc.init(getTestConfig());
@@ -107,7 +105,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
     @Test
     public void noShardbyColumnTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+        for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
             if (column.getEncoding().equals("date")) {
                 column.setSortby(true);
                 break;
@@ -115,39 +113,39 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
         }
 
         rawDesc.init(getTestConfig());
-        Assert.assertEquals(rawDesc.getOriginColumns().size(), rawDesc.getColumnsInOrder().size());
-        Assert.assertEquals(rawDesc.getOriginColumns().size(), rawDesc.getShardbyColumns().size());
+        Assert.assertEquals(rawDesc.getColumnDescsInOrder().size(), rawDesc.getColumnsInOrder().size());
+        Assert.assertEquals(rawDesc.getColumnDescsInOrder().size(), rawDesc.getShardbyColumns().size());
     }
 
     @Test
     public void oneShardbyColumnTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+        for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
             if (column.getEncoding().equals("date")) {
                 column.setSortby(true);
                 break;
             }
         }
 
-        rawDesc.getOriginColumns().get(0).setShardby(true);
+        rawDesc.getColumnDescsInOrder().get(0).setShardby(true);
 
         rawDesc.init(getTestConfig());
         Assert.assertEquals(1, rawDesc.getShardbyColumns().size());
-        Assert.assertEquals(rawDesc.getOriginColumns().get(0).getColumn(), rawDesc.getShardbyColumns().iterator().next());
+        Assert.assertEquals(rawDesc.getColumnDescsInOrder().get(0).getColumn(), rawDesc.getShardbyColumns().iterator().next());
     }
 
     @Test
     public void moreThanOneShardbyColumnsTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+        for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
             if (column.getEncoding().equals("date")) {
                 column.setSortby(true);
                 break;
             }
         }
 
-        rawDesc.getOriginColumns().get(0).setShardby(true);
-        rawDesc.getOriginColumns().get(1).setShardby(true);
+        rawDesc.getColumnDescsInOrder().get(0).setShardby(true);
+        rawDesc.getColumnDescsInOrder().get(1).setShardby(true);
 
         try {
             rawDesc.init(getTestConfig());
@@ -162,7 +160,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
     @Test
     public void sortedColumnEncodingFailTest() {
         RawTableDesc rawDesc = getPlainDesc();
-        for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+        for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
             if (!column.getEncoding().equals("date") && !column.getEncoding().equals("time") && !column.getEncoding().equals("integer")) {
                 column.setSortby(true);
                 break;
@@ -185,7 +183,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
         for (String encoding : validEncoding) {
             RawTableDesc rawDesc = getPlainDesc();
             boolean hasSetSortby = false;
-            for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+            for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
                 if (column.getEncoding().equals(encoding)) {
                     column.setSortby(true);
                     hasSetSortby = true;
@@ -194,7 +192,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
             }
 
             if (!hasSetSortby) {
-                RawTableColumnDesc column = rawDesc.getOriginColumns().iterator().next();
+                RawTableColumnDesc column = rawDesc.getColumnDescsInOrder().iterator().next();
                 column.setEncoding(encoding);
                 column.setSortby(true);
             }
@@ -203,7 +201,7 @@ public class RawTableDescTest extends LocalFileMetadataTestCase {
             Collection<TblColRef> sortbyColumns = rawDesc.getSortbyColumns();
             Assert.assertEquals(1, sortbyColumns.size());
 
-            for (RawTableColumnDesc column : rawDesc.getOriginColumns()) {
+            for (RawTableColumnDesc column : rawDesc.getColumnDescsInOrder()) {
                 if (column.getColumn().equals(sortbyColumns.iterator().next())) {
                     column.getEncoding().equals(encoding);
                 }

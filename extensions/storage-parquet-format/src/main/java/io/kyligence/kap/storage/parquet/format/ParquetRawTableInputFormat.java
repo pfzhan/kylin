@@ -83,7 +83,6 @@ public class ParquetRawTableInputFormat extends FileInputFormat<ByteArrayListWri
         private RawTableDesc rawTableDesc;
         private BufferedRawColumnCodec rawColumnsCodec;
         private RawTableColumnFamilyDesc[] cfDescs;
-        private Map<Integer, Integer> index2OrderMapping;
         private RawToGridTableMapping mapping;
         
         private Path shardPath;
@@ -108,7 +107,6 @@ public class ParquetRawTableInputFormat extends FileInputFormat<ByteArrayListWri
             GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
             cfDescs = rawTableDesc.getRawTableMapping().getColumnFamily();
-            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
             mapping = rawTableDesc.getRawToGridTableMapping();
 
             // init with first shard file
@@ -147,14 +145,13 @@ public class ParquetRawTableInputFormat extends FileInputFormat<ByteArrayListWri
                 ByteBuffer buf = ByteBuffer.wrap(currentCfBytes);
                 int cfBytesOffset = 0; 
                 for (int colIdx : colIndex) {                    
-                    int columnIndexInOrder = index2OrderMapping.get(colIdx);
-                    int colBytesLength = rawColumnsCodec.getDataTypeSerializer(columnIndexInOrder).peekLength(buf);
+                    int colBytesLength = rawColumnsCodec.getDataTypeSerializer(colIdx).peekLength(buf);
                     buf.position(buf.position() + colBytesLength);
                     byte[] currentColBytes = new byte[colBytesLength];
                     System.arraycopy(currentCfBytes, cfBytesOffset, currentColBytes, 0, colBytesLength);
                     cfBytesOffset += colBytesLength;
                     newRowForColumn.add(currentColBytes);                   
-                    newRowForColumnIndexMapping.put(columnIndexInOrder, newRowForColumnIdx);
+                    newRowForColumnIndexMapping.put(colIdx, newRowForColumnIdx);
                     newRowForColumnIdx++;
                 }
                 cfIdx++;

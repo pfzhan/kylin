@@ -36,16 +36,13 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import io.kyligence.kap.cube.raw.RawTableColumnFamilyDesc;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 
 public class RawToGridTableMapping {
 
     private List<DataType> gtDataTypes = Lists.newArrayList();
-    private List<DataType> originDataTypes = Lists.newArrayList();
     private List<TblColRef> gtOrderColumns = Lists.newArrayList();
-    private List<TblColRef> originColumns = Lists.newArrayList();
     private ImmutableBitSet gtPrimaryKey;
     private ImmutableBitSet sortbyKey;
     private ImmutableBitSet nonSortbyKey;
@@ -54,12 +51,6 @@ public class RawToGridTableMapping {
     private List<ImmutableBitSet> gtColBlocks = Lists.newArrayList();
 
     public RawToGridTableMapping(RawTableDesc rawTableDesc) {
-
-        List<RawTableColumnDesc> originRawTableColumns = rawTableDesc.getOriginColumns();
-        for (RawTableColumnDesc rawTableColumn : originRawTableColumns) {
-            originColumns.add(rawTableColumn.getColumn());
-            originDataTypes.add(rawTableColumn.getColumn().getType());
-        }
         
         int gtColIdx = 0;
         
@@ -119,10 +110,6 @@ public class RawToGridTableMapping {
     public DataType[] getDataTypes() {
         return gtDataTypes.toArray(new DataType[gtDataTypes.size()]);
     }
-    
-    public DataType[] getOriginDataTypes() {
-        return originDataTypes.toArray(new DataType[originDataTypes.size()]);
-    }
 
     public ImmutableBitSet getPrimaryKey() {
         return gtPrimaryKey;
@@ -143,17 +130,9 @@ public class RawToGridTableMapping {
     public List<TblColRef> getGtOrderColumns() {
         return gtOrderColumns;
     }
-    
-    public List<TblColRef> getOriginColumns() {
-        return originColumns;
-    }
 
     public int getIndexOf(TblColRef col) {
         return getGtOrderColumns().indexOf(col);
-    }
-    
-    public int getOriginIndexOf(TblColRef col) {
-        return getOriginColumns().indexOf(col);
     }
     
     public int getIndexOf(FunctionDesc metrics) {
@@ -167,7 +146,7 @@ public class RawToGridTableMapping {
     public ImmutableBitSet makeGridTableColumns(Set<TblColRef> dimensions) {
         BitSet result = new BitSet();
         for (TblColRef dim : dimensions) {
-            int idx = getOriginIndexOf(dim);
+            int idx = getIndexOf(dim);
             if (idx >= 0)
                 result.set(idx);
         }

@@ -100,7 +100,7 @@ public class RawTablePageIndexMapper extends KylinMapper<ByteArrayListWritable, 
     private void initIndexWriters(Context context) throws IOException, InterruptedException {
         int hashLength = KapConfig.getInstanceFromEnv().getParquetIndexHashLength();
 
-        List<RawTableColumnDesc> columns = rawTableDesc.getOriginColumns();
+        List<RawTableColumnDesc> columns = rawTableDesc.getColumnDescsInOrder();
         columnSpecs = new ColumnSpec[columns.size()];
         for (int i = 0; i < columns.size(); i++) {
             TblColRef column = columns.get(i).getColumn();

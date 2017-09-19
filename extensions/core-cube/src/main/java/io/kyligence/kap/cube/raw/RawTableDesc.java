@@ -30,7 +30,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +53,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.raw.gridtable.RawToGridTableMapping;
@@ -84,20 +82,21 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     @JsonProperty("raw_table_mapping")
     private RawTableMappingDesc rawTableMapping;
 
-    // computed
+    // Computed fields
     private KylinConfig config;
     private DataModelDesc model;
-    private Map<TblColRef, RawTableColumnDesc> columnMap;
-    private LinkedHashSet<TblColRef> shardbyColumns;
-    private Set<TblColRef> fuzzyColumns;
-    private LinkedHashSet<TblColRef> sortbyColumns;
-    private RawToGridTableMapping rawToGTMapping;
-    private LinkedHashSet<RawTableColumnDesc> sortbyColumnDescs;
 
+    private List<TblColRef> sortbyColumns;
+    private List<TblColRef> shardbyColumns;
+    private List<TblColRef> fuzzyColumns;
     private List<TblColRef> columnsInOrder;
+
+    private List<RawTableColumnDesc> sortbyColumnDescs;
     private List<RawTableColumnDesc> columnDescsInOrder;
 
-    private Map<Integer, Integer> origin2OrderMapping;
+    private RawToGridTableMapping rawToGTMapping;
+
+    // ============================================================================
 
     // for Jackson
     public RawTableDesc() {
@@ -108,197 +107,19 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         rawTableDesc.setName(desc.getName());
         rawTableDesc.setDraft(desc.isDraft());
         rawTableDesc.setModelName(desc.getModelName());
-        rawTableDesc.setOriginColumns(desc.getOriginColumns());
-        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
-        rawTableDesc.setRawTableMapping(desc.rawTableMapping);
+        rawTableDesc.setColumns(desc.getColumns());
         rawTableDesc.setEngineType(desc.getEngineType());
         rawTableDesc.setStorageType(desc.getStorageType());
+        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
+        rawTableDesc.setRawTableMapping(desc.rawTableMapping);
         rawTableDesc.updateRandomUuid();
         rawTableDesc.init(desc.getConfig());
         return rawTableDesc;
     }
 
-    public Set<TblColRef> getFuzzyColumns() {
-        return fuzzyColumns;
-    }
-
-    // validate the first sortby column is data/time/integerDim encoding
-    public void validate() {
-        if (sortbyColumns.isEmpty()) {
-            throw new IllegalStateException(this + " missing sortby column");
-        }
-
-        TblColRef firstSorted = sortbyColumns.iterator().next();
-
-        // FIXME: Dirty code, check encoding in string
-        String encoding = columnMap.get(firstSorted).getEncoding();
-        if (!encoding.startsWith("integer") && !encoding.equalsIgnoreCase("date")
-                && !encoding.equalsIgnoreCase("time")) {
-            throw new IllegalStateException(
-                    "first sortby column's encoding is" + encoding + ", it should be integer, date or time");
-        }
-
-        if (shardbyColumns.size() > 1) {
-            throw new IllegalStateException(
-                    "Only one shardby column is supported. Now shardby columns are " + shardbyColumns);
-        }
-    }
-
-    public TblColRef getFirstSortbyColumn() {
-        if (sortbyColumns.size() < 1) {
-            throw new IllegalStateException(this + " missing sortby column");
-        }
-
-        return sortbyColumns.iterator().next();
-    }
-
-    public Collection<TblColRef> getSortbyColumns() {
-        if (sortbyColumns.size() < 1) {
-            throw new IllegalStateException(this + " missing sortby column");
-        }
-
-        return sortbyColumns;
-    }
-
-    public List<TblColRef> getNonSortbyColumns() {
-        List<TblColRef> cols = new ArrayList<>();
-        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
-            if (sortbyColumns.contains(colDesc.getColumn()))
-                continue;
-            cols.add(colDesc.getColumn());
-        }
-        return cols;
-    }
-    
-    public Collection<RawTableColumnDesc> getSortbyColumnDescs() {
-        if (sortbyColumnDescs.size() < 1) {
-            throw new IllegalStateException(this + " missing sortby column");
-        }
-
-        return sortbyColumnDescs;
-    }
-
-    public List<RawTableColumnDesc> getNonSortbyColumnDescs() {
-        List<RawTableColumnDesc> cols = new ArrayList<>();
-        for (RawTableColumnDesc colDesc : columns) {
-            if (sortbyColumnDescs.contains(colDesc))
-                continue;
-            cols.add(colDesc);
-        }
-        return cols;
-    }
-
-    public Boolean isShardby(TblColRef colRef) {
-        if (shardbyColumns.isEmpty()) {
-            return true;
-        }
-        return shardbyColumns.contains(colRef);
-    }
-
-    public Boolean isNeedFuzzyIndex(TblColRef colRef) {
-        return fuzzyColumns.contains(colRef);
-    }
-
-    public int getEstimateRowSize() {
-        int size = 0;
-        for (RawTableColumnDesc col : getColumnDescsInOrder()) {
-            size += col.getColumn().getType().getStorageBytesEstimate();
-        }
-        return size;
-    }
-
-    public Boolean isSortby(TblColRef colRef) {
-        return sortbyColumns.contains(colRef);
-    }
-
-    public List<Pair<String, Integer>> getEncodings() {
-        List<TblColRef> columnsInOrder = getColumnsInOrder();
-        Preconditions.checkNotNull(columnsInOrder);
-        Preconditions.checkArgument(columnsInOrder.size() != 0);
-        return Lists.transform(columnsInOrder, new Function<TblColRef, Pair<String, Integer>>() {
-            @Nullable
-            @Override
-            public Pair<String, Integer> apply(@Nullable TblColRef input) {
-                RawTableColumnDesc rawTableColumnDesc = columnMap.get(input);
-                Preconditions.checkNotNull(rawTableColumnDesc);
-                return Pair.newPair(rawTableColumnDesc.getEncoding(), rawTableColumnDesc.getEncodingVersion());
-            }
-        });
-    }
-
-    public List<Pair<String, Integer>> getOriginEncodings() {
-        List<RawTableColumnDesc> columnsOrigin = getOriginColumns();
-        Preconditions.checkNotNull(columnsOrigin);
-        Preconditions.checkArgument(columnsOrigin.size() != 0);
-
-        return Lists.transform(columnsOrigin, new Function<RawTableColumnDesc, Pair<String, Integer>>() {
-            @Nullable
-            @Override
-            public Pair<String, Integer> apply(@Nullable RawTableColumnDesc input) {
-                Preconditions.checkNotNull(input);
-                return Pair.newPair(input.getEncoding(), input.getEncodingVersion());
-            }
-        });
-    }
-
-    public List<RawTableColumnDesc> getOriginColumns() {
-        return getColumnDescsInOrder();
-    }
-
-    public void setOriginColumns(List<RawTableColumnDesc> columnDescsInOrder) {
-        this.columnDescsInOrder = columnDescsInOrder;
-    }
-
-    public String getResourcePath() {
-        return concatResourcePath(name);
-    }
-
-    public static String concatResourcePath(String descName) {
-        return RAW_TABLE_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
-    }
-
-    public List<TblColRef> getColumnsInOrder() {
-        if (columnsInOrder == null) {
-            columnsInOrder = Lists.newArrayList();
-            columnsInOrder.addAll(getSortbyColumns());
-            columnsInOrder.addAll(getNonSortbyColumns());
-        }
-        return columnsInOrder;
-    }
-    
-    public List<RawTableColumnDesc> getColumnDescsInOrder() {
-        if (columnDescsInOrder == null) {
-            columnDescsInOrder = Lists.newArrayList();
-            columnDescsInOrder.addAll(getSortbyColumnDescs());
-            columnDescsInOrder.addAll(getNonSortbyColumnDescs());
-        }
-        return columnDescsInOrder;
-    }
-
-    // ============================================================================
-
-    public KylinConfig getConfig() {
-        return config;
-    }
-
-    public DataModelDesc getModel() {
-        return model;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public boolean isDraft() {
-        return isDraft;
-    }
-
-    public void setDraft(boolean isDraft) {
-        this.isDraft = isDraft;
+    @Override
+    public String toString() {
+        return "RawTableDesc [name=" + name + "]";
     }
 
     @Override
@@ -326,20 +147,40 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         return true;
     }
 
-    public long[] getAutoMergeTimeRanges() {
-        return autoMergeTimeRanges;
+    public String getName() {
+        return name;
     }
 
-    public void setAutoMergeTimeRanges(long[] autoMergeTimeRanges) {
-        this.autoMergeTimeRanges = autoMergeTimeRanges;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    @Override
-    public String toString() {
-        return "RawTableDesc [name=" + name + "]";
+    public boolean isDraft() {
+        return isDraft;
     }
 
-    @Override
+    public void setDraft(boolean isDraft) {
+        this.isDraft = isDraft;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
+    }
+
+    // Only used for copying this object. To obtain the list of RawTableColumnDesc, invoke getColumnDescsInOrder. 
+    public List<RawTableColumnDesc> getColumns() {
+        return columns;
+    }
+
+    // Only used for copying this object. 
+    public void setColumns(List<RawTableColumnDesc> columns) {
+        this.columns = columns;
+    }
+
     public int getEngineType() {
         return engineType;
     }
@@ -356,12 +197,12 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.storageType = storageType;
     }
 
-    public String getModelName() {
-        return modelName;
+    public long[] getAutoMergeTimeRanges() {
+        return autoMergeTimeRanges;
     }
 
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
+    public void setAutoMergeTimeRanges(long[] autoMergeTimeRanges) {
+        this.autoMergeTimeRanges = autoMergeTimeRanges;
     }
 
     public RawTableMappingDesc getRawTableMapping() {
@@ -372,26 +213,36 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.rawTableMapping = rawTableMapping;
     }
 
-    // if no shardby columns set, all columns as shardby
-    public Collection<TblColRef> getShardbyColumns() {
-        if (shardbyColumns.isEmpty()) {
-            return getColumnsInOrder();
+    public List<TblColRef> getColumnsInOrder() {
+        if (columnsInOrder == null) {
+            columnsInOrder = Lists.newArrayList();
+            columnsInOrder.addAll(getSortbyColumns());
+            columnsInOrder.addAll(getNonSortbyColumns());
         }
-        return shardbyColumns;
+        return columnsInOrder;
     }
+
+    public List<RawTableColumnDesc> getColumnDescsInOrder() {
+        if (columnDescsInOrder == null) {
+            columnDescsInOrder = Lists.newArrayList();
+            columnDescsInOrder.addAll(getSortbyColumnDescs());
+            columnDescsInOrder.addAll(getNonSortbyColumnDescs());
+        }
+        return columnDescsInOrder;
+    }
+
+    // ============================================================================
 
     void init(KylinConfig config) {
         MetadataManager metaMgr = MetadataManager.getInstance(config);
 
         this.config = config;
         this.model = metaMgr.getDataModelDesc(modelName);
-        this.columnMap = Maps.newHashMap();
-        this.shardbyColumns = new LinkedHashSet<>();
-        this.fuzzyColumns = Sets.newHashSet();
-        this.sortbyColumns = new LinkedHashSet<>();
-        this.origin2OrderMapping = new HashMap<>();
-        this.sortbyColumnDescs = new LinkedHashSet<>();
-        
+        this.shardbyColumns = Lists.newLinkedList();
+        this.fuzzyColumns = Lists.newLinkedList();
+        this.sortbyColumns = Lists.newLinkedList();
+        this.sortbyColumnDescs = Lists.newLinkedList();
+
         for (RawTableColumnDesc colDesc : columns) {
             colDesc.init(model);
             if (colDesc.isSortby()) {
@@ -404,22 +255,6 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             if (colDesc.getFuzzyIndex()) {
                 fuzzyColumns.add(colDesc.getColumn());
             }
-            columnMap.put(colDesc.getColumn(), colDesc);
-        }
-
-        int colIdx = 0;
-        int sortbyIdx = 0;
-        int nonSortbyIdx = this.sortbyColumns.size();
-
-        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
-            if (colDesc.isSortby()) {
-                this.origin2OrderMapping.put(colIdx, sortbyIdx);
-                sortbyIdx++;
-            } else {
-                this.origin2OrderMapping.put(colIdx, nonSortbyIdx);
-                nonSortbyIdx++;
-            }
-            colIdx++;
         }
 
         if (rawTableMapping != null) {
@@ -436,27 +271,16 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
         this.validate();
     }
 
-    public RawToGridTableMapping getRawToGridTableMapping() {
-        if (rawToGTMapping == null) {
-            rawToGTMapping = new RawToGridTableMapping(this);
-        }
-        return rawToGTMapping;
-    }
-
-    public Map<Integer, Integer> getOrigin2OrderMapping() {
-        return origin2OrderMapping;
-    }
-    
     private void reorderColumnsInColumnFamily() {
         Map<String, Integer> columnIndexLookup = new HashMap<String, Integer>();
         for (int i = 0; i < getColumnDescsInOrder().size(); i++) {
             columnIndexLookup.put(getColumnDescsInOrder().get(i).getName(), i);
         }
-        
+
         for (RawTableColumnFamilyDesc cf : getRawTableMapping().getColumnFamily()) {
             Map<Integer, String> mapInOrder = new TreeMap<Integer, String>();
             for (String columnRef : cf.getColumnRefs()) {
-                mapInOrder.put(columnIndexLookup.get(columnRef), columnRef);            
+                mapInOrder.put(columnIndexLookup.get(columnRef), columnRef);
             }
             String[] columnRefInOrder = new String[cf.getColumnRefs().length];
             int idx = 0;
@@ -491,11 +315,11 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
                 columnDescs[i] = columnLookup.get(columnRefs[i]);
                 checkState(columnDescs[i] != null, "column desc at (%s) is null", i);
                 columnIndex[i] = columnIndexLookup.get(columnRefs[i]);
-                checkState(columnIndex[i] >= 0, "column index at (%s) not positive", i);                
-                
+                checkState(columnIndex[i] >= 0, "column index at (%s) not positive", i);
+
                 checkState(!columnSet.contains(columnRefs[i]), "column (%s) duplicates", columnRefs[i]);
                 columnSet.add(columnRefs[i]);
-                
+
                 checkState(columnIndex[i] > lastColumnIndex, "column (%s) is not in order", columnRefs[i]);
                 lastColumnIndex = columnIndex[i];
 
@@ -509,6 +333,146 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
             checkState(checkEachColumnExist.get(i), "column (%s) does not exist in column family, or column duplicates",
                     getColumnDescsInOrder().get(i));
         }
+    }
+
+    // validate the first sortby column is data/time/integerDim encoding
+    public void validate() {
+        if (sortbyColumnDescs.isEmpty()) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        RawTableColumnDesc firstSorted = sortbyColumnDescs.iterator().next();
+
+        // FIXME: Dirty code, check encoding in string
+        String encoding = firstSorted.getEncoding();
+        if (!encoding.startsWith("integer") && !encoding.equalsIgnoreCase("date")
+                && !encoding.equalsIgnoreCase("time")) {
+            throw new IllegalStateException(
+                    "first sortby column's encoding is" + encoding + ", it should be integer, date or time");
+        }
+
+        if (shardbyColumns.size() > 1) {
+            throw new IllegalStateException(
+                    "Only one shardby column is supported. Now shardby columns are " + shardbyColumns);
+        }
+    }
+
+    // ============================================================================
+
+    // if no shardby columns set, all columns as shardby
+    public Collection<TblColRef> getShardbyColumns() {
+        if (shardbyColumns.isEmpty()) {
+            return getColumnsInOrder();
+        }
+        return shardbyColumns;
+    }
+
+    public List<TblColRef> getFuzzyColumns() {
+        return fuzzyColumns;
+    }
+
+    public TblColRef getFirstSortbyColumn() {
+        if (sortbyColumns.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        return sortbyColumns.iterator().next();
+    }
+
+    public Collection<TblColRef> getSortbyColumns() {
+        if (sortbyColumns.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        return sortbyColumns;
+    }
+
+    public List<TblColRef> getNonSortbyColumns() {
+        List<TblColRef> cols = new ArrayList<>();
+        for (RawTableColumnDesc colDesc : getColumnDescsInOrder()) {
+            if (sortbyColumns.contains(colDesc.getColumn()))
+                continue;
+            cols.add(colDesc.getColumn());
+        }
+        return cols;
+    }
+
+    public Collection<RawTableColumnDesc> getSortbyColumnDescs() {
+        if (sortbyColumnDescs.size() < 1) {
+            throw new IllegalStateException(this + " missing sortby column");
+        }
+
+        return sortbyColumnDescs;
+    }
+
+    public List<RawTableColumnDesc> getNonSortbyColumnDescs() {
+        List<RawTableColumnDesc> cols = new ArrayList<>();
+        for (RawTableColumnDesc colDesc : columns) {
+            if (sortbyColumnDescs.contains(colDesc))
+                continue;
+            cols.add(colDesc);
+        }
+        return cols;
+    }
+
+    public Boolean isShardby(TblColRef colRef) {
+        if (shardbyColumns.isEmpty()) {
+            return true;
+        }
+        return shardbyColumns.contains(colRef);
+    }
+
+    public Boolean isSortby(TblColRef colRef) {
+        return sortbyColumns.contains(colRef);
+    }
+
+    public Boolean isNeedFuzzyIndex(TblColRef colRef) {
+        return fuzzyColumns.contains(colRef);
+    }
+
+    public int getEstimateRowSize() {
+        int size = 0;
+        for (RawTableColumnDesc col : getColumnDescsInOrder()) {
+            size += col.getColumn().getType().getStorageBytesEstimate();
+        }
+        return size;
+    }
+
+    public List<Pair<String, Integer>> getEncodings() {
+        List<RawTableColumnDesc> columnDescsInOrder = getColumnDescsInOrder();
+        Preconditions.checkNotNull(columnDescsInOrder);
+        Preconditions.checkArgument(columnDescsInOrder.size() != 0);
+        return Lists.transform(columnDescsInOrder, new Function<RawTableColumnDesc, Pair<String, Integer>>() {
+            @Nullable
+            @Override
+            public Pair<String, Integer> apply(@Nullable RawTableColumnDesc input) {
+                Preconditions.checkNotNull(input);
+                return Pair.newPair(input.getEncoding(), input.getEncodingVersion());
+            }
+        });
+    }
+
+    public String getResourcePath() {
+        return concatResourcePath(name);
+    }
+
+    public static String concatResourcePath(String descName) {
+        return RAW_TABLE_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
+    }
+
+    public KylinConfig getConfig() {
+        return config;
+    }
+
+    public DataModelDesc getModel() {
+        return model;
+    }
+
+    public RawToGridTableMapping getRawToGridTableMapping() {
+        if (rawToGTMapping == null) {
+            rawToGTMapping = new RawToGridTableMapping(this);
+        }
+        return rawToGTMapping;
     }
 
 }

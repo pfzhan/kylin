@@ -53,14 +53,10 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTInfo;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.parquet.io.api.Binary;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,7 +87,6 @@ public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> 
         private RawTableDesc rawTableDesc;
         private BufferedRawColumnCodec rawColumnsCodec;
         private RawTableColumnFamilyDesc[] cfDescs;
-        private Map<Integer, Integer> index2OrderMapping;
         private RawToGridTableMapping mapping;
         
         private Path shardPath;
@@ -116,7 +111,6 @@ public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> 
             GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
             cfDescs = rawTableDesc.getRawTableMapping().getColumnFamily();
-            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
             mapping = rawTableDesc.getRawToGridTableMapping();
             // init with first shard file
             reader = new ParquetBundleReader.Builder().setConf(conf).setPath(shardPath).build();
@@ -147,9 +141,8 @@ public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> 
                 byte[] currentCfBytes = newRow.get(cfIdx);              
                 ByteBuffer buf = ByteBuffer.wrap(currentCfBytes);
                 int cfBytesOffset = 0; 
-                for (int colIdx : colIndex) {                    
-                    int columnIndexInOrder = index2OrderMapping.get(colIdx);
-                    int colBytesLength = rawColumnsCodec.getDataTypeSerializer(columnIndexInOrder).peekLength(buf);
+                for (int colIdx : colIndex) {
+                    int colBytesLength = rawColumnsCodec.getDataTypeSerializer(colIdx).peekLength(buf);
                     buf.position(buf.position() + colBytesLength);
                     byte[] currentColBytes = new byte[colBytesLength];
                     System.arraycopy(currentCfBytes, cfBytesOffset, currentColBytes, 0, colBytesLength);
@@ -163,7 +156,7 @@ public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> 
             
             // Step 3: transform byte array to byte array list in original order. 
             List<byte[]> newRowForColumnInOriginalOrder = new ArrayList<byte[]>();
-            for (int i = 0; i < mapping.getOriginColumns().size(); i++) {
+            for (int i = 0; i < mapping.getGtOrderColumns().size(); i++) {
                 newRowForColumnInOriginalOrder.add(newRowForColumn.get(newRowForColumnIndexMapping.get(i)));
             }
             
@@ -190,23 +183,6 @@ public class ParquetRawTablePageInputFormat<K, V> extends FileInputFormat<K, V> 
         @Override
         public void close() throws IOException {
             reader.close();
-        }
-
-        // Return a list present extended columns index,
-        // as dimensions is in the first column, add 1 to result index
-        private ImmutableRoaringBitmap countExtendedColumn(CubeInstance cube) {
-            List<MeasureDesc> measures = cube.getMeasures();
-            int len = measures.size();
-            MutableRoaringBitmap bitmap = new MutableRoaringBitmap();
-            for (int i = 0; i < len; ++i) {
-
-                // TODO: wrapper to a util function
-                if (measures.get(i).getFunction().getExpression().equalsIgnoreCase("EXTENDED_COLUMN")) {
-                    bitmap.add(i + 1);
-                }
-            }
-
-            return bitmap.toImmutableRoaringBitmap();
         }
     }
 }

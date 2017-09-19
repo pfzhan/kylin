@@ -41,16 +41,4 @@ public class RawTableGridTable {
         builder.enableColumnBlock(mapping.getColumnBlocks());
         return builder.build();
     }
-    public static GTInfo newGTInfoInOriginOrder(RawTableDesc rawTableDesc) {
-        RawToGridTableMapping mapping = rawTableDesc.getRawToGridTableMapping();
-
-        GTInfo.Builder builder = GTInfo.builder();
-        builder.setTableName("RawTable " + rawTableDesc.getName());
-        //TODO: pass in real DimensionEncoding
-        builder.setCodeSystem(new RawTableCodeSystem(rawTableDesc.getOriginEncodings()));
-        builder.setColumns(mapping.getOriginDataTypes());
-        builder.setPrimaryKey(mapping.getPrimaryKey());
-        builder.enableColumnBlock(mapping.getColumnBlocks());
-        return builder.build();
-    }
 }

@@ -67,7 +67,7 @@ public class RawTableTupleConverter {
 
         // pre-calculate dimension index mapping to tuple
         for (TblColRef dim : selectedDimensions) {
-            int dimIndex = mapping.getOriginIndexOf(dim);
+            int dimIndex = mapping.getIndexOf(dim);
             if (dimIndex < 0) {
                 throw new IllegalStateException("Col '" + dim + "' is not in the mapping.");
             }

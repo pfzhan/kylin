@@ -41,7 +41,7 @@ public class RawTableFuzzyIndexJob extends RawTablePageIndexJob {
             return;
         }
 
-        for (RawTableColumnDesc columnDesc : desc.getOriginColumns()) {
+        for (RawTableColumnDesc columnDesc : desc.getColumnDescsInOrder()) {
             if (columnDesc.getFuzzyIndex()) {
                 skipped = false;
                 return;

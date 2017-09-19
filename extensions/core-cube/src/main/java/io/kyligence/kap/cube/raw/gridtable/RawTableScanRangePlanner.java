@@ -64,7 +64,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         Set<TblColRef> filterDims = Sets.newHashSet();
         TupleFilter.collectColumns(filter, filterDims);
 
-        this.gtInfo = RawTableGridTable.newGTInfoInOriginOrder(this.rawSegment.getRawTableInstance().getRawTableDesc());
+        this.gtInfo = RawTableGridTable.newGTInfo(this.rawSegment.getRawTableInstance().getRawTableDesc());
         RawToGridTableMapping mapping = this.rawSegment.getRawTableInstance().getRawTableDesc()
                 .getRawToGridTableMapping();
 
@@ -79,7 +79,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         //replace the constant values in filter to dictionary codes 
 
         this.gtFilter = GTUtilExd.convertFilterColumnsAndConstantsForRawTable(filter, gtInfo,
-                mapping.getOriginColumns(), true, groupbyDims);
+                mapping.getGtOrderColumns(), true, groupbyDims);
 
         this.gtDimensions = mapping.makeGridTableColumns(dimensions);
         this.gtAggrGroups = mapping.makeGridTableColumns(groupbyDims);
@@ -87,7 +87,7 @@ public class RawTableScanRangePlanner extends ScanRangePlannerBase {
         this.gtAggrFuncs = mapping.makeAggrFuncs(metrics);
 
         if (rawSegment.getModel().getPartitionDesc().isPartitioned()) {
-            int index = mapping.getOriginIndexOf(rawSegment.getModel().getPartitionDesc().getPartitionDateColumnRef());
+            int index = mapping.getIndexOf(rawSegment.getModel().getPartitionDesc().getPartitionDateColumnRef());
             if (index >= 0) {
                 SegmentGTStartAndEnd segmentGTStartAndEnd = new SegmentGTStartAndEnd(rawSegment, gtInfo);
                 this.isPartitionColUsingDatetimeEncoding = segmentGTStartAndEnd.isUsingDatetimeEncoding(index);

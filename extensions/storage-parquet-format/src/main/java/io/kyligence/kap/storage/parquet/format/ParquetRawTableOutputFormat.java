@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -83,7 +82,6 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         private BufferedRawColumnCodec rawColumnsCodec;
         private Path outputDir = null;
         private RawTableColumnFamilyDesc[] cfDescs;
-        private Map<Integer, Integer> index2OrderMapping;
         
         public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
                 Class<?> valueClass) throws IOException, InterruptedException {
@@ -102,7 +100,6 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             GTInfo gtInfo = RawTableGridTable.newGTInfo(rawTableDesc);
             rawColumnsCodec = new BufferedRawColumnCodec((RawTableCodeSystem) gtInfo.getCodeSystem());
             cfDescs = rawTableDesc.getRawTableMapping().getColumnFamily();
-            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
 
             // FIXME: ByteArrayListWritable involves array copy every time
             if (keyClass == ByteArrayListWritable.class && valueClass == ByteArrayListWritable.class) {
@@ -195,7 +192,6 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             }
 
             // Step 3: copy array bytes as column family order. 
-            index2OrderMapping = rawTableDesc.getOrigin2OrderMapping();
             byte[] cfValueBytes = new byte[valueBytes.length];
             int[] cfValueLength = new int[cfDescs.length];
             int cfIndex = 0, cfValueOffset = 0;            
@@ -203,10 +199,9 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
                 int cfLength = 0;
                 int[] columnIndexes = cfDesc.getColumnIndex();
                 for (int columnIndex : columnIndexes) {
-                    int columnIndexInOrder = index2OrderMapping.get(columnIndex);
-                    System.arraycopy(valueBytes, valueOffsets[columnIndexInOrder], cfValueBytes, cfValueOffset, valueLength[columnIndexInOrder]);
-                    cfValueOffset += valueLength[columnIndexInOrder];
-                    cfLength += valueLength[columnIndexInOrder];
+                    System.arraycopy(valueBytes, valueOffsets[columnIndex], cfValueBytes, cfValueOffset, valueLength[columnIndex]);
+                    cfValueOffset += valueLength[columnIndex];
+                    cfLength += valueLength[columnIndex];
                 }
                 cfValueLength[cfIndex] = cfLength;
                 cfIndex++;
