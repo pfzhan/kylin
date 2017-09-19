@@ -1,7 +1,7 @@
 <template>
 	<div class="datasource" id="datasource">
     <div class="tree_list">
-      <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin || hasSomeProjectPermission(project)">
+      <el-radio-group v-model="currentLoadType" class="ksd-mt-30 ksd-ml-30" v-if="isAdmin || hasProjectAdminPermission(project)">
 		    <el-radio-button label="Hive" @click.native="openLoadHiveListDialog"><icon name="download" scale="0.8"></icon><span> Hive</span></el-radio-button>
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
@@ -14,8 +14,8 @@
          <p><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
        <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
-         <kap-icon-button v-if="tableData.source_type === 0 && (isAdmin || hasSomeProjectPermission(project))" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
-         <kap-icon-button v-if="isAdmin || hasSomeProjectPermission(project)" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
+         <kap-icon-button v-if="tableData.source_type === 0 && (isAdmin || hasProjectAdminPermission(project))" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
+         <kap-icon-button v-if="isAdmin || hasProjectAdminPermission(project)" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
@@ -893,6 +893,9 @@ export default {
     },
     hasSomeProjectPermission () {
       return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    },
+    hasProjectAdminPermission () {
+      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
     }
   },
   computed: {
