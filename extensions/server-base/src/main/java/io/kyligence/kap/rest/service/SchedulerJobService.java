@@ -285,6 +285,11 @@ public class SchedulerJobService extends BasicService implements InitializingBea
     public void enableSchedulerJob(SchedulerJobInstance job, CubeInstance cube)
             throws ParseException, SchedulerException, IOException {
         aclEvaluate.hasProjectOperationPermission(cube.getProjectInstance());
+        enableSchedulerJobInternal(job);
+    }
+
+    private void enableSchedulerJobInternal(SchedulerJobInstance job)
+            throws ParseException, SchedulerException, IOException {
         if (!validateScheduler(job))
             return;
 
@@ -364,7 +369,7 @@ public class SchedulerJobService extends BasicService implements InitializingBea
         for (SchedulerJobInstance schedulerInstance : schedulerList) {
             try {
                 if (schedulerInstance.isEnabled()) {
-                    enableSchedulerJob(schedulerInstance, getCubeManager().getCube(schedulerInstance.getName()));
+                    enableSchedulerJobInternal(schedulerInstance);
                 }
             } catch (ParseException e) {
                 throw new RuntimeException(e.getMessage(), e);
