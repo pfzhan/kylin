@@ -55,8 +55,27 @@ public class QueryScopeProposer extends AbstractModelProposer {
     @Override
     protected void doPropose(DataModelDesc modelDesc) {
 
-        Set<TblColRef> dimCandidate = new HashSet<>();
-        Set<TblColRef> measCandidate = new HashSet<>();
+        Map<String, Set<String>> dimCandidate = new HashMap<>();
+        Map<String, Set<String>> measCandidate = new HashMap<>();
+
+        // Load from old model
+        for (ModelDimensionDesc dimensionDesc : modelDesc.getDimensions()) {
+            String tableName = dimensionDesc.getTable();
+            for (String columnName : dimensionDesc.getColumns()) {
+                addCandidate(dimCandidate, tableName, columnName);
+            }
+        }
+        for (String measure : modelDesc.getMetrics()) {
+            int splitterIdx = measure.indexOf('.');
+            if (splitterIdx < 1) {
+                continue;
+            }
+            String table = measure.substring(0, splitterIdx);
+            String column = measure.substring(splitterIdx + 1);
+            addCandidate(measCandidate, table, column);
+        }
+
+        // Load from context
         for (OLAPContext ctx : getModelContext().getAllOLAPContexts()) {
             List<FunctionDesc> aggregations = ctx.aggregations;
             Set<TblColRef> aggColumns = new HashSet<>();
@@ -90,33 +109,20 @@ public class QueryScopeProposer extends AbstractModelProposer {
                 }
             }
             for (TblColRef tblColRef : allColumns) {
-                if (dimCandidate.contains(tblColRef)) {
-                    continue;
-                } else if (ctx.filterColumns.contains(tblColRef)) {
-                    dimCandidate.add(tblColRef);
-                    continue;
-                } else if (ctx.groupByColumns.contains(tblColRef)) {
-                    dimCandidate.add(tblColRef);
+                if (ctx.filterColumns.contains(tblColRef) || ctx.groupByColumns.contains(tblColRef)) {
+                    addCandidate(dimCandidate, tblColRef);
                     continue;
                 } else if (aggColumns.contains(tblColRef)) {
-                    measCandidate.add(tblColRef);
+                    addCandidate(measCandidate, tblColRef);
                     continue;
                 }
-                dimCandidate.add(tblColRef);
+                addCandidate(dimCandidate, tblColRef);
             }
         }
 
         // Add dimensions
         List<ModelDimensionDesc> dimensions = new ArrayList<>();
-        Map<String, Set<String>> dimensionsMap = new HashMap<>();
-        for (TblColRef dimension : dimCandidate) {
-            String tableName = getModelContext().getTableRefAlias(dimension.getTableRef());
-            if (dimensionsMap.get(tableName) == null) {
-                dimensionsMap.put(tableName, Sets.<String> newHashSet());
-            }
-            dimensionsMap.get(tableName).add(dimension.getName());
-        }
-        for (Entry<String, Set<String>> dimensionEntry : dimensionsMap.entrySet()) {
+        for (Entry<String, Set<String>> dimensionEntry : dimCandidate.entrySet()) {
             ModelDimensionDesc dimension = new ModelDimensionDesc();
             dimension.setTable(dimensionEntry.getKey());
             dimension.setColumns(dimensionEntry.getValue().toArray(new String[0]));
@@ -126,15 +132,27 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         // Add measures
         Set<String> metrics = Sets.newHashSet();
-        for (TblColRef measure : measCandidate) {
-            String tableName = getModelContext().getTableRefAlias(measure.getTableRef());
-            String columnName = measure.getName();
-            if (dimensionsMap.containsKey(tableName) && dimensionsMap.get(tableName).contains(columnName)) {
-                continue; // skip this as already defined as dimension
+        for (Entry<String, Set<String>> measureEntry : measCandidate.entrySet()) {
+            String tableName = measureEntry.getKey();
+            for (String columnName : measureEntry.getValue()) {
+                if (dimCandidate.containsKey(tableName) && dimCandidate.get(tableName).contains(columnName)) {
+                    continue; // skip this as already defined as dimension
+                }
+                metrics.add(tableName + "." + columnName);
             }
-            metrics.add(tableName + "." + columnName);
         }
         modelDesc.setMetrics(metrics.toArray(new String[0]));
     }
 
+    private void addCandidate(Map<String, Set<String>> tblColMap, TblColRef column) {
+        String table = getModelContext().getTableRefAlias(column.getTableRef());
+        addCandidate(tblColMap, table, column.getName());
+    }
+
+    private static void addCandidate(Map<String, Set<String>> tblColMap, String table, String column) {
+        if (tblColMap.get(table) == null) {
+            tblColMap.put(table, Sets.<String>newHashSet());
+        }
+        tblColMap.get(table).add(column);
+    }
 }

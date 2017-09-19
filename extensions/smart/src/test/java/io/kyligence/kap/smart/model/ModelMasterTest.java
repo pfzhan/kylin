@@ -35,7 +35,6 @@ import java.util.List;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -116,7 +115,8 @@ public class ModelMasterTest {
         testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss_selfjoin");
     }
 
-    private DataModelDesc testInternal(String metaDir, String project, String factTable, String sqlDir) throws Exception {
+    private DataModelDesc testInternal(String metaDir, String project, String factTable, String sqlDir)
+            throws Exception {
         KylinConfig kylinConfig = prepareConfig(metaDir);
         String[] sqls = loadQueries(sqlDir);
 
@@ -124,8 +124,6 @@ public class ModelMasterTest {
 
         ModelMaster master = MasterFactory.createModelMaster(kylinConfig, project, sqls, factTable);
         DataModelDesc modelDesc = master.proposeAll();
-        modelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList());
 
         System.out.println(JsonUtil.writeValueAsIndentString(modelDesc));
         return modelDesc;
@@ -142,26 +140,21 @@ public class ModelMasterTest {
         for (ModelMaster master : masters) {
             logger.info("Auto generating model {}", ++cnt);
             DataModelDesc modelDesc = master.proposeAll();
-            modelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                    Lists.<DataModelDesc> newArrayList());
-
             System.out.println(JsonUtil.writeValueAsIndentString(modelDesc));
         }
         logger.info("{} models created.", cnt);
     }
-    
+
     protected KylinConfig prepareConfig(String metaDir) {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
         kylinConfig.setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
         kylinConfig.setProperty("kap.smart.conf.model.scope.strategy", "query");
         kylinConfig.setProperty("kylin.query.transformers", CognosParenthesesEscape.class.getName());
-
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        
         return kylinConfig;
     }
-    
+
     protected String[] loadQueries(String sqlDir) throws Exception {
         List<String> sqlList = Lists.newArrayList();
         File sqlFile = new File(sqlDir);
@@ -183,6 +176,9 @@ public class ModelMasterTest {
             String line = null;
             StringBuilder sb = new StringBuilder();
             while ((line = br.readLine()) != null) {
+                if (line.startsWith("--")) {
+                    continue;
+                }
                 if (line.endsWith(";")) {
                     sb.append(line);
                     sb.deleteCharAt(sb.length() - 1);

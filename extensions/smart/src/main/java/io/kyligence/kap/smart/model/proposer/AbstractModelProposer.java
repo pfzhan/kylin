@@ -24,7 +24,11 @@
 
 package io.kyligence.kap.smart.model.proposer;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.model.ModelContext;
 
@@ -43,7 +47,15 @@ public abstract class AbstractModelProposer {
     public DataModelDesc propose(DataModelDesc origModel) {
         DataModelDesc modelDesc = DataModelDesc.getCopyOf(origModel);
         doPropose(modelDesc);
+        initModel(modelDesc);
         return modelDesc;
+    }
+    
+    private void initModel(DataModelDesc modelDesc) {
+        KylinConfig kylinConfig = modelContext.getKylinConfig();
+        String project = modelContext.getProject();
+        modelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
+                Lists.<DataModelDesc> newArrayList());
     }
 
     protected abstract void doPropose(DataModelDesc modelDesc);

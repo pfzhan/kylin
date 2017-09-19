@@ -35,6 +35,7 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -113,6 +114,9 @@ public class JoinProposer extends AbstractModelProposer {
 
         // Add joins
         modelDesc.setJoinTables(joinTables.values().toArray(new JoinTableDesc[0]));
+        // add initial scope
+        modelDesc.setDimensions(new ArrayList<ModelDimensionDesc>(0));
+        modelDesc.setMetrics(new String[0]);
     }
 
     public static String getNewAlias(Collection<String> aliasSet, String oldAlias) {
