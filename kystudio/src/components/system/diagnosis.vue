@@ -2,14 +2,14 @@
 <div class="diagnosis-wrap">
   <div class="dia-title" style="border-bottom:solid 1px #ddd;">
     <p style="font-size:14px" v-if="job">{{$t('contentOneForJob')}}
-      <a href="https://kybot.io/#/home?src=kap240" target="_blank" style="font-size:20px;">KyBot</a>
+      <a href="https://kybot.io/#/home?src=kap250" target="_blank" style="font-size:20px;">KyBot</a>
       {{$t('contentTwo')}}
     </p>
     <p style="font-size:14px" v-else="job">{{$t('contentOne')}}
-      <a href="https://kybot.io/#/home?src=kap240" target="_blank" style="font-size:20px;">KyBot</a>
+      <a href="https://kybot.io/#/home?src=kap250" target="_blank" style="font-size:20px;">KyBot</a>
       {{$t('contentTwo')}}
     </p>
-    
+
   </div>
 
   <!-- <p>{{$t('contentTip')}}</p> -->
@@ -79,7 +79,7 @@
   <el-dialog v-model="protocolVisible" :title="$t('kybotAutoUpload')" class="agree-protocol" :modal="false" @close="agreeKyBot = false" size="large">
     <div v-if="job">
       <p v-if="$lang==='en'" style="font-size:14px;">
-        By analyzing your job diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+        By analyzing your job diagnostic package, <a href="https://kybot.io/#/home?src=kap250" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
       </p>
       <p v-if="$lang==='zh-cn'" style="font-size:14px;">
         <a href="https://kybot.io" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a>通过分析生产的任务诊断包，提供KAP在线诊断、优化及服务。
@@ -87,10 +87,10 @@
     </div>
     <div v-else>
       <p v-if="$lang==='en'" style="font-size:14px;">
-        By analyzing your diagnostic package, <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
+        By analyzing your diagnostic package, <a href="https://kybot.io/#/home?src=kap250" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a> can provide online diagnostic, tuning and support service for KAP
       </p>
       <p v-if="$lang==='zh-cn'" style="font-size:14px;">
-        <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务。
+        <a href="https://kybot.io/#/home?src=kap250" target="_blank" class="blue" style="font-size:14px;color:#218fea">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务。
       </p>
     </div>
     <div>
@@ -263,7 +263,7 @@ export default {
               showCancelButton: false,
               message: h('p', null, [
                 h('span', null, this.$t('uploadSuccess')),
-                h('a', {attrs: {target: '_blank', href: 'https://kybot.io/#/home?src=kap240'}, style: {color: '#218fea'}}, 'KyBot'),
+                h('a', {attrs: {target: '_blank', href: 'https://kybot.io/#/home?src=kap250'}, style: {color: '#218fea'}}, 'KyBot'),
                 h('span', null, this.$t('see'))
               ])
             })

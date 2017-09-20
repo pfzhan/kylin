@@ -4,7 +4,7 @@
         By analyzing your diagnostic package, <a href="https://kybot.io" target="_blank" class="blue">KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages everyday regularly.
       </p>
       <p v-if="$lang==='zh-cn'">
-        <a href="https://kybot.io/#/home?src=kap240" target="_blank" class="blue">KyBot</a> {{$t('protocol')}}
+        <a href="https://kybot.io/#/home?src=kap250" target="_blank" class="blue">KyBot</a> {{$t('protocol')}}
       </p>
 	    <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot"></el-checkbox>
       <el-button type="text" style="font-size: 12px; margin-left: -8px;" @click="openAgreement">{{$t('hasAgree')}}</el-button>
