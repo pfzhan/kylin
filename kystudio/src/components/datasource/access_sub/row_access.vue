@@ -1,11 +1,12 @@
 <template>
     <div class="accessrow">
-       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button> <span style="color:grey" class="ksd-ml-10">{{$t('rowAclDesc')}}</span>
+       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button>
        <div style="width:200px;" class="ksd-mb-10 ksd-fright">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
-       <el-table class="ksd-mt-20" v-show="pagerAclRowList && pagerAclRowList.length"
+      <p style="color:#717587;line-height: 16px;" class="ksd-mt-20" v-show="pagerAclRowList && pagerAclRowList.length"><icon name="exclamation-circle" class="ksd-fleft"></icon><span class="ksd-ml-10">{{$t('rowAclDesc')}}</span></p>
+       <el-table class="ksd-mt-10" v-show="pagerAclRowList && pagerAclRowList.length"
             border
             :data="pagerAclRowList"
             style="width: 100%">
@@ -45,7 +46,7 @@
               <el-form :model="grantObj" ref="aclOfRowForm" :rules="aclTableRules" >
                 <el-form-item :label="$t('userName')" label-width="80px" prop="name">
                   <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
-                  <el-select v-model="grantObj.name" style="width:100%" :disabled="isEdit"  :placeholder=" $t('kylinLang.common.pleaseSelectUserName')">
+                  <el-select v-model="grantObj.name" style="width:100%" :disabled="isEdit" :placeholder=" $t('kylinLang.common.pleaseSelectUserName')">
                     <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
                   </el-select>
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
@@ -245,7 +246,7 @@ export default {
       return result
     },
     delAclOfRow (userName) {
-      kapConfirm(this.$t('delConfirm')).then(() => {
+      kapConfirm(this.$t('delConfirm'), {cancelButtonText: this.$t('cancelButtonText'), confirmButtonText: this.$t('confirmButtonText')}).then(() => {
         this.delAclSetOfRow({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
@@ -461,8 +462,8 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restriction, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configuring this setting, the user will only be able to view data for the column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value.', preview: 'Preview'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值。', preview: '预览'}
+    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configuring this setting, the user will only be able to view data for the column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value,Click on calendar icon on the right side to input date or time.', preview: 'Preview'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值，或点击最右日历图标选择时间', preview: '预览'}
   }
 }
 </script>

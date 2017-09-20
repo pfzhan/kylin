@@ -1,12 +1,19 @@
 <template>
     <div class="accesscolumn">
-       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button>  <span style="color:grey" class="ksd-ml-10">{{$t('columnAclDesc')}}</span>
+       <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button>
        <div style="width:200px;" class="ksd-mb-10 ksd-fright">
           <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
-       <el-table class="ksd-mt-20"
+        <p v-if="pagerAclColumnList.length > 0"
+          style="color:#717587;line-height: 16px"
+          class="ksd-mt-20">
+          <icon name="exclamation-circle" class="ksd-fleft"></icon>
+          <span class="ksd-ml-10">{{$t('columnAclDesc')}}</span>
+        </p>
+       <el-table class="ksd-mt-10"
             border
+            v-if="pagerAclColumnList.length > 0"
             :data="pagerAclColumnList"
             style="width: 100%">
             <el-table-column
@@ -123,7 +130,7 @@ export default {
       })
     },
     delAclOfColumn (userName) {
-      kapConfirm(this.$t('delConfirm')).then(() => {
+      kapConfirm(this.$t('delConfirm'), {cancelButtonText: this.$t('cancelButtonText'), confirmButtonText: this.$t('confirmButtonText')}).then(() => {
         this.delAclSetOfColumn({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
@@ -258,8 +265,8 @@ export default {
     this.getAllAclSetOfColumn()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restriction, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configuring this setting, the user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
+    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configuring this setting, the user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
   }
 }
 </script>

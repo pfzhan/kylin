@@ -689,12 +689,12 @@ color: #000;
     &.el-button--default{
       background-color: @grey-color;
       border:solid 1px #515465;
-      .el-icon-delete {
+      .el-icon-delete, .el-icon-edit {
         color: #99a9bf;
       }
       &:hover{
         background-color: @base-color;
-        .el-icon-delete {
+        .el-icon-delete, .el-icon-edit {
           color: @fff;
         }
       }
@@ -716,9 +716,12 @@ color: #000;
   }
   .el-table th {
     background: @grey-color;
+
   }
-  .el-table--border td,
   .el-table--border th {
+    border-right:1px solid @tableHBC;
+  }
+  .el-table--border td{
     border-right: @table-border;
   }
   .el-table td,

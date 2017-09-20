@@ -266,7 +266,7 @@ import cloneCube from './dialog/clone_cube'
 import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
-import { handleSuccess, handleError, transToGmtTime, hasRole, hasPermission, kapConfirm, filterMutileSqlsToOneLine } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTimeAfterAjax, hasRole, hasPermission, kapConfirm, filterMutileSqlsToOneLine } from '../../util/business'
 export default {
   name: 'cubeslist',
   props: ['extraoption'],
@@ -331,6 +331,7 @@ export default {
   },
   methods: {
     ...mapActions({
+      getConf: 'GET_CONF',
       getCubesList: 'GET_CUBES_LIST',
       getCubesSegmentsList: 'GET_CUBES_SEGMENTS_LIST',
       deleteCube: 'DELETE_CUBE',
@@ -559,7 +560,7 @@ export default {
     showRowClass (o) {
       return o.is_draft ? 'is_draft' : ''
     },
-    loadCubesList: function (curPage) {
+    _getCubesLists: function (curPage, timeZone) {
       let cubesNameList = []
       let param = {pageSize: pageCount, pageOffset: curPage}
       if (localStorage.getItem('selected_project')) {
@@ -581,9 +582,9 @@ export default {
             if (!p.is_draft) {
               cubesNameList.push(p.name)
             }
-            p.lastModifiedGMT = p.last_modified === 0 ? '' : transToGmtTime(p.last_modified, this)
+            p.lastModifiedGMT = p.last_modified === 0 ? '' : transToGmtTimeAfterAjax(p.last_modified, timeZone, this)
             if (p.segments.length > 0) {
-              p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTime(p.segments[p.segments.length - 1].last_build_time, this)
+              p.buildGMTTime = p.segments[p.segments.length - 1].last_build_time === 0 ? '' : transToGmtTimeAfterAjax(p.segments[p.segments.length - 1].last_build_time, timeZone, this)
             }
             return p
           })
@@ -631,6 +632,14 @@ export default {
       }, (res) => {
         handleError(res)
       })
+    },
+    loadCubesList: function (curPage) {
+      let serverTimeZone = localStorage.getItem('GlobalSeverTimeZone') ? localStorage.getItem('GlobalSeverTimeZone') : ''
+      if (!this.$store.state.system.timeZone) {
+        this._getCubesLists(curPage, serverTimeZone)
+      } else {
+        this._getCubesLists(curPage, this.$store.state.system.timeZone)
+      }
     },
     drop: function (cube) {
       if (!(cube.segments && cube.segments.length >= 0)) {
@@ -955,7 +964,7 @@ export default {
     }
   },
   locales: {
-    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Action', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup', storage: 'Storage', updateTime: 'Update Time', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!', chooseModel: 'choose model to filter', verifyModelTip1: '1.This function will help you to verify if the cube can answer following SQL statements.', verifyModelTip2: '2.Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this cube.'},
+    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Actions', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup', storage: 'Storage', updateTime: 'Update Time', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!', chooseModel: 'choose model to filter', verifyModelTip1: '1.This function will help you to verify if the cube can answer following SQL statements.', verifyModelTip2: '2.Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this cube.'},
     'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: '存储空间', sourceTableSize: '源表大小：', expansionRate: '膨胀率：', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份', storage: '存储', updateTime: '更新时间', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功!', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功!', purgeCube: '确定要清空此Cube?', purgeSuccessful: '清理cube成功!', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功!', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功!', cubeBuildConfirm: 'Cube构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功!', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功!', chooseModel: '选择model过滤', verifyModelTip1: '1.系统将帮助您检验以下SQL是否能被本Cube回答。', verifyModelTip2: '2.输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本Cube验证。'}
   }
 }

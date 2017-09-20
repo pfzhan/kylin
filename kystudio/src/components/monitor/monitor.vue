@@ -1,14 +1,14 @@
 <template>
   <div class="paddingbox ksd-common-tab monitor" id="monitor">
     <el-tabs v-model="activeName" type="card">
-      <el-tab-pane :label="$t('jobs')" name="jobs" > 
+      <el-tab-pane :label="$t('jobs')" name="jobs" >
         <jobs></jobs>
       </el-tab-pane>
       <el-tab-pane :label="$t('slowQueries')" name="slowQueries" id="slow-query-m">
        <slow_queries></slow_queries>
       </el-tab-pane>
     </el-tabs>
-  </div>  
+  </div>
 </template>
 <script>
 import jobs from './jobs_list'
@@ -64,4 +64,8 @@ export default {
 .el-table::after, .el-table::before{
   background: @grey-color;
 }
+#monitor .el-table--border th {
+  border-right:1px solid @tableHBC;
+}
+
 </style>

@@ -7,6 +7,7 @@
         </div>
        <el-table class="ksd-mt-20"
             border
+            v-if="pagerAclTableList.length > 0"
             :data="pagerAclTableList"
             style="width: 100%">
             <el-table-column
@@ -100,7 +101,7 @@ export default {
       this.$refs.aclOfTableForm.resetFields()
     },
     delAclOfTable (userName) {
-      kapConfirm(this.$t('delConfirm')).then(() => {
+      kapConfirm(this.$t('delConfirm'), {cancelButtonText: this.$t('cancelButtonText'), confirmButtonText: this.$t('confirmButtonText')}).then(() => {
         this.delAclSetOfTable({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
@@ -226,8 +227,8 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this access, still continue?', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', grant: 'Grant'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', delSuccess: '权限删除成功提示：权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', grant: '授权'}
+    'en': {delConfirm: 'The action will delete this access, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', grant: 'Grant'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '权限删除成功提示：权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', grant: '授权'}
   }
 }
 </script>

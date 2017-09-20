@@ -122,6 +122,14 @@ export function transToGmtTime (t, _vue) {
   }
 }
 
+// utc时间格式转换为gmt格式(by ajax)
+export function transToGmtTimeAfterAjax (t, timeZone, _vue) {
+  var v = _vue || window.kapVm
+  if (v) {
+    return utcToConfigTimeZome(t, timeZone)
+  }
+}
+
 // 检测是否有project的某种权限
 export function hasPermission (vue, projectId) {
   var entity = vue.$store.state.project.projectEndAccess[projectId]

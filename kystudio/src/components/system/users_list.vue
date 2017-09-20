@@ -1,5 +1,5 @@
 <template>
-<div class="user-list">  
+<div class="user-list">
   <el-row>
     <el-col :span="1">
       <el-button type="primary" v-if="$store.state.system.securityProfile === 'testing' && (hasAdminProjectPermission() || isAdmin)" icon="plus" size="small" @click="addUser">{{$t('user')}}</el-button>
@@ -50,7 +50,7 @@
           </el-dropdown-menu>
         </el-dropdown>
       </template>
-    </el-table-column>    
+    </el-table-column>
   </el-table>
   <pager class="ksd-center" ref="pager" :totalSize="usersListSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
   <el-dialog @close="closeAddUser" :title="$t('addUser')" v-model="addUserFormVisible">
@@ -80,7 +80,7 @@
   <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false" :before-close="closeResetWindow">
     <el-alert style="margin-bottom:10px;"
       :title="$t('refinePassword')"
-      type="info" 
+      type="info"
       :closable="false"
       show-icon>
     </el-alert>
@@ -338,7 +338,7 @@ export default {
     this.loadUsersList({pageSize: pageCount, pageOffset: this.currentPage - 1})
   },
   locales: {
-    'en': {user: 'User', userName: 'User Name', admin: 'System Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Action', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.', refinePassword: ' Please redefine ADMIN\'s password while you login at the very first time.'},
+    'en': {user: 'User', userName: 'User Name', admin: 'System Admin', modeler: 'Modeler', analyst: 'Analyst', status: 'Status', action: 'Actions', editRole: 'Edit Role', resetPassword: 'Reset Password', drop: 'Drop', disable: 'Disable', enable: 'Enable', addUser: 'Add User', yes: 'Yes', cancel: 'Cancel', securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.', refinePassword: ' Please redefine ADMIN\'s password while you login at the very first time.'},
     'zh-cn': {user: '用户', userName: '用户名', admin: '系统管理员', modeler: '建模人员', analyst: '分析人员', status: '状态', action: '操作', editRole: '编辑角色', resetPassword: '重置密码', drop: '删除', disable: '禁用', enable: '启用', addUser: '添加用户', yes: '确定', cancel: '取消', securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。', refinePassword: '为了保证系统安全，首次登录后请重置ADMIN密码。'}
   }
 }

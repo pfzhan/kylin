@@ -13,14 +13,14 @@
        <div class="extendInfo" v-show="tableData">
          <p><span :title="extendData.table_name" style="font-size:16px;color:#218fea"> {{extendData.table_name|omit(50, '...')}}</span></p>
        </div>
-       <div class="" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
+       <div class="rightBtns" style="position:absolute;right:0;z-index:1;top:30px;right:16px;" v-show="tableData">
          <kap-icon-button v-if="tableData.source_type === 0 && (isAdmin || hasProjectAdminPermission(project))" icon="refresh" type="blue" :useload="true" @click.native="reloadTableDialogVisible" ref="reloadBtn">{{$t('reload')}}</kap-icon-button>
          <kap-icon-button v-if="isAdmin || hasProjectAdminPermission(project)" icon="trash" type="blue" :useload="true" @click.native="unloadTable" ref="unloadBtn">{{$t('unload')}}</kap-icon-button>
             <!-- <el-button type="info" icon="eyedropper">Sampling</el-button> -->
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 0" type="info" :useload="true" @click.native="collectSampleDialogOpen" ref="sampleBtn">{{$t('samplingBtn')}}</kap-icon-button>
             <kap-icon-button icon="eyedropper" class="sampling" v-if="tableData.source_type === 1" type="info" :useload="true" @click.native="collectKafkaSampleDialogOpen" ref="kafkaSampleBtn">{{$t('samplingBtn')}}(Streaming)</kap-icon-button>
   <!--           <el-button type="danger" @click.native="unloadTable" icon="delete2">Unload</el-button> -->
-            <p style="font-size:12px;margin-top:5px;text-align:right;padding-right:4px;" v-if="extendData.last_modified">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
+            <p style="font-size:12px;margin-top:10px;text-align:right;padding-right:4px;" v-if="extendData.last_modified">{{$t('kylinLang.dataSource.lastModified')}} {{extendData.last_modified}}</p>
         </div>
        <el-tabs v-model="activeName" class="ksd-mt-40 clear" v-show="tableData" id="datasource-table">
 		    <el-tab-pane :label="$t('kylinLang.dataSource.columns')" name="first">
@@ -1126,5 +1126,8 @@ export default {
   .el-dialog--small{
     width: 50%;
   }
+}
+#datasource .rightBtns .el-button{
+ padding:6px 15px;
 }
 </style>

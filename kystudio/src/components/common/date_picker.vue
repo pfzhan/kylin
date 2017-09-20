@@ -29,6 +29,15 @@ export default {
 }
 </script>
 <style lang="less">
+  .el-month-table td .cell, .el-year-table td .cell{
+    color:#fff;
+    text-decoration: none;
+  }
+  .el-month-table td:not(.disabled) .cell:hover,.el-year-table td:not(.disabled) .cell:hover {
+    background-color: #20a0ff;
+    color: #fff;
+    text-decoration: none;
+  }
  .available{
     color: #fff;
    }
