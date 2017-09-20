@@ -48,15 +48,16 @@ public class CubeBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
         case CUBE_NOT_CONTAIN_ALL_DIMENSION:
             String notFoundDimensionMsg = formatTblColRefs(incapableReason.getNotFoundDimensions());
             return SQLAdvice.build(
-                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_REASON(), notFoundDimensionMsg,
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSIONS_REASON(), notFoundDimensionMsg,
                             cubeDesc.getName()),
                     String.format(msg.getCUBE_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(), notFoundDimensionMsg,
                             cubeDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_MEASURE:
             String notFoundMeasureMsg = formatFunctionDescs(incapableReason.getNotFoundMeasures());
             return SQLAdvice.build(
-                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg, cubeDesc.getName()),
-                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURES_REASON(), notFoundMeasureMsg,
+                            cubeDesc.getName()),
+                    String.format(msg.getCUBE_NOT_CONTAIN_ALL_MEASURES_SUGGEST(), notFoundMeasureMsg,
                             cubeDesc.getName()));
         case CUBE_NOT_CONTAIN_TABLE:
             String notContainTblMessage = formatTables(incapableReason.getNotFoundTables());
@@ -90,16 +91,16 @@ public class CubeBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
         case CUBE_UNMATCHED_DIMENSION:
             String dimensions = formatTblColRefs(incapableReason.getUnmatchedDimensions());
             return SQLAdvice.build(
-                    String.format(msg.getCUBE_UNMATCHED_DIMENSION_REASON(), dimensions, cubeDesc.getName()),
-                    String.format(msg.getCUBE_UNMATCHED_DIMENSION_SUGGEST(), dimensions, cubeDesc.getName()));
+                    String.format(msg.getCUBE_UNMATCHED_DIMENSIONS_REASON(), dimensions, cubeDesc.getName()),
+                    String.format(msg.getCUBE_UNMATCHED_DIMENSIONS_SUGGEST(), dimensions, cubeDesc.getName()));
         case CUBE_LIMIT_PRECEDE_AGGR:
             return SQLAdvice.build(String.format(msg.getCUBE_LIMIT_PRECEDE_AGGR_REASON(), cubeDesc.getName()),
                     msg.getCUBE_LIMIT_PRECEDE_AGGR_SUGGEST());
         case CUBE_UNMATCHED_AGGREGATION:
             String aggregations = formatFunctionDescs(incapableReason.getUnmatchedAggregations());
             return SQLAdvice.build(
-                    String.format(msg.getCUBE_UNMATCHED_AGGREGATION_REASON(), aggregations, cubeDesc.getName()),
-                    String.format(msg.getCUBE_UNMATCHED_AGGREGATION_SUGGEST(), aggregations, cubeDesc.getName()));
+                    String.format(msg.getCUBE_UNMATCHED_AGGREGATIONS_REASON(), aggregations, cubeDesc.getName()),
+                    String.format(msg.getCUBE_UNMATCHED_AGGREGATIONS_SUGGEST(), aggregations, cubeDesc.getName()));
         case CUBE_OTHER_CUBE_INCAPABLE:
             return SQLAdvice.build(msg.getCUBE_OTHER_CUBE_INCAPABLE_REASON(),
                     msg.getCUBE_OTHER_CUBE_INCAPABLE_SUGGEST());

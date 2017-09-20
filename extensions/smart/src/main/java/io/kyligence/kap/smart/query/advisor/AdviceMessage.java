@@ -47,7 +47,7 @@ public class AdviceMessage {
     }
 
     public String getUNEXPECTED_TOKEN() {
-        return "Syntax error: encountered un expected token:\" %s\". At line %s, column %s.";
+        return "Syntax error: encountered unexpected token:\" %s\". At line %s, column %s.";
     }
 
     public String getBAD_SQL_REASON() {
@@ -99,15 +99,6 @@ public class AdviceMessage {
         return "Please adjust the sequence of join tables to (%s) in model %s";
     }
 
-    //join unmatched in model
-    public String getMODEL_JOIN_UNMATCHED_REASON() {
-        return "Joins %s are not matched in model %s.";
-    }
-
-    public String getMODEL_JOIN_UNMATCHED_SUGGEST() {
-        return "Please add or correct joins (%s) in model %s.";
-    }
-
     //join type unmatched in model
     public String getMODEL_JOIN_TYPE_UNMATCHED_REASON() {
         return "Join type unmatched. %s from SQL is unmatched with %s from model %s.";
@@ -137,46 +128,46 @@ public class AdviceMessage {
 
     //join table not found in model
     public String getMODEL_JOIN_TABLE_NOT_FOUND_REASON() {
-        return "Tables %s not found in model %s.";
+        return "Table %s not found in model %s.";
     }
 
     public String getMODEL_JOIN_TABLE_NOT_FOUND_SUGGEST() {
-        return "Please add tables %s in model %s.";
+        return "Please add table %s in model %s.";
     }
 
     //dimensions not found in model
-    public String getMODEL_NOT_CONTAIN_ALL_DIMENSION_REASON() {
-        return "Dimension %s not found in model %s.";
+    public String getMODEL_NOT_CONTAIN_ALL_DIMENSIONS_REASON() {
+        return "Dimensions %s not found in model %s.";
     }
 
-    public String getMODEL_NOT_CONTAIN_ALL_DIMENSION_SUGGEST() {
+    public String getMODEL_NOT_CONTAIN_ALL_DIMENSIONS_SUGGEST() {
         return "Please add the columns %s as dimension to model %s.";
     }
 
     //measures not found in cube
-    public String getMODEL_NOT_CONTAIN_ALL_MEASURE_REASON() {
-        return "Measure %s not found in model %s.";
+    public String getMODEL_NOT_CONTAIN_ALL_MEASURES_REASON() {
+        return "Measures %s not found in model %s.";
     }
 
-    public String getMODEL_NOT_CONTAIN_ALL_MEASURE_SUGGEST() {
+    public String getMODEL_NOT_CONTAIN_ALL_MEASURES_SUGGEST() {
         return "Please add the columns %s as measure to model %s.";
     }
 
     //table not found in model
-    public String getMODEL_NOT_CONTAIN_ALL_TABLE_REASON() {
+    public String getMODEL_NOT_CONTAIN_ALL_TABLES_REASON() {
         return "Tables %s are not found in model %s.";
     }
 
-    public String getMODEL_NOT_CONTAIN_ALL_TABLE_SUGGEST() {
+    public String getMODEL_NOT_CONTAIN_ALL_TABLES_SUGGEST() {
         return "Please add tables %s to model %s.";
     }
 
     //dimensions unmatched in model
-    public String getMODEL_UNMATCHED_DIMENSION_REASON() {
-        return "Dimension %s not found in model %s.";
+    public String getMODEL_UNMATCHED_DIMENSIONS_REASON() {
+        return "Dimensions %s not found in model %s.";
     }
 
-    public String getMODEL_UNMATCHED_DIMENSION_SUGGEST() {
+    public String getMODEL_UNMATCHED_DIMENSIONS_SUGGEST() {
         return "Please add the columns %s as dimension to model %s.";
     }
 
@@ -191,11 +182,11 @@ public class AdviceMessage {
 
     // other model error
     public String getMODEL_OTHER_MODEL_INCAPABLE_REASON() {
-        return "Part of SQL can be ansered by this model, error occurs when rest SQL needs help from other models.";
+        return "Part of SQL can be answered by this model, error occurs when rest SQL needs help from other models.";
     }
 
     public String getMODEL_OTHER_MODEL_INCAPABLE_SUGGEST() {
-        return "Please take a look at other models, including fact table: %s.";
+        return "Please take a look at other models, which including fact table: %s.";
     }
 
     //cube not ready
@@ -208,7 +199,7 @@ public class AdviceMessage {
     }
 
     //dimensions not found in cube
-    public String getCUBE_NOT_CONTAIN_ALL_DIMENSION_REASON() {
+    public String getCUBE_NOT_CONTAIN_ALL_DIMENSIONS_REASON() {
         return "Dimension %s not found in cube %s.";
     }
 
@@ -217,22 +208,22 @@ public class AdviceMessage {
     }
 
     //measures not found in cube
-    public String getCUBE_NOT_CONTAIN_ALL_MEASURE_REASON() {
+    public String getCUBE_NOT_CONTAIN_ALL_MEASURES_REASON() {
         return "Measure %s not found in cube %s.";
     }
 
-    public String getCUBE_NOT_CONTAIN_ALL_MEASURE_SUGGEST() {
+    public String getCUBE_NOT_CONTAIN_ALL_MEASURES_SUGGEST() {
         return "Please add the columns %s as measure to cube %s.";
     }
 
     //CUBE_BLACK_OUT_REALIZATION
     public String getCUBE_BLACK_OUT_REALIZATION_REASON() {
-        return "Cube %s is black out realization";
+        return "Cube %s is black out realization.";
     }
 
     //CUBE_UN_SUPPORT_MASSIN
     public String getCUBE_UN_SUPPORT_MASSIN_REASON() {
-        return "Exclude cube %s because only v2 storage + v2 query engine supports massin";
+        return "Exclude cube %s because only v2 storage + v2 query engine supports massin.";
     }
 
     public String getCUBE_UN_SUPPORT_MASSIN_SUGGEST() {
@@ -249,12 +240,12 @@ public class AdviceMessage {
     }
 
     //CUBE_UNMATCHED_DIMENSION
-    public String getCUBE_UNMATCHED_DIMENSION_REASON() {
-        return "Dimensions %s are not matched in cube %s";
+    public String getCUBE_UNMATCHED_DIMENSIONS_REASON() {
+        return "Dimensions %s are not matched in cube %s.";
     }
 
-    public String getCUBE_UNMATCHED_DIMENSION_SUGGEST() {
-        return "Please add dimensions %s in the cube %s";
+    public String getCUBE_UNMATCHED_DIMENSIONS_SUGGEST() {
+        return "Please add dimensions %s in the cube %s.";
     }
 
     //column not found in cube
@@ -263,7 +254,7 @@ public class AdviceMessage {
     }
 
     public String getCUBE_NOT_CONTAIN_ALL_TABLE_SUGGEST() {
-        return "Please add Tables %s to cube %s.";
+        return "Please add tables %s to cube %s.";
     }
 
     //CUBE_LIMIT_PRECEDE_AGGR
@@ -276,16 +267,16 @@ public class AdviceMessage {
     }
 
     //CUBE_UNMATCHED_AGGREGATION
-    public String getCUBE_UNMATCHED_AGGREGATION_REASON() {
-        return "Measure %s not found in cube %s.";
+    public String getCUBE_UNMATCHED_AGGREGATIONS_REASON() {
+        return "Measures %s not found in cube %s.";
     }
 
-    public String getCUBE_UNMATCHED_AGGREGATION_SUGGEST() {
+    public String getCUBE_UNMATCHED_AGGREGATIONS_SUGGEST() {
         return "Please add measures %s in the cube %s.";
     }
 
     public String getCUBE_OTHER_CUBE_INCAPABLE_REASON() {
-        return "Part of SQL can be ansered by this cube, error occurs when rest SQL needs help from other cubes.";
+        return "Part of SQL can be answered by this cube, error occurs when rest SQL needs help from other cubes.";
     }
 
     public String getCUBE_OTHER_CUBE_INCAPABLE_SUGGEST() {

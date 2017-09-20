@@ -56,22 +56,22 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
         case CUBE_NOT_CONTAIN_ALL_DIMENSION:
             String notFoundDimensionMsg = formatTblColRefs(incapableReason.getNotFoundDimensions());
             return SQLAdvice.build(
-                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_REASON(), notFoundDimensionMsg,
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSIONS_REASON(), notFoundDimensionMsg,
                             dataModelDesc.getName()),
-                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSION_SUGGEST(), notFoundDimensionMsg,
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_DIMENSIONS_SUGGEST(), notFoundDimensionMsg,
                             dataModelDesc.getName()));
         case CUBE_NOT_CONTAIN_ALL_MEASURE:
             String notFoundMeasureMsg = formatFunctionDescs(incapableReason.getNotFoundMeasures());
             return SQLAdvice.build(
-                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_REASON(), notFoundMeasureMsg,
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURES_REASON(), notFoundMeasureMsg,
                             dataModelDesc.getName()),
-                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURE_SUGGEST(), notFoundMeasureMsg,
+                    String.format(msg.getMODEL_NOT_CONTAIN_ALL_MEASURES_SUGGEST(), notFoundMeasureMsg,
                             dataModelDesc.getName()));
         case CUBE_UNMATCHED_DIMENSION:
             String message = formatTblColRefs(incapableReason.getUnmatchedDimensions());
             return SQLAdvice.build(
-                    String.format(msg.getMODEL_UNMATCHED_DIMENSION_REASON(), message, dataModelDesc.getName()),
-                    String.format(msg.getMODEL_UNMATCHED_DIMENSION_SUGGEST(), message, dataModelDesc.getName()));
+                    String.format(msg.getMODEL_UNMATCHED_DIMENSIONS_REASON(), message, dataModelDesc.getName()),
+                    String.format(msg.getMODEL_UNMATCHED_DIMENSIONS_SUGGEST(), message, dataModelDesc.getName()));
         case CUBE_NOT_CONTAIN_TABLE:
             return getTableNotFoundSqlAdvisor(incapableReason, context);
         case MODEL_FACT_TABLE_NOT_FOUND:
@@ -101,8 +101,8 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
     private SQLAdvice getTableNotFoundSqlAdvisor(RealizationCheck.IncapableReason incapableReason, OLAPContext ctx) {
         String message = formatTables(incapableReason.getNotFoundTables());
         return SQLAdvice.build(
-                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLE_REASON(), message, dataModelDesc.getName()),
-                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLE_SUGGEST(), message, dataModelDesc.getName()));
+                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLES_REASON(), message, dataModelDesc.getName()),
+                String.format(msg.getMODEL_NOT_CONTAIN_ALL_TABLES_SUGGEST(), message, dataModelDesc.getName()));
     }
 
     private SQLAdvice getSqlJoinAdvisor(JoinsTree contextJoinTree, JoinsTree modelJoinTree) {
