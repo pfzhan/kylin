@@ -56,12 +56,12 @@ public class CuboidTestCLI implements IKeep {
     public static void main(String[] args) throws Exception {
         // Uncomment these lines to debug
         // =======
-        System.setProperty("log4j.configuration", "file:build/conf/kylin-tools-log4j.properties");
-        args = new String[2];
-        args[0] = "POC_COMMISSION";
-        args[1] = "/Users/dong/Desktop/POC_COMMISSION.sql";
-        KylinConfig.setKylinConfigThreadLocal(
-                Utils.newKylinConfig("/Users/dong/Downloads/kybot_2017_09_05_12_02_49/metadata"));
+        //        System.setProperty("log4j.configuration", "file:build/conf/kylin-tools-log4j.properties");
+        //        args = new String[2];
+        //        args[0] = "POC_COMMISSION";
+        //        args[1] = "/Users/dong/Desktop/POC_COMMISSION.sql";
+        //        KylinConfig.setKylinConfigThreadLocal(
+        //                Utils.newKylinConfig("/Users/dong/Downloads/kybot_2017_09_05_12_02_49/metadata"));
         // ========
 
         Logger logger = LoggerFactory.getLogger(CuboidTestCLI.class);
