@@ -56,6 +56,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.query.schema.OLAPTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -68,6 +70,7 @@ import com.google.common.collect.Maps;
 // match alias in query to alias in model
 // Not designed to reuse, re-new per query
 public class QueryAliasMatcher {
+    private final static Logger logger = LoggerFactory.getLogger(QueryAliasMatcher.class);
 
     public final static ColumnRowType SUBQUERY_TAG = new ColumnRowType(null);
 
@@ -324,8 +327,34 @@ public class QueryAliasMatcher {
     //    }
 
     public QueryAliasMatchInfo match(DataModelDesc model, SqlSelect sqlSelect) throws SqlParseException {
+        SqlSelect subQuery = null;
+        boolean reUseSubqeury = false;
+
+        if (sqlSelect.getFrom() instanceof SqlSelect) {
+            subQuery = (SqlSelect) sqlSelect.getFrom();
+        } else if (sqlSelect.getFrom().getKind().equals(SqlKind.AS)
+                && ((SqlBasicCall) sqlSelect.getFrom()).getOperandList().get(0) instanceof SqlSelect) {
+            subQuery = (SqlSelect) ((SqlBasicCall) sqlSelect.getFrom()).getOperandList().get(0);
+        }
+
+        if (subQuery != null) {
+            logger.debug(
+                    "Query from a subquery, re-use its QueryAliasMatchInfo only if the subquery is a \"select *\" query");
+
+            if (subQuery.getSelectList().size() == 1 && subQuery.getSelectList().get(0).toString().equals("*")) {
+                reUseSubqeury = true;
+            } else {
+                return null;
+            }
+        }
+
         SqlJoinCapturer sqlJoinCapturer = new SqlJoinCapturer();
-        sqlSelect.getFrom().accept(sqlJoinCapturer);
+
+        if (reUseSubqeury) {
+            subQuery.getFrom().accept(sqlJoinCapturer);
+        } else {
+            sqlSelect.getFrom().accept(sqlJoinCapturer);
+        }
 
         LinkedHashMap<String, ColumnRowType> queryAlias = sqlJoinCapturer.getQueryAlias();
 
