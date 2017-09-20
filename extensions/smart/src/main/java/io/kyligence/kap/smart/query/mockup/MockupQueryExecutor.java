@@ -30,6 +30,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collection;
 
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.enumerator.LookupTableEnumerator;
@@ -61,6 +62,8 @@ public class MockupQueryExecutor {
 
     public QueryRecord execute(String projectName, String sql) {
         OLAPContext.clearThreadLocalContexts();
+        //set to check all models, rather than skip models when finding a realization in RealizationChooser#attemptSelectRealization
+        BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_CHECK_ALL_MODELS, "true");
 
         QueryRecord record = getCurrentRecord();
         SQLResult sqlResult = new SQLResult();
