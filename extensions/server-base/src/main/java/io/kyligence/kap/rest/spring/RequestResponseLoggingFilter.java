@@ -52,8 +52,6 @@ import com.google.common.base.Strings;
 
 public class RequestResponseLoggingFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(RequestResponseLoggingFilter.class);
-    private RequestLoggingWrapper servletRequestWrapper;
-    private ResponseLoggingWrapper servletResponseWrapper;
 
     public RequestResponseLoggingFilter() {
         logger.debug("init");
@@ -68,8 +66,8 @@ public class RequestResponseLoggingFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         logger.debug("doFilter");
-        servletRequestWrapper = new RequestLoggingWrapper((HttpServletRequest) request);
-        servletResponseWrapper = new ResponseLoggingWrapper((HttpServletResponse) response);
+        RequestLoggingWrapper servletRequestWrapper = new RequestLoggingWrapper((HttpServletRequest) request);
+        ResponseLoggingWrapper servletResponseWrapper = new ResponseLoggingWrapper((HttpServletResponse) response);
         chain.doFilter(servletRequestWrapper, servletResponseWrapper);
 
         String requestBody = new String(servletRequestWrapper.getBaos().toByteArray());
