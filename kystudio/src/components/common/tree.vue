@@ -106,6 +106,8 @@
         var _this = this
         if (node.level === +this.maxlevel) {
           node.isLeaf = true
+        } else {
+          node.isLeaf = false
         }
         this.nodeCount++
         return this.$createElement('div', {
