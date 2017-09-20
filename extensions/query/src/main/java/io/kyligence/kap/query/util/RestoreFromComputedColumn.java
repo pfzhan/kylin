@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
@@ -136,8 +137,20 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                 }
 
                 SqlCall selectOrOrderby = selectOrOrderbys.get(i);
-                SqlSelect sqlSelect = selectOrOrderby instanceof SqlSelect ? ((SqlSelect) selectOrOrderby)
-                        : (SqlSelect) (((SqlOrderBy) selectOrOrderby).query);
+                SqlSelect sqlSelect = null;
+
+                if (selectOrOrderby instanceof SqlSelect) {
+                    sqlSelect = (SqlSelect) selectOrOrderby;
+                } else if (selectOrOrderby instanceof SqlOrderBy) {
+                    SqlOrderBy sqlOrderBy = ((SqlOrderBy) selectOrOrderby);
+                    if (sqlOrderBy.query instanceof SqlSelect) {
+                        sqlSelect = (SqlSelect) sqlOrderBy.query;
+                    } else if (sqlOrderBy.query.getKind().equals(SqlKind.UNION)) {
+                        continue;
+                    }
+                } else if (selectOrOrderby.getKind().equals(SqlKind.UNION)) {
+                    continue;
+                }
 
                 //give each data model a chance to rewrite, choose the model that generates most changes
                 for (int j = 0; j < dataModelDescs.size(); j++) {

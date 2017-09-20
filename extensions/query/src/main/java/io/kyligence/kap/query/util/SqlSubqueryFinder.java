@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
@@ -57,6 +58,10 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
             }
         }
         if (call instanceof SqlSelect) {
+            sqlSelectsOrOrderbys.add(call);
+        }
+
+        if (call.getKind().equals(SqlKind.UNION)) {
             sqlSelectsOrOrderbys.add(call);
         }
 

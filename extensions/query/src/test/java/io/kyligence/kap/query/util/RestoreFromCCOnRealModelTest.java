@@ -203,19 +203,48 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
     public void testSubquery() {
         RestoreFromComputedColumn converter = new RestoreFromComputedColumn();
 
-        String originSql = "select count(*), sum (F.PRICE * F.ITEM_COUNT) from test_kylin_fact f inner join test_order o on f.ORDER_ID = o.ORDER_ID"
-                + " inner join test_account a on o.buyer_id = a.account_id  inner join test_country c on a.account_country = c.country"
-                + " inner join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt"//
-                + " inner join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID"
-                + " inner join " //
-                + "( "//
-                + "     select count(*), sum (F2.PRICE * F2.ITEM_COUNT) ,country from test_kylin_fact f2"
-                + "     inner join test_account a2 on f2.seller_id = a2.account_id  inner join test_country c2 on account_country = country group by CONCAT(A2.ACCOUNT_ID, C2.NAME), country"
-                + ") s on s.country = c.country  group by CONCAT(A.ACCOUNT_ID, C.NAME)";
-        String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f inner join test_order o on f.ORDER_ID = o.ORDER_ID inner join test_account a on o.buyer_id = a.account_id  inner join test_country c on a.account_country = c.country inner join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt inner join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID inner join (      select count(*), sum (F2.DEAL_AMOUNT) ,country from test_kylin_fact f2     inner join test_account a2 on f2.seller_id = a2.account_id  inner join test_country c2 on account_country = country group by F2.SELLER_ID_AND_COUNTRY_NAME, country) s on s.country = c.country  group by F.BUYER_ID_AND_COUNTRY_NAME";
+        {
+            String originSql = "select count(*), sum (F.PRICE * F.ITEM_COUNT) from test_kylin_fact f inner join test_order o on f.ORDER_ID = o.ORDER_ID"
+                    + " inner join test_account a on o.buyer_id = a.account_id  inner join test_country c on a.account_country = c.country"
+                    + " inner join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt"//
+                    + " inner join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID"
+                    + " inner join " //
+                    + "( "//
+                    + "     select count(*), sum (F2.PRICE * F2.ITEM_COUNT) ,country from test_kylin_fact f2"
+                    + "     inner join test_account a2 on f2.seller_id = a2.account_id  inner join test_country c2 on account_country = country group by CONCAT(A2.ACCOUNT_ID, C2.NAME), country"
+                    + ") s on s.country = c.country  group by CONCAT(A.ACCOUNT_ID, C.NAME)";
+            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f inner join test_order o on f.ORDER_ID = o.ORDER_ID inner join test_account a on o.buyer_id = a.account_id  inner join test_country c on a.account_country = c.country inner join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt inner join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID inner join (      select count(*), sum (F2.DEAL_AMOUNT) ,country from test_kylin_fact f2     inner join test_account a2 on f2.seller_id = a2.account_id  inner join test_country c2 on account_country = country group by F2.SELLER_ID_AND_COUNTRY_NAME, country) s on s.country = c.country  group by F.BUYER_ID_AND_COUNTRY_NAME";
 
-        check(converter, originSql, ccSql);
+            check(converter, originSql, ccSql);
+        }
 
+        {
+            String originSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from test_kylin_fact)";
+            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from test_kylin_fact)";
+
+            check(converter, originSql, ccSql);
+        }
+
+        {
+            String originSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from test_kylin_fact) f";
+            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from test_kylin_fact) f";
+
+            check(converter, originSql, ccSql);
+        }
+
+        {
+            String originSql = "select sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from (select * from test_kylin_fact)";
+            String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from test_kylin_fact)";
+
+            check(converter, originSql, ccSql);
+        }
+
+        {
+            String originSql = "select sum (TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
+            String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
+
+            check(converter, originSql, ccSql);
+        }
     }
 
     @Test

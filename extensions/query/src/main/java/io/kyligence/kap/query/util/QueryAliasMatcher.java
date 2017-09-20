@@ -327,15 +327,8 @@ public class QueryAliasMatcher {
     //    }
 
     public QueryAliasMatchInfo match(DataModelDesc model, SqlSelect sqlSelect) throws SqlParseException {
-        SqlSelect subQuery = null;
+        SqlSelect subQuery = getSubquery(sqlSelect.getFrom());
         boolean reUseSubqeury = false;
-
-        if (sqlSelect.getFrom() instanceof SqlSelect) {
-            subQuery = (SqlSelect) sqlSelect.getFrom();
-        } else if (sqlSelect.getFrom().getKind().equals(SqlKind.AS)
-                && ((SqlBasicCall) sqlSelect.getFrom()).getOperandList().get(0) instanceof SqlSelect) {
-            subQuery = (SqlSelect) ((SqlBasicCall) sqlSelect.getFrom()).getOperandList().get(0);
-        }
 
         if (subQuery != null) {
             logger.debug(
@@ -369,6 +362,18 @@ public class QueryAliasMatcher {
         aliasMapping.putAll(matches);
 
         return new QueryAliasMatchInfo(aliasMapping, queryAlias);
+    }
+
+    private SqlSelect getSubquery(SqlNode sqlNode) {
+        if (sqlNode instanceof SqlSelect) {
+            return (SqlSelect) sqlNode;
+        } else if (sqlNode.getKind().equals(SqlKind.UNION)) {
+            return (SqlSelect) ((SqlBasicCall) sqlNode).getOperandList().get(0);
+        } else if (sqlNode.getKind().equals(SqlKind.AS)) {
+            return getSubquery(((SqlBasicCall) sqlNode).getOperandList().get(0));
+        }
+
+        return null;
     }
 
     private OLAPSchema getSchema(String name) {

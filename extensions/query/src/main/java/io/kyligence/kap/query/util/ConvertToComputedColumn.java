@@ -36,6 +36,7 @@ import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlIntervalQualifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
@@ -86,8 +87,20 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 }
 
                 SqlCall selectOrOrderby = selectOrOrderbys.get(i);
-                SqlSelect sqlSelect = selectOrOrderby instanceof SqlSelect ? ((SqlSelect) selectOrOrderby)
-                        : (SqlSelect) (((SqlOrderBy) selectOrOrderby).query);
+                SqlSelect sqlSelect = null;
+
+                if (selectOrOrderby instanceof SqlSelect) {
+                    sqlSelect = (SqlSelect) selectOrOrderby;
+                } else if (selectOrOrderby instanceof SqlOrderBy) {
+                    SqlOrderBy sqlOrderBy = ((SqlOrderBy) selectOrOrderby);
+                    if (sqlOrderBy.query instanceof SqlSelect) {
+                        sqlSelect = (SqlSelect)sqlOrderBy.query;
+                    } else if (sqlOrderBy.query.getKind().equals(SqlKind.UNION)) {
+                        continue;
+                    }
+                } else if(selectOrOrderby.getKind().equals(SqlKind.UNION)) {
+                    continue;
+                }
 
                 //give each data model a chance to rewrite, choose the model that generates most changes
                 for (int j = 0; j < dataModelDescs.size(); j++) {

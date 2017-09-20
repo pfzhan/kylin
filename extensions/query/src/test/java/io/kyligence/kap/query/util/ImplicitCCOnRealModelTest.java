@@ -166,6 +166,13 @@ public class ImplicitCCOnRealModelTest extends LocalFileMetadataTestCase {
             check(converter, originSql, ccSql);
         }
 
+        {
+            String originSql = "select sum (price * item_count) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
+            String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
+
+            check(converter, originSql, ccSql);
+        }
+
     }
 
     @Test
