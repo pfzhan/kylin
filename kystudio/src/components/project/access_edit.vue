@@ -46,8 +46,9 @@
         </el-form-item> -->
         <el-form-item :label="$t('access')">
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
-          
-            <el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>
+
+            <!--<el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>-->
+            <el-option :label="item.key" :value="item.value" v-for="item in showMaskByOrder"></el-option>
 <!--             <el-option label="Management" :value="32"></el-option>
             <el-option label="OPERATION" :value="64"></el-option>
             <el-option label="Query" :value="1"></el-option> -->
@@ -63,7 +64,7 @@
 	    :data="settleAccessList"
 	    border
 	    style="width: 100%">
-	    <el-table-column 
+	    <el-table-column
 	      prop="roleOrName"
 	      :label="$t('name')"
 	     >
@@ -78,7 +79,7 @@
 	      :label="$t('access')"
 	      >
 	    </el-table-column>
-	   <el-table-column  
+	   <el-table-column
 	      :label="$t('kylinLang.common.action')"
 	      width="160">
 	      <template scope="scope">
@@ -134,7 +135,13 @@ export default {
         32: 'Management',
         64: 'Operation',
         16: 'Admin'
-      }
+      },
+      showMaskByOrder: [
+        { key: 'Query', value: 1 },
+        { key: 'Operation', value: 64 },
+        { key: 'Management', value: 32 },
+        { key: 'Admin', value: 16 }
+      ]
     }
   },
   methods: {
@@ -265,7 +272,7 @@ export default {
       border:1px solid #7881aa;
     }
   }
-  
+
 }
 .grant-popover {
   h4 {
