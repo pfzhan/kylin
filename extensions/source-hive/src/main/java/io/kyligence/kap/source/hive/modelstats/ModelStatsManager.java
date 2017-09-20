@@ -33,8 +33,6 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,22 +79,6 @@ public class ModelStatsManager {
     private ModelStatsManager(KylinConfig config) throws IOException {
         logger.info("Initializing ModelStatsManager with config " + config);
         this.kylinConfig = config;
-
-        Broadcaster.getInstance(config).registerListener(new DataModelSyncListener(), "data_model");
-    }
-
-    private class DataModelSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            String modelName = cacheKey;
-            removeModelStats(modelName);
-        }
     }
 
     public ModelStats getModelStats(String modelName) throws IOException {

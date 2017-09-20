@@ -70,6 +70,8 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
+
 /**
  * ModelController is defined as Restful API entrance for UI.
  *
@@ -175,6 +177,10 @@ public class ModelControllerV2 extends BasicController {
         data.setProperty("uuid", modelDesc.getUuid());
         data.setProperty("modelDescData", descData);
 
+        // Model descriptor's update might cause model stats invalidate, since deleting model stats.
+        ModelStatsManager.getInstance(modelService.getConfig()).removeModelStats(modelDesc.getName());
+        logger.debug("Update model and delete modelstats. Model name: {}", modelDesc.getName());
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
@@ -229,8 +235,11 @@ public class ModelControllerV2 extends BasicController {
         if (null == model && null == draft)
             throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
 
-        if (model != null)
+        if (model != null) {
             modelService.dropModel(model);
+            ModelStatsManager.getInstance(modelService.getConfig()).removeModelStats(modelName);
+            logger.debug("Delete model and modelstats. Model name: {}", modelName);
+        }
 
         if (draft != null)
             modelService.getDraftManager().delete(draft.getUuid());
