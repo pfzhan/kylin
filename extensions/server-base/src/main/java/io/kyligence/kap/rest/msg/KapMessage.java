@@ -287,4 +287,8 @@ public class KapMessage {
     public String getREPEAT_VERIFY_MODEL_SQL() {
         return "The input sqls are not changed, please modify them first.";
     }
+
+    public String getTSRANGE_ERROR() {
+        return "The end date should be later than start date.";
+    }
 }

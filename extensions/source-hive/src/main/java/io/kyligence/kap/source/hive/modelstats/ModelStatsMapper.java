@@ -72,7 +72,7 @@ public class ModelStatsMapper<T> extends KylinMapper<T, Object, IntWritable, Byt
         String model = conf.get(BatchConstants.CFG_TABLE_NAME);
         String jobId = conf.get(BatchConstants.CFG_STATS_JOB_ID);
         dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
-        flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, jobId);
+        flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, null, jobId);
         String fullTableName = config.getHiveDatabaseForIntermediateTable() + "." + flatTableDesc.getTableName();
         tableInputFormat = new HiveMRInput.HiveTableInputFormat(fullTableName);
         int frequency = Integer.parseInt(conf.get(BatchConstants.CFG_STATS_JOB_FREQUENCY));

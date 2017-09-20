@@ -49,7 +49,6 @@ import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
@@ -112,7 +111,7 @@ public class CollectModelStatsJob extends CubingJob {
         ModelStats modelStats = modelStatsManager.getModelStats(modelName);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
-        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, getId());
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, segRange, getId());
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
@@ -139,8 +138,8 @@ public class CollectModelStatsJob extends CubingJob {
         //step6: clean up intermediate table
         addTask(deleteFlatTable(flatTableDesc.getTableName()));
 
-        modelStats.setStartTime((Long) segRange.start.v);
-        modelStats.setEndTime((Long) segRange.end.v);
+        modelStats.setStartTime(segRange == null ? 0L : (Long) segRange.start.v);
+        modelStats.setEndTime(segRange == null ? 0L : (Long) segRange.end.v);
         modelStats.setJodID(getId());
         modelStatsManager.saveModelStats(modelStats);
         return this;
@@ -233,8 +232,8 @@ public class CollectModelStatsJob extends CubingJob {
         final String dropTableHql = JoinedFlatTable.generateDropTableStatement(flatTableDesc);
         final String createTableHql = JoinedFlatTable.generateCreateTableStatement(flatTableDesc,
                 JobBuilderSupport.getJobWorkingDir(conf, jobId));
-        String whereStatement = appendWhereStatement(flatTableDesc, segRange);
-        String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc, whereStatement);
+
+        String insertDataHqls = JoinedFlatTable.generateInsertPartialDataStatement(flatTableDesc);
 
         ModelStatsFlatTableStep step = new ModelStatsFlatTableStep();
         step.setInitStatement(initStatements);
@@ -254,35 +253,6 @@ public class CollectModelStatsJob extends CubingJob {
         hiveCmdBuilder.addStatement(createIntermediateTableHql.toString());
         step.setCmd(hiveCmdBuilder.build());
         return step;
-    }
-
-    private String appendWhereStatement(IJoinedFlatTableDesc flatDesc, SegmentRange<Comparable> segRange) {
-        boolean hasCondition = false;
-        StringBuilder whereBuilder = new StringBuilder();
-        whereBuilder.append("WHERE");
-
-        DataModelDesc model = flatDesc.getDataModel();
-
-        if (model.getFilterCondition() != null && model.getFilterCondition().equals("") == false) {
-            whereBuilder.append(" (").append(model.getFilterCondition()).append(") ");
-            hasCondition = true;
-        }
-
-        PartitionDesc partDesc = model.getPartitionDesc();
-        if (partDesc != null && partDesc.getPartitionDateColumn() != null) {
-            if (!segRange.isInfinite()) {
-                whereBuilder.append(hasCondition ? " AND (" : " (");
-                whereBuilder
-                        .append(partDesc.getPartitionConditionBuilder().buildDateRangeCondition(partDesc, segRange));
-                whereBuilder.append(")\n");
-                hasCondition = true;
-            }
-        }
-
-        if (hasCondition) {
-            return whereBuilder.toString();
-        } else
-            return "";
     }
 
     private String getOutputPath(String jobID) {

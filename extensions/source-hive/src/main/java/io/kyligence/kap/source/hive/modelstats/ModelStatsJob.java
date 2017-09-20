@@ -97,7 +97,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
         String jobId = getOptionValue(OPTION_JOB_ID);
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(model);
 
-        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc, jobId);
+        IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc, null, jobId);
 
         job = Job.getInstance(conf, jobName);
 

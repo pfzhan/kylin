@@ -28,11 +28,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,16 +52,18 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     private DataModelDesc dataModelDesc;
     private String jobId;
+    private SegmentRange segmentRange;
     private List<TblColRef> columnList = new ArrayList<>();
     private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
 
     public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc) {
-        this(dataModelDesc, null);
+        this(dataModelDesc, null, null);
     }
 
-    public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc, String jobId) {
+    public DataModelStatsFlatTableDesc(DataModelDesc dataModelDesc, SegmentRange segmentRange, String jobId) {
         this.dataModelDesc = dataModelDesc;
         this.jobId = jobId;
+        this.segmentRange = segmentRange;
         init();
     }
 
@@ -113,7 +117,7 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     @Override
     public SegmentRange getSegRange() {
-        return null;
+        return segmentRange;
     }
 
     @Override
@@ -128,6 +132,58 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
 
     @Override
     public ISegment getSegment() {
-        return null;
+        return new EmptySegment();
+    }
+
+    class EmptySegment implements ISegment {
+        @Override
+        public KylinConfig getConfig() {
+            return null;
+        }
+
+        @Override
+        public String getName() {
+            return null;
+        }
+
+        @Override
+        public boolean isOffsetCube() {
+            return false;
+        }
+
+        @Override
+        public SegmentRange getSegRange() {
+            return null;
+        }
+
+        @Override
+        public SegmentRange.TSRange getTSRange() {
+            return null;
+        }
+
+        @Override
+        public DataModelDesc getModel() {
+            return null;
+        }
+
+        @Override
+        public SegmentStatusEnum getStatus() {
+            return null;
+        }
+
+        @Override
+        public long getLastBuildTime() {
+            return 0;
+        }
+
+        @Override
+        public void validate() throws IllegalStateException {
+
+        }
+
+        @Override
+        public int compareTo(ISegment o) {
+            return 0;
+        }
     }
 }
