@@ -24,8 +24,11 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.ArrayList;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
@@ -49,7 +52,10 @@ public class ModelMaster {
         DataModelDesc modelDesc = new DataModelDesc();
         modelDesc.setName(context.getModelName() == null ? UUID.randomUUID().toString() : context.getModelName());
         modelDesc.setRootFactTableName(context.getRootTable().getIdentity());
+        modelDesc.setDescription(StringUtils.EMPTY);
+        modelDesc.setFilterCondition(StringUtils.EMPTY);
         modelDesc.setPartitionDesc(new PartitionDesc());
+        modelDesc.setComputedColumnDescs(new ArrayList<ComputedColumnDesc>());
         return modelDesc;
     }
 
