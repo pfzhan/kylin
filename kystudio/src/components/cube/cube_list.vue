@@ -186,7 +186,7 @@
   </el-dialog>
    <!-- 添加cube -->
 
-    <el-dialog class="add-m" title="Add Cube" v-model="createCubeVisible" size="tiny">
+    <el-dialog class="add-m" title="Add Cube" v-model="createCubeVisible" size="tiny" @close="resetCubeForm">
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName" style="margin-top: 10px;">
           <span slot="label">{{$t('kylinLang.cube.cubeName')}}
@@ -364,6 +364,9 @@ export default {
       // }).then(() => {
       //   this.checkSQLFormVisible = false
       // })
+    },
+    resetCubeForm () {
+      this.$refs.addCubeForm.resetFields()
     },
     openValidateSql (cube) {
       this.selected_cube = cube

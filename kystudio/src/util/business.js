@@ -347,10 +347,10 @@ export function filterMutileSqlsToOneLine (_sqls, splitChar) {
     return !!(s.replace(/[\r\n]/g, ''))
   })
   sqls = sqls.map((s) => {
-    var r = s.replace(/[\r\n]+(\s+)?/g, '')
+    var r = s.replace(/[\r\n]+(\s+)?/g, ' ')
     return r
   })
-  if (sqls[sqls.length - 1] === '') {
+  if (sqls[sqls.length - 1] === ' ') {
     sqls.splice(length - 1, 1)
   }
   return sqls

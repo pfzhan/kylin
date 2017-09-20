@@ -310,7 +310,7 @@ export default {
       noEmailStyle: 'Please enter a usable email.',
       noCompany: 'Please enter your company name.',
       noName: 'Please enter your name.',
-      nenterpriseEmail: 'Please enter your enterprise email.',
+      enterpriseEmail: 'Please enter your enterprise email.',
       businessEmail: 'Business Mail',
       companyName: 'Company Name',
       yourName: 'Your Name',

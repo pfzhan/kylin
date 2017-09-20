@@ -299,7 +299,7 @@
         <icon name="question-circle-o"></icon>
       </common-tip>
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel" :disabled="actionMode==='view' || (ignoreErrorSql === false && hasValidSuccessSql && hasValidFailSql)|| !hasValidSuccessSql" >{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="autoModel" :disabled="actionMode==='view' || (ignoreErrorSql === false && hasValidSuccessSql && hasValidFailSql)|| !hasValidSuccessSql || !hasCheck" >{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </div>
