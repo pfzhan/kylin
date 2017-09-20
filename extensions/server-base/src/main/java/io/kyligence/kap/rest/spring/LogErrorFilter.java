@@ -53,8 +53,6 @@ import com.google.common.base.Strings;
 
 public class LogErrorFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(LogErrorFilter.class);
-    private RequestLoggingWrapper servletRequestWrapper;
-    private ResponseLoggingWrapper servletResponseWrapper;
 
     public LogErrorFilter() {
     }
@@ -66,22 +64,31 @@ public class LogErrorFilter implements Filter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-        servletRequestWrapper = new RequestLoggingWrapper((HttpServletRequest) request);
-        servletResponseWrapper = new ResponseLoggingWrapper((HttpServletResponse) response);
-        chain.doFilter(servletRequestWrapper, servletResponseWrapper);
+        HttpServletRequest httpReq = (HttpServletRequest) request;
+        HttpServletResponse httpResp = (HttpServletResponse) response;
+        
+        String uri = httpReq.getRequestURI();
+        if (!uri.contains("/api/models") && !uri.contains("/api/cubes")) {
+            chain.doFilter(request, response);
+            return;
+        }
+        
+        RequestLoggingWrapper wrapReq = new RequestLoggingWrapper(httpReq);
+        ResponseLoggingWrapper wrapResp = new ResponseLoggingWrapper(httpResp);
+        chain.doFilter(wrapReq, wrapResp);
 
-        if (servletResponseWrapper.getStatus() != HttpStatus.SC_OK) {
-            String requestBody = new String(servletRequestWrapper.getBaos().toByteArray());
-            String responseBody = new String(servletResponseWrapper.getBaos().toByteArray());
+        if (wrapResp.getStatus() != HttpStatus.SC_OK) {
+            String requestBody = new String(wrapReq.getBaos().toByteArray());
+            String responseBody = new String(wrapResp.getBaos().toByteArray());
 
             // Log request
-            logger.debug("REQUEST METHOD: " + servletRequestWrapper.getMethod());
-            logger.debug("REQUEST URI: " + servletRequestWrapper.getRequestURI());
+            logger.debug("REQUEST METHOD: " + wrapReq.getMethod());
+            logger.debug("REQUEST URI: " + wrapReq.getRequestURI());
             logger.debug("REQUEST HEADERS:");
-            Enumeration<String> headerNames = servletRequestWrapper.getHeaderNames();
+            Enumeration<String> headerNames = wrapReq.getHeaderNames();
             while (headerNames.hasMoreElements()) {
                 String name = headerNames.nextElement();
-                logger.debug("\t" + name + " : " + servletRequestWrapper.getHeader(name));
+                logger.debug("\t" + name + " : " + wrapReq.getHeader(name));
             }
 
             if (!Strings.isNullOrEmpty(requestBody)) {
@@ -89,7 +96,7 @@ public class LogErrorFilter implements Filter {
             }
 
             // Log response
-            logger.debug("RESPONSE HTTP CODE: " + servletResponseWrapper.getStatus());
+            logger.debug("RESPONSE HTTP CODE: " + wrapResp.getStatus());
             if (!Strings.isNullOrEmpty(responseBody)) {
                 logger.debug("RESPONSE BODY: " + responseBody);
             }
