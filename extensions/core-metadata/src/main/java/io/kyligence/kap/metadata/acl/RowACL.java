@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -48,7 +49,7 @@ import com.google.common.collect.Sets;
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class RowACL extends RootPersistentEntity {
+public class RowACL extends RootPersistentEntity implements IKeep {
     //cuz row acl is complicated, so stored two data, one for frontend to display, another one for backend to use to filter query
     //For frontend.USER :{DB.TABLE1:{COLUMN1:{a,b,c}, COLUMN2:{d,e,f}}, DB.TABLE2:{COLUMN1:{a,b,c}, COLUMN3:{m,n}}}
     @JsonProperty()
@@ -323,7 +324,7 @@ public class RowACL extends RootPersistentEntity {
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    static class TableRowCondList implements Serializable {
+    static class TableRowCondList implements Serializable, IKeep {
         //all row conds in the table
         @JsonProperty()
         private Map<String, RowCondList> rowCondsWithTable; //T1:rowCondList1, T2:rowCondList2
@@ -362,7 +363,7 @@ public class RowACL extends RootPersistentEntity {
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    static class RowCondList implements Serializable {
+    static class RowCondList implements Serializable, IKeep {
         //all row conds in the table
         @JsonProperty()
         private Map<String, List<String>> condsWithColumn; //C1:{cond1, cond2},C2{cond1, cond3}
@@ -404,7 +405,7 @@ public class RowACL extends RootPersistentEntity {
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    static class QueryUsedCondList {
+    static class QueryUsedCondList implements Serializable, IKeep {
         @JsonProperty()
         private Map<String, String> concatedCondsWithTable; //TABLE1: C1 = A OR C1 = B AND C2 = C
 

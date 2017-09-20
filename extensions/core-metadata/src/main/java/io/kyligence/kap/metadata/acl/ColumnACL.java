@@ -37,12 +37,14 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import io.kyligence.kap.common.obf.IKeep;
+
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
         getterVisibility = JsonAutoDetect.Visibility.NONE,
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class ColumnACL extends RootPersistentEntity {
+public class ColumnACL extends RootPersistentEntity implements IKeep {
     @JsonProperty()
     private Map<String, ColumnBlackList> userColumnBlackList; // user :{DB.TABLE1:{COLUMN1, COLUMN2}, DB.TABLE2:{COLUMN1, COLUMN3}}
 
@@ -168,7 +170,7 @@ public class ColumnACL extends RootPersistentEntity {
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-     static class ColumnBlackList implements Serializable {
+    static class ColumnBlackList implements Serializable, IKeep {
         @JsonProperty()
         Map<String, Set<String>> columnsWithTable; //{DB.TABLE1:[COL1, COL2]}
 
