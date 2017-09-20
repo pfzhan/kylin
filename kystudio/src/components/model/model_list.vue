@@ -199,35 +199,41 @@
                   </h2>
                   <br/>
                   {{$t('kylinLang.model.timeRange')}}
+                <el-form :model="modelCheckTime" :rules="modelCheckDateRule" ref="modelCheckForm">
                   <el-row :gutter="20">
                     <el-col :span="11">
                       <div class="grid-content bg-purple">
-                        <el-date-picker
-                          v-model="startTime"
-                          type="datetime"
-                          @change="changeStartTime"
-                          :placeholder="$t('chooseStartDate')"
-                          size="small"
-                          format="yyyy-MM-dd HH:mm"
-                          >
-                        </el-date-picker>
+                        <el-form-item prop="startTime">
+                          <el-date-picker
+                            :clearable="false" ref="startTimeInput"
+                            v-model="modelCheckTime.startTime"
+                            type="datetime"
+                            :placeholder="$t('chooseStartDate')"
+                            size="small"
+                            format="yyyy-MM-dd HH:mm"
+                            >
+                          </el-date-picker>
+                        </el-form-item>
                       </div>
                     </el-col>
                     <el-col :span="2"><div class="grid-content bg-purple" style="line-height:60px;text-align:center;">－</div></el-col>
                     <el-col :span="11">
                       <div class="grid-content bg-purple">
-                        <el-date-picker
-                          v-model="endTime"
-                          type="datetime"
-                          :placeholder="$t('chooseEndDate')"
-                          size="small"
-                          format="yyyy-MM-dd HH:mm"
-                          :picker-options="pickerOptionsEnd">
-                        </el-date-picker>
+                        <el-form-item prop="endTime">
+                          <el-date-picker
+                            :clearable="false" ref="endTimeInput"
+                            v-model="modelCheckTime.endTime"
+                            type="datetime"
+                            :placeholder="$t('chooseEndDate')"
+                            size="small"
+                            format="yyyy-MM-dd HH:mm"
+                            :picker-options="pickerOptionsEnd">
+                          </el-date-picker>
+                        </el-form-item>
                       </div>
                     </el-col>
                   </el-row>
-
+                </el-form>
                   <span class="line"></span>
 
                 </div>
@@ -325,8 +331,10 @@ export default {
       btnLoading: false,
       stCycleRequest: null,
       modelStaticsRange: 1,
-      startTime: '',
-      endTime: '',
+      modelCheckTime: {
+        startTime: '',
+        endTime: ''
+      },
       sqlString: '',
       pickerOptionsEnd: {},
       viewModal: 'card',
@@ -369,6 +377,14 @@ export default {
           {required: true, message: this.$t('inputCubeName'), trigger: 'blur'},
           {validator: this.checkName, trigger: 'blur'}
         ]
+      },
+      modelCheckDateRule: {
+        startTime: [
+          { validator: this.validateStartDate, trigger: 'blur' }
+        ],
+        endTime: [
+          { validator: this.validateEndDate, trigger: 'blur' }
+        ]
       }
     }
   },
@@ -406,11 +422,80 @@ export default {
     changeGridModal (val) {
       this.viewModal = val
     },
+    validateStartDate: function (rule, value, callback) {
+      let realValue = this.$refs['startTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value
+      realValue = realValue.replace(/(^\s*)|(\s*$)/g, '')
+      if (realValue) {
+        let reg = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])(\s+[0-9]\d:[0-9]\d)?$/
+        let regExp = new RegExp(reg)
+        let isLegalDate = regExp.test(realValue)
+
+        if (isLegalDate) {
+          let regDate = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/
+          let regExpDate = new RegExp(regDate)
+          let isLegalDateFormat = regExpDate.test(realValue)
+          if (isLegalDateFormat) {
+            realValue = realValue + ' 00:00'
+            this.modelCheckTime.startTime = new Date()
+            this.modelCheckTime.startTime = new Date(realValue)
+            this.$nextTick(() => {
+              this.$refs['startTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value = realValue
+            })
+          }
+        } else {
+          callback(new Error(this.$t('legalDate')))
+        }
+      }
+      let endTime = (new Date(this.modelCheckTime.endTime)).getTime()
+      let startTime = (new Date(this.modelCheckTime.startTime)).getTime()
+      if (startTime === null || startTime === undefined || startTime === '' || isNaN(startTime)) {
+        callback(new Error(this.$t('selectDate')))
+      } else if (endTime <= startTime) {
+        // callback(new Error(this.$t('timeCompare')))
+      } else {
+        callback()
+      }
+    },
+    validateEndDate: function (rule, value, callback) {
+      let realValue = this.$refs['endTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value
+      realValue = realValue.replace(/(^\s*)|(\s*$)/g, '')
+      if (realValue) {
+        let reg = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])(\s+[0-9]\d:[0-9]\d)?$/
+        let regExp = new RegExp(reg)
+        let isLegalDate = regExp.test(realValue)
+
+        if (isLegalDate) {
+          let regDate = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/
+          let regExpDate = new RegExp(regDate)
+          let isLegalDateFormat = regExpDate.test(realValue)
+          if (isLegalDateFormat) {
+            realValue = realValue + ' 00:00'
+            this.modelCheckTime.endTime = new Date()
+            this.modelCheckTime.endTime = new Date(realValue)
+            this.$nextTick(() => {
+              this.$refs['endTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value = realValue
+            })
+          }
+        } else {
+          callback(new Error(this.$t('legalDate')))
+        }
+      }
+
+      let endTime = (new Date(this.modelCheckTime.endTime)).getTime()
+      let startTime = (new Date(this.modelCheckTime.startTime)).getTime()
+      if (endTime === null || endTime === undefined || endTime === '' || isNaN(endTime)) {
+        callback(new Error(this.$t('selectDate')))
+      } else if (endTime <= startTime) {
+        callback(new Error(this.$t('timeCompare')))
+      } else {
+        callback()
+      }
+    },
     changeStartTime () {
       this.pickerOptionsEnd.disabledDate = (time) => { // set date-picker endTime
-        let nowDate = new Date(this.startTime)
-        if (this.endTime < this.startTime) {
-          this.endTime = this.startTime
+        let nowDate = new Date(this.modelCheckTime.startTime)
+        if (this.modelCheckTime.endTime < this.modelCheckTime.startTime) {
+          this.modelCheckTime.endTime = this.modelCheckTime.startTime
         }
         let v1 = time.getTime() < +nowDate
         return v1
@@ -709,7 +794,7 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
-                        this.startTime = ''
+                        this.modelCheckTime.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
                         }
@@ -801,25 +886,29 @@ export default {
         })
         return
       }
-      this.btnLoading = true
-      this.statsModel({
-        project: this.currentModelData.project,
-        modelname: this.currentModelData.name,
-        data: {
-          startTime: (new Date(this.startTime)).getTime(),
-          endTime: (new Date(this.endTime)).getTime(),
-          ratio: this.modelStaticsRange
+      this.$refs['modelCheckForm'].validate((valid) => {
+        if (valid) {
+          this.btnLoading = true
+          this.statsModel({
+            project: this.currentModelData.project,
+            modelname: this.currentModelData.name,
+            data: {
+              startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
+              endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
+              ratio: this.modelStaticsRange
+            }
+          }).then(() => {
+            this.btnLoading = false
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.submitSuccess')
+            })
+            this.scanRatioDialogVisible = false
+          }, (res) => {
+            handleError(res)
+            this.btnLoading = false
+          })
         }
-      }).then(() => {
-        this.btnLoading = false
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.submitSuccess')
-        })
-        this.scanRatioDialogVisible = false
-      }, (res) => {
-        handleError(res)
-        this.btnLoading = false
       })
     },
     isModelAllowCheck (projectName, modelName) {
@@ -953,8 +1042,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by following cubes, so it cannot be edit for now.', 'inputCloneName': 'Please enter name', 'inputModelName': 'Please enter model name', 'inputCubeName': 'Please enter cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Haven\'t checked health yet.', hasChecked: 'There has been a running model check job. Switch to "Monitor" page to view the progress.', canNotChecked: 'Something went wrong, this model cannot be checked for now. Please contact us for more help here.', chooseStartDate: 'Please select the start time.', chooseEndDate: 'Please select the end time.', verifyModelTip1: '1. This function will help you to verify if the model can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该模型已经被下列Cube引用，暂时无法被编辑。', 'inputCloneName': '请输入名称。', 'inputModelName': '请输入模型名称。', 'inputCubeName': '请输入Cube名称。', 'delModelTip': '你确认要删除该模型吗？', 'hasNotChecked': '尚未进行健康检测。', hasChecked: '已有一个检测任务正在进行中，您可以去“监控”页面查看进度。', canNotChecked: '该模型暂时无法进行检测，请联系售后人员获得支持。', chooseStartDate: '请选择起始时间。', chooseEndDate: '请选择结束时间。', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本模型回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by following cubes, so it cannot be edit for now.', 'inputCloneName': 'Please enter name', 'inputModelName': 'Please enter model name', 'inputCubeName': 'Please enter cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Haven\'t checked health yet.', hasChecked: 'There has been a running model check job. Switch to "Monitor" page to view the progress.', canNotChecked: 'Something went wrong, this model cannot be checked for now. Please contact us for more help here.', chooseStartDate: 'Please select the start time.', chooseEndDate: 'Please select the end time.', verifyModelTip1: '1. This function will help you to verify if the model can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', selectDate: 'Please select the date.', legalDate: 'Please enter a complete date.', timeCompare: 'End time should be later than the start time.'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该模型已经被下列Cube引用，暂时无法被编辑。', 'inputCloneName': '请输入名称。', 'inputModelName': '请输入模型名称。', 'inputCubeName': '请输入Cube名称。', 'delModelTip': '你确认要删除该模型吗？', 'hasNotChecked': '尚未进行健康检测。', hasChecked: '已有一个检测任务正在进行中，您可以去“监控”页面查看进度。', canNotChecked: '该模型暂时无法进行检测，请联系售后人员获得支持。', chooseStartDate: '请选择起始时间。', chooseEndDate: '请选择结束时间。', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本模型回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', selectDate: '请选择时间', legalDate: '请输入完整日期。', timeCompare: '结束日期应晚于起始时间'}
   }
 }
 </script>
