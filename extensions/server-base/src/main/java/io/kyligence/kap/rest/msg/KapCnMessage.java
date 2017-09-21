@@ -81,6 +81,11 @@ public class KapCnMessage extends KapMessage {
         return "至少应存在一个 rawtable segment";
     }
 
+    // KAP Table
+    public String getHIVE_TABLE_LOAD_FAILED() {
+        return "加载 Hive 数据库/表信息失败. 请重新点击 \"Hive Tables\" 按键重新加载";
+    }
+
     // KAP User
     public String getEMPTY_USER_NAME() {
         return "用户名不可为空";
@@ -105,7 +110,7 @@ public class KapCnMessage extends KapMessage {
     public String getSELF_DISABLE_FORBIDDEN() {
         return "无法禁用自身账户";
     }
-    
+
     public String getUSER_EDIT_NOT_ALLOWED() {
         return "只有testing profile才允许编辑用户，请在LDAP/SAML管理软件中设置";
     }
@@ -223,7 +228,7 @@ public class KapCnMessage extends KapMessage {
         return "登陆认证信息错误，请确认您的用户和密码正确。";
     }
 
-    public String getSQL_VALIDATE_FAILED(){
+    public String getSQL_VALIDATE_FAILED() {
         return "sql校验错误";
     }
 }

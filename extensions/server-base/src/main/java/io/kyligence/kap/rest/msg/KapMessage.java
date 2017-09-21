@@ -81,6 +81,11 @@ public class KapMessage {
         return "There should be exactly one rawtable segment.";
     }
 
+    // KAP Table
+    public String getHIVE_TABLE_LOAD_FAILED() {
+        return "Failed to load hive databases/tables. Please click \"Hive Tables\" again.";
+    }
+
     // KAP User
     public String getEMPTY_USER_NAME() {
         return "User name should not be empty.";

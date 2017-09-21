@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.controller2;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.controller.BasicController;
@@ -49,6 +51,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import io.kyligence.kap.rest.response.HiveResponse;
 import io.kyligence.kap.rest.service.ColumnACLService;
 import io.kyligence.kap.rest.service.RowACLService;
 
@@ -156,33 +161,31 @@ public class TableControllerV2 extends BasicController {
     }
 
     /**
-     * Show all databases in Hive
+     * Show all databases and tables in Hive
      *
-     * @return Hive databases list
+     * @return Hive databases list with Hive table list
      * @throws IOException
      */
-
     @RequestMapping(value = "/hive", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    private EnvelopeResponse showHiveDatabasesV2() throws Exception {
+    private EnvelopeResponse showHiveDatabasesAndTables() throws IOException {
+        KapMessage msg = KapMsgPicker.getMsg();
+        List<HiveResponse> hive = new ArrayList<HiveResponse>();
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableService.getHiveDbNames(), "");
-    }
+        try {
+            List<String> dataBases = tableService.getHiveDbNames();
 
-    /**
-     * Show all tables in a Hive database
-     *
-     * @return Hive table list
-     * @throws IOException
-     */
+            for (String dataBase : dataBases) {
+                List<String> tableNames = tableService.getHiveTableNames(dataBase);
+                hive.add(new HiveResponse(dataBase, tableNames));
+            }
+        } catch (Throwable e) {
+            logger.error(e.getLocalizedMessage(), e);
+            throw new BadRequestException(msg.getHIVE_TABLE_LOAD_FAILED());
+        }
 
-    @RequestMapping(value = "/hive/{database}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    private EnvelopeResponse showHiveTablesV2(@PathVariable String database) throws Exception {
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableService.getHiveTableNames(database), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, hive, "");
     }
 
     private void delLowLevelACL(String project, String table) throws IOException {
