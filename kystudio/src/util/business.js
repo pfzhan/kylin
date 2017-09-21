@@ -342,7 +342,6 @@ export function msTransDate (ms, limitWeeks) {
 // 将复制进入编辑器的多行sql按分号转换成数组，剔除换行符
 export function filterMutileSqlsToOneLine (_sqls, splitChar) {
   var sqls = _sqls.split(splitChar || ';')
-  console.log(sqls, sqls.length, 434343)
   sqls = sqls.filter((s) => {
     return !!(s.replace(/[\r\n]/g, ''))
   })

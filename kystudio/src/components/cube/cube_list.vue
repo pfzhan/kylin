@@ -532,7 +532,7 @@ export default {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.selected_project}).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
