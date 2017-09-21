@@ -181,9 +181,6 @@ public class HiveTableExtSampleJob extends CubingJob {
             return null;
         }
 
-        if (false == isJobExist(jobID))
-            return null;
-
         AbstractExecutable job = null;
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
         try {
@@ -205,11 +202,6 @@ public class HiveTableExtSampleJob extends CubingJob {
             return jobID;
         }
         return null;
-    }
-
-    private boolean isJobExist(String jobId) {
-        ExecutableManager executableManager = ExecutableManager.getInstance(config);
-        return executableManager.getAllJobIds().contains(jobId);
     }
 
     private ShellExecutable materializedView(TableDesc desc, JobEngineConfig conf) throws IOException {

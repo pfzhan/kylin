@@ -26,7 +26,9 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -41,9 +43,11 @@ public class TableExtService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    public String extractTableExt(String project, String submitter, int frequency, String tableName) throws IOException {
+    public String extractTableExt(String project, String submitter, int frequency, String tableName)
+            throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName, frequency);
+        HiveTableExtSampleJob hiveTableExtSampleJob = new HiveTableExtSampleJob(project, submitter, tableName,
+                frequency);
         return hiveTableExtSampleJob.start();
     }
 
@@ -60,5 +64,17 @@ public class TableExtService extends BasicService {
     public void removeTableExt(String tableName, String prj) throws IOException {
         aclEvaluate.checkProjectWritePermission(prj);
         getMetadataManager().removeTableExt(tableName, prj);
+    }
+
+    public void removeJobIdFromTableExt(String jobId) throws IOException {
+        for (ProjectInstance pi : getProjectManager().listAllProjects()) {
+            for (TableDesc desc : getMetadataManager().listAllTables(pi.getName())) {
+                TableExtDesc extDesc = getMetadataManager().getTableExt(desc);
+                if (extDesc.getJodID() != null && jobId.equals(extDesc.getJodID())) {
+                    extDesc.setJodID(null);
+                    getMetadataManager().saveTableExt(extDesc, pi.getName());
+                }
+            }
+        }
     }
 }

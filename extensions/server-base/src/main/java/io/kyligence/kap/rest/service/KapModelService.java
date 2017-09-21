@@ -196,6 +196,22 @@ public class KapModelService extends BasicService {
     private boolean hasTableStatsJob(String project, String tableName) {
         return getMetadataManager().getTableExt(tableName, project).getColumnStats().size() > 0;
     }
+
+    public void removeJobIdFromModelStats(String jobId) {
+        ModelStatsManager msManager = ModelStatsManager.getInstance(getConfig());
+        for (DataModelDesc desc : getMetadataManager().listDataModels()) {
+            try {
+                ModelStats stats = msManager.getModelStats(desc.getName());
+                String statsJobId = stats.getJodID();
+                if (statsJobId != null && statsJobId.equals(jobId)) {
+                    stats.setJodID(null);
+                    msManager.saveModelStats(stats);
+                }
+            } catch (IOException e) {
+                logger.error("Failed to get model stats: {}", desc.getName());
+            }
+        }
+    }
 }
 
 class ModelCheckList {

@@ -52,6 +52,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.service.KapModelService;
+import io.kyligence.kap.rest.service.TableExtService;
+
 @Controller
 @RequestMapping(value = "jobs")
 public class JobControllerV2 extends BasicController {
@@ -60,6 +63,14 @@ public class JobControllerV2 extends BasicController {
     @Autowired
     @Qualifier("jobService")
     private JobService jobService;
+
+    @Autowired
+    @Qualifier("tableExtService")
+    private TableExtService tableExtService;
+
+    @Autowired
+    @Qualifier("kapModelService")
+    private KapModelService kapModelService;
 
     private Comparator<JobInstance> lastModifyComparator = new Comparator<JobInstance>() {
         @Override
@@ -293,6 +304,8 @@ public class JobControllerV2 extends BasicController {
                     "Cannot drop running job " + jobInstance.getName() + ", please discard it first.");
         }
         jobService.dropJob(jobInstance);
+        tableExtService.removeJobIdFromTableExt(jobId);
+        kapModelService.removeJobIdFromModelStats(jobId);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
     }

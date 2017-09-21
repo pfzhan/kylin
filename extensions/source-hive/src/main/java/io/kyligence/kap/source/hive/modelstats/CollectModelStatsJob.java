@@ -182,9 +182,6 @@ public class CollectModelStatsJob extends CubingJob {
             return null;
         }
 
-        if (false == isJobExist(jobID))
-            return null;
-
         ExecutableManager exeMgt = ExecutableManager.getInstance(config);
         AbstractExecutable job = exeMgt.getJob(jobID);
         if (null == job) {
@@ -197,11 +194,6 @@ public class CollectModelStatsJob extends CubingJob {
         }
 
         return null;
-    }
-
-    private boolean isJobExist(String jobId) {
-        ExecutableManager executableManager = ExecutableManager.getInstance(config);
-        return executableManager.getAllJobIds().contains(jobId);
     }
 
     public AbstractExecutable createStatsFlatTableStep(JobEngineConfig conf, IJoinedFlatTableDesc flatTableDesc,
