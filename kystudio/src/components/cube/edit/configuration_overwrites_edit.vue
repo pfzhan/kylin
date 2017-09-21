@@ -200,7 +200,7 @@ export default {
     engineType () {
       if (+this.cubeDesc.storage_type === 2) {
         return engineTypeKylin
-      } else if (+this.cubeDesc.storage_type === 99) {
+      } else if (+this.cubeDesc.storage_type === 99 || +this.cubeDesc.storage_type === 100) {
         return engineTypeKap
       }
     }

@@ -754,14 +754,14 @@ export default {
       if (!CubeEng) {
         return 2
       }
-      return CubeEng
+      return +CubeEng
     },
     getStorageEng: function () {
       let StorageEng = this.getProperty('kylin.storage.default').trim()
       if (!StorageEng) {
         return 2
       }
-      return StorageEng
+      return +StorageEng
     },
     loadCubeDetail: function () {
       var _this = this
