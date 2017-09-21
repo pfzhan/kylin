@@ -196,6 +196,9 @@ export default {
         callback()
       }
       var project = this.modelInfo.project || this.project
+      if (!this.checkPartition.date_column && !this.checkPartition.date_table) {
+        return
+      }
       var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.date_table)
       this.validColumnFormat({project: project, table: databaseAndTableName.join('.'), column: this.checkPartition.date_column, format: this.checkPartition.partition_date_format}).then((res) => {
         handleSuccess(res, (data) => {
