@@ -187,7 +187,26 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree :indent="2" @lazyload="loadChildNode" :multiple="true"  @nodeclick="clickHiveTable" :lazy="true" :treedata="hiveData" maxlevel="3" ref="subtree" :maxLabelLen="24" :showfilter="true" :allowdrag="false" ></tree>
+           <tree :indent="2"
+                 :multiple="true"
+                 :treedata="hiveData"
+                 maxLabelLen="24"
+                 maxlevel="3"
+                 ref="subtree"
+                 :showfilter="true"
+                 :allowdrag="false"
+                 @nodeclick="clickHiveTable"></tree>
+           <!--<tree :indent="2"
+           @lazyload="loadChildNode"
+           :multiple="true"
+           @nodeclick="clickHiveTable"
+           :lazy="true"
+           :treedata="hiveData"
+           maxlevel="3"
+           ref="subtree"
+           :maxLabelLen="24"
+           :showfilter="true"
+           :allowdrag="false" ></tree>-->
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
@@ -433,6 +452,8 @@ export default {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         return
       }
+      // 页面上默默加载全部数据
+      this.loadAllHiveTreeData()
       this.load_hive_dalog_visible = true
       this.$refs.subtree && this.$refs.subtree.cancelCheckedAll()
       this.selectTables = []
@@ -634,6 +655,37 @@ export default {
             let iHeight = window.innerHeight - 66 - 48 - 33 - 33 - iTop
             this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
           })
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    loadAllHiveTreeData: function () {
+      this.loadDatabase().then((res) => {
+        handleSuccess(res, (data) => {
+          var targetData = [
+            {
+              label: 'Hive Tables',
+              children: []
+            }
+          ]
+          for (var i = 0; i < data.length; i++) {
+            var item = data[i]
+            var obj = {
+              id: item.databaseName,
+              label: item.databaseName,
+              children: []
+            }
+
+            if (item.tableNames.length > 0) {
+              var arr = item.tableNames.map(function (tableitem) {
+                return {id: item.databaseName + '.' + tableitem, label: tableitem, children: []}
+              })
+              obj.children = arr
+            }
+            targetData[0].children.push(obj)
+          }
+          this.hiveData = targetData
         })
       }, (res) => {
         handleError(res)

@@ -14,16 +14,16 @@
               sortable
               prop="name"
               :label="$t('userName')"
+              width="180"
               >
             </el-table-column>
             <el-table-column
               :label="$t('access')"
-              width="180"
               >
               <template scope="scope">Query</template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"
-              width="80"
+              width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
               <template scope="scope">

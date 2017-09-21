@@ -332,7 +332,7 @@ export default {
       stCycleRequest: null,
       modelStaticsRange: 1,
       modelCheckTime: {
-        startTime: new Date(0),
+        startTime: '',
         endTime: ''
       },
       sqlString: '',
@@ -446,11 +446,9 @@ export default {
           callback(new Error(this.$t('legalDate')))
         }
       }
-      let endTime = (new Date(this.modelCheckTime.endTime)).getTime()
-      let startTime = (new Date(this.modelCheckTime.startTime)).getTime()
-      if (startTime === null || startTime === undefined || startTime === '' || isNaN(startTime)) {
-        callback(new Error(this.$t('selectDate')))
-      } else if (endTime <= startTime) {
+      let endTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
+      let startTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
+      if (!((endTime === startTime && startTime === 0) || endTime > startTime)) {
         // callback(new Error(this.$t('timeCompare')))
       } else {
         callback()
@@ -481,11 +479,9 @@ export default {
         }
       }
 
-      let endTime = (new Date(this.modelCheckTime.endTime)).getTime()
-      let startTime = (new Date(this.modelCheckTime.startTime)).getTime()
-      if (endTime === null || endTime === undefined || endTime === '' || isNaN(endTime)) {
-        callback(new Error(this.$t('selectDate')))
-      } else if (endTime <= startTime) {
+      let endTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
+      let startTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
+      if (!((endTime === startTime && startTime === 0) || endTime > startTime)) {
         callback(new Error(this.$t('timeCompare')))
       } else {
         callback()
@@ -794,7 +790,7 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
-                        this.modelCheckTime.startTime = new Date(0)
+                        this.modelCheckTime.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
                         }
@@ -893,8 +889,10 @@ export default {
             project: this.currentModelData.project,
             modelname: this.currentModelData.name,
             data: {
-              startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
-              endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
+              // startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
+              // endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
+              startTime: isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime(),
+              endTime: isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime(),
               ratio: this.modelStaticsRange
             }
           }).then(() => {
