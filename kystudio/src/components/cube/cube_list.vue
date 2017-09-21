@@ -219,7 +219,8 @@
         <div :class="{hasCheck: hasCheck}">
         <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
         </div>
-        <div class="ksd-mt-10"><el-button :disabled="sqlString === ''" :loading="checkSqlLoadBtn" size="mini" @click="validateSql" >{{$t('kylinLang.common.verify')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql" style="font-size:12px">{{$t('kylinLang.common.cancel')}}</el-button></div>
+        <div class="ksd-mt-10">
+          <el-button :disabled="sqlString === ''" :loading="checkSqlLoadBtn" @click="validateSql" >{{$t('kylinLang.common.verify')}}</el-button><el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql" style="font-size:12px">{{$t('kylinLang.common.cancel')}}</el-button></div>
         <div class="line" v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg"></div>
         <div v-if="currentSqlErrorMsg && currentSqlErrorMsg.length || successMsg || errorMsg" class="suggestBox">
           <div v-if="successMsg">
@@ -248,7 +249,7 @@
 
         <span slot="footer" class="dialog-footer">
           <!-- <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button> -->
-          <el-button type="primary" :loading="sqlBtnLoading" @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" :loading="sqlBtnLoading" @click="sqlClose()">{{$t('kylinLang.common.close')}}</el-button>
         </span>
       </el-dialog>
 </div>

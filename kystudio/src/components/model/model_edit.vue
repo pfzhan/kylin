@@ -291,7 +291,7 @@
     </div>
     </transition>
     <div class="ksd-mt-4">
-      <el-button  style="width: 70px;height:30px;" :loading="checkSqlLoadBtn" size="mini" @click="validateSql" :disabled="actionMode==='view' || sqlString === ''" >{{$t('kylinLang.common.check')}}</el-button>
+      <el-button :loading="checkSqlLoadBtn"  @click="validateSql" :disabled="actionMode==='view' || sqlString === ''" >{{$t('kylinLang.common.check')}}</el-button>
       <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
       <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql && hasValidSuccessSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
