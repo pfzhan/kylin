@@ -33,6 +33,9 @@ export default {
       // if (!state[key]) {
       state[key] = getProperty(name, state.serverConfig)
       // } else {
+      if (name === 'kylin.web.timezone') {
+        localStorage.setItem('GlobalSeverTimeZone', state[key])
+      }
       return state[key]
       // }
     },
@@ -60,7 +63,6 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
-        localStorage.setItem('GlobalSeverTimeZone', this.state.system.timeZone)
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {
