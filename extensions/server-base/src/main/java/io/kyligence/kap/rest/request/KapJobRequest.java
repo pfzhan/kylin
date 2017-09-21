@@ -29,6 +29,26 @@ import org.apache.kylin.rest.request.JobBuildRequest;
 public class KapJobRequest extends JobBuildRequest {
     private float ratio = 1.0f;
 
+    private int checkList = 7;
+
+    private boolean forceUpdate = false;
+
+    public void setForceUpdate(boolean forceUpdate) {
+        this.forceUpdate = forceUpdate;
+    }
+
+    public boolean getForceUpdate() {
+        return this.forceUpdate;
+    }
+
+    public void setCheckList(int checkList) {
+        this.checkList = checkList;
+    }
+
+    public int getCheckList() {
+        return checkList;
+    }
+
     public float getRatio() {
         return this.ratio;
     }

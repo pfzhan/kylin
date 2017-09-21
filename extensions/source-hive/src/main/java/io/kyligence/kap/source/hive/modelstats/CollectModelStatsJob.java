@@ -27,8 +27,6 @@ package io.kyligence.kap.source.hive.modelstats;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.TimeZone;
 
 import org.apache.kylin.common.KylinConfig;
@@ -48,14 +46,12 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 public class CollectModelStatsJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
@@ -117,18 +113,12 @@ public class CollectModelStatsJob extends CubingJob {
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
         TableExtDesc factTableExtDesc = manager.getTableExt(factTableName, dataModelDesc.getProject());
 
-        // Do fact table stats firstly
-        if (factTableExtDesc.getColumnStats().size() == 0) {
-            new HiveTableExtSampleJob(project, factTableName, frequency).start(this);
-        }
-
-        // Do lookup table stats
-        checkLookupStats(dataModelDesc, manager);
+        boolean isAvail = (factTableExtDesc != null) && factTableExtDesc.getColumnStats().size() > 0;
 
         //Step1: check duplicate key
         checkDuplicateKeyStep();
         //Step2: check data skew
-        checkDataSkewStep();
+        checkDataSkewStep(isAvail);
         //step3: create flat table
         addTask(createStatsFlatTableStep(jobConf, flatTableDesc, this.getId()));
         //step4: extract model stats
@@ -145,19 +135,6 @@ public class CollectModelStatsJob extends CubingJob {
         return this;
     }
 
-    private void checkLookupStats(DataModelDesc dataModelDesc, MetadataManager manager) throws IOException {
-        Set<String> tables = new HashSet<>();
-        for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
-            tables.add(fTable.getTable());
-        }
-        for (String s : tables) {
-            TableExtDesc extDesc = manager.getTableExt(s, dataModelDesc.getProject());
-            if (extDesc.getColumnStats().size() == 0) {
-                new HiveTableExtSampleJob(project, s, frequency).start(this);
-            }
-        }
-    }
-
     private void checkDuplicateKeyStep() {
         CheckLookupStep checkLookupStep = new CheckLookupStep();
         checkLookupStep.setName("Check Duplicate Key");
@@ -165,7 +142,9 @@ public class CollectModelStatsJob extends CubingJob {
         addTask(checkLookupStep);
     }
 
-    private void checkDataSkewStep() {
+    private void checkDataSkewStep(boolean isAvail) {
+        if (false == isAvail)
+            return;
         CheckDataSkewStep checkDataSkewStep = new CheckDataSkewStep();
         checkDataSkewStep.setName("Check Data Skew");
         checkDataSkewStep.setParam(CheckLookupStep.MODEL_NAME, modelName);

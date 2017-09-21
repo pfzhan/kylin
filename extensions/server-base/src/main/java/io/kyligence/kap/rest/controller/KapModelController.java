@@ -111,8 +111,6 @@ public class KapModelController extends BasicController {
         Map<Boolean, String> result = new HashMap<>();
         if (kapModelService.isFactTableStreaming(modelName)) {
             result.put(false, "Model check of streaming data model is not supported by now.");
-        } else if (kapModelService.isFactTableRunningStats(modelName)) {
-            result.put(false, "The fact table is running stats job, please wait until it finished or discard it.");
         } else {
             result.put(true, "The model check is available.");
         }
@@ -122,7 +120,7 @@ public class KapModelController extends BasicController {
     @RequestMapping(value = "{project}/{modelName}/stats", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelStats(@PathVariable("project") String project,
+    public EnvelopeResponse doModelStats(@PathVariable("project") String project,
             @PathVariable("modelName") String modelName, @RequestBody KapJobRequest req)
             throws IOException, JobException {
         KapMessage msg = KapMsgPicker.getMsg();
@@ -136,10 +134,10 @@ public class KapModelController extends BasicController {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getTSRANGE_ERROR());
         }
 
-        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, //
-                tsRange, req.getFrequency());
-        String jobId = job.start();
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
+        Map<String, String> ret = kapModelService.doModelCheck(project, modelName, submitter, tsRange,
+                req.getFrequency(), req.getCheckList(), req.getForceUpdate());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
     }
 
     @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = {
