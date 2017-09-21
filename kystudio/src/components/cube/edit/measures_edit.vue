@@ -214,7 +214,7 @@ export default {
         }
         if (data.measure.function.expression === 'TOP_N' && data.convertedColumns) {
           this.$set(data.measure.function, 'configuration', {})
-          data.convertedColumns.forEach(function (column) {
+          data.convertedColumns.forEach((column) => {
             if (needLengthMeasureType.indexOf(this.getEncoding(column.encoding)) >= 0) {
               this.$set(data.measure.function.configuration, 'topn.encoding.' + column.column, this.getEncoding(column.encoding) + ':' + column.valueLength)
             } else {
@@ -332,7 +332,7 @@ export default {
       let normalMeasures = []
       let distinctCountMeasures = []
       if (this.cubeDesc.measures) {
-        this.cubeDesc.measures.forEach(function (measure, index) {
+        this.cubeDesc.measures.forEach((measure, index) => {
           if (measure.function.expression === 'COUNT_DISTINCT') {
             distinctCountMeasures.push(measure.name)
           } else {
@@ -362,14 +362,14 @@ export default {
       } else {
         let assignedMeasures = []
         if (_this.cubeDesc.hbase_mapping.column_family) {
-          _this.cubeDesc.hbase_mapping.column_family.forEach(function (colFamily, index) {
-            colFamily.columns[0].measure_refs.forEach(function (measure, index) {
+          _this.cubeDesc.hbase_mapping.column_family.forEach((colFamily, index) => {
+            colFamily.columns[0].measure_refs.forEach((measure, index) => {
               assignedMeasures.push(measure)
             })
           })
         }
         if (_this.cubeDesc.measures) {
-          _this.cubeDesc.measures.forEach(function (measure, index) {
+          _this.cubeDesc.measures.forEach((measure, index) => {
             if (assignedMeasures.indexOf(measure.name) === -1) {
               if (measure.function.expression === 'COUNT_DISTINCT') {
                 _this.cubeDesc.hbase_mapping.column_family[columnFamilyLength - 1].columns[0].measure_refs.push(measure.name)

@@ -387,19 +387,24 @@ export default {
     },
     initGroupByColumn: function () {
       this.convertedColumns.splice(0, this.convertedColumns.length)
-      if (this.measure.function.configuration && this.measure.function.expression === 'TOP_N') {
+      if (this.measure.function.expression === 'TOP_N') {
         this.$nextTick(() => {
           let returnValue = (/\((\d+)(,\d+)?\)/).exec(this.measure.function.returntype)
           this.measure.function.returntype = 'topn(' + returnValue[1] + ')'
           if (this.measure.function.parameter.next_parameter) {
             this.recursion(this.measure.function.parameter.next_parameter, this.convertedColumns)
             this.convertedColumns.forEach((column) => {
-              let item = this.measure.function.configuration['topn.encoding.' + column.column]
-              let _encoding = this.getEncoding(item)
-              let _valueLength = this.getLength(item)
-              let version = this.measure.function.configuration['topn.encoding_version.' + column.column] || 1
-              this.$set(column, 'encoding', _encoding + ':' + version)
-              this.$set(column, 'valueLength', _valueLength)
+              if (this.measure.function.configuration && this.measure.function.configuration['topn.encoding.' + column.column]) {
+                let item = this.measure.function.configuration['topn.encoding.' + column.column]
+                let _encoding = this.getEncoding(item)
+                let _valueLength = this.getLength(item)
+                let version = this.measure.function.configuration['topn.encoding_version.' + column.column] || 1
+                this.$set(column, 'encoding', _encoding + ':' + version)
+                this.$set(column, 'valueLength', _valueLength)
+              } else {
+                this.$set(column, 'encoding', 'dict:1')
+                this.$set(column, 'valueLength', 0)
+              }
             })
           }
         })

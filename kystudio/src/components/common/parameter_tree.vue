@@ -19,7 +19,7 @@
         <b v-for="(item,key) in nextParaList">
           <span>{{ item }}</span>
           <span v-if="key < nextParaList.length-1">,</span>
-          <span v-else>.</span>
+          <span v-else></span>
         </b>
       </li>
     </ul>
