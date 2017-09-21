@@ -175,7 +175,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="modelCheck" :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" >
+    <el-dialog class="modelCheck" :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" :close-on-press-escape="false" :close-on-click-modal="false">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content">
@@ -332,7 +332,7 @@ export default {
       stCycleRequest: null,
       modelStaticsRange: 1,
       modelCheckTime: {
-        startTime: '',
+        startTime: new Date(0),
         endTime: ''
       },
       sqlString: '',
@@ -794,7 +794,7 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
-                        this.modelCheckTime.startTime = ''
+                        this.modelCheckTime.startTime = new Date(0)
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
                         }
@@ -1042,8 +1042,8 @@ export default {
     window.clearTimeout(this.stCycleRequest)
   },
   locales: {
-    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by following cubes, so it cannot be edit for now.', 'inputCloneName': 'Please enter name', 'inputModelName': 'Please enter model name', 'inputCubeName': 'Please enter cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Haven\'t checked health yet.', hasChecked: 'There has been a running model check job. Switch to "Monitor" page to view the progress.', canNotChecked: 'Something went wrong, this model cannot be checked for now. Please contact us for more help here.', chooseStartDate: 'Please select the start time.', chooseEndDate: 'Please select the end time.', verifyModelTip1: '1. This function will help you to verify if the model can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', selectDate: 'Please select the date.', legalDate: 'Please enter a complete date.', timeCompare: 'End time should be later than the start time.'},
-    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该模型已经被下列Cube引用，暂时无法被编辑。', 'inputCloneName': '请输入名称。', 'inputModelName': '请输入模型名称。', 'inputCubeName': '请输入Cube名称。', 'delModelTip': '你确认要删除该模型吗？', 'hasNotChecked': '尚未进行健康检测。', hasChecked: '已有一个检测任务正在进行中，您可以去“监控”页面查看进度。', canNotChecked: '该模型暂时无法进行检测，请联系售后人员获得支持。', chooseStartDate: '请选择起始时间。', chooseEndDate: '请选择结束时间。', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本模型回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', selectDate: '请选择时间', legalDate: '请输入完整日期。', timeCompare: '结束日期应晚于起始时间'}
+    'en': {'modelName': 'Model name', 'addCube': 'Add Cube', 'modelUsedTip': 'The model has been used by following cubes, so it cannot be edit for now.', 'inputCloneName': 'Please enter name', 'inputModelName': 'Please enter model name', 'inputCubeName': 'Please enter cube name', 'delModelTip': 'Are you sure to drop this model?', 'hasNotChecked': 'Haven\'t checked health yet.', hasChecked: 'There has been a running model check job. Switch to "Monitor" page to view the progress.', canNotChecked: 'Something went wrong, this model cannot be checked for now. Please contact us for more help here.', chooseStartDate: 'Please select the start time.', chooseEndDate: 'Please select the end time.', verifyModelTip1: '1. This function will help you to verify if the model can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', selectDate: 'Please select the date.', legalDate: 'Please enter a complete date formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.'},
+    'zh-cn': {'modelName': '模型名称', 'addCube': '添加Cube', 'modelUsedTip': '该模型已经被下列Cube引用，暂时无法被编辑。', 'inputCloneName': '请输入名称。', 'inputModelName': '请输入模型名称。', 'inputCubeName': '请输入Cube名称。', 'delModelTip': '你确认要删除该模型吗？', 'hasNotChecked': '尚未进行健康检测。', hasChecked: '已有一个检测任务正在进行中，您可以去“监控”页面查看进度。', canNotChecked: '该模型暂时无法进行检测，请联系售后人员获得支持。', chooseStartDate: '请选择起始时间。', chooseEndDate: '请选择结束时间。', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本模型回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', selectDate: '请选择时间', legalDate: '请输入完整日期，格式为YYYY-MM-DD。', timeCompare: '结束日期应晚于起始时间'}
   }
 }
 </script>

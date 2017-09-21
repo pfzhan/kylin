@@ -153,7 +153,7 @@
   </el-table>
    <pager ref="pager"  :totalSize="totalCubes"  v-on:handleCurrentChange='currentChange' ></pager>
 
-  <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible">
+  <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildCubeFormVisible = false">{{$t('cancel')}}</el-button>

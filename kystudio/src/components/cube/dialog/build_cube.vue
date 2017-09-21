@@ -128,8 +128,8 @@ export default {
   },
 
   locales: {
-    'en': {partitionDateColumn: 'PARTITION DATE COLUMN', startDate: 'Start Date (Include)', endDate: 'End Date (Exclude)', selectDate: 'Please select the date.', legalDate: 'Please enter a complete date.', timeCompare: 'End time should be later than the start time.'},
-    'zh-cn': {partitionDateColumn: '分区日期列', startDate: '起始日期 (包含)', endDate: '结束日期 (不包含)', selectDate: '请选择时间', legalDate: '请输入完整日期。', timeCompare: '结束日期应晚于起始时间'}
+    'en': {partitionDateColumn: 'PARTITION DATE COLUMN', startDate: 'Start Date (Include)', endDate: 'End Date (Exclude)', selectDate: 'Please select the date.', legalDate: 'Please enter a complete date formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.'},
+    'zh-cn': {partitionDateColumn: '分区日期列', startDate: '起始日期 (包含)', endDate: '结束日期 (不包含)', selectDate: '请选择时间', legalDate: '请输入完整日期，格式为YYYY-MM-DD', timeCompare: '结束日期应晚于起始时间'}
   }
 }
 </script>
