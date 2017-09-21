@@ -77,7 +77,7 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false" :before-close="closeResetWindow">
+  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
     <el-alert style="margin-bottom:10px;"
       :title="$t('refinePassword')"
       type="info"
