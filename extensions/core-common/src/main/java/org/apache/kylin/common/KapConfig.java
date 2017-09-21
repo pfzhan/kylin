@@ -343,4 +343,12 @@ public class KapConfig {
     public int getCalciteJoinThreshold() {
         return Integer.parseInt(config.getOptional("kap.query.calcite-join-threshold", "-1"));
     }
+
+    public boolean isRowACLEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.acl.row-acl-enabled", "true"));
+    }
+
+    public boolean isColumnACLEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.acl.column-acl-enabled", "true"));
+    }
 }

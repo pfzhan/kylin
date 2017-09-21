@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.common.obf.IKeep;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.security.QueryIntercept;
@@ -36,6 +37,11 @@ import org.apache.kylin.query.security.QueryInterceptUtil;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 
 public class ColumnIntercept extends QueryIntercept implements IKeep {
+
+    @Override
+    protected boolean isEnabled() {
+        return KapConfig.getInstanceFromEnv().isColumnACLEnabled();
+    }
 
     @Override
     public Set<String> getQueryIdentifiers(List<OLAPContext> contexts) {

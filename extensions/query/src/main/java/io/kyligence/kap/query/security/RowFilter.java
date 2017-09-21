@@ -42,6 +42,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
@@ -60,15 +61,18 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
+        if (!KapConfig.getInstanceFromEnv().isRowACLEnabled()) {
+            return sql;
+        }
         Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project);
         return rowFilter(defaultSchema, sql, whereCondWithTbls);
     }
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
-        if (StringUtils.isEmpty(schema) || StringUtils.isEmpty(inputSQL)) {
+        if (StringUtils.isEmpty(inputSQL)) {
             return "";
         }
-        if (whereCondWithTbls.isEmpty()) {
+        if (StringUtils.isEmpty(schema) || whereCondWithTbls.isEmpty()) {
             return inputSQL;
         }
 
