@@ -88,28 +88,32 @@ export default {
   props: ['cubeDesc'],
   data () {
     return {
-      startSegment: this.cubeDesc.segments[0].uuid,
-      endSegment: this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid,
+      startSegment: this.cubeDesc.segments[0] && this.cubeDesc.segments[0].uuid || '',
+      endSegment: this.cubeDesc.segments[0] && this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid || '',
       segObject: {
-        startObject: this.cubeDesc.segments[0],
-        endObject: this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
+        startObject: this.cubeDesc.segments[0] || {},
+        endObject: this.cubeDesc.segments[this.cubeDesc.segments.length - 1] || {}
       }
     }
   },
   methods: {
     changeStart: function (item) {
-      this.cubeDesc.segments.forEach((segment) => {
-        if (segment.uuid === item) {
-          this.$set(this.segObject, 'startObject', segment)
-        }
-      })
+      if (this.cubeDesc.segments) {
+        this.cubeDesc.segments.forEach((segment) => {
+          if (segment.uuid === item) {
+            this.$set(this.segObject, 'startObject', segment)
+          }
+        })
+      }
     },
     changeEnd: function (item) {
-      this.cubeDesc.segments.forEach((segment) => {
-        if (segment.uuid === item) {
-          this.$set(this.segObject, 'endObject', segment)
-        }
-      })
+      if (this.cubeDesc.segments) {
+        this.cubeDesc.segments.forEach((segment) => {
+          if (segment.uuid === item) {
+            this.$set(this.segObject, 'endObject', segment)
+          }
+        })
+      }
     }
   },
   computed: {
@@ -128,10 +132,10 @@ export default {
   },
   watch: {
     cubeDesc (cubeDesc) {
-      this.segObject.startObject = this.cubeDesc.segments[0]
-      this.startSegment = this.cubeDesc.segments[0].uuid
-      this.segObject.endObject = this.cubeDesc.segments[this.cubeDesc.segments.length - 1]
-      this.endSegment = this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid
+      this.segObject.startObject = this.cubeDesc.segments[0] || {}
+      this.startSegment = this.cubeDesc.segments[0] && this.cubeDesc.segments[0].uuid || ''
+      this.segObject.endObject = this.cubeDesc.segments[this.cubeDesc.segments.length - 1] || {}
+      this.endSegment = this.cubeDesc.segments[0] && this.cubeDesc.segments[this.cubeDesc.segments.length - 1].uuid
     }
   },
   locales: {

@@ -23,11 +23,11 @@
       <el-card>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('startDate')}}</el-col>
-          <el-col :span="16">{{selectSeg.detail.date_range_start | utcTime}}</el-col>
+          <el-col :span="16">{{selectSeg.detail && selectSeg.detail.date_range_start | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('endDate')}}</el-col>
-          <el-col :span="16">{{selectSeg.detail.date_range_end | utcTime}}</el-col>
+          <el-col :span="16">{{selectSeg.detail && selectSeg.detail.date_range_end | utcTime}}</el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildTime')}}</el-col>
@@ -35,7 +35,7 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="8">{{$t('lastBuildID')}}</el-col>
-          <el-col :span="16">{{selectSeg.detail.last_build_job_id}}</el-col>
+          <el-col :span="16">{{selectSeg.detail && selectSeg.detail.last_build_job_id}}</el-col>
         </el-row> 
       </el-card>                   
     </el-col>
@@ -52,20 +52,22 @@ export default {
   props: ['cubeDesc'],
   data () {
     return {
-      selected_segment: this.cubeDesc.segments[0].uuid,
+      selected_segment: this.cubeDesc.segments[0] && this.cubeDesc.segments[0].uuid || '',
       selectSeg: {
-        detail: this.cubeDesc.segments[0]
+        detail: this.cubeDesc.segments[0] || {}
       }
     }
   },
   methods: {
     transToGmtTime,
     changeSegment: function (item) {
-      this.cubeDesc.segments.forEach((segment) => {
-        if (segment.uuid === item) {
-          this.$set(this.selectSeg, 'detail', segment)
-        }
-      })
+      if (this.cubeDesc.segments) {
+        this.cubeDesc.segments.forEach((segment) => {
+          if (segment.uuid === item) {
+            this.$set(this.selectSeg, 'detail', segment)
+          }
+        })
+      }
     }
   },
   created () {
@@ -75,13 +77,17 @@ export default {
   },
   computed: {
     lastBuild () {
-      return transToGmtTime(this.selectSeg.detail.last_build_time)
+      if (this.selectSeg.detail) {
+        return transToGmtTime(this.selectSeg.detail.last_build_time)
+      } else {
+        return ''
+      }
     }
   },
   watch: {
     cubeDesc (cubeDesc) {
-      this.selected_segment = this.cubeDesc.segments[0].uuid
-      this.$set(this.selectSeg, 'detail', this.cubeDesc.segments[0])
+      this.selected_segment = this.cubeDesc.segments[0] && this.cubeDesc.segments[0].uuid
+      this.$set(this.selectSeg, 'detail', this.cubeDesc.segments[0] && this.cubeDesc.segments[0])
     }
   },
   locales: {
