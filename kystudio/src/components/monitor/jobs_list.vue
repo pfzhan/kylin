@@ -1,16 +1,16 @@
 <template>
-<div class="jobs_list" @click.stop>
+<div id="jobs_list" @click.stop>
   <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
     <el-col :span="4">
       <el-input
         icon="search"
-        v-model="filterCubeName"
+        v-model="filterName"
         :placeholder="$t('kylinLang.common.pleaseFilter')"
         @change="filterChange">
       </el-input>
     </el-col>
     <el-col :span="4" >
-      <el-select v-model="filterTimeZone" @change="refreshFilter">
+      <el-select v-model="filter.timeFilter" @change="refreshJobs">
         <el-option
         v-for="(item, item_index) in timeFilter"
         :key="item_index"
@@ -20,7 +20,7 @@
       </el-select>
     </el-col>
     <el-col :span="16">
-      <el-checkbox-group v-model="filterStatus" @change="refreshFilter" style="float: right;">
+      <el-checkbox-group v-model="filter.status" @change="refreshJobs" style="float: right;">
         <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
       </el-checkbox-group>
     </el-col>
@@ -258,12 +258,10 @@ export default {
   data () {
     return {
       project: localStorage.getItem('selected_project'),
-      filterCubeName: '',
+      filterName: '',
       filterStatus: [],
       lockST: null,
       scrollST: null,
-      filterTimeZone: 1,
-      currentPage: 1,
       stCycle: null,
       showStep: false,
       selected_job: {},
@@ -275,7 +273,10 @@ export default {
         pageOffset: 0,
         pageSize: pageCount,
         projectName: localStorage.getItem('selected_project'),
-        timeFilter: 1
+        timeFilter: 1,
+        jobName: '',
+        sortby: 'last_modify',
+        status: []
       },
       allStatus: [
         {name: 'PENDING', value: 1},
@@ -381,53 +382,41 @@ export default {
     },
     transToGmtTime: transToGmtTime,
     currentChange: function (val) {
-      this.currentPage = val
-      this.refreshFilter()
+      this.filter.pageOffset = val - 1
+      this.refreshJobs()
     },
     closeIt () {
       if (this.showStep) {
         this.showStep = false
       }
     },
-    refreshFilter: function () {
-      let filter = {
-        pageOffset: this.currentPage - 1,
-        pageSize: pageCount,
-        projectName: localStorage.getItem('selected_project'),
-        timeFilter: this.filterTimeZone
-      }
-      if (this.filterCubeName) {
-        this.$set(filter, 'jobName', this.filterCubeName)
-      }
-      if (this.filterStatus.length > 0) {
-        this.$set(filter, 'status', this.filterStatus)
-      }
-      this.loadJobsList(filter)
-    },
-    filterChange () {
-      clearTimeout(this.lockST)
-      this.lockST = setTimeout(() => {
-        this.refreshFilter()
-      }, 1000)
-    },
     diagnosisJob: function (a, target) {
       this.diagnosisVisible = true
       this.targetId = target
     },
+    filterChange () {
+      this.$set(this.filter, 'jobName', this.filterName.toLowerCase())
+      clearTimeout(this.lockST)
+      this.lockST = setTimeout(() => {
+        this.refreshJobs()
+      }, 1000)
+    },
     refreshJobs: function () {
-      let setting = {
-        pageOffset: this.currentPage - 1,
-        pageSize: pageCount,
-        projectName: localStorage.getItem('selected_project'),
-        timeFilter: this.filterTimeZone
+      return this.loadJobsList(this.filter)
+    },
+    sortJobList (column, prop, order) {
+      let _column = column.column
+      if (_column.order === 'ascending') {
+        this.filter.reverse = false
       }
-      if (this.filterCubeName) {
-        this.$set(setting, 'jobName', this.filterCubeName)
+      if (_column.label === this.$t('JobName')) {
+        this.filter.sortby = 'job_name'
+      } else if (_column.label === this.$t('TableModelCube')) {
+        this.filter.sortby = 'cube_name'
+      } else if (_column.label === this.$t('LastModifiedTime')) {
+        this.filter.sortby = 'last_modify'
       }
-      if (this.filterStatus.length > 0) {
-        this.$set(setting, 'status', this.filterStatus)
-      }
-      return this.loadJobsList(setting)
+      this.loadJobsList(this.filter)
     },
     resume: function (job) {
       kapConfirm(this.$t('resumeJob')).then(() => {
@@ -436,7 +425,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.actionSuccess')
           })
-          this.refreshFilter()
+          this.refreshJobs()
         }).catch((res) => {
           handleError(res)
         })
@@ -449,7 +438,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.actionSuccess')
           })
-          this.refreshFilter()
+          this.refreshJobs()
         }).catch((res) => {
           handleError(res)
         })
@@ -462,7 +451,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.actionSuccess')
           })
-          this.refreshFilter()
+          this.refreshJobs()
         }).catch((res) => {
           handleError(res)
         })
@@ -475,7 +464,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.delSuccess')
           })
-          this.refreshFilter()
+          this.refreshJobs()
         }).catch((res) => {
           handleError(res)
         })
@@ -523,27 +512,6 @@ export default {
         return min.toFixed(2) + ' mins'
       }
     },
-    sortJobList (column, prop, order) {
-      let _column = column.column
-      this.filter = {
-        pageOffset: this.currentPage - 1,
-        pageSize: pageCount,
-        projectName: localStorage.getItem('selected_project'),
-        timeFilter: this.filterTimeZone,
-        reverse: true
-      }
-      if (_column.order === 'ascending') {
-        this.filter.reverse = false
-      }
-      if (_column.label === this.$t('JobName')) {
-        this.filter.sortby = 'job_name'
-      } else if (_column.label === this.$t('TableModelCube')) {
-        this.filter.sortby = 'cube_name'
-      } else if (_column.label === this.$t('LastModifiedTime')) {
-        this.filter.sortby = 'last_modify'
-      }
-      this.loadJobsList(this.filter)
-    },
     closeLoginOpenKybot () {
       this.kyBotUploadVisible = false
       this.infoKybotVisible = true
@@ -557,7 +525,14 @@ export default {
 </script>
 <style lang="less">
 @import '../../less/config.less';
-.jobs_list {
+#jobs_list {
+  .el-table__header .caret-wrapper .ascending{
+    border-color: transparent transparent #97a8be transparent;
+  }
+  .el-table__header .caret-wrapper .descending{
+    border-color: #97a8be transparent transparent  transparent;
+  }
+  border-color: @grey-color;
   .el-dialog__title{
     font-size: 14px!important;
   }
