@@ -5,7 +5,7 @@
 <!--     <draggable  @start="drag=true" @end="drag=false"> -->
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
       <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
-      <tree  v-if="extraoption.uuid && !isFullScreen && !modelInfo.is_draft" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree"></tree>
+      <tree  v-if="extraoption.uuid && !isFullScreen && !modelInfo.is_draft" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree" maxlevel="2"></tree>
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">

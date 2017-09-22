@@ -49,7 +49,7 @@ export default {
   beforeRouteEnter (to, from, next) {
     if (from.path === '/access/login') {
       next(vm => {
-        vm.$set(vm.fromLogin, 'needReset', true)
+        vm.$set(vm.$store.state.system, 'needReset', true)
       })
     } else {
       next()

@@ -3,6 +3,7 @@ import * as types from './types'
 import { getProperty } from '../util/business'
 export default {
   state: {
+    needReset: false,
     authentication: null,
     serverConfig: null,
     serverEnvironment: null,

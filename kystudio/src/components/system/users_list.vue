@@ -52,6 +52,7 @@
       </template>
     </el-table-column>
   </el-table>
+
   <pager class="ksd-center" ref="pager" :totalSize="usersListSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
   <el-dialog @close="closeAddUser" :title="$t('addUser')" v-model="addUserFormVisible">
     <add_user :newUser="selected_user" ref="addUser" v-on:validSuccess="addUserValidSuccess"></add_user>
@@ -77,7 +78,7 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin.needReset" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
+  <el-dialog :title="$t('resetPassword')" v-model="resetAdmin" :show-close="false" :close-on-click-modal="false" :close-on-press-escape="false">
     <el-alert style="margin-bottom:10px;"
       :title="$t('refinePassword')"
       type="info"
@@ -102,7 +103,6 @@ import resetPassword from './reset_password'
 import { pageCount, permissions } from '../../config'
 export default {
   name: 'userslist',
-  props: ['fromLogin'],
   data () {
     return {
       selected_user: {},
@@ -110,7 +110,6 @@ export default {
       editRoleFormVisible: false,
       resetPasswordFormVisible: false,
       currentPage: 1,
-      resetAdmin: this.fromLogin,
       adminSetting: {
         username: 'ADMIN',
         password: '',
@@ -289,7 +288,7 @@ export default {
           message: this.$t('kylinLang.common.updateSuccess')
         })
         this.resetPasswordFormVisible = false
-        this.resetAdmin.needReset = false
+        this.$store.state.system.needReset = false
       }).catch((result) => {
         handleError(result)
       })
@@ -298,6 +297,12 @@ export default {
     }
   },
   computed: {
+    resetAdmin () {
+      if (this.$store.state.system.needReset) {
+        return true
+      }
+      return false
+    },
     usersListSize () {
       return this.$store.state.user.usersSize
     },

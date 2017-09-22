@@ -6,7 +6,7 @@
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
-      <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="2" :showfilter="false" :allowdrag="false" @nodeclick="clickTable"></tree>
+      <tree :treedata="hiveAssets"  :expandall='true'  maxLabelLen="20" :indent="2" :showfilter="false" :allowdrag="false" @nodeclick="clickTable" maxlevel="3"></tree>
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/no_table.png" v-show="!tableData"/>
@@ -335,7 +335,7 @@
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, hasRole, kapWarn, transToGmtTime, hasPermission } from '../../util/business'
 import { permissions } from '../../config'
-import { changeDataAxis, isFireFox } from '../../util/index'
+import { changeDataAxis, isFireFox, objectArraySort } from '../../util/index'
 import createKafka from '../kafka/create_kafka'
 import editKafka from '../kafka/edit_kafka'
 import viewKafka from '../kafka/view_kafka'
@@ -646,8 +646,10 @@ export default {
               // childObj.checked = true
               obj.children.push(childObj)
             }
+            obj.children = objectArraySort(obj.children, true, 'label')
             datasourceTreeData.children.push(obj)
           }
+          datasourceTreeData.children = objectArraySort(datasourceTreeData.children, true, 'label')
           this.hiveAssets = [datasourceTreeData]
           this.$nextTick(() => {
             // 可视区高 - 66（header的高）- 48（面包屑的占位）- 33（tab高）- 33（子tab高）- 79（列表上方那几块的高）
