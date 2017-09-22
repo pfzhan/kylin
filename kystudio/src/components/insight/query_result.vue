@@ -216,10 +216,23 @@ export default {
             show: true,
             feature: {
               mark: {show: true},
-              dataView: {show: true, readOnly: false},
-              magicType: {show: true, type: ['line', 'bar']},
-              restore: {show: true},
-              saveAsImage: {show: true}
+              dataView: {show: false, readOnly: false},
+              magicType: {
+                show: true,
+                type: ['line', 'bar'],
+                title: {
+                  line: this.$t('lineChart'),
+                  bar: this.$t('barChart')
+                }
+              },
+              restore: {
+                show: true,
+                title: this.$t('restore')},
+              saveAsImage: {
+                show: true,
+                title: 'Picture',
+                lang: this.$t('save')
+              }
             }
           },
           calculable: true,
@@ -295,7 +308,7 @@ export default {
             show: true,
             feature: {
               mark: {show: true},
-              dataView: {show: true, readOnly: false},
+              dataView: {show: false, readOnly: false},
               magicType: {
                 show: true,
                 type: ['pie', 'funnel'],
@@ -306,10 +319,21 @@ export default {
                     funnelAlign: 'left',
                     max: 1548
                   }
+                },
+                title: {
+                  line: this.$t('lineChart'),
+                  bar: this.$t('barChart')
                 }
               },
-              restore: {show: true},
-              saveAsImage: {show: true}
+              restore: {
+                show: true,
+                title: this.$t('restore')
+              },
+              saveAsImage: {
+                show: true,
+                title: 'Picture',
+                lang: this.$t('save')
+              }
             }
           },
           calculable: true,
@@ -432,8 +456,8 @@ export default {
     }
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图'}
   }
 }
 </script>
