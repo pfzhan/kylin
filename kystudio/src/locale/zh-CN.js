@@ -86,6 +86,7 @@ exports.default = {
     saveDraft: '系统正在响应保存草稿的请求，请稍后。',
     streamingConnectHiveError: '尚不支持Hive表与Streaming表关联。',
     seeDetail: '详情 >>',
+    notConnectServer: '目前无法连接到KAP。请检查您的网络连接状况和KAP服务器运行状态。',
     willClose: '检测到您有未保存的信息，是否继续关闭?'
   },
   model: {

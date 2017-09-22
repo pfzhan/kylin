@@ -17,11 +17,21 @@ export function handleSuccess (res, callback, errorcallback) {
 // 失败回调入口
 export function handleError (res, errorcallback) {
   var responseData = res && res.data || null
+  var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
   if (typeof errorcallback !== 'function') {
-    var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
     window.kapVm.$store.state.config.errorMsgBox.isShow = true
     window.kapVm.$store.state.config.errorMsgBox.msg = msg
     window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
+  }
+  if (res.status === 504) {
+    window.kapVm.$store.state.config.errorMsgBox.isShow = true
+    window.kapVm.$store.state.config.errorMsgBox.msg = window.kapVm.$t('kylinLang.common.notConnectServer')
+    window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
+    if (typeof errorcallback === 'function') {
+      errorcallback(responseData.data, responseData.code, res.status, window.kapVm.$t('kylinLang.common.notConnectServer'))
+      return
+    }
+    return
   }
   if (responseData && responseData.code) {
     if (typeof errorcallback === 'function') {
