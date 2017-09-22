@@ -10,6 +10,7 @@
     :show-checkbox="showCheckbox"
     node-key="id"
     class="filter-tree"
+    :empty-text="emptyText"
     :indent="indent"
     :data="treedata"
     :props="defaultProps"
@@ -38,7 +39,7 @@
         this.$refs.tree2.filter(val)
       }
     },
-    props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent', 'expandnodeclick'],
+    props: ['treedata', 'renderTree', 'placeholder', 'multiple', 'expandIdList', 'maxlevel', 'showfilter', 'allowdrag', 'showCheckbox', 'lazy', 'expandall', 'maxLabelLen', 'titleLabel', 'emptytext', 'indent', 'expandnodeclick', 'emptyText'],
     methods: {
       // 过滤点击变色
       filterNode (value, data) {
@@ -215,7 +216,7 @@
     text-align: center;
     margin-right: 2px;
   }
- 
+
   .empty_text{
     font-size: 12px;
     text-align: center;

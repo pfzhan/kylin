@@ -190,6 +190,7 @@
            <tree :indent="2"
                  :multiple="true"
                  :treedata="hiveData"
+                 :emptyText="dialogEmptyText"
                  maxLabelLen="24"
                  maxlevel="3"
                  ref="subtree"
@@ -376,6 +377,9 @@ export default {
       kafkaFormVisible: false,
       editKafkaFormVisible: false,
       hiveData: [],
+      pageLoadHiveAllData: [],
+      dialogTreeHiveDataIsReady: false,
+      dialogEmptyText: this.$t('dialogHiveTreeLoading'),
       filterVal: '',
       currentStreamingTable: '',
       currentStreamingTableData: '',
@@ -396,7 +400,9 @@ export default {
   },
   created () {
     if (this.project) {
+      // 页面上默默加载全部数据
       this.loadHiveTree()
+      this.loadAllHiveTreeData()
     }
   },
   methods: {
@@ -452,8 +458,10 @@ export default {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         return
       }
-      // 页面上默默加载全部数据
-      this.loadAllHiveTreeData()
+      // 直接赋值，会有监控报错，不知道是不是tree的问题，加延迟，类似拉取得是请求
+      window.setTimeout(() => {
+        this.hiveData = this.pageLoadHiveAllData
+      })
       this.load_hive_dalog_visible = true
       this.$refs.subtree && this.$refs.subtree.cancelCheckedAll()
       this.selectTables = []
@@ -663,6 +671,7 @@ export default {
       })
     },
     loadAllHiveTreeData: function () {
+      this.dialogTreeHiveDataIsReady = false
       this.loadDatabase().then((res) => {
         handleSuccess(res, (data) => {
           var targetData = [
@@ -687,9 +696,12 @@ export default {
             }
             targetData[0].children.push(obj)
           }
-          this.hiveData = targetData
+          this.pageLoadHiveAllData = targetData
+          this.dialogTreeHiveDataIsReady = true
+          this.dialogEmptyText = this.pageLoadHiveAllData.length > 0 ? '' : this.$t('dialogHiveTreeNoData')
         })
       }, (res) => {
+        this.dialogTreeHiveDataIsReady = true
         handleError(res)
       })
     },
@@ -730,7 +742,7 @@ export default {
         }
       }
     },
-    loadChildNode (node, resolve) {
+    /* loadChildNode (node, resolve) {
       if (node.level === 0) {
         return resolve([{label: 'Hive Tables'}])
       } else if (node.level === 1) {
@@ -777,7 +789,7 @@ export default {
       } else {
         resolve([])
       }
-    },
+    }, */
     clickTable (leaf) {
       var databaseInfo = leaf.id.split('$')
       if (databaseInfo.length === 2) {
@@ -958,6 +970,14 @@ export default {
     }
   },
   watch: {
+    'dialogTreeHiveDataIsReady' (value) {
+      if (value !== undefined) {
+        if (this.load_hive_dalog_visible === true) {
+          this.dialogEmptyText = this.pageLoadHiveAllData.length > 0 ? '' : this.$t('dialogHiveTreeNoData')
+          this.hiveData = this.pageLoadHiveAllData
+        }
+      }
+    },
     'filterVal' (val) {
       this.$refs.subtree.$emit('filter', val)
     },
@@ -973,8 +993,8 @@ export default {
     }
   },
   locales: {
-    'en': {'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.', 'access': 'Access'},
-    'zh-cn': {'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。', 'access': '权限'}
+    'en': {'dialogHiveTreeNoData': 'no data', 'dialogHiveTreeLoading': 'loading', 'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.', 'access': 'Access'},
+    'zh-cn': {'dialogHiveTreeNoData': '暂无数据', 'dialogHiveTreeLoading': '加载中', 'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。', 'access': '权限'}
   }
 }
 </script>
