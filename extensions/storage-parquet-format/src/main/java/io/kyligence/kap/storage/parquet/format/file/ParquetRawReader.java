@@ -246,7 +246,7 @@ public class ParquetRawReader {
             int uncompressedSize) throws IOException {
         if (decompressor == null) {
             byte[] buffer = new byte[compressedSize];
-            inputStream.read(buffer, 0, compressedSize);
+            inputStream.readFully(buffer, 0, compressedSize);
             return buffer;
         } else {
             CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
@@ -260,7 +260,7 @@ public class ParquetRawReader {
 
     private byte[] readAsBytesInput(int size) throws IOException {
         byte[] buffer = new byte[size];
-        inputStream.read(buffer, 0, size);
+        inputStream.readFully(buffer, 0, size);
         return buffer;
     }
 
