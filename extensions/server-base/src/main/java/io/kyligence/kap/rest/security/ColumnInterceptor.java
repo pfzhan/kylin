@@ -31,12 +31,12 @@ import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.security.QueryIntercept;
-import org.apache.kylin.query.security.QueryInterceptUtil;
+import org.apache.kylin.query.security.QueryInterceptor;
+import org.apache.kylin.query.security.QueryInterceptorUtil;
 
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 
-public class ColumnIntercept extends QueryIntercept implements IKeep {
+public class ColumnInterceptor extends QueryInterceptor implements IKeep {
 
     @Override
     protected boolean isEnabled() {
@@ -46,7 +46,7 @@ public class ColumnIntercept extends QueryIntercept implements IKeep {
     @Override
     public Set<String> getQueryIdentifiers(List<OLAPContext> contexts) {
         String project = getProject(contexts);
-        return QueryInterceptUtil.getAllColsWithTblAndSchema(project, contexts);
+        return QueryInterceptorUtil.getAllColsWithTblAndSchema(project, contexts);
     }
 
     @Override

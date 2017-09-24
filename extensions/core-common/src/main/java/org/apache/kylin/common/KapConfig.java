@@ -345,10 +345,18 @@ public class KapConfig {
     }
 
     public boolean isRowACLEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.query.acl.row-acl-enabled", "true"));
+        return Boolean.valueOf(config.getOptional("kap.query.security.row-acl-enabled", "true"));
     }
 
     public boolean isColumnACLEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.query.acl.column-acl-enabled", "true"));
+        return Boolean.valueOf(config.getOptional("kap.query.security.column-acl-enabled", "true"));
+    }
+
+    public boolean isImplicitComputedColumnConvertEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.implicit-computed-column-convert", "true"));
+    }
+
+    public boolean isCognosParenthesesEscapeEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.cognos-parentheses-escape", "false"));
     }
 }

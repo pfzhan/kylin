@@ -32,6 +32,7 @@ import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.collect.Lists;
@@ -44,10 +45,18 @@ public class CognosParenthesesEscape implements QueryUtil.IQueryTransformer, IKe
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
+        if (!KapConfig.getInstanceFromEnv().isCognosParenthesesEscapeEnabled()) {
+            return sql;
+        }
+
         if (sql == null || sql.isEmpty()) {
             return sql;
         }
 
+        return completion(sql);
+    }
+
+    String completion(String sql) {
         Map<Integer, Integer> parenthesesPairs = findParenthesesPairs(sql);
         if (parenthesesPairs.isEmpty()) {
             // parentheses not found

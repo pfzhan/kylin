@@ -44,6 +44,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataManager;
@@ -66,8 +67,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     @Override
     public String transform(String originSql, String project, String defaultSchema) {
+        if (!KapConfig.getInstanceFromEnv().isImplicitComputedColumnConvertEnabled()) {
+            return originSql;
+        }
         try {
-
             String sql = originSql;
             if (project == null || sql == null) {
                 return sql;

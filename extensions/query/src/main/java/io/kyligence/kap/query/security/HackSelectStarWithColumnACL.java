@@ -33,6 +33,7 @@ import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
@@ -50,7 +51,7 @@ import io.kyligence.kap.metadata.acl.ColumnACLManager;
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IKeep {
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!isSingleSelectStar(sql) || !isColumnInterceptEnable()) {
+        if (!isSingleSelectStar(sql) || !isColumnInterceptorEnabled()) {
             return sql;
         }
 
@@ -98,14 +99,8 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return cols;
     }
 
-    private static boolean isColumnInterceptEnable() {
-        String[] classes = KylinConfig.getInstanceFromEnv().getQueryIntercept();
-        for (String c : classes) {
-            if (c.contains("ColumnIntercept")) {
-                return true;
-            }
-        }
-        return false;
+    private static boolean isColumnInterceptorEnabled() {
+        return KapConfig.getInstanceFromEnv().isColumnACLEnabled();
     }
 
     private static boolean isSingleSelectStar(String sql) {
