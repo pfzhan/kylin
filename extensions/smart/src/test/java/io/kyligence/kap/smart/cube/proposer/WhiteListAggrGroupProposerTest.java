@@ -77,4 +77,22 @@ public class WhiteListAggrGroupProposerTest {
             Assert.assertArrayEquals(rule.mandatoryDims, aggregationGroup.getIncludes());
         }
     }
+
+    @Test
+    public void testOnStarModelWithoutSQL() throws JsonProcessingException {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        String[] sqls = new String[0];
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, sqls);
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        WhiteListAggrGroupProposer proposer = new WhiteListAggrGroupProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        newCubeDesc.validateAggregationGroups();
+
+        List<AggregationGroup> aggregationGroups = newCubeDesc.getAggregationGroups();
+        Assert.assertEquals(1, aggregationGroups.size());
+        Assert.assertEquals(newCubeDesc.getRowkey().getRowKeyColumns().length,
+                aggregationGroups.get(0).getIncludes().length);
+    }
 }

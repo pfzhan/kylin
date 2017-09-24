@@ -102,4 +102,20 @@ public class AggrGroupProposerTest {
         SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
         Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
     }
+
+    @Test
+    public void testOnSnowModelWithSQL() throws JsonProcessingException {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
+                new String[] { "select count(*) from kylin_sales" });
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        newCubeDesc.validateAggregationGroups();
+
+        SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
+        Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
+    }
 }

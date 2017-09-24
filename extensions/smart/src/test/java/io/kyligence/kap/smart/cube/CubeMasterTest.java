@@ -38,8 +38,7 @@ import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.junit.AfterClass;
-import org.junit.Ignore;
+import org.junit.After;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -48,12 +47,12 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.query.Utils;
 
-@Ignore("Ignore because this is only used for demo.")
+//@Ignore("Ignore because this is only used for demo.")
 public class CubeMasterTest {
-    public static String aggrStrategy = "whitelist";
+    public static String aggrStrategy = "mixed";
 
-    @AfterClass
-    public static void afterClass() {
+    @After
+    public void afterClass() {
         KylinConfig.destroyInstance();
     }
 
@@ -72,12 +71,9 @@ public class CubeMasterTest {
         testInternal("src/test/resources/tpch/meta", "lineitem_model", "src/test/resources/tpch/sql_lineitem");
     }
 
-    @Ignore
     @Test
     public void testE2E_Airline() throws IOException {
-//        testInternal("src/test/resources/airline/meta", "airline_model", null);
-        testInternal("/Users/dong/Desktop/meta_2017_09_08_08_29_43", "poc_model_v1", "/Users/dong/Desktop/rong.sql");
-
+        testInternal("src/test/resources/airline/meta", "airline_model", null);
     }
 
     private void testInternal(String metaDir, String modelName, String sqlDir) throws IOException {
@@ -115,7 +111,7 @@ public class CubeMasterTest {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
         kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", aggrStrategy);
-        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
+        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "false");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
@@ -123,7 +119,7 @@ public class CubeMasterTest {
         CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
 
         CubeDesc cubeDesc = master.proposeAll();
-        cubeDesc.init(kylinConfig);
+        cubeDesc.init(KylinConfig.getInstanceFromEnv());
         System.out.println(JsonUtil.writeValueAsIndentString(cubeDesc));
 
         for (AggregationGroup aggGroup : cubeDesc.getAggregationGroups()) {

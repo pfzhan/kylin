@@ -38,7 +38,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,14 +58,12 @@ public class ModelMasterTest {
         KylinConfig.destroyInstance();
     }
 
-    @Ignore
     @Test
     public void testE2E_LearnKylin() throws Exception {
         testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
                 "src/test/resources/learn_kylin/sql");
     }
 
-    @Ignore
     @Test
     public void testE2E_LearnKylin_dupJoins_1() throws Exception {
         DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
@@ -75,7 +72,6 @@ public class ModelMasterTest {
         Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }
 
-    @Ignore
     @Test
     public void testE2E_LearnKylin_dupJoins_2() throws Exception {
         DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
@@ -84,32 +80,27 @@ public class ModelMasterTest {
         Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }
 
-    @Ignore
     @Test
     public void testE2E_SSB() throws Exception {
         testInternal("src/test/resources/ssb/meta", "ssb", "src/test/resources/ssb/sql");
     }
 
-    @Ignore
     @Test
     public void testE2E_TPCH_LineItem() throws Exception {
         testInternal("src/test/resources/tpch/meta", "tpch", "src/test/resources/tpch/sql_lineitem");
     }
 
-    @Ignore
     @Test
     public void testE2E_TPCDS_ss() throws Exception {
         testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES",
                 "src/test/resources/tpcds/sql_ss");
     }
 
-    @Ignore
     @Test
     public void testE2E_TPCDS_MultiFact() throws Exception {
         testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss");
     }
 
-    @Ignore
     @Test
     public void testE2E_TPCDS_SelfJoin() throws Exception {
         testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss_selfjoin");

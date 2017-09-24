@@ -44,14 +44,13 @@ public class ConfigOverrideProposerTest {
 
     @BeforeClass
     public static void beforeClass() {
-        System.setProperty("kap.smart.conf.cuboid-combination-override", "true");
+        kylinConfig.setProperty("kap.smart.conf.cuboid-combination-override", "true");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
     }
 
     @AfterClass
     public static void afterClass() {
         KylinConfig.destroyInstance();
-        System.clearProperty("kap.smart.conf.cuboid-combination-override");
     }
 
     @Test
@@ -59,6 +58,21 @@ public class ConfigOverrideProposerTest {
         DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
+        CubeDesc cubeDesc = context.getDomain().buildCubeDesc();
+
+        ConfigOverrideProposer proposer = new ConfigOverrideProposer(context);
+        proposer.propose(cubeDesc);
+        Map<String, String> props = cubeDesc.getOverrideKylinProps();
+
+        Assert.assertEquals(Integer.toString(268435456), props.get("kylin.cube.aggrgroup.max-combination"));
+    }
+
+    @Test
+    public void testProposeWithSQL() {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
+                new String[] { "select count(*) from kylin_sales" });
         CubeDesc cubeDesc = context.getDomain().buildCubeDesc();
 
         ConfigOverrideProposer proposer = new ConfigOverrideProposer(context);

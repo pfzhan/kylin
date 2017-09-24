@@ -81,4 +81,20 @@ public class DerivedDimensionProposerTest {
         newCubeDesc.init(kylinConfig);
         Assert.assertEquals(28, newCubeDesc.getDimensions().size());
     }
+
+    @Test
+    public void testOnSnowModelWithSQL() throws JsonProcessingException {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
+                new String[] { "select count(*) from kylin_sales" });
+
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        Assert.assertEquals(32, initCubeDesc.getDimensions().size());
+
+        DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        Assert.assertEquals(28, newCubeDesc.getDimensions().size());
+    }
 }

@@ -145,7 +145,7 @@ public class CubeContextBuilder {
         Domain usedDomain = new DefaultDomainBuilder(smartConfig, queryStats, initCubeDesc).build();
         MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
-        DataModelDesc modelDesc = initCubeDesc.getModel();
+        DataModelDesc modelDesc = metadataManager.getDataModelDesc(initCubeDesc.getModelName());
 
         // set model stats
         ModelStats modelStats = null;

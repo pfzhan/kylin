@@ -76,4 +76,17 @@ public class RowkeyProposerTest {
         newCubeDesc.init(kylinConfig);
         Assert.assertEquals(DateDimEnc.ENCODING_NAME, newCubeDesc.getRowkey().getRowKeyColumns()[5].getEncoding());
     }
+
+    @Test
+    public void testOnSnowModelWithSQL() throws JsonProcessingException {
+        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
+                new String[] { "select count(*) from kylin_sales where part_dt is null" });
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        RowkeyProposer proposer = new RowkeyProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        Assert.assertEquals("KYLIN_SALES.PART_DT", newCubeDesc.getRowkey().getRowKeyColumns()[0].getColumn());
+    }
 }
