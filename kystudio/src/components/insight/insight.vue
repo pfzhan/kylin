@@ -1,7 +1,7 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar" id="input-inner">
-     <tree class="insight-search" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable" maxlevel="3"></tree>
+     <tree class="insight-search" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable" maxlevel="4"></tree>
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
