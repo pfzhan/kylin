@@ -27,8 +27,8 @@
           :label="item"
           :value="item">
         </el-option>
-      </el-select>     
-      <el-tag v-else>{{getParameterType}}</el-tag> 
+      </el-select>
+      <el-tag v-else>{{getParameterType}}</el-tag>
     </el-form-item>
     <el-form-item>
       <el-checkbox v-model="showDim" v-if="measure.function.parameter.type !== 'constant'">{{$t('includeDimensions')}}</el-checkbox>
@@ -47,7 +47,7 @@
           <span style="float: right; color: #8492a6; font-size: 13px">{{modelDesc.columnsDetail && modelDesc.columnsDetail[item] && modelDesc.columnsDetail[item].datatype}}</span>
         </el-option>
       </el-select>
-      <el-tag v-else>{{getParameterValue}}</el-tag>   
+      <el-tag v-else>{{getParameterValue}}</el-tag>
     </el-form-item>
 
     <el-form-item :label="$t('extendedColumn')"  v-if="measure.function.expression === 'EXTENDED_COLUMN'">
@@ -58,8 +58,8 @@
           :label="item"
           :value="item">
         </el-option>
-      </el-select>     
-    </el-form-item>     
+      </el-select>
+    </el-form-item>
     <el-form-item :label="getReturnTypeLab" >
       <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || measure.function.expression === 'PERCENTILE' || measure.function.parameter.type === 'constant'">
         {{getReturnType}}
@@ -102,13 +102,13 @@
             <el-input v-model="selectableMeasure.value.secondNumber"></el-input>
             <span class="decimal-right">)</span>
           </div>
-        </el-col>  
-      </el-row>  
-    </el-form-item> 
+        </el-col>
+      </el-row>
+    </el-form-item>
 
     <el-form-item v-if="measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype === 'bitmap'" >
       <el-checkbox v-model="isReuse" @change="changeReuse">{{$t('reuse')}}</el-checkbox>
-    </el-form-item> 
+    </el-form-item>
 
     <el-form-item v-if="isReuse && measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype === 'bitmap'" :label="$t('reuse')" >
       <el-select v-model="reuseColumn">
@@ -119,14 +119,15 @@
           :value="item">
         </el-option>
       </el-select>
-    </el-form-item> 
+    </el-form-item>
 
     <el-table id="table-measures" v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap')"
       style="width: 100%"
+      border
       :data="convertedColumns">
       <el-table-column
         :label="$t('ID')"
-        width="100">
+        width="60">
         <template scope="scope">
           <el-tag>{{scope.$index+1}}</el-tag>
         </template>
@@ -135,7 +136,7 @@
         :label="$t('column')">
         <template scope="scope">
           <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct, topnWidth : !isCountDistinct}" filterable>
-           <el-option   
+           <el-option
             v-for="(item, index) in getMultipleColumns"
             :label="item"
             :key="index"
@@ -146,7 +147,7 @@
       </el-table-column>
       <el-table-column v-if="measure.function.expression === 'TOP_N'"
         :label="$t('encoding')"
-        width="180">
+        width="100">
         <template scope="scope">
           <el-select v-model="scope.row.encoding" @change="changeEncoding(scope.row);">
             <el-option
@@ -158,7 +159,7 @@
                 <span style="float: left;width: 90%">{{ item.name }}</span>
                 <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
               </el-tooltip>
-          </el-option>              
+          </el-option>
         </el-select>
       </template>
       </el-table-column>
@@ -166,8 +167,8 @@
         :label="$t('length')"
         width="100">
         <template scope="scope">
-          <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('boolean')>=0"></el-input>     
-        </template>  
+          <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('boolean')>=0"></el-input>
+        </template>
       </el-table-column>
       <el-table-column
         width="50">
@@ -178,7 +179,7 @@
     </el-table>
     <el-row v-if="measure.function.expression === 'TOP_N' || (measure.function.expression === 'COUNT_DISTINCT' && measure.function.returntype !== 'bitmap') ">
      <el-col :span="24" >
-    <el-button type="primary" icon="plus" size="mini" @click="addNewProperty" style="margin-top: 10px;">
+    <el-button type="primary" icon="plus" size="mini" @click="addNewProperty" style="margin-top: 10px;height: 30px">
       {{$t('newColumn')}}
     </el-button>
     </el-col>
@@ -794,6 +795,7 @@ export default {
     }
     .el-input__inner{
       background: @input-bg;
+      height: 30px;
     }
     .el-tag{
       top: 0!important;
@@ -801,6 +803,26 @@ export default {
     }
     .el-button--mini{
       background: #ff4949;
+    }
+    .el-table__header {
+      thead {
+        tr {
+          background: #4f5473;
+          th {
+            background: #4f5473;
+            border-right:1px solid #393e53;
+            .cell {
+              background: #4f5473;
+            }
+          }
+        }
+      }
+    }
+    .el-table__row {
+      background: #2b2d3c;
+      td {
+        border-right:1px solid #393e53;
+      }
     }
   }
   #add-measure{
