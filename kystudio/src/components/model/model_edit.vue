@@ -1841,8 +1841,11 @@ export default {
     removeAllLinks () {
       for (var i in this.showLinkCons) {
         var conn = this.showLinkCons[i]
-        this.plumbInstance.deleteConnection(conn)
+        if (conn && conn.endpoints) {
+          this.plumbInstance.deleteConnection(conn)
+        }
       }
+      this.showLinkCons = {}
     },
     addJoinCondition: function (p1, p2, col1, col2, joinType, newCondition) {
       var link = [p1, p2, col1, col2, joinType, newCondition]
