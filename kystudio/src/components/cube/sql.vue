@@ -1,12 +1,15 @@
 <template>
-<div>
-<el-input
-  v-model="getJSON"
-  type="textarea"
-  :rows="18"
-  :readonly="true">
-</el-input>
-</div>
+  <div>
+  <el-input v-if="getJSON !== ''"
+    v-model="getJSON"
+    type="textarea"
+    :autosize="{ minRows: 4, maxRows: 10}"
+    :readonly="true">
+  </el-input>
+  <el-card v-else>
+    {{$t('NoSQLInfo')}}
+  </el-card>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
@@ -21,19 +24,23 @@ export default {
   },
   methods: {
     ...mapActions({
-      getCubesSql: 'GET_CUBE_SQL'
+      getSql: 'GET_SAMPLE_SQL'
     }),
     loadCubeSql: function () {
       if (!this.cube.sql) {
-        this.getCubesSql(this.cube.name).then((res) => {
+        this.getSql(this.cube.name).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            this.$set(this.cube, 'sql', data.sql)
+            this.$set(this.cube, 'sql', data.sqls.join(';\r\n'))
           })
-        }).catch((res) => {
-          handleError(res, () => {})
+        }, (res) => {
+          handleError(res)
         })
       }
     }
+  },
+  locales: {
+    'en': {NoSQLInfo: 'No SQL Info.'},
+    'zh-cn': {NoSQLInfo: '没有SQL的相关信息。'}
   }
 }
 </script>

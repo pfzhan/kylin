@@ -4,7 +4,7 @@
     <el-col :span="4">
       <el-input
         icon="search"
-        v-model="filterName"
+        v-model="filter.jobName"
         :placeholder="$t('kylinLang.common.pleaseFilter')"
         @change="filterChange">
       </el-input>
@@ -395,7 +395,6 @@ export default {
       this.targetId = target
     },
     filterChange () {
-      this.$set(this.filter, 'jobName', this.filterName.toLowerCase())
       clearTimeout(this.lockST)
       this.lockST = setTimeout(() => {
         this.refreshJobs()
