@@ -564,7 +564,7 @@ export default {
     showRowClass (o) {
       return o.is_draft ? 'is_draft' : ''
     },
-    _getCubesLists: function (curPage, timeZone) {
+    loadCubesList: function (curPage) {
       let cubesNameList = []
       let param = {pageSize: pageCount, pageOffset: curPage}
       if (localStorage.getItem('selected_project')) {
@@ -580,6 +580,7 @@ export default {
       if (this.extraoption && this.extraoption.cubeName) {
         param.cubeName = this.extraoption.cubeName
       }
+      let timeZone = localStorage.getItem('GlobalSeverTimeZone') ? localStorage.getItem('GlobalSeverTimeZone') : ''
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data) => {
           this.cubesList = data.cubes.map((p) => {
@@ -636,14 +637,6 @@ export default {
       }, (res) => {
         handleError(res)
       })
-    },
-    loadCubesList: function (curPage) {
-      let serverTimeZone = localStorage.getItem('GlobalSeverTimeZone') ? localStorage.getItem('GlobalSeverTimeZone') : ''
-      if (!this.$store.state.system.timeZone) {
-        this._getCubesLists(curPage, serverTimeZone)
-      } else {
-        this._getCubesLists(curPage, this.$store.state.system.timeZone)
-      }
     },
     drop: function (cube) {
       if (!(cube.segments && cube.segments.length >= 0)) {
