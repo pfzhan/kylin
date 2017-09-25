@@ -85,6 +85,10 @@ public class ModelContext extends AbstractContext {
             classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());
         }
         Map<String, String> orig2corrected = new HashMap<>();
+        // correct fact table alias in 1st place
+        String factTableName = rootFactTable.getName();
+        orig2corrected.put(factTableName, factTableName);
+        classifiedAlias.remove(factTableName);
         for (Entry<String, TableDesc> entry : classifiedAlias.entrySet()) {
             String original = entry.getKey();
             String tableName = entry.getValue().getName();
