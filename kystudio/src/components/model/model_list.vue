@@ -448,7 +448,7 @@ export default {
       }
       let endTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
       let startTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
-      if (!((endTime === startTime && startTime === 0) || endTime > startTime)) {
+      if (startTime !== 0 && endTime !== 0 && (endTime <= startTime)) {
         // callback(new Error(this.$t('timeCompare')))
       } else {
         callback()
@@ -481,7 +481,7 @@ export default {
 
       let endTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
       let startTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
-      if (!((endTime === startTime && startTime === 0) || endTime > startTime)) {
+      if (startTime !== 0 && endTime !== 0 && (endTime <= startTime)) {
         callback(new Error(this.$t('timeCompare')))
       } else {
         callback()
@@ -884,6 +884,19 @@ export default {
       }
       this.$refs['modelCheckForm'].validate((valid) => {
         if (valid) {
+          console.log('check')
+          var tempStartTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
+          var tempEndTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
+          var tempObj = {start: null, end: null}
+          if (tempStartTime === 0 && tempEndTime === 0) {
+            tempObj = {start: 0, end: 0}
+          } else if (tempStartTime === 0 && tempEndTime !== 0) {
+            tempObj = {start: null, end: tempEndTime}
+          } else if (tempStartTime !== 0 && tempEndTime === 0) {
+            tempObj = {start: tempStartTime, end: null}
+          } else {
+            tempObj = {start: tempStartTime, end: tempEndTime}
+          }
           this.btnLoading = true
           this.statsModel({
             project: this.currentModelData.project,
@@ -891,8 +904,8 @@ export default {
             data: {
               // startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
               // endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
-              startTime: isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime(),
-              endTime: isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime(),
+              startTime: tempObj.start,
+              endTime: tempObj.end,
               ratio: this.modelStaticsRange
             }
           }).then(() => {
