@@ -60,7 +60,7 @@
           <!--</transition>-->
         </el-col>
         <el-dialog title="Project" v-model="FormVisible" @close="resetProjectForm">
-          <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess">
+          <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible">
           </project_edit>
           <span slot="footer" class="dialog-footer">
             <el-button @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>

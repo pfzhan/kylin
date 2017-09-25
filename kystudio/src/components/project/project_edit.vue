@@ -4,23 +4,24 @@
       <el-form-item :label="$t('projectName')" prop="name">
         <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off"></el-input>
       </el-form-item>
-      <el-form-item :label="$t('description')" >
+      <el-form-item :label="$t('description')" prop="description">
         <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off"></el-input>
       </el-form-item>
-      <el-col class="project-config">{{$t('projectConfig')}}</el-col>
-      <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
-        <el-col :span="10">
-          <el-form-item prop="key">
-            <el-input v-model="property.key" placeholder="key"></el-input>
-          </el-form-item>
-        </el-col>
-        <el-col :span="10">
-          <el-form-item prop="value">
-            <el-input v-model="property.value" placeholder="value"></el-input>
-          </el-form-item>
-        </el-col>
-        <el-col :span="4"><el-button type="danger"  @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
-    </el-row>    
+      <el-form-item :label="$t('projectConfig')" prop="configuration">
+        <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
+          <el-col :span="10">
+            <el-form-item prop="key">
+              <el-input v-model="property.key" placeholder="key"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="10">
+            <el-form-item prop="value">
+              <el-input v-model="property.value" placeholder="value"></el-input>
+            </el-form-item>
+          </el-col>
+          <el-col :span="4"><el-button type="danger"  @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
+      </el-row> 
+    </el-form-item>   
     <el-form-item>
       <el-button @click="addNewProperty" icon="close">{{$t('property')}}</el-button>
     </el-form-item>    
@@ -92,16 +93,15 @@ export default {
     }
   },
   created () {
-    let _this = this
-    _this.$on('projectFormValid', (t) => {
-      _this.$refs['projectForm'].validate((valid) => {
+    this.$on('projectFormValid', (t) => {
+      this.$refs['projectForm'].validate((valid) => {
         if (valid) {
-          if (!_this.checkProperty()) {
-            _this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
-            _this.$emit('validSuccess', this.projectDesc)
+          if (!this.checkProperty()) {
+            this.projectDesc.override_kylin_properties = fromArrToObj(this.convertedProperties)
+            this.$emit('validSuccess', this.projectDesc)
           }
         } else {
-          _this.$emit('validFailed')
+          this.$emit('validFailed')
           return false
         }
       })
