@@ -276,7 +276,7 @@
       <span slot="title">{{$t('addDimensions')}}
         <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="exclamation-circle"></icon></common-tip>
       </span>
-      <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDesc="cubeDesc" :sampleSql="sampleSql"></add_dimensions>
+      <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDesc="cubeDesc" :sampleSql="sampleSql" :oldData="oldData"></add_dimensions>
       <span slot="footer" class="dialog-footer">
         <el-button @click="dimensionsClose()">{{$t('cancel')}}</el-button>
         <el-button type="primary" @click="checkAddDimensions">{{$t('yes')}}</el-button>
@@ -292,7 +292,7 @@ import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
 export default {
   name: 'dimensions',
-  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql', 'oldData'],
   data () {
     return {
       activeName: 'first',

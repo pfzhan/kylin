@@ -103,7 +103,7 @@ import { removeNameSpace, getNameSpaceTopName } from '../../../util/index'
 import { handleSuccess, handleError, kapConfirm } from '../../../util/business'
 export default {
   name: 'adddimensions',
-  props: ['modelDesc', 'cubeDesc', 'sampleSql'],
+  props: ['modelDesc', 'cubeDesc', 'sampleSql', 'oldData'],
   data () {
     return {
       factTableColumns: [],
@@ -265,7 +265,7 @@ export default {
     reset: function () {
       kapConfirm(this.$t('resetTip')).then(() => {
         this.getTableColumns()
-        this.getCubeColumnInTable(this.cubeDesc.oldDimensions || [])
+        this.getCubeColumnInTable(this.oldData.oldDimensions || [])
       })
     }
   },

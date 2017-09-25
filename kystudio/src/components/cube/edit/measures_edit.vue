@@ -121,7 +121,7 @@ import { needLengthMeasureType } from '../../../config/index'
 import { handleSuccess, handleError, kapConfirm } from 'util/business'
 export default {
   name: 'measures',
-  props: ['cubeDesc', 'modelDesc', 'cubeInstance', 'sampleSql'],
+  props: ['cubeDesc', 'modelDesc', 'cubeInstance', 'sampleSql', 'oldData'],
   data () {
     return {
       selectType: ['bigint', 'int', 'integer', 'smallint', 'tinyint', 'double', 'float'],
@@ -145,8 +145,8 @@ export default {
     }),
     resetMeasures: function () {
       kapConfirm(this.$t('deleteMeasuresTip')).then(() => {
-        this.cubeDesc.measures = this.cubeDesc.oldMeasures || []
-        this.cubeDesc.hbase_mapping.column_family = this.cubeDesc.oldColumnFamily || []
+        this.cubeDesc.measures = this.oldData.oldMeasures || []
+        this.cubeDesc.hbase_mapping.column_family = this.oldData.oldColumnFamily || []
         this.initColumnFamily()
       })
     },

@@ -17,8 +17,8 @@
   <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
   <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :healthStatus="healthStatus"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
-  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"></dimensions>
-  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"></measures>
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :oldData="oldData"></dimensions>
+  <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"  :oldData="oldData"></measures>
   <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
   <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
   <configuration_overwrites v-if="activeStep===6" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit"></configuration_overwrites>
@@ -93,6 +93,11 @@ export default {
           engine_type: '',
           storage_type: ''
         }
+      },
+      oldData: {
+        oldDimensions: [],
+        oldMeasures: [],
+        oldColumnFamily: []
       },
       sampleSql: {
         sqlString: '',
@@ -796,9 +801,9 @@ export default {
           if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy']) {
             this.$set(this.cubeDetail.override_kylin_properties, 'kap.smart.conf.aggGroup.strategy', this.$store.state.system.strategy || 'default')
           }
-          this.cubeDetail.oldDimensions = objectClone(this.cubeDetail.dimensions)
-          this.cubeDetail.oldMeasures = objectClone(this.cubeDetail.measures)
-          this.cubeDetail.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
+          this.oldData.oldDimensions = objectClone(this.cubeDetail.dimensions)
+          this.oldData.oldMeasures = objectClone(this.cubeDetail.measures)
+          this.oldData.oldColumnFamily = objectClone(this.cubeDetail.hbase_mapping.column_family)
           function loadRowTable (isDraft) {
             _this.$store.state.cube.cubeRowTableIsSetting = false
             _this.loadRawTable({cubeName: _this.extraoption.cubeName, project: _this.selected_project}).then((res) => {
