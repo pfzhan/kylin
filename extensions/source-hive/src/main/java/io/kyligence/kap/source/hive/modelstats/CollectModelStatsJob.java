@@ -46,34 +46,43 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
+import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 public class CollectModelStatsJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
     private static final KylinConfig config = KylinConfig.getInstanceFromEnv();
+    private static final int doFactStats = 1;
+    private static final int doLookupStats = 2;
+    private static final int doModelCheck = 4;
 
     private SegmentRange segRange;
     private String project;
     private String modelName;
     private String submitter;
     private int frequency;
+    private boolean forceUpdate = false;
+    private int checkList = 7;
 
     // for reflection only
     public CollectModelStatsJob() {
     }
 
     public CollectModelStatsJob(String project, String modelName, String submitter, SegmentRange segRange,
-            int frequency) {
+            int frequency, int checkList, boolean forceUpdate) {
         this.project = project;
         this.modelName = modelName;
         this.submitter = submitter;
         this.segRange = segRange;
         this.frequency = frequency;
+        this.checkList = checkList;
+        this.forceUpdate = forceUpdate;
     }
 
     public CollectModelStatsJob(String project, String modelName) {
@@ -103,8 +112,6 @@ public class CollectModelStatsJob extends CubingJob {
         setParam(CubingExecutableUtil.CUBE_NAME, modelName);
 
         MetadataManager manager = MetadataManager.getInstance(config);
-        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
-        ModelStats modelStats = modelStatsManager.getModelStats(modelName);
 
         DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, segRange, getId());
@@ -115,24 +122,47 @@ public class CollectModelStatsJob extends CubingJob {
 
         boolean isAvail = (factTableExtDesc != null) && factTableExtDesc.getColumnStats().size() > 0;
 
-        //Step1: check duplicate key
-        checkDuplicateKeyStep();
-        //Step2: check data skew
-        checkDataSkewStep(isAvail);
-        //step3: create flat table
-        addTask(createStatsFlatTableStep(jobConf, flatTableDesc, this.getId()));
-        //step4: extract model stats
-        extractModelStatsStep();
-        //step5: update model stats metadata
-        updateMetaStep();
-        //step6: clean up intermediate table
-        addTask(deleteFlatTable(flatTableDesc.getTableName()));
+        // Do fact table stats firstly
+        if (isSelected(doFactStats, checkList) && (forceUpdate || (isAvail == false))) {
+            new HiveTableExtSampleJob(project, factTableName, frequency).start(this);
+        }
 
-        modelStats.setStartTime(segRange == null ? 0L : (Long) segRange.start.v);
-        modelStats.setEndTime(segRange == null ? 0L : (Long) segRange.end.v);
-        modelStats.setJodID(getId());
-        modelStatsManager.saveModelStats(modelStats);
+        // Do lookup table stats
+        if (isSelected(doLookupStats, checkList)) {
+            checkLookupStats(dataModelDesc, manager);
+            checkDuplicateKeyStep();
+        }
+
+        if (isSelected(doModelCheck, checkList)) {
+            //Check data skew if fact table stats exists
+            checkDataSkewStep();
+            //step1: create flat table
+            addTask(createStatsFlatTableStep(jobConf, flatTableDesc, this.getId()));
+            //step2: extract model stats
+            extractModelStatsStep();
+            //step3: update model stats metadata
+            updateMetaStep();
+            //step4: clean up intermediate table
+            addTask(deleteFlatTable(flatTableDesc.getTableName()));
+
+            ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
+            ModelStats modelStats = modelStatsManager.getModelStats(modelName);
+            modelStats.setStartTime(segRange == null ? 0L : (Long) segRange.start.v);
+            modelStats.setEndTime(segRange == null ? 0L : (Long) segRange.end.v);
+            modelStats.setJodID(getId());
+            modelStatsManager.saveModelStats(modelStats);
+        }
         return this;
+    }
+
+    private void checkLookupStats(DataModelDesc dataModelDesc, MetadataManager manager) throws IOException {
+        for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
+            String s = fTable.getTable();
+            TableExtDesc extDesc = manager.getTableExt(s, dataModelDesc.getProject());
+            if (forceUpdate || extDesc.getColumnStats().size() == 0) {
+                new HiveTableExtSampleJob(project, s, frequency).start(this);
+            }
+        }
     }
 
     private void checkDuplicateKeyStep() {
@@ -142,9 +172,7 @@ public class CollectModelStatsJob extends CubingJob {
         addTask(checkLookupStep);
     }
 
-    private void checkDataSkewStep(boolean isAvail) {
-        if (false == isAvail)
-            return;
+    private void checkDataSkewStep() {
         CheckDataSkewStep checkDataSkewStep = new CheckDataSkewStep();
         checkDataSkewStep.setName("Check Data Skew");
         checkDataSkewStep.setParam(CheckLookupStep.MODEL_NAME, modelName);
@@ -228,5 +256,9 @@ public class CollectModelStatsJob extends CubingJob {
 
     private String getOutputPath(String jobID) {
         return config.getHdfsWorkingDirectory() + "model_stats/" + jobID + "/";
+    }
+
+    private boolean isSelected(final int item, final int list) {
+        return (list & item) != 0;
     }
 }

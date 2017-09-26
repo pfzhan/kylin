@@ -88,10 +88,6 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     public String start(CubingJob parent) throws IOException {
-        String runningJobID = findRunningJob();
-        if (runningJobID != null)
-            return runningJobID;
-
         addSteps(parent);
         return parent.getId();
     }

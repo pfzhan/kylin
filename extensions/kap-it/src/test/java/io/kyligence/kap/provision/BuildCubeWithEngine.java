@@ -72,7 +72,8 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
     protected boolean testModel() throws Exception {
         String modelName = "ci_inner_join_model";
         logger.info("Start testing model stats: {}", modelName);
-        DefaultChainedExecutable job = new CollectModelStatsJob("default", modelName, "TEST", new TSRange(0L, Long.MAX_VALUE), 1).build();
+        DefaultChainedExecutable job = new CollectModelStatsJob("default", modelName, "TEST",
+                new TSRange(0L, Long.MAX_VALUE), 1, 7, false).build();
         jobService.addJob(job);
         ExecutableState state = waitForJob(job.getId());
         return Boolean.valueOf(ExecutableState.SUCCEED == state);

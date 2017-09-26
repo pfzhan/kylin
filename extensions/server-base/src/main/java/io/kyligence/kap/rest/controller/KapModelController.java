@@ -134,10 +134,10 @@ public class KapModelController extends BasicController {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getTSRANGE_ERROR());
         }
 
-        Map<String, String> ret = kapModelService.doModelCheck(project, modelName, submitter, tsRange,
-                req.getFrequency(), req.getCheckList(), req.getForceUpdate());
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, ret, "");
+        CollectModelStatsJob job = new CollectModelStatsJob(project, modelName, submitter, //
+                tsRange, req.getFrequency(), req.getCheckList(), req.getForceUpdate());
+        String jobId = job.start();
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobInstance(jobId), "");
     }
 
     @RequestMapping(value = "{project}/{modelName}/diagnose", method = { RequestMethod.GET }, produces = {

@@ -29,14 +29,11 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
-import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
@@ -45,10 +42,8 @@ import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.model.DimensionAdvisor;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
-import io.kyligence.kap.source.hive.modelstats.CollectModelStatsJob;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
-import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 @Component("kapModelService")
 public class KapModelService extends BasicService {
@@ -150,53 +145,6 @@ public class KapModelService extends BasicService {
         return ret;
     }
 
-    public Map<String, String> doModelCheck(String project, String modelName, String submitter, SegmentRange tsRange,
-            int frequency, int checkList, boolean forceUpdate) throws IOException {
-
-        DataModelDesc dataModelDesc = getMetadataManager().getDataModelDesc(modelName);
-        Map<String, String> ret = new HashMap<>();
-        String jobId;
-
-        if (ModelCheckList.isSelected(ModelCheckList.doFactStats, checkList)) {
-            String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-            if (hasRunningJob(project, factTableName)) {
-                logger.info("Fact table: {}, already has a stats running job.", factTableName);
-            } else if (forceUpdate || hasTableStatsJob(project, factTableName) == false) {
-                jobId = new HiveTableExtSampleJob(project, factTableName, frequency).start();
-                ret.put("Fact table: " + factTableName + " stats job", jobId);
-            }
-        }
-
-        if (ModelCheckList.isSelected(ModelCheckList.doLookupStats, checkList)) {
-            for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
-                String t = fTable.getTable();
-                if (hasRunningJob(project, t)) {
-                    logger.info("Lookup table: {}, already has a stats running job.", t);
-                    continue;
-                }
-
-                if (forceUpdate || hasTableStatsJob(project, t) == false) {
-                    jobId = new HiveTableExtSampleJob(project, t, frequency).start();
-                    ret.put("Lookup table: " + t + " stats job", jobId);
-                }
-            }
-        }
-
-        if (ModelCheckList.isSelected(ModelCheckList.doModelCheck, checkList)) {
-            jobId = new CollectModelStatsJob(project, modelName, submitter, tsRange, frequency).start();
-            ret.put("Model: " + modelName + " stats job", jobId);
-        }
-        return ret;
-    }
-
-    private boolean hasRunningJob(String project, String tableName) {
-        return (new HiveTableExtSampleJob(project, tableName)).findRunningJob() != null;
-    }
-
-    private boolean hasTableStatsJob(String project, String tableName) {
-        return getMetadataManager().getTableExt(tableName, project).getColumnStats().size() > 0;
-    }
-
     public void removeJobIdFromModelStats(String jobId) {
         ModelStatsManager msManager = ModelStatsManager.getInstance(getConfig());
         for (DataModelDesc desc : getMetadataManager().listDataModels()) {
@@ -211,15 +159,5 @@ public class KapModelService extends BasicService {
                 logger.error("Failed to get model stats: {}", desc.getName());
             }
         }
-    }
-}
-
-class ModelCheckList {
-    public final static int doFactStats = 1;
-    public final static int doLookupStats = 2;
-    public final static int doModelCheck = 4;
-
-    public static boolean isSelected(final int item, final int list) {
-        return (list & item) != 0;
     }
 }

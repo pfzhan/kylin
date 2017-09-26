@@ -53,8 +53,8 @@ public class ModelDiagnose {
     private static final Logger logger = LoggerFactory.getLogger(ModelDiagnose.class);
 
     private static final long FACT_SKEW_THRESHOLD = KapConfig.getInstanceFromEnv().getJointDataSkewThreshold();
-    private static final float FLAT_TABLE_RECORDS_RATIO = 0.01F;
-    private static final float LEFT_JOIN_NULL_TOLERANCE = 0.1F;
+    private static final float FLAT_TABLE_RECORDS_RATIO = 0.001F;
+    private static final float LEFT_JOIN_NULL_TOLERANCE = 0.001F;
 
     /**
      *
@@ -107,11 +107,10 @@ public class ModelDiagnose {
     public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config)
             throws IOException {
 
+        MetadataManager metadataManager = MetadataManager.getInstance(config);
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
-        TableExtDesc tableExtDesc = MetadataManager.getInstance(config).getTableExt(factTableName,
-                dataModelDesc.getProject());
-        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(factTableName,
-                dataModelDesc.getProject());
+        TableDesc tableDesc = metadataManager.getTableDesc(factTableName, dataModelDesc.getProject());
+        TableExtDesc tableExtDesc = metadataManager.getTableExt(tableDesc);
         if (tableExtDesc.getColumnStats().size() == 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
             return;
