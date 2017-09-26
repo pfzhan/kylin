@@ -171,7 +171,7 @@ public class ModelBasedSQLAdviceProposer extends AbstractSQLAdviceProposer {
             }
         }
         return String.format("%s JOIN: %s", chain.getJoin().getType().toUpperCase(),
-                StringUtils.join(joinConditions, ","));
+                StringUtils.join(joinConditions, ", "));
     }
 
     private JoinUnmatchedType getJoinUnmatchedType(JoinsTree.Chain chain, JoinsTree joinsTree,

@@ -176,7 +176,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatTblColRefs(Collection<TblColRef> tblColRefs) {
-        return Joiner.on(',').join(Collections2.transform(tblColRefs, new Function<TblColRef, String>() {
+        return Joiner.on(", ").join(Collections2.transform(tblColRefs, new Function<TblColRef, String>() {
             @Nullable
             @Override
             public String apply(@Nullable TblColRef tblColRef) {
@@ -186,7 +186,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatFunctionDescs(Collection<FunctionDesc> functionDescs) {
-        return Joiner.on(',').join(Collections2.transform(functionDescs, new Function<FunctionDesc, String>() {
+        return Joiner.on(", ").join(Collections2.transform(functionDescs, new Function<FunctionDesc, String>() {
             @Nullable
             @Override
             public String apply(@Nullable FunctionDesc functionDesc) {
@@ -197,7 +197,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatJoins(Collection<JoinDesc> joins) {
-        return Joiner.on(',').join(Collections2.transform(joins, new Function<JoinDesc, String>() {
+        return Joiner.on(", ").join(Collections2.transform(joins, new Function<JoinDesc, String>() {
             @Nullable
             @Override
             public String apply(@Nullable JoinDesc input) {
@@ -207,7 +207,7 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
     }
 
     protected String formatTables(Collection<OLAPTableScan> olapTableScans) {
-        return Joiner.on(',').join(Collections2.transform(olapTableScans, new Function<OLAPTableScan, String>() {
+        return Joiner.on(", ").join(Collections2.transform(olapTableScans, new Function<OLAPTableScan, String>() {
             @Nullable
             @Override
             public String apply(@Nullable OLAPTableScan input) {
