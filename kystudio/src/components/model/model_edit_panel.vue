@@ -58,7 +58,14 @@
                     </div>
                   </div>
                 </el-tab-pane>
-
+                <el-tab-pane :label="$t('sql')" name="fifth">
+                  <div>
+                    <editor v-show="sqlPatterns.length > 0" ref="sqlPatterns" v-model="sqlString"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
+                    <el-card v-show="sqlPatterns.length === 0" style="height:220;width: 100%">
+                      {{$t('NoSQLInfo')}}
+                    </el-card>
+                  </div>
+                </el-tab-pane>
             </el-tabs>
         </el-tab-pane>
         <el-tab-pane :label="$t('tableStatistics')" name="second">
@@ -94,7 +101,7 @@
 import { mapActions } from 'vuex'
 import { changeDataAxis } from '../../util/index'
 import { modelHealthStatus } from '../../config'
-import { handleSuccess } from '../../util/business'
+import { handleSuccess, filterMutileSqlsToOneLine } from '../../util/business'
 import partitionColumn from 'components/model/model_partition.vue'
 export default {
   name: 'modelPanel',
@@ -121,9 +128,10 @@ export default {
   components: {
     'partition-column': partitionColumn
   },
-  props: ['modelInfo', 'compeleteModelId', 'actionMode', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect'],
+  props: ['modelInfo', 'compeleteModelId', 'actionMode', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect', 'sqlString'],
   methods: {
     ...mapActions({
+      getAutoModelSql: 'GET_AUTOMODEL_SQL',
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
     setColumnDisable (guid, columnName, isComputed) {
@@ -243,6 +251,9 @@ export default {
     }
   },
   computed: {
+    sqlPatterns () {
+      return filterMutileSqlsToOneLine(this.sqlString)
+    },
     editMode () {
       return this.editLock
     },
@@ -340,7 +351,19 @@ export default {
     }
 
   },
+  mounted () {
+    var editor = this.$refs.sqlPatterns && this.$refs.sqlPatterns.editor || ''
+    editor.setOption('wrap', 'free')
+    editor.setReadOnly(true)
+  },
   created () {
+    this.getAutoModelSql({
+      modelName: this.modelInfo.modelName
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.sqlString = data.sqls.join(';\r\n')
+      })
+    })
     this.$on('menu-toggle', (currentMenuStatus) => {
       this.slideSubMenu(currentMenuStatus)
     })
@@ -352,8 +375,8 @@ export default {
     clearTimeout(this.ST)
   },
   locales: {
-    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description.', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health'},
-    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述。', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件', health: '模型健康'}
+    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description.', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health', NoSQLInfo: 'No SQL patterns.', sql: 'SQL Patterns'},
+    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述。', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件', health: '模型健康', NoSQLInfo: '没有"SQL查询记录"的相关信息。', sql: 'SQL Patterns'}
   }
 }
 </script>

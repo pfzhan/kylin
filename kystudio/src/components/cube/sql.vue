@@ -1,25 +1,20 @@
 <template>
   <div>
-  <el-input v-if="getJSON !== ''"
-    v-model="getJSON"
-    type="textarea"
-    :autosize="{ minRows: 4, maxRows: 10}"
-    :readonly="true">
-  </el-input>
-  <el-card v-else>
-    {{$t('NoSQLInfo')}}
-  </el-card>
+    <editor v-if="cube.sql && cube.sql.length>0" ref="sqlPatterns" v-model="sqlPatterns"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
+    <el-card v-else style="height:220;width: 90%">
+      {{$t('NoSQLInfo')}}
+    </el-card>
   </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../util/business'
 export default {
-  name: 'showsql',
+  name: 'showSQL',
   props: ['cube'],
   computed: {
-    getJSON () {
-      return this.cube.sql
+    sqlPatterns () {
+      return this.cube.sql && this.cube.sql.join(';\r\n') || ''
     }
   },
   methods: {
@@ -27,20 +22,25 @@ export default {
       getSql: 'GET_SAMPLE_SQL'
     }),
     loadCubeSql: function () {
-      if (!this.cube.sql) {
-        this.getSql(this.cube.name).then((res) => {
-          handleSuccess(res, (data, code, status, msg) => {
-            this.$set(this.cube, 'sql', data.sqls.join(';\r\n'))
+      this.getSql(this.cube.name).then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$set(this.cube, 'sql', data.sqls)
+          this.$nextTick(() => {
+            if (this.cube.sql && this.cube.sql.length > 0) {
+              var editor = this.$refs.sqlPatterns && this.$refs.sqlPatterns.editor || ''
+              editor.setOption('wrap', 'free')
+              editor.setReadOnly(true)
+            }
           })
-        }, (res) => {
-          handleError(res)
         })
-      }
+      }, (res) => {
+        handleError(res)
+      })
     }
   },
   locales: {
-    'en': {NoSQLInfo: 'No SQL Info.'},
-    'zh-cn': {NoSQLInfo: '没有SQL的相关信息。'}
+    'en': {NoSQLInfo: 'No SQL patterns.'},
+    'zh-cn': {NoSQLInfo: '没有"SQL查询记录"的相关信息。'}
   }
 }
 </script>

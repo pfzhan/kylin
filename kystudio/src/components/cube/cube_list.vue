@@ -26,7 +26,7 @@
           <el-tab-pane label="Grid" name="first" v-if="!props.row.is_draft">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
           </el-tab-pane>
-          <el-tab-pane label="SQL" name="second" v-if="!props.row.is_draft">
+          <el-tab-pane label="SQL Patterns" name="second" v-if="!props.row.is_draft">
             <show_sql :cube="props.row"></show_sql>
           </el-tab-pane>
           <el-tab-pane label="JSON" name="third" v-if="!props.row.is_draft">
@@ -533,7 +533,7 @@ export default {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkCubeName({cubeName: this.cubeMeta.cubeName}).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.selected_project}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {

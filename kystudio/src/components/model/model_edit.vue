@@ -231,7 +231,7 @@
             <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
-      <model-tool @changeColumnType="changeColumnBType" v-if="modelDataLoadEnd" :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu"></model-tool>
+      <model-tool @changeColumnType="changeColumnBType" v-if="modelDataLoadEnd" :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu" :sqlString="sqlString"></model-tool>
 
        <!-- 添加cube -->
 
@@ -1022,7 +1022,7 @@ export default {
     createCube () {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
-          this.checkCubeName({cubeName: this.cubeMeta.cubeName}).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.cubeMeta.projectName}).then((res) => {
             handleSuccess(res, (data) => {
               if (data && data.size > 0) {
                 this.$message({

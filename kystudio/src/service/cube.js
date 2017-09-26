@@ -61,7 +61,7 @@ export default {
     return Vue.resource(apiUrl + 'cubes').save(cube)
   },
   checkCubeNameAvailability: (para) => {
-    return Vue.resource(apiUrl + 'cubes?cubeName=' + para.cubeName).get()
+    return Vue.resource(apiUrl + 'cubes?cubeName=' + para.cubeName + '&projectName=' + para.project).get()
   },
   calCuboid: (cubeDesc) => {
     // var resultUrl = cubeDesc.aggIndex === -1 ? 'cuboid' : 'aggregationgroups/' + cubeDesc.aggIndex + '/cuboid'
