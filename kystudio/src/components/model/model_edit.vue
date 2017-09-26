@@ -1024,9 +1024,9 @@ export default {
     createCube () {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
-          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.cubeMeta.projectName}).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName}).then((res) => {
             handleSuccess(res, (data) => {
-              if (data && data.size > 0) {
+              if (!data) {
                 this.$message({
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'

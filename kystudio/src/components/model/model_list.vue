@@ -555,10 +555,10 @@ export default {
       this.$refs['addModelForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkModelName({modelName: this.createModelMeta.modelName, project: localStorage.getItem('selected_project')}).then((res) => {
+          this.checkModelName({modelName: this.createModelMeta.modelName}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
-              if (data.size === 0) {
+              if (data) {
                 this.createModelVisible = false
                 this.$emit('addtabs', 'model', this.createModelMeta.modelName, 'modelEdit', {
                   project: localStorage.getItem('selected_project'),
@@ -591,10 +591,10 @@ export default {
       this.$refs['addCubeForm'].validate((valid) => {
         if (valid) {
           this.btnLoading = true
-          this.checkCubeName({cubeName: this.cubeMeta.cubeName, project: this.cubeMeta.projectName}).then((res) => {
+          this.checkCubeName({cubeName: this.cubeMeta.cubeName}).then((res) => {
             this.btnLoading = false
             handleSuccess(res, (data) => {
-              if (data && data.size > 0) {
+              if (!data) {
                 this.$message({
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'

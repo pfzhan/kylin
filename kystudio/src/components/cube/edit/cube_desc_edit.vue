@@ -215,9 +215,9 @@ export default {
     checkCubeInfo: function () {
       let nameUsed = false
       if (!this.isEdit) {
-        this.checkCubeNameAvailability({cubeName: this.cubeDetail.name, project: this.selected_project}).then((res) => {
+        this.checkCubeNameAvailability({cubeName: this.cubeDetail.name}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
-            if (data === false) {
+            if (!data) {
               this.$message({
                 showClose: true,
                 duration: 3000,

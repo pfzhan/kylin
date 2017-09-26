@@ -43,7 +43,7 @@ export default {
     })
   },
   checkModelName: (para) => {
-    return Vue.resource(apiUrl + 'models?modelName=' + para.modelName + '&projectName=' + para.project).get()
+    return Vue.resource(apiUrl + 'models/validate/' + para.modelName).get()
   },
   checkUsedCols: (modelName) => {
     return Vue.resource(apiUrl + 'models/' + modelName + '/usedCols').get()

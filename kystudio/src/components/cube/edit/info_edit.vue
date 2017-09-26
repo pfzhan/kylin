@@ -135,7 +135,7 @@ export default {
       this.cubeDesc.notify_list = this.getNotifyList.split(',')
     },
     validate: function (rule, value, callback) {
-      if (!(/^\w+$/).test(this.newUser.password)) {
+      if (!(/^\w+$/).test(this.cubeDesc.name)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
       } else {
         callback()
