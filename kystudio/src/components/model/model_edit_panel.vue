@@ -349,7 +349,6 @@ export default {
       }
       return this.resultMeasureArr
     }
-
   },
   mounted () {
     var editor = this.$refs.sqlPatterns && this.$refs.sqlPatterns.editor || ''
@@ -357,13 +356,6 @@ export default {
     editor.setReadOnly(true)
   },
   created () {
-    this.getAutoModelSql({
-      modelName: this.modelInfo.modelName
-    }).then((res) => {
-      handleSuccess(res, (data) => {
-        this.sqlString = data.sqls.join(';\r\n')
-      })
-    })
     this.$on('menu-toggle', (currentMenuStatus) => {
       this.slideSubMenu(currentMenuStatus)
     })

@@ -337,6 +337,7 @@ export default {
       successMsg: '',
       hasCheck: false,
       sqlString: '',
+      oldSqlString: '',
       result: [],
       checkExpressionBtnLoad: false,
       checkExpressResult: {},
@@ -563,6 +564,7 @@ export default {
         confirmButtonText: this.$t('kylinLang.common.close'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
       }).then(() => {
+        this.sqlString = this.oldSqlString
         this.addSQLFormVisible = false
       })
     },
@@ -703,7 +705,6 @@ export default {
       this.firstLoad = false
     },
     inputSql () {
-      this.sqlString = ''
       this.errorMsg = ''
       this.successMsg = ''
       this.ignoreErrorSql = false
@@ -731,6 +732,7 @@ export default {
               // }
               this.hasCheck = true
               this.sqlString = sqls.join(';\r\n')
+              this.oldSqlString = sqls.join(';\r\n')
               this.firstLoad = true
               this.addBreakPoint(errorInfo, editor)
               editor && editor.on('change', this.editerChangeHandle)
@@ -2775,6 +2777,15 @@ export default {
     }
   },
   created () {
+    this.getAutoModelSql({
+      modelName: this.extraoption.modelName
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.sqlString = data.sqls.join(';\r\n')
+      })
+    }, (res) => {
+      handleError(res)
+    })
     this.reloadCubeTree()
     // 初始化project下的datasouce信息供tablestatice使用
     // var project = this.extraoption.project || localStorage.getItem('selected_project')
