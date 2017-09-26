@@ -63,11 +63,11 @@ public class JoinProposer extends AbstractModelProposer {
             Map<String, JoinTableDesc> joinTablesModification = new HashMap<>();
             boolean skipModification = false;
 
-            Map<JoinDesc, TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
+            List<TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
 
-            for (Entry<JoinDesc, TableKind> entry : tableKindByJoins.entrySet()) {
-                JoinDesc join = entry.getKey();
-                TableKind kind = entry.getValue();
+            for (int i = 0; i < ctx.joins.size(); i++) {
+                JoinDesc join = ctx.joins.get(i);
+                TableKind kind = tableKindByJoins.get(i);
                 String pkTblAlias = tableAliasMap.get(join.getPKSide());
                 String fkTblAlias = tableAliasMap.get(join.getFKSide());
 

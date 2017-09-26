@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -66,8 +67,8 @@ public class JoinDescUtil {
         return joinTableDesc;
     }
 
-    public static Map<JoinDesc, TableKind> resolveTableType(List<JoinDesc> joins) {
-        Map<JoinDesc, TableKind> tableKindByJoins = new HashMap<>();
+    public static List<TableKind> resolveTableType(List<JoinDesc> joins) {
+        List<TableKind> tableKindByJoins = new ArrayList<>();
         Map<String, JoinDesc> fkTables = new HashMap<>();
         for (JoinDesc joinDesc : joins) {
             TableRef table = joinDesc.getFKSide();
@@ -81,9 +82,9 @@ public class JoinDescUtil {
             TableRef table = joinDesc.getPKSide();
             String tableAlias = table.getAlias();
             if (fkTables.containsKey(tableAlias)) {
-                tableKindByJoins.put(joinDesc, TableKind.FACT);
+                tableKindByJoins.add(TableKind.FACT);
             } else {
-                tableKindByJoins.put(joinDesc, TableKind.LOOKUP);
+                tableKindByJoins.add(TableKind.LOOKUP);
             }
         }
         return tableKindByJoins;
