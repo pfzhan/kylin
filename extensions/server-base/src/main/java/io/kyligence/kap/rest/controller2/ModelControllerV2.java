@@ -94,6 +94,13 @@ public class ModelControllerV2 extends BasicController {
     @Qualifier("cacheService")
     private CacheService cacheService;
 
+    @RequestMapping(value = "/validate/{modelName}", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateModelName(@PathVariable String modelName) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.isModelNameValidate(modelName), "");
+    }
+
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getModelsPaging(@RequestParam(value = "modelName", required = false) String modelName,

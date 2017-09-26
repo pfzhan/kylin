@@ -118,6 +118,12 @@ public class KapCubeController extends BasicController implements InitializingBe
     public void afterPropertiesSet() throws Exception {
     }
 
+    @RequestMapping(value = "/validate/{cubeName}", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse<Boolean> validateModelName(@PathVariable String cubeName) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, cubeService.isCubeNameVaildate(cubeName), "");
+    }
+
     /**
      * get Columnar Info
      *
