@@ -59,9 +59,9 @@
                   </div>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('sql')" name="fifth">
-                  <div>
+                  <div style="margin-left:30px">
                     <editor v-show="sqlPatterns.length > 0" ref="sqlPatterns" v-model="sqlString"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
-                    <el-card v-show="sqlPatterns.length === 0" style="height:220;width: 100%">
+                    <el-card v-show="sqlPatterns.length === 0" style="font-size: 12px">
                       {{$t('NoSQLInfo')}}
                     </el-card>
                   </div>
@@ -421,7 +421,7 @@ export default {
     }
     >.el-tabs{
       >.el-tabs__content{
-        height: 400px;
+        height: 308px;
       }
     }
     .el-table__fixed-header-wrapper thead div{
