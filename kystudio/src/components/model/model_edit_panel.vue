@@ -81,7 +81,7 @@
               </el-table-column>
             </el-table>
             <div style="font-size:12px;" class="ksd-mt-10"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
-        <el-table
+          <el-table
           :data="modelStatics.slice(1)"
           border
           style="width: 100%">
@@ -417,6 +417,7 @@ export default {
 
     .el-table__fixed{
       box-shadow: none;
+      overflow-y: hidden;
     }
     >.el-tabs{
       >.el-tabs__content{

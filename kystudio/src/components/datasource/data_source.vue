@@ -212,8 +212,8 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel  @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
-        <p class="ksd-mt-10 ksd-extend-tips">{{$t('loadHiveTip')}}</p>
+		 	  <arealabel :validateRegex="/^\w+\.\w+$/" @validateFail="selectedHiveValidateFail" @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+        <div class="ksd-mt-10 ksd-extend-tips" v-html="$t('loadHiveTip')"></div>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->
           <!-- <span class="demonstration">Sample percentage</span> -->
@@ -400,8 +400,8 @@ export default {
   },
   created () {
     if (this.project) {
-      // 页面上默默加载全部数据
       this.loadHiveTree()
+      // 页面上默默加载全部数据
       this.loadAllHiveTreeData()
     }
   },
@@ -497,6 +497,9 @@ export default {
       this.selectTables = this.selectTables.filter((t) => {
         return t.id === val
       })
+    },
+    selectedHiveValidateFail () {
+      this.$message(this.$t('selectedHiveValidateFailText'))
     },
     // 加载Hive列表
     loadHivesAction (tableNamesArr, btn) {
@@ -993,8 +996,8 @@ export default {
     }
   },
   locales: {
-    'en': {'dialogHiveTreeNoData': 'no data', 'dialogHiveTreeLoading': 'loading', 'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': 'You can select tables from the left hive table tree or edit it manually, and you can press ENTER to distinguish table name. By default, system will choose "default" as database name, and you can specify database as \'database.table\'. Table names should be separated with comma. You can load 1000 tables once as maximum.', 'access': 'Access'},
-    'zh-cn': {'dialogHiveTreeNoData': '暂无数据', 'dialogHiveTreeLoading': '加载中', 'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '您可以从左边选择要加载的表，也可以自行编辑输入，输入完成后按回车键。系统默认使用‘default’作为数据库名，您可以指定数据库名如 ‘database.table’。请使用逗号分隔表，同时最多加载1000张表。', 'access': '权限'}
+    'en': {'dialogHiveTreeNoData': 'no data', 'dialogHiveTreeLoading': 'loading', 'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '<p style="font-weight: bold">HOW TO SYNC TABLE\'S METADATA</p><p class="ksd-mt-10"><span style="font-weight: bold">Select tables from hive tree: </span>click tables in the left hive tree and the maximum is 1,000 tables.</p><p><span style="font-weight: bold">Enter table name as \'database.table\': </span>if you don\'t need to take a look at tables, just enter table name as \'database.table\'; use comma to separate multiple tables\' name; use ENTER to close entering. The maximum is 1000 tables.</p>', 'access': 'Access', 'selectedHiveValidateFailText': 'Please enter table name as \'database.table\'.'},
+    'zh-cn': {'dialogHiveTreeNoData': '暂无数据', 'dialogHiveTreeLoading': '加载中', 'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '<p style="font-weight: bold">加载表元数据的方式</p><p class="ksd-mt-10">选择表：可以在左侧的Hive tree选择需要加载的表。每次最多可加载1000张表。</p><p>输入表：可以在右侧的加载框中直接输入‘database.table’，按回车键结束输入。输入多张表名时，请使用逗号分隔，每次最多可加载1000张表。</p>', 'access': '权限', 'selectedHiveValidateFailText': '请输入完整表名\'database.table\'。'}
   }
 }
 </script>
