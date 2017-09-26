@@ -160,7 +160,7 @@
                 <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
-                <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle-o"></icon></common-tip></span>
+                <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
                 <!-- <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input> -->
                <editor v-model="computedColumn.expression" @click.native="completeInput" ref="expressionBox" lang="sql" theme="monokai" width="100%" height="100" useWrapMode="true"></editor>
                <p :class="{isvalid:checkExpressResult.isValid}" v-if="checkExpressResult.msg" class="checkresult">
@@ -169,7 +169,7 @@
                <div v-show="computedColumn.expression">
                 <el-button size="small" @click="checkExpression" :loading="checkExpressionBtnLoad">Expression Check</el-button>
                 <common-tip :content="$t('longTimeTip')" >
-                   <icon name="question-circle-o"></icon>
+                  <icon name="question-circle" class="ksd-question-circle"></icon>
                 </common-tip>
                 <el-button type="text" size="mini" v-show="checkExpressionBtnLoad" @click="cancelCheckExpression" >{{$t('kylinLang.common.cancel')}}</el-button>
               </div>
@@ -251,7 +251,7 @@
        <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
        <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
        <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
-             <icon name="question-circle-o"></icon>
+         <icon name="question-circle" class="ksd-question-circle"></icon>
        </common-tip>
      <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
         <!-- <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider> -->
@@ -296,7 +296,7 @@
     <span slot="footer" class="dialog-footer">
       <el-checkbox class="ksd-fleft" v-model="ignoreErrorSql" v-show="hasValidFailSql && hasValidSuccessSql">{{$t('ignoreErrorSqls')}}</el-checkbox>
       <common-tip :content="$t('ignoreTip')" class="ksd-fleft ksd-ml-4" v-show="hasValidFailSql && hasValidSuccessSql">
-        <icon name="question-circle-o"></icon>
+        <icon name="question-circle" class="ksd-question-circle"></icon>
       </common-tip>
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" :loading="sqlBtnLoading" @click="submitSqlPatterns" :disabled="actionMode==='view' || !hasValidSuccessSql || !hasCheck" >{{$t('kylinLang.common.submit')}}</el-button>

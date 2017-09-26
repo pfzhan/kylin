@@ -249,7 +249,7 @@
                  <slider @changeBar="changeBar" :show="scanRatioDialogVisible">
                    <span slot="label">{{$t('sampling')}}
                     <common-tip :content="$t('kylinLang.dataSource.collectStatice')" >
-                       <icon name="question-circle-o"></icon>
+                       <icon name="question-circle" class="ksd-question-circle"></icon>
                     </common-tip>
                  </span>
           <!--         <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
@@ -269,7 +269,7 @@
       <!-- 单个采样dialog -->
       <el-dialog :title="$t('setScanRange')" size="tiny" v-model="scanSampleRatioDialogVisible" @close="cancelLoadSample" :close-on-press-escape="false" :close-on-click-modal="false">
         <span slot="title">{{$t('setScanRange')}} <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
-                 <icon name="question-circle-o"></icon></common-tip></span>
+                 <icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content ksd-mt-20">

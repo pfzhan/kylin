@@ -39,7 +39,7 @@
             </el-form>
             <a class="forget_pwd" v-show="user.username==='ADMIN'">{{$t('forgetPassword')}}
               <common-tip :content="$t('adminTip')" >
-                <icon name="question-circle-o"></icon>
+                <icon name="question-circle" class="ksd-question-circle"></icon>
               </common-tip>
             </a>
           </div>

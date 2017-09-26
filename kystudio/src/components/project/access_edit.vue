@@ -11,7 +11,7 @@
           <li>{{$t('grantDetail4')}}</li>
         </ul>
       </div>
-      <icon name="question-circle-o"></icon>
+      <icon name="question-circle" class="ksd-question-circle"></icon>
     </kap-common-popover>
    <!--  <el-popover ref="popoverGrant" placement="right" trigger="click" width="400">
       <div class="grant-popover">

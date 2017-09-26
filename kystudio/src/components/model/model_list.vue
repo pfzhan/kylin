@@ -194,7 +194,7 @@
                           <li>{{$t('kylinLang.model.samplingSettingTips')}}</li>
                         </ul>
                       </div>
-                      <icon name="question-circle-o"></icon>
+                        <icon name="question-circle" class="ksd-question-circle"></icon>
                       </kap-common-popover>
                   </h2>
                   <br/>
@@ -239,7 +239,7 @@
                 </div>
                   <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" :label="$t('kylinLang.model.checkModel')" :show="scanRatioDialogVisible">
                     <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
-                 <icon name="question-circle-o"></icon>
+                 <icon name="question-circle" class="ksd-question-circle"></icon>
               </common-tip></span>
                   </slider>
               </div>
