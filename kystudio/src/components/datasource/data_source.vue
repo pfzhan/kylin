@@ -221,7 +221,7 @@
           <slider @changeBar="changeBar" :show="load_hive_dalog_visible">
             <span slot="label">{{$t('sampling')}}
               <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
-                 <icon name="question-circle-o"></icon>
+                 <icon name="question-circle" class="ksd-question-circle"></icon>
               </common-tip>
            </span>
     <!--        <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >

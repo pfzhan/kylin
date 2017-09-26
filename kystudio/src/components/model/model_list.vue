@@ -139,7 +139,7 @@
       <el-form :model="createModelMeta" :rules="createModelFormRule" ref="addModelForm">
         <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
           <span slot="label">{{$t('kylinLang.model.modelName')}}
-            <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip>
+            <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
           </span>
           <el-input v-model="createModelMeta.modelName" auto-complete="off"></el-input>
         </el-form-item>

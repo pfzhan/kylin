@@ -43,7 +43,7 @@
         <div style="font-size: 14px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
           {{$t('dimensionOptimizations')}}
             <common-tip :content="$t('dO')" >
-             <icon name="question-circle-o"></icon>
+              <icon name="question-circle" class="ksd-question-circle"></icon>
           </common-tip>
         </div>
         <div style="margin-top: 20px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
@@ -58,7 +58,7 @@
   <el-tabs v-model="activeName" class="el-tabs--default ksd-mt-40" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
     <el-tab-pane name="first">
     <span slot="label">{{$t('aggregationGroups')}} <common-tip :content="$t('AGG')" >
-             <icon name="question-circle-o"></icon>
+             <icon name="question-circle" class="ksd-question-circle"></icon>
           </common-tip></span>
        <!-- 维度优化 -->
      <!--   <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
@@ -73,7 +73,7 @@
         <el-col :span="5">Total cuboid number: <i class="cuboid_number">{{totalCuboid}}</i></el-col>
         <el-col :span="12" >
          <common-tip :content="$t('maxGroup')" >
-             <icon name="question-circle-o"></icon>
+           <icon name="question-circle" class="ksd-question-circle"></icon>
           </common-tip>
         {{$t('kylinLang.cube.maxGroupColumn')}}
          <el-input id="apply-l" v-model="dim_cap" :disabled="isReadyCube"  style="width:100px;"></el-input><el-button :loading="applyLoading" id="apply-r" type="grey" style="height: 32px;margin-left: 5px;" :disabled="isReadyCube"  @click.native="changeDimCap();">Apply</el-button> </el-col>
@@ -173,12 +173,12 @@
     <div class="line" style="margin-bottom: 5px;margin-right: -30px;margin-left: -30px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
 
 
-      
+
     </el-tab-pane>
     <el-tab-pane label="Rowkeys" name="second">
       <span slot="label"> Rowkeys
           <common-tip :content="$t('kylinLang.cube.rowkeyTip')" >
-             <icon name="question-circle-o"></icon>
+             <icon name="question-circle" class="ksd-question-circle"></icon>
           </common-tip></span>
 
        <div class="line-primary" style="margin-left: -30px; margin-right: -30px;margin-top: -5px;" ></div>
@@ -227,14 +227,14 @@
   </el-tabs>
 <!-- 维度优化 -->
 
-     
-      
-      
 
-     
+
+
+
+
 
     <!-- rowkeys -->
-   
+
     </el-col>
     <el-col :span="6" class="dimension-right">
        <el-table

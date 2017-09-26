@@ -18,7 +18,7 @@
     </el-form-item>
     <el-form-item :label="$t('notificationEvents')">
       <span slot="label">{{$t('notificationEvents')}}
-        <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="exclamation-circle"></icon></common-tip>
+        <common-tip :content="$t('kylinLang.cube.noticeTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
       </span>
       <area_label  :labels="options" :placeholder="$t('kylinLang.common.pleaseSelect')" :datamap="{label: 'label', value: 'value'}" :selectedlabels="cubeDesc.status_need_notify" @refreshData="refreshNotificationEvents">
       </area_label>
@@ -27,7 +27,7 @@
   </el-form>
   <h2 class="title">{{$t('optimizerInput')}}
     <common-tip :content="$t('kylinLang.cube.optimizerInputTip')" >
-      <icon name="question-circle-o"></icon>
+      <icon name="question-circle" class="ksd-question-circle"></icon>
     </common-tip>
   </h2>
   <el-radio-group v-model="cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']">

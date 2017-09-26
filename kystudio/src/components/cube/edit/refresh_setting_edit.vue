@@ -1,8 +1,8 @@
 <template>
 <div class="box-card card_margin border_bottom el-row" id="refresh-setting">
-<h2 class="ksd-mt-40 ksd-ml-40"><!-- <el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"> --><span style="font-size:16px;">{{$t('kylinLang.cube.merge')}} <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle-o"></icon></common-tip></span></el-checkbox></h2>
+<h2 class="ksd-mt-40 ksd-ml-40"><!-- <el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"> --><span style="font-size:16px;">{{$t('kylinLang.cube.merge')}} <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
   <el-row>
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}} 
+    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}}
       <!-- <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle-o"></icon></common-tip> -->
     </el-col>
     <el-col :span="16">
@@ -16,7 +16,7 @@
                :label="item"
                :value="item">
             </el-option>
-          </el-select>          
+          </el-select>
         </el-col>
         <el-col :span="6">
             <el-select  v-model="timeRange.type" @change="changeTimeRange(timeRange, index)">
@@ -30,16 +30,16 @@
         </el-col>
         <el-col :span="2" class="ksd-lineheight-30 ksd-mr-10">
           <el-button type="danger" icon="minus" size="mini" @click.native="removeTimeRange(index)"></el-button>
-        </el-col>                
+        </el-col>
       </el-row>
       <el-button class="btn_margin ksd-mt-8"  icon="plus" @click.native="addNewTimeRange">{{$t('newThresholds')}} </el-button>
-    </el-col>  
+    </el-col>
   </el-row>
   <div class="line" style="margin: 8px -30px 8px -30px;"></div>
   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('retentionThreshold')}} </el-col>
     <el-col :span="6">
-      <el-input class="input_width" v-model="retentionRange" @change="changeRetentionRange"></el-input> 
+      <el-input class="input_width" v-model="retentionRange" @change="changeRetentionRange"></el-input>
     </el-col>
     <el-col :span="1" class="ksd-left ksd-lineheight-40 ksd-mr-10">
       {{$t('days')}}
@@ -57,7 +57,7 @@
   </el-row>
 
  <div class="line" style="margin: 6px -30px 6px -30px;"></div>
- <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle-o"></icon></common-tip></span></el-checkbox></h2>
+ <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
    <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
     <el-col :span="6">
@@ -73,7 +73,7 @@
     <el-col :span="8">
       <el-row :gutter="20" class="row_padding">
         <el-col :span="9">
-          <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>          
+          <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>
         </el-col>
         <el-col :span="8">
             <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="intervalRange.type" @change="changeInterval()" :disabled="!$store.state.cube.cubeSchedulerIsSetting">

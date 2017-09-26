@@ -5,7 +5,7 @@
     <common-tip :content="$t('outputTipOne') + $t(getStrategy) + $t('outputTipTwo')" ><icon name="question-circle" style="color:gray"></icon></common-tip></el-button>
     <el-button type="default" class="measures-button" icon="setting"  @click.native="resetMeasures" :disabled="isReadyCube">{{$t('resetMeasures')}}</el-button>
      <common-tip :content="$t('measuresSuggestTip')" >
-             <icon name="question-circle-o"></icon>
+       <icon name="question-circle" class="ksd-question-circle"></icon>
     </common-tip>
   </div>
   <el-table class="table_margin"

@@ -50,7 +50,7 @@ export const modelHealthStatus = {
   },
   'NONE': {
     icon: 'question-circle',
-    color: 'gray',
+    color: '#6c707e',
     message: 'This model has no check result'
   },
   'ERROR': {

@@ -5,7 +5,7 @@
         <el-form v-model="checkPartition"  label-position="top" :rules="rule" ref="partition">
           <el-form-item :label="$t('partitionDateColumn')">
             <span slot="label">{{$t('partitionDateColumn')}}
-            <common-tip :content="$t('kylinLang.model.partitionDateTip')" ><icon name="question-circle-o"></icon></common-tip>
+            <common-tip :content="$t('kylinLang.model.partitionDateTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
             </span>
             <el-row>
             <el-col :span="11">
@@ -52,13 +52,13 @@
           <el-form-item :label="$t('hasSeparateLabel')" v-show="needSetTime" class="ksd-mt-20">
            <span slot="label">
               {{$t('hasSeparateLabel')}}
-              <common-tip :content="$t('kylinLang.model.partitionSplitTip')" ><icon name="question-circle-o"></icon></common-tip>
+              <common-tip :content="$t('kylinLang.model.partitionSplitTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
               <el-switch v-model="hasSeparate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
             </span>
           </el-form-item>
           <el-form-item :label="$t('partitionTimeColumn')" v-show="hasSeparate">
            <span slot="label">{{$t('partitionTimeColumn')}}
-            <common-tip :content="$t('kylinLang.model.partitionTimeTip')" ><icon name="question-circle-o"></icon></common-tip></span>
+            <common-tip :content="$t('kylinLang.model.partitionTimeTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
             <el-row>
               <el-col :span="11">
                 <el-select style="width:100%" v-model="checkPartition.time_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">

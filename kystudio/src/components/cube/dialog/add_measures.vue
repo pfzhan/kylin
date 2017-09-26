@@ -7,7 +7,7 @@
     </el-form-item>
     <el-form-item :label="$t('expression')">
       <span slot="label">{{$t('expression')}}
-        <common-tip :content="$t('kylinLang.cube.expressionTip')" ><icon name="question-circle-o"></icon></common-tip>
+        <common-tip :content="$t('kylinLang.cube.expressionTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
       </span>
       <el-select v-model="measure.function.expression" class="input_width" @change="changeExpression">
         <el-option
@@ -35,7 +35,7 @@
     </el-form-item>
     <el-form-item :label="getValueLab" >
     <span slot="label">{{getValueLab}}
-        <common-tip :content="paramValTip" ><icon name="question-circle-o"></icon></common-tip>
+        <common-tip :content="paramValTip" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
       </span>
       <el-select v-model="measure.function.parameter.value" :placeholder="$t('kylinLang.common.pleaseSelect')" v-if="measure.function.parameter.type !== 'constant'" class="input_width" @change="changeParamValue" filterable>
         <el-option

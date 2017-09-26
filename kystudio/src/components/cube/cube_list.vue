@@ -190,7 +190,7 @@
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName" style="margin-top: 10px;">
           <span slot="label">{{$t('kylinLang.cube.cubeName')}}
-            <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="exclamation-circle"></icon></common-tip>
+            <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
           </span>
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>

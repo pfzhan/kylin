@@ -1,8 +1,8 @@
 <template>
 <div id="overwrites">
   <div>
-    <h2>Cubing Engine <common-tip :content="$t('engineTip')" ><icon name="question-circle-o"></icon></common-tip></h2>
-    <p class="ksd-mt-14">Engine Type: 
+    <h2>Cubing Engine <common-tip :content="$t('engineTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></h2>
+    <p class="ksd-mt-14">Engine Type:
       <el-select v-model="cubeDesc.engine_type">
         <el-option  v-for="item in engineType"
         :key="item.value"
@@ -21,10 +21,10 @@
       </div>
     </el-col>
   </el-row>
-  
+
   <el-row>
-    <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;"> 
-      <span style="color:#20a0ff;font-size: 14px;">{{$t('tip')}}:</span> 
+    <el-col :span="24" style="font-size: 14px;margin-bottom: 10px;">
+      <span style="color:#20a0ff;font-size: 14px;">{{$t('tip')}}:</span>
       {{$t('propertyTip')}}
     </el-col>
   </el-row>
@@ -34,14 +34,14 @@
       <el-checkbox v-show="property.isDefault" v-model="property.checked" @change="changeProperty()"></el-checkbox>
     </el-col>
     <el-col :span="10" :offset="property.isDefault?0:1">
-      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty()"></el-input> 
+      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty()"></el-input>
     </el-col>
     <el-col :span="10">
       <el-input  v-model="property.value" :disabled="!property.checked" @change="changeProperty()"></el-input>
     </el-col>
     <el-col :span="1">
       <el-button type="delete" icon="minus" size="mini" v-if="!property.isDefault" @click.native="removeProperty(index)"></el-button>
-    </el-col>        
+    </el-col>
   </el-row>
   <div class="line"></div>
     <el-row>
@@ -59,14 +59,14 @@
       </el-input>
     </el-col>
     <el-col :span="7">
-      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty(index)"></el-input> 
+      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty(index)"></el-input>
     </el-col>
     <el-col :span="7">
       <el-input  v-model="property.value" :disabled="!property.checked" @change="changeProperty(index)"></el-input>
     </el-col>
     <el-col :span="1">
       <el-button type="delete" icon="minus" size="mini" v-if="!property.isDefault" @click.native="removeJobProperty(index)"></el-button>
-    </el-col>        
+    </el-col>
   </el-row>
   <div class="line"></div>
     <el-row>
@@ -84,14 +84,14 @@
       </el-input>
     </el-col>
     <el-col :span="7">
-      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty(index)"></el-input> 
+      <el-input  v-model="property.key" :disabled="property.isDefault" @change="changeProperty(index)"></el-input>
     </el-col>
     <el-col :span="7">
       <el-input  v-model="property.value" :disabled="!property.checked" @change="changeProperty(index)"></el-input>
     </el-col>
     <el-col :span="1">
       <el-button type="delete" icon="minus" size="mini" v-if="!property.isDefault" @click.native="removeHiveProperty(index)"></el-button>
-    </el-col>        
+    </el-col>
   </el-row>
 </div>
 </template>

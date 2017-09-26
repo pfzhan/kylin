@@ -7,7 +7,7 @@
                 <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">
                       <tr>
-                        <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="exclamation-circle"></icon></common-tip></th>
+                        <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></th>
                         <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
                       </tr>
                       <tr>
@@ -37,7 +37,7 @@
                            {{currentModelInfo.owner}}
                         </td>
                       </tr>
-                    </table> 
+                    </table>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('setting')" name="second">
                  <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
@@ -391,7 +391,7 @@ export default {
     bottom:0;
     left:200px;
     right: 0px;
-    
+
     .el-table__fixed{
       box-shadow: none;
     }
@@ -406,7 +406,7 @@ export default {
     }
     .el-table__row.hover-row{
       td{
-       background:none; 
+       background:none;
       }
     }
     &.smallScreen {
