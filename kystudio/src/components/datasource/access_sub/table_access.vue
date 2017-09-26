@@ -35,7 +35,7 @@
           <el-dialog :title="$t('grant')" :visible.sync="addGrantDialog"  size="tiny" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
               <el-form :model="grantObj" ref="aclOfTableForm" :rules="aclTableRules">
                 <el-form-item :label="$t('userName')" label-width="90px" prop="name">
-                  <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">
+                  <el-select filterable v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')">
                     <el-option v-for="b in aclBlackList" :value="b.value">{{b.value}}</el-option>
                   </el-select>
                   <!-- <el-autocomplete    :fetch-suggestions="querySearchAsync"></el-autocomplete> -->

@@ -51,7 +51,7 @@
               </el-alert>
               <el-form :model="grantObj" ref="aclOfColumnForm" :rules="aclTableRules">
                 <el-form-item  :label="$t('userName')" label-width="80px" prop="name">
-                  <el-select v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')" :disabled="isEdit" >
+                  <el-select filterable v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')" :disabled="isEdit" >
                     <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
                   </el-select>
                   <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
