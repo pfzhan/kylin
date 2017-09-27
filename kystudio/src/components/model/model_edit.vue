@@ -1602,7 +1602,7 @@ export default {
         handleSuccess(response, (data) => {
           for (var i in data) {
             var setColumnBType
-            if (data[i].indexOf('MEASURE') === 0) {
+            if (data[i].indexOf('METRIC') === 0) {
               setColumnBType = 'M'
             } else if (data[i].indexOf('DIMENSION') === 0) {
               setColumnBType = 'D'
