@@ -263,7 +263,7 @@ public class RowACLManager {
                     result.append(parsedCond).append(")");
                     continue;
                 }
-                result.append(parsedCond);
+                result.append(parsedCond).append(" OR ");
             }
             if (j != condsWithCol.size() - 1) {
                 result.append(" AND ");

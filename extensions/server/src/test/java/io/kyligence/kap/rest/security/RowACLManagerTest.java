@@ -50,14 +50,14 @@ public class RowACLManagerTest extends MultiNodeManagerTestBase {
         columnWithType.put("COL1", "varchar(256)");
         columnWithType.put("COL2", "timestamp");
         columnWithType.put("COL3", "int");
-        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("a'b"));
+        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("a'b"));
         List<RowACL.Cond> cond6 = Lists.newArrayList(new RowACL.Cond(LEFT_INCLUSIVE, "1505275932000", "1506321155000")); //timestamp
         List<RowACL.Cond> cond7 = Lists.newArrayList(new RowACL.Cond(RIGHT_INCLUSIVE, "7", "100")); //normal type
         condsWithCol.put("COL1", cond1);
         condsWithCol.put("COL2", cond6);
         condsWithCol.put("COL3", cond7);
         Assert.assertEquals(
-                "(COL3>7 AND COL3<=100) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND ((COL1='a') OR (COL1='a''b'))",
+                "(COL3>7 AND COL3<=100) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND ((COL1='a') OR (COL1='b') OR (COL1='a''b'))",
                 concatConds(condsWithCol, columnWithType));
     }
 
