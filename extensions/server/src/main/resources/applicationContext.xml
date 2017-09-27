@@ -37,7 +37,8 @@
 
     <bean class="org.apache.kylin.rest.init.InitialTaskManager"/>
 
-    <context:component-scan base-package="org.apache.kylin.rest"/>
+    <context:component-scan base-package="org.apache.kylin.rest.service"/>
+    <context:component-scan base-package="org.apache.kylin.rest.util"/>
     <context:component-scan base-package="io.kyligence.kap.rest"/>
 
     <bean class="org.apache.kylin.rest.security.PasswordPlaceholderConfigurer">
