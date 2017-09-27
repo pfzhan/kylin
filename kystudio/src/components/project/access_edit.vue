@@ -26,7 +26,7 @@
     </el-popover>
     <el-button v-popover:popoverGrant class="ques">?</el-button> -->
 
-      <div v-if="editAccessVisible">
+      <div v-show="editAccessVisible">
       <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline">
        <el-form-item :label="$t('type')">
           <el-select  placeholder="Type" v-model="accessMeta.principal">
@@ -35,7 +35,15 @@
           </el-select>
         </el-form-item>
          <el-form-item :label="$t('name')" prop="sid">
-          <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input>
+<!--           <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input> -->
+          <el-select filterable :disabled="isEdit" v-model="accessMeta.sid" :placeholder="$t('nameAccount')">
+            <el-option
+              v-for="item in userList"
+              :key="item.username"
+              :label="item.username"
+              :value="item.username">
+            </el-option>
+          </el-select>
         </el-form-item>
         <!--  <el-form-item label="Role" v-if="!accessMeta.principal">
           <el-select  placeholder="Role" v-model="accessMeta.sid">
@@ -44,7 +52,7 @@
             <el-option label="ROLE_ANALYST" value="ROLE_ANALYST"></el-option>
           </el-select>
         </el-form-item> -->
-        <el-form-item :label="$t('access')">
+        <el-form-item :label="$t('access')" prop="permission">
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
 
             <!--<el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>-->
@@ -59,7 +67,7 @@
           <el-button type="primary" @click="saveAccess">{{$t('kylinLang.common.save')}}</el-button>
         </el-form-item>
       </el-form>
-    </div>
+    </div> 
     <el-table
 	    :data="settleAccessList"
 	    border
@@ -110,6 +118,7 @@ export default {
   props: ['accessId', 'own'],
   data () {
     return {
+      isEdit: false,
       editAccessVisible: false,
       settleAccessList: [],
       hasActionAccess: false,
@@ -163,11 +172,14 @@ export default {
       }
     },
     addAccess () {
+      this.isEdit = false
+      this.$refs.accessForm.resetFields()
       this.editAccessVisible = true
       this.initMeta()
     },
     resetAccessEdit () {
       this.initMeta()
+      this.$refs.accessForm.resetFields()
       this.editAccessVisible = false
     },
     saveAccess () {
@@ -206,6 +218,8 @@ export default {
       })
     },
     beginEdit (data) {
+      this.isEdit = true
+      this.$refs.accessForm.resetFields()
       this.editAccessVisible = true
       this.initMeta()
       this.accessMeta.accessEntryId = data.id
@@ -249,6 +263,22 @@ export default {
   computed: {
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    accessUserList () {
+      let userList = []
+      this.settleAccessList.forEach((user) => {
+        userList.push(user.roleOrName)
+      })
+      return userList
+    },
+    userList () {
+      let userList = []
+      this.$store.state.user.usersList.forEach((user) => {
+        if (this.accessUserList.indexOf(user.username) < 0) {
+          userList.push(user)
+        }
+      })
+      return userList
     }
   },
   created () {
