@@ -388,20 +388,20 @@ export default {
             var columnType = this.getColumnType(c)
             this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
               if (this.dateTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcDateFormat(+k)
+                k = transToUtcDateFormat(+k.leftExpr)
                 return k
               } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcTimeFormat(+k)
+                k = transToUtcTimeFormat(+k.leftExpr)
                 return k
               } else if (this.timeTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcTimeFormat(+k)
+                k = transToUtcTimeFormat(+k.leftExpr)
                 var result = k.split(/\s+/)
                 if (result.length >= 2) {
                   return result[1]
                 }
                 return k
               } else {
-                return k
+                return k.leftExpr
               }
             })
           }
@@ -429,22 +429,41 @@ export default {
       var obj = {}
       this.rowSetDataList.forEach((row) => {
         if (row.columnName && row.valueList && row.valueList.length > 0) {
+          this.$set(obj, row.columnName, [])
           var columnType = this.getColumnType(row.columnName)
-          var valueList = row.valueList.map((k) => {
+          // var valueList = row.valueList.map((k) => {
+          //   if (this.dateTypeList.indexOf(columnType) >= 0 || this.dateTimeTypeList.indexOf(columnType) >= 0) {
+          //     k = transToUTCMs(k)
+          //     return k
+          //   } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+          //     var timeContent = k.split(/[^\d]+/)
+          //     if (timeContent && timeContent.length === 3) {
+          //       return Date.UTC(1970, 0, 1, timeContent[0], timeContent[1], timeContent[2])
+          //     }
+          //     return k
+          //   } else {
+          //     return k
+          //   }
+          // })
+          // obj[row.columnName] = valueList
+          row.valueList.forEach((k) => {
+            let valueRange = {
+              type: 'CLOSED',
+              leftExpr: '',
+              rightExpr: ''
+            }
             if (this.dateTypeList.indexOf(columnType) >= 0 || this.dateTimeTypeList.indexOf(columnType) >= 0) {
               k = transToUTCMs(k)
-              return k
             } else if (this.timeTypeList.indexOf(columnType) >= 0) {
               var timeContent = k.split(/[^\d]+/)
               if (timeContent && timeContent.length === 3) {
-                return Date.UTC(1970, 0, 1, timeContent[0], timeContent[1], timeContent[2])
+                k = Date.UTC(1970, 0, 1, timeContent[0], timeContent[1], timeContent[2])
               }
-              return k
-            } else {
-              return k
             }
+            valueRange.leftExpr = k
+            valueRange.rightExpr = k
+            obj[row.columnName].push(valueRange)
           })
-          obj[row.columnName] = valueList
         }
       })
       return obj
