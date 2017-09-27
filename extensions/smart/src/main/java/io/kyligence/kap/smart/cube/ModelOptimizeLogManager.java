@@ -106,6 +106,10 @@ public class ModelOptimizeLogManager {
 
         ModelOptimizeLog result = getStore().getResource(getResourcePath(modelName), ModelOptimizeLog.class,
                 MODEL_OPTIMIZE_LOG_STATISTICS_SERIALIZER);
+        if (result == null) {
+            result = new ModelOptimizeLog();
+            result.setModelName(modelName);
+        }
         return result;
     }
 
