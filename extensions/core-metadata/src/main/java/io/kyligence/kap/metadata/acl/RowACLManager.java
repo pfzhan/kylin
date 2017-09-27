@@ -28,9 +28,11 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -158,26 +160,54 @@ public class RowACLManager {
         return rowACLRecord;
     }
 
-    public String preview(String project, String table, Map<String, List<String>> condsWithColumn)
-            throws IOException {
-        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        return RowACL.concatConds(condsWithColumn, columnWithType);
+    //user1:{col1:[a, b, c], col2:[d]}
+    public Map<String, Map<String, List<RowACL.Cond>>> getRowCondListByTable(String project, String table) throws IOException {
+        Map<String, RowACL.TableRowCondList> tableRowCondsWithUser = getRowACL(project).getTableRowCondsWithUser();
+        Map<String, Map<String, List<RowACL.Cond>>> results = new HashMap<>();
+        for (String user : tableRowCondsWithUser.keySet()) {
+            RowACL.TableRowCondList tableRowCondList = tableRowCondsWithUser.get(user);
+            RowACL.RowCondList rowCondListByTable = tableRowCondList.getRowCondListByTable(table);
+            if (!rowCondListByTable.isEmpty()) {
+                results.put(user, rowCondListByTable.getCondsWithColumn());
+            }
+        }
+        return results;
     }
 
-    public void addRowACL(String project, String username, String table, Map<String, List<String>> condsWithColumn)
+    public Map<String, String> getQueryUsedCondsByUser(String project, String username) {
+        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, RowACL.TableRowCondList> tableRowCondsWithUser = getRowACLByCache(project).getTableRowCondsWithUser();
+        if (tableRowCondsWithUser == null || tableRowCondsWithUser.isEmpty()) {
+            return result;
+        }
+
+        RowACL.TableRowCondList tableRowCondList = tableRowCondsWithUser.get(username);
+        for (String tbl : tableRowCondList.keySet()) {
+            Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, tbl));
+            Map<String, List<RowACL.Cond>> condsWithColumn = tableRowCondList.getRowCondListByTable(tbl).getCondsWithColumn();
+            result.put(tbl, concatConds(condsWithColumn, columnWithType));
+        }
+        return result;
+    }
+
+    public String preview(String project, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
+            throws IOException {
+        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
+        return concatConds(condsWithColumn, columnWithType);
+    }
+
+    public void addRowACL(String project, String username, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
             throws IOException {
         String path = DIR_PREFIX + project;
-        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        RowACL rowACL = getRowACL(project).add(username, table, condsWithColumn, columnWithType);
+        RowACL rowACL = getRowACL(project).add(username, table, condsWithColumn);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
 
-    public void updateRowACL(String project, String username, String table, Map<String, List<String>> condsWithColumn)
+    public void updateRowACL(String project, String username, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
             throws IOException {
         String path = DIR_PREFIX + project;
-        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        RowACL rowACL = getRowACL(project).update(username, table, condsWithColumn, columnWithType);
+        RowACL rowACL = getRowACL(project).update(username, table, condsWithColumn);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
@@ -191,7 +221,7 @@ public class RowACLManager {
 
     public void deleteRowACL(String project, String username) throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).delete(username);
+        RowACL rowACL = getRowACL(project).deleteByUser(username);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
@@ -211,5 +241,35 @@ public class RowACLManager {
             columnWithType.put(column.getName(), column.getTypeName());
         }
         return columnWithType;
+    }
+
+    public static String concatConds(Map<String, List<RowACL.Cond>> condsWithCol, Map<String, String> columnWithType) {
+        StrBuilder result = new StrBuilder();
+        int j = 0;
+        for (String col : condsWithCol.keySet()) {
+            String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type not found");
+            List<RowACL.Cond> conds = condsWithCol.get(col);
+            for (int i = 0; i < conds.size(); i++) {
+                String parsedCond = conds.get(i).toString(col, type);
+                if (conds.size() == 1) {
+                    result.append(parsedCond);
+                    continue;
+                }
+                if (i == 0) {
+                    result.append("(").append(parsedCond).append(" OR ");
+                    continue;
+                }
+                if (i == conds.size() - 1) {
+                    result.append(parsedCond).append(")");
+                    continue;
+                }
+                result.append(parsedCond);
+            }
+            if (j != condsWithCol.size() - 1) {
+                result.append(" AND ");
+            }
+            j++;
+        }
+        return result.toString();
     }
 }

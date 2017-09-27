@@ -341,6 +341,6 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     private Map<String, String> getWhereCondWithTbls(String project) {
         RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
-        return rowACLManager.getRowACLByCache(project).getQueryUsedCondsByUser(getUsername());
+        return rowACLManager.getQueryUsedCondsByUser(project, getUsername());
     }
 }

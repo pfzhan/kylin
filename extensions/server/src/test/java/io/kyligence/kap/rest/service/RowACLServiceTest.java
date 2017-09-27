@@ -52,14 +52,14 @@ public class RowACLServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, empty.getTableRowCondsWithUser().size());
 
         //test add and get
-        Map<String, List<String>> condsWithColumn1 = new HashMap<>();
-        Map<String, List<String>> condsWithColumn3 = new HashMap<>();
-        Map<String, List<String>> condsWithColumn4 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> condsWithColumn1 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> condsWithColumn3 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> condsWithColumn4 = new HashMap<>();
 
-        List<String> conds1 = Lists.newArrayList("a", "b", "c");
-        List<String> conds2 = Lists.newArrayList("d", "e");
-        List<String> conds3 = Lists.newArrayList("f");
-        List<String> conds4 = Lists.newArrayList("g");
+        List<RowACL.Cond> conds1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("c"));
+        List<RowACL.Cond> conds2 = Lists.newArrayList(new RowACL.Cond("d"), new RowACL.Cond("e"));
+        List<RowACL.Cond> conds3 = Lists.newArrayList(new RowACL.Cond("f"));
+        List<RowACL.Cond> conds4 = Lists.newArrayList(new RowACL.Cond("g"));
 
         condsWithColumn1.put("COUNTRY", conds1);
         condsWithColumn1.put("NAME", conds2);
@@ -70,8 +70,9 @@ public class RowACLServiceTest extends ServiceTestBase {
         rowACLService.addToRowCondList(PROJECT, "user1", "DEFAULT.TEST_ACCOUNT", condsWithColumn3);
         rowACLService.addToRowCondList(PROJECT, "user2", "DEFAULT.TEST_COUNTRY", condsWithColumn4);
 
-        Map<String, Map<String, List<String>>> columnBlackListByTable = rowACLService.getRowCondsByTable(PROJECT,
+        Map<String, Map<String, List<RowACL.Cond>>> columnBlackListByTable = rowACLService.getRowCondsByTable(PROJECT,
                 "DEFAULT.TEST_COUNTRY");
+
         Assert.assertEquals(2, columnBlackListByTable.get("user1").size());
         Assert.assertEquals(1, columnBlackListByTable.get("user2").size());
         Assert.assertEquals(conds1, columnBlackListByTable.get("user1").get("COUNTRY"));
@@ -79,8 +80,8 @@ public class RowACLServiceTest extends ServiceTestBase {
         Assert.assertEquals(conds4, columnBlackListByTable.get("user2").get("LATITUDE"));
 
         //test add null or empty cond
-        Map<String, List<String>> emptyCond = new HashMap<>();
-        emptyCond.put("COL4", new ArrayList<String>());
+        Map<String, List<RowACL.Cond>> emptyCond = new HashMap<>();
+        emptyCond.put("COL4", new ArrayList<RowACL.Cond>());
         try {
             rowACLService.addToRowCondList(PROJECT, "user3", "DB.TABLE3", emptyCond);
         } catch (Exception e) {
@@ -88,7 +89,7 @@ public class RowACLServiceTest extends ServiceTestBase {
             Assert.assertEquals("Operation fail, input condition list is empty", e.getMessage());
         }
 
-        Map<String, List<String>> nullCond = new HashMap<>();
+        Map<String, List<RowACL.Cond>> nullCond = new HashMap<>();
         nullCond.put("COL5", null);
         try {
             rowACLService.addToRowCondList(PROJECT, "user4", "DB.TABLE4", nullCond);
@@ -98,11 +99,11 @@ public class RowACLServiceTest extends ServiceTestBase {
         }
 
         //test update
-        Map<String, List<String>> condsWithColumn5 = new HashMap<>();
-        List<String> conds5 = Lists.newArrayList("h");
+        Map<String, List<RowACL.Cond>> condsWithColumn5 = new HashMap<>();
+        List<RowACL.Cond> conds5 = Lists.newArrayList(new RowACL.Cond("h"));
         condsWithColumn5.put("NAME", conds5);
         rowACLService.updateToRowCondList(PROJECT, "user1", "DEFAULT.TEST_COUNTRY", condsWithColumn5);
-        Map<String, Map<String, List<String>>> columnBlackListByTable2 = rowACLService.getRowCondsByTable(PROJECT,
+        Map<String, Map<String, List<RowACL.Cond>>> columnBlackListByTable2 = rowACLService.getRowCondsByTable(PROJECT,
                 "DEFAULT.TEST_COUNTRY");
         Assert.assertEquals(conds5, columnBlackListByTable2.get("user1").get("NAME"));
 

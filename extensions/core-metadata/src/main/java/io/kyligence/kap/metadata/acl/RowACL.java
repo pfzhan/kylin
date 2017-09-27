@@ -35,14 +35,13 @@ import java.util.Set;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.Pair;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.obf.IKeep;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
@@ -50,49 +49,20 @@ import com.google.common.collect.Sets;
         isGetterVisibility = JsonAutoDetect.Visibility.NONE,
         setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RowACL extends RootPersistentEntity implements IKeep {
-    //cuz row acl is complicated, so stored two data, one for frontend to display, another one for backend to use to filter query
-    //For frontend.USER :{DB.TABLE1:{COLUMN1:{a,b,c}, COLUMN2:{d,e,f}}, DB.TABLE2:{COLUMN1:{a,b,c}, COLUMN3:{m,n}}}
+
+    //For frontend: USER:{DB.TABLE1:{COLUMN1:{a,b,c}, COLUMN2:{d,e,f}}, DB.TABLE2:{COLUMN1:{a,b,c}, COLUMN3:{m,n}}}
     @JsonProperty()
     private Map<String, TableRowCondList> tableRowCondsWithUser;
-    // For backend query row filter used
-    @JsonProperty()
-    private Map<String, QueryUsedCondList> queryUsedCondsWithTable;
 
     RowACL() {
         tableRowCondsWithUser = new HashMap<>();
-        queryUsedCondsWithTable = new HashMap<>();
     }
 
     public Map<String, TableRowCondList> getTableRowCondsWithUser() {
         return tableRowCondsWithUser;
     }
 
-    Map<String, QueryUsedCondList> getQueryUsedConds() {
-        return queryUsedCondsWithTable;
-    }
-
-    //user1:{col1:[a, b, c], col2:[d]}
-    public Map<String, Map<String, List<String>>> getRowCondListByTable(String table) {
-        Map<String, Map<String, List<String>>> results = new HashMap<>();
-        for (String user : tableRowCondsWithUser.keySet()) {
-            TableRowCondList tableRowCondList = tableRowCondsWithUser.get(user);
-            RowCondList rowCondListByTable = tableRowCondList.getRowCondListByTable(table);
-            if (!rowCondListByTable.isEmpty()) {
-                results.put(user, rowCondListByTable.condsWithColumn);
-            }
-        }
-        return results;
-    }
-
-    public Map<String, String> getQueryUsedCondsByUser(String username) {
-        QueryUsedCondList queryUsedCondList = queryUsedCondsWithTable.get(username);
-        if (queryUsedCondList == null) {
-            queryUsedCondList = new QueryUsedCondList();
-        }
-        return queryUsedCondList.getConcatedCondsWithTable();
-    }
-
-    public RowACL add(String username, String table, Map<String, List<String>> condsWithColumn, Map<String, String> columnWithType) {
+    public RowACL add(String username, String table, Map<String, List<Cond>> condsWithColumn) {
         if (tableRowCondsWithUser == null) {
             tableRowCondsWithUser = new HashMap<>();
         }
@@ -103,31 +73,23 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         }
 
         validateNotExists(username, table, rowCondsWithTable);
-
         putRowConds(username, table, condsWithColumn, rowCondsWithTable);
-        putQueryUsedCond(username, table, columnWithType);
         return this;
     }
 
-    public RowACL update(String username, String table, Map<String, List<String>> condsWithColumn, Map<String, String> columnWithType) {
+    public RowACL update(String username, String table, Map<String, List<Cond>> condsWithColumn) {
         if (tableRowCondsWithUser == null) {
             tableRowCondsWithUser = new HashMap<>();
         }
 
         TableRowCondList rowCondsWithTable = tableRowCondsWithUser.get(username);
-        if (rowCondsWithTable == null || rowCondsWithTable.isEmpty()) {
-            throw new RuntimeException(
-                    "Operation fail, user:" + username + " not found in row cond list!");
-        }
 
         validateExists(username, table, rowCondsWithTable);
-
         putRowConds(username, table, condsWithColumn, rowCondsWithTable);
-        putQueryUsedCond(username, table, columnWithType);
         return this;
     }
 
-    private void putRowConds(String username, String table, Map<String, List<String>> condsWithColumn, TableRowCondList rowCondsWithTable) {
+    private void putRowConds(String username, String table, Map<String, List<Cond>> condsWithColumn, TableRowCondList rowCondsWithTable) {
         RowCondList rowCondList = new RowCondList(condsWithColumn);
         rowCondsWithTable.putRowCondlist(table, rowCondList);
         tableRowCondsWithUser.put(username, rowCondsWithTable);
@@ -136,154 +98,29 @@ public class RowACL extends RootPersistentEntity implements IKeep {
     public RowACL delete(String username, String table) {
         validateRowCondsExists(username, table);
         TableRowCondList tableRowConds = tableRowCondsWithUser.get(username);
-        QueryUsedCondList queryUsedConds = queryUsedCondsWithTable.get(username);
         tableRowConds.removeTbl(table);
         if (tableRowConds.isEmpty()) {
             tableRowCondsWithUser.remove(username);
         }
-        queryUsedConds.removeTbl(table);
-        if (queryUsedConds.isEmpty()) {
-            queryUsedCondsWithTable.remove(username);
-        }
         return this;
     }
 
-    public RowACL delete(String username) {
+    RowACL deleteByUser(String username) {
         validateUserHasRowACL(username);
         tableRowCondsWithUser.remove(username);
-        queryUsedCondsWithTable.remove(username);
         return this;
     }
 
-    public RowACL deleteByTbl(String table) {
+    RowACL deleteByTbl(String table) {
         Iterator<Map.Entry<String, TableRowCondList>> it = tableRowCondsWithUser.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<String, TableRowCondList> entry = it.next();
-            TableRowCondList tableRowCondList = entry.getValue();
+            TableRowCondList tableRowCondList = it.next().getValue();
             tableRowCondList.removeTbl(table);
             if (tableRowCondList.isEmpty()) {
                 it.remove();
             }
         }
-
-        Iterator<Map.Entry<String, QueryUsedCondList>> it2 = queryUsedCondsWithTable.entrySet().iterator();
-        while (it2.hasNext()) {
-            Map.Entry<String, QueryUsedCondList> entry2 = it2.next();
-            QueryUsedCondList queryUsedCondList = entry2.getValue();
-            queryUsedCondList.removeTbl(table);
-            if (queryUsedCondList.isEmpty()) {
-                it2.remove();
-            }
-        }
-
         return this;
-    }
-
-    private void putQueryUsedCond(String username, String table, Map<String, String> columnWithType) {
-        if (queryUsedCondsWithTable == null) {
-            queryUsedCondsWithTable = new HashMap<>();
-        }
-
-        TableRowCondList tableRowCondList = Preconditions.checkNotNull(tableRowCondsWithUser.get(username),
-                "no row cond list, save row conditions for query failed!");
-
-        QueryUsedCondList queryUsedConds = queryUsedCondsWithTable.get(username);
-        if (queryUsedConds == null) {
-            queryUsedConds = new QueryUsedCondList();
-        }
-        Map<String, List<String>> condsWithColumn = tableRowCondList.getRowCondListByTable(table).getCondsWithColumn();
-        queryUsedConds.putConcatedConds(table, concatConds(condsWithColumn, columnWithType));
-        queryUsedCondsWithTable.put(username, queryUsedConds);
-    }
-
-    static String concatConds(Map<String, List<String>> condsWithColumn, Map<String, String> columnWithType) {
-        Map<String, List<String>> trimedCondsWithColumn = trimConds(condsWithColumn, columnWithType);
-        StringBuilder result = new StringBuilder();
-        int j = 0;
-        for (String col : trimedCondsWithColumn.keySet()) {
-            List<String> conds = trimedCondsWithColumn.get(col);
-
-            for (int i = 0; i < conds.size(); i++) {
-                String cond = conds.get(i);
-                if (conds.size() == 1) {
-                    result.append(col).append("=").append(cond);
-                    continue;
-                }
-                if (i == 0) {
-                    result.append("(").append(col).append("=").append(cond);
-                    continue;
-                }
-                if (i == conds.size() - 1) {
-                    result.append(" OR ").append(col).append("=").append(cond).append(")");
-                    continue;
-                }
-                result.append(" OR ").append(col).append("=").append(cond);
-            }
-
-            if (j != trimedCondsWithColumn.size() - 1) {
-                result.append(" AND ");
-            }
-            j++;
-        }
-        return result.toString();
-    }
-
-    //add cond with single quote and escape single quote
-    static Map<String, List<String>> trimConds(Map<String, List<String>> condsWithCol, Map<String, String> columnWithType) {
-        Map<String, List<String>> result = new HashMap<>();
-        for (String col : condsWithCol.keySet()) {
-            List<String> conds = Lists.newArrayList(condsWithCol.get(col));
-            String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type note found");
-            trimStringType(conds, type);
-            trimDateType(conds, type);
-            result.put(col, conds);
-        }
-        return result;
-    }
-
-    private static void trimDateType(List<String> conds, String type) {
-        if (isDateType(type)) {
-            for (int i = 0; i < conds.size(); i++) {
-                String cond = conds.get(i);
-                if (type.equals("date")) {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                    cond = sdf.format(new Date(Long.valueOf(cond)));
-                    cond = "DATE '" + cond + "'";
-                }
-                if (type.equals("timestamp") || type.equals("datetime")) {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                    cond = sdf.format(new Date(Long.valueOf(cond)));
-                    cond = "TIMESTAMP '" + cond + "'";
-                }
-                if (type.equals("time")) {
-                    final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                    cond = sdf.format(new Date(Long.valueOf(cond)));
-                    //transform "1970-01-01 00:00:59" into "00:00:59"
-                    cond = "TIME '" + cond.substring(TIME_START_POS, cond.length()) + "'";
-                }
-                conds.set(i, cond);
-            }
-        }
-    }
-
-    private static boolean isDateType(String type) {
-        final Set<String> DATETIME_FAMILY = Sets.newHashSet("date", "time", "datetime", "timestamp");
-        return DATETIME_FAMILY.contains(type);
-    }
-
-    private static void trimStringType(List<String> conds, String type) {
-        if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
-            for (int i = 0; i < conds.size(); i++) {
-                String cond = conds.get(i);
-                cond = cond.replaceAll("'", "''");
-                cond = "'" + cond + "'";
-                conds.set(i, cond);
-            }
-        }
     }
 
     private void validateNotExists(String username, String table, TableRowCondList tableRowCondList) {
@@ -294,6 +131,11 @@ public class RowACL extends RootPersistentEntity implements IKeep {
     }
 
     private void validateExists(String username, String table, TableRowCondList tableRowCondList) {
+        if (tableRowCondList == null || tableRowCondList.isEmpty()) {
+            throw new RuntimeException(
+                    "Operation fail, user:" + username + " not found in row cond list!");
+        }
+
         if (tableRowCondList.getRowCondListByTable(table).isEmpty()) {
             throw new RuntimeException(
                     "Operation fail, user:" + username + ", column:" + table + " not found in row cond list!");
@@ -329,7 +171,6 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         @JsonProperty()
         private Map<String, RowCondList> rowCondsWithTable; //T1:rowCondList1, T2:rowCondList2
 
-
         private TableRowCondList() {
             rowCondsWithTable = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
@@ -340,6 +181,10 @@ public class RowACL extends RootPersistentEntity implements IKeep {
 
         public boolean isEmpty() {
             return rowCondsWithTable.isEmpty();
+        }
+
+        Set<String> keySet() {
+            return rowCondsWithTable.keySet();
         }
 
         RowCondList getRowCondListByTable(String table) {
@@ -354,8 +199,8 @@ public class RowACL extends RootPersistentEntity implements IKeep {
             rowCondsWithTable.put(key, value);
         }
 
-        public RowCondList removeTbl(String table) {
-            return rowCondsWithTable.remove(table);
+        void removeTbl(String table) {
+            rowCondsWithTable.remove(table);
         }
     }
 
@@ -366,13 +211,13 @@ public class RowACL extends RootPersistentEntity implements IKeep {
     static class RowCondList implements Serializable, IKeep {
         //all row conds in the table
         @JsonProperty()
-        private Map<String, List<String>> condsWithColumn; //C1:{cond1, cond2},C2{cond1, cond3}
+        private Map<String, List<Cond>> condsWithColumn; //C1:{cond1, cond2},C2{cond1, cond3}
 
         private RowCondList() {
             this.condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         }
 
-        RowCondList(Map<String, List<String>> condsWithColumn) {
+        RowCondList(Map<String, List<Cond>> condsWithColumn) {
             this.condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             this.condsWithColumn.putAll(condsWithColumn);
         }
@@ -381,15 +226,15 @@ public class RowACL extends RootPersistentEntity implements IKeep {
             return condsWithColumn.size();
         }
 
-        private boolean isEmpty() {
+        boolean isEmpty() {
             return condsWithColumn.isEmpty();
         }
 
-        List<String> getCondsByColumn(String column) {
+        List<Cond> getCondsByColumn(String column) {
             return condsWithColumn.get(column);
         }
 
-        Map<String, List<String>> getCondsWithColumn() {
+        Map<String, List<Cond>> getCondsWithColumn() {
             if (condsWithColumn == null) {
                 condsWithColumn = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
             }
@@ -405,36 +250,139 @@ public class RowACL extends RootPersistentEntity implements IKeep {
             getterVisibility = JsonAutoDetect.Visibility.NONE,
             isGetterVisibility = JsonAutoDetect.Visibility.NONE,
             setterVisibility = JsonAutoDetect.Visibility.NONE)
-    static class QueryUsedCondList implements Serializable, IKeep {
+    public static class Cond implements Serializable, IKeep {
+        public enum IntervalType implements Serializable, IKeep {
+            OPEN,            //(a,b) = {x | a < x < b}
+            CLOSED,          //[a,b] = {x | a <= x <= b}
+            LEFT_INCLUSIVE,  //[a,b) = {x | a <= x < b}
+            RIGHT_INCLUSIVE, //(a,b] = {x | a < x <= b}
+        }
+
+        @JsonProperty
+        private IntervalType type;
+
         @JsonProperty()
-        private Map<String, String> concatedCondsWithTable; //TABLE1: C1 = A OR C1 = B AND C2 = C
+        private String leftExpr;
 
-        QueryUsedCondList() {
-            concatedCondsWithTable = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        @JsonProperty()
+        private String rightExpr;
+
+        //just for json deserialization
+        public Cond() {
         }
 
-        public int size() {
-            return concatedCondsWithTable.size();
+        public Cond(IntervalType type, String leftExpr, String rightExpr) {
+            this.type = type;
+            this.leftExpr = leftExpr;
+            this.rightExpr = rightExpr;
         }
 
-        public boolean isEmpty() {
-            return concatedCondsWithTable.isEmpty();
+        public Cond(String value) {
+            this.type = IntervalType.CLOSED;
+            this.leftExpr = this.rightExpr = value;
         }
 
-        Map<String, String> getConcatedCondsWithTable() {
-            return concatedCondsWithTable;
+        String toString(String column, String columnType) {
+            Pair<String, String> op = getOp(this.type);
+            String leftValue = trim(leftExpr, columnType);
+            String rightValue = trim(rightExpr, columnType);
+
+            if (leftValue == null && rightValue != null) {
+                if (type == IntervalType.OPEN) {
+                    return "(" + column + "<" + rightValue + ")";
+                } else if (type == IntervalType.RIGHT_INCLUSIVE) {
+                    return "(" + column + "<=" + rightValue + ")";
+                } else {
+                    throw new RuntimeException("error expr");
+                }
+            }
+
+            if (rightValue == null && leftValue != null) {
+                if (type == IntervalType.OPEN) {
+                    return "(" + column + ">" + leftValue + ")";
+                } else if (type == IntervalType.LEFT_INCLUSIVE) {
+                    return "(" + column + ">=" + leftValue + ")";
+                } else {
+                    throw new RuntimeException("error expr");
+                }
+            }
+
+            if ((leftValue == null && rightValue == null) || leftValue.equals(rightValue)) {
+                if (type == IntervalType.CLOSED) {
+                    return "(" + column + "=" + leftValue + ")";
+                }
+                if (type == IntervalType.OPEN) {
+                    return "(" + column + "<>" + leftValue + ")";
+                }
+            }
+            return "(" + column + op.getFirst() + leftValue + " AND " + column + op.getSecond() + rightValue + ")";
         }
 
-        String getConcatedCondsByTable(String table) {
-            return concatedCondsWithTable.get(table);
+        //add cond with single quote and escape single quote
+        static String trim(String expr, String type) {
+            if (expr == null) {
+                return null;
+            }
+            if (type.startsWith("varchar") || type.equals("string") || type.equals("char")) {
+                expr = expr.replaceAll("'", "''");
+                expr = "'" + expr + "'";
+            }
+            if (type.equals("date")) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                expr = sdf.format(new Date(Long.valueOf(expr)));
+                expr = "DATE '" + expr + "'";
+            }
+            if (type.equals("timestamp") || type.equals("datetime")) {
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                expr = sdf.format(new Date(Long.valueOf(expr)));
+                expr = "TIMESTAMP '" + expr + "'";
+            }
+            if (type.equals("time")) {
+                final int TIME_START_POS = 11; //"1970-01-01 ".length() = 11
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                expr = sdf.format(new Date(Long.valueOf(expr)));
+                //transform "1970-01-01 00:00:59" into "00:00:59"
+                expr = "TIME '" + expr.substring(TIME_START_POS, expr.length()) + "'";
+            }
+            return expr;
         }
 
-        public String removeTbl(String table) {
-            return concatedCondsWithTable.remove(table);
+        private static Pair<String, String> getOp(Cond.IntervalType type) {
+            switch (type) {
+                case OPEN:
+                    return Pair.newPair(">", "<");
+                case CLOSED:
+                    return Pair.newPair(">=", "<=");
+                case LEFT_INCLUSIVE:
+                    return Pair.newPair(">=", "<");
+                case RIGHT_INCLUSIVE:
+                    return Pair.newPair(">", "<=");
+                default:
+                    throw new RuntimeException("error, unknown type for condition");
+            }
         }
 
-        void putConcatedConds(String table, String splicedConds) {
-            concatedCondsWithTable.put(table, splicedConds);
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Cond cond = (Cond) o;
+
+            if (type != cond.type) return false;
+            if (leftExpr != null ? !leftExpr.equals(cond.leftExpr) : cond.leftExpr != null) return false;
+            return rightExpr != null ? rightExpr.equals(cond.rightExpr) : cond.rightExpr == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = type != null ? type.hashCode() : 0;
+            result = 31 * result + (leftExpr != null ? leftExpr.hashCode() : 0);
+            result = 31 * result + (rightExpr != null ? rightExpr.hashCode() : 0);
+            return result;
         }
     }
 }

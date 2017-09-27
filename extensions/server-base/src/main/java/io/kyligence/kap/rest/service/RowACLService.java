@@ -52,16 +52,16 @@ public class RowACLService extends BasicService {
     }
 
     //get user's row cond list.Like {user1:{col1[a,b,c], col2[d]}.
-    public Map<String, Map<String, List<String>>> getRowCondsByTable(String project, String table) throws IOException {
+    public Map<String, Map<String, List<RowACL.Cond>>> getRowCondsByTable(String project, String table) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        return getRowACL(project).getRowCondListByTable(table);
+        return RowACLManager.getInstance(getConfig()).getRowCondListByTable(project, table);
     }
 
     //get available users only for frontend to select.
     public List<String> getUsersCanAddRowACL(String project, String table, Set<String> allUsers)
             throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        Set<String> users = getRowACL(project).getRowCondListByTable(table).keySet();
+        Set<String> users = getRowCondsByTable(project, table).keySet();
         List<String> availableUsers = new ArrayList<>();
 
         for (String u : allUsers) {
@@ -77,7 +77,7 @@ public class RowACLService extends BasicService {
         return RowACLManager.getInstance(getConfig()).getRowACLByCache(project).getTableRowCondsWithUser().containsKey(username);
     }
 
-    public String preview(String project, String table, Map<String, List<String>> condsWithColumn) throws IOException {
+    public String preview(String project, String table, Map<String, List<RowACL.Cond>> condsWithColumn) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         if (condsWithColumn == null || condsWithColumn.isEmpty()) {
             return "";
@@ -87,7 +87,7 @@ public class RowACLService extends BasicService {
     }
 
     public void addToRowCondList(String project, String username, String table,
-            Map<String, List<String>> condsWithColumn) throws IOException {
+            Map<String, List<RowACL.Cond>> condsWithColumn) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         if (condsWithColumn == null || condsWithColumn.isEmpty()) {
             return;
@@ -97,7 +97,7 @@ public class RowACLService extends BasicService {
     }
 
     public void updateToRowCondList(String project, String username, String table,
-            Map<String, List<String>> condsWithColumn) throws IOException {
+            Map<String, List<RowACL.Cond>> condsWithColumn) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         if (condsWithColumn == null || condsWithColumn.isEmpty()) {
             return;
@@ -121,9 +121,9 @@ public class RowACLService extends BasicService {
         RowACLManager.getInstance(getConfig()).deleteRowACLByTbl(project, table);
     }
 
-    private void checkInputConds(Map<String, List<String>> condsWithColumn) {
+    private void checkInputConds(Map<String, List<RowACL.Cond>> condsWithColumn) {
         for (String c : condsWithColumn.keySet()) {
-            List<String> conds = condsWithColumn.get(c);
+            List<RowACL.Cond> conds = condsWithColumn.get(c);
             if (conds == null || conds.isEmpty()) {
                 throw new RuntimeException("Operation fail, input condition list is empty");
             }
