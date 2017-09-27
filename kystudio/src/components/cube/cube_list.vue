@@ -410,7 +410,8 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sqlString = sqls.join(';\r\n')
+      // this.sqlString = sqls.join(';\r\n')
+      this.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
       this.verifyCubeSql({
         sqls: sqls,
         cubeName: this.selected_cube.name
@@ -538,6 +539,8 @@ export default {
             handleSuccess(res, (data) => {
               if (!data) {
                 this.$message({
+                  duration: 0,  // 不自动关掉提示
+                  showClose: true,    // 给提示框增加一个关闭按钮
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'
                 })

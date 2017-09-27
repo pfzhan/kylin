@@ -195,7 +195,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
           })
         })
@@ -215,7 +216,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
           })
         })

@@ -574,6 +574,8 @@ export default {
                 })
               } else {
                 this.$message({
+                  duration: 0,  // 不自动关掉提示
+                  showClose: true,    // 给提示框增加一个关闭按钮
                   message: this.$t('kylinLang.model.sameModelName'),
                   type: 'warning'
                 })
@@ -602,6 +604,8 @@ export default {
             handleSuccess(res, (data) => {
               if (!data) {
                 this.$message({
+                  duration: 0,  // 不自动关掉提示
+                  showClose: true,    // 给提示框增加一个关闭按钮
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'
                 })
@@ -671,7 +675,8 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sqlString = sqls.join(';\r\n')
+      // this.sqlString = sqls.join(';\r\n')
+      this.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
       this.verifySql({
         sqls: sqls,
         modelName: this.currentModelData.name
@@ -1162,14 +1167,15 @@ export default {
   .el-card{
     background-color: #393e52;
     border:none;
+    border-radius:0;
     &:hover{
       border:solid 1px #58b7ff;
     }
     &.is_draft {
       background-image: url('../../assets/img/draft.png');
       background-repeat: no-repeat;
-      background-color: #515770;
-      border:dashed 1px @fff;
+      background-color: #515771;
+      border:dashed 1px #7881AA;
       background-position: 90% 80%;
     }
   }

@@ -353,7 +353,7 @@ export function msTransDate (ms, limitWeeks) {
 export function filterMutileSqlsToOneLine (_sqls, splitChar) {
   var sqls = _sqls.split(splitChar || ';')
   sqls = sqls.filter((s) => {
-    return !!(s.replace(/[\r\n]/g, ''))
+    return !!(s.replace(/\s*[\r\n]+\s*/g, ''))
   })
   sqls = sqls.map((s) => {
     var r = s.replace(/[\r\n]+(\s+)?/g, ' ')

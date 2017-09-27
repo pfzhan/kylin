@@ -589,7 +589,7 @@ export default {
           type: 'warning',
           showClose: true,
           customClass: 'alertSQL',
-          duration: 10000
+          duration: 0
         })
         return
       }
@@ -678,7 +678,7 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sqlString = sqls.join(';\r\n')
+      this.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
       var rootFact = this.getRootFact()
       if (rootFact.length) {
         var rootFactName = rootFact[0].database + '.' + rootFact[0].name
@@ -919,6 +919,8 @@ export default {
       var dimension = this.getDimensions()
       if (dimension.length === 0) {
         this.$message({
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
           type: 'warning',
           message: this.$t('needOneDimension')
         })
@@ -927,6 +929,8 @@ export default {
       this.hasStreamingTable = this.getTableList('source_type', 1).length > 0
       if (this.draftBtnLoading) {
         this.$message({
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
           type: 'warning',
           message: this.$t('kylinLang.common.saveDraft')
         })
@@ -1028,6 +1032,8 @@ export default {
             handleSuccess(res, (data) => {
               if (!data) {
                 this.$message({
+                  duration: 0,  // 不自动关掉提示
+                  showClose: true,    // 给提示框增加一个关闭按钮
                   message: this.$t('kylinLang.cube.sameCubeName'),
                   type: 'warning'
                 })
@@ -2910,6 +2916,9 @@ export default {
       .el-input{
         background-color: #393e52;
       }
+      .filter-tree{
+        overflow:hidden;
+    }
     }
    }
    .sample_info{

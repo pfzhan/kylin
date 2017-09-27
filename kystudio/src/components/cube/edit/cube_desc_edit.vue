@@ -220,7 +220,7 @@ export default {
             if (!data) {
               this.$message({
                 showClose: true,
-                duration: 3000,
+                duration: 0,
                 message: this.$t('checkCubeNamePartOne') + this.cubeDetail.name.toUpperCase() + this.$t('checkCubeNamePartTwo'),
                 type: 'error'
               })
@@ -250,7 +250,7 @@ export default {
       if (_this.cubeDetail.dimensions.length <= 0) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: _this.$t('checkDimensions'),
           type: 'error'
         })
@@ -260,7 +260,7 @@ export default {
         if (!_this.cubeDetail.aggregation_groups[j] || !_this.cubeDetail.aggregation_groups[j].includes || _this.cubeDetail.aggregation_groups[j].includes.length === 0) {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: _this.$t('checkAggGroup'),
             type: 'error'
           })
@@ -275,7 +275,7 @@ export default {
         if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 3) === 'int' && (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) < 1 || _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(4) > 8)) {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: _this.$t('checkRowkeyInt'),
             type: 'error'
           })
@@ -284,7 +284,7 @@ export default {
         if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 12) === 'fixed_length' && _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(13) === '') {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: _this.$t('fixedLengthTip'),
             type: 'error'
           })
@@ -293,7 +293,7 @@ export default {
         if (_this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(0, 16) === 'fixed_length_hex' && _this.cubeDetail.rowkey.rowkey_columns[i].encoding.substr(17) === '') {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: _this.$t('fixedLengthHexTip'),
             type: 'error'
           })
@@ -302,7 +302,8 @@ export default {
       }
       if (shardRowkeyList.length > 1) {
         this.$message({
-          showClose: true,
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
           message: _this.$t('checkRowkeyShard'),
           type: 'error'
         })
@@ -322,7 +323,8 @@ export default {
         }
         if (this.cubeDetail.measures[i].function.returntype === '') {
           this.$message({
-            showClose: true,
+            duration: 0,  // 不自动关掉提示
+            showClose: true,    // 给提示框增加一个关闭按钮
             message: this.$t('returnTypeNullPartOne') + this.cubeDetail.measures[i].name + this.$t('returnTypeNullPartTwo'),
             type: 'error'
           })
@@ -345,7 +347,7 @@ export default {
       if (!existCountExpression) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: this.$t('checkMeasuresCount'),
           type: 'error'
         })
@@ -360,7 +362,7 @@ export default {
       if (cfMeasures.length !== this.cubeDetail.measures.length) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: this.$t('checkColumnFamily'),
           type: 'error'
         })
@@ -370,7 +372,7 @@ export default {
         if (this.cubeDetail.hbase_mapping.column_family[j].columns[0].measure_refs.length === 0) {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: this.$t('checkColumnFamilyNull'),
             type: 'error'
           })
@@ -420,7 +422,7 @@ export default {
       if (fuzzyTypeError) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: this.$t('fuzzyTip'),
           type: 'error'
         })
@@ -429,7 +431,7 @@ export default {
       if (setTypeError) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: _this.$t('rawtableSortedWidthDate'),
           type: 'error'
         })
@@ -438,7 +440,7 @@ export default {
       if (shardCount > 1) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: _this.$t('shardCountError'),
           type: 'error'
         })
@@ -447,7 +449,7 @@ export default {
       if (sortedCount === 0) {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: _this.$t('rawtableSetSorted'),
           type: 'error'
         })
@@ -461,7 +463,7 @@ export default {
         if (key === '') {
           this.$message({
             showClose: true,
-            duration: 3000,
+            duration: 0,
             message: this.$t('checkCOKey'),
             type: 'error'
           })
@@ -541,6 +543,8 @@ export default {
       if (!this.checkHasChanged()) {
         if (tipChangestate) {
           this.$message({
+            duration: 0,  // 不自动关掉提示
+            showClose: true,    // 给提示框增加一个关闭按钮
             type: 'warning',
             message: '未检测到任何改动!'
           })
@@ -652,6 +656,8 @@ export default {
     saveCube () {
       if (this.cubeDraftSaving) {
         this.$message({
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
           type: 'warning',
           message: this.$t('kylinLang.common.saveDraft')
         })

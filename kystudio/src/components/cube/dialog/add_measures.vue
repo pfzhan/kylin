@@ -567,7 +567,7 @@ export default {
       if (this.measure.function.parameter.value === '' && this.measure.function.expression !== 'TOP_N') {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: this.$t('paramValueNull'),
           type: 'error'
         })
@@ -576,7 +576,7 @@ export default {
       if (this.measure.function.returntype === '' && this.measure.function.expression !== 'SUM') {
         this.$message({
           showClose: true,
-          duration: 3000,
+          duration: 0,
           message: this.$t('returntypeNull'),
           type: 'error'
         })
@@ -587,7 +587,7 @@ export default {
           if (this.measure.function.parameter.value === '') {
             this.$message({
               showClose: true,
-              duration: 3000,
+              duration: 0,
               message: this.$t('topnParamValueNull'),
               type: 'error'
             })
@@ -596,7 +596,7 @@ export default {
           if (this.convertedColumns.length < 1) {
             this.$message({
               showClose: true,
-              duration: 3000,
+              duration: 0,
               message: this.$t('convertedColumnsTip'),
               type: 'error'
             })
@@ -610,7 +610,7 @@ export default {
           } else {
             this.$message({
               showClose: true,
-              duration: 3000,
+              duration: 0,
               message: this.$t('duplicateColumnPartOne') + this.convertedColumns[column].column + this.$t('duplicateColumnPartTwo'),
               type: 'error'
             })

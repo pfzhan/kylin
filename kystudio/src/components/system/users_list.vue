@@ -258,6 +258,8 @@ export default {
         })
       }).catch((result) => {
         this.$message({
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
           type: 'error',
           message: result.statusText
         })

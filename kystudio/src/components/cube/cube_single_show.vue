@@ -238,7 +238,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
             if (status === 404) {
               this.$router.replace('access/login')
@@ -279,7 +280,8 @@ export default {
               this.$message({
                 type: 'error',
                 message: msg,
-                duration: 3000
+                duration: 0,  // 不自动关掉提示
+                showClose: true    // 给提示框增加一个关闭按钮
               })
               if (status === 404) {
                 _this.$router.replace('access/login')
@@ -312,7 +314,8 @@ export default {
                 this.$message({
                   type: 'error',
                   message: msg,
-                  duration: 3000
+                  duration: 0,  // 不自动关掉提示
+                  showClose: true    // 给提示框增加一个关闭按钮
                 })
                 if (status === 404) {
                   _this.$router.replace('access/login')
@@ -344,7 +347,8 @@ export default {
           this.$message({
             type: 'error',
             message: msg,
-            duration: 3000
+            duration: 0,  // 不自动关掉提示
+            showClose: true    // 给提示框增加一个关闭按钮
           })
           if (status === 404) {
             _this.$router.replace('access/login')
@@ -377,7 +381,8 @@ export default {
           this.$message({
             type: 'error',
             message: msg,
-            duration: 3000
+            duration: 0,  // 不自动关掉提示
+            showClose: true    // 给提示框增加一个关闭按钮
           })
           if (status === 404) {
             _this.$router.replace('access/login')
@@ -410,7 +415,8 @@ export default {
           this.$message({
             type: 'error',
             message: msg,
-            duration: 3000
+            duration: 0,  // 不自动关掉提示
+            showClose: true    // 给提示框增加一个关闭按钮
           })
           if (status === 404) {
             _this.$router.replace('access/login')
@@ -440,7 +446,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
             if (status === 404) {
               _this.$router.replace('access/login')
@@ -471,7 +478,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
             if (status === 404) {
               _this.$router.replace('access/login')
@@ -502,7 +510,8 @@ export default {
             this.$message({
               type: 'error',
               message: msg,
-              duration: 3000
+              duration: 0,  // 不自动关掉提示
+              showClose: true    // 给提示框增加一个关闭按钮
             })
             if (status === 404) {
               _this.$router.replace('access/login')
@@ -535,7 +544,8 @@ export default {
           this.$message({
             type: 'error',
             message: msg,
-            duration: 3000
+            duration: 0,  // 不自动关掉提示
+            showClose: true    // 给提示框增加一个关闭按钮
           })
           if (status === 404) {
             _this.$router.replace('access/login')
@@ -574,7 +584,9 @@ export default {
         }).catch((result) => {
           this.$message({
             type: 'error',
-            message: result.statusText
+            message: result.statusText,
+            duration: 0,  // 不自动关掉提示
+            showClose: true    // 给提示框增加一个关闭按钮
           })
         })
       }).catch(() => {

@@ -33,7 +33,7 @@
           :label="$t('tableName')"
          >
         </el-table-column>
-        
+
         <el-table-column
           prop="filter_resource_identifier"
           :label="$t('resourcePath')"
@@ -127,7 +127,12 @@ export default {
         })
       }, (res) => {
         handleError(res, (data, code, status, msg) => {
-          this.$message.error(msg)
+          this.$message({
+            type: 'error',
+            message: msg,
+            showClose: true,
+            duration: 0
+          })
         })
       })
     },
@@ -145,7 +150,12 @@ export default {
         this.editFilterVisible = false
       }, (res) => {
         handleError(res, (data, code, status, msg) => {
-          this.$message.error(msg)
+          this.$message({
+            type: 'error',
+            message: msg,
+            showClose: true,
+            duration: 0
+          })
         })
       })
     }

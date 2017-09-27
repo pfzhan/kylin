@@ -100,7 +100,7 @@
 import areaLabel from '../../common/area_label'
 import { mapActions } from 'vuex'
 import { modelHealthStatus } from '../../../config/index'
-import {handleSuccess, handleError, kapConfirm} from 'util/business'
+import {handleSuccess, handleError, kapConfirm, filterMutileSqlsToOneLine} from 'util/business'
 export default {
   name: 'info',
   props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql', 'healthStatus'],
@@ -223,7 +223,7 @@ export default {
       }
     },
     validateSql () {
-      var sqls = this.filterSqls(this.sampleSql.sqlString)
+      var sqls = filterMutileSqlsToOneLine(this.sampleSql.sqlString)
       if (sqls.length === 0) {
         return
       }
@@ -232,7 +232,8 @@ export default {
       this.errorMsg = false
       this.checkSqlLoadBtn = true
       editor.setOption('wrap', 'free')
-      this.sampleSql.sqlString = sqls.join(';\r\n')
+      // this.sampleSql.sqlString = sqls.join(';\r\n')
+      this.sampleSql.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
       this.checkSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         handleSuccess(res, (data) => {
           this.hasCheck = true

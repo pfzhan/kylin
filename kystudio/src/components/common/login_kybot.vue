@@ -8,7 +8,7 @@
         <el-input v-model="kyBotAccount.password" type="password" :placeholder="$t('kylinLang.common.password')"></el-input>
       </el-form-item>
       <el-form-item>
-        <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">{{$t('login')}}</el-button>  
+        <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">{{$t('login')}}</el-button>
       </el-form-item>
     </el-form>
     <p class="no-account"><span style="color: rgba(255,255,255,0.6);">{{$t('noAccount')}}?</span> <a @click="signUp" target="_blank">{{$t('singUp')}}</a></p>
@@ -115,7 +115,7 @@
                 } else {
                   this.$message({
                     type: 'error',
-                    duration: '20000',  // 20秒之后关掉提示
+                    duration: 0,  // 不自动关掉提示
                     showClose: true,    // 给提示框增加一个关闭按钮
                     message: msg
                   })

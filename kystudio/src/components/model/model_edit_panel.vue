@@ -44,7 +44,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third" >
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;" >{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;" >{{value}}</div>
                     <div class="dimensionBox">
                       <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" type="primary" v-for="i in dimensions[value]" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -52,7 +52,7 @@
                 </el-tab-pane>
                 <el-tab-pane :label="$t('measure')" name="fourth">
                   <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:14px;">{{value}}</div>
+                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;">{{value}}</div>
                      <div class="dimensionBox">
                     <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" v-for="i in measures[value]" type="primary" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
                     </div>
@@ -72,7 +72,7 @@
              <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
              <el-table
               :data="statistics.slice(1)"
-              style="width: 100%">
+              style="width: 100%" class="staticsTableStyle ksd-mt-10">
                <el-table-column v-for="(val,index) in statistics[0]" :key="index"
                 :prop="''+index"
                 :fixed="index === 0"
@@ -80,11 +80,11 @@
                 :label="statistics[0][index]">
               </el-table-column>
             </el-table>
-            <div style="font-size:12px;" class="ksd-mt-10"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
+            <div style="font-size:12px;" class="ksd-mt-20"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
           <el-table
           :data="modelStatics.slice(1)"
           border
-          style="width: 100%">
+          style="width: 100%" class="staticsTableStyle ksd-mt-10">
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
             :fixed="index === 0"
             :prop="''+index"
@@ -385,6 +385,20 @@ export default {
       }
     }
   .model_edit_tool {
+    .el-form-item__label,.el-textarea__inner{
+      font-size:12px;
+    }
+    .staticsTableStyle {
+      thead{
+        th{
+          background: #494E67;
+          height:30px;
+          div{
+            background: #494E67;
+          }
+        }
+      }
+    }
     .modelExtraInfoTab{
       &>.el-tabs__content{
       &>.el-tab-pane{
