@@ -164,7 +164,7 @@
       <el-form :model="cubeMeta" :rules="createCubeFormRule" ref="addCubeForm">
         <el-form-item :label="$t('kylinLang.cube.cubeName')" prop="cubeName">
          <span slot="label">{{$t('kylinLang.cube.cubeName')}}
-            <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="exclamation-circle"></icon></common-tip>
+            <common-tip :content="$t('kylinLang.cube.cubeNameTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
           </span>
           <el-input v-model="cubeMeta.cubeName" auto-complete="off"></el-input>
         </el-form-item>
@@ -188,14 +188,18 @@
               <div class="ksd-mt-20">
               <div class="date-picker" v-if="hasPartition">
                   <h2>{{$t('kylinLang.model.samplingSetting')}}
-                      <kap-common-popover>
+                    <common-tip placement="right" :content="$t('kylinLang.model.samplingSettingTips')" >
+                      <icon name="question-circle" class="ksd-question-circle"></icon>
+                    </common-tip>
+
+                      <!--<kap-common-popover>
                       <div slot="content">
                         <ul>
                           <li>{{$t('kylinLang.model.samplingSettingTips')}}</li>
                         </ul>
                       </div>
                         <icon name="question-circle" class="ksd-question-circle"></icon>
-                      </kap-common-popover>
+                      </kap-common-popover>-->
                   </h2>
                   <br/>
                   {{$t('kylinLang.model.timeRange')}}
@@ -451,6 +455,8 @@ export default {
       if (startTime !== 0 && endTime !== 0 && (endTime <= startTime)) {
         // callback(new Error(this.$t('timeCompare')))
       } else {
+        // 开始时间处不触发大小验证，但如果验证通过，需要取消结束时间的错误信息
+        this.$refs['modelCheckForm'].fields[1].onFieldBlur()
         callback()
       }
     },
@@ -790,6 +796,9 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
+                        this.$nextTick(() => {
+                          this.$refs['modelCheckForm'].resetFields()
+                        })
                         this.modelCheckTime.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
@@ -884,7 +893,6 @@ export default {
       }
       this.$refs['modelCheckForm'].validate((valid) => {
         if (valid) {
-          console.log('check')
           var tempStartTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
           var tempEndTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
           var tempObj = {start: null, end: null}
@@ -1123,7 +1131,7 @@ export default {
   h2{
     font-size: 16px;
     .fa-icon{
-      color: #ccc;
+      /*color: #ccc;*/
     }
   }
   .fa-icon{

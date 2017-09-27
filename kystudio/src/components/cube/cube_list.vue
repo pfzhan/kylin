@@ -701,6 +701,9 @@ export default {
       } else {
         if (cube.partitionDateColumn) {
           this.buildCubeFormVisible = true
+          this.$nextTick(() => {
+            this.$refs['buildCubeForm'].$emit('resetBuildCubeForm')
+          })
         } else {
           kapConfirm(this.$t('buildCube')).then(() => {
             let time = {buildType: 'BUILD', startTime: 0, endTime: 0}

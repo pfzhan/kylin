@@ -274,7 +274,7 @@
   <div class="line" style="margin: 0px -30px 0 -30px;"></div>
     <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible" :before-close="dimensionsClose" :close-on-press-escape="false" :close-on-click-modal="false">
       <span slot="title">{{$t('addDimensions')}}
-        <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="exclamation-circle"></icon></common-tip>
+        <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
       </span>
       <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDesc="cubeDesc" :sampleSql="sampleSql" :oldData="oldData"></add_dimensions>
       <span slot="footer" class="dialog-footer">

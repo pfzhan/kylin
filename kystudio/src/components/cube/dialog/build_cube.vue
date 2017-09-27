@@ -70,6 +70,7 @@ export default {
       } else if (endTime <= startTime) {
         // callback(new Error(this.$t('timeCompare')))
       } else {
+        this.$refs['buildCubeForm'].fields[1].onFieldBlur()
         callback()
       }
     },
@@ -117,6 +118,9 @@ export default {
           _this.$emit('validSuccess', {start: transToUTCMs(this.timeZone.startDate), end: transToUTCMs(this.timeZone.endDate)})
         }
       })
+    })
+    this.$on('resetBuildCubeForm', (t) => {
+      _this.$refs['buildCubeForm'].resetFields()
     })
   },
 
