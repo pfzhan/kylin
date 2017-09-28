@@ -115,7 +115,8 @@ public class Domain {
         // Count * is a must include measure
         MeasureDesc countAll = new MeasureDesc();
         countAll.setName("_COUNT_");
-        countAll.setFunction(CubeDescUtil.newFunctionDesc(model, "COUNT", ParameterDesc.newInstance("1"), "bigint"));
+        countAll.setFunction(
+                CubeDescUtil.newFunctionDesc(model, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), "bigint"));
         measureDescs.add(countAll);
 
         // Column based measure function

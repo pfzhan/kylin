@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.cube.domain;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.measure.percentile.PercentileMeasureType;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
@@ -77,18 +78,22 @@ public class ModelDomainBuilder implements IDomainBuilder {
         List<FunctionDesc> measureFuncs = Lists.newArrayList();
         for (TblColRef colRef : measureCols) {
             // Distinct Count
-            measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "COUNT_DISTINCT",
+            measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT_DISTINCT,
                     ParameterDesc.newInstance(colRef), "hllc(10)"));
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "SUM", ParameterDesc.newInstance(colRef),
-                        colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
+                        ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MAX
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "MAX", ParameterDesc.newInstance(colRef),
-                        colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MAX,
+                        ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MIN
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, "MIN", ParameterDesc.newInstance(colRef),
-                        colRef.getDatatype()));
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MIN,
+                        ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+
+                // PERCENTILE
+                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, PercentileMeasureType.FUNC_PERCENTILE,
+                        ParameterDesc.newInstance(colRef), colRef.getDatatype()));
             }
         }
 
