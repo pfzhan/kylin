@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.storage.parquet.adhoc;
 
-import java.sql.Types;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
@@ -66,10 +65,10 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
         // fill in selected column meta
         for (int i = 0; i < columnCount; ++i) {
             int nullable = fieldList.get(i).getNullable() ? 1 : 0;
-            int type = Types.VARCHAR;
-            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, false, Integer.MAX_VALUE,
+            columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, Integer.MAX_VALUE,
                     fieldList.get(i).getName().toUpperCase(), fieldList.get(i).getName().toUpperCase(), null, null,
-                    fieldList.get(i).getTable(), Integer.MAX_VALUE, 128, type, fieldList.get(i).getDataType(), false, false, false));
+                    fieldList.get(i).getTable(), fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
+                    fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
         }
     }
 

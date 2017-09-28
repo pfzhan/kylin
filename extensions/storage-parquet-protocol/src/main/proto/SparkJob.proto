@@ -86,9 +86,12 @@ message Row {
 
 message StructField {
     required string name = 1;
-    required string dataType = 2;
-    optional string table = 3;
-    required bool nullable = 4;
+    required int32 dataType = 2;
+    required string dataTypeName = 3;
+    optional int32 precision = 4;
+    optional int32 scale = 5;
+    optional string table = 6;
+    required bool nullable = 7;
 }
 
 message PushDownResponse {
