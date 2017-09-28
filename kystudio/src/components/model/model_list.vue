@@ -181,8 +181,8 @@
             <div class="tree_check_content">
               <div class="tips">
                 <ul>
-                  <li>1.{{$t('kylinLang.model.modelCheckTips1')}}</li>
-                  <li>2.{{$t('kylinLang.model.modelCheckTips2')}}</li>
+                  <li>1. {{$t('kylinLang.model.modelCheckTips1')}}</li>
+                  <li>2. {{$t('kylinLang.model.modelCheckTips2')}}</li>
                 </ul>
               </div>
               <div class="ksd-mt-20">

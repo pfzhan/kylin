@@ -219,6 +219,23 @@ export default {
     overflow:hidden;
     position: relative;
     padding-right: 20px;
+    float: left;
+    .el-select__tags-text{
+      display: block;
+      height: 22px;
+      line-height: 22px;
+    }
+  }
+  .el-select__input{
+    float:left;
+  }
+  .el-select__input:after{
+    content:'.';
+    clear:both;
+    height:0;
+    visibility:hidden;
+    font-size:0;
+    line-height:0;
   }
 }
 

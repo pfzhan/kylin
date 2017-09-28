@@ -357,7 +357,7 @@ export function filterMutileSqlsToOneLine (_sqls, splitChar) {
   })
   sqls = sqls.map((s) => {
     var r = s.replace(/[\r\n]+(\s+)?/g, ' ')
-    return r
+    return r.trim()
   })
   if (sqls[sqls.length - 1] === ' ') {
     sqls.splice(length - 1, 1)
