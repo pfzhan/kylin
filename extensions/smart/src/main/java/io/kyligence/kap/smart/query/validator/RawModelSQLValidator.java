@@ -44,7 +44,6 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.smart.model.ModelContext;
 import io.kyligence.kap.smart.model.ModelContextBuilder;
 import io.kyligence.kap.smart.model.ModelMaster;
-import io.kyligence.kap.smart.model.proposer.JoinProposer;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
 import io.kyligence.kap.smart.query.SQLResult;
@@ -152,7 +151,7 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
                     // conflict check
                     if (!JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
                         // add and resolve alias
-                        String newAlias = JoinProposer.getNewAlias(tableAliasMap.values(), joinTable.getAlias());
+                        String newAlias = getNewAlias(tableAliasMap.values(), join.getPKSide().getTableName());
                         joinTable.setAlias(newAlias);
                         JoinTableDesc newJoinTable = JoinDescUtil.convert(join, TableKind.LOOKUP, newAlias, fkTblAlias);
                         joinTablesModification.put(newAlias, newJoinTable);
@@ -183,6 +182,16 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
             }
             joinTables.putAll(joinTablesModification);
         }
+    }
+
+    private static String getNewAlias(Collection<String> aliasSet, String oldAlias) {
+        String newAlias = oldAlias;
+        int i = 1;
+        while (aliasSet.contains(newAlias)) {
+            newAlias = oldAlias + "_" + i;
+            i++;
+        }
+        return newAlias;
     }
 
     @Override

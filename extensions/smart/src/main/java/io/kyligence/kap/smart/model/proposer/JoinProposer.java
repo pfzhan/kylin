@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart.model.proposer;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,8 @@ public class JoinProposer extends AbstractModelProposer {
             }
 
             // Save context updates and apply later
-            Map<String, JoinTableDesc> joinTablesModification = new HashMap<>();
+            Map<String, JoinTableDesc> joinTablesUpdates = new HashMap<>(joinTables);
+            Map<TableRef, String> tableAliasUpdates = new HashMap<>(tableAliasMap);
             boolean skipModification = false;
 
             List<TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
@@ -68,47 +68,50 @@ public class JoinProposer extends AbstractModelProposer {
             for (int i = 0; i < ctx.joins.size(); i++) {
                 JoinDesc join = ctx.joins.get(i);
                 TableKind kind = tableKindByJoins.get(i);
-                String pkTblAlias = tableAliasMap.get(join.getPKSide());
-                String fkTblAlias = tableAliasMap.get(join.getFKSide());
+                String pkTblAlias = tableAliasUpdates.get(join.getPKSide());
+                String fkTblAlias = tableAliasUpdates.get(join.getFKSide());
 
-                JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, pkTblAlias, fkTblAlias);
+                String joinTableAlias = pkTblAlias;
 
-                String joinTableAlias = joinTable.getAlias();
-                JoinTableDesc oldJoinTable = joinTables.get(joinTableAlias);
-                if (oldJoinTable == null) {
-                    oldJoinTable = joinTablesModification.get(joinTableAlias);
-                }
-                if (oldJoinTable == null) {
-                    joinTablesModification.put(joinTableAlias, joinTable);
-                    continue;
-                }
+                while (!skipModification) {
+                    JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias);
+                    JoinTableDesc oldJoinTable = joinTablesUpdates.get(joinTableAlias);
 
-                // duplication check
-                if (oldJoinTable.equals(joinTable)) {
-                    continue;
-                }
-                // conflict check
-                if (!JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
-                    // add and resolve alias 
-                    String newAlias = getNewAlias(tableAliasMap.values(), joinTable.getAlias());
-                    joinTable.setAlias(newAlias);
-                    joinTablesModification.put(newAlias, JoinDescUtil.convert(join, kind, newAlias, fkTblAlias));
-                    tableAliasMap.put(join.getPKSide(), newAlias);
-                    continue;
-                }
-                if (!JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
-                    // join conflict inner <-> left
-                    skipModification = true;
-                    break;
-                }
-                if (!oldJoinTable.getKind().equals(joinTable.getKind())) {
+                    // new join table
+                    if (oldJoinTable == null) {
+                        joinTablesUpdates.put(joinTableAlias, joinTable);
+                        tableAliasUpdates.put(join.getPKSide(), joinTableAlias);
+                        break;
+                    }
+
+                    // duplicated join table
+                    if (oldJoinTable.equals(joinTable)) {
+                        break;
+                    }
+
+                    // twin join table with different join keys
+                    if (!JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                        // add and resolve alias
+                        joinTableAlias = getNewAlias(join.getPKSide().getTableName(), joinTable.getAlias());
+                        continue;
+                    }
+
+                    // same join keys but join type conflict: inner <-> left
+                    if (!JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
+                        skipModification = true;
+                        break;
+                    }
+
                     // LOOKUP vs FACT, use FACT
-                    joinTable.setKind(TableKind.FACT);
-                    joinTablesModification.put(joinTable.getAlias(), joinTable);
+                    if (!oldJoinTable.getKind().equals(joinTable.getKind())) {
+                        kind = TableKind.FACT;
+                        joinTablesUpdates.remove(oldJoinTable.getAlias());
+                    }
                 }
             }
             if (!skipModification) {
-                joinTables.putAll(joinTablesModification);
+                joinTables.putAll(joinTablesUpdates);
+                tableAliasMap.putAll(tableAliasUpdates);
             }
         }
 
@@ -119,14 +122,29 @@ public class JoinProposer extends AbstractModelProposer {
         modelDesc.setMetrics(new String[0]);
     }
 
-    public static String getNewAlias(Collection<String> aliasSet, String oldAlias) {
-        String newAlias = oldAlias;
-        int i = 1;
-        while (aliasSet.contains(newAlias)) {
-            newAlias = oldAlias + "_" + i;
-            i++;
+    /**
+     * get new alias by original table name, for table 'foo'
+     *   foo -> foo_1
+     *   foo_1 -> foo_2
+     * 
+     * @param orginalName
+     * @param oldAlias
+     * @return
+     */
+    private static String getNewAlias(String orginalName, String oldAlias) {
+        if (oldAlias.equals(orginalName)) {
+            return orginalName + "_1";
+        } else if (!oldAlias.startsWith(orginalName + "_")) {
+            return orginalName;
         }
-        return newAlias;
+        
+        String number = oldAlias.substring(orginalName.length() + 1);
+        try {
+            Integer i = Integer.valueOf(number);
+            return orginalName + "_" + (i+1);
+        } catch (Exception e) {
+            return orginalName + "_1";
+        }
     }
 
     public List<TableRef> getTableRefByAlias(Map<TableRef, String> tableAliasMap, String alias) {
