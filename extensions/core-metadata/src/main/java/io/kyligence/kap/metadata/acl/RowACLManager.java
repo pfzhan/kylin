@@ -182,6 +182,10 @@ public class RowACLManager {
         }
 
         RowACL.TableRowCondList tableRowCondList = tableRowCondsWithUser.get(username);
+        if (tableRowCondList == null || tableRowCondList.isEmpty()) {
+            return result;
+        }
+
         for (String tbl : tableRowCondList.keySet()) {
             Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, tbl));
             Map<String, List<RowACL.Cond>> condsWithColumn = tableRowCondList.getRowCondListByTable(tbl).getCondsWithColumn();
