@@ -75,8 +75,11 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
 
     @Override
     public SQLAdvice propose(SQLResult sqlResult) {
-        String message = sqlResult.getMessage();
+        if (sqlResult == null || sqlResult.getMessage() == null) {
+            return null;
+        }
 
+        String message = sqlResult.getMessage();
         SQLAdvice result = CACHE.getIfPresent(message);
         if (result != null) {
             return result;
