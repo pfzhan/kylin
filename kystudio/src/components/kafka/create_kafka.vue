@@ -139,8 +139,8 @@
             <el-form-item :label="$t('parserName')" prop="parserName">
                 <el-input v-model="kafkaMeta.parserName"></el-input>
             </el-form-item>
-            <el-form-item :label="$t('parserTimestampField')" prop="parserTimeStampField">
-              <el-select v-model="kafkaMeta.parserTimeStampField">
+            <el-form-item :label="$t('timestampField')" prop="timestampField">
+              <el-select v-model="kafkaMeta.timestampField">
                 <el-option v-for="(item, index) in streamingCfg.columnOptions"
                 :key="index"
                 :label="item"
@@ -184,7 +184,7 @@ export default {
         parserName: [
         { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change' }
         ],
-        parserTimeStampField: [
+        timestampField: [
         { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' }
         ]
       },
@@ -205,13 +205,13 @@ export default {
           brokers: []
         }],
         parserProperties: '',
-        parserTimeStampField: ''
+        timestampField: ''
       },
       loading: false,
       columnList: [],
       streamingCfg: {
         columnOptions: [],
-        parserTimeStampField: ''
+        timestampField: ''
       },
       timestampColumnExist: false,
       streamingAutoGenerateMeasure: [
@@ -410,10 +410,10 @@ export default {
         }
       })
       if (_this.streamingCfg.columnOptions.length >= 1) {
-        _this.kafkaMeta.parserTimeStampField = _this.streamingCfg.columnOptions[0]
+        _this.kafkaMeta.timestampField = _this.streamingCfg.columnOptions[0]
         // _this.kafkaMeta.parserProperties = 'tsColName=' + _this.streamingCfg.parseTsColumn
       } else {
-        _this.kafkaMeta.parserTimeStampField = ''
+        _this.kafkaMeta.timestampField = ''
         // _this.kafkaMeta.parserProperties = ''
       }
     }
@@ -439,7 +439,7 @@ export default {
     this.$on('kafkaFormValid', (t) => {
       this.$refs['kafkaForm'].validate((valid) => {
         if (valid && /^\w+$/.test(this.kafkaMeta.name)) {
-          // this.kafkaMeta.parserTimeStampField = this.streamingCfg.parserTimeStampField
+          // this.kafkaMeta.timestampField = this.streamingCfg.timestampField
           if (!/^\w+$/.test(this.kafkaMeta.name)) {
             this.$message('Streaming Table ' + this.$t('kylinLang.common.nameFormatValidTip'))
             return
@@ -457,14 +457,14 @@ export default {
     })
   },
   locales: {
-    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', tableName: 'TABLE NAME', column: 'Column', columnType: 'Column Type', comment: 'Comment', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', parserTimestampField: 'Parser Timestamp Field', parserProperties: 'Optional Properties'},
-    'zh-cn': {host: '主机', port: '端口号', action: '操作', cluster: '集群', clusterInfo: '获取该集群信息', tableName: '表名', column: '列', columnType: '列类型', comment: '注释', timestamp: 'timestamp', derivedTimeDimension: '推导的时间维度', parserSetting: '解析器设置', parserName: '解析器名称', parserTimestampField: '时间戳字段名称', parserProperties: '解析器属性'}
+    'en': {host: 'Host', port: 'Port', action: 'Action', cluster: 'Cluster', clusterInfo: 'Get Cluster Info', tableName: 'TABLE NAME', column: 'Column', columnType: 'Column Type', comment: 'Comment', timestamp: 'timestamp', derivedTimeDimension: 'Derived Time Dimension', parserSetting: 'Parser Setting', parserName: 'Parser Name', timestampField: 'Timestamp Field', parserProperties: 'Optional Properties'},
+    'zh-cn': {host: '主机', port: '端口号', action: '操作', cluster: '集群', clusterInfo: '获取该集群信息', tableName: '表名', column: '列', columnType: '列类型', comment: '注释', timestamp: 'timestamp', derivedTimeDimension: '推导的时间维度', parserSetting: '解析器设置', parserName: '解析器名称', timestampField: '时间戳字段名称', parserProperties: '解析器属性'}
   }
 }
 </script>
 <style lang="less">
   @import '../../less/config.less';
- 
+
 #create-kafka{
   .table_margin {
    margin-top: 10px;
