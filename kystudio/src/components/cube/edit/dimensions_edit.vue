@@ -286,7 +286,7 @@
 </template>
 <script>
 import { handleSuccess, handleError, loadBaseEncodings, getTableNameInfoByAlias, kapConfirm } from '../../../util/business'
-import { changeDataAxis, indexOfObjWithSomeKey, ObjectArraySortByArray } from '../../../util/index'
+import { changeDataAxis, indexOfObjWithSomeKey, ObjectArraySortByArray, objectClone } from '../../../util/index'
 import { mapActions } from 'vuex'
 import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
@@ -634,7 +634,7 @@ export default {
     },
     initAggregationGroup: function (isReset) {
       if ((!this.isEdit || this.isEdit && isReset) && this.cubeDesc.aggregation_groups.length <= 0) {
-        let newGroup = {includes: this.currentRowkey, select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
+        let newGroup = {includes: objectClone(this.currentRowkey), select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)
       }
