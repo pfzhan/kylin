@@ -175,7 +175,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="modelCheck" :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+    <el-dialog class="modelCheck" :title="$t('kylinLang.model.checkModel')" size="tiny" v-model="scanRatioDialogVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetModelCheckForm">
         <el-row :gutter="20">
           <el-col :span="24"><div class="grid-content bg-purple">
             <div class="tree_check_content">
@@ -425,6 +425,9 @@ export default {
     },
     changeGridModal (val) {
       this.viewModal = val
+    },
+    resetModelCheckForm: function () {
+      this.$refs['modelCheckForm'].resetFields()
     },
     validateStartDate: function (rule, value, callback) {
       let realValue = this.$refs['startTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value
@@ -801,9 +804,6 @@ export default {
                     for (var i in data) {
                       if ('' + i === 'false') {
                         this.scanRatioDialogVisible = true
-                        this.$nextTick(() => {
-                          this.$refs['modelCheckForm'].resetFields()
-                        })
                         this.modelCheckTime.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true

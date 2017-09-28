@@ -153,7 +153,7 @@
   </el-table>
    <pager ref="pager"  :totalSize="totalCubes"  v-on:handleCurrentChange='currentChange' ></pager>
 
-  <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildCubeFormVisible = false">{{$t('cancel')}}</el-button>
@@ -704,9 +704,6 @@ export default {
       } else {
         if (cube.partitionDateColumn) {
           this.buildCubeFormVisible = true
-          this.$nextTick(() => {
-            this.$refs['buildCubeForm'].$emit('resetBuildCubeForm')
-          })
         } else {
           kapConfirm(this.$t('buildCube')).then(() => {
             let time = {buildType: 'BUILD', startTime: 0, endTime: 0}
@@ -725,6 +722,9 @@ export default {
           })
         }
       }
+    },
+    resetCubeBuildField: function () {
+      this.$refs['buildCubeForm'].$emit('resetBuildCubeForm')
     },
     checkBuildCubeForm: function () {
       this.$refs['buildCubeForm'].$emit('buildCubeFormValid')
