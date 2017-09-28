@@ -1,7 +1,7 @@
 <template>
 	<div class="sub_menu">
     <el-tabs v-model="subMenu" @tab-click="handleClick" class="el-tabs--default">
-      <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource" v-if="isAdmin || hasSomePermissionOfProject()">
+      <el-tab-pane :label="$t('kylinLang.common.dataSource')" name="datasource" v-if="isAdmin || hasPermissionOfProject">
         <div v-if="subMenu === 'datasource'">
           <component is="dataSource" v-on:addtabs="addTab" ref="datsources" ></component>
         </div>
@@ -28,7 +28,9 @@ import { hasPermission, hasRole } from '../../util/business'
 export default {
   data () {
     return {
-      subMenu: 'model'
+      subMenu: 'model',
+      hasPermissionOfProject: this.hasSomePermissionOfProject(),
+      hasGetPermission: false
     }
   },
   components: {
@@ -79,6 +81,22 @@ export default {
     var hash = location.hash
     var subRouter = hash.replace(/.*\/(.*)$/, '$1')
     this.subMenu = subRouter
+  },
+  watch: {
+    '$store.state': {
+      handler: function (value, oldValue) {
+        if (!this.hasGetPermission) {
+          if (value.project && value.user && value.user.currentUser && value.project.selected_project) {
+            var projectId = this.getProjectIdByName(value.project.selected_project)
+            if (value.project.projectEndAccess[projectId]) {
+              this.hasPermissionOfProject = this.hasSomePermissionOfProject()
+              this.hasGetPermission = true
+            }
+          }
+        }
+      },
+      deep: true
+    }
   }
 }
 </script>
