@@ -83,6 +83,7 @@ public class SparkParquetVisit implements Serializable {
     private final transient SparkJobProtos.SparkJobRequestPayload request;
     private final transient String streamIdentifier;
     private final transient KylinConfig kylinConfig;
+    private final transient KapConfig kapConfig;
     private final transient boolean isSplice;
     private final transient Set<String> parquetPathCollection;
     private final transient Iterator<String> parquetPathIter;
@@ -98,7 +99,6 @@ public class SparkParquetVisit implements Serializable {
     private transient long accumulateCnt = 0;
     private transient JavaPairRDD batchRdd = null;
     private static final transient String SCHEMA_HINT = "://";
-
     private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder()
             .maximumSize(10000).expireAfterWrite(1, TimeUnit.HOURS).removalListener(//
                     new RemovalListener<String, Map<Long, Set<String>>>() {
@@ -132,7 +132,7 @@ public class SparkParquetVisit implements Serializable {
             KylinConfig.setKylinConfigInEnvIfMissing(request.getKylinProperties());
             this.kylinConfig = KylinConfig.getInstanceFromEnv();
             this.conf = new Configuration();
-            KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+            this.kapConfig = KapConfig.wrap(kylinConfig);
             TupleFilterSerializerRawTableExt.getExtendedTupleFilters();//touch static initialization
             GTScanRequest scanRequest = GTScanRequest.serializer
                     .deserialize(ByteBuffer.wrap(request.getGtScanRequest().toByteArray()));
@@ -301,9 +301,10 @@ public class SparkParquetVisit implements Serializable {
         batchRdd = null;
 
         final Iterator<RDDPartitionResult> partitionResults;
-        JavaRDD<RDDPartitionResult> baseRDD = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords,
-                collectedRecords, realizationType, isSplice, hasPreFiltered(), //
-                streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime()))
+        JavaRDD<RDDPartitionResult> baseRDD = seed
+                .mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType,
+                        isSplice, hasPreFiltered(), //
+                        streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime()))
                 .cache();
 
         baseRDD.count();//trigger lazy materialization
@@ -313,7 +314,16 @@ public class SparkParquetVisit implements Serializable {
         accumulateCnt += scanCount;
         if (scanCount > threshold) {
             logger.info("returning large result set");
-            partitionResults = baseRDD.toLocalIterator();
+            int newPartitions = (int) Math.round((double) scanCount / (threshold * 0.8));
+            int oldPartitions = baseRDD.getNumPartitions();
+            int partitionRatio = oldPartitions / newPartitions;
+            if (oldPartitions > kapConfig.getAutoRepartionThreshold()
+                    && partitionRatio > kapConfig.getAutoRepartitionRatio()) {
+                logger.info("repartition {} to {}", oldPartitions, newPartitions);
+                partitionResults = baseRDD.repartition(newPartitions).toLocalIterator();
+            } else {
+                partitionResults = baseRDD.toLocalIterator();
+            }
         } else {
             logger.info("returning normal result set");
             partitionResults = baseRDD.collect().iterator();
