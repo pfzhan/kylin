@@ -60,7 +60,7 @@
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown" >
-        <el-dropdown-item @click.native="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('edit')}}</el-dropdown-item>
+<!--         <el-dropdown-item @click.native="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('edit')}}</el-dropdown-item> -->
         <el-dropdown-item @click.native="backup(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('backup')}}</el-dropdown-item>
         <el-dropdown-item @click.native="removeProject(scope.row)" v-if="isAdmin">{{$t('delete')}}</el-dropdown-item>
       </el-dropdown-menu>
