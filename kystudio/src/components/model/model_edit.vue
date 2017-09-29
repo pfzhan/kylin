@@ -718,6 +718,7 @@ export default {
           } else {
             editor.setReadOnly(false)
           }
+          editor.setOption('wrap', 'free')
           this.getAutoModelSql({
             modelName: this.modelInfo.modelName
           }).then((res) => {

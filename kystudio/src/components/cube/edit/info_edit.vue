@@ -258,6 +258,7 @@ export default {
         var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
         editor && editor.removeListener('change', this.editerChangeHandle)
         this.renderEditerRender(editor)
+        editor.setOption('wrap', 'free')
         this.getSql(this.cubeDesc.name).then((res) => {
           handleSuccess(res, (data) => {
             if (data.sqls) {

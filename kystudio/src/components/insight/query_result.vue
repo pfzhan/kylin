@@ -229,6 +229,7 @@ export default {
                 show: true,
                 title: this.$t('restore')},
               saveAsImage: {
+                backgroundColor: '#292b38',
                 show: true,
                 title: 'Picture',
                 lang: this.$t('save')
@@ -330,6 +331,7 @@ export default {
                 title: this.$t('restore')
               },
               saveAsImage: {
+                backgroundColor: '#292b38',
                 show: true,
                 title: 'Picture',
                 lang: this.$t('save')

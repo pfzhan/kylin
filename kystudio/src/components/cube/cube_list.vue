@@ -377,6 +377,12 @@ export default {
       this.currentSqlErrorMsg = false
       this.errorMsg = ''
       this.successMsg = ''
+      this.$nextTick(() => {
+        var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+        if (editor) {
+          editor.setOption('wrap', 'free')
+        }
+      })
     },
     // 渲染编辑器行号列尺寸
     renderEditerRender (editor) {
