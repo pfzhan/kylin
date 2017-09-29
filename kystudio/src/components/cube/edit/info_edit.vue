@@ -198,7 +198,7 @@ export default {
         if (data && data.length) {
           if (data[row].status === 'FAILED') {
             if (data[row].message) {
-              this.errorMsg = 'Line ' + (row + 1) + data[row].message.replace(/^.*?:/, '')
+              this.errorMsg = data[row].message.replace(/^.*?:/, '')
             }
           } else {
             this.errorMsg = ''
