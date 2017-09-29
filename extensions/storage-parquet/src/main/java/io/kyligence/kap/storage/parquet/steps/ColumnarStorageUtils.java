@@ -24,13 +24,11 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
-
-import com.google.common.base.Splitter;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
@@ -60,10 +58,14 @@ public class ColumnarStorageUtils {
 
     private static String getLocalParquetStoragePath(KylinConfig config, String remoteFs) {
         KapConfig kapConfig = KapConfig.wrap(config);
-        String localParquetStoragePath = kapConfig.getParquetStoragePath();
-        if (localParquetStoragePath.contains("://")) {
-            return remoteFs + Lists.newArrayList(Splitter.on("://").split(localParquetStoragePath)).get(1);
+        Path localParquetStoragePath = new Path(kapConfig.getParquetStoragePath());
+        Path localParquetStoragePathWithoutSchema = Path.getPathWithoutSchemeAndAuthority(localParquetStoragePath);
+        Path remotePath = new Path(remoteFs, localParquetStoragePathWithoutSchema);
+        String remotePathStr = remotePath.toString();
+        if (remotePathStr.endsWith("/") == false) {
+            remotePathStr = remotePathStr + "/";
         }
-        return remoteFs + localParquetStoragePath;
+
+        return remotePathStr;
     }
 }
