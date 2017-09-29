@@ -63,7 +63,7 @@ public class AdviceMessage {
     }
 
     public String getBAD_SQL_TABLE_NOT_FOUND_SUGGEST() {
-        return "Please add table %s to data source.";
+        return "Please add table %s to data source. If this table does exist, mention it as DATABASE.TABLE.";
     }
 
     public String getBAD_SQL_TABLE_CASE_ERR_REASON() {
