@@ -86,6 +86,7 @@ public class JoinProposer extends AbstractModelProposer {
 
                     // duplicated join table
                     if (oldJoinTable.equals(joinTable)) {
+                        tableAliasUpdates.put(join.getPKSide(), joinTableAlias);
                         break;
                     }
 
