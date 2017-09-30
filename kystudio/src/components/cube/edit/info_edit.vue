@@ -91,7 +91,7 @@
     <div class="ksd-mt-4"><el-button :loading="checkSqlLoadBtn" @click="validateSql" >{{$t('kylinLang.common.check')}}</el-button> <el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
     <span slot="footer" class="dialog-footer">
       <el-button @click="sqlClose()">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" :loading="sqlBtnLoading" @click="collectSqlToServer">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </div>
@@ -148,7 +148,7 @@ export default {
     },
     sqlClose () {
       kapConfirm(this.$t('kylinLang.common.willClose'), {
-        confirmButtonText: this.$t('kylinLang.common.close'),
+        confirmButtonText: this.$t('kylinLang.common.continue'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
       }).then(() => {
         this.addSQLFormVisible = false

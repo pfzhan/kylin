@@ -192,7 +192,7 @@ export default {
     },
     measureClose: function () {
       kapConfirm(this.$t('kylinLang.common.willClose'), {
-        confirmButtonText: this.$t('kylinLang.common.close'),
+        confirmButtonText: this.$t('kylinLang.common.continue'),
         cancelButtonText: this.$t('kylinLang.common.cancel')
       }).then(() => {
         this.measureFormVisible = false
