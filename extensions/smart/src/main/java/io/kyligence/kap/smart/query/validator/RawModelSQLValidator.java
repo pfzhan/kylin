@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -62,7 +62,7 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
     public RawModelSQLValidator(KylinConfig kylinConfig, String project, String factTableName) {
         super(kylinConfig);
         this.projectName = project;
-        this.factTable = MetadataManager.getInstance(kylinConfig).getTableDesc(factTableName, project);
+        this.factTable = TableMetadataManager.getInstance(kylinConfig).getTableDesc(factTableName, project);
         Preconditions.checkArgument(factTable != null, "Fact table not found: " + factTableName);
         this.sqlAdvisor = new RawModelSQLAdvisor(this.factTable);
     }

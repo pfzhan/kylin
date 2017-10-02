@@ -41,9 +41,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -234,7 +234,7 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     // ============================================================================
 
     void init(KylinConfig config) {
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        DataModelManager metaMgr = DataModelManager.getInstance(config);
 
         this.config = config;
         this.model = metaMgr.getDataModelDesc(modelName);

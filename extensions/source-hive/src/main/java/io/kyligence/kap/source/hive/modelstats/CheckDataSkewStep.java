@@ -32,8 +32,8 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +50,7 @@ public class CheckDataSkewStep extends AbstractExecutable {
 
         try {
             ModelStats modelStats = modelStatsManager.getModelStats(modelName);
-            DataModelDesc dataModelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+            DataModelDesc dataModelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
             ModelDiagnose.checkDataSkewOnFactTable(dataModelDesc, modelStats, kylinConfig);
             stepLogger.log("Success");
             return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());

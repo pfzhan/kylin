@@ -29,9 +29,9 @@ import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.model.proposer.ProposerProvider;
 
 public class ModelMaster {
@@ -48,8 +48,8 @@ public class ModelMaster {
         return context;
     }
 
-    public DataModelDesc proposeInitialModel() {
-        DataModelDesc modelDesc = new DataModelDesc();
+    public KapModel proposeInitialModel() {
+        KapModel modelDesc = new KapModel();
         modelDesc.setName(context.getModelName() == null ? UUID.randomUUID().toString() : context.getModelName());
         modelDesc.setRootFactTableName(context.getRootTable().getIdentity());
         modelDesc.setDescription(StringUtils.EMPTY);
@@ -59,20 +59,20 @@ public class ModelMaster {
         return modelDesc;
     }
 
-    public DataModelDesc proposeJoins(DataModelDesc modelDesc) {
-        DataModelDesc modelDescWithJoin = proposerProvider.getJoinProposer().propose(modelDesc);
+    public KapModel proposeJoins(KapModel modelDesc) {
+        KapModel modelDescWithJoin = proposerProvider.getJoinProposer().propose(modelDesc);
         return modelDescWithJoin;
     }
 
-    public DataModelDesc proposeScope(DataModelDesc modelDesc) {
-        DataModelDesc modelDescWithScope = proposerProvider.getScopeProposer().propose(modelDesc);
+    public KapModel proposeScope(KapModel modelDesc) {
+        KapModel modelDescWithScope = proposerProvider.getScopeProposer().propose(modelDesc);
         return modelDescWithScope;
     }
 
-    public DataModelDesc proposeAll() {
-        DataModelDesc modelDesc = proposeInitialModel();
-        DataModelDesc modelDescWithJoin = proposeJoins(modelDesc);
-        DataModelDesc modelDescWithScope = proposeScope(modelDescWithJoin);
+    public KapModel proposeAll() {
+        KapModel modelDesc = proposeInitialModel();
+        KapModel modelDescWithJoin = proposeJoins(modelDesc);
+        KapModel modelDescWithScope = proposeScope(modelDescWithJoin);
         return modelDescWithScope;
     }
 }

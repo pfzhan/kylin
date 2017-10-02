@@ -53,26 +53,26 @@ public class TableExtService extends BasicService {
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public String getJobByTableName(String tableName, String prj) {
-        return getMetadataManager().getTableExt(tableName, prj).getJodID();
+        return getTableManager().getTableExt(tableName, prj).getJodID();
     }
 
     public TableExtDesc getTableExt(String tableName, String prj) {
         aclEvaluate.checkProjectWritePermission(prj);
-        return getMetadataManager().getTableExt(tableName, prj);
+        return getTableManager().getTableExt(tableName, prj);
     }
 
     public void removeTableExt(String tableName, String prj) throws IOException {
         aclEvaluate.checkProjectWritePermission(prj);
-        getMetadataManager().removeTableExt(tableName, prj);
+        getTableManager().removeTableExt(tableName, prj);
     }
 
     public void removeJobIdFromTableExt(String jobId) throws IOException {
         for (ProjectInstance pi : getProjectManager().listAllProjects()) {
-            for (TableDesc desc : getMetadataManager().listAllTables(pi.getName())) {
-                TableExtDesc extDesc = getMetadataManager().getTableExt(desc);
+            for (TableDesc desc : getTableManager().listAllTables(pi.getName())) {
+                TableExtDesc extDesc = getTableManager().getTableExt(desc);
                 if (extDesc.getJodID() != null && jobId.equals(extDesc.getJodID())) {
                     extDesc.setJodID(null);
-                    getMetadataManager().saveTableExt(extDesc, pi.getName());
+                    getTableManager().saveTableExt(extDesc, pi.getName());
                 }
             }
         }

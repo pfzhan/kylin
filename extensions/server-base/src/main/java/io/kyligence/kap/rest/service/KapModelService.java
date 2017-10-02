@@ -32,15 +32,25 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HiveCmdBuilder;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.metadata.model.DimensionAdvisor;
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
@@ -109,13 +119,13 @@ public class KapModelService extends BasicService {
     }
 
     public boolean isFactTableStreaming(String modelName) {
-        DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
+        DataModelDesc modelDesc = getDataModelManager().getDataModelDesc(modelName);
         int sourceTypeType = modelDesc.getRootFactTable().getTableDesc().getSourceType();
         return sourceTypeType == ISourceAware.ID_STREAMING;
     }
 
     public String[] getColumnSamples(String proj, String table, String column) {
-        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(table, proj);
+        TableExtDesc tableExtDesc = getTableManager().getTableExt(table, proj);
 
         int index = 0;
         for (TableExtDesc.ColumnStats s : tableExtDesc.getColumnStats()) {
@@ -147,7 +157,7 @@ public class KapModelService extends BasicService {
 
     public void removeJobIdFromModelStats(String jobId) {
         ModelStatsManager msManager = ModelStatsManager.getInstance(getConfig());
-        for (DataModelDesc desc : getMetadataManager().listDataModels()) {
+        for (DataModelDesc desc : getDataModelManager().listDataModels()) {
             try {
                 ModelStats stats = msManager.getModelStats(desc.getName());
                 String statsJobId = stats.getJodID();
@@ -160,4 +170,87 @@ public class KapModelService extends BasicService {
             }
         }
     }
+    
+    /**
+     * check if the computed column expressions are valid ( in hive)
+     */
+    public boolean checkCCExpression(final KapModel dataModelDesc, String project) throws IOException {
+
+        dataModelDesc.setDraft(false);
+        if (dataModelDesc.getUuid() == null)
+            dataModelDesc.updateRandomUuid();
+
+        dataModelDesc.init(getConfig(), getTableManager().getAllTablesMap(project),
+                getDataModelManager().listDataModels());
+
+        for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
+
+            //check by calcite parser
+            cc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
+
+            //check by hive cli, this could be slow
+            StringBuilder sb = new StringBuilder();
+            sb.append("select ");
+            sb.append(cc.getExpression());
+            sb.append(" ");
+            JoinedFlatTable.appendJoinStatement(new IJoinedFlatTableDesc() {
+                @Override
+                public String getTableName() {
+                    return null;
+                }
+
+                @Override
+                public DataModelDesc getDataModel() {
+                    return dataModelDesc;
+                }
+
+                @Override
+                public List<TblColRef> getAllColumns() {
+                    return null;
+                }
+
+                @Override
+                public int getColumnIndex(TblColRef colRef) {
+                    return 0;
+                }
+
+                @Override
+                public SegmentRange getSegRange() {
+                    return null;
+                }
+
+                @Override
+                public TblColRef getDistributedBy() {
+                    return null;
+                }
+
+                @Override
+                public TblColRef getClusterBy() {
+                    return null;
+                }
+
+                @Override
+                public ISegment getSegment() {
+                    return null;
+                }
+            }, sb, false);
+            sb.append(" limit 0");
+
+            final HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
+            hiveCmdBuilder.addStatement(sb.toString());
+
+            long ts = System.currentTimeMillis();
+            Pair<Integer, String> response = KylinConfig.getInstanceFromEnv().getCliCommandExecutor()
+                    .execute(hiveCmdBuilder.toString());
+            logger.debug("Spent " + (System.currentTimeMillis() - ts)
+                    + " ms to execute the hive command to validate computed column expression: " + cc.getExpression());
+            if (response.getFirst() != 0) {
+                throw new IllegalArgumentException("The expression " + cc.getExpression()
+                        + " failed syntax check with output message: " + response.getSecond());
+            }
+        }
+
+        return true;
+    }
+
 }

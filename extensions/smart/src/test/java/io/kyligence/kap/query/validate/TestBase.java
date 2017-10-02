@@ -37,8 +37,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Preconditions;
@@ -111,7 +111,7 @@ public class TestBase {
         KylinConfig kylinConfig = getKylinConfig(metaDir);
         List<String> sqls = readSqls(sqlFileName);
         System.out.println("SQL count:" + sqls.size());
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
 
         AbstractSQLValidator sqlValidator = new ModelSQLValidator(kylinConfig, modelDesc);
         Map<String, SQLValidateResult> validateStatsMap = sqlValidator.batchValidate(Lists.newArrayList(sqls));
@@ -162,7 +162,7 @@ public class TestBase {
 
     Map<String, SQLValidateResult> validateModel(String metaDir, String modelName, List<String> sqls) {
         KylinConfig kylinConfig = getKylinConfig(metaDir);
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
 
         AbstractSQLValidator sqlValidator = new ModelSQLValidator(kylinConfig, modelDesc);
         return sqlValidator.batchValidate(Lists.newArrayList(sqls));

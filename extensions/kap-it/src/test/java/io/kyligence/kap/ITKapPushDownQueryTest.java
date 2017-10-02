@@ -193,7 +193,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
                     "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
 
             List<File> sqlFiles = getFilesFromFolder(
-                    new File("../../kylin/kylin-it/src/test/resources/query/sql_computedcolumn"), ".sql");
+                    new File("src/test/resources/query/sql_computedcolumn"), ".sql");
             for (File sqlFile : sqlFiles) {
                 int resultCount = runSQL(sqlFile, false, false);
                 Assert.assertTrue(resultCount > 1);

@@ -33,8 +33,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.AfterClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -155,7 +155,7 @@ public class SmartMasterTest {
 
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
 
         CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
 

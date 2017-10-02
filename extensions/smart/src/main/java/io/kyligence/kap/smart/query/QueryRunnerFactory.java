@@ -29,8 +29,8 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.RealizationType;
@@ -72,7 +72,7 @@ public final class QueryRunnerFactory {
 
     public static AbstractQueryRunner createForModelSQLValid(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
             DataModelDesc modelDesc) {
-        MetadataManager metadataManager = MetadataManager.getInstance(srcKylinConfig);
+        DataModelManager metadataManager = DataModelManager.getInstance(srcKylinConfig);
         List<DataModelDesc> modelDescs = metadataManager.getModels(modelDesc.getProject());
         List<CubeDesc> mockupCubes = Lists.newArrayListWithExpectedSize(modelDescs.size());
 

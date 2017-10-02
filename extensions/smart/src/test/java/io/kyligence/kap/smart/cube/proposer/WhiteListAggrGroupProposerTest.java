@@ -30,8 +30,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -58,7 +58,7 @@ public class WhiteListAggrGroupProposerTest {
 
     @Test
     public void testOnStarModel() throws JsonProcessingException {
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         String[] sqls = new String[] {
                 "select part_dt from kylin_sales where lstg_format_name is null group by part_dt",
@@ -80,7 +80,7 @@ public class WhiteListAggrGroupProposerTest {
 
     @Test
     public void testOnStarModelWithoutSQL() throws JsonProcessingException {
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         String[] sqls = new String[0];
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, sqls);

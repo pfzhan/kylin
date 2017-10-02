@@ -35,8 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.rest.service.BasicService;
@@ -71,7 +71,7 @@ public class KapSuggestionService extends BasicService {
         String[] sqlArray = new String[sampleSqls.size()];
         sampleSqls.toArray(sqlArray);
 
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(getConfig()).getDataModelDesc(modelName);
         CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
         CubeContext modelingContext = modelingMaster.getContext();
@@ -95,7 +95,7 @@ public class KapSuggestionService extends BasicService {
         String[] sqlArray = new String[sampleSqls.size()];
         sampleSqls.toArray(sqlArray);
 
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(getConfig()).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(getConfig()).getDataModelDesc(modelName);
         CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
         CubeContext modelingContext = modelingMaster.getContext();
@@ -245,7 +245,7 @@ public class KapSuggestionService extends BasicService {
         KylinConfig config = KylinConfigExt.createInstance(getConfig(), overrideProps);
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(config);
         QueryStats queryStats = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName).getQueryStats();
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(config).getDataModelDesc(modelName);
         CubeMaster modelingMaster = MasterFactory.createCubeMaster(config, dataModelDesc, queryStats);
         return modelingMaster;
     }

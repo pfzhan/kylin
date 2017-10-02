@@ -31,8 +31,9 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -143,9 +144,10 @@ public class CubeContextBuilder {
         CubeContext context = new CubeContext(kylinConfig);
 
         Domain usedDomain = new DefaultDomainBuilder(smartConfig, queryStats, initCubeDesc).build();
-        MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
+        TableMetadataManager tableManager = TableMetadataManager.getInstance(kylinConfig);
+        DataModelManager modelManager = DataModelManager.getInstance(kylinConfig);
         ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
-        DataModelDesc modelDesc = metadataManager.getDataModelDesc(initCubeDesc.getModelName());
+        DataModelDesc modelDesc = modelManager.getDataModelDesc(initCubeDesc.getModelName());
 
         // set model stats
         ModelStats modelStats = null;
@@ -167,7 +169,7 @@ public class CubeContextBuilder {
             TableDesc tableDesc = tableRef.getTableDesc();
             tableDescMap.put(tblRefId, tableDesc);
 
-            TableExtDesc tableExtDesc = metadataManager.getTableExt(tblRefId, modelDesc.getProject());
+            TableExtDesc tableExtDesc = tableManager.getTableExt(tblRefId, modelDesc.getProject());
             if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
                 tableExtDescMap.put(tblRefId, tableExtDesc);
             }

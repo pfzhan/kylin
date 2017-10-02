@@ -40,9 +40,9 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +86,7 @@ public class ModelStatsUpdate extends AbstractHadoopJob {
 
             this.model = getOptionValue(OPTION_MODEL);
 
-            DataModelDesc dataModelDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(model);
+            DataModelDesc dataModelDesc = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(model);
 
             flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
 

@@ -37,7 +37,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -89,7 +89,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
 
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sql));
         for (RowFilter.Table table : tblWithAlias) {
-            TableDesc tableDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(table.getName(), project);
+            TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(table.getName(), project);
             for (ColumnDesc column : tableDesc.getColumns()) {
                 if (!columnBlackList.contains(tableDesc.getIdentity() + "." + column.getName())) {
                     cols.add(table.getAlias() + "." + column.getName());

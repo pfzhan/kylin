@@ -35,6 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.query.CompareQueryBySuffix;
 import org.apache.kylin.query.ITKylinQueryTest;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -118,6 +119,29 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     /////////////////test more
 
+    // due to computed column, the CI cubes in KAP are different in column count
+    @Test
+    @Override
+    public void testVerifyCountQuery() throws Exception {
+        verifyResultRowColCount("src/test/resources/query/sql_verifyCount");
+    }
+
+    // due to computed column, the CI cubes in KAP are different in column count
+    @Test
+    @Override
+    public void testVerifyCountQueryWithPrepare() throws Exception {
+        try {
+            Map<String, String> toggles = Maps.newHashMap();
+            toggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
+            BackdoorToggles.setToggles(toggles);
+            
+            verifyResultRowColCount("src/test/resources/query/sql_verifyCount");
+            
+        } finally {
+            BackdoorToggles.cleanToggles();
+        }
+    }
+    
     //only raw can do
     @Test
     public void testRawTableQuery() throws Exception {
@@ -162,6 +186,11 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             OLAPContext context = OLAPContext.getThreadLocalContexts().iterator().next();
             assertTrue(context.realization instanceof RawTableInstance);
         }
+    }
+    
+    @Test
+    public void testComputedColumnsQuery() throws Exception {
+        execAndCompQuery("src/test/resources/query/sql_computedcolumn", null, true, CompareQueryBySuffix.INSTANCE);
     }
 
     /////////////////test differently

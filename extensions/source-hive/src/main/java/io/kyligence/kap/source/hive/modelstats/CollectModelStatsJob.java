@@ -43,8 +43,9 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -111,9 +112,9 @@ public class CollectModelStatsJob extends CubingJob {
         setSubmitter(submitter);
         setParam(CubingExecutableUtil.CUBE_NAME, modelName);
 
-        MetadataManager manager = MetadataManager.getInstance(config);
+        TableMetadataManager manager = TableMetadataManager.getInstance(config);
 
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(config).getDataModelDesc(modelName);
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc, segRange, getId());
         JobEngineConfig jobConf = new JobEngineConfig(config);
 
@@ -155,7 +156,7 @@ public class CollectModelStatsJob extends CubingJob {
         return this;
     }
 
-    private void checkLookupStats(DataModelDesc dataModelDesc, MetadataManager manager) throws IOException {
+    private void checkLookupStats(DataModelDesc dataModelDesc, TableMetadataManager manager) throws IOException {
         for (JoinTableDesc fTable : dataModelDesc.getJoinTables()) {
             String s = fTable.getTable();
             TableExtDesc extDesc = manager.getTableExt(s, dataModelDesc.getProject());

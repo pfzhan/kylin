@@ -46,7 +46,7 @@ public class SQLValidateService extends BasicService {
         if (CollectionUtils.isEmpty(sqlList)) {
             return Collections.emptyList();
         }
-        DataModelDesc modelDesc = getMetadataManager().getDataModelDesc(modelName);
+        DataModelDesc modelDesc = getDataModelManager().getDataModelDesc(modelName);
         AbstractSQLValidator sqlValidator = new ModelSQLValidator(getConfig(), modelDesc);
         return transform(sqlList, sqlValidator.batchValidate(sqlList));
     }

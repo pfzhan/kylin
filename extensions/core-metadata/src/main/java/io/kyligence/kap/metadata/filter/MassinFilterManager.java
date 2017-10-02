@@ -49,7 +49,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dimension.DimensionEncoding;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.slf4j.Logger;
@@ -143,7 +143,7 @@ public class MassinFilterManager {
         filterDesc.setUuid(UUID.randomUUID().toString());
         filterDesc.setFilterResourceIdentifier(resourcePath);
         filterDesc.setFilterTableType(filterTableType);
-        MetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
+        TableMetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
 
         return filterName;
     }

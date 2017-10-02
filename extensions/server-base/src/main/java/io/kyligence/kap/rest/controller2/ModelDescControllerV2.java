@@ -27,15 +27,11 @@ package io.kyligence.kap.rest.controller2;
 import java.io.IOException;
 import java.util.HashMap;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.draft.Draft;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.response.DataModelDescResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.ModelService;
@@ -49,6 +45,9 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.rest.response.KapModelResponse;
 
 /**
  * @author jiazhong
@@ -80,10 +79,7 @@ public class ModelDescControllerV2 extends BasicController {
     public EnvelopeResponse getModelV2(@PathVariable String projectName, @PathVariable String modelName) throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
-
-        DataModelDesc model = modelService.getModel(modelName, projectName);
+        KapModel model = (KapModel) modelService.getModel(modelName, projectName);
         Draft draft = modelService.getModelDraft(modelName, projectName);
 
         if (model == null && draft == null)
@@ -98,17 +94,17 @@ public class ModelDescControllerV2 extends BasicController {
         }
 
         // result
-        HashMap<String, DataModelDescResponse> result = new HashMap<String, DataModelDescResponse>();
+        HashMap<String, KapModelResponse> result = new HashMap<String, KapModelResponse>();
         if (model != null) {
             Preconditions.checkState(!model.isDraft());
-            DataModelDescResponse r = new DataModelDescResponse(model);
+            KapModelResponse r = new KapModelResponse(model);
             r.setProject(project);
             result.put("model", r);
         }
-        if (draft != null) {
-            DataModelDesc dm = (DataModelDesc) draft.getEntity();
+        if (draft != null && draft.getEntity() instanceof KapModel) {
+            KapModel dm = (KapModel) draft.getEntity();
             Preconditions.checkState(dm.isDraft());
-            DataModelDescResponse r = new DataModelDescResponse(dm);
+            KapModelResponse r = new KapModelResponse(dm);
             r.setProject(project);
             result.put("draft", r);
         }

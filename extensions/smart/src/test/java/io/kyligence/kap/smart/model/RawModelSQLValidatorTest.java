@@ -36,7 +36,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.After;
 import org.junit.Assert;
@@ -143,7 +143,7 @@ public class RawModelSQLValidatorTest {
     private DataModelDesc getValidatedModel(ModelMaster master, KylinConfig kylinConfig, String project)
             throws Exception {
         DataModelDesc modelDesc = master.proposeAll();
-        modelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
+        modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
                 Lists.<DataModelDesc> newArrayList());
         return modelDesc;
     }

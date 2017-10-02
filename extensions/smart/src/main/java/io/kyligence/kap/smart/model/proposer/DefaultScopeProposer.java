@@ -27,7 +27,7 @@ package io.kyligence.kap.smart.model.proposer;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
@@ -52,7 +52,7 @@ public class DefaultScopeProposer extends AbstractModelProposer {
 
     @Override
     protected void doPropose(DataModelDesc modelDesc) {
-        MetadataManager metadataManager = MetadataManager.getInstance(modelContext.getKylinConfig());
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(modelContext.getKylinConfig());
         List<ModelDimensionDesc> dims = Lists.newArrayList();
         List<String> metrics = Lists.newArrayList();
 

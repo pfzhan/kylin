@@ -35,7 +35,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -64,7 +64,7 @@ class LocalQueryRunnerBuilder {
         Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
 
         CubeManager cubeManager = CubeManager.getInstance(srcKylinConfig);
-        MetadataManager metadataManager = MetadataManager.getInstance(srcKylinConfig);
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(srcKylinConfig);
         ProjectManager projectManager = ProjectManager.getInstance(srcKylinConfig);
 
         ProjectInstance srcProj = projectManager.getProject(projectName);

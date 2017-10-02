@@ -58,9 +58,9 @@ public class KafkaService extends BasicService {
     public String saveSamplesToStreamingTable(String identity, List<String> messages, String prj) throws IOException {
         aclEvaluate.checkProjectWritePermission(prj);
         List<String[]> samples = convertMessagesToSamples(messages);
-        TableExtDesc tableExtDesc = getMetadataManager().getTableExt(identity, prj);
+        TableExtDesc tableExtDesc = getTableManager().getTableExt(identity, prj);
         tableExtDesc.setSampleRows(samples);
-        getMetadataManager().saveTableExt(tableExtDesc, prj);
+        getTableManager().saveTableExt(tableExtDesc, prj);
         return "OK";
     }
 

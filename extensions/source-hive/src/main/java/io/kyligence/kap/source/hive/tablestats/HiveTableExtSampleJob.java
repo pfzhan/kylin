@@ -42,7 +42,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
@@ -106,7 +106,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private void addSteps(CubingJob parent) throws IOException {
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        TableMetadataManager metaMgr = TableMetadataManager.getInstance(config);
         TableDesc desc = metaMgr.getTableDesc(tableName, project);
         TableExtDesc table_ext = metaMgr.getTableExt(tableName, project);
         if (desc == null) {
@@ -167,7 +167,7 @@ public class HiveTableExtSampleJob extends CubingJob {
 
     public String findRunningJob() {
 
-        MetadataManager metaMgr = MetadataManager.getInstance(config);
+        TableMetadataManager metaMgr = TableMetadataManager.getInstance(config);
         TableExtDesc tableExtDesc = metaMgr.getTableExt(tableName, project);
         if (tableExtDesc == null)
             return null;

@@ -45,7 +45,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -100,7 +100,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
 
         samplers = read(new Path(outPath), config, tableName, prj);
 
-        MetadataManager metaMgr = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
+        TableMetadataManager metaMgr = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
         TableExtDesc tableSample = metaMgr.getTableExt(tableName, prj);
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
         List<String[]> sampleRows = new ArrayList<>();
@@ -138,7 +138,7 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             String prj) throws IOException {
         TreeMap<Integer, HiveTableExtSampler> samplers = new TreeMap<>();
 
-        TableDesc tableDesc = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(tableName,
+        TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(tableName,
                 prj);
         ColumnDesc[] columns = tableDesc.getColumns();
 

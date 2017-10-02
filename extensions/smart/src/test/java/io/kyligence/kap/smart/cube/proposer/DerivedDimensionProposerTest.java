@@ -26,8 +26,8 @@ package io.kyligence.kap.smart.cube.proposer;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -54,7 +54,7 @@ public class DerivedDimensionProposerTest {
 
     @Test
     public void testOnStarModel() throws JsonProcessingException {
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
@@ -69,7 +69,7 @@ public class DerivedDimensionProposerTest {
 
     @Test
     public void testOnSnowModel() throws JsonProcessingException {
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
@@ -84,7 +84,7 @@ public class DerivedDimensionProposerTest {
 
     @Test
     public void testOnSnowModelWithSQL() throws JsonProcessingException {
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
                 new String[] { "select count(*) from kylin_sales" });

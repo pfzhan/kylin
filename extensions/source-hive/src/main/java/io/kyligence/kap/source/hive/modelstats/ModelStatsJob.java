@@ -44,9 +44,9 @@ import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.source.SourceFactory;
@@ -95,7 +95,7 @@ public class ModelStatsJob extends AbstractHadoopJob {
 
         String model = getOptionValue(OPTION_MODEL);
         String jobId = getOptionValue(OPTION_JOB_ID);
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(model);
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(model);
 
         IJoinedFlatTableDesc flatTableDesc = new DataModelStatsFlatTableDesc(modelDesc, null, jobId);
 

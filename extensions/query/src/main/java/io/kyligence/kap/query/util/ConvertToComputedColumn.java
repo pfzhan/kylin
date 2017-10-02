@@ -47,9 +47,9 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
@@ -60,6 +60,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.model.KapModel;
 
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
 
@@ -76,7 +77,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 return sql;
             }
 
-            MetadataManager metadataManager = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
+            DataModelManager metadataManager = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv());
             List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
 
             List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
@@ -107,12 +108,13 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
                 //give each data model a chance to rewrite, choose the model that generates most changes
                 for (int j = 0; j < dataModelDescs.size(); j++) {
-                    QueryAliasMatchInfo info = queryAliasMatcher.match(dataModelDescs.get(j), sqlSelect);
+                    KapModel model = (KapModel) dataModelDescs.get(j);
+                    QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
                     if (info == null) {
                         continue;
                     }
 
-                    List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(dataModelDescs.get(j));
+                    List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
                     Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info);
 
                     if (ret.getSecond() == 0)
@@ -260,7 +262,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
     }
 
     //match longer expressions first
-    private List<ComputedColumnDesc> getSortedComputedColumnWithModel(DataModelDesc dataModelDesc) {
+    private List<ComputedColumnDesc> getSortedComputedColumnWithModel(KapModel dataModelDesc) {
         return getCCListSortByLength(dataModelDesc.getComputedColumnDescs());
     }
 

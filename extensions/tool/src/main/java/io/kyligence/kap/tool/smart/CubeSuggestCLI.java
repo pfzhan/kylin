@@ -37,8 +37,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +79,7 @@ public class CubeSuggestCLI implements IKeep {
         Preconditions.checkArgument(cubeManager.getCube(cubeName) == null,
                 "Cube " + cubeName + " already exists, please use another name.");
 
-        MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
+        DataModelManager metadataManager = DataModelManager.getInstance(kylinConfig);
         DataModelDesc modelDesc = metadataManager.getDataModelDesc(modelName);
 
         Preconditions.checkNotNull(modelDesc, "Model not found with name " + modelName);

@@ -35,10 +35,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.draft.DraftManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
@@ -46,7 +46,6 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.ModelRequest;
-import org.apache.kylin.rest.response.DataModelDescResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -70,6 +69,9 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.rest.response.KapModelResponse;
+import io.kyligence.kap.rest.service.KapModelService;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 /**
@@ -86,6 +88,10 @@ public class ModelControllerV2 extends BasicController {
     @Qualifier("modelMgmtService")
     private ModelService modelService;
 
+    @Autowired
+    @Qualifier("kapModelService")
+    private KapModelService kapModelService;
+    
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
@@ -110,24 +116,28 @@ public class ModelControllerV2 extends BasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
 
-        List<DataModelDescResponse> response = new ArrayList<DataModelDescResponse>();
+        List<KapModelResponse> response = new ArrayList<KapModelResponse>();
 
         // official models
-        for (DataModelDesc m : modelService.listAllModels(modelName, projectName, exactMatch)) {
+        for (DataModelDesc modelDesc : modelService.listAllModels(modelName, projectName, exactMatch)) {
+            KapModel m = (KapModel) modelDesc;
             Preconditions.checkState(!m.isDraft());
 
-            DataModelDescResponse r = new DataModelDescResponse(m);
+            KapModelResponse r = new KapModelResponse(m);
             r.setProject(projectService.getProjectOfModel(m.getName()));
             response.add(r);
         }
 
         // draft models
         for (Draft d : modelService.listModelDrafts(modelName, projectName)) {
-            DataModelDesc m = (DataModelDesc) d.getEntity();
+            if (!(d.getEntity() instanceof KapModel))
+                continue;
+            
+            KapModel m = (KapModel) d.getEntity();
             Preconditions.checkState(m.isDraft());
 
             if (contains(response, m.getName()) == false) {
-                DataModelDescResponse r = new DataModelDescResponse(m);
+                KapModelResponse r = new KapModelResponse(m);
                 r.setProject(d.getProject());
                 response.add(r);
             }
@@ -152,8 +162,8 @@ public class ModelControllerV2 extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    private boolean contains(List<DataModelDescResponse> response, String name) {
-        for (DataModelDescResponse m : response) {
+    private boolean contains(List<KapModelResponse> response, String name) {
+        for (KapModelResponse m : response) {
             if (m.getName().equals(name))
                 return true;
         }
@@ -165,7 +175,7 @@ public class ModelControllerV2 extends BasicController {
     public EnvelopeResponse updateModelDescV2(@RequestBody ModelRequest modelRequest) throws IOException {
         DraftManager draftMgr = modelService.getDraftManager();
 
-        DataModelDesc modelDesc = deserializeDataModelDescV2(modelRequest);
+        KapModel modelDesc = deserializeDataModelDescV2(modelRequest);
         modelService.primaryCheck(modelDesc);
 
         String project = (null == modelRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
@@ -174,7 +184,7 @@ public class ModelControllerV2 extends BasicController {
         // don't use checkpoint/rollback, the following update is the only change that must succeed
 
         // save/update model
-        modelDesc = modelService.updateModelToResourceStore(modelDesc, project);
+        modelDesc = (KapModel) modelService.updateModelToResourceStore(modelDesc, project);
 
         // remove any previous draft
         draftMgr.delete(modelDesc.getUuid());
@@ -198,9 +208,9 @@ public class ModelControllerV2 extends BasicController {
         Preconditions.checkNotNull(modelRequest.getProject());
         Preconditions.checkNotNull(modelRequest.getModelDescData());
 
-        DataModelDesc modelDesc = deserializeDataModelDescV2(modelRequest);
+        KapModel modelDesc = deserializeDataModelDescV2(modelRequest);
         modelService.primaryCheck(modelDesc);
-        modelService.checkCCExpression(modelDesc, modelRequest.getProject());
+        kapModelService.checkCCExpression(modelDesc, modelRequest.getProject());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -211,7 +221,7 @@ public class ModelControllerV2 extends BasicController {
     public EnvelopeResponse updateModelDescDraftV2(@RequestBody ModelRequest modelRequest) throws IOException {
         DraftManager draftMgr = modelService.getDraftManager();
 
-        DataModelDesc modelDesc = deserializeDataModelDescV2(modelRequest);
+        KapModel modelDesc = deserializeDataModelDescV2(modelRequest);
         modelService.primaryCheck(modelDesc);
 
         String project = (null == modelRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
@@ -260,8 +270,8 @@ public class ModelControllerV2 extends BasicController {
         Message msg = MsgPicker.getMsg();
 
         String project = modelRequest.getProject();
-        MetadataManager metaManager = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
-        DataModelDesc modelDesc = metaManager.getDataModelDesc(modelName);
+        DataModelManager metaManager = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv());
+        KapModel modelDesc = (KapModel) metaManager.getDataModelDesc(modelName);
         String newModelName = modelRequest.getModelName();
 
         if (StringUtils.isEmpty(project)) {
@@ -282,10 +292,10 @@ public class ModelControllerV2 extends BasicController {
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
         }
 
-        DataModelDesc newModelDesc = DataModelDesc.getCopyOf(modelDesc);
+        KapModel newModelDesc = KapModel.getCopyOf(modelDesc);
         newModelDesc.setName(newModelName);
 
-        newModelDesc = modelService.createModelDesc(project, newModelDesc);
+        newModelDesc = (KapModel) modelService.createModelDesc(project, newModelDesc);
 
         //reload avoid shallow
         metaManager.reloadDataModelDescAt(DataModelDesc.concatResourcePath(newModelName));
@@ -298,13 +308,13 @@ public class ModelControllerV2 extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    private DataModelDesc deserializeDataModelDescV2(ModelRequest modelRequest) throws IOException {
+    private KapModel deserializeDataModelDescV2(ModelRequest modelRequest) throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        DataModelDesc desc = null;
+        KapModel desc = null;
         try {
             logger.debug("deserialize MODEL " + modelRequest.getModelDescData());
-            desc = JsonUtil.readValue(modelRequest.getModelDescData(), DataModelDesc.class);
+            desc = JsonUtil.readValue(modelRequest.getModelDescData(), KapModel.class);
         } catch (JsonParseException e) {
             logger.error("The data model definition is not valid.", e);
             throw new BadRequestException(msg.getINVALID_MODEL_DEFINITION());

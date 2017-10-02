@@ -95,7 +95,7 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
         {
             Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
-            Assert.assertEquals(33, set.size());
+            Assert.assertEquals(31, set.size());
         }
     }
 
@@ -120,7 +120,7 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
         {
             Set<Long> set = cube.getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
-            Assert.assertEquals(25, set.size());
+            Assert.assertEquals(24, set.size());
         }
     }
 

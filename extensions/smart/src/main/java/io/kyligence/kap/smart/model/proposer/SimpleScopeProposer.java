@@ -26,7 +26,7 @@ package io.kyligence.kap.smart.model.proposer;
 
 import java.util.List;
 
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -49,7 +49,7 @@ public class SimpleScopeProposer extends AbstractModelProposer {
     protected void doPropose(DataModelDesc modelDesc) {
         List<ModelDimensionDesc> dimDescList = Lists.newArrayList();
 
-        MetadataManager metadataManager = MetadataManager.getInstance(modelContext.getKylinConfig());
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(modelContext.getKylinConfig());
         TableDesc factTblDesc = metadataManager.getTableDesc(modelDesc.getRootFactTableName(),
                 modelContext.getProject());
         dimDescList.add(createTableDims(factTblDesc, factTblDesc.getName()));

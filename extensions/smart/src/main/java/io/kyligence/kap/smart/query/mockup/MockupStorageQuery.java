@@ -32,7 +32,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.dict.lookup.LookupStringTable;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -122,7 +122,7 @@ public class MockupStorageQuery extends GTCubeStorageQueryBase {
         String[] pkCols = join.getPrimaryKey();
 
         try {
-            TableDesc tableDesc = MetadataManager.getInstance(cubeInstance.getConfig()).getTableDesc(tableName,
+            TableDesc tableDesc = TableMetadataManager.getInstance(cubeInstance.getConfig()).getTableDesc(tableName,
                     cubeInstance.getProject());
             return new LookupStringTable(tableDesc, pkCols, new IReadableTable() {
                 @Override

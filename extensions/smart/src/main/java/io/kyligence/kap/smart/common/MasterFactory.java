@@ -30,7 +30,7 @@ import java.util.Map.Entry;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
@@ -100,7 +100,7 @@ public class MasterFactory {
 
     public static ModelMaster createModelMaster(KylinConfig kylinConfig, String project, String[] sqls,
             String factTableName) {
-        TableDesc factTable = MetadataManager.getInstance(kylinConfig).getTableDesc(factTableName, project);
+        TableDesc factTable = TableMetadataManager.getInstance(kylinConfig).getTableDesc(factTableName, project);
         return createModelMaster(kylinConfig, project, sqls, factTable);
     }
 

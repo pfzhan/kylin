@@ -42,9 +42,9 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
@@ -54,6 +54,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.KapModel;
 
 //very similar to ConvertToComputedColumn in structure, maybe we should extract a common base class?
 public class RestoreFromComputedColumn implements IPushDownConverter {
@@ -122,7 +124,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                 return sql;
             }
 
-            MetadataManager metadataManager = MetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
+            DataModelManager metadataManager = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv());
             List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
 
             List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
@@ -154,13 +156,13 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
                 //give each data model a chance to rewrite, choose the model that generates most changes
                 for (int j = 0; j < dataModelDescs.size(); j++) {
-                    DataModelDesc dataModelDesc = dataModelDescs.get(j);
-                    QueryAliasMatchInfo info = queryAliasMatcher.match(dataModelDesc, sqlSelect);
+                    KapModel model = (KapModel) dataModelDescs.get(j);
+                    QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
                     if (info == null) {
                         continue;
                     }
 
-                    Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, dataModelDesc, info);
+                    Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, model, info);
 
                     if (ret.getSecond() == 0)
                         continue;
@@ -190,7 +192,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
      * return the replaced sql, and the count of changes in the replaced sql
      */
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
-            DataModelDesc dataModelDesc, QueryAliasMatchInfo queryAliasMatchInfo) throws SqlParseException {
+            KapModel dataModelDesc, QueryAliasMatchInfo queryAliasMatchInfo) throws SqlParseException {
 
         String result = inputSql;
 

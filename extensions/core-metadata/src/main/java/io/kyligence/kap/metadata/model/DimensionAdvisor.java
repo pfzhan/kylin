@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -42,7 +42,7 @@ public class DimensionAdvisor {
     }
 
     public Map<String, ColumnSuggestionType> inferDimensionSuggestions(String tableName, String prj) {
-        MetadataManager metadataManager = MetadataManager.getInstance(kylinConfig);
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(kylinConfig);
 
         Map<String, ColumnSuggestionType> result = new HashMap<String, ColumnSuggestionType>();
         TableDesc tableDesc = metadataManager.getTableDesc(tableName, prj);

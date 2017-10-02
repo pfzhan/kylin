@@ -30,8 +30,8 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;
@@ -58,7 +58,7 @@ public class TestBase {
     }
 
     protected DataModelDesc getDataModelDesc(String modelName) {
-        return MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        return DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
     }
 
     protected CubeDesc getCubeDesc(String cubeName) {

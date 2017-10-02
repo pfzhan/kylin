@@ -40,9 +40,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.KylinReducer;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class ModelStatsReducer extends KylinReducer<IntWritable, BytesWritable, 
 
         Configuration conf = context.getConfiguration();
         String model = conf.get(BatchConstants.CFG_TABLE_NAME);
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(config).getDataModelDesc(model);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(config).getDataModelDesc(model);
         flatTableDesc = new DataModelStatsFlatTableDesc(dataModelDesc);
         columnSize = flatTableDesc.getAllColumns().size();
         columns = flatTableDesc.getAllColumns();

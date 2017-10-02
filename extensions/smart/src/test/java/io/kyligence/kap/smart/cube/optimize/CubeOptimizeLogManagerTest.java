@@ -31,8 +31,8 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -74,7 +74,7 @@ public class CubeOptimizeLogManagerTest extends LocalFileMetadataTestCase {
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
 
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model");
 
         CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
         CubeOptimizeLogManager manager = CubeOptimizeLogManager.getInstance(kylinConfig);

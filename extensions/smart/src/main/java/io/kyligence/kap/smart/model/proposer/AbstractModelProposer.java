@@ -25,11 +25,12 @@
 package io.kyligence.kap.smart.model.proposer;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.model.ModelContext;
 
 public abstract class AbstractModelProposer {
@@ -44,8 +45,8 @@ public abstract class AbstractModelProposer {
         return modelContext;
     }
 
-    public DataModelDesc propose(DataModelDesc origModel) {
-        DataModelDesc modelDesc = DataModelDesc.getCopyOf(origModel);
+    public KapModel propose(KapModel origModel) {
+        KapModel modelDesc = KapModel.getCopyOf(origModel);
         doPropose(modelDesc);
         initModel(modelDesc);
         return modelDesc;
@@ -54,7 +55,7 @@ public abstract class AbstractModelProposer {
     private void initModel(DataModelDesc modelDesc) {
         KylinConfig kylinConfig = modelContext.getKylinConfig();
         String project = modelContext.getProject();
-        modelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
+        modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
                 Lists.<DataModelDesc> newArrayList());
     }
 

@@ -33,7 +33,7 @@ import java.util.Map.Entry;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -60,7 +60,7 @@ public class ModelContext extends AbstractContext {
         super(kylinConfig);
         this.project = project;
         this.rootFactTable = rootFactTable;
-        Map<String, TableDesc> tableMap = MetadataManager.getInstance(kylinConfig).getAllTablesMap(project);
+        Map<String, TableDesc> tableMap = TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project);
         this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
         this.innerTableRefAlias = new HashMap<>();
         this.correctedTableAlias = new HashMap<>();

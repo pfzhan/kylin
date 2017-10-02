@@ -56,6 +56,7 @@ public class Utils {
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
         props.setProperty("kylin.cube.aggrgroup.is-mandatory-only-valid", "true");
+        props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.KapModel");
 
         List<String> queryTransformers = Lists.newArrayList();
         queryTransformers.add(ConvertToComputedColumn.class.getName());

@@ -36,8 +36,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.After;
 import org.junit.Test;
 
@@ -114,7 +114,7 @@ public class CubeMasterTest {
         kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "false");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
 
         CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
 

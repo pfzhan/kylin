@@ -27,8 +27,9 @@ package io.kyligence.kap.smart.model.proposer;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -38,6 +39,7 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.model.ModelContext;
 import io.kyligence.kap.smart.model.ModelContextBuilder;
 import io.kyligence.kap.smart.query.Utils;
@@ -63,13 +65,13 @@ public class SimpleScopeProposerTest {
         ModelContextBuilder contextBuilder = new ModelContextBuilder(kylinConfig, project);
         Map<TableDesc, ModelContext> context = contextBuilder.buildFromSQLs(new String[]{"select lstg_format_name, sum(price) from kylin_sales group by lstg_format_name"});
 
-        DataModelDesc modelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
-        DataModelDesc newModelDesc = DataModelDesc.getCopyOf(modelDesc);
+        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        KapModel newModelDesc = KapModel.getCopyOf(modelDesc);
         newModelDesc.getDimensions().clear();
 
         SimpleScopeProposer proposer = new SimpleScopeProposer(context.values().iterator().next());
         newModelDesc = proposer.propose(newModelDesc);
-        newModelDesc.init(kylinConfig, MetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
+        newModelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
                 Lists.<DataModelDesc>newArrayList());
 
         Assert.assertEquals(modelDesc.getJoinTables().length + 1, newModelDesc.getDimensions().size());

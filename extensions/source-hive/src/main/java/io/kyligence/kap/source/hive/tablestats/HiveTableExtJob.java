@@ -40,7 +40,7 @@ import org.apache.kylin.engine.mr.MRUtil;
 import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
@@ -83,8 +83,8 @@ public class HiveTableExtJob extends AbstractHadoopJob {
 
         String project = getOptionValue(OPTION_PROJECT);
         String table = getOptionValue(OPTION_TABLE);
-        TableDesc tableDesc = MetadataManager.getInstance(kylinConfig).getTableDesc(table, project);
-        TableExtDesc tableExtDesc = MetadataManager.getInstance(kylinConfig).getTableExt(table, project);
+        TableDesc tableDesc = TableMetadataManager.getInstance(kylinConfig).getTableDesc(table, project);
+        TableExtDesc tableExtDesc = TableMetadataManager.getInstance(kylinConfig).getTableExt(table, project);
         String skipHeaderLineCount = tableExtDesc.getDataSourceProp().get("skip_header_line_count");
 
         job = Job.getInstance(conf, jobName);

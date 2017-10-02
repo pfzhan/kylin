@@ -32,8 +32,8 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.metadata.MetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +47,7 @@ public class CheckLookupStep extends AbstractExecutable {
         final BufferedLogger stepLogger = new BufferedLogger(logger);
         String modelName = getParam(MODEL_NAME);
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        DataModelDesc dataModelDesc = MetadataManager.getInstance(kylinConfig).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
         try {
             ModelDiagnose.checkDuplicatePKOnLookups(dataModelDesc, kylinConfig);
             stepLogger.log("Success");

@@ -37,7 +37,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -239,7 +239,7 @@ public class RowACLManager {
 
     private Map<String, String> getColumnWithType(String project, String table) {
         Map<String, String> columnWithType = new HashMap<>();
-        TableDesc tableDesc = MetadataManager.getInstance(config).getTableDesc(table, project);
+        TableDesc tableDesc = TableMetadataManager.getInstance(config).getTableDesc(table, project);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (ColumnDesc column : columns) {
             columnWithType.put(column.getName(), column.getTypeName());

@@ -36,7 +36,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dict.lookup.LookupStringTable;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
-import org.apache.kylin.metadata.MetadataManager;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -63,7 +63,7 @@ public class ModelDiagnose {
      * @throws java.io.IOException
      */
     public static void checkDuplicatePKOnLookups(DataModelDesc dataModelDesc, KylinConfig config) throws IOException {
-        MetadataManager metadataManager = MetadataManager.getInstance(config);
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(config);
         List<String> tables = new ArrayList<>();
 
         LookupStringTable tryToCreateLookup = null;
@@ -107,7 +107,7 @@ public class ModelDiagnose {
     public static void checkDataSkewOnFactTable(DataModelDesc dataModelDesc, ModelStats modelStats, KylinConfig config)
             throws IOException {
 
-        MetadataManager metadataManager = MetadataManager.getInstance(config);
+        TableMetadataManager metadataManager = TableMetadataManager.getInstance(config);
         String factTableName = dataModelDesc.getRootFactTable().getTableIdentity();
         TableDesc tableDesc = metadataManager.getTableDesc(factTableName, dataModelDesc.getProject());
         TableExtDesc tableExtDesc = metadataManager.getTableExt(tableDesc);
@@ -171,7 +171,7 @@ public class ModelDiagnose {
     public static void checkJointResult(DataModelDesc modelDesc, ModelStats modelStats, KylinConfig config)
             throws IOException {
         String factTableName = modelDesc.getRootFactTable().getTableIdentity();
-        long countFact = MetadataManager.getInstance(config).getTableExt(factTableName, modelDesc.getProject())
+        long countFact = TableMetadataManager.getInstance(config).getTableExt(factTableName, modelDesc.getProject())
                 .getTotalRows();
         if (countFact <= 0) {
             logger.warn("The root fact table: {} has no available stats, will skip data skew check!", factTableName);
