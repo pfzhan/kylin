@@ -93,7 +93,7 @@ public class ModelDomainBuilder implements IDomainBuilder {
 
                 // PERCENTILE
                 measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, PercentileMeasureType.FUNC_PERCENTILE,
-                        ParameterDesc.newInstance(colRef), colRef.getDatatype()));
+                        ParameterDesc.newInstance(colRef), "percentile(100)"));
             }
         }
 
