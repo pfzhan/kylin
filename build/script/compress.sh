@@ -35,7 +35,7 @@ cp -r ../extensions/examples/sample_cube ${package_name}
 if [ -f "kybot/diag.sh" ]; then
     mv kybot/diag.sh ${package_name}/bin
 fi
-cp -rf VERSION commit_SHA1 ext lib tool kybot tomcat spark ${package_name}/
+cp -rf CHANGELOG.md VERSION commit_SHA1 ext lib tool kybot tomcat spark ${package_name}/
 
 # Add min/prod profiles
 cp -rf conf/profile_min ${package_name}/conf
