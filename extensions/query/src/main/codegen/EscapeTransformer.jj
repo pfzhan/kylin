@@ -1,0 +1,244 @@
+options {
+    IGNORE_CASE = true;
+    STATIC = false;
+}
+
+PARSER_BEGIN(EscapeTransformer)
+package io.kyligence.kap.query.util;
+import java.io.StringReader;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Scanner;
+import io.kyligence.kap.common.obf.IKeep;
+import org.apache.kylin.query.util.QueryUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
+
+    private final static Logger logger = LoggerFactory.getLogger(EscapeTransformer.class);
+
+    public EscapeTransformer() {}
+
+    public static void main(String args[]) throws ParseException {
+        System.out.println("Input SQL:");
+        Scanner reader = new Scanner(System.in);
+        String sql = reader.nextLine();
+        reader.close();
+        EscapeTransformer parser = new EscapeTransformer(new StringReader(sql));
+        String parseResult = parser.Input();
+        System.out.println("Translated SQL:");
+        System.out.println(parseResult);
+    }
+
+    @ Override 
+    public String transform(String sql, String project, String defaultSchema)
+    {
+        try
+        {
+            EscapeTransformer parser = new EscapeTransformer(new StringReader(sql));
+            return parser.Input();
+        }
+        catch (ParseException ex)
+        {
+            throw new RuntimeException(ex);
+        }
+    }
+}
+
+PARSER_END(EscapeTransformer)
+
+< DEFAULT >
+SKIP :
+{
+  "\t"
+| "\n"
+| "\r"
+}
+
+< DEFAULT >
+TOKEN :
+{
+  < LBRACE : "{" > : ESCAPE
+| < RBRACE : "}" >
+| < RPAREN : ")" >
+| < LPAREN : "(" >
+| < COMMA : "," >
+| < SPACE : " " >
+//| < FN : "fn" > : FUNCTION
+| < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
+}
+
+< ESCAPE >
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+}
+
+< ESCAPE >
+TOKEN :
+{
+  < FN : "fn" > : FUNCTION
+}
+
+< FUNCTION >
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+}
+
+< FUNCTION >
+TOKEN :
+{
+  < FUNCTION_NAME : (~[ "(", "\t", "\n", "\r", " " ])+ > : DEFAULT
+}
+
+/** Root production. */
+String Input() :
+{
+    String innerString;
+}
+{
+    innerString = Expression()
+    {
+        return innerString;
+    }
+}
+
+/** Brace counting production. */
+String Expression() :
+{
+    String innerString = "";
+    String nextString = "";
+}
+{
+    (
+        innerString = EscapeExpress()
+    | innerString = ParenExpress()
+    | innerString = Comma()
+    | innerString = Space()
+    | innerString = Any()
+    | (
+        < EOF >
+        {
+            return "";
+        }
+        )
+    )
+    (
+        nextString = Expression()
+    )?
+    {
+        return innerString + nextString;
+    }
+}
+
+String Comma() :
+{}
+{
+    < COMMA >
+    {
+        logger.trace("meet token <COMMA>");
+        return getToken(0).image;
+    }
+}
+
+String Space() :
+{}
+{
+    < SPACE >
+    {
+        logger.trace("meet token <SPACE>");
+        return getToken(0).image;
+    }
+}
+
+String Any() :
+{}
+{
+    < ANY >
+    {
+        logger.trace("meet token in <ANY>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
+String ParenExpress() :
+{
+    String innerString = "";
+}
+{
+    < LPAREN >
+    (
+        innerString = Expression()
+    )?
+    < RPAREN >
+    {
+        return "(" + innerString + ")";
+    }
+}
+
+String EscapeExpress() :
+{
+    String innerString;
+}
+{
+    < LBRACE >
+    (
+        innerString = EscapeFunction()
+    )
+    (
+    < SPACE >)* < RBRACE >
+    {
+        return innerString;
+    }
+}
+
+String EscapeFunction() :
+{
+    String functionName;
+    String commaEnding;
+    String parenEnding;
+    List <String> commaEndings = new ArrayList();
+}
+{
+    /* functionName = ExpressionEndWithLparen() */
+    < FN >< FUNCTION_NAME >
+    {
+        functionName = getToken(0).image;
+    }
+    < LPAREN >
+    (
+        EscapeFunctionParameter(commaEndings)
+        (
+            < COMMA > EscapeFunctionParameter(commaEndings)
+        )*
+    )?
+    < RPAREN >
+    {
+        return EscapeTransformerFunction.transform(functionName, commaEndings.toArray(new String [ 0 ]));
+    }
+}
+
+void EscapeFunctionParameter(List<String> paramCollection) :
+{
+    String parameter = "";
+}
+{
+    (< SPACE >)*
+    (
+        parameter = EscapeExpress()
+    | parameter = ParenExpress()
+    | parameter = Any()
+    )
+    (< SPACE >)*
+    {
+        paramCollection.add(parameter.trim());
+    }
+}
