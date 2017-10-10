@@ -157,7 +157,7 @@
             <el-button type="trans" class="ksd-mb-10 radius" icon="plus" v-show="!openAddComputedColumnForm&&actionMode!=='view'" @click="addComputedForm">{{$t('kylinLang.common.add')}}</el-button>
             <el-form label-position="top" :model="computedColumn"  ref="computedColumnForm"  :rules="computedRules" v-show="openAddComputedColumnForm">
               <el-form-item :label="$t('kylinLang.dataSource.columns')" prop="name">
-                <el-input  auto-complete="off" v-model="computedColumn.name"></el-input>
+                <el-input  auto-complete="off" :disabled="isEditComputedColumn" v-model="computedColumn.name"></el-input>
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
@@ -202,13 +202,9 @@
               </el-table-column>
               <el-table-column
                 prop="expression"
+                show-overflow-tooltip
                 :label="$t('kylinLang.dataSource.expression')"
                 >
-                 <template scope="scope" >
-                    <el-tooltip class="item" effect="dark" :content="scope.row&&scope.row.expression" placement="top">
-                        <span >{{scope.row.expression|omit(24, '...')}}</span>
-                    </el-tooltip>
-                 </template>
               </el-table-column>
               <el-table-column
               width="100"
@@ -342,6 +338,7 @@ export default {
       checkExpressionBtnLoad: false,
       checkExpressResult: {},
       currentTableComputedColumns: [],
+      isEditComputedColumn: false,
       computedRules: {
         name: [
           {required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'change'},
@@ -1103,6 +1100,7 @@ export default {
       editor.execCommand('startAutocomplete')
     },
     addComputedColumn: function (guid) {
+      this.isEditComputedColumn = false
       this.computedColumn = {
         guid: '',
         name: '',
@@ -1165,6 +1163,7 @@ export default {
         isvalid: '',
         msg: ''
       }
+      this.isEditComputedColumn = true
       this.openAddComputedColumnForm = true
       var tableInfo = this.getTableInfo('alias', row.tableAlias)
       if (tableInfo) {
