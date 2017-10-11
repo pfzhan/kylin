@@ -1,6 +1,6 @@
 <template>
 	<div class="modelist_box">
-   <img src="../../assets/img/no_model.png" class="null_pic" v-if="!(modelsList && modelsList.length)">
+
     <el-button type="trans" icon="plus" class="ksd-mb-10 radius" id="addModel" v-if="isAdmin || hasPermissionOfProject(project)" @click="addModel"><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
@@ -121,6 +121,8 @@
 
 
 		<pager class="ksd-center ksd-mb-20" ref="pager"  :totalSize="modelsTotal"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+
+    <div class="null_pic_box" v-if="!(modelsList && modelsList.length)"><img src="../../assets/img/no_model.png" class="null_pic_2"></div>
 
     <el-dialog title="Clone Model" v-model="cloneFormVisible" size="tiny" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm">
@@ -1081,8 +1083,17 @@ export default {
 @import '../../less/config.less';
 .modelist_box{
   margin-left: 30px;
-  min-height:600px;
+  /* min-height:600px; */
   margin-right: 30px;
+
+  .null_pic_box{
+    text-align:center;
+    padding-top:100px;
+    .null_pic_2{
+      width:150px;
+    }
+  }
+
   .line{
     background: #292b38;
     margin-left: -20px;

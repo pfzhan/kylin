@@ -1,6 +1,5 @@
 <template>
-<div class="paddingbox ksd-border-tab cube-list" style="min-height:800px" id="cube-list">
-<img src="../../assets/img/no_cube.png" class="null_pic" v-if="!(cubesList && cubesList.length)" >
+<div class="paddingbox ksd-border-tab cube-list" id="cube-list">
   <el-row class="cubeSearch" v-show="!isViewCubeMode">
     <el-select v-model="currentModel" style="float: left;margin-left: 0!important;" class="ksd-ml-20" :placeholder="$t('chooseModel')">
       <el-option
@@ -152,6 +151,8 @@
     </el-table-column> -->
   </el-table>
    <pager ref="pager"  :totalSize="totalCubes"  v-on:handleCurrentChange='currentChange' ></pager>
+
+  <div class="null_pic_box" v-if="!(cubesList && cubesList.length)"><img src="../../assets/img/no_cube.png" class="null_pic_2"></div>
 
   <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
@@ -981,6 +982,13 @@ export default {
 <style lang="less">
   @import '../../less/config.less';
   .cube-list {
+    .null_pic_box{
+      text-align:center;
+      padding-top:100px;
+      .null_pic_2{
+        width:150px;
+      }
+    }
     .line{
       background: #292b38;
       margin-left: -20px;

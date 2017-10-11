@@ -1,7 +1,7 @@
 <template>
   <div>
     <editor v-if="cube.sql && cube.sql.length>0" ref="sqlPatterns" v-model="sqlPatterns"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
-    <el-card v-else style="height:220;width: 90%">
+    <el-card v-else class="noSqlPatterns">
       {{$t('NoSQLInfo')}}
     </el-card>
   </div>
@@ -50,5 +50,11 @@ export default {
   .el-textarea{
     font-size:12px;
   }
+}
+.noSqlPatterns{
+  font-size: 12px;
+  width: 90%;
+  border: 1px solid #393E53;
+  background: #292b38;
 }
 </style>

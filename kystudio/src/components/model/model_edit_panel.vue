@@ -61,7 +61,7 @@
                 <el-tab-pane :label="$t('sql')" name="fifth">
                   <div style="margin-left:30px">
                     <editor v-show="sqlPatterns.length > 0" ref="sqlPatterns" v-model="sqlString"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
-                    <el-card v-show="sqlPatterns.length === 0" style="font-size: 12px">
+                    <el-card v-show="sqlPatterns.length === 0" class="noSqlPatterns">
                       {{$t('NoSQLInfo')}}
                     </el-card>
                   </div>
@@ -385,6 +385,10 @@ export default {
       }
     }
   .model_edit_tool {
+    .noSqlPatterns{
+      font-size: 12px;
+      border: 1px solid #4f5473;
+    }
     .el-form-item__label,.el-textarea__inner{
       font-size:12px;
     }
