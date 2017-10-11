@@ -80,4 +80,35 @@ public class EscapeTransformerTest {
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
+
+    @Test
+    public void lcaseFNTest() {
+        String originalSQL = "select { fn LCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
+        String expectedSQL = "select LOWER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void ucaseFNTest() {
+        String originalSQL = "select { fn UCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
+        String expectedSQL = "select UPPER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void quotedStringTest() {
+        String originalSQL = "select 'Hello World!', {fn LENGTH('12345 67890')}";
+        String expectedSQL = "select 'Hello World!', CHAR_LENGTH('12345 67890')";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
 }

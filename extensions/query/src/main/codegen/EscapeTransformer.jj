@@ -48,7 +48,7 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
 
 PARSER_END(EscapeTransformer)
 
-< DEFAULT >
+< DEFAULT, ESCAPE, FUNCTION >
 SKIP :
 {
   "\t"
@@ -65,32 +65,21 @@ TOKEN :
 | < LPAREN : "(" >
 | < COMMA : "," >
 | < SPACE : " " >
-//| < FN : "fn" > : FUNCTION
+| < QUOTE: "'" >
+| < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
 }
 
-< ESCAPE >
+< ESCAPE, FUNCTION >
 SKIP :
 {
   " "
-| "\t"
-| "\n"
-| "\r"
 }
 
 < ESCAPE >
 TOKEN :
 {
   < FN : "fn" > : FUNCTION
-}
-
-< FUNCTION >
-SKIP :
-{
-  " "
-| "\t"
-| "\n"
-| "\r"
 }
 
 < FUNCTION >
@@ -121,6 +110,7 @@ String Expression() :
     (
         innerString = EscapeExpress()
     | innerString = ParenExpress()
+    | innerString = QuotedString()
     | innerString = Comma()
     | innerString = Space()
     | innerString = Any()
@@ -159,6 +149,18 @@ String Space() :
     }
 }
 
+String QuotedString() :
+{
+    String s;
+}
+{
+    <QUOTED_STRING>
+    {
+        logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
 String Any() :
 {}
 {
@@ -193,8 +195,8 @@ String EscapeExpress() :
     (
         innerString = EscapeFunction()
     )
-    (
-    < SPACE >)* < RBRACE >
+    (< SPACE >)*
+    < RBRACE >
     {
         return innerString;
     }
@@ -208,7 +210,6 @@ String EscapeFunction() :
     List <String> commaEndings = new ArrayList();
 }
 {
-    /* functionName = ExpressionEndWithLparen() */
     < FN >< FUNCTION_NAME >
     {
         functionName = getToken(0).image;
@@ -235,6 +236,7 @@ void EscapeFunctionParameter(List<String> paramCollection) :
     (
         parameter = EscapeExpress()
     | parameter = ParenExpress()
+    | parameter = QuotedString()
     | parameter = Any()
     )
     (< SPACE >)*

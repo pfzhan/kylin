@@ -30,7 +30,7 @@ public class EscapeTransformerFunction {
 
     public static String transform(String functionName, String[] args) {
         switch (functionName.toLowerCase()) {
-        /* String functions */
+        /* String functions, names in lower case */
         case "left":
             return leftFN(args);
         case "right":
@@ -43,6 +43,10 @@ public class EscapeTransformerFunction {
             return lengthFN(args);
         case "convert":
             return convertFN(args);
+        case "lcase":
+            return lcaseFN(args);
+        case "ucase":
+            return ucaseFN(args);
         default:
             return normalFN(functionName, args);
         }
@@ -107,5 +111,15 @@ public class EscapeTransformerFunction {
         }
         String[] newArgs = new String[] { value + " AS " + sqlType };
         return normalFN("CAST", newArgs);
+    }
+
+    private static String lcaseFN(String[] args) {
+        checkArgs(args, 1);
+        return normalFN("LOWER", args);
+    }
+
+    private static String ucaseFN(String[] args) {
+        checkArgs(args, 1);
+        return normalFN("UPPER", args);
     }
 }
