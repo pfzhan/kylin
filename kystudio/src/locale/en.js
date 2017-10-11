@@ -41,7 +41,7 @@ exports.default = {
     models: 'Models',
     jobs: 'Jobs',
     cubes: 'Cubes',
-    dataSource: 'Datasource',
+    dataSource: 'Data Source',
     fact: 'Fact Table',
     limitfact: 'Lookup Table(limited)',
     lookup: 'Lookup Table',
