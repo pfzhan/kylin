@@ -2,7 +2,7 @@
   <div id="create-kafka">
     <el-form :model='kafkaMeta' label-position='right' :rules='rules'  label-width='180px' ref='kafkaForm'>
         <span style='line-height: 36px;'>{{$t('cluster')}}</span>
-        <el-table class='table_margin'
+        <el-table class='table_margin formTable'
           :data='kafkaMeta.clusters[0].brokers'
           style='width: 100%'>
           <el-table-column
@@ -74,10 +74,10 @@
         <el-card v-show="showConvertBox" style="border-color:#20222e" >
           <el-row slot='header'>
             <el-col :span='6'>
-             {{$t('tableName')}}:
+              <p style="height: 36px;line-height: 36px">{{$t('tableName')}}:</p>
             </el-col>
             <el-col :span='8'>
-              <el-select v-model="database">
+              <el-select v-model="database" style="width:100%">
                 <el-option v-for="(item, index) in databaseOption" :key="index"
                 :label="item"
                 :value="item">
@@ -94,7 +94,7 @@
           <div style="height:400px;overflow:auto;">
           <el-table
           :data='columnList'
-          style='width: 100%'>
+          style='width: 100%' class="formTable">
             <el-table-column
             label="ID"
             width="55">

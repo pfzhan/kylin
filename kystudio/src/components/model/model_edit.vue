@@ -194,7 +194,7 @@
             <kap-nodata v-if="!(currentTableComputedColumns && currentTableComputedColumns.length)"></kap-nodata>
             <el-table border v-if="currentTableComputedColumns && currentTableComputedColumns.length"
               :data="currentTableComputedColumns"
-              style="width: 100%; font-size:12px;">
+              style="width: 100%; font-size:12px;" class="formTable">
               <el-table-column
                 prop="columnName"
                 :label="$t('kylinLang.dataSource.columns')"
