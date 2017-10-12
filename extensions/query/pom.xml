@@ -78,7 +78,7 @@
                             <goal>javacc</goal>
                         </goals>
                         <configuration>
-                            <sourceDirectory>src/main/codegen/</sourceDirectory>
+                            <sourceDirectory>src/main/codegen/javacc/io/kyligence/kap/query/util/</sourceDirectory>
                             <includes>
                                 <include>*.jj</include>
                             </includes>

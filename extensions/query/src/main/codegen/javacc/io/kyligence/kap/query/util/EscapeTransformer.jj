@@ -48,13 +48,13 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
 
 PARSER_END(EscapeTransformer)
 
-< DEFAULT, ESCAPE, FUNCTION >
-SKIP :
-{
-  "\t"
-| "\n"
-| "\r"
-}
+//< DEFAULT, ESCAPE, FUNCTION >
+//SKIP :
+//{
+//  "\t"
+//| "\n"
+//| "\r"
+//}
 
 < DEFAULT >
 TOKEN :
@@ -64,7 +64,7 @@ TOKEN :
 | < RPAREN : ")" >
 | < LPAREN : "(" >
 | < COMMA : "," >
-| < SPACE : " " >
+| < SPACE : [" ", "\t", "\n", "\r"] >
 | < QUOTE: "'" >
 | < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
@@ -73,7 +73,7 @@ TOKEN :
 < ESCAPE, FUNCTION >
 SKIP :
 {
-  " "
+  < SKIP_SPACE : <SPACE> >
 }
 
 < ESCAPE >
@@ -122,6 +122,7 @@ String Expression() :
         )
     )
     (
+        LOOKAHEAD(2)
         nextString = Expression()
     )?
     {
@@ -207,23 +208,23 @@ String EscapeFunction() :
     String functionName;
     String commaEnding;
     String parenEnding;
-    List <String> commaEndings = new ArrayList();
+    List <String> parameters = new ArrayList();
 }
 {
     < FN >< FUNCTION_NAME >
     {
-        functionName = getToken(0).image;
+        functionName = getToken(0).image; 
     }
     < LPAREN >
     (
-        EscapeFunctionParameter(commaEndings)
+        EscapeFunctionParameter(parameters)
         (
-            < COMMA > EscapeFunctionParameter(commaEndings)
+            < COMMA > EscapeFunctionParameter(parameters)
         )*
     )?
     < RPAREN >
     {
-        return EscapeTransformerFunction.transform(functionName, commaEndings.toArray(new String [ 0 ]));
+        return EscapeTransformerFunction.transform(functionName, parameters.toArray(new String [ 0 ]));
     }
 }
 
@@ -232,15 +233,32 @@ void EscapeFunctionParameter(List<String> paramCollection) :
     String parameter = "";
 }
 {
-    (< SPACE >)*
     (
-        parameter = EscapeExpress()
-    | parameter = ParenExpress()
-    | parameter = QuotedString()
-    | parameter = Any()
+        parameter = ParameterExpression()
     )
-    (< SPACE >)*
     {
         paramCollection.add(parameter.trim());
+    }
+}
+
+String ParameterExpression() :
+{
+    String innerString = "";
+    String nextString = "";
+}
+{
+    (
+        innerString = EscapeExpress()
+    | innerString = ParenExpress()
+    | innerString = QuotedString()
+    | innerString = Space()
+    | innerString = Any()
+    )
+    (
+        LOOKAHEAD(2)
+        nextString = ParameterExpression()
+    )?
+    {
+        return innerString + nextString;
     }
 }

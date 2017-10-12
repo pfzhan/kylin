@@ -111,4 +111,15 @@ public class EscapeTransformerTest {
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
+
+    @Test
+    public void spaceDelimitersTest() {
+        String originalSQL = "select 'Hello World!',\r\n\t {fn\tLENGTH('12345 \r\n\t 67890')}\nlimit 1";
+        String expectedSQL = "select 'Hello World!',\r\n\t CHAR_LENGTH('12345 \r\n\t 67890')\nlimit 1";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
 }
