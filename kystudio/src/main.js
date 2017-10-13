@@ -107,6 +107,8 @@ router.beforeEach((to, from, next) => {
         let rootPromise = Promise.all([configPromise, authenticationPromise, projectPromise])
         rootPromise.then(() => {
           next()
+        }, (res) => {
+          next()
         })
       } else {
         next()

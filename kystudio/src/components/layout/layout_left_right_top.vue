@@ -160,8 +160,12 @@
       }) */
       // this.overlock = localStorage.getItem('buyit')
       this.reloadRouter()
-      this.getEncoding()
-      this.getAboutKap()
+      this.getEncoding().then(() => {}, (res) => {
+        handleError(res)
+      })
+      this.getAboutKap(() => {}, (res) => {
+        handleError(res)
+      })
       this.setCurUser({ user: this.$store.state.system.authentication.data })
     },
     methods: {
