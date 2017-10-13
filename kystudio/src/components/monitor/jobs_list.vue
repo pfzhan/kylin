@@ -1,76 +1,76 @@
 <template>
-<div id="jobs_list" @click.stop>
-  <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
-    <el-col :span="4">
-      <el-input
-        icon="search"
-        v-model="filter.jobName"
-        :placeholder="$t('kylinLang.common.pleaseFilter')"
-        @change="filterChange">
-      </el-input>
-    </el-col>
-    <el-col :span="4" >
-      <el-select v-model="filter.timeFilter" @change="refreshJobs">
-        <el-option
-        v-for="(item, item_index) in timeFilter"
-        :key="item_index"
-        :label="$t(item.name)"
-        :value="item.value">
-        </el-option>
-      </el-select>
-    </el-col>
-    <el-col :span="16">
-      <el-checkbox-group v-model="filter.status" @change="refreshJobs" style="float: right;">
-        <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
-      </el-checkbox-group>
-    </el-col>
-  </el-row>
+  <div id="jobs_list" @click.stop>
+    <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
+      <el-col :span="4">
+        <el-input
+          icon="search"
+          v-model="filter.jobName"
+          :placeholder="$t('kylinLang.common.pleaseFilter')"
+          @change="filterChange">
+        </el-input>
+      </el-col>
+      <el-col :span="4" >
+        <el-select v-model="filter.timeFilter" @change="refreshJobs">
+          <el-option
+            v-for="(item, item_index) in timeFilter"
+            :key="item_index"
+            :label="$t(item.name)"
+            :value="item.value">
+          </el-option>
+        </el-select>
+      </el-col>
+      <el-col :span="16">
+        <el-checkbox-group v-model="filter.status" @change="refreshJobs" style="float: right;">
+          <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
+        </el-checkbox-group>
+      </el-col>
+    </el-row>
     <el-table
-    tooltip-effect="dark"
-    border class="table_margin"
-    :data="jobsList"
-    style="width:100%"
-    highlight-current-row
-    @row-click="showLineSteps"
-    @sort-change="sortJobList"
+      tooltip-effect="dark"
+      border class="table_margin"
+      :data="jobsList"
+      style="width:100%"
+      highlight-current-row
+      @row-click="showLineSteps"
+      @sort-change="sortJobList"
     >
-    <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
+      <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column
-      :label="$t('JobName')"
-      sortable
-      :width="280"
-      prop="jobname"
+        :label="$t('JobName')"
+        sortable
+        :width="280"
+        prop="jobname"
       >
         <template scope="scope">
           <i class="el-icon-arrow-right" ></i> {{scope.row.name}}
         </template>
       </el-table-column>
       <el-table-column
-      :label="$t('TableModelCube')"
-      sortable
-      show-overflow-tooltip
-      prop="related_cube">
+        :label="$t('TableModelCube')"
+        sortable
+        show-overflow-tooltip
+        prop="related_cube">
       </el-table-column>
       <el-table-column
-      :label="$t('ProgressStatus')"
-      width="220">
+        :label="$t('ProgressStatus')"
+        width="220">
         <template scope="scope">
-         <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
-          </el-progress>
-          <el-progress  :percentage="scope.row.progress" v-if="scope.row.job_status === 'ERROR'" status="exception">
-          </el-progress>
-          <el-progress  :percentage="scope.row.progress | number(2)"  v-else>
-          </el-progress> -->
+          <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
+           </el-progress>
+           <el-progress  :percentage="scope.row.progress" v-if="scope.row.job_status === 'ERROR'" status="exception">
+           </el-progress>
+           <el-progress  :percentage="scope.row.progress | number(2)"  v-else>
+           </el-progress> -->
           <kap-progress :percent="scope.row.progress | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
-      :label="$t('LastModifiedTime')"
-      :width="200"
-      show-overflow-tooltip
-      sortable>
+        :label="$t('LastModifiedTime')"
+        :width="200"
+        show-overflow-tooltip
+        sortable>
         <template scope="scope">
-        {{scope.row.gmtTime}}
+          {{scope.row.gmtTime}}
         </template>
       </el-table-column>
       <el-table-column
@@ -101,50 +101,50 @@
     </el-table>
 
 
-<pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mb-20" ></pager>
+    <pager :totalSize="jobTotal"  v-on:handleCurrentChange='currentChange' ref="jobPager" class="ksd-mb-20" ></pager>
 
-  <el-card v-show="showStep" class="card-width job-step" id="stepList">
+    <el-card v-show="showStep" class="card-width job-step" id="stepList">
 
-          <div class="timeline-item">
-            <div class="timeline-body">
-              <table class="table table-striped table-bordered" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td class="single-line"><b>{{$t('jobName')}}</b></td>
-                  <td style="max-width: 180px;word-wrap: break-word;word-break: normal;font-weight: normal;color: rgba(255,255,255,0.7);font-size: 12px;">
-                    {{selected_job.name}}
-                  </td>
-                </tr>
-                <tr>
-                  <td>Job ID</td>
-                  <td class="single-line">
-                    {{selected_job.uuid}}
-                  </td>
-                </tr>
-                <tr>
-                   <td>{{$t('kylinLang.common.status')}}</td>
-                  <td>
-                    <el-tag
-                    :type="getJobStatusTag">
-                        {{selected_job.job_status}}
-                      </el-tag>
-                  </td>
-                </tr>
-                <tr>
-                  <td>{{$t('duration')}}</td>
-                  <td>{{selected_job.duration/60 | number(2)}} mins</td>
-                </tr>
-                <tr>
-                  <td>MapReduce {{$t('waiting')}}</td>
-                  <td>{{selected_job.mr_waiting/60 | number(2)}} mins</td>
-                </tr>
-              </table>
-            </div>
-          </div>
-        </li>
-    <p class="blue time-hd">
-      Job Details
-    </p>
-    <ul class="timeline">
+      <div class="timeline-item">
+        <div class="timeline-body">
+          <table class="table table-striped table-bordered" cellpadding="0" cellspacing="0">
+            <tr>
+              <td class="single-line"><b>{{$t('jobName')}}</b></td>
+              <td style="max-width: 180px;word-wrap: break-word;word-break: normal;font-weight: normal;font-size: 12px;" class="greyd0">
+                {{selected_job.name}}
+              </td>
+            </tr>
+            <tr>
+              <td>Job ID</td>
+              <td class="single-line greyd0">
+                {{selected_job.uuid}}
+              </td>
+            </tr>
+            <tr>
+              <td>{{$t('kylinLang.common.status')}}</td>
+              <td>
+                <el-tag
+                  :type="getJobStatusTag">
+                  {{selected_job.job_status}}
+                </el-tag>
+              </td>
+            </tr>
+            <tr>
+              <td>{{$t('duration')}}</td>
+              <td class="greyd0">{{selected_job.duration/60 | number(2)}} mins</td>
+            </tr>
+            <tr>
+              <td>MapReduce {{$t('waiting')}}</td>
+              <td class="greyd0">{{selected_job.mr_waiting/60 | number(2)}} mins</td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      </li>
+      <p class="blue time-hd">
+        Job Details
+      </p>
+      <ul class="timeline">
 
         <!--Start Label-->
         <!-- <li class="time-label">
@@ -155,11 +155,11 @@
 
         <li v-for="(step, index) in selected_job.steps">
           <el-popover
-           placement="left"
-           width="300"
-           trigger="hover">
+            placement="left"
+            width="300"
+            trigger="hover">
             <i slot="reference"
-            :class="{
+               :class="{
               'fa el-icon-more bg-gray' : step.step_status=='PENDING',
               'fa el-icon-loading bg-aqua' : step.step_status=='WAITING' || step.step_status=='RUNNING',
               'fa el-icon-check bg-green' : step.step_status=='FINISHED',
@@ -185,36 +185,36 @@
             </div>
             <div class="timeline-body">
               <!-- <span style="color: #4383B4">#{{index+1}} Step Name: </span>{{step.name}}<br> -->
-              <span class="steptime">
+              <span class="steptime jobActivityLabel">
                 <i class="el-icon-time"></i>
                 {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
               </span>
 
               <div v-if="step.info.hdfs_bytes_written">
-                <span>Data Size: </span>
+                <span class="jobActivityLabel">Data Size: </span>
                 <span class="blue">{{step.info.hdfs_bytes_written|dataSize}}</span>
                 <!-- <br /> -->
               </div>
               <div>
-                <span>{{$t('duration')}}: </span>
+                <span class="jobActivityLabel">{{$t('duration')}}: </span>
                 <span class="blue">{{timerline_duration(step)}}</span><br />
               </div>
               <div>
-                <span>{{$t('waiting')}}: </span>
+                <span class="jobActivityLabel">{{$t('waiting')}}: </span>
                 <span class="blue">{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
               </div>
             </div>
             <div class="timeline-footer">
-             <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">
-                <icon name="key" ></icon>
+              <el-button v-if="step.exec_cmd"  :plain="true" @click.native="clickKey(step)" size="mini">
+                <icon name="key" class="icon-key"></icon>
               </el-button>
               <el-button v-if="step.step_status!='PENDING'"  :plain="true" @click.native="clickFile(step)" size="mini">
-                <icon name="file" ></icon>
+                <icon name="file" class="icon-file"></icon>
               </el-button>
               <a :href="step.info.yarn_application_tracking_url" target="_blank"
-                       tooltip="MRJob" style="margin-left: 10px;">
+                 tooltip="MRJob" style="margin-left: 10px;">
                 <el-button  v-if="step.info.yarn_application_tracking_url"  :plain="true"  size="mini">
-                  <icon name="tasks" ></icon>
+                  <icon name="tasks" class="icon-task"></icon>
                 </el-button>
               </a>
 
@@ -234,297 +234,297 @@
       </div>
     </el-card>
 
-  <el-dialog id="show-diagnos" :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" v-model="dialogVisible" size="small">
-  <job_dialog :stepDetail="outputDetail"></job_dialog>
-  <span slot="footer" class="dialog-footer">
+    <el-dialog id="show-diagnos" :title="stepAttrToShow == 'cmd' ? $t('parameters') : $t('output')" v-model="dialogVisible" size="small">
+      <job_dialog :stepDetail="outputDetail"></job_dialog>
+      <span slot="footer" class="dialog-footer">
     <el-button type="primary" @click="dialogVisible = false">Close</el-button>
   </span>
-</el-dialog>
+    </el-dialog>
 
-<el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
-  <diagnosis :targetId="targetId" job="selected_job" :show="diagnosisVisible"></diagnosis>
-</el-dialog>
-</div>
+    <el-dialog :title="$t('diagnosis')" v-model="diagnosisVisible">
+      <diagnosis :targetId="targetId" job="selected_job" :show="diagnosisVisible"></diagnosis>
+    </el-dialog>
+  </div>
 </template>
 
 <script>
-import { mapActions } from 'vuex'
-import jobDialog from './job_dialog'
-import { pageCount } from '../../config'
-import { transToGmtTime, kapConfirm, handleError } from 'util/business'
-import diagnosisXX from '../system/diagnosis'
-export default {
-  name: 'jobslist',
-  data () {
-    return {
-      project: localStorage.getItem('selected_project'),
-      filterName: '',
-      filterStatus: [],
-      lockST: null,
-      scrollST: null,
-      stCycle: null,
-      showStep: false,
-      selected_job: {},
-      dialogVisible: false,
-      outputDetail: '',
-      stepAttrToShow: '',
-      beforeScrollPos: 0,
-      filter: {
-        pageOffset: 0,
-        pageSize: pageCount,
-        projectName: localStorage.getItem('selected_project'),
-        timeFilter: 1,
-        jobName: '',
-        sortby: 'last_modify',
-        status: []
+  import { mapActions } from 'vuex'
+  import jobDialog from './job_dialog'
+  import { pageCount } from '../../config'
+  import { transToGmtTime, kapConfirm, handleError } from 'util/business'
+  import diagnosisXX from '../system/diagnosis'
+  export default {
+    name: 'jobslist',
+    data () {
+      return {
+        project: localStorage.getItem('selected_project'),
+        filterName: '',
+        filterStatus: [],
+        lockST: null,
+        scrollST: null,
+        stCycle: null,
+        showStep: false,
+        selected_job: {},
+        dialogVisible: false,
+        outputDetail: '',
+        stepAttrToShow: '',
+        beforeScrollPos: 0,
+        filter: {
+          pageOffset: 0,
+          pageSize: pageCount,
+          projectName: localStorage.getItem('selected_project'),
+          timeFilter: 1,
+          jobName: '',
+          sortby: 'last_modify',
+          status: []
+        },
+        allStatus: [
+          {name: 'PENDING', value: 1},
+          {name: 'RUNNING', value: 2},
+          {name: 'FINISHED', value: 4},
+          {name: 'ERROR', value: 8},
+          {name: 'DISCARDED', value: 16},
+          {name: 'STOPPED', value: 32}
+        ],
+        timeFilter: [
+          {name: 'LASTONEDAY', value: 0},
+          {name: 'LASTONEWEEK', value: 1},
+          {name: 'LASTONEMONTH', value: 2},
+          {name: 'LASTONEYEAR', value: 3},
+          {name: 'ALL', value: 4}
+        ],
+        diagnosisVisible: false,
+        targetId: ''
+      }
+    },
+    components: {
+      'job_dialog': jobDialog,
+      'diagnosis': diagnosisXX
+    },
+    created () {
+      var autoFilter = () => {
+        this.stCycle = setTimeout(() => {
+          this.refreshJobs().then(() => {
+            autoFilter()
+          }, (res) => {
+            handleError(res)
+          })
+        }, 5000)
+      }
+      this.loadJobsList(this.filter).then(() => {
+        autoFilter()
+      })
+    },
+    mounted () {
+      window.addEventListener('click', this.closeIt)
+      document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
+    },
+    beforeDestroy () {
+      window.clearTimeout(this.stCycle)
+      window.clearTimeout(this.scrollST)
+      window.removeEventListener('click', this.closeIt)
+      document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+    },
+    computed: {
+      jobsList () {
+        return this.$store.state.monitor.jobsList.map((m) => {
+          m.gmtTime = transToGmtTime(m.last_modified, this)
+          if (this.selected_job) {
+            if (m.uuid === this.selected_job.uuid) {
+              this.selected_job = m
+            }
+          }
+          return m
+        })
       },
-      allStatus: [
-        {name: 'PENDING', value: 1},
-        {name: 'RUNNING', value: 2},
-        {name: 'FINISHED', value: 4},
-        {name: 'ERROR', value: 8},
-        {name: 'DISCARDED', value: 16},
-        {name: 'STOPPED', value: 32}
-      ],
-      timeFilter: [
-        {name: 'LASTONEDAY', value: 0},
-        {name: 'LASTONEWEEK', value: 1},
-        {name: 'LASTONEMONTH', value: 2},
-        {name: 'LASTONEYEAR', value: 3},
-        {name: 'ALL', value: 4}
-      ],
-      diagnosisVisible: false,
-      targetId: ''
-    }
-  },
-  components: {
-    'job_dialog': jobDialog,
-    'diagnosis': diagnosisXX
-  },
-  created () {
-    var autoFilter = () => {
-      this.stCycle = setTimeout(() => {
-        this.refreshJobs().then(() => {
-          autoFilter()
-        }, (res) => {
-          handleError(res)
-        })
-      }, 5000)
-    }
-    this.loadJobsList(this.filter).then(() => {
-      autoFilter()
-    })
-  },
-  mounted () {
-    window.addEventListener('click', this.closeIt)
-    document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
-  },
-  beforeDestroy () {
-    window.clearTimeout(this.stCycle)
-    window.clearTimeout(this.scrollST)
-    window.removeEventListener('click', this.closeIt)
-    document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
-  },
-  computed: {
-    jobsList () {
-      return this.$store.state.monitor.jobsList.map((m) => {
-        m.gmtTime = transToGmtTime(m.last_modified, this)
-        if (this.selected_job) {
-          if (m.uuid === this.selected_job.uuid) {
-            this.selected_job = m
-          }
+      jobTotal () {
+        return this.$store.state.monitor.totalJobs
+      },
+      getJobStatusTag () {
+        if (this.selected_job.job_status === 'PENDING') {
+          return 'gray'
         }
-        return m
-      })
-    },
-    jobTotal () {
-      return this.$store.state.monitor.totalJobs
-    },
-    getJobStatusTag () {
-      if (this.selected_job.job_status === 'PENDING') {
-        return 'gray'
-      }
-      if (this.selected_job.job_status === 'RUNNING') {
-        return 'primary'
-      }
-      if (this.selected_job.job_status === 'FINISHED') {
-        return 'success'
-      }
-      if (this.selected_job.job_status === 'ERROR') {
-        return 'danger'
-      }
-      if (this.selected_job.job_status === 'DISCARDED') {
-        return ''
-      }
-    }
-  },
-  methods: {
-    ...mapActions({
-      loadJobsList: 'LOAD_JOBS_LIST',
-      loadStepOutputs: 'LOAD_STEP_OUTPUTS',
-      removeJob: 'REMOVE_JOB',
-      pauseJob: 'PAUSE_JOB',
-      cancelJob: 'CANCEL_JOB',
-      resumeJob: 'RESUME_JOB'
-    }),
-    scrollRightBar () {
-      clearTimeout(this.scrollST)
-      this.scrollST = setTimeout(() => {
-        if (this.showStep) {
-          var sTop = document.getElementById('scrollBox').scrollTop
-          if (sTop < this.beforeScrollPos) {
-            var result = sTop - 100
-            document.getElementById('stepList').style.top = result + 'px'
-            // this.beforeScrollPos = document.getElementById('scrollBox').scrollTop
-          }
+        if (this.selected_job.job_status === 'RUNNING') {
+          return 'primary'
         }
-      }, 100)
-    },
-    transToGmtTime: transToGmtTime,
-    currentChange: function (val) {
-      this.filter.pageOffset = val - 1
-      this.refreshJobs()
-    },
-    closeIt () {
-      if (this.showStep) {
-        this.showStep = false
+        if (this.selected_job.job_status === 'FINISHED') {
+          return 'success'
+        }
+        if (this.selected_job.job_status === 'ERROR') {
+          return 'danger'
+        }
+        if (this.selected_job.job_status === 'DISCARDED') {
+          return ''
+        }
       }
     },
-    diagnosisJob: function (a, target) {
-      this.diagnosisVisible = true
-      this.targetId = target
-    },
-    filterChange () {
-      clearTimeout(this.lockST)
-      this.lockST = setTimeout(() => {
+    methods: {
+      ...mapActions({
+        loadJobsList: 'LOAD_JOBS_LIST',
+        loadStepOutputs: 'LOAD_STEP_OUTPUTS',
+        removeJob: 'REMOVE_JOB',
+        pauseJob: 'PAUSE_JOB',
+        cancelJob: 'CANCEL_JOB',
+        resumeJob: 'RESUME_JOB'
+      }),
+      scrollRightBar () {
+        clearTimeout(this.scrollST)
+        this.scrollST = setTimeout(() => {
+          if (this.showStep) {
+            var sTop = document.getElementById('scrollBox').scrollTop
+            if (sTop < this.beforeScrollPos) {
+              var result = sTop - 100
+              document.getElementById('stepList').style.top = result + 'px'
+              // this.beforeScrollPos = document.getElementById('scrollBox').scrollTop
+            }
+          }
+        }, 100)
+      },
+      transToGmtTime: transToGmtTime,
+      currentChange: function (val) {
+        this.filter.pageOffset = val - 1
         this.refreshJobs()
-      }, 1000)
-    },
-    refreshJobs: function () {
-      return this.loadJobsList(this.filter)
-    },
-    sortJobList (column, prop, order) {
-      let _column = column.column
-      if (_column.order === 'ascending') {
-        this.filter.reverse = false
-      }
-      if (_column.label === this.$t('JobName')) {
-        this.filter.sortby = 'job_name'
-      } else if (_column.label === this.$t('TableModelCube')) {
-        this.filter.sortby = 'cube_name'
-      } else if (_column.label === this.$t('LastModifiedTime')) {
-        this.filter.sortby = 'last_modify'
-      }
-      this.loadJobsList(this.filter)
-    },
-    resume: function (job) {
-      kapConfirm(this.$t('resumeJob')).then(() => {
-        this.resumeJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.actionSuccess')
-          })
+      },
+      closeIt () {
+        if (this.showStep) {
+          this.showStep = false
+        }
+      },
+      diagnosisJob: function (a, target) {
+        this.diagnosisVisible = true
+        this.targetId = target
+      },
+      filterChange () {
+        clearTimeout(this.lockST)
+        this.lockST = setTimeout(() => {
           this.refreshJobs()
-        }).catch((res) => {
-          handleError(res)
-        })
-      })
-    },
-    discard: function (job) {
-      kapConfirm(this.$t('discardJob')).then(() => {
-        this.cancelJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.actionSuccess')
+        }, 1000)
+      },
+      refreshJobs: function () {
+        return this.loadJobsList(this.filter)
+      },
+      sortJobList (column, prop, order) {
+        let _column = column.column
+        if (_column.order === 'ascending') {
+          this.filter.reverse = false
+        }
+        if (_column.label === this.$t('JobName')) {
+          this.filter.sortby = 'job_name'
+        } else if (_column.label === this.$t('TableModelCube')) {
+          this.filter.sortby = 'cube_name'
+        } else if (_column.label === this.$t('LastModifiedTime')) {
+          this.filter.sortby = 'last_modify'
+        }
+        this.loadJobsList(this.filter)
+      },
+      resume: function (job) {
+        kapConfirm(this.$t('resumeJob')).then(() => {
+          this.resumeJob(job.uuid).then(() => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.actionSuccess')
+            })
+            this.refreshJobs()
+          }).catch((res) => {
+            handleError(res)
           })
-          this.refreshJobs()
-        }).catch((res) => {
-          handleError(res)
         })
-      })
-    },
-    pause: function (job) {
-      kapConfirm(this.$t('pauseJob')).then(() => {
-        this.pauseJob(job.uuid).then(() => {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.actionSuccess')
+      },
+      discard: function (job) {
+        kapConfirm(this.$t('discardJob')).then(() => {
+          this.cancelJob(job.uuid).then(() => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.actionSuccess')
+            })
+            this.refreshJobs()
+          }).catch((res) => {
+            handleError(res)
           })
-          this.refreshJobs()
-        }).catch((res) => {
-          handleError(res)
         })
-      })
-    },
-    drop: function (jobId) {
-      kapConfirm(this.$t('dropJob')).then(() => {
-        this.removeJob(jobId).then(() => {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.delSuccess')
+      },
+      pause: function (job) {
+        kapConfirm(this.$t('pauseJob')).then(() => {
+          this.pauseJob(job.uuid).then(() => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.actionSuccess')
+            })
+            this.refreshJobs()
+          }).catch((res) => {
+            handleError(res)
           })
-          this.refreshJobs()
-        }).catch((res) => {
-          handleError(res)
         })
-      })
-    },
-    showLineSteps: function (row, v1, v2) {
-      // var target = v1.currentTarget || v1.srcElement || v1.target
-      // 获取div距离顶部的距离
-      // var mTop = target.offsetTop
-      // 减去滚动条的高度
-      var sTop = document.getElementById('scrollBox').scrollTop
-      // alert(sTop)
-      // console.log(mTop, sTop, 99001)
-      this.beforeScrollPos = sTop
-      var result = sTop - 100
-      document.getElementById('stepList').style.top = result + 'px'
-      if (row.uuid !== this.selected_job.uuid) {
-        this.showStep = true
-      } else {
-        this.showStep = !this.showStep
+      },
+      drop: function (jobId) {
+        kapConfirm(this.$t('dropJob')).then(() => {
+          this.removeJob(jobId).then(() => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.delSuccess')
+            })
+            this.refreshJobs()
+          }).catch((res) => {
+            handleError(res)
+          })
+        })
+      },
+      showLineSteps: function (row, v1, v2) {
+        // var target = v1.currentTarget || v1.srcElement || v1.target
+        // 获取div距离顶部的距离
+        // var mTop = target.offsetTop
+        // 减去滚动条的高度
+        var sTop = document.getElementById('scrollBox').scrollTop
+        // alert(sTop)
+        // console.log(mTop, sTop, 99001)
+        this.beforeScrollPos = sTop
+        var result = sTop - 100
+        document.getElementById('stepList').style.top = result + 'px'
+        if (row.uuid !== this.selected_job.uuid) {
+          this.showStep = true
+        } else {
+          this.showStep = !this.showStep
+        }
+        this.selected_job = row
+      },
+      clickKey: function (step) {
+        this.stepAttrToShow = 'cmd'
+        this.outputDetail = step.exec_cmd
+        this.dialogVisible = true
+      },
+      clickFile: function (step) {
+        this.stepAttrToShow = 'output'
+        this.dialogVisible = true
+        this.outputDetail = this.$t('load')
+        this.loadStepOutputs({jobID: this.selected_job.uuid, stepID: step.id}).then((result) => {
+          this.outputDetail = result.body.data.cmd_output
+        }).catch((result) => {
+          this.outputDetail = this.$t('cmdOutput')
+        })
+      },
+      timerline_duration (step) {
+        let min = 0
+        if (!step.exec_start_time || !step.exec_end_time) {
+          return '0 seconds'
+        } else {
+          min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
+          return min.toFixed(2) + ' mins'
+        }
+      },
+      closeLoginOpenKybot () {
+        this.kyBotUploadVisible = false
+        this.infoKybotVisible = true
       }
-      this.selected_job = row
     },
-    clickKey: function (step) {
-      this.stepAttrToShow = 'cmd'
-      this.outputDetail = step.exec_cmd
-      this.dialogVisible = true
-    },
-    clickFile: function (step) {
-      this.stepAttrToShow = 'output'
-      this.dialogVisible = true
-      this.outputDetail = this.$t('load')
-      this.loadStepOutputs({jobID: this.selected_job.uuid, stepID: step.id}).then((result) => {
-        this.outputDetail = result.body.data.cmd_output
-      }).catch((result) => {
-        this.outputDetail = this.$t('cmdOutput')
-      })
-    },
-    timerline_duration (step) {
-      let min = 0
-      if (!step.exec_start_time || !step.exec_end_time) {
-        return '0 seconds'
-      } else {
-        min = (step.exec_end_time - step.exec_start_time) / 1000 / 60
-        return min.toFixed(2) + ' mins'
-      }
-    },
-    closeLoginOpenKybot () {
-      this.kyBotUploadVisible = false
-      this.infoKybotVisible = true
+    locales: {
+      'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Status', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting'},
+      'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间'}
     }
-  },
-  locales: {
-    'en': {JobName: 'Job Name', TableModelCube: 'Table/Model/Cube', ProgressStatus: 'Progress/Status', LastModifiedTime: 'Last Modified Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting'},
-    'zh-cn': {JobName: '任务', TableModelCube: '表/模型/Cube', ProgressStatus: '进度/状态', LastModifiedTime: '最后修改时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '无效', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间'}
   }
-}
 </script>
 <style lang="less">
-@import '../../less/config.less';
-#jobs_list {
+  @import '../../less/config.less';
+  #jobs_list {
   .el-table__header .caret-wrapper .ascending{
     border-color: transparent transparent #97a8be transparent;
   }
@@ -550,9 +550,9 @@ export default {
     position: absolute;
     top: 0px;
     bottom: 0;
-    width: 4px;
+    width: 3px;
     background: #71779d;
-    left: 13px;
+    left: 10px;
     margin: 0;
     border-radius: 2px;
   }
@@ -571,9 +571,9 @@ export default {
     clear: both;
   }
   .timeline > li > .timeline-item {
-    .el-button {
-      background: @grey-color;
-    }
+  .el-button {
+    background: @grey-color;
+  }
   }
   .timeline > li > .timeline-item {
     position: relative;
@@ -615,10 +615,10 @@ export default {
   .timeline > li > span > .fa,
   .timeline > li > .fa
   {
-    width: 30px;
-    height: 30px;
-    font-size: 15px;
-    line-height: 30px;
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+    line-height: 22px;
     position: absolute;
     color: #fff;
     background: #d2d6de;
@@ -634,11 +634,17 @@ export default {
     display: block;
     position: absolute;
     top: 0;
-    left: 13px;
+    left: 10px;
     bottom: 0;
     content: '';
-    width: 4px;
+    width: 3px;
     background: #71779d;
+  }
+  .timeline li .icon-key, .timeline li .icon-file, .timeline li .icon-task{
+    color:#B0BBCB
+  }
+  .timeline li .icon-key:hover, .timeline li .icon-file:hover, .timeline li .icon-task:hover{
+    color:#fff
   }
   .bg-blue {
     background-color: #0073b7 !important;
@@ -664,8 +670,8 @@ export default {
     font-size: 15px !important;;
   }
   .table_margin {
-     margin-top: 20px;
-     margin-bottom: 20px;
+    margin-top: 20px;
+    margin-bottom: 20px;
   }
   .card-width {
     width: 30%;
@@ -681,18 +687,29 @@ export default {
     padding: 20px 20px 20px 40px;
   }
   .table {
-      width: 100%;
-      margin-bottom: 20px;
+    width: 100%;
+    margin-bottom: 20px;
   }
   .table-bordered {
-      border-collapse: collapse;
-      font-size:14px;
-      tr:first-child {background: transparent;color:@fff;}
-      th,
-      td {font-size:14px;
-        padding:8px 18px;
-        border:1px solid #ddd;
-      }
+    border-collapse: collapse;
+    font-size:14px;
+    border:1px solid #4b506e;
+  tr:first-child {background: transparent;color:@fff;}
+  th,
+  td {font-size:12px;
+    padding:8px 18px;
+    border-bottom:1px solid #393e53;
+    border-right:1px solid #393e53;
+  }
+  tr:last-child td{
+    border-bottom:none;
+  }
+  tr td:last-child{
+    border-right:none;
+  }
+  .greyd0{
+    color:#d0d0d0;
+  }
   }
   .jobBtn {
     position: absolute;
@@ -703,8 +720,8 @@ export default {
     color: #000;
     border-radius: 0 4px 4px 0;
     cursor: pointer;
-    background: rgba(228, 232, 241, 0.6);
-   }
+    /* background: rgba(228, 232, 241, 0.6); */
+  }
   .jobBtn i {
     position: relative;
     top: 12px;
@@ -712,23 +729,23 @@ export default {
     font-size:12px;
   }
   .table_margin .el-table__body tr{
-    td:first-child .cell {position:relative;padding: 10px 10px 10px 50px;}
+  td:first-child .cell {position:relative;padding: 10px 10px 10px 50px;}
   }
   .table_margin .el-icon-arrow-right {position:absolute;left:20px;top:50%;transform:translate(0,-50%);font-size:12px;}
   .el-checkbox-group {margin-top:7px;}
   .single-line {max-width: 140px;}
   .blue {color: #fff;}
-  .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #ddd;}
+  .time-hd {height:40px;line-height:40px;margin-bottom:16px;border-bottom: 1px solid #4b506e;font-size: 14px}
   .timeline {
-    .timeline-header .single-line.stepname {max-width:none;font-size:14px;}
-    .steptime {height:20px;line-height:20px;font-size:14px;color:#666;
-      .el-icon-time {color:#666;}
-    }
+  .timeline-header .single-line.stepname {max-width:none;font-size:14px;}
+  .steptime {height:20px;line-height:20px;font-size:14px;color:#666;
+  .el-icon-time {color:#B0BBCB;font-size: 16px}
+  }
   }
   .timer-line {
-    .timeline-body {
-      color: #999;
-    }
+  .timeline-body {
+    color: #999;
+  }
   }
   .footer {
     margin-top: 30px;
@@ -740,25 +757,29 @@ export default {
     display: block;
     margin: 20px auto;
   }
-}
-.single-line {overflow:hidden;}
-.diagnosis-wrap{
+  }
+  .single-line {overflow:hidden;}
+  .diagnosis-wrap{
   .el-dialog__wrapper{
     overflow: visible;
   }
-}
+  }
 
-.job-step{
+  .job-step{
   tr{
-    td:first-child{
-      font-weight: bold;
-      color: #fff;
-      width: 40%;
-    }
+  td:first-child{
+    font-weight: bold;
+    color: #fff;
+    width: 40%;
+  }
   }
   td{
     background: #2b2d3c;
   }
-}
+  }
+  #jobs_list .timeline .jobActivityLabel{
+    color:#d4d7e3!important;
+    font-size: 12px;
+  }
 
 </style>
