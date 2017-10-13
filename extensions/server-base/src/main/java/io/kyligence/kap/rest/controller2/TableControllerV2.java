@@ -161,6 +161,53 @@ public class TableControllerV2 extends BasicController {
     }
 
     /**
+     * Show all databases in Hive
+     *
+     * @return Hive databases list
+     * @throws IOException
+     */
+
+    @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    private EnvelopeResponse showHiveDatabasesV2() throws Exception {
+        KapMessage msg = KapMsgPicker.getMsg();
+        List<String> databases = null;
+
+        try {
+            databases = tableService.getHiveDbNames();
+        } catch (Throwable e) {
+            logger.error(e.getLocalizedMessage(), e);
+            throw new BadRequestException(msg.getHIVE_TABLE_LOAD_FAILED());
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
+    }
+
+    /**
+     * Show all tables in a Hive database
+     *
+     * @return Hive table list
+     * @throws IOException
+     */
+
+    @RequestMapping(value = "/hive/{database}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    private EnvelopeResponse showHiveTablesV2(@PathVariable String database) throws Exception {
+        KapMessage msg = KapMsgPicker.getMsg();
+        List<String> tables = null;
+
+        try {
+            tables = tableService.getHiveTableNames(database);
+        } catch (Throwable e) {
+            logger.error(e.getLocalizedMessage(), e);
+            throw new BadRequestException(msg.getHIVE_TABLE_LOAD_FAILED());
+        }
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tables, "");
+    }
+
+    /**
      * Show all databases and tables in Hive
      *
      * @return Hive databases list with Hive table list
