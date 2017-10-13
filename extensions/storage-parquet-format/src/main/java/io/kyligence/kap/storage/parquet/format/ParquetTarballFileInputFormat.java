@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.format;
 
+import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -65,7 +67,7 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 /**
- * spark rdd input 
+ * spark rdd input and merge job
  */
 public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
 
@@ -175,7 +177,7 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
             logger.info("Read Strategy is {} Cuboid id is {} and shard id is {}", readStrategy.toString(), cuboidId, shardId);
 
             String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
-            int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);
+            int gtMaxLength = gtMaxLengthStr == null ? KYLIN_DEFAULT_GT_MAX_LENGTH : Integer.valueOf(gtMaxLengthStr);
 
             val = new Text();
             val.set(new byte[gtMaxLength]);
@@ -189,6 +191,29 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
 
             // finish initialization
             profileStartTime = System.currentTimeMillis();
+        }
+
+        // test only
+        void setReader(ParquetBundleReader reader) {
+            this.reader = reader;
+        }
+
+        // test only
+        void setBinaryFilter(BinaryFilter filter) {
+            this.binaryFilter = filter;
+        }
+
+        // test only
+        void setReadStrategy(ReadStrategy strategy) {
+            this.readStrategy = strategy;
+        }
+
+        // test only
+        void setDefaultValue(byte[] value) {
+            if (val == null) {
+                val = new Text();
+            }
+            this.val.set(value);
         }
 
         @Override

@@ -39,4 +39,5 @@ public interface ParquetFormatConstants {
     String KYLIN_BINARY_FILTER = "io.kylin.storage.parquet.read.binary-filter";
 
     int KYLIN_PARQUET_TARBALL_HEADER_SIZE = Longs.BYTES;
+    int KYLIN_DEFAULT_GT_MAX_LENGTH = 1024 * 1024; // 1M
 }

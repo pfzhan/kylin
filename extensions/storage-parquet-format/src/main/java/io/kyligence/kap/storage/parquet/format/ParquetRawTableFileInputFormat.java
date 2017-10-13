@@ -60,6 +60,8 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
 
+import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
+
 /**
  * spark rdd input
  */
@@ -148,7 +150,7 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             }
 
             String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
-            int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);
+            int gtMaxLength = gtMaxLengthStr == null ? KYLIN_DEFAULT_GT_MAX_LENGTH : Integer.valueOf(gtMaxLengthStr);
 
             val = new Text();
             val.set(new byte[gtMaxLength]);
@@ -193,7 +195,7 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
                     break;
                 } catch (ArrayIndexOutOfBoundsException e) {
                     if (++retry > 10) {
-                        throw new IllegalStateException("Measures taking too much space! ");
+                        throw new IllegalStateException("Record taking too much space! ");
                     }
                     byte[] temp = new byte[val.getBytes().length * 2];
                     val.set(temp);

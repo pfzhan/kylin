@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.format;
 
 import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getCuboididFromDiv;
 import static io.kyligence.kap.storage.parquet.format.ParquetCubeSpliceOutputFormat.ParquetCubeSpliceWriter.getShardidFromDiv;
+import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -87,7 +88,7 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 
 /**
- * spark rdd input 
+ * cube merge input
  */
 public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Text, Text> {
 
@@ -259,7 +260,7 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
 
             // init val
             String gtMaxLengthStr = conf.get(ParquetFormatConstants.KYLIN_GT_MAX_LENGTH);
-            int gtMaxLength = gtMaxLengthStr == null ? 1024 : Integer.valueOf(gtMaxLengthStr);
+            int gtMaxLength = gtMaxLengthStr == null ? KYLIN_DEFAULT_GT_MAX_LENGTH : Integer.valueOf(gtMaxLengthStr);
             val = new Text();
             val.set(new byte[gtMaxLength]);
 
