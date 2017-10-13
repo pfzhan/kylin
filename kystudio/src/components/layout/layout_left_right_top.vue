@@ -96,7 +96,8 @@
 </template>
 
 <script>
-  import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
+  // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
+  import { handleError, kapConfirm, hasRole } from '../../util/business'
   import { objectClone, isFireFox } from '../../util/index'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
@@ -148,7 +149,7 @@
       help
     },
     created () {
-      this.getCurUserInfo().then((res) => {
+      /* this.getCurUserInfo().then((res) => {
         handleSuccess(res, (data) => {
           this.reloadRouter()
           this.getConf()
@@ -156,8 +157,12 @@
           this.getAboutKap()
           this.setCurUser({ user: data })
         })
-      })
+      }) */
       // this.overlock = localStorage.getItem('buyit')
+      this.reloadRouter()
+      this.getEncoding()
+      this.getAboutKap()
+      this.setCurUser({ user: this.$store.state.system.authentication.data })
     },
     methods: {
       ...mapActions({
@@ -169,7 +174,8 @@
         loadProjects: 'LOAD_PROJECT_LIST',
         loadAllProjects: 'LOAD_ALL_PROJECT',
         resetPassword: 'RESET_PASSWORD',
-        getAboutKap: 'GET_ABOUTKAP'
+        getAboutKap: 'GET_ABOUTKAP',
+        getProjectEndAccess: 'GET_PROJECT_END_ACCESS'
       }),
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER'
@@ -256,8 +262,18 @@
           return obj
         }
       },
-      changeProject () {
-        var currentPath = this.$router.currentRoute.path
+      _getUuidFromProjects (list, projectName) {
+        var uuid = list[0].uuid
+        for (var i = 0; i < list.length; i++) {
+          var item = list[i]
+          if (item.name === projectName) {
+            uuid = item.uuid
+            break
+          }
+        }
+        return uuid
+      },
+      _replaceRouter (currentPath) {
         if (currentPath.indexOf('dashboard') < 0) {
           this.$router.replace('/')
         } else {
@@ -266,6 +282,30 @@
         this.$nextTick(() => {
           this.$router.replace(currentPath)
         })
+      },
+      _isAjaxProjectAcess (allProject, curProjectName, curProjectId, currentPath) {
+        let uuid = allProject.length > 0 ? this._getUuidFromProjects(allProject, curProjectName) : null
+        // 当前project的权限没拿过才需要发请求,project list 空的话，uuid也就不存在，就直接跳
+        if (uuid && !curProjectId[uuid]) {
+          let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
+          curProjectEndAccessPromise.then(() => {
+            this._replaceRouter(currentPath)
+          })
+        } else {
+          this._replaceRouter(currentPath)
+        }
+      },
+      changeProject (val) {
+        var currentPath = this.$router.currentRoute.path
+        /* if (currentPath.indexOf('dashboard') < 0) {
+          this.$router.replace('/')
+        } else {
+          this.$router.replace('/system/config')
+        }
+        this.$nextTick(() => {
+          this.$router.replace(currentPath)
+        }) */
+        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, this.$store.state.project.projectAccess, currentPath)
       },
       addProject () {
         this.FormVisible = true

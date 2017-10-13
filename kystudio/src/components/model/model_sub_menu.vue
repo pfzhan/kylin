@@ -29,8 +29,8 @@ export default {
   data () {
     return {
       subMenu: 'model',
-      hasPermissionOfProject: this.hasSomePermissionOfProject(),
-      hasGetPermission: false
+      hasPermissionOfProject: this.hasSomePermissionOfProject()
+      // ,hasGetPermission: false
     }
   },
   components: {
@@ -81,8 +81,8 @@ export default {
     var hash = location.hash
     var subRouter = hash.replace(/.*\/(.*)$/, '$1')
     this.subMenu = subRouter
-  },
-  watch: {
+  }
+  /* watch: {
     '$store.state': {
       handler: function (value, oldValue) {
         if (!this.hasGetPermission) {
@@ -97,7 +97,7 @@ export default {
       },
       deep: true
     }
-  }
+  } */
 }
 </script>
 <style lang="less">

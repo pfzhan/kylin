@@ -46,8 +46,16 @@ export default {
   },
   actions: {
     [types.LOAD_AUTHENTICATION]: function ({ commit }) {
-      api.system.getAuthentication().then((response) => {
+      /* api.system.getAuthentication().then((response) => {
         commit(types.SAVE_AUTHENTICATION, { authentication: response.data })
+      }) */
+      return new Promise((resolve, reject) => {
+        api.system.getAuthentication().then((response) => {
+          commit(types.SAVE_AUTHENTICATION, { authentication: response.data })
+          resolve(response.data)
+        }, () => {
+          reject()
+        })
       })
     },
     [types.GET_ENV]: function ({ commit }) {
@@ -56,7 +64,7 @@ export default {
       })
     },
     [types.GET_CONF]: function ({ commit }) {
-      return api.system.getConfig().then((response) => {
+      /* return api.system.getConfig().then((response) => {
         commit(types.SAVE_CONF, { conf: response.data.data })
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
@@ -64,6 +72,21 @@ export default {
         commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
         commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
         commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
+      }) */
+
+      return new Promise((resolve, reject) => {
+        api.system.getConfig().then((response) => {
+          commit(types.SAVE_CONF, { conf: response.data.data })
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
+          resolve(response.data.data)
+        }, () => {
+          reject()
+        })
       })
     },
     [types.RELOAD_METADATA]: function ({ commit }) {

@@ -45,7 +45,7 @@ export default {
   created () {
     // console.log(this.$store.state.project.selected_project, '0101')
     this.selected_project = this.$store.state.project.selected_project
-    this.loadAllProjects()
+    // this.loadAllProjects()
   }
 }
 </script>

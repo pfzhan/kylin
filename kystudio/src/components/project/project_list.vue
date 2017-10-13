@@ -54,14 +54,14 @@
       :width="100"
       :label="$t('actions')">
       <template scope="scope">
-      <span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span>
-      <el-dropdown trigger="click" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">
+      <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
+      <el-dropdown trigger="click">
       <el-button class="el-dropdown-link">
         <i class="el-icon-more"></i>
       </el-button >
       <el-dropdown-menu slot="dropdown" >
 <!--         <el-dropdown-item @click.native="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('edit')}}</el-dropdown-item> -->
-        <el-dropdown-item @click.native="backup(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('backup')}}</el-dropdown-item>
+        <el-dropdown-item @click.native="backup(scope.row)">{{$t('backup')}}</el-dropdown-item>
         <el-dropdown-item @click.native="removeProject(scope.row)" v-if="isAdmin">{{$t('delete')}}</el-dropdown-item>
       </el-dropdown-menu>
       </el-dropdown>
@@ -151,7 +151,7 @@ export default {
             message: this.$t('saveSuccessful')
           })
           this.loadProjects()
-          this.loadAllProjects()
+          // this.loadAllProjects()
         }, (res) => {
           handleError(res)
         })
@@ -180,7 +180,6 @@ export default {
       })
     },
     backup (project) {
-      // console.log('1')
       this.backupProject(project).then((result) => {
         handleSuccess(result, (data, code, status, msg) => {
           this.$message({

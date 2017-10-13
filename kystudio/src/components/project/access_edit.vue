@@ -67,7 +67,7 @@
           <el-button type="primary" @click="saveAccess">{{$t('kylinLang.common.save')}}</el-button>
         </el-form-item>
       </el-form>
-    </div> 
+    </div>
     <el-table
 	    :data="settleAccessList"
 	    border
@@ -162,7 +162,8 @@ export default {
       saveCubeAccess: 'SAVE_CUBE_ACCESS',
       editCubeAccess: 'EDIT_CUBE_ACCESS',
       getCubeAccess: 'GET_CUBE_ACCESS',
-      delCubeAccess: 'DEL_CUBE_ACCESS'
+      delCubeAccess: 'DEL_CUBE_ACCESS',
+      getProjectEndAccess: 'GET_PROJECT_END_ACCESS'
     }),
     initMeta () {
       this.accessMeta = {
@@ -283,6 +284,9 @@ export default {
   },
   created () {
     this.loadAccess()
+    if (!this.$store.state.project.projectAccess[this.accessId]) {
+      this.getProjectEndAccess(this.accessId)
+    }
   },
   locales: {
     'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does KAP provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to cube and jobs. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?', pleaseInput: 'Please input user name.'},

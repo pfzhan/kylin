@@ -41,6 +41,7 @@ import 'brace/theme/chrome'
 import 'brace/theme/monokai'
 import 'brace/ext/language_tools'
 import VueDND from 'awe-dnd'
+import * as types from './store/types'
 Vue.use(VueDND)
 Vue.component('icon', Icon)
 Vue.component('confirm-btn', confirmBtn)
@@ -88,7 +89,31 @@ router.beforeEach((to, from, next) => {
   if (to.matched && to.matched.length) {
     store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashboard'
     store.state.config.routerConfig.currentPathName = to.name
-    next()
+    // 如果是从登陆过来的，所有信息都要重新获取
+    if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
+      let configPromise = store.dispatch(types.GET_CONF)
+      let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
+      let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
+      let rootPromise = Promise.all([configPromise, authenticationPromise, projectPromise])
+      rootPromise.then(() => {
+        next()
+      })
+    } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
+      // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
+      if (store.state.system.authentication === null && store.state.system.serverConfig === null) {
+        let configPromise = store.dispatch(types.GET_CONF)
+        let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
+        let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
+        let rootPromise = Promise.all([configPromise, authenticationPromise, projectPromise])
+        rootPromise.then(() => {
+          next()
+        })
+      } else {
+        next()
+      }
+    } else {
+      next()
+    }
   } else {
     router.replace('/access/login')
   }

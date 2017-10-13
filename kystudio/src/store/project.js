@@ -28,6 +28,7 @@ export default {
         list.forEach((p) => {
           if (p.name === localStorage.getItem('selected_project')) {
             hasMatch = true
+            state.selected_project = p.name // 之前没这句，在其他tab 切换了project，顶部会不变
           }
         })
         if (!hasMatch) {
@@ -53,7 +54,7 @@ export default {
         commit(types.SAVE_PROJECT_LIST, {list: response.data.data.projects, size: response.data.data.size})
       })
     },
-    [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
+    /* [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
       return api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
         // 加载project所有的权限
         var pl = response.data.data.projects && response.data.data.projects.length || 0
@@ -66,6 +67,39 @@ export default {
         commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
       }, () => {
         commit(types.REMOVE_ALL_PROJECTS)
+      })
+    }, */
+    [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
+      return new Promise((resolve, reject) => {
+        api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
+          commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
+          let pl = response.data.data.projects && response.data.data.projects.length || 0
+          if (!((params && params.ignoreAccess) || pl === 0)) {
+            var uuid = response.data.data.projects[0].uuid
+            for (var i = 0; i < response.data.data.projects.length; i++) {
+              var item = response.data.data.projects[i]
+              if (item.name === this.state.project.selected_project) {
+                uuid = item.uuid
+                break
+              }
+            }
+            if (!this.state.project.projectAccess[uuid]) {
+              let curProjectAccessPromise = dispatch(types.GET_PROJECT_END_ACCESS, uuid)
+              curProjectAccessPromise.then(() => {
+                resolve(response.data.data.projects)
+              }, () => {
+                resolve(response.data.data.projects)
+              })
+            } else {
+              resolve(response.data.data.projects)
+            }
+          } else {
+            resolve(response.data.data.projects)
+          }
+        }, () => {
+          commit(types.REMOVE_ALL_PROJECTS)
+          reject()
+        })
       })
     },
     [types.DELETE_PROJECT]: function ({ commit }, projectName) {
@@ -92,10 +126,20 @@ export default {
         return res
       })
     },
-    [types.GET_PROJECT_END_ACCESS]: function ({ commit }, projectId) {
+    /* [types.GET_PROJECT_END_ACCESS]: function ({ commit }, projectId) {
       return api.project.getProjectEndAccess(projectId).then((res) => {
         commit(types.CACHE_PROJECT_END_ACCESS, {access: res.data.data, projectId: projectId})
         return res
+      })
+    }, */
+    [types.GET_PROJECT_END_ACCESS]: function ({ commit }, projectId) {
+      return new Promise((resolve, reject) => {
+        api.project.getProjectEndAccess(projectId).then((res) => {
+          commit(types.CACHE_PROJECT_END_ACCESS, {access: res.data.data, projectId: projectId})
+          resolve(res)
+        }, () => {
+          reject()
+        })
       })
     },
     [types.DEL_PROJECT_ACCESS]: function ({ commit }, {id, aid, userName}) {
