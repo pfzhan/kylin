@@ -12,7 +12,8 @@ export default {
     return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName).get()
   },
   loadBasicLiveDatabase: () => {
-    return Vue.resource(apiUrl + 'tables/hive').get()
+    // return Vue.resource(apiUrl + 'tables/hive').get()
+    return Vue.resource(apiUrl + 'tables/databases').get()
   },
   loadChildTablesOfDatabase: (database) => {
     return Vue.resource(apiUrl + 'tables/hive/' + database).get()

@@ -187,7 +187,7 @@
         <el-row :gutter="20">
 		  <el-col :span="8"><div class="grid-content bg-purple">
 		  	 <div class="dialog_tree_box">
-           <tree :indent="2"
+           <!--<tree :indent="2"
                  :multiple="true"
                  :treedata="hiveData"
                  :emptyText="dialogEmptyText"
@@ -196,18 +196,19 @@
                  ref="subtree"
                  :showfilter="true"
                  :allowdrag="false"
-                 @nodeclick="clickHiveTable"></tree>
-           <!--<tree :indent="2"
+                 @nodeclick="clickHiveTable"></tree>-->
+           <tree :indent="2"
            @lazyload="loadChildNode"
            :multiple="true"
            @nodeclick="clickHiveTable"
            :lazy="true"
            :treedata="hiveData"
+           :emptyText="dialogEmptyText"
            maxlevel="3"
            ref="subtree"
            :maxLabelLen="24"
-           :showfilter="true"
-           :allowdrag="false" ></tree>-->
+           :showfilter="false"
+           :allowdrag="false" ></tree>
           </div>
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
@@ -377,8 +378,8 @@ export default {
       kafkaFormVisible: false,
       editKafkaFormVisible: false,
       hiveData: [],
-      pageLoadHiveAllData: [],
-      dialogTreeHiveDataIsReady: false,
+      // pageLoadHiveAllData: [],
+      // dialogTreeHiveDataIsReady: false,
       dialogEmptyText: this.$t('dialogHiveTreeLoading'),
       filterVal: '',
       currentStreamingTable: '',
@@ -402,7 +403,7 @@ export default {
     if (this.project) {
       this.loadHiveTree()
       // 页面上默默加载全部数据
-      this.loadAllHiveTreeData()
+      // this.loadAllHiveTreeData()
     }
   },
   methods: {
@@ -459,9 +460,9 @@ export default {
         return
       }
       // 直接赋值，会有监控报错，不知道是不是tree的问题，加延迟，类似拉取得是请求
-      window.setTimeout(() => {
+      /* window.setTimeout(() => {
         this.hiveData = this.pageLoadHiveAllData
-      })
+      }) */
       this.load_hive_dalog_visible = true
       this.$refs.subtree && this.$refs.subtree.cancelCheckedAll()
       this.selectTables = []
@@ -673,7 +674,7 @@ export default {
         handleError(res)
       })
     },
-    loadAllHiveTreeData: function () {
+    /* loadAllHiveTreeData: function () {
       this.dialogTreeHiveDataIsReady = false
       this.loadDatabase().then((res) => {
         handleSuccess(res, (data) => {
@@ -707,7 +708,7 @@ export default {
         this.dialogTreeHiveDataIsReady = true
         handleError(res)
       })
-    },
+    }, */
     clickHiveTable (data, vnode) {
       if (data.id && data.id.indexOf('.') > 0 && !data.isMore) {
         var newArr = this.selectTables.filter(function (item) {
@@ -745,7 +746,7 @@ export default {
         }
       }
     },
-    /* loadChildNode (node, resolve) {
+    loadChildNode (node, resolve) {
       if (node.level === 0) {
         return resolve([{label: 'Hive Tables'}])
       } else if (node.level === 1) {
@@ -792,7 +793,7 @@ export default {
       } else {
         resolve([])
       }
-    }, */
+    },
     clickTable (leaf) {
       var databaseInfo = leaf.id.split('$')
       if (databaseInfo.length === 2) {
@@ -973,14 +974,14 @@ export default {
     }
   },
   watch: {
-    'dialogTreeHiveDataIsReady' (value) {
+    /* 'dialogTreeHiveDataIsReady' (value) {
       if (value !== undefined) {
         if (this.load_hive_dalog_visible === true) {
           this.dialogEmptyText = this.pageLoadHiveAllData.length > 0 ? '' : this.$t('dialogHiveTreeNoData')
           this.hiveData = this.pageLoadHiveAllData
         }
       }
-    },
+    }, */
     'filterVal' (val) {
       this.$refs.subtree.$emit('filter', val)
     },
