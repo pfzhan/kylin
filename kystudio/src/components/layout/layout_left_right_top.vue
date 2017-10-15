@@ -166,7 +166,6 @@
       this.getAboutKap(() => {}, (res) => {
         handleError(res)
       })
-      this.setCurUser({ user: this.$store.state.system.authentication.data })
     },
     methods: {
       ...mapActions({

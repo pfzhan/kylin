@@ -106,6 +106,7 @@ router.beforeEach((to, from, next) => {
         let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
         let rootPromise = Promise.all([configPromise, authenticationPromise, projectPromise])
         rootPromise.then(() => {
+          store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
           next()
         }, (res) => {
           next()
