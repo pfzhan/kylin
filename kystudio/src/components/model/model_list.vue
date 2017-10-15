@@ -429,7 +429,9 @@ export default {
       this.viewModal = val
     },
     resetModelCheckForm: function () {
-      this.$refs['modelCheckForm'].resetFields()
+      if (this.hasPartition && this.$refs['modelCheckForm']) {
+        this.$refs['modelCheckForm'].resetFields()
+      }
     },
     validateStartDate: function (rule, value, callback) {
       let realValue = this.$refs['startTimeInput'].$el.querySelectorAll('.el-input__inner')[0].value
@@ -897,6 +899,30 @@ export default {
         }
       })
     },
+    _statsModel (para) {
+      this.btnLoading = true
+      this.statsModel({
+        project: this.currentModelData.project,
+        modelname: this.currentModelData.name,
+        data: {
+          // startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
+          // endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
+          startTime: para.start,
+          endTime: para.end,
+          ratio: this.modelStaticsRange
+        }
+      }).then(() => {
+        this.btnLoading = false
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.submitSuccess')
+        })
+        this.scanRatioDialogVisible = false
+      }, (res) => {
+        handleError(res)
+        this.btnLoading = false
+      })
+    },
     stats () {
       if (+this.modelStaticsRange === 0) {
         this.$message({
@@ -904,44 +930,29 @@ export default {
         })
         return
       }
-      this.$refs['modelCheckForm'].validate((valid) => {
-        if (valid) {
-          var tempStartTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
-          var tempEndTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
-          var tempObj = {start: null, end: null}
-          if (tempStartTime === 0 && tempEndTime === 0) {
-            tempObj = {start: 0, end: 0}
-          } else if (tempStartTime === 0 && tempEndTime !== 0) {
-            tempObj = {start: null, end: tempEndTime}
-          } else if (tempStartTime !== 0 && tempEndTime === 0) {
-            tempObj = {start: tempStartTime, end: null}
-          } else {
-            tempObj = {start: tempStartTime, end: tempEndTime}
-          }
-          this.btnLoading = true
-          this.statsModel({
-            project: this.currentModelData.project,
-            modelname: this.currentModelData.name,
-            data: {
-              // startTime: (new Date(this.modelCheckTime.startTime)).getTime(),
-              // endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
-              startTime: tempObj.start,
-              endTime: tempObj.end,
-              ratio: this.modelStaticsRange
+      if (this.hasPartition) {
+        this.$refs['modelCheckForm'].validate((valid) => {
+          if (valid) {
+            var tempStartTime = isNaN((new Date(this.modelCheckTime.startTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.startTime)).getTime()
+            var tempEndTime = isNaN((new Date(this.modelCheckTime.endTime)).getTime()) ? 0 : (new Date(this.modelCheckTime.endTime)).getTime()
+            var tempObj = {start: null, end: null}
+            if (tempStartTime === 0 && tempEndTime === 0) {
+              tempObj = {start: 0, end: 0}
+            } else if (tempStartTime === 0 && tempEndTime !== 0) {
+              tempObj = {start: null, end: tempEndTime}
+            } else if (tempStartTime !== 0 && tempEndTime === 0) {
+              tempObj = {start: tempStartTime, end: null}
+            } else {
+              tempObj = {start: tempStartTime, end: tempEndTime}
             }
-          }).then(() => {
-            this.btnLoading = false
-            this.$message({
-              type: 'success',
-              message: this.$t('kylinLang.common.submitSuccess')
-            })
-            this.scanRatioDialogVisible = false
-          }, (res) => {
-            handleError(res)
-            this.btnLoading = false
-          })
-        }
-      })
+            this._statsModel(tempObj)
+          }
+        })
+      } else {
+        this._statsModel({
+          start: 0, end: 0
+        })
+      }
     },
     isModelAllowCheck (projectName, modelName) {
       return this.getModelCheckable({
