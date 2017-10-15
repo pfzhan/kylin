@@ -58,7 +58,7 @@
       :label="$t('kylinLang.model.modelNameGrid')"
       width="180">
        <template scope="scope" >
-       {{scope.row.name}}
+       <span style="cursor:pointer" @click="viewModel(scope.row)">{{scope.row.name}}</span>
        </template>
     </el-table-column>
     <el-table-column
