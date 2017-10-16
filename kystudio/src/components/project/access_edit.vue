@@ -198,6 +198,8 @@ export default {
         this[actionType]({accessData: accessMeta, id: this.accessId}).then((res) => {
           this.editAccessVisible = false
           this.loadAccess()
+          // 需要重新刷新projectlist下的权限
+          this.getProjectEndAccess(this.accessId)
           this.$message(this.$t('kylinLang.common.saveSuccess'))
         }, (res) => {
           handleError(res)
@@ -213,6 +215,8 @@ export default {
             message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadAccess()
+          // 需要重新刷新projectlist下的权限
+          this.getProjectEndAccess(this.accessId)
         }, (res) => {
           handleError(res)
         })
@@ -235,6 +239,8 @@ export default {
       this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
         this.loadAccess()
+        // 需要重新刷新projectlist下的权限
+        this.getProjectEndAccess(this.accessId)
       }, (res) => {
         handleError(res)
       })
@@ -284,7 +290,7 @@ export default {
   },
   created () {
     this.loadAccess()
-    if (!this.$store.state.project.projectAccess[this.accessId]) {
+    if (!this.$store.state.project.projectEndAccess[this.accessId]) {
       this.getProjectEndAccess(this.accessId)
     }
   },

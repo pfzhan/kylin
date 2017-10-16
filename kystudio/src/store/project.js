@@ -69,7 +69,7 @@ export default {
         commit(types.REMOVE_ALL_PROJECTS)
       })
     }, */
-    [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit }, params) {
+    [types.LOAD_ALL_PROJECT]: function ({ dispatch, commit, state }, params) {
       return new Promise((resolve, reject) => {
         api.project.getProjectList({pageOffset: 0, pageSize: 100000}).then((response) => {
           commit(types.CACHE_ALL_PROJECTS, {list: response.data.data.projects})
@@ -78,21 +78,17 @@ export default {
             var uuid = response.data.data.projects[0].uuid
             for (var i = 0; i < response.data.data.projects.length; i++) {
               var item = response.data.data.projects[i]
-              if (item.name === this.state.project.selected_project) {
+              if (item.name === state.selected_project) {
                 uuid = item.uuid
                 break
               }
             }
-            if (!this.state.project.projectAccess[uuid]) {
-              let curProjectAccessPromise = dispatch(types.GET_PROJECT_END_ACCESS, uuid)
-              curProjectAccessPromise.then(() => {
-                resolve(response.data.data.projects)
-              }, () => {
-                resolve(response.data.data.projects)
-              })
-            } else {
+            let curProjectAccessPromise = dispatch(types.GET_PROJECT_END_ACCESS, uuid)
+            curProjectAccessPromise.then(() => {
               resolve(response.data.data.projects)
-            }
+            }, () => {
+              resolve(response.data.data.projects)
+            })
           } else {
             resolve(response.data.data.projects)
           }
