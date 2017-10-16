@@ -24,6 +24,8 @@
 package io.kyligence.kap.query.security;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
@@ -41,6 +43,7 @@ import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Preconditions;
@@ -84,13 +87,14 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    private static List<String> getColsCanAccess(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
+    static List<String> getColsCanAccess(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
         List<String> cols = new ArrayList<>();
 
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sql));
         for (RowFilter.Table table : tblWithAlias) {
             TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(table.getName(), project);
-            for (ColumnDesc column : tableDesc.getColumns()) {
+            List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
+            for (ColumnDesc column : columns) {
                 if (!columnBlackList.contains(tableDesc.getIdentity() + "." + column.getName())) {
                     cols.add(table.getAlias() + "." + column.getName());
                 }
@@ -131,6 +135,21 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         } else {
             return (SqlSelect) sqlNode;
         }
+    }
+
+    public static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
+        boolean exposeMore = false;
+        if (KylinConfig.getInstanceFromEnv().isPushDownEnabled()) {
+            exposeMore = true;
+        }
+        List<ColumnDesc> columns = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listExposedColumns(project, tableDesc, exposeMore);
+        Collections.sort(columns, new Comparator<ColumnDesc>() {
+            @Override
+            public int compare(ColumnDesc o1, ColumnDesc o2) {
+                return o1.getZeroBasedIndex() - o2.getZeroBasedIndex();
+            }
+        });
+        return columns;
     }
 
     static class SelectNumVisitor extends SqlBasicVisitor<SqlNode> {
