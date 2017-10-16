@@ -46,6 +46,14 @@ export default {
     },
     [types.REMOVE_ALL_PROJECTS]: function (state) {
       state.allProject = []
+    },
+    [types.RESET_PROJECT_STATE]: function (state) {
+      state.projectList.splice(0, state.projectList.length)
+      state.allProject.splice(0, state.allProject.length)
+      state.projectTotalSize = 0
+      state.selected_project = localStorage.getItem('selected_project')
+      state.projectAccess = {}
+      state.projectEndAccess = {}
     }
   },
   actions: {

@@ -181,7 +181,8 @@
         getProjectEndAccess: 'GET_PROJECT_END_ACCESS'
       }),
       ...mapMutations({
-        setCurUser: 'SAVE_CURRENT_LOGIN_USER'
+        setCurUser: 'SAVE_CURRENT_LOGIN_USER',
+        resetProjectState: 'RESET_PROJECT_STATE'
       }),
       showMenuByRole (menuName) {
         if (menuName === 'system' && this.isAdmin === false) {
@@ -308,7 +309,7 @@
         this.$nextTick(() => {
           this.$router.replace(currentPath)
         }) */
-        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, this.$store.state.project.projectAccess, currentPath)
+        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, this.$store.state.project.projectEndAccess, currentPath)
       },
       addProject () {
         this.FormVisible = true
@@ -363,6 +364,8 @@
           this.logoutConfirm().then(() => {
             this.loginOut().then(() => {
               localStorage.setItem('buyit', false)
+              // reset 所有的project信息
+              this.resetProjectState()
               this.$router.push({name: 'Login'})
             })
           })
