@@ -52,8 +52,8 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('license')" v-model="updateLicenseVisible" :close-on-click-modal="false" class="kapLicense" size="tiny">
-      <span style="float: left;font-size: 12px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
+    <el-dialog :title="$t('license')" v-model="updateLicenseVisible" :close-on-click-modal="false" class="updateKAPLicense" size="tiny">
+      <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
       <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
       <p @click="apply" v-if="!isPlusVersion">{{$t('applyLicense')}}</p>
       <div slot="footer" class="dialog-footer">
@@ -438,36 +438,47 @@
       font-size: 12px;
     }
   }
-  .kapLicense {
+  .updateKAPLicense {
     .el-dialog {
       .el-dialog__header {
         .el-dialog__title {
-          font-size: 12px;
+          font-size: 14px;
         }
       }
       .el-dialog__body {
         padding: 0px 20px 0px 20px;
       }
       .el-input__inner {
-        font-size: 12px;
+        font-size: 14px;
       }
       p {
         margin-bottom: 50px;
         cursor:pointer;
         color:#218fea;
-        text-decoration-line: underline;
+        font-size:14px;
         text-align: left;
+        text-decoration-line: underline;
+      }
+      .el-button {
+        margin: 0px 0px 0px 0px;
+        padding: 10px 15px 10px 15px;
+      }
+      .el-button--primary {
+        border: rgb(28, 122, 216) 1px solid;
       }
     }
   }
   .applyLicense {
     .el-dialog {
       .el-dialog__title {
-        font-size: 12px;
+        font-size: 14px;
       }
     }
+    .el-input {
+      margin-right: 0px;
+    }
     .el-input__inner {
-      font-size: 12px;
+      font-size: 14px;
     }
     .el-form-item {
       margin-bottom: 0px;
@@ -482,9 +493,6 @@
     .dialog-footer {
       .el-button {
         width: 100%;
-        span {
-
-        }
       }
     }
   }

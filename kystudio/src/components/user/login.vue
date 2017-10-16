@@ -62,7 +62,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog class="kapLicense" @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="tiny" v-if="!isPlusVersion" :close-on-click-modal="false">
+    <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="tiny" v-if="!isPlusVersion" :close-on-click-modal="false">
       <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
       <p @click="apply">{{$t('applyLicense')}}</p>
       <div slot="footer" class="dialog-footer">
@@ -352,32 +352,40 @@ export default {
     .el-dialog {
       .el-dialog__header {
         .el-dialog__title {
-          font-size: 12px;
+          font-size: 14px;
         }
       }
       .el-dialog__body {
-        padding: 0px 20px 0px 20px;
+        padding: 0px 20px 20px 20px;
       }
       .el-input__inner {
-        font-size: 12px;
+        font-size: 14px;
       }
-    }
-    p {
-      margin-bottom: 50px;
-      cursor:pointer;
-      color:#218fea;
-      font-size:12px;
-      text-decoration-line: underline;
+      .el-alert {
+        margin-top: 10px;
+        border: #218fea solid 1px;
+        background-color: rgba(33,143,234,0.1);
+        p {
+          font-weight: bold;
+          cursor:pointer;
+          color:#218fea;
+          font-size:14px;
+          a {
+            color:#fff;
+            text-decoration-line: underline;
+          }
+        }
+      }
     }
   }
   .applyLicense {
     .el-dialog {
       .el-dialog__title {
-        font-size: 12px;
+        font-size: 14px;
       }
     }
     .el-input__inner {
-      font-size: 12px;
+      font-size: 14px;
     }
     .el-form-item {
       margin-bottom: 0px;
@@ -391,9 +399,6 @@ export default {
     .dialog-footer {
       .el-button {
         width: 100%;
-        span {
-
-        }
       }
     }
   }
@@ -420,7 +425,7 @@ export default {
     }
   }
   .ksd_footer{
-    font-size: 12px;
+    font-size: 14px;
     text-align: center;
     bottom: -54px;
     position: absolute;
