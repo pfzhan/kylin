@@ -59,6 +59,7 @@ import com.google.common.collect.Sets;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class KapModel extends DataModelDesc {
 
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(KapModel.class);
     
     @JsonProperty("computed_columns")
@@ -92,10 +93,12 @@ public class KapModel extends DataModelDesc {
         List<Pair<ComputedColumnDesc, KapModel>> existingCCs = Lists.newArrayList();
 
         for (DataModelDesc dataModelDesc : otherModels) {
-            KapModel otherModel = (KapModel) dataModelDesc;
-            if (!StringUtils.equals(otherModel.getName(), this.getName())) {
-                for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
-                    existingCCs.add(Pair.newPair(cc, otherModel));
+            if (dataModelDesc instanceof KapModel) {
+                KapModel otherModel = (KapModel) dataModelDesc;
+                if (!StringUtils.equals(otherModel.getName(), this.getName())) {
+                    for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
+                        existingCCs.add(Pair.newPair(cc, otherModel));
+                    }
                 }
             }
         }
