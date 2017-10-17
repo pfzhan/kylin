@@ -70,7 +70,7 @@ TOKEN :
 | < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
 }
 
-< ESCAPE, FUNCTION >
+< ESCAPE, FUNCTION, TIMESTAMP >
 SKIP :
 {
   < SKIP_SPACE : <SPACE> >
@@ -80,6 +80,7 @@ SKIP :
 TOKEN :
 {
   < FN : "fn" > : FUNCTION
+| < TS : "ts" > : DEFAULT
 }
 
 < FUNCTION >
@@ -195,6 +196,7 @@ String EscapeExpress() :
     < LBRACE >
     (
         innerString = EscapeFunction()
+    |   innerString = EscapeTimestamp()
     )
     (< SPACE >)*
     < RBRACE >
@@ -260,5 +262,20 @@ String ParameterExpression() :
     )?
     {
         return innerString + nextString;
+    }
+}
+
+String EscapeTimestamp() :
+{
+    String timestampExpr;
+}
+{
+    < TS >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return timestampExpr;
     }
 }
