@@ -269,6 +269,7 @@ import mergeCube from './dialog/merge_cube'
 import accessEdit from '../project/access_edit'
 import refreshCube from './dialog/refresh_cube'
 import { handleSuccess, handleError, transToGmtTimeAfterAjax, hasRole, hasPermission, kapConfirm, filterMutileSqlsToOneLine } from '../../util/business'
+import { objectClone } from '../../util/index'
 export default {
   name: 'cubeslist',
   props: ['extraoption'],
@@ -960,11 +961,9 @@ export default {
   },
   computed: {
     modelsList () {
-      var models = this.$store.state.model.modelsList.filter((mo) => {
-        return mo.is_draft === false
-      })
-      models.push({name: 'ALL'})
-      return models
+      var allModels = objectClone(this.allModels)
+      allModels.push({name: 'ALL'})
+      return allModels
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')

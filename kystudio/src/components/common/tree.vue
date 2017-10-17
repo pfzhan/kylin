@@ -58,7 +58,7 @@
         }
       },
       toggleSelectClass (label, isShow) {
-        var nodeDoms = this.$el.querySelectorAll("[title='" + label + "']")
+        var nodeDoms = this.$el.querySelectorAll("[data-key='" + label + "']")
         var nodeDom = nodeDoms && nodeDoms[0] || null
         if (nodeDom) {
           var repReg = new RegExp('\\s*?checked-leaf', 'g')
@@ -72,10 +72,10 @@
       nodeClick (data, vnode) {
         if (!data.children || data.children.length <= 0) {
           if (this.lastCheckedNode && !this.multiple) {
-            this.toggleSelectClass(this.lastCheckedNode.label, false)
+            this.toggleSelectClass(this.lastCheckedNode.id, false)
             delete this.checkedNodes[this.lastCheckedNode.label]
           }
-          this.toggleSelectClass(data.label, true)
+          this.toggleSelectClass(data.id, true)
           this.checkedNodes[data.label] = data
           this.lastCheckedNode = data
         }
@@ -85,7 +85,7 @@
       cancelNodeChecked (name) {
         for (var i in this.checkedNodes) {
           if (this.checkedNodes[i].id === name) {
-            this.toggleSelectClass(this.checkedNodes[i].label, false)
+            this.toggleSelectClass(this.checkedNodes[i].id, false)
             delete this.checkedNodes[i]
             return
           }
@@ -94,7 +94,7 @@
       // 取消所有的节点选中变色
       cancelCheckedAll () {
         for (var i in this.checkedNodes) {
-          this.toggleSelectClass(this.checkedNodes[i].label, false)
+          this.toggleSelectClass(this.checkedNodes[i].id, false)
         }
         this.checkedNodes = []
       },
@@ -131,6 +131,7 @@
           attrs: {
             title: data.label + (data.subLabel ? '(' + data.subLabel + ')' : ''),
             draggable: !data.children && _this.allowdrag,
+            'data-key': data.id,
             class: node.icon || ''
           },
           style: {
