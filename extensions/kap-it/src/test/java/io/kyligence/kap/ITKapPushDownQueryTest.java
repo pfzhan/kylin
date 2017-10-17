@@ -41,6 +41,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.grpc.StatusRuntimeException;
+
 public class ITKapPushDownQueryTest extends KylinTestBase {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
     private static final Logger logger = LoggerFactory.getLogger(ITKapPushDownQueryTest.class);
@@ -162,7 +164,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
 
     @Test
     public void testCalciteCostBasedRouting() throws Exception {
-        
+
         String queryFileName = "src/test/resources/query/sql_pushdown/query05.sql";
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         File sqlFile = new File(queryFileName);
@@ -181,7 +183,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
             }
         }
     }
-    
+
     @Test
     public void testComputedColumnExpand() throws Exception {
         try {
@@ -192,8 +194,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
             KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
                     "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
 
-            List<File> sqlFiles = getFilesFromFolder(
-                    new File("src/test/resources/query/sql_computedcolumn"), ".sql");
+            List<File> sqlFiles = getFilesFromFolder(new File("src/test/resources/query/sql_computedcolumn"), ".sql");
             for (File sqlFile : sqlFiles) {
                 int resultCount = runSQL(sqlFile, false, false);
                 Assert.assertTrue(resultCount > 1);
@@ -228,6 +229,25 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
         }
 
         System.out.println(queue.size());
+    }
+
+    @Test
+    public void testPushDownQueryFailed() throws Exception {
+        String queryFileName = "src/test/resources/query/sql_pushdown/query06.sql";
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        File sqlFile = new File(queryFileName);
+
+        if (sqlFile.exists()) {
+            kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
+                    "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+            try {
+                runSQL(sqlFile, true, false);
+                throw new SQLException();
+            } catch (Exception e) {
+                logger.debug("stacktrace for the SQLException: ", e);
+                Assert.assertEquals(StatusRuntimeException.class, findRoot(e).getClass());
+            }
+        }
     }
 
     public class ConcurrentPushDownQueryThread implements Runnable {

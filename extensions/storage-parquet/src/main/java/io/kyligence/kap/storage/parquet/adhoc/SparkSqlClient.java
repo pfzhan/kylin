@@ -51,8 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import scala.collection.JavaConversions;
 
@@ -83,144 +81,135 @@ public class SparkSqlClient implements Serializable {
             UUID uuid) throws Exception {
         logger.info("Start to run sql with Spark <<<<<<");
 
-        try {
-            //Get result data
-            Dataset<Row> df = hiveContext.sql(request.getSql());
+        //Get result data
+        Dataset<Row> df = hiveContext.sql(request.getSql());
 
-            JavaRDD<List<String>> rowRdd = df.javaRDD()
-                    .mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
+        JavaRDD<List<String>> rowRdd = df.javaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
 
-                        @Override
-                        public Iterator<List<String>> call(Iterator<Row> iterator) throws Exception {
-                            List<List<String>> rowList = new ArrayList<>();
+            @Override
+            public Iterator<List<String>> call(Iterator<Row> iterator) throws Exception {
+                List<List<String>> rowList = new ArrayList<>();
 
-                            while (iterator.hasNext()) {
-                                List<String> data = Lists.newArrayList();
-                                Row curRow = iterator.next();
+                while (iterator.hasNext()) {
+                    List<String> data = Lists.newArrayList();
+                    Row curRow = iterator.next();
 
-                                for (int i = 0; i < curRow.length(); i++) {
-                                    Object obj = curRow.getAs(i);
-                                    if (null == obj) {
-                                        data.add("");
-                                    } else {
-                                        data.add(obj.toString());
-                                    }
-                                }
-                                rowList.add(data);
-                            }
-                            return rowList.iterator();
+                    for (int i = 0; i < curRow.length(); i++) {
+                        Object obj = curRow.getAs(i);
+                        if (null == obj) {
+                            data.add("");
+                        } else {
+                            data.add(obj.toString());
                         }
-                    });
-
-            //Get struct fields
-
-            List<List<String>> sampleList = rowRdd.takeSample(true, 1);
-            long sampleLen = 0;
-
-            if (!sampleList.isEmpty()) {
-                for (String elem : sampleList.get(0)) {
-                    sampleLen += elem.getBytes().length;
-                }
-            }
-
-            int estimateSize = (int) Math.ceil((double) (rowRdd.count() * sampleLen) / (1024 * 1024));
-            uuidSizeMap.put(uuid, estimateSize);
-
-            if (estimateSize > this.maxDriverMem) {
-                throw new RuntimeException("Estimate size exceeds the maximum driver memory size");
-            }
-
-            if (!this.semaphore.tryAcquire(estimateSize, allocationTimeOut, TimeUnit.SECONDS)) {
-                throw new RuntimeException(String.format("spark driver allocation memory more than %s s,"
-                        + "please increase driver memory or" + " set kap.storage.columnar.driver-allocation-timeout ",
-                        allocationTimeOut));
-            }
-
-            logger.info("Estimate size of dataframe is " + estimateSize + "m.");
-
-            List<StructField> originFieldList = JavaConversions.seqAsJavaList(df.schema());
-            List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
-
-            for (StructField field : originFieldList) {
-                SparkJobProtos.StructField.Builder builder = SparkJobProtos.StructField.newBuilder();
-                builder.setName(field.name());
-
-                int type = Types.OTHER;
-                String typeName = field.dataType().sql();
-
-                switch (typeName) {
-                case "BINARY":
-                    type = Types.BINARY;
-                    break;
-                case "BOOLEAN":
-                    type = Types.BOOLEAN;
-                    break;
-                case "DATE":
-                    type = Types.DATE;
-                    break;
-                case "DOUBLE":
-                    type = Types.DOUBLE;
-                    break;
-                case "FLOAT":
-                    type = Types.FLOAT;
-                    break;
-                case "INT":
-                    type = Types.INTEGER;
-                    break;
-                case "BIGINT":
-                    type = Types.BIGINT;
-                    break;
-                case "NUMERIC":
-                    type = Types.NUMERIC;
-                    break;
-                case "SMALLINT":
-                    type = Types.SMALLINT;
-                    break;
-                case "TIMESTAMP":
-                    type = Types.TIMESTAMP;
-                    break;
-                case "STRING":
-                    type = Types.VARCHAR;
-                    break;
-                default:
-                    break;
-                }
-
-                if (typeName.startsWith("DECIMAL")) {
-                    Pair<Integer, Integer> precisionAndScalePair = getDecimalPrecisionAndScale(typeName);
-
-                    if (precisionAndScalePair != null) {
-                        builder.setPrecision(precisionAndScalePair.getFirst());
-                        builder.setScale(precisionAndScalePair.getSecond());
                     }
-                    type = Types.DECIMAL;
-                    typeName = "DECIMAL";
+                    rowList.add(data);
                 }
-                builder.setDataType(type);
-                builder.setDataTypeName(typeName);
-                builder.setNullable(field.nullable());
+                return rowList.iterator();
+            }
+        });
 
-                if (!df.resolve(field.name()).qualifier().isEmpty()) {
-                    String tableName = df.resolve(field.name()).qualifier().get();
-                    builder.setTable(tableName);
-                }
+        //Get struct fields
 
-                fieldList.add(builder.build());
+        List<List<String>> sampleList = rowRdd.takeSample(true, 1);
+        long sampleLen = 0;
+
+        if (!sampleList.isEmpty()) {
+            for (String elem : sampleList.get(0)) {
+                sampleLen += elem.getBytes().length;
+            }
+        }
+
+        int estimateSize = (int) Math.ceil((double) (rowRdd.count() * sampleLen) / (1024 * 1024));
+        uuidSizeMap.put(uuid, estimateSize);
+
+        if (estimateSize > this.maxDriverMem) {
+            throw new RuntimeException("Estimate size exceeds the maximum driver memory size");
+        }
+
+        if (!this.semaphore.tryAcquire(estimateSize, allocationTimeOut, TimeUnit.SECONDS)) {
+            throw new RuntimeException(
+                    String.format("spark driver allocation memory more than %s s," + "please increase driver memory or"
+                            + " set kap.storage.columnar.driver-allocation-timeout ", allocationTimeOut));
+        }
+
+        logger.info("Estimate size of dataframe is " + estimateSize + "m.");
+
+        List<StructField> originFieldList = JavaConversions.seqAsJavaList(df.schema());
+        List<SparkJobProtos.StructField> fieldList = new ArrayList<>(originFieldList.size());
+
+        for (StructField field : originFieldList) {
+            SparkJobProtos.StructField.Builder builder = SparkJobProtos.StructField.newBuilder();
+            builder.setName(field.name());
+
+            int type = Types.OTHER;
+            String typeName = field.dataType().sql();
+
+            switch (typeName) {
+            case "BINARY":
+                type = Types.BINARY;
+                break;
+            case "BOOLEAN":
+                type = Types.BOOLEAN;
+                break;
+            case "DATE":
+                type = Types.DATE;
+                break;
+            case "DOUBLE":
+                type = Types.DOUBLE;
+                break;
+            case "FLOAT":
+                type = Types.FLOAT;
+                break;
+            case "INT":
+                type = Types.INTEGER;
+                break;
+            case "BIGINT":
+                type = Types.BIGINT;
+                break;
+            case "NUMERIC":
+                type = Types.NUMERIC;
+                break;
+            case "SMALLINT":
+                type = Types.SMALLINT;
+                break;
+            case "TIMESTAMP":
+                type = Types.TIMESTAMP;
+                break;
+            case "STRING":
+                type = Types.VARCHAR;
+                break;
+            default:
+                break;
             }
 
-            List<List<String>> rowList = rowRdd.collect();
+            if (typeName.startsWith("DECIMAL")) {
+                Pair<Integer, Integer> precisionAndScalePair = getDecimalPrecisionAndScale(typeName);
 
-            rowRdd.unpersist();
-            df.unpersist();
+                if (precisionAndScalePair != null) {
+                    builder.setPrecision(precisionAndScalePair.getFirst());
+                    builder.setScale(precisionAndScalePair.getSecond());
+                }
+                type = Types.DECIMAL;
+                typeName = "DECIMAL";
+            }
+            builder.setDataType(type);
+            builder.setDataTypeName(typeName);
+            builder.setNullable(field.nullable());
 
-            return Pair.newPair(rowList, fieldList);
+            if (!df.resolve(field.name()).qualifier().isEmpty()) {
+                String tableName = df.resolve(field.name()).qualifier().get();
+                builder.setTable(tableName);
+            }
 
-        } catch (Exception e) {
-            logger.error("Query Push Down Error:", e);
-            throw new StatusRuntimeException(
-                    Status.INTERNAL.withDescription("Query push down failed with exception message: " + e.getMessage()
-                            + ", please check spark-driver.log for details."));
+            fieldList.add(builder.build());
         }
+
+        List<List<String>> rowList = rowRdd.collect();
+
+        rowRdd.unpersist();
+        df.unpersist();
+
+        return Pair.newPair(rowList, fieldList);
     }
 
     public long getEstimateDfSize(UUID uuid) {

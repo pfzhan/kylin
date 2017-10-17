@@ -154,8 +154,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
 
         } catch (Exception e) {
             logger.error("Query Push Down Error:", e);
-            throw new StatusRuntimeException(Status.INTERNAL
-                    .withDescription("Query push down not supported, please check spark-driver.log for details."));
+            throw new StatusRuntimeException(Status.INTERNAL.withDescription(e.getLocalizedMessage()));
         }
     }
 }
