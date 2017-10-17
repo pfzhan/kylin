@@ -119,7 +119,7 @@ public class CubeControllerV2 extends BasicController {
         // official cubes
         for (CubeInstance cube : cubes) {
             try {
-                response.add(createCubeInstanceResponse(cube));
+                response.add(cubeService.createCubeInstanceResponse(cube));
             } catch (Exception e) {
                 logger.error("Error creating cube instance response, skipping.", e);
             }
@@ -181,27 +181,6 @@ public class CubeControllerV2 extends BasicController {
         return r;
     }
 
-    private CubeInstanceResponse createCubeInstanceResponse(CubeInstance cube) {
-        Preconditions.checkState(!cube.getDescriptor().isDraft());
-
-        CubeInstanceResponse r = new CubeInstanceResponse(cube);
-
-        r.setModel(cube.getDescriptor().getModelName());
-        r.setLastModified(cube.getDescriptor().getLastModified());
-        r.setPartitionDateStart(cube.getDescriptor().getPartitionDateStart());
-        // cuz model doesn't have a state the label a model is broken,
-        // so in some case the model can not be loaded due to some check failed,
-        // but the cube in this model can still be loaded.
-        if (cube.getModel() != null) {
-            r.setPartitionDateColumn(cube.getModel().getPartitionDesc().getPartitionDateColumn());
-            r.setIs_streaming(
-                    cube.getModel().getRootFactTable().getTableDesc().getSourceType() == ISourceAware.ID_STREAMING);
-        }
-        r.setProject(projectService.getProjectOfCube(cube.getName()));
-
-        return r;
-    }
-
     @RequestMapping(value = "validEncodings", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -224,7 +203,7 @@ public class CubeControllerV2 extends BasicController {
 
         CubeInstanceResponse r;
         try {
-            r = createCubeInstanceResponse(cube);
+            r = cubeService.createCubeInstanceResponse(cube);
         } catch (Exception e) {
             throw new BadRequestException("Error getting cube instance response.", ResponseCode.CODE_UNDEFINED, e);
         }
