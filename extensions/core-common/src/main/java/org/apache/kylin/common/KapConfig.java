@@ -214,20 +214,6 @@ public class KapConfig {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.rawtable-max-column-length", "16384"));
     }
 
-    /*
-     * Cell level security config file
-     */
-    public String getCellLevelSecurityConfig() {
-        return config.getOptional("kap.security.cell-level-acl-config", "userctrl.acl");
-    }
-
-    public String isCellLevelSecurityEnabled() {
-        if (config.isPushDownEnabled()) {
-            throw new IllegalStateException("Cell level security breach exists when query push down is enabled");
-        }
-        return config.getOptional("kap.security.cell-level-acl-enabled", "false");
-    }
-
     /**
      * query config
      */

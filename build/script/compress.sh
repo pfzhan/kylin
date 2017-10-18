@@ -45,13 +45,7 @@ cp -rf conf/kylin-server-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-driver-log4j.properties ${package_name}/conf/
 cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
 cp -rf conf/fairscheduler.xml ${package_name}/conf/
-
-
-
-cp -rf conf/userctrl.acl ${package_name}/conf/
 cp -rf bin/* ${package_name}/bin/
-
-
 
 # update symblink, use production profile as default
 ln -sfn profile_prod profile
