@@ -17,7 +17,7 @@ fi
 if [ "$1" == "hbase0.98" ]; then
     pkg_name="kybot-client-${client_version}-hbase0.98-bin.tar.gz"
     pkg_url="http://cn.kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-hbase0.98-bin.tar.gz"
-    pkg_md5="d319379a1cf0fe0540b6628fc11559d2"
+    pkg_md5="892dcb74cf63fb09934b7d8b36b23111"
 fi
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
