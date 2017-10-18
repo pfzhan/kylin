@@ -77,6 +77,14 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KAP 2.5.1 release note
+
+**Bugfix**
+
+- Fix the storage path issue on read/write separation deploy
+- Fix model check failed on no-partition model
+- Fix return invalid column issue on prepare statements of ODBC driver
+
 #### KAP 2.5.0 release note
 
 **Feature & Enhancement**
