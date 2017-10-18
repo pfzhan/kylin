@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -81,6 +82,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
     AclEvaluate aclEvaluate;
 
     private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
+        final KapConfig kapConfig = KapConfig.wrap(segment.getConfig());
         String key = segment.getCubeInstance().getName() + "/" + segment.getUuid();
         ColumnarResponse response = columnarInfoCache.getIfPresent(key);
         if (response != null) {
@@ -96,7 +98,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
         columnarResp.setDateRangeStart(segment.getTSRange().start.v);
         columnarResp.setDateRangeEnd(segment.getTSRange().end.v);
 
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FileSystem fs = new Path(segStoragePath).getFileSystem(HadoopUtil.getCurrentConfiguration());
         if (fs.exists(new Path(segStoragePath))) {
             ContentSummary cs = fs.getContentSummary(new Path(segStoragePath));
             columnarResp.setFileCount(cs.getFileCount());
@@ -111,7 +113,16 @@ public class KapCubeService extends BasicService implements InitializingBean {
         if (raw != null) {
             List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByTSRange(raw, segment.getTSRange());
             if (rawSegs.size() != 0) {
-                String rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
+                Preconditions.checkArgument(rawSegs.size() == 1);
+                String rawSegmentDir;
+                RawTableSegment rawSegment = rawSegs.get(0);
+                if (kapConfig.isParquetSeparateFsEnabled()) {
+                    rawSegmentDir = ColumnarStorageUtils.getLocalSegmentDir(
+                            rawSegment.getConfig(), KapConfig.wrap(segment.getConfig()).getParquetFileSystem(),
+                            rawSegment.getRawTableInstance(), rawSegment);
+                } else {
+                    rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
+                }
                 columnarResp.setRawTableSegmentPath(rawSegmentDir);
 
                 if (fs.exists(new Path(rawSegmentDir))) {
@@ -159,9 +170,15 @@ public class KapCubeService extends BasicService implements InitializingBean {
     public List<ColumnarResponse> getAllColumnarInfo(CubeInstance cube) {
         aclEvaluate.hasProjectReadPermission(cube.getProjectInstance());
         List<ColumnarResponse> columnar = new ArrayList<>();
+        final KylinConfig config = cube.getConfig();
+        final KapConfig kapConfig = KapConfig.wrap(config);
         for (CubeSegment segment : cube.getSegments()) {
-            final KylinConfig config = KylinConfig.getInstanceFromEnv();
-            String storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
+            String storagePath;
+            if (kapConfig.isParquetSeparateFsEnabled()) {
+                storagePath = ColumnarStorageUtils.getLocalSegmentDir(config, kapConfig.getParquetFileSystem(), cube, segment);
+            } else {
+                storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
+            }
 
             ColumnarResponse info;
             try {

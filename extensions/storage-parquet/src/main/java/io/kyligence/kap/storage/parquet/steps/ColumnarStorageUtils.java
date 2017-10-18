@@ -46,26 +46,43 @@ public class ColumnarStorageUtils {
                 .append(segment.getUuid()).append("/").toString();
     }
 
-    public static String getLocalRawtableDir(KylinConfig config, String remoteFs, RawTableInstance raw) {
-        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(raw.getUuid()).append("/")
+    public static String getLocalSegmentDir(KylinConfig config, String localFs, CubeInstance cube, CubeSegment segment) {
+        return getLocalDir(config, localFs, getSegmentDir(config, cube, segment));
+    }
+
+    public static String getLocalSegmentDir(KylinConfig config, String localFs, RawTableInstance raw, RawTableSegment segment) {
+        return getLocalRawtableDir(config, localFs, raw) + segment.getUuid() + "/";
+    }
+
+
+    public static String getLocalRawtableDir(KylinConfig config, String localFs, RawTableInstance raw) {
+        return new StringBuffer(getLocalParquetStoragePath(config, localFs)).append(raw.getUuid()).append("/")
                 .toString();
     }
 
-    public static String getLocalCubeDir(KylinConfig config, String remoteFs, CubeInstance cube) {
-        return new StringBuffer(getLocalParquetStoragePath(config, remoteFs)).append(cube.getUuid()).append("/")
+    public static String getLocalCubeDir(KylinConfig config, String localFs, CubeInstance cube) {
+        return new StringBuffer(getLocalParquetStoragePath(config, localFs)).append(cube.getUuid()).append("/")
                 .toString();
     }
 
-    private static String getLocalParquetStoragePath(KylinConfig config, String remoteFs) {
+    public static String getLocalWorkingDir(KylinConfig config, String localFs) {
+        return getLocalDir(config, localFs, config.getHdfsWorkingDirectory());
+    }
+
+    public static String getLocalParquetStoragePath(KylinConfig config, String localFs) {
         KapConfig kapConfig = KapConfig.wrap(config);
-        Path localParquetStoragePath = new Path(kapConfig.getParquetStoragePath());
-        Path localParquetStoragePathWithoutSchema = Path.getPathWithoutSchemeAndAuthority(localParquetStoragePath);
-        Path remotePath = new Path(remoteFs, localParquetStoragePathWithoutSchema);
-        String remotePathStr = remotePath.toString();
-        if (remotePathStr.endsWith("/") == false) {
-            remotePathStr = remotePathStr + "/";
+        return getLocalDir(config, localFs, kapConfig.getParquetStoragePath());
+    }
+
+    private static String getLocalDir(KylinConfig config, String localFs, String path) {
+        Path remotePath = new Path(path);
+        Path remotePathWithoutSchema = Path.getPathWithoutSchemeAndAuthority(remotePath);
+        Path localPath = new Path(localFs, remotePathWithoutSchema);
+        String localPathStr = localPath.toString();
+        if (localPathStr.endsWith("/") == false) {
+            localPathStr = localPathStr + "/";
         }
 
-        return remotePathStr;
+        return localPathStr;
     }
 }

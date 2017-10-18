@@ -63,7 +63,7 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.metadata.jdbc.max-cell-size", "262144")); //256k
     }
 
-    public boolean getParquetSeparateFsEnabled() {
+    public boolean isParquetSeparateFsEnabled() {
         return Boolean.parseBoolean(config.getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
     }
 

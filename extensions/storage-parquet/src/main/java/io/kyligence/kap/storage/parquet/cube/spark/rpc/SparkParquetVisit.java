@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -97,6 +98,7 @@ public class SparkParquetVisit implements Serializable {
     private transient boolean needLazy;
     private transient int limit = 0;
     private transient long accumulateCnt = 0;
+    private transient String workingDir = null;
     private transient JavaPairRDD batchRdd = null;
     private static final transient String SCHEMA_HINT = "://";
     private final static Cache<String, Map<Long, Set<String>>> cubeMappingCache = CacheBuilder.newBuilder()
@@ -265,8 +267,19 @@ public class SparkParquetVisit implements Serializable {
         return result;
     }
 
+    private String getWorkingDir() {
+        if (workingDir == null) {
+            if (kapConfig.isParquetSeparateFsEnabled()) {
+                workingDir = ColumnarStorageUtils.getLocalWorkingDir(kylinConfig, kapConfig.getParquetFileSystem());
+            } else {
+                workingDir = kylinConfig.getHdfsWorkingDirectory();
+            }
+        }
+        return workingDir;
+    }
+
     private Map<Long, Set<String>> readCubeMappingInfo() throws IOException, ClassNotFoundException {
-        String cubeInfoPath = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/")//
+        String cubeInfoPath = new StringBuilder(getWorkingDir()).append("parquet/")//
                 .append(request.getRealizationId()).append("/")//
                 .append(request.getSegmentId()).append("/")//
                 .append(ParquetCubeInfoCollectionStep.CUBE_INFO_NAME).toString();
@@ -276,7 +289,7 @@ public class SparkParquetVisit implements Serializable {
             return ifPresent;
         }
 
-        logger.info("not hit cube mapping");
+        logger.trace("not hit cube mapping");
         FileSystem fs = HadoopUtil.getFileSystem(cubeInfoPath);
         if (fs.exists(new Path(cubeInfoPath))) {
             Map<Long, Set<String>> map;
@@ -286,7 +299,7 @@ public class SparkParquetVisit implements Serializable {
             }
             return map;
         } else {
-            throw new RuntimeException("Cannot find CubeMappingInfo");
+            throw new RuntimeException("Cannot find CubeMappingInfo at " + cubeInfoPath);
         }
     }
 

@@ -54,7 +54,7 @@ public class StorageDuplicateStep extends AbstractExecutable {
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
-        if (!kapConfig.getParquetSeparateFsEnabled()) {
+        if (!kapConfig.isParquetSeparateFsEnabled()) {
             return new ExecuteResult(ExecuteResult.State.SUCCEED);
         }
 
