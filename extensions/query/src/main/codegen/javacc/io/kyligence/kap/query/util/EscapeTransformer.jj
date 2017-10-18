@@ -81,6 +81,8 @@ TOKEN :
 {
   < FN : "fn" > : FUNCTION
 | < TS : "ts" > : DEFAULT
+| < D : "d" > : DEFAULT
+| < T : "t" > : DEFAULT
 }
 
 < FUNCTION >
@@ -197,6 +199,8 @@ String EscapeExpress() :
     (
         innerString = EscapeFunction()
     |   innerString = EscapeTimestamp()
+    |   innerString = EscapeDate()
+    |   innerString = EscapeTime()
     )
     (< SPACE >)*
     < RBRACE >
@@ -277,5 +281,35 @@ String EscapeTimestamp() :
     )
     {
         return "CAST(" + timestampExpr + " AS TIMESTAMP)";
+    }
+}
+
+String EscapeDate() :
+{
+    String timestampExpr;
+}
+{
+    < D >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return "CAST(" + timestampExpr + " AS DATE)";
+    }
+}
+
+String EscapeTime() :
+{
+    String timestampExpr;
+}
+{
+    < T >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return "CAST(" + timestampExpr + " AS TIME)";
     }
 }
