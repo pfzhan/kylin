@@ -276,6 +276,6 @@ String EscapeTimestamp() :
         timestampExpr = QuotedString()
     )
     {
-        return timestampExpr;
+        return "CAST(" + timestampExpr + " AS TIMESTAMP)";
     }
 }

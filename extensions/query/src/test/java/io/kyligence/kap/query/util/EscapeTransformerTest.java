@@ -127,7 +127,7 @@ public class EscapeTransformerTest {
     public void escapeTSTest() {
 
         String originalSQL = "select {ts '2013-01-01 00:00:00'}";
-        String expectedSQL = "select '2013-01-01 00:00:00'";
+        String expectedSQL = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP)";
 
         EscapeTransformer transformer = new EscapeTransformer();
         String transformedSQL = transformer.transform(originalSQL, null, null);
