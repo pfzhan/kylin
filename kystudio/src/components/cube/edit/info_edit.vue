@@ -326,14 +326,14 @@ export default {
       // return this.cubeDesc.status === 'READY'
     },
     dataColor () {
-      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'whitelist') {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'whitelist' && this.healthStatus.status !== 'GOOD') {
         return 'red'
       } else {
         return 'rgb(41, 43, 56)'
       }
     },
     sqlColor () {
-      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'default') {
+      if (this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] !== 'default' && this.sampleSql.sqlCount <= 0) {
         return 'red'
       } else {
         return 'rgb(41, 43, 56)'
