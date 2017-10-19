@@ -208,10 +208,6 @@
                                     <shadedPattern>${shadeBase}.com.tdunning</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.fasterxml.jackson</pattern>
-                                    <shadedPattern>${shadeBase}.com.fasterxml.jackson</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>org.apache.commons.codec</pattern>
                                     <shadedPattern>${shadeBase}.org.apache.commons.codec</shadedPattern>
                                 </relocation>
@@ -236,6 +232,10 @@
                                     <pattern>shaded.parquet.org</pattern>
                                     <shadedPattern>${shadeBase}.shaded.parquet.org
                                     </shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>org.apache.commons.dbcp</pattern>
+                                    <shadedPattern>${shadeBase}.org.apache.commons.dbcp</shadedPattern>
                                 </relocation>
                             </relocations>
                             <filters>
