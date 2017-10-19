@@ -327,6 +327,10 @@ public class QueryAliasMatcher {
     //    }
 
     public QueryAliasMatchInfo match(DataModelDesc model, SqlSelect sqlSelect) throws SqlParseException {
+        if (sqlSelect.getFrom() == null || sqlSelect.getFrom().getKind().equals(SqlKind.VALUES)) {
+            return null;
+        }
+
         SqlSelect subQuery = getSubquery(sqlSelect.getFrom());
         boolean reUseSubqeury = false;
 

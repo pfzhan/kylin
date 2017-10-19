@@ -193,6 +193,26 @@ public class ImplicitCCOnRealModelTest extends LocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testNoFrom() throws Exception {
+        ConvertToComputedColumn converter = new ConvertToComputedColumn();
+
+        String originSql = "select sum(price * item_count),(SELECT 1 as VERSION) from test_kylin_fact";
+        String ccSql = "select sum(TEST_KYLIN_FACT.DEAL_AMOUNT),(SELECT 1 as VERSION) from test_kylin_fact";
+
+        check(converter, originSql, ccSql);
+    }
+
+    @Test
+    public void testFromValues() {
+        ConvertToComputedColumn converter = new ConvertToComputedColumn();
+
+        String originSql = "select sum(price * item_count),(SELECT 1 FROM (VALUES(1))) from test_kylin_fact";
+        String ccSql = "select sum(TEST_KYLIN_FACT.DEAL_AMOUNT),(SELECT 1 FROM (VALUES(1))) from test_kylin_fact";
+
+        check(converter, originSql, ccSql);
+    }
+
     private void check(ConvertToComputedColumn converter, String originSql, String ccSql) {
         String transform = converter.transform(originSql, "default", "DEFAULT");
         Assert.assertEquals(ccSql, transform);
