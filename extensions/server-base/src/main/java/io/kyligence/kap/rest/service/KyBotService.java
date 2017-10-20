@@ -201,6 +201,32 @@ public class KyBotService extends BasicService {
         return AUTH_FAILURE;
     }
 
+    public String fetchKyAccountDetail() {
+        String token = getKyAccountToken();
+
+        DefaultHttpClient client = getHttpClient();
+        String url = kapConfig.getKyBotSiteUrl() + "/api/user/authentication";
+        HttpGet request = new HttpGet(url);
+
+        try {
+            request.setHeader("authorization", "bearer " + token);
+            HttpResponse response = client.execute(request);
+            if (response.getStatusLine().getStatusCode() == 200) {
+                Map<String, Object> userDetailMap = JsonUtil.readValue(EntityUtils.toString(response.getEntity()),
+                        Map.class);
+                Map<String, Object> userDetails = (Map<String, Object>) userDetailMap.get("userDetails");
+                if (userDetails != null) {
+                    return (String) userDetails.get("username");
+                }
+            }
+        } catch (Exception ex) {
+            logger.error("Failed to get user detail result from kybot.", ex);
+        } finally {
+            request.releaseConnection();
+        }
+        return null;
+    }
+
     private File getLocalTokenFile() {
         return new File(KylinConfig.getKylinHome(), ".kyaccount");
     }

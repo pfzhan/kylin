@@ -127,6 +127,14 @@ public class KyBotController extends BasicController {
         }
     }
 
+    @RequestMapping(value = "/kyaccount/current", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getKyAccountDetail() throws IOException {
+        String userName = kybotService.fetchKyAccountDetail();
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, userName, null);
+    }
+
     @RequestMapping(value = "/kyaccount", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
