@@ -102,6 +102,16 @@ public class EscapeTransformerTest {
     }
 
     @Test
+    public void ifnullFNTest() {
+        String originalSQL = "select { fn IFNULL(LSTG_FORMAT_NAME, 'Bad name') } from KYLIN_SALES";
+        String expectedSQL = "select NULLIF(LSTG_FORMAT_NAME, 'Bad name') from KYLIN_SALES";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
     public void quotedStringTest() {
         String originalSQL = "select 'Hello World!', {fn LENGTH('12345 67890')}";
         String expectedSQL = "select 'Hello World!', CHAR_LENGTH('12345 67890')";

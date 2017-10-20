@@ -47,6 +47,8 @@ public class EscapeTransformerFunction {
             return lcaseFN(args);
         case "ucase":
             return ucaseFN(args);
+        case "ifnull":
+            return ifnullFN(args);
         default:
             return normalFN(functionName, args);
         }
@@ -121,5 +123,10 @@ public class EscapeTransformerFunction {
     private static String ucaseFN(String[] args) {
         checkArgs(args, 1);
         return normalFN("UPPER", args);
+    }
+    
+    private static String ifnullFN(String[] args) {
+        checkArgs(args, 2);
+        return normalFN("NULLIF", args);
     }
 }
