@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.adhoc;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.KapConfig;
@@ -59,7 +60,16 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
         for (SparkJobProtos.Row row : response.getRowsList()) {
-            results.add(row.getDataList());
+            List<String> dataRow = new ArrayList<>();
+
+            for (SparkJobProtos.Row.Cell elem : row.getCellList()) {
+                if (elem.hasValue()) {
+                    dataRow.add(elem.getValue());
+                } else {
+                    dataRow.add(null);
+                }
+            }
+            results.add(dataRow);
         }
 
         // fill in selected column meta

@@ -145,7 +145,20 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                         @Nullable
                         @Override
                         public SparkJobProtos.Row apply(@Nullable List<String> input) {
-                            return SparkJobProtos.Row.newBuilder().addAllData(input).build();
+                            SparkJobProtos.Row.Builder rowBuilder = SparkJobProtos.Row.newBuilder();
+
+                            if (input != null) {
+                                for (String elem : input) {
+                                    SparkJobProtos.Row.Cell.Builder dataBuilder = SparkJobProtos.Row.Cell.newBuilder();
+
+                                    if (elem != null) {
+                                        dataBuilder.setValue(elem);
+                                    }
+                                    rowBuilder.addCell(dataBuilder.build());
+                                }
+                            }
+
+                            return rowBuilder.build();
                         }
                     })).addAllColumns(pair.getSecond()).build());
             responseObserver.onCompleted();

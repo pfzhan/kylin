@@ -81,7 +81,11 @@ message PushDownRequest {
 }
 
 message Row {
-    repeated string data = 1;
+    repeated Cell cell = 1;
+
+    message Cell {
+        optional string value = 1;
+    }
 }
 
 message StructField {

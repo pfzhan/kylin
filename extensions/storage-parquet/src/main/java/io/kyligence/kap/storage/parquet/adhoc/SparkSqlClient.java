@@ -97,7 +97,7 @@ public class SparkSqlClient implements Serializable {
                     for (int i = 0; i < curRow.length(); i++) {
                         Object obj = curRow.getAs(i);
                         if (null == obj) {
-                            data.add("");
+                            data.add(null);
                         } else {
                             data.add(obj.toString());
                         }
@@ -115,7 +115,9 @@ public class SparkSqlClient implements Serializable {
 
         if (!sampleList.isEmpty()) {
             for (String elem : sampleList.get(0)) {
-                sampleLen += elem.getBytes().length;
+                if (elem != null) {
+                    sampleLen += elem.getBytes().length;
+                }
             }
         }
 
