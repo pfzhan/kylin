@@ -1,6 +1,7 @@
 options {
     IGNORE_CASE = true;
     STATIC = false;
+    UNICODE_INPUT=true;
 }
 
 PARSER_BEGIN(EscapeTransformer)
