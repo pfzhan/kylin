@@ -38,6 +38,7 @@ import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.engine.mr.common.MapReduceExecutable;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.engine.mr.steps.SaveStatisticsStep;
+import org.apache.kylin.engine.mr.steps.UpdateCubeInfoAfterBuildStep;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.slf4j.Logger;
@@ -48,6 +49,7 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.engine.mr.steps.KapBaseCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapInMemCuboidJob;
 import io.kyligence.kap.engine.mr.steps.KapNDCuboidJob;
+import io.kyligence.kap.engine.mr.steps.KapUpdateCubeInfoAfterBuildStep;
 import io.kyligence.kap.engine.mr.steps.UpdateOutputDirStep;
 import io.kyligence.kap.engine.mr.steps.UpdateRawTableInfoAfterBuildStep;
 
@@ -235,6 +237,19 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
         CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
         CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
         CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
+        return result;
+    }
+
+    @Override
+    public UpdateCubeInfoAfterBuildStep createUpdateCubeInfoAfterBuildStep(String jobId) {
+        final KapUpdateCubeInfoAfterBuildStep result = new KapUpdateCubeInfoAfterBuildStep();
+        result.setName(ExecutableConstants.STEP_NAME_UPDATE_CUBE_INFO);
+        result.getParams().put(BatchConstants.CFG_OUTPUT_PATH, getFactDistinctColumnsPath(jobId));
+
+        CubingExecutableUtil.setCubeName(seg.getRealization().getName(), result.getParams());
+        CubingExecutableUtil.setSegmentId(seg.getUuid(), result.getParams());
+        CubingExecutableUtil.setCubingJobId(jobId, result.getParams());
+
         return result;
     }
 

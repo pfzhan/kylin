@@ -27,10 +27,13 @@ package io.kyligence.kap.rest.controller2;
 import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
@@ -45,17 +48,15 @@ import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentRange.TSRange;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.JobBuildRequest;
-import org.apache.kylin.rest.request.JobBuildRequest2;
 import org.apache.kylin.rest.response.CubeInstanceResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.GeneralResponse;
-import org.apache.kylin.rest.response.HBaseResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.JobService;
@@ -75,8 +76,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.cube.mp.MPCubeManager;
+import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.request.KapBuildRequest;
+import io.kyligence.kap.rest.request.KapStreamingBuildRequest;
+import io.kyligence.kap.rest.request.SegmentMgmtRequest;
+import io.kyligence.kap.rest.response.KapCubeResponse;
+import io.kyligence.kap.rest.service.KapCubeService;
 
 /**
  * CubeController is defined as Restful API entrance for UI.
@@ -89,6 +97,10 @@ public class CubeControllerV2 extends BasicController {
     @Autowired
     @Qualifier("cubeMgmtService")
     private CubeService cubeService;
+
+    @Autowired
+    @Qualifier("kapCubeService")
+    private KapCubeService kapCubeService;
 
     @Autowired
     @Qualifier("jobService")
@@ -115,11 +127,15 @@ public class CubeControllerV2 extends BasicController {
         HashMap<String, Object> data = new HashMap<String, Object>();
         List<CubeInstanceResponse> response = new ArrayList<CubeInstanceResponse>();
         List<CubeInstance> cubes = cubeService.listAllCubes(cubeName, projectName, modelName, exactMatch);
+        MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
 
         // official cubes
         for (CubeInstance cube : cubes) {
+            if (mpCubeMgr.isMPCube(cube))
+                continue;
+
             try {
-                response.add(cubeService.createCubeInstanceResponse(cube));
+                response.add(createCubeResponse(cube));
             } catch (Exception e) {
                 logger.error("Error creating cube instance response, skipping.", e);
             }
@@ -129,27 +145,12 @@ public class CubeControllerV2 extends BasicController {
         for (Draft d : cubeService.listCubeDrafts(cubeName, modelName, projectName, exactMatch)) {
             CubeDesc c = (CubeDesc) d.getEntity();
             if (contains(response, c.getName()) == false) {
-                CubeInstanceResponse r = createCubeInstanceResponseFromDraft(d);
-                r.setProject(d.getProject());
-                response.add(r);
+                response.add(KapCubeResponse.create(d));
             }
         }
 
-        int offset = pageOffset * pageSize;
-        int limit = pageSize;
-        int size = response.size();
-
-        if (size <= offset) {
-            offset = size;
-            limit = 0;
-        }
-
-        if ((size - offset) < limit) {
-            limit = size - offset;
-        }
-
-        data.put("cubes", response.subList(offset, offset + limit));
-        data.put("size", size);
+        data.put("cubes", PagingUtil.cutPage(response, pageOffset, pageSize));
+        data.put("size", response.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
@@ -162,29 +163,10 @@ public class CubeControllerV2 extends BasicController {
         return false;
     }
 
-    private CubeInstanceResponse createCubeInstanceResponseFromDraft(Draft d) {
-        CubeDesc desc = (CubeDesc) d.getEntity();
-        Preconditions.checkState(desc.isDraft());
-
-        CubeInstance mock = new CubeInstance();
-        mock.setName(desc.getName());
-        mock.setDescName(desc.getName());
-        mock.setStatus(RealizationStatusEnum.DISABLED);
-
-        CubeInstanceResponse r = new CubeInstanceResponse(mock);
-
-        r.setModel(desc.getModelName());
-        r.setProject(d.getProject());
-        r.setDraft(true);
-        r.setLastModified(desc.getLastModified());
-
-        return r;
-    }
-
     @RequestMapping(value = "validEncodings", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getValidEncodingsV2() {
+    public EnvelopeResponse getValidEncodings() {
 
         Map<String, Integer> encodings = DimensionEncodingFactory.getValidEncodings();
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, encodings, "");
@@ -193,7 +175,7 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getCubeV2(@PathVariable String cubeName) {
+    public EnvelopeResponse getCube(@PathVariable String cubeName) {
         Message msg = MsgPicker.getMsg();
 
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
@@ -201,13 +183,17 @@ public class CubeControllerV2 extends BasicController {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
 
-        CubeInstanceResponse r;
+        KapCubeResponse r;
         try {
-            r = cubeService.createCubeInstanceResponse(cube);
+            r = createCubeResponse(cube);
         } catch (Exception e) {
             throw new BadRequestException("Error getting cube instance response.", ResponseCode.CODE_UNDEFINED, e);
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, r, "");
+    }
+
+    private KapCubeResponse createCubeResponse(CubeInstance cube) {
+        return KapCubeResponse.create(cube, kapCubeService);
     }
 
     /**
@@ -222,7 +208,7 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/sql", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSqlV2(@PathVariable String cubeName) {
+    public EnvelopeResponse getSql(@PathVariable String cubeName) {
         Message msg = MsgPicker.getMsg();
 
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
@@ -248,7 +234,7 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/notify_list", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void updateNotifyListV2(@PathVariable String cubeName, @RequestBody List<String> notifyList)
+    public void updateNotifyList(@PathVariable String cubeName, @RequestBody List<String> notifyList)
             throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -265,7 +251,7 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/cost", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateCubeCostV2(@PathVariable String cubeName, @RequestBody Integer cost)
+    public EnvelopeResponse updateCubeCost(@PathVariable String cubeName, @RequestBody Integer cost)
             throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -285,7 +271,7 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/segs/{segmentName}/refresh_lookup", method = {
             RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rebuildLookupSnapshotV2(@PathVariable String cubeName, @PathVariable String segmentName,
+    public EnvelopeResponse rebuildLookupSnapshot(@PathVariable String cubeName, @PathVariable String segmentName,
             @RequestBody String lookupTable) throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -298,63 +284,117 @@ public class CubeControllerV2 extends BasicController {
                 cubeService.rebuildLookupSnapshot(cube, segmentName, lookupTable), "");
     }
 
-    /**
-     * Delete a cube segment
-     *
-     * @throws IOException
-     */
-
-    @RequestMapping(value = "/{cubeName}/segs/{segmentName}", method = { RequestMethod.DELETE }, produces = {
+    @RequestMapping(value = "{cubeName}/mp_values", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse deleteSegmentV2(@PathVariable String cubeName, @PathVariable String segmentName)
-            throws IOException {
+    public EnvelopeResponse listMPValues(@PathVariable String cubeName) throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
-
+        final CubeManager cubeMgr = cubeService.getCubeManager();
+        final MPCubeManager mpCubeMgr = kapCubeService.getMPCubeManager();
+        final CubeInstance cube = cubeMgr.getCube(cubeName);
         if (cube == null) {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
 
-        CubeSegment segment = cube.getSegment(segmentName, null);
-        if (segment == null) {
-            throw new BadRequestException(String.format(msg.getSEG_NOT_FOUND(), segmentName));
-        }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cubeService.deleteSegment(cube, segmentName), "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, mpCubeMgr.listMPValues(cube), "");
     }
 
-    /** Build/Rebuild a cube segment */
+    @RequestMapping(value = "{cubeName}/segments", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse listSegments(@PathVariable String cubeName,
+            @RequestParam(value = "mpValues", required = false) String mpValues,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
+
+        checkCubeExists(cubeName);
+        
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { mpValues });
+        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
+
+        List<CubeSegment> all = new ArrayList<>(cube.getSegments());
+        Collections.sort(all, new Comparator<CubeSegment>() {
+            @Override
+            public int compare(CubeSegment seg1, CubeSegment seg2) {
+                return (int) (seg2.getLastBuildTime() - seg1.getLastBuildTime());
+            }
+        });
+        List<CubeSegment> segments = PagingUtil.cutPage(all, pageOffset, pageSize);
+
+        long totalSizeKB = kapCubeService.computeSegmentsStorage(cube, segments);
+        kapCubeService.computeSegmentsOperativeFlags(cube, segments);
+
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("segments", segments);
+        data.put("size", all.size());
+        data.put("total_storage_size_kb", totalSizeKB);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    @RequestMapping(value = "/{cubeName}/segments", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse manageSegments(@PathVariable String cubeName, @RequestBody SegmentMgmtRequest req)
+            throws IOException {
+
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
+
+        switch (req.getBuildType()) {
+        case "MERGE": {
+            JobInstance jobInstance = kapCubeService.mergeSegment(cubeName, req.getSegments(), req.isForce());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobInstance, "");
+        }
+        case "REFRESH":
+            List<JobInstance> jobList = kapCubeService.refreshSegments(cubeName, req.getSegments());
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, jobList, "");
+        case "DROP":
+            kapCubeService.dropSegments(cubeName, req.getSegments());
+
+            CubeInstance cube = convertToMPMasterIfNeeded(cubeName);
+            if (hasNoReadySegments(cube)) {
+                cubeService.disableCube(cube);
+            }
+
+            dropMPCubeIfNeeded(cubeName);
+
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createCubeResponse(cube), "");
+        default:
+            return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
+        }
+    }
 
     /** Build/Rebuild a cube segment */
     @RequestMapping(value = "/{cubeName}/build", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse buildV2(@PathVariable String cubeName, @RequestBody JobBuildRequest req)
-            throws IOException {
-        return rebuildV2(cubeName, req);
+    public EnvelopeResponse build(@PathVariable String cubeName, @RequestBody KapBuildRequest req) throws IOException {
+        return rebuild(cubeName, req);
     }
 
     /** Build/Rebuild a cube segment */
-
     @RequestMapping(value = "/{cubeName}/rebuild", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rebuildV2(@PathVariable String cubeName, @RequestBody JobBuildRequest req)
+    public EnvelopeResponse rebuild(@PathVariable String cubeName, @RequestBody KapBuildRequest req)
             throws IOException {
 
+        checkCubeExists(cubeName);
+        
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
+
+        TSRange range = new TSRange(req.getStartTime(), req.getEndTime());
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                buildInternalV2(cubeName, new TSRange(req.getStartTime(), req.getEndTime()), null, null, null,
-                        req.getBuildType(), req.isForce() || req.isForceMergeEmptySegment()),
-                "");
+                buildInternal(cubeName, range, null, null, null, req.getBuildType(), req.isForce()), "");
     }
 
     /** Build/Rebuild a cube segment by source offset */
-
     @RequestMapping(value = "/{cubeName}/build_streaming", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse build2V2(@PathVariable String cubeName, @RequestBody JobBuildRequest2 req)
+    public EnvelopeResponse buildStreaming(@PathVariable String cubeName, @RequestBody KapStreamingBuildRequest req)
             throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -370,24 +410,29 @@ public class CubeControllerV2 extends BasicController {
         if (!existKafkaClient) {
             throw new BadRequestException(msg.getKAFKA_DEP_NOT_FOUND());
         }
-        return rebuild2V2(cubeName, req);
+        return rebuildStreaming(cubeName, req);
     }
 
     /** Build/Rebuild a cube segment by source offset */
     @RequestMapping(value = "/{cubeName}/rebuild_streaming", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rebuild2V2(@PathVariable String cubeName, @RequestBody JobBuildRequest2 req)
+    public EnvelopeResponse rebuildStreaming(@PathVariable String cubeName, @RequestBody KapStreamingBuildRequest req)
             throws IOException {
+        
+        checkCubeExists(cubeName);
+
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
+
+        SegmentRange range = new SegmentRange(req.getSourceOffsetStart(), req.getSourceOffsetEnd());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                buildInternalV2(cubeName, null, new SegmentRange(req.getSourceOffsetStart(), req.getSourceOffsetEnd()),
-                        req.getSourcePartitionOffsetStart(), req.getSourcePartitionOffsetEnd(), req.getBuildType(),
-                        req.isForce()),
+                buildInternal(cubeName, null, range, req.getSourcePartitionOffsetStart(),
+                        req.getSourcePartitionOffsetEnd(), req.getBuildType(), req.isForce()),
                 "");
     }
 
-    private JobInstance buildInternalV2(String cubeName, TSRange tsRange, SegmentRange segRange, //
+    private JobInstance buildInternal(String cubeName, TSRange tsRange, SegmentRange segRange, //
             Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd,
             String buildType, boolean force) throws IOException {
         Message msg = MsgPicker.getMsg();
@@ -408,69 +453,21 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/purge", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse purgeCubeV2(@PathVariable String cubeName) throws IOException {
-        Message msg = MsgPicker.getMsg();
+    public EnvelopeResponse purgeCube(@PathVariable String cubeName, @RequestBody KapBuildRequest req)
+            throws IOException {
 
+        checkCubeExists(cubeName);
+        String originCubeName = cubeName;
+        
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
 
-        if (cube == null) {
-            throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
-        }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cubeService.purgeCube(cube), "");
-    }
+        CubeInstance purgeCube = cubeService.purgeCube(cube);
+        
+        dropMPCubeIfNeeded(purgeCube.getName());
 
-    /**
-     * get Hbase Info
-     *
-     * @return true
-     * @throws IOException
-     */
-
-    @RequestMapping(value = "/{cubeName}/hbase", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getHBaseInfoV2(@PathVariable String cubeName) {
-        Message msg = MsgPicker.getMsg();
-
-        List<HBaseResponse> hbase = new ArrayList<HBaseResponse>();
-
-        CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
-        if (cube == null) {
-            throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
-        }
-
-        List<CubeSegment> segments = cube.getSegments();
-
-        for (CubeSegment segment : segments) {
-            String tableName = segment.getStorageLocationIdentifier();
-            HBaseResponse hr = null;
-
-            // Get info of given table.
-            try {
-                hr = cubeService.getHTableInfo(cubeName, tableName);
-            } catch (IOException e) {
-                logger.error("Failed to calculate size of HTable \"" + tableName + "\".", e);
-            }
-
-            if (null == hr) {
-                logger.info("Failed to calculate size of HTable \"" + tableName + "\".");
-                hr = new HBaseResponse();
-            }
-
-            hr.setTableName(tableName);
-            hr.setDateRangeStart(segment.getTSRange().start.v);
-            hr.setDateRangeEnd(segment.getTSRange().end.v);
-            hr.setSegmentName(segment.getName());
-            hr.setSegmentUUID(segment.getUuid());
-            hr.setSegmentStatus(segment.getStatus().toString());
-            hr.setSourceCount(segment.getInputRecords());
-            if (segment.isOffsetCube()) {
-                hr.setSourceOffsetStart((Long) segment.getSegRange().start.v);
-                hr.setSourceOffsetEnd((Long) segment.getSegRange().end.v);
-            }
-            hbase.add(hr);
-        }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, hbase, "");
+        CubeInstance originCube = cubeService.getCubeManager().getCube(originCubeName);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createCubeResponse(originCube), "");
     }
 
     /**
@@ -483,9 +480,12 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getHolesV2(@PathVariable String cubeName) {
+    public EnvelopeResponse getHoles(@PathVariable String cubeName, @RequestBody KapBuildRequest req)
+            throws IOException {
 
-        checkCubeNameV2(cubeName);
+        checkCubeExists(cubeName);
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cubeService.getCubeManager().calculateHoles(cubeName),
                 "");
     }
@@ -500,9 +500,11 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/holes", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse fillHolesV2(@PathVariable String cubeName) {
+    public EnvelopeResponse fillHoles(@PathVariable String cubeName, @RequestBody KapBuildRequest req)
+            throws IOException {
 
-        checkCubeNameV2(cubeName);
+        checkCubeExists(cubeName);
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
 
         List<JobInstance> jobs = Lists.newArrayList();
         List<CubeSegment> holes = cubeService.getCubeManager().calculateHoles(cubeName);
@@ -514,14 +516,14 @@ public class CubeControllerV2 extends BasicController {
 
         for (CubeSegment hole : holes) {
             if (hole.isOffsetCube()) {
-                JobBuildRequest2 request = new JobBuildRequest2();
+                KapStreamingBuildRequest request = new KapStreamingBuildRequest();
                 request.setBuildType(CubeBuildTypeEnum.BUILD.toString());
                 request.setSourceOffsetStart((Long) hole.getSegRange().start.v);
                 request.setSourceOffsetEnd((Long) hole.getSegRange().end.v);
                 request.setSourcePartitionOffsetStart(hole.getSourcePartitionOffsetStart());
                 request.setSourcePartitionOffsetEnd(hole.getSourcePartitionOffsetEnd());
                 try {
-                    JobInstance job = (JobInstance) build2V2(cubeName, request).data;
+                    JobInstance job = (JobInstance) buildStreaming(cubeName, request).data;
                     jobs.add(job);
                 } catch (Exception e) {
                     // it may exceed the max allowed job number
@@ -529,13 +531,13 @@ public class CubeControllerV2 extends BasicController {
                     continue;
                 }
             } else {
-                JobBuildRequest request = new JobBuildRequest();
+                KapBuildRequest request = new KapBuildRequest();
                 request.setBuildType(CubeBuildTypeEnum.BUILD.toString());
                 request.setStartTime(hole.getTSRange().start.v);
                 request.setEndTime(hole.getTSRange().end.v);
 
                 try {
-                    JobInstance job = (JobInstance) buildV2(cubeName, request).data;
+                    JobInstance job = (JobInstance) build(cubeName, request).data;
                     jobs.add(job);
                 } catch (Exception e) {
                     // it may exceed the max allowed job number
@@ -558,10 +560,13 @@ public class CubeControllerV2 extends BasicController {
     @RequestMapping(value = "/{cubeName}/init_start_offsets", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse initStartOffsetsV2(@PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse initStartOffsets(@PathVariable String cubeName, @RequestBody KapBuildRequest req)
+            throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        checkCubeNameV2(cubeName);
+        checkCubeExists(cubeName);
+        cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
+
         CubeInstance cubeInstance = cubeService.getCubeManager().getCube(cubeName);
         if (cubeInstance.getSourceType() != ISourceAware.ID_STREAMING) {
             throw new BadRequestException(String.format(msg.getNOT_STREAMING_CUBE(), cubeName));
@@ -578,7 +583,7 @@ public class CubeControllerV2 extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    private void checkCubeNameV2(String cubeName) {
+    private void checkCubeExists(String cubeName) {
         Message msg = MsgPicker.getMsg();
 
         CubeInstance cubeInstance = cubeService.getCubeManager().getCube(cubeName);
@@ -586,6 +591,37 @@ public class CubeControllerV2 extends BasicController {
         if (cubeInstance == null) {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
+    }
+
+    private String convertToMPCubeIfNeeded(String cubeName, String[] multiLevelPartitionValues) throws IOException {
+        MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
+        return mpCubeMgr.convertToMPCubeIfNeeded(cubeName, multiLevelPartitionValues).getName();
+    }
+
+    private boolean hasNoReadySegments(CubeInstance cube) throws IOException {
+        KylinConfig config = cubeService.getConfig();
+        MPCubeManager mgr = MPCubeManager.getInstance(config);
+        
+        Segments<CubeSegment> segments = new Segments<CubeSegment>();
+        if (mgr.isMPMaster(cube)) {
+            for (CubeInstance mpCube : mgr.listAllMPCubes(cube.getName())) {
+                segments.addAll(mpCube.getSegments());
+            }
+        } else {
+            segments.addAll(cube.getSegments());
+        }
+
+        return (segments.getSegments(SegmentStatusEnum.READY).size() == 0);
+    }
+
+    private void dropMPCubeIfNeeded(String cubeName) throws IOException {
+        MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
+        mpCubeMgr.dropMPCubeIfNeeded(cubeName);
+    }
+
+    private CubeInstance convertToMPMasterIfNeeded(String cubeName) {
+        MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
+        return mpCubeMgr.convertToMPMasterIfNeeded(cubeName);
     }
 
     public void setCubeService(CubeService cubeService) {

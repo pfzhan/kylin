@@ -35,10 +35,13 @@ import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,9 +65,16 @@ public class KapModel extends DataModelDesc {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(KapModel.class);
     
+    @JsonProperty("multilevel_partition_cols")
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
+    private String[] mpColStrs = new String[0];
+
     @JsonProperty("computed_columns")
-    @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
+    
+    // calculated fields
+    private TblColRef[] mpCols;
 
     // don't use unless you're sure, for jackson only
     public KapModel() {
@@ -85,6 +95,21 @@ public class KapModel extends DataModelDesc {
         super.init(config, tables, otherModels);
         
         initComputedColumns(otherModels);
+        initMultilevelPartitionCols();
+    }
+
+    private void initMultilevelPartitionCols() {
+        StringUtil.toUpperCaseArray(mpColStrs, mpColStrs);
+        mpCols = new TblColRef[mpColStrs.length];
+        for (int i = 0; i < mpColStrs.length; i++) {
+            mpCols[i] = findColumn(mpColStrs[i]);
+            mpColStrs[i] = mpCols[i].getIdentity();
+            
+            DataType type = mpCols[i].getType();
+            if (!type.isNumberFamily() && !type.isStringFamily())
+                throw new IllegalStateException(
+                        "Multi-level partition column must be Number or String, but " + mpCols[i] + " is " + type);
+        }
     }
 
     private void initComputedColumns(List<DataModelDesc> otherModels) {
@@ -181,10 +206,40 @@ public class KapModel extends DataModelDesc {
         }
         return Collections.unmodifiableSet(ccColumnNames);
     }
+    
+    public boolean isTimePartitioned() {
+        return getPartitionDesc().isPartitioned();
+    }
+    
+    public boolean isMultiLevelPartitioned() {
+        return mpColStrs.length > 0;
+    }
+    
+    public String[] getMutiLevelPartitionColStrs() {
+        return mpColStrs;
+    }
+    
+    public void setMutiLevelPartitionColStrs(String[] colStrs) {
+        this.mpColStrs = colStrs;
+    }
+    
+    public TblColRef[] getMutiLevelPartitionCols() {
+        return mpCols;
+    }
+    
+    public String[] getMpColStrs() {
+        return mpColStrs;
+    }
+
+    public void setMpColStrs(String[] mpColStrs) {
+        this.mpColStrs = mpColStrs;
+    }
 
     public static KapModel getCopyOf(KapModel orig) {
         KapModel copy = (KapModel) DataModelDesc.copy(orig, new KapModel());
         copy.computedColumnDescs = orig.computedColumnDescs;
+        copy.mpColStrs = orig.mpColStrs;
+        copy.mpCols = orig.mpCols;
         return copy;
     }
 

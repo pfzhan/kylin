@@ -8,7 +8,7 @@
             <common-tip :content="$t('kylinLang.model.partitionDateTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
             </span>
             <el-row>
-            <el-col :span="11">
+            <el-col :span="11"> 
                <el-select style="width:100%" v-model="checkPartition.date_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode || actionMode==='view'">
                 <el-option
                   v-for="(key,value) in dateColumns"
@@ -50,18 +50,18 @@
              </el-row>
           </el-form-item>
           <el-form-item :label="$t('hasSeparateLabel')" v-show="needSetTime" class="ksd-mt-20">
-           <span slot="label">
+            <span slot="label">
               {{$t('hasSeparateLabel')}}
               <common-tip :content="$t('kylinLang.model.partitionSplitTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
               <el-switch v-model="hasSeparate" on-text="" @change="changeSepatate" off-text="" :disabled="editMode  || actionMode==='view'"></el-switch>
             </span>
           </el-form-item>
-          <el-form-item :label="$t('partitionTimeColumn')" v-show="hasSeparate">
-           <span slot="label">{{$t('partitionTimeColumn')}}
-            <common-tip :content="$t('kylinLang.model.partitionTimeTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
+          <el-form-item :label="$t('kylinLang.model.primaryPartitionColumn')" v-show="hasSeparate">
+           <span slot="label">{{$t('kylinLang.model.primaryPartitionColumn')}}
+            <common-tip :content="$t('kylinLang.model.mutilPartitionTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
             <el-row>
               <el-col :span="11">
-                <el-select style="width:100%" v-model="checkPartition.time_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
+                <el-select style="width:100%" v-model="checkPartition.mutilLevel_table" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
                   <el-option
                     v-for="(key,value) in timeColumns"
                     :key="key+''"
@@ -72,7 +72,7 @@
                 </el-col>
                 <el-col :span="1">&nbsp;</el-col>
                 <el-col :span="12">
-                  <el-select style="width:100%" v-model="checkPartition.time_column" :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeTimeColumn" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
+                  <el-select style="width:100%" v-model="checkPartition.mutilLevel_column" :placeholder="$t('kylinLang.common.pleaseSelect')" v-show="hasSeparate" :disabled="editMode  || actionMode==='view'">
                     <el-option
                       v-for="item in timeColumnsByTable"
                       :key="item.name"
@@ -81,24 +81,6 @@
                     </el-option>
                 </el-select>
                 </el-col>
-            </el-row>
-          </el-form-item>
-           <el-form-item :label="$t('timeFormat')" v-show="hasSeparate" prop="partition_time_format">
-          <!--   <el-select v-model="checkPartition.partition_time_format" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
-              <el-option
-                v-for="item in timeFormat"
-                :key="item.label"
-                :label="item.label"
-                :value="item.label">
-              </el-option>
-            </el-select> -->
-            <el-row>
-              <el-autocomplete style="width:100%" :disabled="editMode  || actionMode==='view'"  @select="formValid('partition_time_format')"
-                      class="inline-input"
-                      v-model="checkPartition.partition_time_format"
-                      :fetch-suggestions="querySearchForTime"
-                      :placeholder="$t('kylinLang.common.pleaseSelect')"
-              ></el-autocomplete>
             </el-row>
           </el-form-item>
           <el-form-item :label="$t('filterCondition')" class="ksd-mt-20">
@@ -162,9 +144,6 @@ export default {
       rule: {
         partition_date_format: [
           {validator: this.dateFormatCheck, trigger: 'blur'}
-        ],
-        partition_time_format: [
-          {validator: this.timeFormatCheck, trigger: 'blur'}
         ]
       }
     }
@@ -214,42 +193,16 @@ export default {
         })
       })
     },
-    timeFormatCheck (rule, value, callback) {
-      if (!this.checkPartition.partition_time_format || this.modelStatics.length === 0) {
-        callback()
-      }
-      var project = this.modelInfo.project || this.project
-      var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.time_table)
-      this.validColumnFormat({project: project, table: databaseAndTableName.join('.'), column: this.checkPartition.time_column, format: this.checkPartition.partition_time_format}).then((res) => {
-        handleSuccess(res, (data) => {
-          if (!data && data !== null) {
-            callback(new Error(this.$t('validFail')))
-          } else {
-            callback()
-          }
-        })
-      }, (res) => {
-        handleError(res, (a, b, c, d) => {
-          callback(new Error(d))
-        })
-      })
-    },
     querySearchForDate (queryString, cb) {
       var result = queryString ? this.dateFormat.filter((formatStr) => {
         return formatStr.value.indexOf(queryString) === 0
       }) : this.dateFormat
       cb(result)
     },
-    querySearchForTime (queryString, cb) {
-      var result = queryString ? this.timeFormat.filter((formatStr) => {
-        return formatStr.value.indexOf(queryString) === 0
-      }) : this.timeFormat
-      cb(result)
-    },
     changeDateColumn (val) {
       if (val === this.checkPartition.time_column && !this.modelInfo.uuid) {
-        this.$set(this.checkPartition, 'time_column', null)
-        this.$set(this.checkPartition, 'time_format', null)
+        this.$set(this.checkPartition, 'mutilLevel_column', '')
+        this.$set(this.checkPartition, 'mutilLevel_format', '')
       }
       this.needSetTime = true
       this.checkLockFormat()
@@ -258,13 +211,6 @@ export default {
         this.loadTableStatics(databaseAndTableName[0], databaseAndTableName[1], this.checkPartition.date_column)
       }
       this.formValid('partition_date_format')
-    },
-    changeTimeColumn () {
-      var databaseAndTableName = this.getFullTableNameInfo(this.checkPartition.time_table)
-      if (databaseAndTableName.length) {
-        this.loadTableStatics(databaseAndTableName[0], databaseAndTableName[1], this.checkPartition.time_column)
-      }
-      this.formValid('partition_time_format')
     },
     checkLockFormat () {
       // for (var i in this.columnsForDate) {
@@ -306,8 +252,7 @@ export default {
     },
     changeSepatate (val) {
       if (!val && !this.modelInfo.uuid) {
-        this.$set(this.checkPartition, 'time_column', '')
-        this.$set(this.checkPartition, 'time_format', '')
+        this.$set(this.checkPartition, 'mutilLevel_column', '')
       }
     }
   },
@@ -328,13 +273,11 @@ export default {
       this.$set(this.checkPartition, 'date_table', '')
       this.$set(this.checkPartition, 'date_column', '')
       this.$set(this.checkPartition, 'partition_date_format', '')
-      this.$set(this.checkPartition, 'time_table', null)
-      this.$set(this.checkPartition, 'time_column', null)
-      this.$set(this.checkPartition, 'partition_time_format', null)
+      this.$set(this.checkPartition, 'mutilLevel_table', '')
+      this.$set(this.checkPartition, 'mutilLevel_column', '')
       this.closeSample()
     },
     timeColumns () {
-      this.columnsForTime[''] = []
       return this.columnsForTime || []
     },
     dateColumnsByTable () {
@@ -349,11 +292,11 @@ export default {
       return []
     },
     timeColumnsByTable () {
-      if (this.checkPartition.time_table === '') {
-        this.checkPartition.time_column = ''
+      if (this.checkPartition.mutilLevel_table === '') {
+        this.checkPartition.mutilLevel_column = ''
       }
       for (var i in this.columnsForTime) {
-        if (i === this.checkPartition.time_table) {
+        if (i === this.checkPartition.mutilLevel_table) {
           return this.columnsForTime[i].filter((column) => {
             if (i !== this.checkPartition.date_table || column.name !== this.checkPartition.date_column) {
               return column
@@ -367,12 +310,12 @@ export default {
   created () {
   },
   mounted () {
-    this.hasSeparate = !!(this.checkPartition && this.checkPartition.time_column)
+    this.hasSeparate = !!(this.checkPartition && this.checkPartition.mutilLevel_column)
     this.checkLockFormat()
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More partition column', partitionTimeColumn: 'Partition Time Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'The date format is invalid for this column. Please try another partition column or date format.'},
-    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', partitionTimeColumn: '分区列（时间类型）', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '当表具有采样结果时，才能对其分区列的格式进行检查。', validFail: '分区列格式不正确，请重新选择分区格式或更换分区列。'}
+    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More Partition', secondaryPartitionColumn: 'Secondary Partition Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'The date format is invalid for this column. Please try another partition column or date format.'},
+    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', secondaryPartitionColumn: '二级分区列', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '当表具有采样结果时，才能对其分区列的格式进行检查。', validFail: '分区列格式不正确，请重新选择分区格式或更换分区列。'}
   }
 }
 </script>
@@ -385,6 +328,9 @@ export default {
   .el-form {
     // height: 260px;
     // overflow: hidden;
+    .is-disabled .el-input__inner {
+      border: 1px solid #bfcbd9
+    }
   }
   .col-line{
     width: 1px;

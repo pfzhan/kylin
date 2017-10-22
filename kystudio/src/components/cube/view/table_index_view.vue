@@ -110,8 +110,8 @@ export default {
     this.loadDataSourceByProject({project: this.cubeDesc.project, isExt: true})
   },
   locales: {
-    'en': {noRawTable: 'No Raw Table Configuration Information', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},
-    'zh-cn': {noRawTable: '无Raw Table配置信息', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引'}
+    'en': {noRawTable: 'No Table Index Configuration Information.', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},
+    'zh-cn': {noRawTable: '无Table Index配置信息。', tableIndex: '表索引', ID: 'ID', column: '列', dataType: '数据类型', tableAlias: '表别名', Encoding: '编码', Length: '长度', Index: '索引'}
   }
 }
 </script>

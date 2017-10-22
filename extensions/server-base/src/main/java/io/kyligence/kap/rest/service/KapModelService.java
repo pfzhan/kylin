@@ -42,15 +42,20 @@ import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import io.kyligence.kap.cube.mp.MPSqlCondBuilder;
 import io.kyligence.kap.metadata.model.DimensionAdvisor;
 import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
@@ -251,6 +256,28 @@ public class KapModelService extends BasicService {
         }
 
         return true;
+    }
+
+    public void preProcessBeforeModuleSave(KapModel model, String project) {
+        String condBldClz = null;
+        if (model.isMultiLevelPartitioned()) {
+            // set MPHiveCondBuilder if it is a MP model
+            condBldClz = MPSqlCondBuilder.class.getName();
+        } else {
+            // UNSET MPHiveCondBuilder if it is NOT a MP model
+            condBldClz = model.getPartitionDesc().getPartitionConditionBuilderClz();
+            if (condBldClz.equals(MPSqlCondBuilder.class.getName()))
+                condBldClz = null;
+        }
+        model.getPartitionDesc().setPartitionConditionBuilderClz(condBldClz);
+        
+        // check fact table is not streaming
+        String rootFactTableName = model.getRootFactTableName();
+        TableDesc factTable = getTableManager().getTableDesc(rootFactTableName, project);
+        if (factTable.getSourceType() == ISourceAware.ID_STREAMING) {
+            KapMessage msg = KapMsgPicker.getMsg();
+            throw new BadRequestException(msg.getMPMODEL_HATES_STREAMING());
+        }
     }
 
 }

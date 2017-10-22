@@ -15,6 +15,8 @@
   import cubeEdit from 'components/cube/edit/cube_desc_edit'
   import cubeView from 'components/cube/cube_list'
   import cubeMetadata from 'components/cube/cube_metadata'
+  import cubeManage from 'components/cube/manage'
+  import cubeSegment from 'components/cube/segmentDetail'
   import { sampleGuid } from '../../util/index'
   export default {
     data () {
@@ -141,7 +143,9 @@
       'modelSubMenu': modelSubMenu,
       'cubeEdit': cubeEdit,
       'cubeMetadata': cubeMetadata,
-      'cubeView': cubeView
+      'cubeView': cubeView,
+      'cubeManage': cubeManage,
+      'cubeSegment': cubeSegment
     },
     mounted () {
     },

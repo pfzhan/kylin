@@ -24,12 +24,30 @@
 
 package io.kyligence.kap.storage.parquet.cube;
 
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.SQLDigest;
+import org.apache.kylin.metadata.tuple.ITupleIterator;
+import org.apache.kylin.metadata.tuple.TupleInfo;
+import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.cube.mp.MPCubeManager;
+import io.kyligence.kap.metadata.model.KapModel;
 
 public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
@@ -38,6 +56,75 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
     public CubeStorageQuery(CubeInstance cube) {
         super(cube);
+    }
+
+    @Override
+    public ITupleIterator search(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo) {
+
+        this.cubeInstance = replaceMPCubeIfNeeded(cubeInstance, sqlDigest);
+
+        return super.search(context, sqlDigest, returnTupleInfo);
+    }
+
+    private CubeInstance replaceMPCubeIfNeeded(CubeInstance cube, SQLDigest sqlDigest) {
+        KapModel model = (KapModel) cube.getModel();
+        if (model.isMultiLevelPartitioned() == false)
+            return cube;
+
+        String[] mpValues = extractMPValues(model, sqlDigest.filter);
+
+        MPCubeManager mgr = MPCubeManager.getInstance(cube.getConfig());
+        CubeInstance ret = null;
+        try {
+            ret = mgr.convertToMPCubeIfNeeded(cube.getName(), mpValues);
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Invalid convert cube mpmaster to mpcube. cube name '" + cube.getName() + "'", e);
+        }
+        return ret;
+    }
+
+    String[] extractMPValues(KapModel model, TupleFilter filter) {
+        TblColRef[] mpCols = model.getMutiLevelPartitionCols();
+        List<TblColRef> mpColList = Lists.newArrayList(mpCols);
+
+        Set<CompareTupleFilter> singleValueFilters = findSingleValuesCompFilters(filter);
+        Set<TblColRef> singleValueCols = findSingleValueColumns(filter);
+
+        checkQueryConditions(mpColList, singleValueCols);
+
+        List<String> mpValueList = Lists.newArrayList();
+        Map<TblColRef, String> mpValues = extractMPValues(mpColList, singleValueFilters);
+        for (TblColRef col : mpColList) {
+            if (null == mpValues.get(col)) {
+                throw new IllegalStateException(
+                        "Invalid. Missing muti-level partition condition on column: " + col);
+            }
+            mpValueList.add(mpValues.get(col));
+        }
+
+        String[] result = new String[mpValueList.size()];
+        return mpValueList.toArray(result);
+    }
+
+    private void checkQueryConditions(List<TblColRef> mpCols, Set<TblColRef> querySingleValueCols) {
+        if (querySingleValueCols.containsAll(mpCols) == false) {
+            throw new IllegalStateException(
+                    "Invalid query, multi-level partitioned query must provide all partition values as '=' filter condition. Missing "
+                            + mpCols.removeAll(querySingleValueCols));
+        }
+    }
+
+    private Map<TblColRef, String> extractMPValues(List<TblColRef> colList, Set<CompareTupleFilter> compFilterSet) {
+        Map<TblColRef, String> tblMap = new HashMap<TblColRef, String>();
+        for (CompareTupleFilter compFilter : compFilterSet) {
+            TblColRef tblColRef = compFilter.getColumn();
+            if (colList.contains(tblColRef)) {
+                tblMap.put(tblColRef, compFilter.getFirstValue().toString());
+            }
+        }
+
+        return tblMap;
     }
 
     protected boolean skipZeroInputSegment(CubeSegment cubeSegment) {

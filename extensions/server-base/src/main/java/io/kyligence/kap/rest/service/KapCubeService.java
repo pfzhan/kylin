@@ -26,28 +26,37 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
+import org.apache.kylin.cube.model.CubeBuildTypeEnum;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.response.HBaseResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.CubeService;
+import org.apache.kylin.rest.service.JobService;
+import org.apache.kylin.rest.service.ProjectService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,14 +64,19 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.mp.MPCubeManager;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
@@ -74,12 +88,25 @@ public class KapCubeService extends BasicService implements InitializingBean {
     private static final Logger logger = LoggerFactory.getLogger(KapCubeService.class);
 
     protected Cache<String, ColumnarResponse> columnarInfoCache = CacheBuilder.newBuilder().build();
+
+    @Autowired
+    @Qualifier("jobService")
+    private JobService jobService;
+
     @Autowired
     @Qualifier("cubeMgmtService")
     private CubeService cubeService;
 
     @Autowired
+    @Qualifier("projectService")
+    private ProjectService projectService;
+
+    @Autowired
     AclEvaluate aclEvaluate;
+
+    public MPCubeManager getMPCubeManager() {
+        return MPCubeManager.getInstance(getConfig());
+    }
 
     private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
         final KapConfig kapConfig = KapConfig.wrap(segment.getConfig());
@@ -90,7 +117,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
         }
 
         logger.debug("Loading TableIndex info " + segment + ", " + segStoragePath);
-        
+
         RawTableManager rawTableManager = RawTableManager.getInstance(segment.getConfig());
         RawTableInstance raw = rawTableManager.getAccompanyRawTable(segment.getCubeInstance());
 
@@ -118,7 +145,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
                 RawTableSegment rawSegment = rawSegs.get(0);
                 if (kapConfig.isParquetSeparateFsEnabled()) {
                     rawSegmentDir = ColumnarStorageUtils.getLocalSegmentDir(
-                            rawSegment.getConfig(), KapConfig.wrap(segment.getConfig()).getParquetFileSystem(),
+                            KapConfig.wrap(segment.getConfig()).getParquetFileSystem(),
                             rawSegment.getRawTableInstance(), rawSegment);
                 } else {
                     rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
@@ -167,34 +194,6 @@ public class KapCubeService extends BasicService implements InitializingBean {
         return newCube;
     }
 
-    public List<ColumnarResponse> getAllColumnarInfo(CubeInstance cube) {
-        aclEvaluate.hasProjectReadPermission(cube.getProjectInstance());
-        List<ColumnarResponse> columnar = new ArrayList<>();
-        final KylinConfig config = cube.getConfig();
-        final KapConfig kapConfig = KapConfig.wrap(config);
-        for (CubeSegment segment : cube.getSegments()) {
-            String storagePath;
-            if (kapConfig.isParquetSeparateFsEnabled()) {
-                storagePath = ColumnarStorageUtils.getLocalSegmentDir(config, kapConfig.getParquetFileSystem(), cube, segment);
-            } else {
-                storagePath = ColumnarStorageUtils.getSegmentDir(config, cube, segment);
-            }
-
-            ColumnarResponse info;
-            try {
-                info = getColumnarInfo(storagePath, segment);
-            } catch (IOException ex) {
-                logger.error("Can't get columnar info, cube {}, segment {}:", cube, segment);
-                logger.error("{}", ex);
-                continue;
-            }
-
-            columnar.add(info);
-        }
-
-        return columnar;
-    }
-
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
         return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath())
                 .append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/")
@@ -231,4 +230,198 @@ public class KapCubeService extends BasicService implements InitializingBean {
         }
     }
 
+    public JobInstance mergeSegment(String cubeName, List<String> selectedSegments, boolean force) throws IOException {
+        CubeInstance cube = getCubeManager().getCube(cubeName);
+        Segments<CubeSegment> segs = new Segments<>();
+        for (CubeSegment s : cube.getSegments()) {
+            if (selectedSegments.contains(s.getName())) {
+                if (s.getStatus() != SegmentStatusEnum.READY)
+                    throw new IllegalArgumentException("Segment " + s + " is not in READY state and cannot be merged");
+                segs.add(s);
+            }
+        }
+
+        if (segs.size() < 2)
+            throw new IllegalArgumentException("" + segs.size() + " segment selected, cannot merge");
+
+        Collections.sort(segs);
+        CubeSegment first = segs.get(0);
+        CubeSegment last = segs.get(segs.size() - 1);
+
+        String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        if (first.isOffsetCube()) {
+            SegmentRange range = new SegmentRange(first.getSegRange().start, last.getSegRange().end);
+            return jobService.submitJob(cube, null, range, null, null, CubeBuildTypeEnum.MERGE, force, submitter);
+        } else {
+            TSRange range = new TSRange(first.getTSRange().start.v, last.getTSRange().end.v);
+            return jobService.submitJob(cube, range, null, null, null, CubeBuildTypeEnum.MERGE, force, submitter);
+        }
+    }
+
+    public List<JobInstance> refreshSegments(String cubeName, List<String> selectedSegments) throws IOException {
+        List<JobInstance> ret = new ArrayList<>();
+        String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        CubeInstance cube = getCubeManager().getCube(cubeName);
+        for (CubeSegment s : cube.getSegments()) {
+            if (selectedSegments.contains(s.getName())) {
+                JobInstance job;
+                if (s.isOffsetCube()) {
+                    job = jobService.submitJob(cube, null, s.getSegRange(), null, null, CubeBuildTypeEnum.REFRESH, true,
+                            submitter);
+                } else {
+                    job = jobService.submitJob(cube, s.getTSRange(), null, null, null, CubeBuildTypeEnum.REFRESH, true,
+                            submitter);
+                }
+                ret.add(job);
+            }
+        }
+        return ret;
+    }
+
+    public void dropSegments(String cubeName, List<String> selectedSegments) throws IOException {
+        CubeInstance cube = getCubeManager().getCube(cubeName);
+        for (String seg : selectedSegments) {
+            cubeService.deleteSegment(cube, seg);
+        }
+    }
+
+    public String getProjectOfCube(CubeInstance cube) {
+        return projectService.getProjectOfCube(cube.getName());
+    }
+
+    public long computeSegmentsStorage(CubeInstance cube, List<CubeSegment> segments) {
+        // TODO The logic of retrieving storage info should be extracted into Storage interface.
+        // TODO The info should be collected at the end of the cube build, really.
+
+        // It is intended to store info directly in CubeSegment.additionalInfo, such that
+        // 1) CubeSegment becomes a natural cache; 2) the info become persistent on next cube save.
+
+        long totalStorageSize = 0;
+
+        int storageType = cube.getStorageType();
+        if (storageType == IKapStorageAware.ID_SHARDED_PARQUET || storageType == IKapStorageAware.ID_SPLICE_PARQUET) {
+            for (CubeSegment seg : segments) {
+                if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.READY_PENDING)
+                    continue;
+
+                Map<String, String> addInfo = seg.getAdditionalInfo();
+                if (addInfo.containsKey("storageType")) {
+                    totalStorageSize += getLong(addInfo, "storageSizeBytes")
+                            + getLong(addInfo, "tableIndexStorageSizeBytes");
+                    continue;
+                }
+
+                String storagePath = ColumnarStorageUtils.getSegmentDir(cube, seg);
+
+                ColumnarResponse info;
+                try {
+                    info = getColumnarInfo(storagePath, seg);
+                } catch (IOException ex) {
+                    logger.error("Can't get columnar info, " + cube + ", " + seg + ":", ex);
+                    continue;
+                }
+
+                addInfo.put("storageType", "" + storageType);
+                addInfo.put("segmentPath", info.getSegmentPath());
+                addInfo.put("storageFileCount", "" + info.getFileCount());
+                addInfo.put("storageSizeBytes", "" + info.getStorageSize());
+                addInfo.put("tableIndexSegmentPath", info.getRawTableSegmentPath());
+                addInfo.put("tableIndexFileCount", "" + info.getRawTableFileCount());
+                addInfo.put("tableIndexStorageSizeBytes", "" + info.getRawTableStorageSize());
+
+                totalStorageSize += info.getStorageSize() + info.getRawTableStorageSize();
+            }
+        } else {
+            for (CubeSegment seg : segments) {
+                if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.READY_PENDING)
+                    continue;
+
+                Map<String, String> addInfo = seg.getAdditionalInfo();
+                if (addInfo.containsKey("storageType")) {
+                    totalStorageSize += getLong(addInfo, "storageSizeBytes");
+                    continue;
+                }
+
+                HBaseResponse info;
+                try {
+                    info = cubeService.getHTableInfo(cube.getName(), seg.getStorageLocationIdentifier());
+                } catch (IOException e) {
+                    logger.error("Failed to calculate size of HTable '" + seg.getStorageLocationIdentifier() + "'.", e);
+                    continue;
+                }
+
+                addInfo.put("storageType", "" + storageType);
+                addInfo.put("storageSizeBytes", "" + fixHBaseSmallTableSize(info, seg));
+                addInfo.put("hbaseTableName", seg.getStorageLocationIdentifier());
+                addInfo.put("hbaseRegionCount", "" + info.getRegionCount());
+
+                totalStorageSize += info.getTableSize();
+            }
+        }
+
+        return totalStorageSize / 1024;
+    }
+
+    // HBase API returns table size in MB and that could be 0 for small cube under 1 MB
+    private long fixHBaseSmallTableSize(HBaseResponse info, CubeSegment seg) {
+        long bytes = info.getTableSize();
+        if (bytes == 0)
+            bytes = seg.getSizeKB() * 1024; // use the size tracked during build time instead
+        return bytes;
+    }
+
+    private long getLong(Map<String, String> addInfo, String key) {
+        String str = addInfo.get(key);
+        if (str == null)
+            return 0;
+        else
+            return Long.parseLong(str);
+    }
+
+    public void computeSegmentsOperativeFlags(CubeInstance cube, List<CubeSegment> segments) {
+        for (CubeSegment seg : segments) {
+            boolean op = cube.getSegments().isOperative(seg);
+            seg.getAdditionalInfo().put("tmp_op_flag", "" + op);
+        }
+    }
+
+    public void checkEnableCubeCondition(CubeInstance cube) {
+        aclEvaluate.hasProjectWritePermission(cube.getProjectInstance());
+        Message msg = MsgPicker.getMsg();
+        String cubeName = cube.getName();
+
+        RealizationStatusEnum ostatus = cube.getStatus();
+
+        Segments<CubeSegment> segments = new Segments<CubeSegment>();
+
+        MPCubeManager mgr = MPCubeManager.getInstance(getConfig());
+
+        List<CubeInstance> mpcubeList = Lists.newArrayList();
+        if (mgr.isCommonCube(cube)) {
+            segments.addAll(cube.getSegments());
+        } else if (mgr.isMPMaster(cube)) {
+            mpcubeList = mgr.listAllMPCubes(cubeName);
+        } else {
+            throw new IllegalArgumentException(cube + " must not be a MPCube");
+        }
+
+        for (CubeInstance mpcube : mpcubeList) {
+            segments.addAll(mpcube.getSegments());
+        }
+
+        if (!cube.getStatus().equals(RealizationStatusEnum.DISABLED)) {
+            throw new BadRequestException(String.format(msg.getENABLE_NOT_DISABLED_CUBE(), cubeName, ostatus));
+        }
+
+        if (segments.getSegments(SegmentStatusEnum.READY).size() == 0) {
+            throw new BadRequestException(String.format(msg.getNO_READY_SEGMENT(), cubeName));
+        }
+
+        if (!cube.getDescriptor().checkSignature()) {
+            throw new BadRequestException(
+                    String.format(msg.getINCONSISTENT_CUBE_DESC_SIGNATURE(), cube.getDescriptor()));
+        }
+    }
 }

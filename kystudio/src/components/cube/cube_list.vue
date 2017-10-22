@@ -22,21 +22,21 @@
     <el-table-column type="expand" width="30">
       <template scope="props">
         <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">
-          <el-tab-pane label="Grid" name="first" v-if="!props.row.is_draft">
+          <el-tab-pane label="Overview" name="first" v-if="!props.row.is_draft">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
           </el-tab-pane>
-          <el-tab-pane label="SQL Patterns" name="second" v-if="!props.row.is_draft">
+          <el-tab-pane label="Segments" name="second" v-if="!props.row.is_draft">
+            <segments :cube="props.row" v-on:addSegTabs="addSegTabs"></segments>
+          </el-tab-pane>
+          <el-tab-pane label="SQL Patterns" name="third" v-if="!props.row.is_draft">
             <show_sql :cube="props.row"></show_sql>
           </el-tab-pane>
-          <el-tab-pane label="JSON" name="third" v-if="!props.row.is_draft">
+          <el-tab-pane label="JSON" name="forth" v-if="!props.row.is_draft">
             <show_json :json="props.row.desc" ></show_json>
           </el-tab-pane>
           <!-- <el-tab-pane label="Access" name="fourth" v-if="!props.row.is_draft">
             <access_edit  :accessId="props.row.uuid" own='cube'></access_edit>
           </el-tab-pane> -->
-          <el-tab-pane :label="$t('storage')" name="fifth" v-if="!props.row.is_draft">
-            <segments :cube="props.row"></segments>
-          </el-tab-pane>
         </el-tabs>
       </template>
     </el-table-column>
@@ -72,8 +72,7 @@
             {{$t('sourceTableSize')}}{{scope.row.input_records_size|dataSize}}<br/>
             {{$t('expansionRate')}}{{(scope.row.input_records_size>0? scope.row.size_kb*1024/scope.row.input_records_size : 0) * 100 | number(2)}}%
           </div>
-          <span>{{(totalSizeList[scope.row.name]||0) | dataSize}}</span>
-
+          <span>{{scope.row.total_storage_size_kb * 1024 | dataSize}}</span>
         </el-tooltip>
       </template>
     </el-table-column>
@@ -115,50 +114,56 @@
           </el-button>
           <el-dropdown-menu slot="dropdown">
             <el-dropdown-item @click.native="openValidateSql(scope.row)" v-show="!scope.row.is_draft">{{$t('kylinLang.common.verifySql')}}</el-dropdown-item>
+
             <el-dropdown-item v-show="scope.row.status !=='READY' && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="drop(scope.row)">{{$t('drop')}}</el-dropdown-item>
+
             <el-dropdown-item @click.native="edit(scope.row)" v-show="isAdmin || hasSomePermissionOfProject(selected_project)">{{$t('edit')}}</el-dropdown-item>
+<!--             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="manage(scope.row)">{{$t('manage')}}</el-dropdown-item> -->
             <el-dropdown-item v-show="scope.row.status !== 'DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="build(scope.row)">{{$t('build')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!=='DISABLED' && scope.row.status!=='DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="refresh(scope.row)">{{$t('refresh')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status!== 'DESCBROKEN'&& !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) " @click.native="merge(scope.row)">{{$t('merge')}}</el-dropdown-item>
+
             <el-dropdown-item v-show="scope.row.status=='DISABLED' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="enable(scope.row.name)">{{$t('enable')}}</el-dropdown-item>
+
             <el-dropdown-item v-show="scope.row.status ==='READY' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="disable(scope.row.name)">{{$t('disable')}}</el-dropdown-item>
-            <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="purge(scope.row.name)">{{$t('purge')}}</el-dropdown-item>
+
+
+            <el-dropdown-item v-show="scope.row.status==='DISABLED' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="purge(scope.row)">{{$t('purge')}}</el-dropdown-item>
+
             <el-dropdown-item v-show="scope.row.status!=='DESCBROKEN' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))" @click.native="clone(scope.row)">{{$t('clone')}}</el-dropdown-item>
 
             <el-dropdown-item @click.native="view(scope.row)" v-show="isAdmin||hasSomePermissionOfProject(selected_project)" style="border-top:solid 1px rgb(68, 75, 103)">{{$t('viewCube')}}</el-dropdown-item>
             <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project))  ">{{$t('backup')}}</el-dropdown-item>
-            <el-dropdown-item v-show="isAdmin || hasSomePermissionOfProject(selected_project)" @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
+
+            <el-dropdown-item @click.native="editCubeDesc(scope.row)" v-show="scope.row.status==='DISABLED' && !scope.row.is_draft && (isAdmin || hasSomePermissionOfProject(selected_project))">{{$t('editCubeDesc')}}</el-dropdown-item>
             </el-dropdown-menu>
         </el-dropdown>
       </template>
     </el-table-column>
-   <!--  <el-table-column
-      sortable
-      label="Admin">
-      <template scope="scope">
-      <span v-show="!isAdmin"> N/A</span>
-        <el-dropdown trigger="click" v-show="isAdmin">
-          <el-button class="el-dropdown-link">
-            <i class="el-icon-more"></i>
-          </el-button >
-          <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-show="scope.row.status==='DISABLED' " @click.native="editCubeDesc(scope.row)">{{$t('editCubeDesc')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="view(scope.row)">{{$t('viewCube')}}</el-dropdown-item>
-            <el-dropdown-item @click.native="backup(scope.row.name)" v-show="!scope.row.is_draft ">{{$t('backup')}}</el-dropdown-item>
-          </el-dropdown-menu>
-        </el-dropdown>
-      </template>
-    </el-table-column> -->
   </el-table>
    <pager ref="pager"  :totalSize="totalCubes"  v-on:handleCurrentChange='currentChange' ></pager>
 
   <div class="null_pic_box" v-if="!(cubesList && cubesList.length)"><img src="../../assets/img/no_cube.png" class="null_pic_2"></div>
 
-  <el-dialog :title="$t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField">
+  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildCubeFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" @click="checkBuildCubeForm">{{$t('yes')}}</el-button>
+    </div>
+  </el-dialog>
+
+  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubeBuildConfirm')" v-model="buildFullCubeVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+    {{selected_cube.name}}{{$t('cubeFullBuild')}}
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="buildFullCubeVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" @click="buildFullCube">{{$t('kylinLang.common.continue')}}</el-button>
+    </div>
+  </el-dialog>
+
+  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubePurgeConfirm')" v-model="purgeCubeFormVisible" @close="resetCubePurgeField" :close-on-press-escape="false" :close-on-click-modal="false">
+    <purge_cube :cubeDesc="selected_cube" ref="purgeCubeForm" v-on:validSuccess="purgeCubeValidSuccess"></purge_cube>
+    <div slot="footer" class="dialog-footer">
+      <el-button @click="purgeCubeFormVisible = false">{{$t('cancel')}}</el-button>
+      <el-button type="primary" @click="checkPurgeCubeForm">{{$t('yes')}}</el-button>
     </div>
   </el-dialog>
 
@@ -170,21 +175,6 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="$t('cubeMergeConfirm')" v-model="mergeCubeFormVisible">
-    <merge_cube :cubeDesc="selected_cube" ref="mergeCubeForm" v-on:validSuccess="mergeCubeValidSuccess"></merge_cube>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="mergeCubeFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkMergeCubeForm">{{$t('yes')}}</el-button>
-    </div>
-  </el-dialog>
-
-  <el-dialog :title="$t('cubeRefreshConfirm')" v-model="refreshCubeFormVisible">
-    <refresh_cube :cubeDesc="selected_cube" ref="refreshCubeForm" v-on:validSuccess="refreshCubeValidSuccess"></refresh_cube>
-    <div slot="footer" class="dialog-footer">
-      <el-button @click="refreshCubeFormVisible = false">{{$t('cancel')}}</el-button>
-      <el-button type="primary" @click="checkRefreshCubeForm">{{$t('yes')}}</el-button>
-    </div>
-  </el-dialog>
    <!-- 添加cube -->
 
     <el-dialog class="add-m" title="Add Cube" v-model="createCubeVisible" size="tiny" @close="resetCubeForm">
@@ -265,9 +255,8 @@ import segments from './segments'
 import cubeDescView from './view/cube_desc_view'
 import buildCube from './dialog/build_cube'
 import cloneCube from './dialog/clone_cube'
-import mergeCube from './dialog/merge_cube'
+import purgeCube from './dialog/purge_cube'
 import accessEdit from '../project/access_edit'
-import refreshCube from './dialog/refresh_cube'
 import { handleSuccess, handleError, transToGmtTimeAfterAjax, hasRole, hasPermission, kapConfirm, filterMutileSqlsToOneLine } from '../../util/business'
 import { objectClone } from '../../util/index'
 export default {
@@ -291,9 +280,9 @@ export default {
       totalCubes: 0,
       createCubeVisible: false,
       buildCubeFormVisible: false,
+      buildFullCubeVisible: false,
       cloneCubeFormVisible: false,
-      mergeCubeFormVisible: false,
-      refreshCubeFormVisible: false,
+      purgeCubeFormVisible: false,
       selected_cube: {},
       selected_project: this.$store.state.project.selected_project,
       filterCube: '',
@@ -323,8 +312,7 @@ export default {
     'cube_desc_view': cubeDescView,
     'build_cube': buildCube,
     'clone_cube': cloneCube,
-    'merge_cube': mergeCube,
-    'refresh_cube': refreshCube,
+    'purge_cube': purgeCube,
     'access_edit': accessEdit
   },
   watch: {
@@ -351,8 +339,6 @@ export default {
       deleteScheduler: 'DELETE_SCHEDULER',
       loadModels: 'LOAD_ALL_MODEL',
       loadCubeDesc: 'LOAD_CUBE_DESC',
-      getHbaseInfo: 'GET_HBASE_INFO',
-      getColumnarInfo: 'GET_COLUMNAR_INFO',
       verifyCubeSql: 'VERIFY_CUBE_SQL'
     }),
     sqlClose () {
@@ -510,18 +496,6 @@ export default {
         this.loadCubesList(this.currentPage - 1)
       }, 1000)
     },
-    segmentsSize (segments) {
-      let totalSize = 0
-      if (segments) {
-        segments.forEach(function (segment) {
-          totalSize += segment.storageSize
-          if (segment.rawTableStorageSize) {
-            totalSize += segment.rawTableStorageSize
-          }
-        })
-      }
-      return totalSize
-    },
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {
         callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -594,6 +568,7 @@ export default {
       let timeZone = localStorage.getItem('GlobalSeverTimeZone') ? localStorage.getItem('GlobalSeverTimeZone') : ''
       this.getCubesList(param).then((res) => {
         handleSuccess(res, (data) => {
+          this.totalCubes = data.size
           this.cubesList = data.cubes.map((p) => {
             if (!p.is_draft) {
               cubesNameList.push(p.name)
@@ -604,46 +579,6 @@ export default {
             }
             return p
           })
-          this.totalCubes = data.size
-          if (cubesNameList.length > 0) {
-            cubesNameList.forEach((cubename) => {
-              // this.totalSizeList[cubename] = 0
-              this.loadCubeDesc({cubeName: cubename, project: this.selected_project}).then((res) => {
-                var innerCubeName = cubename
-                handleSuccess(res, (data) => {
-                  if (data.cube && (data.cube.storage_type === 100 || data.cube.storage_type === 99)) {
-                    this.getColumnarInfo(innerCubeName).then((res) => {
-                      handleSuccess(res, (data) => {
-                        let totalSize = 0
-                        if (data[0]) {
-                          data[0].forEach(function (segment) {
-                            totalSize += segment.storageSize
-                            if (segment.rawTableStorageSize) {
-                              totalSize += segment.rawTableStorageSize
-                            }
-                          })
-                        }
-                        this.$set(this.totalSizeList, innerCubeName, totalSize)
-                      })
-                    })
-                  } else {
-                    this.getHbaseInfo(innerCubeName).then((res) => {
-                      handleSuccess(res, (data) => {
-                        let totalSize = 0
-                        data.forEach(function (segment) {
-                          totalSize += segment.tableSize
-                          if (segment.rawTableStorageSize) {
-                            totalSize += segment.rawTableStorageSize
-                          }
-                        })
-                        this.$set(this.totalSizeList, innerCubeName, totalSize)
-                      })
-                    })
-                  }
-                })
-              })
-            })
-          }
         })
       }, (res) => {
         handleError(res)
@@ -701,7 +636,7 @@ export default {
               this.$message({
                 type: 'success',
                 message: this.$t('kylinLang.common.submitSuccess'),
-                duration: 3000
+                showClose: true
               })
               this.loadCubesList(this.currentPage - 1)
             })
@@ -713,23 +648,25 @@ export default {
         if (cube.partitionDateColumn) {
           this.buildCubeFormVisible = true
         } else {
-          kapConfirm(this.$t('buildCube')).then(() => {
-            let time = {buildType: 'BUILD', startTime: 0, endTime: 0}
-            this.rebuildCube({cubeName: cube.name, timeZone: time}).then((res) => {
-              handleSuccess(res, (data) => {
-                this.$message({
-                  type: 'success',
-                  message: this.$t('kylinLang.common.submitSuccess'),
-                  duration: 3000
-                })
-                this.loadCubesList(this.currentPage - 1)
-              })
-            }, (res) => {
-              handleError(res)
-            })
-          })
+          this.buildFullCubeVisible = true
         }
       }
+    },
+    buildFullCube: function () {
+      let time = {buildType: 'BUILD', startTime: 0, endTime: 0}
+      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('kylinLang.common.submitSuccess'),
+            duration: 3000
+          })
+          this.loadCubesList(this.currentPage - 1)
+        })
+      }, (res) => {
+        handleError(res)
+      })
+      this.buildFullCubeVisible = false
     },
     resetCubeBuildField: function () {
       this.$refs['buildCubeForm'].$emit('resetBuildCubeForm')
@@ -738,7 +675,7 @@ export default {
       this.$refs['buildCubeForm'].$emit('buildCubeFormValid')
     },
     buildCubeValidSuccess: function (data, isFullBuild) {
-      let time = {buildType: 'BUILD', startTime: data.start, endTime: data.end}
+      let time = {buildType: 'BUILD', startTime: data.start, endTime: data.end, mpValues: data.mpValues}
       this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
         handleSuccess(res, (data) => {
           this.$message({
@@ -753,62 +690,13 @@ export default {
       })
       this.buildCubeFormVisible = false
     },
-    refresh: function (cube) {
-      if (!(cube.segments && cube.segments.length >= 0)) {
-        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
-        return
-      }
-      this.selected_cube = cube
-      this.refreshCubeFormVisible = true
-    },
-    checkRefreshCubeForm: function () {
-      this.$refs['refreshCubeForm'].$emit('refreshCubeFormValid')
-    },
-    refreshCubeValidSuccess: function (data, noFullBuild) {
-      if (!noFullBuild) {
-        data.date_range_end = 0
-      }
-      let time = {buildType: 'REFRESH', startTime: data.date_range_start, endTime: data.date_range_end}
-      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('refreshSuccessful'),
-            duration: 3000
-          })
-          this.loadCubesList(this.currentPage - 1)
-        })
-      }, (res) => {
-        handleError(res)
+    manage: function (cube) {
+      this.$emit('addtabs', 'manage', cube.name, 'cubeManage', {
+        project: cube.project,
+        cubeName: cube.name,
+        cubeDesc: cube,
+        type: 'manage'
       })
-      this.refreshCubeFormVisible = false
-    },
-    merge: function (cube) {
-      if (!(cube.segments && cube.segments.length >= 0)) {
-        this.$message(this.$t('kylinLang.cube.cubeHasJob'))
-        return
-      }
-      this.selected_cube = cube
-      this.mergeCubeFormVisible = true
-    },
-    checkMergeCubeForm: function () {
-      this.$refs['mergeCubeForm'].$emit('mergeCubeFormValid')
-    },
-    mergeCubeValidSuccess: function (data) {
-      let time = {buildType: 'MERGE', startTime: data.date_range_start, endTime: data.date_range_end}
-      this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('mergeSuccessful'),
-            duration: 3000
-          })
-          this.loadCubesList(this.currentPage - 1)
-        })
-      }, (res) => {
-        handleError(res)
-      })
-      this.mergeCubeFormVisible = false
     },
     enable: function (cubeName) {
       kapConfirm(this.$t('enableCube')).then(() => {
@@ -842,21 +730,30 @@ export default {
         })
       })
     },
-    purge: function (cubeName) {
-      kapConfirm(this.$t('purgeCube')).then(() => {
-        this.purgeCube(cubeName).then((res) => {
-          handleSuccess(res, (data) => {
-            this.$message({
-              type: 'success',
-              message: this.$t('purgeSuccessful'),
-              duration: 3000
-            })
-            this.loadCubesList(this.currentPage - 1)
+    purge: function (cube) {
+      this.selected_cube = cube
+      this.purgeCubeFormVisible = true
+    },
+    checkPurgeCubeForm: function () {
+      this.$refs['purgeCubeForm'].$emit('purgeCubeFormValid')
+    },
+    purgeCubeValidSuccess: function (data) {
+      this.purgeCube({name: this.selected_cube.name, values: data.mpValues}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.$message({
+            type: 'success',
+            message: this.$t('purgeSuccessful'),
+            duration: 3000
           })
-        }, (res) => {
-          handleError(res)
+          this.loadCubesList(this.currentPage - 1)
         })
+      }, (res) => {
+        handleError(res)
       })
+      this.purgeCubeFormVisible = false
+    },
+    resetCubePurgeField: function () {
+      this.$refs['purgeCubeForm'].$emit('resetPurgeCubeForm')
     },
     clone: function (cube) {
       this.selected_cube = cube
@@ -908,15 +805,18 @@ export default {
         })
       })
     },
+    addSegTabs: function (data) {
+      this.$emit('addtabs', 'Segment', 'Segment[' + data.name.substr(0, 14) + '...]', 'cubeSegment', data)
+    },
     currentChange: function (value) {
       this.currentPage = value
       this.loadCubesList(value - 1)
     },
     changeTab: function (tab) {
-      if (tab.$data.index === '1') {
+      if (tab.label === 'SQL Patterns') {
         tab.$children[0].loadCubeSql()
       }
-      if (tab.$data.index === '3') {
+      if (tab.label === 'Segments') {
         tab.$children[0].loadSegments()
       }
     },
@@ -961,9 +861,9 @@ export default {
   },
   computed: {
     modelsList () {
-      var allModels = objectClone(this.allModels)
-      allModels.push({name: 'ALL'})
-      return allModels
+      var models = objectClone(this.allModels)
+      models.push({name: 'ALL'})
+      return models
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
@@ -973,8 +873,8 @@ export default {
     }
   },
   locales: {
-    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Actions', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup', storage: 'Storage', updateTime: 'Update Time', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successful!', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successful!', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successful!', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successful!', cubeBuildConfirm: 'CUBE BUILD CONFIRM', cubeRefreshConfirm: 'CUBE Refresh Confirm', refreshSuccessful: 'Refresh the cube successful!', cubeMergeConfirm: 'CUBE Merge Confirm', mergeSuccessful: 'Merge the cube successful!', cubeCloneConfirm: 'CUBE Clone Confirm', cloneSuccessful: 'Clone the cube successful!', chooseModel: 'choose model to filter', verifyModelTip1: '1. This function will help you to verify if the cube can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this cube.'},
-    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: '存储空间', sourceTableSize: '源表大小：', expansionRate: '膨胀率：', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份', storage: '存储', updateTime: '更新时间', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功!', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功!', purgeCube: '确定要清空此Cube?', purgeSuccessful: '清理cube成功!', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功!', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功!', cubeBuildConfirm: 'Cube构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功!', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功!', chooseModel: '选择model过滤', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本Cube回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“；”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本Cube验证。'}
+    'en': {name: 'Name', model: 'Model', status: 'Status', cubeSize: 'Cube Size', sourceTableSize: 'Source Table Size: ', expansionRate: 'Expansion Rate: ', sourceRecords: 'Source Records', lastBuildTime: 'Last Build Time', owner: 'Owner', createTime: 'Create Time', actions: 'Actions', drop: 'Drop', edit: 'Edit', build: 'Build', merge: 'Merge', refresh: 'Refresh', enable: 'Enable', purge: 'Purge', clone: 'Clone', disable: 'Disable', editCubeDesc: 'Edit CubeDesc', viewCube: 'View Cube', backup: 'Backup', segments: 'Segments', updateTime: 'Update Time', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', deleteSuccessful: 'Delete the cube successfully.', deleteCube: 'Once it\'s deleted, your cube\'s metadata and data will be cleaned up and can\'t be restored back. ', enableCube: 'Are you sure to enable the cube? Please note: if cube schema is changed in the disabled period, all segments of the cube will be discarded due to data and schema mismatch.', enableSuccessful: 'Enable the cube successfully.', disableCube: 'Are you sure to disable the cube?', disableSuccessful: 'Disable the cube successfully.', purgeSuccessful: 'Purge the cube successfully.', backupCube: 'Are you sure to backup ?', backupSuccessful: 'Backup the cube successful!', buildCube: 'Are you sure to start the build?', buildSuccessful: 'Build the cube successfully.', cubeBuildConfirm: 'Build Confirm', cubeCloneConfirm: 'Cube Clone Confirm', cloneSuccessful: 'Clone the cube successfully.', chooseModel: 'choose model to filter', verifyModelTip1: '1. This function will help you to verify if the cube can answer following SQL statements.', verifyModelTip2: '2. Multiple SQL statements will be separated by ";".', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this cube.', cubeFullBuild: ' will be full build, are you sure to continue?', cubePurgeConfirm: 'Purge Confirm'},
+    'zh-cn': {name: '名称', model: '模型', status: '状态', cubeSize: '存储空间', sourceTableSize: '源表大小：', expansionRate: '膨胀率：', sourceRecords: '源数据条目', lastBuildTime: '最后构建时间', owner: '所有者', createTime: '创建时间', actions: '操作', drop: '删除', edit: '编辑', build: '构建', merge: '合并', refresh: '刷新', enable: '启用', purge: '清理', clone: '克隆', disable: '禁用', editCubeDesc: '编辑 Cube详细信息', viewCube: '查看 Cube', backup: '备份', segments: 'Segments', updateTime: '更新时间', tip: '提示', cancel: '取消', yes: '确定', deleteSuccessful: '删除cube成功!', deleteCube: '删除后, Cube定义及数据会被清除, 且不能恢复.', enableCube: '请注意, 如果在禁用期间, Cube的元数据发生改变, 所有的Segment会被丢弃. 确定要启用Cube?', enableSuccessful: '启用cube成功。', disableCube: '确定要禁用此Cube? ', disableSuccessful: '禁用cube成功。', purgeSuccessful: '清理cube成功。', backupCube: '确定要备份此Cube? ', backupSuccessful: '备份cube成功。', buildCube: '确定要构建此Cube?', buildSuccessful: '构建cube成功。', cubeBuildConfirm: '构建确认', cubeRefreshConfirm: 'Cube刷新确认', refreshSuccessful: '刷新Cube成功!', cubeMergeConfirm: 'Cube合并确认', mergeSuccessful: '合并Cube成功。', cubeCloneConfirm: 'Cube克隆确认', cloneSuccessful: '克隆Cube成功。', chooseModel: '选择model过滤', verifyModelTip1: '1. 系统将帮助您检验以下SQL是否能被本Cube回答。', verifyModelTip2: '2. 输入多条SQL语句时将以“;”作为分隔。', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本Cube验证。', cubeFullBuild: '将被全量构建，您确定要继续吗？', cubePurgeConfirm: '清理确认'}
   }
 }
 </script>

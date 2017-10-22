@@ -65,8 +65,8 @@ export default {
     [types.DISABLE_CUBE]: function ({ commit }, cubeName) {
       return api.cube.disableCube(cubeName)
     },
-    [types.PURGE_CUBE]: function ({ commit }, cubeName) {
-      return api.cube.purgeCube(cubeName)
+    [types.PURGE_CUBE]: function ({ commit }, cube) {
+      return api.cube.purgeCube(cube)
     },
     [types.CLONE_CUBE]: function ({ commit }, cube) {
       return api.cube.cloneCube(cube)
@@ -85,6 +85,15 @@ export default {
     },
     [types.GET_HBASE_INFO]: function ({ commit }, cubeName) {
       return api.cube.getHbaseInfo(cubeName)
+    },
+    [types.GET_CUBE_SEGMENTS]: function ({ commit }, para) {
+      return api.cube.getCubeSegments(para)
+    },
+    [types.GET_MP_VALUES]: function ({ commit }, para) {
+      return api.cube.getMPValues(para)
+    },
+    [types.UPDATE_CUBE_SEGMENTS]: function ({ commit }, para) {
+      return api.cube.updateCubeSegments(para)
     },
     [types.SAVE_CUBE]: function ({ commit }, cube) {
       return api.cube.saveCube(cube)

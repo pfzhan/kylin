@@ -64,5 +64,6 @@ public class KapModelResponse extends KapModel {
             setPartitionDesc(PartitionDesc.getCopyOf(model.getPartitionDesc()));
         setCapacity(model.getCapacity());
         setComputedColumnDescs(model.getComputedColumnDescs());
+        setMutiLevelPartitionColStrs(model.getMutiLevelPartitionColStrs());
     }
 }

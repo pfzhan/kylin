@@ -40,7 +40,7 @@
                     </table>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('setting')" name="second">
-                 <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+                 <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :editLock="editLock"  :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
                 </el-tab-pane>
                 <el-tab-pane :label="$t('dimension')" name="third" >
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
@@ -128,7 +128,7 @@ export default {
   components: {
     'partition-column': partitionColumn
   },
-  props: ['modelInfo', 'compeleteModelId', 'actionMode', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect', 'sqlString'],
+  props: ['modelInfo', 'compeleteModelId', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'activeName', 'activeNameSub', 'tableList', 'selectTable', 'partitionSelect', 'sqlString'],
   methods: {
     ...mapActions({
       getAutoModelSql: 'GET_AUTOMODEL_SQL',
@@ -274,9 +274,6 @@ export default {
       })
       return obj
     },
-    // editModeDisabled () {
-    //   return this.editLock
-    // },
     menuActive () {
       return this.activeName
     },

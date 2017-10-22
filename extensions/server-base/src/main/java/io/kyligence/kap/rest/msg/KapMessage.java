@@ -75,12 +75,28 @@ public class KapMessage {
     public String getINVALID_CUBE_DEFINITION() {
         return "The cube definition is invalid.";
     }
+    
+    public String getMPCUBE_HATES_RAW_AND_SCHEDULER() {
+        return "Sorry, multi-level partitioned cube cannot work with Table Index and/or Scheduler at the moment.";
+    }
 
+    public String getMPMODEL_HATES_STREAMING() {
+        return "Sorry, multi-level partitioned model cannot work with Streaming at the moment.";
+    }
+    
+    public String getMPCUBE_REQUIRES_MPCOLS() {
+        return "Multi-level partitioned cube must select the primary partition column as normal dimension.";
+    }
+    
     // KAP Cube
     public String getRAW_SEG_SIZE_NOT_ONE() {
         return "There should be exactly one rawtable segment.";
     }
 
+    public String getRAW_SEG_SIZE_NOT_NULL() {
+        return "There should be exactly no rawtable segment.";
+    }
+    
     // KAP Table
     public String getHIVE_TABLE_LOAD_FAILED() {
         return "Failed to load hive databases/tables. Please click \"Hive Tables\" again.";

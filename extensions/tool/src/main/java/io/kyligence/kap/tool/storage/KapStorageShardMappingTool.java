@@ -55,7 +55,7 @@ public class KapStorageShardMappingTool {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         CubeInstance cube = CubeManager.getInstance(kylinConfig).getCube(cubeName);
         for (CubeSegment segment : cube.getSegments()) {
-            String segmentInfo = ColumnarStorageUtils.getSegmentDir(kylinConfig, cube, segment) + CUBE_INFO_NAME;
+            String segmentInfo = ColumnarStorageUtils.getSegmentDir(cube, segment) + CUBE_INFO_NAME;
 
             FileSystem fs = HadoopUtil.getFileSystem(segmentInfo);
             ObjectInputStream ois = new ObjectInputStream(fs.open(new Path(segmentInfo)));

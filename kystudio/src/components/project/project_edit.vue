@@ -61,28 +61,29 @@ export default {
       this.convertedProperties.push({key: '', value: ''})
     },
     checkProperty: function () {
-      let _this = this
       let alertMessage = false
-      _this.convertedProperties.forEach(function (property) {
-        if (property.key === '') {
-          _this.$message({
+      for (let i = 0; i < this.convertedProperties.length; i++) {
+        if (this.convertedProperties[i].key === '') {
+          this.$message({
             showClose: true,
             duration: 0,
-            message: _this.$t('checkCOKey'),
+            message: this.$t('checkCOKey'),
             type: 'error'
           })
           alertMessage = true
+          break
         }
-        if (property.value === '') {
-          _this.$message({
+        if (this.convertedProperties[i].value === '') {
+          this.$message({
             showClose: true,
             duration: 0,
-            message: _this.$t('checkCOValue'),
+            message: this.$t('checkCOValue'),
             type: 'error'
           })
           alertMessage = true
+          break
         }
-      })
+      }
       return alertMessage
     }
   },

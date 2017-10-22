@@ -10,8 +10,11 @@
       <p class="tips_box" style="margin-top: 10px;color: #9095ab;">{{$t('tips')}}</p>
       <p class="ksd-right">
         <el-form :inline="true" class="demo-form-inline">
+          <el-form-item>
+            <el-checkbox v-model="hasLimit" @change="changeLimit"></el-checkbox>   
+          </el-form-item>      
           <el-form-item label="Limit">
-            <el-input  placeholder="" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
+            <el-input  placeholder="" style="width:90px;" v-model="listRows" class="limit-input" :disabled="!hasLimit"></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
@@ -147,6 +150,7 @@ export default {
   },
   data () {
     return {
+      hasLimit: true,
       listRows: 50000,
       activeMenu: 'first',
       tabCount: 0,
@@ -349,6 +353,13 @@ export default {
         editor.focus()
         editor.insert(tipsName)
         this.sourceSchema = editor.getValue()
+      }
+    },
+    changeLimit () {
+      if (this.hasLimit) {
+        this.listRows = 50000
+      } else {
+        this.listRows = 0
       }
     },
     submitQuery () {

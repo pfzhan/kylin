@@ -404,9 +404,12 @@
         return this.loadJobsList(this.filter)
       },
       sortJobList (column, prop, order) {
+        console.log(column, prop, order)
         let _column = column.column
         if (_column.order === 'ascending') {
           this.filter.reverse = false
+        } else {
+          this.filter.reverse = true
         }
         if (_column.label === this.$t('JobName')) {
           this.filter.sortby = 'job_name'

@@ -63,6 +63,18 @@ public class KapCnMessage extends KapMessage {
         return "查询结果文件不存在";
     }
 
+    public String getMPCUBE_HATES_RAW_AND_SCHEDULER() {
+        return "抱歉，多级分区Cube暂时无法和表索引或调度器一起工作";
+    }
+
+    public String getMPMODEL_HATES_STREAMING() {
+        return "抱歉，多级分区模型暂时无法处理流式数据";
+    }
+    
+    public String getMPCUBE_REQUIRES_MPCOLS() {
+        return "多级分区Cube必需将主分区列选为普通维度";
+    }
+    
     // Cube
     public String getCUBE_NOT_FOUND() {
         return "找不到 Cube '%s'";
@@ -78,7 +90,7 @@ public class KapCnMessage extends KapMessage {
 
     // KAP Cube
     public String getRAW_SEG_SIZE_NOT_ONE() {
-        return "至少应存在一个 rawtable segment";
+        return "至少应存在一个 表索引 segment";
     }
 
     // KAP Table
@@ -121,39 +133,39 @@ public class KapCnMessage extends KapMessage {
 
     // KAP Raw Table
     public String getINVALID_RAWTABLE_DEFINITION() {
-        return "非法 Rawtable 定义";
+        return "非法表索引定义";
     }
 
     public String getEMPTY_RAWTABLE_NAME() {
-        return "RawTable 名称不可为空";
+        return "表索引名称不可为空";
     }
 
     public String getRAWTABLE_ALREADY_EXIST() {
-        return "RawTable '%s' 已存在";
+        return "表索引 '%s' 已存在";
     }
 
     public String getRAWTABLE_NOT_FOUND() {
-        return "RawTable '%s' 不存在";
+        return "表索引 '%s' 不存在";
     }
 
     public String getRAW_DESC_RENAME() {
-        return "RawTable 不能被重命名: 新名称: '%s', 原名称: '%s'.";
+        return "表索引不能被重命名: 新名称: '%s', 原名称: '%s'.";
     }
 
     public String getRAWTABLE_SCHEMA_CHANGE_WITH_RUNNING_JOB() {
-        return "RawTable 存在正在运行的任务, 不能被修改";
+        return "表索引存在正在运行的任务, 不能被修改";
     }
 
     public String getRAWTABLE_HAS_RUNNING_JOB() {
-        return "RawTable 存在正在运行的任务, 请抛弃它们后重试";
+        return "表索引存在正在运行的任务, 请抛弃它们后重试";
     }
 
     public String getENABLE_NOT_DISABLED_RAWTABLE() {
-        return "仅 disabled 状态的 RawTable 可以被启用, '%s' 的状态是 %s";
+        return "仅 disabled 状态的表索引可以被启用, '%s' 的状态是 %s";
     }
 
     public String getRAWTABLE_NO_READY_SEGMENT() {
-        return "RawTable '%s' 不包含任何 READY 状态的 segment";
+        return "表索引 '%s' 不包含任何 READY 状态的 segment";
     }
 
     public String getRAWTABLE_ENABLE_WITH_RUNNING_JOB() {
@@ -161,15 +173,15 @@ public class KapCnMessage extends KapMessage {
     }
 
     public String getDISABLE_NOT_READY_RAWTABLE() {
-        return "仅 ready 状态的 rawTable 可以被禁用, '%s' 的状态是 %s";
+        return "仅 ready 状态的表索引可以被禁用, '%s' 的状态是 %s";
     }
 
     public String getRAWTABLE_DESC_NOT_FOUND() {
-        return "RawTable '%s' 不存在";
+        return "表索引 '%s' 不存在";
     }
 
     public String getRAWTABLE_RENAME() {
-        return "RawTable 不能被重命名";
+        return "表索引不能被重命名";
     }
 
     // Query

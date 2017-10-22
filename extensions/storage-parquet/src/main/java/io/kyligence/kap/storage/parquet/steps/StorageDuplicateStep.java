@@ -66,8 +66,8 @@ public class StorageDuplicateStep extends AbstractExecutable {
         CubeInstance cube = CubeManager.getInstance(kylinConfig).getCube(CubingExecutableUtil.getCubeName(this.getParams()));
         CubeSegment cubeSegment = cube.getSegmentById(CubingExecutableUtil.getSegmentId(this.getParams()));
 
-        String remotePath = ColumnarStorageUtils.getSegmentDir(kylinConfig, cube, cubeSegment);
-        String localPath = ColumnarStorageUtils.getLocalCubeDir(kylinConfig, fsPrefix, cube);
+        String remotePath = ColumnarStorageUtils.getSegmentDir(cube, cubeSegment);
+        String localPath = ColumnarStorageUtils.getLocalCubeDir(fsPrefix, cube);
         try {
             logger.info("copy cube files: from {} to {}", remotePath, localPath);
             DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath)));
@@ -80,8 +80,8 @@ public class StorageDuplicateStep extends AbstractExecutable {
         RawTableInstance raw = RawTableManager.getInstance(cubeSegment.getConfig()).getAccompanyRawTable(cubeSegment.getCubeInstance());
         if (null != raw) {
             RawTableSegment rawSegment = raw.getSegmentById(cubeSegment.getUuid());
-            remotePath = ColumnarStorageUtils.getSegmentDir(kylinConfig, raw, rawSegment);
-            localPath = ColumnarStorageUtils.getLocalRawtableDir(kylinConfig, fsPrefix, raw);
+            remotePath = ColumnarStorageUtils.getSegmentDir(raw, rawSegment);
+            localPath = ColumnarStorageUtils.getLocalRawtableDir(fsPrefix, raw);
             try {
                 logger.info("copy rawtable files: from {} to {}", remotePath, localPath);
                 DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath)));

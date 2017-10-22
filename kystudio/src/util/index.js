@@ -17,6 +17,14 @@ export function fromArrToObj (arr) {
   return obj
 }
 
+export function fromArrToObjArr (arr) {
+  let newArr = []
+  for (let item of arr) {
+    newArr.push({value: item})
+  }
+  return newArr
+}
+
 export function sampleGuid () {
   let randomNumber = ('' + Math.random()).replace(/\./, '')
   return (new Date()).getTime() + '_' + randomNumber

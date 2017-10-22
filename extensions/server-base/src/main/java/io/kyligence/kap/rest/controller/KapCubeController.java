@@ -29,15 +29,20 @@ import java.text.ParseException;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.RowKeyColDesc;
+import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -69,13 +74,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.mp.MPCubeManager;
 import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.KapCubeRequest;
-import io.kyligence.kap.rest.response.ColumnarResponse;
+import io.kyligence.kap.rest.response.KapCubeResponse;
 import io.kyligence.kap.rest.service.KapCubeService;
 import io.kyligence.kap.rest.service.RawTableService;
 import io.kyligence.kap.rest.service.SchedulerJobService;
@@ -118,35 +125,11 @@ public class KapCubeController extends BasicController implements InitializingBe
     public void afterPropertiesSet() throws Exception {
     }
 
-    @RequestMapping(value = "/validate/{cubeName}", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/validate/{cubeName}", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<Boolean> validateModelName(@PathVariable String cubeName) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, cubeService.isCubeNameVaildate(cubeName), "");
-    }
-
-    /**
-     * get Columnar Info
-     *
-     * @return true
-     * @throws IOException
-     */
-    @RequestMapping(value = "/{cubeNames}/columnar", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getColumnarInfo(@PathVariable String cubeNames) {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        List<List<ColumnarResponse>> columnarList = Lists.newArrayList();
-
-        for (String cubeName : cubeNames.split(",")) {
-            CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
-            if (null == cube) {
-                throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
-            }
-            columnarList.add(kapCubeService.getAllColumnarInfo(cube));
-        }
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, columnarList, "");
     }
 
     /**
@@ -221,6 +204,8 @@ public class KapCubeController extends BasicController implements InitializingBe
         SchedulerJobInstance schedule = deserializeSchedulerJobInstance(kapCubeRequest);
         schedulerJobService.pauseScheduler(cubeDesc.getName());
 
+        validateMPMaster(cubeDesc, rawTableDesc, schedule);
+
         String projectName = (null == kapCubeRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
                 : kapCubeRequest.getProject();
         ProjectInstance project = cubeService.getProjectManager().getProject(projectName);
@@ -287,6 +272,55 @@ public class KapCubeController extends BasicController implements InitializingBe
         return buildUpdateCubeDescResponse(cubeDesc, rawTableDesc, schedule);
     }
 
+    private void validateMPMaster(CubeDesc cubeDesc, RawTableDesc rawTableDesc, SchedulerJobInstance schedule) {
+        KapModel model = (KapModel) cubeService.getDataModelManager().getDataModelDesc(cubeDesc.getModelName());
+        if (model.isMultiLevelPartitioned() == false)
+            return;
+
+        // note cubeDesc.getModel() is not inited yet
+        if (rawTableDesc != null || (schedule != null && schedule.isEnabled())) {
+            KapMessage msg = KapMsgPicker.getMsg();
+            throw new BadRequestException(msg.getMPCUBE_HATES_RAW_AND_SCHEDULER());
+        }
+
+        // make MP columns mandatory in aggregation groups
+        TblColRef[] mpCols = model.getMutiLevelPartitionCols();
+        RowKeyColDesc[] rowKeyCols = cubeDesc.getRowkey().getRowKeyColumns();
+        for (TblColRef c : mpCols) {
+            if (existInRowKeys(c, rowKeyCols) == false) {
+                KapMessage msg = KapMsgPicker.getMsg();
+                throw new BadRequestException(msg.getMPCUBE_REQUIRES_MPCOLS() + ": " + c.getIdentity());
+            }
+        }
+
+        for (AggregationGroup aggr : cubeDesc.getAggregationGroups()) {
+            aggr.setIncludes(addColsToStrs(aggr.getIncludes(), mpCols));
+            SelectRule selectRule = aggr.getSelectRule();
+            selectRule.mandatoryDims = addColsToStrs(selectRule.mandatoryDims, mpCols);
+        }
+    }
+
+    private boolean existInRowKeys(TblColRef c, RowKeyColDesc[] rowKeyCols) {
+        for (RowKeyColDesc rkey : rowKeyCols) {
+            if (rkey.getColumn().equals(c.getIdentity()))
+                return true;
+        }
+        return false;
+    }
+
+    private String[] addColsToStrs(String[] strs, TblColRef[] mpCols) {
+        if (strs == null)
+            strs = new String[0];
+
+        for (TblColRef col : mpCols) {
+            String colStr = col.getIdentity();
+            if (ArrayUtils.contains(strs, colStr) == false) {
+                strs = (String[]) ArrayUtils.add(strs, colStr);
+            }
+        }
+        return strs;
+    }
+
     @RequestMapping(value = "/draft", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -344,9 +378,10 @@ public class KapCubeController extends BasicController implements InitializingBe
     }
 
     @RequestMapping(value = "/{projectName}/{cubeName}/scheduler_job", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSchedulerJob(@PathVariable String projectName, @PathVariable String cubeName) throws IOException {
+    public EnvelopeResponse getSchedulerJob(@PathVariable String projectName, @PathVariable String cubeName)
+            throws IOException {
         SchedulerJobInstance job = getSchedulerJobByCubeName(cubeName);
         Draft draft = cubeService.getCubeDraft(cubeName, projectName);
 
@@ -364,12 +399,16 @@ public class KapCubeController extends BasicController implements InitializingBe
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
 
-    @RequestMapping(value = "/{projectName}/{cubeName}", method = {RequestMethod.DELETE}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/{projectName}/{cubeName}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void deleteCubeAndDraft(@PathVariable String projectName, @PathVariable String cubeName) throws IOException, SchedulerException {
+    public void deleteCubeAndDraft(@PathVariable String projectName, @PathVariable String cubeName)
+            throws IOException, SchedulerException {
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
         if (cube != null) {
+
+            checkCubeIsEmpty(cubeName);
+
             String project = projectService.getProjectOfCube(cube.getName());
 
             ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
@@ -437,7 +476,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             cp.close();
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, newCube, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createCubeResponse(newCube), "");
     }
 
     @RequestMapping(value = "/{cubeName}/enable", method = { RequestMethod.PUT }, produces = {
@@ -445,7 +484,6 @@ public class KapCubeController extends BasicController implements InitializingBe
     @ResponseBody
     public EnvelopeResponse enableCubeV2(@PathVariable String cubeName) throws IOException {
         Message msg = MsgPicker.getMsg();
-        KapMessage kapMsg = KapMsgPicker.getMsg();
 
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
@@ -456,6 +494,8 @@ public class KapCubeController extends BasicController implements InitializingBe
             if (cube == null) {
                 throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
             }
+
+            kapCubeService.checkEnableCubeCondition(cube);
             cube = cubeService.enableCube(cube);
 
             RawTableInstance raw = rawTableService.getRawTableManager().getRawTableInstance(cubeName);
@@ -469,7 +509,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             cp.close();
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cube, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createCubeResponse(cube), "");
     }
 
     @RequestMapping(value = "/{cubeName}/disable", method = { RequestMethod.PUT }, produces = {
@@ -477,7 +517,6 @@ public class KapCubeController extends BasicController implements InitializingBe
     @ResponseBody
     public EnvelopeResponse disableCubeV2(@PathVariable String cubeName) throws IOException, SchedulerException {
         Message msg = MsgPicker.getMsg();
-        KapMessage kapMsg = KapMsgPicker.getMsg();
 
         ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
@@ -509,8 +548,12 @@ public class KapCubeController extends BasicController implements InitializingBe
             cp.close();
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cube, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createCubeResponse(cube), "");
 
+    }
+
+    private KapCubeResponse createCubeResponse(CubeInstance cube) {
+        return KapCubeResponse.create(cube, kapCubeService);
     }
 
     private void deleteCube(String cubeName) throws IOException, SchedulerException {
@@ -624,5 +667,27 @@ public class KapCubeController extends BasicController implements InitializingBe
 
         }
         return null;
+    }
+
+    private void checkCubeIsEmpty(String cubeName) {
+        KapMessage msg = KapMsgPicker.getMsg();
+
+        CubeManager cmmgr = CubeManager.getInstance(cubeService.getConfig());
+        MPCubeManager mpmgr = MPCubeManager.getInstance(cubeService.getConfig());
+        CubeInstance cubeInstance = cmmgr.getCube(cubeName);
+
+        if (mpmgr.isCommonCube(cubeInstance)) {
+            Segments<CubeSegment> segments = cubeInstance.getSegments();
+            if (segments.isEmpty() == false) {
+                throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_NULL());
+            }
+        } else if (mpmgr.isMPMaster(cubeInstance)) {
+            List<CubeInstance> mpcubeList = mpmgr.listAllMPCubes(cubeName);
+            if (mpcubeList.isEmpty() == false) {
+                throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_NULL());
+            }
+        } else {
+            throw new IllegalArgumentException(cubeName + " must not be a MPCube");
+        }
     }
 }

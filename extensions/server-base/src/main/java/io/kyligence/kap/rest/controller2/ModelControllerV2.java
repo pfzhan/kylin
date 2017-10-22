@@ -70,6 +70,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.response.KapModelResponse;
 import io.kyligence.kap.rest.service.KapModelService;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
@@ -143,21 +144,9 @@ public class ModelControllerV2 extends BasicController {
             }
         }
 
-        int offset = pageOffset * pageSize;
-        int limit = pageSize;
-        int size = response.size();
-
-        if (size <= offset) {
-            offset = size;
-            limit = 0;
-        }
-
-        if ((size - offset) < limit) {
-            limit = size - offset;
-        }
         HashMap<String, Object> data = new HashMap<String, Object>();
-        data.put("models", response.subList(offset, offset + limit));
-        data.put("size", size);
+        data.put("models", PagingUtil.cutPage(response, pageOffset, pageSize));
+        data.put("size", response.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
@@ -180,10 +169,11 @@ public class ModelControllerV2 extends BasicController {
 
         String project = (null == modelRequest.getProject()) ? ProjectInstance.DEFAULT_PROJECT_NAME
                 : modelRequest.getProject();
-
+        
         // don't use checkpoint/rollback, the following update is the only change that must succeed
 
         // save/update model
+        kapModelService.preProcessBeforeModuleSave(modelDesc, project);
         modelDesc = (KapModel) modelService.updateModelToResourceStore(modelDesc, project);
 
         // remove any previous draft
@@ -295,6 +285,7 @@ public class ModelControllerV2 extends BasicController {
         KapModel newModelDesc = KapModel.getCopyOf(modelDesc);
         newModelDesc.setName(newModelName);
 
+        kapModelService.preProcessBeforeModuleSave(newModelDesc, project);
         newModelDesc = (KapModel) modelService.createModelDesc(project, newModelDesc);
 
         //reload avoid shallow

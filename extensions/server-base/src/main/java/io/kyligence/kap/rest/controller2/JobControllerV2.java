@@ -58,6 +58,7 @@ import io.kyligence.kap.rest.service.TableExtService;
 @Controller
 @RequestMapping(value = "jobs")
 public class JobControllerV2 extends BasicController {
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(JobControllerV2.class);
 
     @Autowired
@@ -123,7 +124,7 @@ public class JobControllerV2 extends BasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse listV2(@RequestParam(value = "status", required = false) Integer[] status, //
+    public EnvelopeResponse list(@RequestParam(value = "status", required = false) Integer[] status, //
             @RequestParam(value = "timeFilter") Integer timeFilter, //
             @RequestParam(value = "jobName", required = false) String jobName, //
             @RequestParam(value = "projectName", required = false) String projectName, //
@@ -193,7 +194,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getV2(@PathVariable String jobId) {
+    public EnvelopeResponse get(@PathVariable String jobId) {
 
         JobInstance jobInstance = jobService.getJobInstance(jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobInstance, "");
@@ -209,7 +210,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/steps/{stepId}/output", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getStepOutputV2(@PathVariable String jobId, @PathVariable String stepId) {
+    public EnvelopeResponse getStepOutput(@PathVariable String jobId, @PathVariable String stepId) {
 
         Map<String, String> result = new HashMap<String, String>();
         result.put("jobId", jobId);
@@ -228,7 +229,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/resume", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse resumeV2(@PathVariable String jobId) {
+    public EnvelopeResponse resume(@PathVariable String jobId) {
 
         final JobInstance jobInstance = jobService.getJobInstance(jobId);
         jobService.resumeJob(jobInstance);
@@ -245,7 +246,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/cancel", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse cancelV2(@PathVariable String jobId) throws IOException {
+    public EnvelopeResponse cancel(@PathVariable String jobId) throws IOException {
 
         final JobInstance jobInstance = jobService.getJobInstance(jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.cancelJob(jobInstance), "");
@@ -261,7 +262,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/pause", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse pauseV2(@PathVariable String jobId) {
+    public EnvelopeResponse pause(@PathVariable String jobId) {
 
         final JobInstance jobInstance = jobService.getJobInstance(jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.pauseJob(jobInstance), "");
@@ -277,7 +278,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/steps/{stepId}/rollback", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse rollbackV2(@PathVariable String jobId, @PathVariable String stepId) {
+    public EnvelopeResponse rollback(@PathVariable String jobId, @PathVariable String stepId) {
 
         final JobInstance jobInstance = jobService.getJobInstance(jobId);
         jobService.rollbackJob(jobInstance, stepId);
@@ -294,7 +295,7 @@ public class JobControllerV2 extends BasicController {
     @RequestMapping(value = "/{jobId}/drop", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse dropJobV2(@PathVariable String jobId) throws IOException {
+    public EnvelopeResponse dropJob(@PathVariable String jobId) throws IOException {
 
         JobInstance jobInstance = jobService.getJobInstance(jobId);
         JobStatusEnum status = jobInstance.getStatus();

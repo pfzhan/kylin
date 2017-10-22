@@ -1,5 +1,6 @@
 <template>
-	<div class="block ksd-mt-20 ksd-mb-40 ksd-center" v-show="totalSize">
+	<div class="block ksd-mt-20 ksd-mb-40 ksd-center pager" v-show="totalSize">
+    <span class="total_size" v-show="totalSum">{{$t('kylinLang.common.totalSize')}} {{totalSum}}</span>
 	  <el-pagination
 	    layout="total, prev, pager, next, jumper"
 	    :page-size="pageSize"
@@ -13,7 +14,7 @@
 import { pageCount } from '../../config'
 export default {
   name: 'pager',
-  props: ['perPageSize', 'totalSize', 'curPage'],
+  props: ['perPageSize', 'totalSize', 'curPage', 'totalSum'],
   data () {
     return {
       pageSize: this.perPageSize || pageCount,
@@ -28,8 +29,23 @@ export default {
   }
 }
 </script>
-<style scoped="">
-.box-card {
-  width: 90%
+<style lang="less">
+  @import '../../less/config.less';
+.pager {
+  font-size: 13px;
+  .el-pagination {
+    display: inline-block;
+  }
+  .total_size {
+    color: #fff;
+    display: inline-block;
+    font-size: 13px;
+    min-width: 28px;
+    padding: 2px 5px 2px 5px;
+    height: 32px;
+    line-height: 28px;
+    vertical-align: top;
+    box-sizing: border-box;
+  }
 }
 </style>

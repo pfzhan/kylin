@@ -77,8 +77,8 @@ export const engineTypeKap = [
 export const SystemPwdRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/
 export const NamedRegex = /^\w+$/
 export const DatePartitionRule = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
-export const TimePartitionRule = ['time', 'timestamp', 'string', 'varchar']
-export const IntegerType = ['bigint', 'int', 'integer']
+export const TimePartitionRule = ['long', 'bigint', 'int', 'short', 'integer', 'tinyint', 'string', 'varchar', 'char']
+export const IntegerType = ['bigint', 'int', 'integer', 'tinyint']
 export const personalEmail = {
   'qq.com': 'http://mail.qq.com',
   'gmail.com': 'http://mail.google.com',

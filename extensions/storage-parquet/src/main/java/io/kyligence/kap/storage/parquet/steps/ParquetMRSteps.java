@@ -404,15 +404,15 @@ public class ParquetMRSteps extends JobBuilderSupport {
     protected String getRawTableFolderPath(CubeSegment cubeSegment) {
         RawTableInstance instance = detectRawTable(cubeSegment);
         RawTableSegment rawSeg = instance.getSegmentById(cubeSegment.getUuid());
-        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), instance, rawSeg);
+        return ColumnarStorageUtils.getSegmentDir(instance, rawSeg);
     }
 
     protected String getRawTableFolderPath(RawTableSegment rawSegment) {
-        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), rawSegment.getRawTableInstance(), rawSegment);
+        return ColumnarStorageUtils.getSegmentDir(rawSegment.getRawTableInstance(), rawSegment);
     }
 
     protected String getCubeFolderPath(CubeSegment cubeSegment) {
-        return ColumnarStorageUtils.getSegmentDir(config.getConfig(), cubeSegment.getCubeInstance(), cubeSegment);
+        return ColumnarStorageUtils.getSegmentDir(cubeSegment.getCubeInstance(), cubeSegment);
     }
 
     protected RawTableInstance detectRawTable(CubeSegment cubeSegment) {

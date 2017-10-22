@@ -463,7 +463,7 @@ export default {
         // callback(new Error(this.$t('timeCompare')))
       } else {
         // 开始时间处不触发大小验证，但如果验证通过，需要取消结束时间的错误信息
-        this.$refs['modelCheckForm'].fields[1].onFieldBlur()
+        this.$refs['modelCheckForm'].validateField('endTime')
         callback()
       }
     },

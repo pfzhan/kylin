@@ -244,7 +244,7 @@
     </el-dialog>
 
     <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small" :close-on-press-escape="false" :close-on-click-modal="false" >
-       <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" ></partition-column>
+       <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" :editLock="editLock"></partition-column>
        <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
        <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
          <icon name="question-circle" class="ksd-question-circle"></icon>
@@ -372,8 +372,6 @@ export default {
       },
       actionMode: 'edit',
       firstRenderServerData: false,
-      // 编辑锁
-      editLock: false,
       linksLock: false,
       columnKindLock: false,
       // table 添加 修改类型  修改别名
@@ -409,6 +407,8 @@ export default {
         'date_column': '',
         'time_table': '',
         'time_column': '',
+        'mutilLevel_table': '',
+        'mutilLevel_column': '',
         'partition_date_column': '',
         'partition_time_column': '',
         'partition_date_start': 0,
@@ -896,13 +896,6 @@ export default {
       }
       tableInfo.columns = objectArraySort(tableInfo.columns, squence, key)
     },
-    // 检查是否上锁了
-    checkLock (msg) {
-      if (this.editLock && msg !== false) {
-        this.warnAlert(msg || '编辑模式下不允许该操作')
-      }
-      return this.editLock
-    },
     changeModelBar (val) {
       this.modelStaticsRange = val
       this.openModelCheck = !!val
@@ -938,6 +931,16 @@ export default {
       // }
     },
     saveAndCheckModel () {
+      let modelDescJSON = this.DragDataToServerData(true)
+      if (!modelDescJSON.partition_desc.partition_date_column && modelDescJSON.multilevel_partition_cols.length > 0) {
+        this.$message({
+          duration: 0,  // 不自动关掉提示
+          showClose: true,    // 给提示框增加一个关闭按钮
+          type: 'warning',
+          message: this.$t('kylinLang.model.secondaryPartitionWarring')
+        })
+        return
+      }
       this.saveBtnLoading = true
       this.saveModel({
         project: this.project,
@@ -2251,6 +2254,7 @@ export default {
         partition_desc: {},
         dimensions: [],
         metrics: [],
+        multilevel_partition_cols: [],
         is_draft: this.modelInfo.is_draft,
         last_modified: this.modelInfo.last_modified,
         filter_condition: this.modelInfo.filterStr,
@@ -2263,6 +2267,9 @@ export default {
       }
       if (this.partitionSelect.time_table && this.partitionSelect.time_column) {
         kylinData.partition_desc.partition_time_column = this.partitionSelect.time_table + '.' + this.partitionSelect.time_column
+      }
+      if (this.partitionSelect.mutilLevel_table && this.partitionSelect.mutilLevel_column) {
+        kylinData.multilevel_partition_cols.push(this.partitionSelect.mutilLevel_table + '.' + this.partitionSelect.mutilLevel_column)
       }
       kylinData.partition_desc.partition_date_format = this.partitionSelect.partition_date_format
       kylinData.partition_desc.partition_time_format = this.partitionSelect.partition_time_format
@@ -2316,7 +2323,6 @@ export default {
       return JSON.stringify(kylinData)
     },
     loadEditData (modelData) {
-      this.editLock = !!(this.modelData && this.modelData.uuid)
       if (!modelData.fact_table) {
         return
       }
@@ -2332,11 +2338,14 @@ export default {
       // 加载原来设置的partition
       var partitionDate = modelData.partition_desc.partition_date_column ? modelData.partition_desc.partition_date_column.split('.') : [null, null]
       var partitionTime = modelData.partition_desc.partition_time_column ? modelData.partition_desc.partition_time_column.split('.') : [null, null]
+      var mutilLevel = modelData.multilevel_partition_cols.length > 0 ? modelData.multilevel_partition_cols[0].split('.') : [null, null]
       Object.assign(this.partitionSelect, {
         'date_table': partitionDate[0],
         'date_column': partitionDate[1],
         'time_table': partitionTime[0],
         'time_column': partitionTime[1],
+        'mutilLevel_table': mutilLevel[0],
+        'mutilLevel_column': mutilLevel[1],
         'partition_date_column': modelData.partition_desc.partition_date_column,
         'partition_time_column': modelData.partition_desc.partition_time_column,
         'partition_date_start': 0,
@@ -2750,6 +2759,14 @@ export default {
     jsPlumb.fire('jsPlumbDemoLoaded', this.plumbInstance)
   },
   computed: {
+    editLock () {
+      for (let i = 0; i < this.cubesList.length; i++) {
+        if (this.cubesList[i].segments.length > 0) {
+          return true
+        }
+      }
+      return false
+    },
     briefMenu () {
       return this.$store.state.config.layoutConfig.briefMenu
     },

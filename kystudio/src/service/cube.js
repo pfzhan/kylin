@@ -33,8 +33,8 @@ export default {
   disableCube: (cubeName) => {
     return Vue.resource(apiUrl + 'cubes/' + cubeName + '/disable').update({})
   },
-  purgeCube: (cubeName) => {
-    return Vue.resource(apiUrl + 'cubes/' + cubeName + '/purge').update({})
+  purgeCube: (cube) => {
+    return Vue.resource(apiUrl + 'cubes/' + cube.name + '/purge').update({mpValues: cube.values})
   },
   cloneCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes/' + cube.originalName + '/clone').update({cubeName: cube.cubeName, project: cube.project})
@@ -56,6 +56,15 @@ export default {
   },
   getHbaseInfo: (cubeName) => {
     return Vue.resource(apiUrl + 'cubes/' + cubeName + '/hbase').get()
+  },
+  getCubeSegments: (para) => {
+    return Vue.resource(apiUrl + 'cubes/' + para.name + '/segments').get(para.filter)
+  },
+  updateCubeSegments: (para) => {
+    return Vue.resource(apiUrl + 'cubes/' + para.name + '/segments').update(para.segments)
+  },
+  getMPValues: (name) => {
+    return Vue.resource(apiUrl + 'cubes/' + name + '/mp_values').get()
   },
   saveCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes').save(cube)
