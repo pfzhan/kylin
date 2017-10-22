@@ -29,7 +29,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Set;
@@ -43,10 +42,11 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.persistence.HDFSResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -130,10 +130,10 @@ public class MassinFilterManager {
                 bos.write("\n".getBytes(cs));
             }
             bos.flush();
+            bos.close();
 
             ResourceStore store = getStore();
             store.putResource(resourcePath, new ByteArrayInputStream(baos.toByteArray()), 0);
-            bos.close();
         } else {
             throw new RuntimeException("HBASE_TABLE FilterTableType Not supported yet");
         }
@@ -195,22 +195,14 @@ public class MassinFilterManager {
     private ResourceStore getStore() {
         ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
         if (store == null) {
+            StorageURL url = StorageURL.valueOf(kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
             try {
-                Class<? extends ResourceStore> storeClass = ClassUtil.forName("io.kyligence.kap.engine.mr.HDFSResourceStore", ResourceStore.class);
-                store = storeClass.getConstructor(KylinConfig.class).newInstance(kylinConfig);
+                store = new HDFSResourceStore(kylinConfig, url);
                 synchronized (MassinFilterManager.class) {
                     RESOURCE_STORE_CACHE.put(kylinConfig, store);
                 }
-            } catch (InstantiationException e) {
-                logger.error("{}", e);
-            } catch (IllegalAccessException e) {
-                logger.error("{}", e);
-            } catch (InvocationTargetException e) {
-                logger.error("{}", e);
-            } catch (NoSuchMethodException e) {
-                logger.error("{}", e);
-            } catch (ClassNotFoundException e) {
-                logger.error("{}", e);
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to create HDFSResourceStore at " + url, e);
             }
         }
         return store;

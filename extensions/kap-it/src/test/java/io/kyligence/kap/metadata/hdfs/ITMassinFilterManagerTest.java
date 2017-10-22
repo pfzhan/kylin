@@ -24,9 +24,7 @@
 
 package io.kyligence.kap.metadata.hdfs;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Set;
 
@@ -44,7 +42,6 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.engine.mr.HDFSResourceStore;
 import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
 public class ITMassinFilterManagerTest extends KylinTestBase {
@@ -95,15 +92,9 @@ public class ITMassinFilterManagerTest extends KylinTestBase {
         String resourceIdentifier = MassinFilterManager.getResourceIdentifier(KapConfig.wrap(config), filterName);
 
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
-        Path identifierPath = HDFSResourceStore.hdfsPath(resourceIdentifier, config);
+        Path identifierPath = new Path(config.getHdfsWorkingDirectory(), resourceIdentifier.substring(1));
 
         Assert.assertTrue(fs.exists(identifierPath));
-
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(fs.open(identifierPath)));
-        for (String s : testStrings) {
-            Assert.assertEquals(s, bufferedReader.readLine());
-        }
-        bufferedReader.close();
 
         fs.deleteOnExit(identifierPath);
     }
