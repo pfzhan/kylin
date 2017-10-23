@@ -402,7 +402,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
         if (mgr.isCommonCube(cube)) {
             segments.addAll(cube.getSegments());
         } else if (mgr.isMPMaster(cube)) {
-            mpcubeList = mgr.listAllMPCubes(cubeName);
+            mpcubeList = mgr.listMPCubes(cube);
         } else {
             throw new IllegalArgumentException(cube + " must not be a MPCube");
         }

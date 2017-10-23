@@ -58,7 +58,7 @@ public class KapCubeResponse extends CubeInstanceResponse {
         Segments<CubeSegment> segments = cube.getSegments();
         MPCubeManager mgr = MPCubeManager.getInstance(cube.getConfig());
         if (mgr.isMPMaster(cube)) {
-            segments = collectAllMPCubeSegments(mgr.listMPCube(cube));
+            segments = collectAllMPCubeSegments(mgr.listMPCubes(cube));
             // summarize sizes and counts
             ret.setSegments(segments);
             ret.initSizeKB();

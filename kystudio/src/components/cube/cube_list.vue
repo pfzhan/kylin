@@ -143,7 +143,7 @@
 
   <div class="null_pic_box" v-if="!(cubesList && cubesList.length)"><img src="../../assets/img/no_cube.png" class="null_pic_2"></div>
 
-  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField">
+  <el-dialog :title="'Cube [' + (selected_cube.name.length > 18? selected_cube.name.substring(0,16) + '...' :  selected_cube.name) + '] ' + $t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField" class="build-cube">
     <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildCubeFormVisible = false">{{$t('cancel')}}</el-button>
@@ -151,7 +151,7 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubeBuildConfirm')" v-model="buildFullCubeVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="'Cube [' + (selected_cube.name && selected_cube.name.length > 18? selected_cube.name.substring(0,16) + '...' :  selected_cube.name) + '] ' + $t('cubeBuildConfirm')" v-model="buildFullCubeVisible" :close-on-press-escape="false" :close-on-click-modal="false" class="build-cube">
     {{selected_cube.name}}{{$t('cubeFullBuild')}}
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildFullCubeVisible = false">{{$t('cancel')}}</el-button>
@@ -159,7 +159,7 @@
     </div>
   </el-dialog>
 
-  <el-dialog :title="'Cube [' + selected_cube.name + '] ' + $t('cubePurgeConfirm')" v-model="purgeCubeFormVisible" @close="resetCubePurgeField" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="'Cube [' + (selected_cube.name.length > 18? selected_cube.name.substring(0,16) + '...' :  selected_cube.name) + '] ' + $t('cubePurgeConfirm')" v-model="purgeCubeFormVisible" @close="resetCubePurgeField" :close-on-press-escape="false" :close-on-click-modal="false" class="build-cube">
     <purge_cube :cubeDesc="selected_cube" ref="purgeCubeForm" v-on:validSuccess="purgeCubeValidSuccess"></purge_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="purgeCubeFormVisible = false">{{$t('cancel')}}</el-button>
@@ -283,7 +283,9 @@ export default {
       buildFullCubeVisible: false,
       cloneCubeFormVisible: false,
       purgeCubeFormVisible: false,
-      selected_cube: {},
+      selected_cube: {
+        name: ''
+      },
       selected_project: this.$store.state.project.selected_project,
       filterCube: '',
       currentModel: 'ALL',
@@ -630,7 +632,7 @@ export default {
       // }
       this.selected_cube = cube
       if (cube.is_streaming) {
-        kapConfirm(this.$t('buildCube')).then(() => {
+        this.$confirm(this.$t('buildCube'), 'Cube [' + (this.selected_cube.name.length > 18 ? this.selected_cube.name.substring(0, 16) + '...' : this.selected_cube.name) + '] ' + this.$t('cubeBuildConfirm')).then(() => {
           this.rebuildStreamingCube(cube.name).then((res) => {
             handleSuccess(res, (data) => {
               this.$message({
@@ -892,6 +894,14 @@ export default {
       background: #292b38;
       margin-left: -20px;
       margin-right: -20px;
+    }
+    .build-cube {
+      .el-dialog {
+        width: 390px;
+        .el-dialog__body {
+          padding: 5px 20px 20px 20px;
+        }
+      }
     }
     .suggestBox{
       border-radius: 4px;

@@ -3,90 +3,90 @@
      <div class="ksd-common-table rowkeys ksd-mt-10" v-if="extraoption.type==='hbase'">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">{{$t('SegmentID')}}</el-col>
-          <el-col :span="20">{{extraoption.uuid}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.uuid}}</el-col>
        </el-row>
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">{{$t('SegmentName')}}</el-col>
-          <el-col :span="20">{{extraoption.name}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.name}}</el-col>
        </el-row>
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">HTable:</el-col>
-          <el-col :span="20">{{extraoption.additionalInfo.hbaseTableName}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.additionalInfo.hbaseTableName}}</el-col>
        </el-row>
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">Segment Status:</el-col>
-          <el-col :span="20">{{extraoption.status}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.status}}</el-col>
        </el-row>
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">Source Count:</el-col>
-          <el-col :span="20">{{extraoption.input_records}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.input_records}}</el-col>
        </el-row>
        <el-row class="tableheader" v-if="extraoption.source_offset_start>0">
           <el-col :span="4" class="left-part">Source Offset Start:</el-col>
-          <el-col :span="20">{{extraoption.source_offset_start}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.source_offset_start}}</el-col>
        </el-row>
         <el-row class="tableheader" v-if="extraoption.source_offset_end>0">
           <el-col :span="4" class="left-part">Source Offset End:</el-col>
-          <el-col :span="20">{{extraoption.source_offset_end}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.source_offset_end}}</el-col>
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBRegionCount')}}</el-col>
-          <el-col :span="20">{{extraoption.additionalInfo.hbaseRegionCount}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.additionalInfo.hbaseRegionCount}}</el-col>
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBSize')}}</el-col>
-          <el-col :span="20">{{extraoption.additionalInfo.storageSizeBytes|dataSize}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.additionalInfo.storageSizeBytes|dataSize}}</el-col>
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBStartTime')}}</el-col>
-          <el-col :span="20">{{extraoption.date_range_start| utcTime}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.date_range_start| utcTime}}</el-col>
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBEndTime')}}</el-col>
-          <el-col :span="20">{{extraoption.date_range_end| utcTime}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.date_range_end| utcTime}}</el-col>
        </el-row>
      </div>
 
    <div class="ksd-common-table ksd-mt-10"  v-if="extraoption.type==='columnar'">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part"><b>{{$t('SegmentID')}}</b></el-col>
-          <el-col :span="20">{{extraoption.uuid}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.uuid}}</el-col>
        </el-row>
         <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('SegmentName')}}</b></el-col>
-        <el-col :span="20">{{extraoption.name}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.name}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('SegmentPath')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.segmentPath}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.segmentPath}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('FileNumber')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.storageFileCount}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.storageFileCount}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('StorageSize')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.storageSizeBytes|dataSize}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.storageSizeBytes|dataSize}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('RangeStartTime')}}</b></el-col>
-        <el-col :span="20">{{extraoption.date_range_start | utcTime}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.date_range_start | utcTime}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('RangeEndTime')}}</b></el-col>
-        <el-col :span="20">{{extraoption.date_range_end | utcTime}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.date_range_end | utcTime}}</el-col>
       </el-row>
       <el-row class="tableheader" v-if="extraoption.additionalInfo.tableIndexSegmentPath">
         <el-col :span="4" class="left-part"><b>{{$t('RawTableSegmentPath')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.tableIndexSegmentPath }}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.tableIndexSegmentPath }}</el-col>
       </el-row>
       <el-row class="tableheader" v-if="extraoption.additionalInfo.tableIndexFileCount>=0 && extraoption.additionalInfo.tableIndexSegmentPath">
         <el-col :span="4" class="left-part"><b>{{$t('RawTableFileNumber')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.tableIndexFileCount }}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.tableIndexFileCount }}</el-col>
       </el-row>
       <el-row class="tableheader" v-if="extraoption.additionalInfo.tableIndexStorageSizeBytes>=0 && extraoption.additionalInfo.tableIndexSegmentPath">
         <el-col :span="4" class="left-part"><b>{{$t('RawTableStorageSize')}}</b></el-col>
-        <el-col :span="20">{{extraoption.additionalInfo.tableIndexStorageSizeBytes |dataSize}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.additionalInfo.tableIndexStorageSizeBytes |dataSize}}</el-col>
       </el-row>
     </div>
 </div>
@@ -113,16 +113,21 @@ export default {
   }
   #segments{
     .tableheader{
+      height: auto;
       .el-col{
         text-align: left;
         padding-left: 20px;
         white-space: nowrap;
       }
       .left-part{
-        border-right:solid 1px #393e53;
         text-align: right;
         padding-right: 20px;
         font-weight:bold;
+        border-right:none;
+      }
+      .right-part{
+        border-left:solid 1px #393e53;
+        white-space: pre-wrap;
       }
     }
   }

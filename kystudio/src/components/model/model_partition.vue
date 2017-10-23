@@ -314,8 +314,8 @@ export default {
     this.checkLockFormat()
   },
   locales: {
-    'en': {partitionDateColumn: 'Partition Date Column', dateFormat: 'Date Format', hasSeparateLabel: 'More Partition', secondaryPartitionColumn: 'Secondary Partition Column', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'The date format is invalid for this column. Please try another partition column or date format.'},
-    'zh-cn': {partitionDateColumn: '分区列（日期类型）', dateFormat: '日期格式', hasSeparateLabel: '更多分区列', secondaryPartitionColumn: '二级分区列', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '当表具有采样结果时，才能对其分区列的格式进行检查。', validFail: '分区列格式不正确，请重新选择分区格式或更换分区列。'}
+    'en': {partitionDateColumn: ' Time Partition Column', dateFormat: 'Time Format', hasSeparateLabel: 'More Partition', timeFormat: 'Time Format', filterCondition: 'Filter Condition', filterPlaceHolder: 'The filter condition, no clause "WHERE" needed, eg: Date>YYYY-MM-DD.', noSample: 'Executing data format check depends on table sampling result.', validFail: 'The date format is invalid for this column. Please try another partition column or date format.'},
+    'zh-cn': {partitionDateColumn: '时间分区列', dateFormat: '时间格式', hasSeparateLabel: '更多分区列', timeFormat: '时间格式', filterCondition: '过滤条件', filterPlaceHolder: '请输入过滤条件，不需要写“WHERE”，例如：Date>YYYY-MM-DD。', noSample: '当表具有采样结果时，才能对其分区列的格式进行检查。', validFail: '分区列格式不正确，请重新选择分区格式或更换分区列。'}
   }
 }
 </script>

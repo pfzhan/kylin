@@ -1,6 +1,6 @@
 <template>
   <div id="purge-cube">
-    <el-form  :model="mutilLevel" :rules="rules" label-position="right" label-width="200px" ref="purgeCubeForm">
+    <el-form  :model="mutilLevel" :rules="rules" label-position="top" ref="purgeCubeForm">
       <div v-if="cubeDesc.multilevel_partition_cols.length > 0">
         <el-form-item :label="$t('kylinLang.model.primaryPartitionColumn')" >
           <el-tag>{{cubeDesc.multilevel_partition_cols[0]}}</el-tag>
@@ -9,9 +9,9 @@
           <el-select v-model="mutilLevel.mpValues" filterable :placeholder="$t('kylinLang.common.pleaseFilter')">
             <el-option
               v-for="item in mpValuesList"
-              :key="item"
-              :label="item"
-              :value="item">
+              :key="item.name"
+              :label="item.name"
+              :value="item.name">
             </el-option>
           </el-select>
         </el-form-item>
@@ -23,6 +23,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError } from '../../../util/business'
+import { objectArraySort } from '../../../util/index'
 export default {
   name: 'purge_cube',
   props: ['cubeDesc'],
@@ -49,8 +50,12 @@ export default {
       if (this.cubeDesc.multilevel_partition_cols.length > 0) {
         this.getMPValues(this.cubeDesc.name).then((res) => {
           handleSuccess(res, (data) => {
-            this.mpValuesList = data.sort()
-            this.mutilLevel.mpValues = this.mpValuesList[0]
+            this.mpValuesList = objectArraySort(data, true, 'name')
+            if (this.mpValuesList.length > 0) {
+              this.mutilLevel.mpValues = this.mpValuesList[0].name
+            } else {
+              this.mutilLevel.mpValues = ''
+            }
           })
         }, (res) => {
           handleError(res)
@@ -62,8 +67,12 @@ export default {
     if (this.cubeDesc.multilevel_partition_cols.length > 0) {
       this.getMPValues(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data) => {
-          this.mpValuesList = data.sort()
-          this.mutilLevel.mpValues = this.mpValuesList[0]
+          this.mpValuesList = objectArraySort(data, true, 'name')
+          if (this.mpValuesList.length > 0) {
+            this.mutilLevel.mpValues = this.mpValuesList[0].name
+          } else {
+            this.mutilLevel.mpValues = ''
+          }
         })
       }, (res) => {
         handleError(res)
@@ -89,23 +98,31 @@ export default {
 <style lang="less">
   @import '../../../less/config.less';
   #purge-cube{
-    .el-form-item__label{
-      float: left!important;
-    }
-    .el-form-item{
-      height: 50px;
-      margin-top: 10px;
-      margin-bottom: 10px;
-    }
-    p {
-      margin-left: 20px;
-    }
-    .el-date-editor{
-      height: 36px;
-      padding: 0;
-    }
-    .el-input {
-      margin-left: 0px;
+    .el-form {
+      .el-form-item__label{
+        float: left!important;
+      }
+      .el-form-item{
+        display: grid;
+        height: 50px;
+        margin: 15px 0px 0px 0px;
+        .el-form-item__label {
+          padding: 0 0 5px;
+        }
+        span {
+          width: 100%;
+          height: 36px;
+          line-height: 36px;
+          padding: 0px 10px 0px 10px;
+        }
+      }
+      .el-select {
+        margin-left: 0px;
+        width: 100%;
+      }
+      p {
+        margin-top: 15px;
+      }
     }
   }
 </style>

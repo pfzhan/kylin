@@ -1,20 +1,21 @@
 <template>
-  <el-form id="build-cube" :model="timeZone" label-position="right" label-width="200px" :rules="rules" ref="buildCubeForm">
+  <el-form id="build-cube" :model="timeZone" label-position="top" :rules="rules" ref="buildCubeForm">
 
     <div v-if="cubeDesc.multilevel_partition_cols.length > 0">
       <el-form-item :label="$t('kylinLang.model.primaryPartitionColumn')" >
         <el-tag>{{cubeDesc.multilevel_partition_cols[0]}}</el-tag>
       </el-form-item>
       <el-form-item :label="$t('partitionValues')" prop="mpValues">
-<!--         <el-input v-model="timeZone.mpValues"></el-input> -->
         <el-autocomplete
           class="inline-input"
+          :props="{label: 'name', value: 'name'}"
           v-model="timeZone.mpValues"
           :fetch-suggestions="querySearch"
           :trigger-on-focus="false"
+          @select="handleSelect"
         ></el-autocomplete>
       </el-form-item>
-      <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
+      <div class="line-primary"></div>
     </div>
 
     <el-form-item :label="$t('partitionDateColumn')" >
@@ -32,13 +33,11 @@
         type="datetime">
       </el-date-picker>
     </el-form-item>
-
   </el-form>
 </template>
 <script>
 import { mapActions } from 'vuex'
 import { transToUtcTimeFormat, transToUTCMs, handleSuccess, handleError } from '../../../util/business'
-import { fromArrToObjArr } from '../../../util/index'
 export default {
   name: 'build_cube',
   props: ['cubeDesc'],
@@ -58,7 +57,7 @@ export default {
           { validator: this.validateEndDate, trigger: 'blur' }
         ],
         mpValues: [
-          { required: true, message: this.$t('secondaryPartitionNull'), trigger: 'blur' }
+          { required: true, message: this.$t('partitionNull'), trigger: 'blur' }
         ]
       }
     }
@@ -69,13 +68,24 @@ export default {
     }),
     querySearch: function (queryString, cb) {
       let mpValuesList = this.mpValuesList
-      let results = queryString ? mpValuesList.filter(this.createFilter(queryString)) : mpValuesList
+      let results = []
+      if (mpValuesList.length > 0) {
+        results = queryString ? mpValuesList.filter(this.createFilter(queryString)) : mpValuesList
+      }
       // 调用 callback 返回建议列表的数据
       cb(results)
     },
     createFilter: function (queryString) {
       return (mpValue) => {
-        return (mpValue.value.indexOf(queryString) === 0)
+        return (mpValue.name.indexOf(queryString) === 0)
+      }
+    },
+    handleSelect: function (item) {
+      let mpIndex = this.mpValuesList.indexOf(item)
+      let segLength = this.mpValuesList[mpIndex].cube.segments.length
+      if (segLength > 0) {
+        this.timeZone.startDate = transToUtcTimeFormat(this.mpValuesList[mpIndex].cube.segments[segLength - 1].date_range_end)
+        console.log(this.timeZone.startDate)
       }
     },
     validateStartDate: function (rule, value, callback) {
@@ -153,8 +163,7 @@ export default {
     if (this.cubeDesc.multilevel_partition_cols.length > 0) {
       this.getMPValues(this.cubeDesc.name).then((res) => {
         handleSuccess(res, (data) => {
-          this.mpValuesList = fromArrToObjArr(data.sort())
-          console.log(this.mpValuesList, 8888)
+          this.mpValuesList = data
         })
       }, (res) => {
         handleError(res)
@@ -179,7 +188,7 @@ export default {
       if (this.cubeDesc.multilevel_partition_cols.length > 0) {
         this.getMPValues(this.cubeDesc.name).then((res) => {
           handleSuccess(res, (data) => {
-            this.mpValuesList = fromArrToObjArr(data.sort())
+            this.mpValuesList = data
           })
         }, (res) => {
           handleError(res)
@@ -189,21 +198,33 @@ export default {
   },
 
   locales: {
-    'en': {partitionDateColumn: 'Partition Time Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', secondaryPartitionNull: 'Please input partition value.'},
-    'zh-cn': {partitionDateColumn: '分区时间列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', secondaryPartitionNull: '请输入分区值。'}
+    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.'},
+    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。'}
   }
 }
 </script>
 <style lang="less">
   @import '../../../less/config.less';
   #build-cube{
+    .line-primary {
+      margin: 20px -20px 0px -20px;
+    }
     .el-form-item__label{
       float: left!important;
     }
     .el-form-item{
+      display: grid;
       height: 50px;
-      margin-top: 10px;
-      margin-bottom: 10px;
+      margin: 15px 0px 0px 0px;
+      .el-form-item__label {
+        padding: 0 0 5px;
+      }
+      span {
+        width: 100%;
+        height: 36px;
+        line-height: 36px;
+        padding: 0px 10px 0px 10px;
+      }
       .el-autocomplete {
         width: 100%;
       }
@@ -214,7 +235,7 @@ export default {
     }
     .el-input {
       margin-left: 0px;
-      width: 75%;
+      width: 100%;
     }
   }
 </style>

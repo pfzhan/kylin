@@ -108,6 +108,16 @@ export function groupData (data, groupName) {
   return obj
 }
 
+// 将对象数组按照某一个key的值生成数组
+export function objArrKeyToArr (data, groupName) {
+  var len = data && data.length || 0
+  var arr = []
+  for (var k = 0; k < len; k++) {
+    arr.push(data[k][groupName] || '')
+  }
+  return arr
+}
+
 export function transDataForTree (data) {
 }
 // 从对象数组中找到某个符合key value 的对象的位置

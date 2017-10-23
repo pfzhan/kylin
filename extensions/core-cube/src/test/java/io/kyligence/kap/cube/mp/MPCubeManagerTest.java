@@ -29,6 +29,7 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -52,9 +53,9 @@ public class MPCubeManagerTest extends LocalFileMetadataTestCase {
 
     public static String[] G_MP_VALUES = { "301" };
 
-    public static String G_HEX_PARAM = "617a645f3132335f73646675692524235f676975736462676669647362";
+    public static String G_HEX_PARAM = "6d70705f6d6f64656c5f63756265_535f5f53455f545f4141";
 
-    public static String G_PARAM = "azd_123_sdfui%$#_giusdbgfidsb";
+    public static String[] G_PARAM = { "mpp_model_cube", "S__SE_T_AA" };
 
     @Before
     public void setUp() throws Exception {
@@ -148,25 +149,16 @@ public class MPCubeManagerTest extends LocalFileMetadataTestCase {
     }
 
     @Test
-    public void testEncode() throws IOException {
-        String reHex = MPCubeManager.getInstance(getTestConfig()).encode(G_PARAM);
-        Assert.assertEquals(reHex, G_HEX_PARAM);
-    }
-
-    @Test
-    public void testDecode() throws IOException {
-        String reDecode = MPCubeManager.getInstance(getTestConfig()).decode(G_HEX_PARAM);
-        Assert.assertEquals(reDecode, G_PARAM);
-    }
-
-    @Test
     public void testFetchMPValues() throws IOException {
         convertCommonToMPMaster(G_CUBE_NAME, G_MPS);
-        CubeInstance cube = createMPCubeInstance();
+        CubeInstance cube = createMPCubeInstance(G_CUBE_NAME, G_PARAM);
 
         String[] mpValues = MPCubeManager.getInstance(getTestConfig()).fetchMPValues(cube);
 
-        Assert.assertArrayEquals(mpValues, G_MP_VALUES);
+        String paramStr = StringUtils.removeStart(cube.getName(), G_CUBE_NAME + "_");
+
+        Assert.assertEquals(paramStr, G_HEX_PARAM);
+        Assert.assertArrayEquals(mpValues, G_PARAM);
     }
 
     @Test

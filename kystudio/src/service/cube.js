@@ -64,7 +64,7 @@ export default {
     return Vue.resource(apiUrl + 'cubes/' + para.name + '/segments').update(para.segments)
   },
   getMPValues: (name) => {
-    return Vue.resource(apiUrl + 'cubes/' + name + '/mp_values').get()
+    return Vue.resource(apiUrl + 'cubes/' + name + '/mp_cubes').get()
   },
   saveCube: (cube) => {
     return Vue.resource(apiUrl + 'cubes').save(cube)

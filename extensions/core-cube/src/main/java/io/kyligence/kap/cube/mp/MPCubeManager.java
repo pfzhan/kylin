@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -39,12 +40,11 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.IRealizationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.KapModel;
 
@@ -63,25 +63,6 @@ public class MPCubeManager {
 
     public static MPCubeManager getInstance(KylinConfig config) {
         return new MPCubeManager(config);
-    }
-
-    // exclude MP cube from RealizationChooser
-    public static class RealizationFilter implements IRealizationFilter {
-
-        final MPCubeManager mgr;
-
-        public RealizationFilter(KylinConfig config) {
-            mgr = getInstance(config);
-        }
-
-        @Override
-        public boolean accept(IRealization real) {
-            if (real instanceof CubeInstance) {
-                // accept Common or MPMaster, refuse MPCube
-                return !mgr.isMPCube((CubeInstance) real);
-            }
-            return true;
-        }
     }
 
     // ============================================================================
@@ -149,7 +130,7 @@ public class MPCubeManager {
     }
 
     // List all mpcube mpvalues of a mpmaster
-    public List<String> listMPValues(CubeInstance cube) {
+    public List<Map<String, Object>> listMPValuesAndCubes(CubeInstance cube) {
         if (isMPMaster(cube) == false) {
             throw new IllegalStateException(
                     "Invalid cube type, current type is not a master cube, name: '" + cube.getName() + "'");
@@ -157,50 +138,15 @@ public class MPCubeManager {
 
         String mpcubeMatchName = buildMPCubeOwner(cube.getName());
 
-        List<String> result = Lists.newArrayList();
-        List<CubeInstance> mpcubeList = listAllMPCubes();
+        List<Map<String, Object>> result = Lists.newArrayList();
+        List<CubeInstance> mpcubeList = listMPCubes(cube);
         for (CubeInstance ci : mpcubeList) {
             if (ci.getOwner().equals(mpcubeMatchName)) {
+                Map<String, Object> map = Maps.newHashMap();
                 String mpcubeName = StringUtils.removeStart(ci.getName(), cube.getName() + V_SPLIT);
-                result.add(decode(mpcubeName));
-            }
-        }
-        return result;
-    }
-
-    // all mpcube must have segments
-    private List<CubeInstance> listAllMPCubes() {
-        List<CubeInstance> result = Lists.newArrayList();
-        List<CubeInstance> cubeInsList = CubeManager.getInstance(config).listAllCubes();
-        for (CubeInstance ci : cubeInsList) {
-            if (isMPCube(ci) == false)
-                continue;
-
-            if (ci.getSegments().size() > 0) {
-                result.add(ci);
-            }
-        }
-        return result;
-    }
-
-    // FIXME dup with listMPCube(CubeInstance), keep only one of them
-    public List<CubeInstance> listAllMPCubes(String masterName) {
-        List<CubeInstance> result = Lists.newArrayList();
-
-        CubeInstance cubeInstance = CubeManager.getInstance(config).getCube(masterName);
-        if (isMPMaster(cubeInstance) == false)
-            throw new IllegalStateException(masterName + " is not a MP Master");
-
-        String matchOwner = buildMPCubeOwner(masterName);
-
-        List<CubeInstance> cubeInsList = CubeManager.getInstance(config).listAllCubes();
-        for (CubeInstance ci : cubeInsList) {
-            if (StringUtils.isBlank(ci.getOwner())) {
-                continue;
-            }
-
-            if (ci.getOwner().equals(matchOwner) && ci.getSegments().size() > 0) {
-                result.add(ci);
+                map.put("name", decode(mpcubeName));
+                map.put("cube", ci);
+                result.add(map);
             }
         }
         return result;
@@ -218,8 +164,15 @@ public class MPCubeManager {
             int pos = i * 2;
             d[i] = (byte) (charToByte(hexChars[pos]) << 4 | charToByte(hexChars[pos + 1]));
         }
-        // FIXME forget specify UTF-8 encoding?
-        return new String(d);
+
+        String result = null;
+        try {
+            result = new String(d, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new IllegalStateException("Hex string decode error. Hex: '" + cubeNameHex + "'", e);
+        }
+
+        return result;
     }
 
     //Convert char to byte
@@ -236,7 +189,6 @@ public class MPCubeManager {
                 int v = ba[i] & 0xFF;
                 String hv = Integer.toHexString(v);
                 if (hv.length() < 2) {
-                    // FIXME not "0" ??
                     stringBuilder.append(0);
                 }
                 stringBuilder.append(hv);
@@ -251,12 +203,10 @@ public class MPCubeManager {
         String cubeName = cube.getName();
         String mpMasterName = StringUtils.removeStart(cube.getOwner(), MPMASTER_PRIFIX);
         String mpValuesHex = StringUtils.removeStart(cubeName, mpMasterName + V_SPLIT);
-        // FIXME should split by "_" first then decode, the exact reverse of buildMPCubeName()
-        String mpValues = decode(mpValuesHex);
-        String[] sp = mpValues.split(V_SPLIT);
-        String[] result = new String[sp.length];
-        for (int i = 0; i < sp.length; i++) {
-            result[i] = sp[i];
+        String[] mpHex = mpValuesHex.split(V_SPLIT);
+        String[] result = new String[mpHex.length];
+        for (int i = 0; i < mpHex.length; i++) {
+            result[i] = decode(mpHex[i]);
         }
         return result;
     }
@@ -350,7 +300,7 @@ public class MPCubeManager {
         return MPMASTER_PRIFIX + name;
     }
 
-    public List<CubeInstance> listMPCube(CubeInstance master) {
+    public List<CubeInstance> listMPCubes(CubeInstance master) {
         if (!isMPMaster(master))
             throw new IllegalArgumentException();
 

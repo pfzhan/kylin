@@ -682,7 +682,7 @@ public class KapCubeController extends BasicController implements InitializingBe
                 throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_NULL());
             }
         } else if (mpmgr.isMPMaster(cubeInstance)) {
-            List<CubeInstance> mpcubeList = mpmgr.listAllMPCubes(cubeName);
+            List<CubeInstance> mpcubeList = mpmgr.listMPCubes(cubeInstance);
             if (mpcubeList.isEmpty() == false) {
                 throw new BadRequestException(msg.getRAW_SEG_SIZE_NOT_NULL());
             }

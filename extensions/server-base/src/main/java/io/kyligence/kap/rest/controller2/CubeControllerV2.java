@@ -284,7 +284,7 @@ public class CubeControllerV2 extends BasicController {
                 cubeService.rebuildLookupSnapshot(cube, segmentName, lookupTable), "");
     }
 
-    @RequestMapping(value = "{cubeName}/mp_values", method = RequestMethod.GET, produces = {
+    @RequestMapping(value = "{cubeName}/mp_cubes", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse listMPValues(@PathVariable String cubeName) throws IOException {
@@ -297,7 +297,9 @@ public class CubeControllerV2 extends BasicController {
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, mpCubeMgr.listMPValues(cube), "");
+        List<Map<String, Object>> cubeList = mpCubeMgr.listMPValuesAndCubes(cube);
+
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, cubeList, "");
     }
 
     @RequestMapping(value = "{cubeName}/segments", method = RequestMethod.GET, produces = {
@@ -310,7 +312,7 @@ public class CubeControllerV2 extends BasicController {
             throws IOException {
 
         checkCubeExists(cubeName);
-        
+
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { mpValues });
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
 
@@ -381,7 +383,7 @@ public class CubeControllerV2 extends BasicController {
             throws IOException {
 
         checkCubeExists(cubeName);
-        
+
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
 
         TSRange range = new TSRange(req.getStartTime(), req.getEndTime());
@@ -419,7 +421,7 @@ public class CubeControllerV2 extends BasicController {
     @ResponseBody
     public EnvelopeResponse rebuildStreaming(@PathVariable String cubeName, @RequestBody KapStreamingBuildRequest req)
             throws IOException {
-        
+
         checkCubeExists(cubeName);
 
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
@@ -458,12 +460,12 @@ public class CubeControllerV2 extends BasicController {
 
         checkCubeExists(cubeName);
         String originCubeName = cubeName;
-        
+
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
 
         CubeInstance purgeCube = cubeService.purgeCube(cube);
-        
+
         dropMPCubeIfNeeded(purgeCube.getName());
 
         CubeInstance originCube = cubeService.getCubeManager().getCube(originCubeName);
@@ -601,10 +603,10 @@ public class CubeControllerV2 extends BasicController {
     private boolean hasNoReadySegments(CubeInstance cube) throws IOException {
         KylinConfig config = cubeService.getConfig();
         MPCubeManager mgr = MPCubeManager.getInstance(config);
-        
+
         Segments<CubeSegment> segments = new Segments<CubeSegment>();
         if (mgr.isMPMaster(cube)) {
-            for (CubeInstance mpCube : mgr.listAllMPCubes(cube.getName())) {
+            for (CubeInstance mpCube : mgr.listMPCubes(cube)) {
                 segments.addAll(mpCube.getSegments());
             }
         } else {

@@ -11,9 +11,9 @@
         <el-select v-model="filterDetail.mpValues" filterable :placeholder="$t('kylinLang.common.pleaseFilter')" @change="filterChange">
           <el-option
             v-for="item in mpValuesList"
-            :key="item"
-            :label="item"
-            :value="item">
+            :key="item.name"
+            :label="item.name"
+            :value="item.name">
           </el-option>
         </el-select>
       </div>
@@ -184,10 +184,10 @@ export default {
       if (this.cube.multilevel_partition_cols.length > 0) {
         this.getMPValues(this.cube.name).then((res) => {
           handleSuccess(res, (data) => {
-            this.mpValuesList = data.sort()
+            this.mpValuesList = objectArraySort(data, true, 'name')
             if (this.mpValuesList.length > 0) {
               this.$nextTick(() => {
-                this.filterDetail.mpValues = this.mpValuesList.indexOf(this.filterDetail.mpValues) >= 0 ? this.filterDetail.mpValues : this.mpValuesList[0]
+                this.filterDetail.mpValues = this.mpValuesList.indexOf(this.filterDetail.mpValues) >= 0 ? this.filterDetail.mpValues : this.mpValuesList[0].name
                 this.loadSegmentsDetail()
               })
             } else {
@@ -263,6 +263,7 @@ export default {
       this.cube.total_storage_size_kb = data.total_storage_size_kb
       this.cube.input_records_count = data.input_records_count
       this.cube.input_records_size = data.input_records_size
+      this.cube.segments = data.segments
     },
     refresh: function () {
       this.noteMessage = {
@@ -384,11 +385,13 @@ export default {
       this.btnLoading = false
     },
     filterChange () {
-      clearTimeout(this.lockST)
-      this.lockST = setTimeout(() => {
-        this.selectedSeg = {}
-        this.loadSegmentsDetail()
-      }, 1000)
+      if (this.filterDetail.mpValues !== '') {
+        clearTimeout(this.lockST)
+        this.lockST = setTimeout(() => {
+          this.selectedSeg = {}
+          this.loadSegmentsDetail()
+        }, 1000)
+      }
     }
   },
   computed: {
