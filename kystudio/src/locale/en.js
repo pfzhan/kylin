@@ -209,7 +209,7 @@ exports.default = {
     dataSourceHasJob: 'This table has a running job of cube build, thus the action is disabled.'
   },
   login: {
-
+    signIn: 'Kyligence Account | Sign In'
   },
   menu: {
     dashboard: 'Dashboard',

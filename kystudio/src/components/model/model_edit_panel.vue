@@ -337,7 +337,8 @@ export default {
       this.resultMeasureArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
         this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].alias] || []
-        for (var m = 0; m < this.tableList[k].columns.length; m++) {
+        var mlen = this.tableList[k] && this.tableList[k].length || 0
+        for (var m = 0; m < mlen; m++) {
           if (this.tableList[k].columns[m].btype === 'M') {
             // this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].name] || []
             this.resultMeasureArr[this.tableList[k].alias].push({name: this.tableList[k].columns[m].name, guid: this.tableList[k].guid, isComputed: this.tableList[k].columns[m].isComputed})

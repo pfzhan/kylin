@@ -113,12 +113,13 @@
                     })
                   })
                 } else {
-                  this.$message({
-                    type: 'error',
-                    duration: 0,  // 不自动关掉提示
-                    showClose: true,    // 给提示框增加一个关闭按钮
-                    message: msg
-                  })
+                  // this.$message({
+                  //   type: 'error',
+                  //   duration: 0,  // 不自动关掉提示
+                  //   showClose: true,    // 给提示框增加一个关闭按钮
+                  //   message: msg
+                  // })
+                  handleError(result)
                 }
               }, (res) => {
                 handleError(res)

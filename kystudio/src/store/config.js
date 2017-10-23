@@ -30,7 +30,8 @@ export default {
     hiddenFeature: {
       raw_measure: false,
       extendedcolumn_measure: false
-    }
+    },
+    loginKyaccountDialog: false
   },
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list }) {

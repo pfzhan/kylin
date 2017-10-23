@@ -3,7 +3,9 @@ import * as types from './types'
 export default {
   state: {
     kyaccount: '',
-    kyStatus: false
+    kyStatus: false,
+    loginKyaccountDialog: false,
+    hasLoginAccount: ''
   },
   mutations: {
     [types.GET_KYACCOUNT]: function (state, { data }) {
@@ -20,8 +22,14 @@ export default {
         return response
       })
     },
+    [types.GET_CUR_ACCOUNTNAME]: function ({ commit }) {
+      return api.kybot.getCurrentAccountName()
+    },
     [types.LOGIN_KYBOT]: function ({ commit }, params) {
       return api.kybot.loginKybot(params)
+    },
+    [types.LOGOUT_KYBOT]: function ({ commit }, params) {
+      return api.kybot.kybotLogOut(params)
     },
     [types.GET_KYBOT_STATUS]: function ({commit}) {
       return api.kybot.getkybotStatus().then((response) => {

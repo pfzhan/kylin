@@ -207,7 +207,7 @@ exports.default = {
     collectStatice: '采样比例越高时，收集的统计信息较准确，同时会需要较多资源。'
   },
   login: {
-
+    signIn: 'Kyligence 帐号 | 登录'
   },
   menu: {
     dashboard: '仪表盘',

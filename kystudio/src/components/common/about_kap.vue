@@ -29,8 +29,9 @@
 		{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
 	  </el-row>
     <el-row>
-    <label for="">KyAccount: </label>
-    {{kyAccount}}
+    <label for="">Kyligence Account: </label>
+    <span v-if="$store.state.kybot.hasLoginAccount">{{$store.state.kybot.hasLoginAccount}} <a href="#" @click.prevent="logOut">{{$t('quit')}}</a></span>
+    <a v-if="!$store.state.kybot.hasLoginAccount" href="#" @click.prevent="loginKyaccount">{{$t('login')}}</a>
     </el-row>
 	</div>
 	<div class="footer">
@@ -41,12 +42,17 @@
   </div>
 </template>
 <script>
+import { mapActions } from 'vuex'
+import loginKybot from '../common/login_kybot.vue'
+import { handleSuccess, handleError, kapConfirm } from '../../util/business'
 export default {
   name: 'about_kap',
   props: ['about'],
   data () {
     return {
-      aboutKap: this.about
+      aboutKap: this.about,
+      hasLoginAccount: false,
+      kyBotLoginVisible: false
     }
   },
   computed: {
@@ -54,7 +60,7 @@ export default {
       return this.$store.state.system.serverAboutKap
     },
     kyAccount () {
-      return this.$store.state.system.kyAccount || this.$t('noAccount')
+      return this.$store.state.system.kyAccount
     },
     statement () {
       // kapService.evaluationStatement
@@ -62,7 +68,17 @@ export default {
       return this.$store.state.system.statement
     }
   },
+  components: {
+    'login_kybot': loginKybot
+  },
+  created () {
+    this.getKyAccountStatus()
+  },
   methods: {
+    ...mapActions({
+      logOutKyAccount: 'LOGOUT_KYBOT',
+      getKybotAccount: 'GET_CUR_ACCOUNTNAME'
+    }),
     license (obj) {
       if (!obj) {
         return 'N/A'
@@ -73,23 +89,62 @@ export default {
     getLicense () {
       // let newWinLicense = window.open()
       // newWinLicense.location.href = 'api/kap/system/requestLicense'
+    },
+    logOut () {
+      kapConfirm(this.$t('logOutConfirm')).then(() => {
+        this.logOutKyAccount().then(() => {
+          this.getKyAccountStatus()
+        }, (res) => {
+          handleError(res)
+        })
+      })
+    },
+    loginKyaccount () {
+      this.$store.state.kybot.loginKyaccountDialog = true
+    },
+    getKyAccountStatus () {
+      this.getKybotAccount().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$store.state.kybot.hasLoginAccount = data
+        }, (errResp) => {
+          this.$store.state.kybot.hasLoginAccount = ''
+          handleError(errResp)
+        })
+      })
     }
   },
   locales: {
-    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', licenseStatement: 'License Statement: ', sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.', noAccount: 'No account is configured in Kylin properties', generateLicense: 'Generate License Request File', updateLicense: 'Update License'},
-    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证'}
+    'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', licenseStatement: 'License Statement: ', sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.', noAccount: 'No account is configured in Kylin properties', generateLicense: 'Generate License Request File', updateLicense: 'Update License', logOutConfirm: 'Comfirm quit?', login: 'Login', quit: 'Quit'},
+    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证', logOutConfirm: '确认要退出吗？', login: '登陆', quit: '退出'}
   }
 }
 </script>
 <style lang="less">
+@import '../../less/config.less';
   .about-kap {
+    .el-dialog__header{
+      height: 55px;
+      line-height: 55px;
+    }
+    .el-icon-close{
+      margin-top: 15px;
+    }
+    .header{
+      margin-top: 20px;
+    }
+    .buttonLink{
+      width: 300px!important;
+      display: block;
+      margin: 0 auto;
+      background: @base-color;
+    }
 	line-height:30px;
 	font-size:14px;
 	text-align: center;
 	img {width: 120px;}
 	label {font-weight:bold;}
 	.header, 
-	.container {padding-bottom:20px;border-bottom:1px solid #D3DCE6;}
+	.container {padding-bottom:20px;border-bottom:1px solid #424860;}
 	h3 {margin-top:20px;font-size:14px;}
 	.details {line-height:24px;margin:20px 0 30px;}
 	.gray {margin:6px 0 30px;color:#a2a2a2;font-size:12px;}

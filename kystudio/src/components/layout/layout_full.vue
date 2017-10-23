@@ -1,6 +1,8 @@
 <template>
    <div>
     <router-view></router-view>
+
+    <!-- 全局级别错误提示框 -->
     <el-dialog class="errMsgBox"
       :before-close="handleClose"
       :title="$t('kylinLang.common.tip')"
@@ -24,10 +26,17 @@
       </transition>
       </span>
     </el-dialog>
+    <!-- 全局级别的kyaccount登陆框 -->
+    <el-dialog class="login-kybotAccount" v-model="$store.state.kybot.loginKyaccountDialog" :title="$t('kylinLang.login.signIn')" size="tiny" @close="resetLoginKybotForm" :close-on-click-modal="false">
+      <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginForm"></login_kybot>
+    </el-dialog>
    </div>
 </template>
 
 <script>
+import { mapActions } from 'vuex'
+import loginKybot from '../common/login_kybot.vue'
+import { handleSuccess, handleError } from '../../util/business'
 export default {
   data () {
     return {
@@ -36,6 +45,9 @@ export default {
     }
   },
   methods: {
+    ...mapActions({
+      getKybotAccount: 'GET_CUR_ACCOUNTNAME'
+    }),
     toggleDetail () {
       this.showDetail = !this.showDetail
     },
@@ -44,6 +56,19 @@ export default {
       setTimeout(() => {
         this.showCopyStatus = false
       }, 3000)
+    },
+    resetLoginKybotForm () {
+      this.$refs['loginKybotForm'].$refs['loginKybotForm'].resetFields()
+    },
+    closeLoginForm () {
+      this.$store.state.kybot.loginKyaccountDialog = false
+      this.getKybotAccount().then((res) => {
+        handleSuccess(res, (data, code, status, msg) => {
+          this.$store.state.kybot.hasLoginAccount = data
+        })
+      }, (res) => {
+        handleError(res)
+      })
     },
     onError () {
       this.$message(this.$t('copyfail'))
@@ -55,6 +80,11 @@ export default {
     }
   },
   mounted () {
+  },
+  computed: {
+  },
+  components: {
+    'login_kybot': loginKybot
   },
   destroyed () {
     this.showCopyStatus = false

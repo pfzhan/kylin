@@ -49,13 +49,13 @@
                {{scope.row.uuid}}
               </div>
               <span>{{scope.row.uuid.substr(0,8)}}</span>
-            </el-tooltip> 
+            </el-tooltip>
             <el-tooltip class="item" effect="dark" placement="top" v-if="scope.row.additionalInfo.tmp_op_flag === 'false'">
               <div slot="content">
                {{$t('buildSegment')}}
               </div>
               <i class="el-icon-loading ksd-fright"></i>
-            </el-tooltip> 
+            </el-tooltip>
           </template>
         </el-table-column>
         <el-table-column
@@ -95,7 +95,7 @@
       </pager>
     </div>
 
-    <el-card v-else>
+    <el-card class="noSegments" v-else>
       {{$t('NoStorageInfo')}}
     </el-card>
 
@@ -414,6 +414,12 @@ export default {
     }
   }
   #segments{
+    .noSegments {
+      font-size: 12px;
+      width: 90%;
+      border: 1px solid #393E53;
+      background: #292b38;
+    }
     .el-row {
       .el-tag {
         background-color: #393e53;
