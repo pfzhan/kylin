@@ -46,13 +46,14 @@ public class HadoopConfPropertyRetriever {
         saxParser.parse(file, new HadoopConfHandler(targetProperty));
     }
 
-    private static class HadoopConfHandler extends DefaultHandler {
+    static class HadoopConfHandler extends DefaultHandler {
         private boolean inProperty = false;
         private boolean inName = false;
         private boolean inValue = false;
         private boolean isTargetProperty = false;
 
         private String propertyName;
+        private StringBuilder propertyValue = new StringBuilder();
 
         public HadoopConfHandler(String propertyName) {
             this.propertyName = propertyName;
@@ -77,13 +78,17 @@ public class HadoopConfPropertyRetriever {
                     isTargetProperty = true;
                 }
             } else if (inProperty && inValue && isTargetProperty) {
-                System.out.println(new String(ch, start, length));
+                propertyValue.append(new String(ch, start, length));
             }
         }
 
         @Override
         public void endElement(String uri, String localName, String qName) throws org.xml.sax.SAXException {
             if (qName.equalsIgnoreCase("property")) {
+                if (inProperty && isTargetProperty) {
+                    System.out.println(propertyValue.toString());
+                    propertyValue.setLength(0);
+                }
                 inProperty = false;
                 isTargetProperty = false;
             } else if (qName.equalsIgnoreCase("name")) {
