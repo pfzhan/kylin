@@ -28,10 +28,12 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 
 public class DefaultSmartStrategy implements ISmartStrategy {
-    public final static DefaultSmartStrategy INSTANCE = new DefaultSmartStrategy();
+    public final static ISmartStrategy INSTANCE = new DefaultSmartStrategy();
+    public final static String NAME = "default";
+
     private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-    private DefaultSmartStrategy() {
+    DefaultSmartStrategy() {
     }
 
     public int getRowkeyDictEncCardinalityMax() {

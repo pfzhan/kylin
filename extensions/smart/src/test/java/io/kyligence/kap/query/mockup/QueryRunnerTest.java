@@ -25,7 +25,7 @@
 package io.kyligence.kap.query.mockup;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
@@ -38,7 +38,6 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
-import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
 
 public class QueryRunnerTest extends LocalFileMetadataTestCase {
@@ -59,18 +58,16 @@ public class QueryRunnerTest extends LocalFileMetadataTestCase {
         String[] sqls = { "select count(*) from test_kylin_fact", "select 1", "abcd",
                 "select a,b,c from test_kylin_fact", "select price from test_kylin_fact group by price" };
 
-        try (AbstractQueryRunner runner = QueryRunnerFactory.createForCubeSuggestion(config, sqls, 1, cubeDesc)) {
+        try (AbstractQueryRunner runner = QueryRunnerFactory.createForCubeSuggestion(config, sqls, 1,
+                cubeDesc.getProject())) {
             runner.execute();
 
-            QueryStats stats = runner.getQueryStats();
-            Assert.assertEquals(1, stats.getTotalQueries());
-
-            Map<String, SQLResult> results = runner.getQueryResults();
-            Assert.assertEquals(SQLResult.Status.SUCCESS, results.get(sqls[0]).getStatus());
-            Assert.assertEquals(SQLResult.Status.SUCCESS, results.get(sqls[1]).getStatus());
-            Assert.assertEquals(SQLResult.Status.FAILED, results.get(sqls[2]).getStatus());
-            Assert.assertEquals(SQLResult.Status.FAILED, results.get(sqls[3]).getStatus());
-            Assert.assertEquals(SQLResult.Status.FAILED, results.get(sqls[4]).getStatus());
+            List<SQLResult> results = runner.getQueryResults();
+            Assert.assertEquals(SQLResult.Status.SUCCESS, results.get(0).getStatus());
+            Assert.assertEquals(SQLResult.Status.SUCCESS, results.get(1).getStatus());
+            Assert.assertEquals(SQLResult.Status.FAILED, results.get(2).getStatus());
+            Assert.assertEquals(SQLResult.Status.FAILED, results.get(3).getStatus());
+            Assert.assertEquals(SQLResult.Status.FAILED, results.get(4).getStatus());
         }
     }
 }

@@ -27,8 +27,8 @@ package io.kyligence.kap.smart.query;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.List;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -37,24 +37,28 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 
 public abstract class AbstractQueryRunner implements Closeable {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractQueryRunner.class);
 
     protected String projectName;
     private final String[] sqls;
 
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
-    private Map<String, SQLResult> queryResults = new ConcurrentSkipListMap<>();
-    private QueryStats queryStats;
-    private Map<String, Collection<OLAPContext>> olapContexts = new ConcurrentHashMap<>();
 
-    private ExecutorService executorService;
-    private final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
+    private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
+    private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
+
+    private final ExecutorService executorService;
+    //    private final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
     public AbstractQueryRunner(String projectName, String[] sqls, int threads) {
         this.projectName = projectName;
@@ -75,27 +79,18 @@ public abstract class AbstractQueryRunner implements Closeable {
                         queryCache.put(sql, record);
                     }
                     SQLResult result = record.getSqlResult();
-                    queryResults.put(sql, result);
-                    if (result.getStatus() == SQLResult.Status.SUCCESS) {
-                        queryRecorder.record(record);
-                    }
-                    if (record.getOLAPContexts() != null) {
-                        olapContexts.put(sql, record.getOLAPContexts());
-                    }
+                    Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
+                    queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
+                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext> newArrayList() : olapCtxs);
                 } finally {
                     counter.countDown();
                     KylinConfig.removeKylinConfigThreadLocal();
                 }
             }
         });
-
     }
 
     public void execute() throws Exception {
-        if (queryStats != null && !queryResults.isEmpty()) {
-            return;
-        }
-
         KylinConfig config = prepareConfig();
         try {
             MockupQueryExecutor queryExecutor = new MockupQueryExecutor();
@@ -104,8 +99,6 @@ public abstract class AbstractQueryRunner implements Closeable {
                 submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
             }
             latch.await();
-
-            queryStats = queryRecorder.getResult();
         } finally {
             cleanupConfig(config);
         }
@@ -115,20 +108,12 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     public abstract void cleanupConfig(KylinConfig config) throws Exception;
 
-    public QueryStats getQueryStats() {
-        return queryStats;
+    public List<SQLResult> getQueryResults() {
+        return Lists.newArrayList(queryResults.values());
     }
 
-    public Map<String, SQLResult> getQueryResults() {
-        return queryResults;
-    }
-
-    public Collection<OLAPContext> getOLAPContexts(String sql) {
-        return olapContexts.get(sql);
-    }
-
-    public Map<String, Collection<OLAPContext>> getAllOLAPContexts() {
-        return olapContexts;
+    public List<Collection<OLAPContext>> getAllOLAPContexts() {
+        return Lists.newArrayList(olapContexts.values());
     }
 
     @Override

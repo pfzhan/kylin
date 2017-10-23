@@ -80,7 +80,7 @@ public class ModelBasedSQLAdvisor extends AbstractSQLAdvisor {
                 if (CollectionUtils.isEmpty(currentContextAdvisors)) {
                     currentModelSuccess = true;
                 }
-                if (CollectionUtils.isEmpty(checkResult.getCapableModels())) {
+                if (MapUtils.isEmpty(checkResult.getCapableModels())) {
                     allContextSuccess = false;
                     if (currentModelSuccess) {
                         failContext = ctx;

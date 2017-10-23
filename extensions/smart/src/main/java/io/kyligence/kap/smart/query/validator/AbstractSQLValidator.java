@@ -58,7 +58,7 @@ public abstract class AbstractSQLValidator {
     }
 
     protected abstract ISQLAdvisor getSQLAdvisor();
-    
+
     protected abstract AbstractQueryRunner createQueryRunner(String[] sqls);
 
     protected SQLValidateResult doValidate(SQLResult sqlResult, Collection<OLAPContext> olapContexts) {
@@ -83,17 +83,17 @@ public abstract class AbstractSQLValidator {
             logger.error("batch validate sql error" + Arrays.toString(sqlArray), e);
         }
 
-        Map<String, SQLResult> queryResults = queryRunner.getQueryResults();
-        Map<String, Collection<OLAPContext>> olapContexts = queryRunner.getAllOLAPContexts();
+        List<SQLResult> queryResults = queryRunner.getQueryResults();
+        List<Collection<OLAPContext>> olapContexts = queryRunner.getAllOLAPContexts();
         return doBatchValidate(sqlList, queryResults, olapContexts);
     }
 
-    protected Map<String, SQLValidateResult> doBatchValidate(List<String> sqlList, Map<String, SQLResult> queryResults,
-            Map<String, Collection<OLAPContext>> olapContexts) {
+    protected Map<String, SQLValidateResult> doBatchValidate(List<String> sqlList, List<SQLResult> queryResults,
+            List<Collection<OLAPContext>> olapContexts) {
         Map<String, SQLValidateResult> validateStatsMap = Maps.newHashMap();
-        for (String sql : sqlList) {
-            SQLResult sqlResult = queryResults.get(sql);
-            validateStatsMap.put(sql, doValidate(sqlResult, olapContexts.get(sql)));
+        for (int i = 0; i < sqlList.size(); i++) {
+            SQLResult sqlResult = queryResults.get(i);
+            validateStatsMap.put(sqlList.get(i), doValidate(sqlResult, olapContexts.get(i)));
         }
         return validateStatsMap;
     }

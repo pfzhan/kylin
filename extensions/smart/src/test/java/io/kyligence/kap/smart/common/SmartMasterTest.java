@@ -26,68 +26,52 @@ package io.kyligence.kap.smart.common;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.cube.model.AggregationGroup;
+import org.apache.kylin.cube.CubeDescManager;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.AfterClass;
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.io.Files;
 
 import io.kyligence.kap.smart.cube.CubeMaster;
 import io.kyligence.kap.smart.model.ModelMaster;
 import io.kyligence.kap.smart.query.Utils;
 
-//@Ignore("Ignore because this is only used for demo.")
 public class SmartMasterTest {
-    public static String aggrStrategy = "mixed";
+    private static final Logger logger = LoggerFactory.getLogger(SmartMasterTest.class);
 
     @AfterClass
     public static void afterClass() {
         KylinConfig.destroyInstance();
     }
 
-    @Ignore
     @Test
-    public void testE2E_LearnKylin() throws IOException {
-        testInternal("src/test/resources/learn_kylin/meta", "kylin_sales_model", "src/test/resources/learn_kylin/sql");
+    public void testE2E_TPCDS() throws Exception {
+        String base = "src/test/resources/tpcds/";
+        File tmpMetaDir = Files.createTempDir();
+        FileUtils.copyDirectory(new File(base + "meta"), tmpMetaDir);
+        testInternal("TPC_DS_2", tmpMetaDir.getAbsolutePath(), base + "sql_filtered");
+        FileUtils.forceDelete(tmpMetaDir);
     }
 
-    //    @Ignore
-    @Test
-    public void testE2E_SSB() throws IOException {
-        testInternal("src/test/resources/ssb/meta", "ssb", "src/test/resources/ssb/sql");
-    }
-
-    @Ignore
-    @Test
-    public void testE2E_TPCH_LineItem() throws IOException {
-        testInternal("src/test/resources/tpch/meta", "lineitem_model", "src/test/resources/tpch/sql_lineitem");
-    }
-
-    @Ignore
-    @Test
-    public void testE2E_Airline() throws IOException {
-        testInternal("src/test/resources/airline/meta", "airline_model", new String[0]);
-    }
-
-    @Ignore
-    @Test
-    public void testE2E_TPCDS_ss() throws Exception {
-        //        testInternal("src/test/resources/tpcds/meta", "src/test/resources/tpcds/sql_ss");
-        //        testInternal("src/test/resources/tpch/meta", "src/test/resources/tpch/sql_lineitem");
-    }
-
-    private void testInternal(String metaDir, String sqlDir) throws Exception {
+    private void testInternal(String proj, String metaDir, String sqlDir) throws Exception {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
-        kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", aggrStrategy);
+        kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", "whitelist");
         kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
+        kylinConfig.setProperty("kap.smart.strategy", "batch");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
         File[] sqlFiles = new File[0];
@@ -111,72 +95,30 @@ public class SmartMasterTest {
             sqls[i] = FileUtils.readFileToString(sqlFiles[i], "UTF-8");
         }
 
-        ModelMaster modelMaster = MasterFactory.createModelMaster(kylinConfig, "TBD", sqls, "TBD");
+        Collection<ModelMaster> masters = MasterFactory.createModelMasters(kylinConfig, proj, sqls);
+        logger.info("There will be {} models.", masters.size());
 
-        DataModelDesc modelDesc = modelMaster.proposeAll();
-
-        CubeMaster cubeMaster = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
-
-        // TODO ...
-
-    }
-
-    private void testInternal(String metaDir, String modelName, String sqlDir) throws IOException {
-        File[] sqlFiles = new File[0];
-        if (sqlDir != null) {
-            File sqlDirF = new File(sqlDir);
-            if (sqlDirF.exists() && sqlDirF.listFiles() != null) {
-                sqlFiles = new File(sqlDir).listFiles(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        if (name.endsWith(".sql")) {
-                            return true;
-                        }
-                        return false;
-                    }
-                });
-            }
+        int i = 0;
+        DataModelManager modelManager = DataModelManager.getInstance(kylinConfig);
+        List<DataModelDesc> models = Lists.newArrayList();
+        for (ModelMaster master : masters) {
+            logger.info("Generating the {}th model.", i++);
+            DataModelDesc modelDesc = master.proposeAll();
+            models.add(modelDesc);
+            modelManager.createDataModelDesc(modelDesc, proj, null);
         }
+        Assert.assertEquals(14, i);
 
-        String[] sqls = new String[sqlFiles.length];
-        for (int i = 0; i < sqlFiles.length; i++) {
-            sqls[i] = FileUtils.readFileToString(sqlFiles[i], "UTF-8");
+        CubeDescManager cubeDescManager = CubeDescManager.getInstance(kylinConfig);
+        CubeManager cubeManager = CubeManager.getInstance(kylinConfig);
+        List<CubeMaster> cubeMasters = MasterFactory.createCubeMasters(kylinConfig, proj, sqls);
+        i = 0;
+        for (CubeMaster cubeMaster : cubeMasters) {
+            logger.info("Generating the {}th cube.", i++);
+            CubeDesc cube = cubeMaster.proposeAll();
+            cubeDescManager.createCubeDesc(cube);
+            cubeManager.createCube(cube.getName(), proj, cube, null);
         }
-
-        testInternal(metaDir, modelName, sqls);
-    }
-
-    private void testInternal(String metaDir, String modelName, String[] sqls) throws IOException {
-        KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
-        kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
-        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
-        kylinConfig.setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.storage.parquet.adhoc.AdHocRunnerSparkImpl");
-
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-
-        DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);
-
-        CubeMaster master = MasterFactory.createCubeMaster(kylinConfig, modelDesc, sqls);
-
-        // get initial cube
-        CubeDesc initCube = master.proposeInitialCube();
-
-        // get dimension and measure
-        CubeDesc dimMeasCube = master.proposeDerivedDimensions(initCube);
-
-        // get rowkey
-        CubeDesc rowkeyCube = master.proposeRowkey(dimMeasCube);
-
-        // get aggr groups
-        CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
-
-        // get override cube
-        CubeDesc configOverrideCube = master.proposeConfigOverride(aggGroupCube);
-        System.out.println(JsonUtil.writeValueAsIndentString(configOverrideCube));
-
-        for (AggregationGroup aggGroup : configOverrideCube.getAggregationGroups()) {
-            System.out.println("Aggregation Group Combination:" + aggGroup.calculateCuboidCombination());
-        }
+        Assert.assertEquals(14, i);
     }
 }

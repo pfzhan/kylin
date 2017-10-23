@@ -24,16 +24,19 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
+import org.apache.commons.collections.ListUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
@@ -49,42 +52,43 @@ public class ModelContextBuilder {
         this.projectName = project;
     }
 
-    public Map<TableDesc, ModelContext> buildFromSQLs(String[] sqls) {
-        final Map<TableDesc, ModelContext> emptyMap = Maps.newHashMap();
+    public List<ModelContext> buildFromSQLs(String[] sqls) {
+        return buildFromSQLs(sqls, null);
+    }
 
-        if (sqls == null || sqls.length <= 0) {
-            return emptyMap;
+    public List<ModelContext> buildFromSQLs(String[] sqls, TableDesc rootFactTbl) {
+        if (ArrayUtils.isEmpty(sqls)) {
+            return ListUtils.EMPTY_LIST;
         }
 
         try (AbstractQueryRunner extractor = QueryRunnerFactory.createForModelSuggestion(kylinConfig, sqls, 1,
-                projectName);) {
+                projectName)) {
             extractor.execute();
-            return buildFromOLAPContexts(extractor.getAllOLAPContexts());
-        } catch (Exception e) {
-            logger.error("Failed to execute query stats. ", e);
-        }
 
-        return emptyMap;
+            return buildFromOLAPContexts(Arrays.asList(sqls), extractor.getAllOLAPContexts(), rootFactTbl);
+        } catch (Exception e) {
+            logger.error("Failed to get query stats. ", e);
+            return null;
+        }
     }
 
-    public Map<TableDesc, ModelContext> buildFromOLAPContexts(Map<String, Collection<OLAPContext>> allContexts) {
-        Map<TableDesc, ModelContext> tableModelMap = Maps.newHashMap();
-        for (Map.Entry<String, Collection<OLAPContext>> sqlContexts : allContexts.entrySet()) {
-            String sql = sqlContexts.getKey();
-            for (OLAPContext ctx : sqlContexts.getValue()) {
-                if (ctx.firstTableScan == null) {
-                    continue;
-                }
+    public List<ModelContext> buildFromOLAPContexts(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
+            TableDesc rootFactTbl) {
+        List<ModelTree> modelTrees = buildModelTrees(sqls, olapContexts, rootFactTbl);
+        return buildFromModelTrees(modelTrees);
+    }
 
-                TableDesc tableDesc = ctx.firstTableScan.getTableRef().getTableDesc();
-                ModelContext context = tableModelMap.get(tableDesc);
-                if (context == null) {
-                    context = new ModelContext(kylinConfig, projectName, tableDesc);
-                    tableModelMap.put(tableDesc, context);
-                }
-                context.addContext(sql, ctx);
-            }
+    private List<ModelTree> buildModelTrees(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
+            TableDesc rootFactTbl) {
+        return new GreedyModelTreesBuilder(kylinConfig, projectName).build(sqls, olapContexts, rootFactTbl);
+    }
+
+    public List<ModelContext> buildFromModelTrees(List<ModelTree> modelTrees) {
+        List<ModelContext> result = Lists.newLinkedList();
+        for (ModelTree tree : modelTrees) {
+            ModelContext ctx = new ModelContext(kylinConfig, projectName, tree);
+            result.add(ctx);
         }
-        return tableModelMap;
+        return result;
     }
 }

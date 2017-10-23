@@ -111,7 +111,8 @@ public class CubeMasterTest {
         KylinConfig kylinConfig = Utils.newKylinConfig(metaDir);
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
         kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", aggrStrategy);
-        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "false");
+        kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
+        kylinConfig.setProperty("kap.smart.strategy", "batch");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
         DataModelDesc modelDesc = DataModelManager.getInstance(kylinConfig).getDataModelDesc(modelName);

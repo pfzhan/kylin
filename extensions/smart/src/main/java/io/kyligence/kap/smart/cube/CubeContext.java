@@ -58,7 +58,7 @@ public class CubeContext extends AbstractContext {
     private Domain domain;
     private String cubeName;
     private ICubeStats cubeStats;
-    private Map<String, SQLResult> sqlResults;
+    private List<SQLResult> sqlResults;
 
     public CubeContext(KylinConfig kylinConfig) {
         super(kylinConfig);
@@ -75,11 +75,11 @@ public class CubeContext extends AbstractContext {
         }
     }
 
-    public Map<String, SQLResult> getSqlResults() {
+    public List<SQLResult> getSqlResults() {
         return sqlResults;
     }
 
-    public void setSqlResults(Map<String, SQLResult> sqlResults) {
+    public void setSqlResults(List<SQLResult> sqlResults) {
         this.sqlResults = sqlResults;
     }
 
@@ -205,15 +205,8 @@ public class CubeContext extends AbstractContext {
     public boolean hasCubeStats() {
         return cubeStats != null;
     }
-    // ===================================
 
-    public List<SQLResult> getSQLResultList(List<String> sqls) {
-        List<SQLResult> results = Lists.newArrayList();
-        for (String sql : sqls) {
-            results.add(sqlResults.get(sql));
-        }
-        return results;
-    }
+    // ===================================
 
     public TableExtDesc.ColumnStats getTableColumnStats(TblColRef tblColRef) {
         String tableIdentity = tblColRef.getTable();

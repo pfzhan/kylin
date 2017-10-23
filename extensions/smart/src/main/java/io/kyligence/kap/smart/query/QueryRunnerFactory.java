@@ -37,14 +37,23 @@ import org.apache.kylin.metadata.realization.RealizationType;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.smart.common.MasterFactory;
+import io.kyligence.kap.smart.cube.domain.ModelDomainBuilder;
 
 public final class QueryRunnerFactory {
 
     public static AbstractQueryRunner createForCubeSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
-            CubeDesc cubeDesc) {
-        return new LocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithCubeDescs(cubeDesc.getProject(),
-                Lists.newArrayList(cubeDesc));
+            String projectName) {
+        DataModelManager metadataManager = DataModelManager.getInstance(srcKylinConfig);
+        List<DataModelDesc> modelDescs = metadataManager.getModels(projectName);
+        List<CubeDesc> mockupCubes = Lists.newArrayListWithExpectedSize(modelDescs.size());
+
+        KylinConfig config = KylinConfig.createKylinConfig(srcKylinConfig);
+        for (DataModelDesc m : modelDescs) {
+            CubeDesc mockupCube = new ModelDomainBuilder(m).build().buildCubeDesc();
+            mockupCubes.add(mockupCube);
+        }
+
+        return new LocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithCubeDescs(projectName, mockupCubes);
     }
 
     public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
@@ -79,7 +88,7 @@ public final class QueryRunnerFactory {
         KylinConfig config = KylinConfig.createKylinConfig(srcKylinConfig);
         config.setProperty("kap.smart.conf.measure.query-enabled", "false");
         for (DataModelDesc m : modelDescs) {
-            CubeDesc mockupCube = MasterFactory.createCubeMaster(config, m).proposeInitialCube();
+            CubeDesc mockupCube = new ModelDomainBuilder(m).build().buildCubeDesc();
             mockupCubes.add(mockupCube);
         }
 

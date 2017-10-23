@@ -24,110 +24,25 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
-import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import io.kyligence.kap.smart.common.AbstractContext;
-import io.kyligence.kap.smart.util.OLAPContextUtil;
-import io.kyligence.kap.smart.util.TableAliasGenerator;
 
 public class ModelContext extends AbstractContext {
 
     private String modelName;
-
     private String project;
-    private TableDesc rootFactTable = null;
-    private Map<String, Collection<OLAPContext>> contexts = new HashMap<>();
 
-    private TableAliasGenerator.TableAliasDict dict;
-    private Map<TableRef, String> innerTableRefAlias;
-    private Map<TableRef, String> correctedTableAlias;
+    private ModelTree modelTree;
 
-    public ModelContext(KylinConfig kylinConfig, String project, TableDesc rootFactTable) {
+    public ModelContext(KylinConfig kylinConfig, String project, ModelTree modelTree) {
         super(kylinConfig);
         this.project = project;
-        this.rootFactTable = rootFactTable;
-        Map<String, TableDesc> tableMap = TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project);
-        this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
-        this.innerTableRefAlias = new HashMap<>();
-        this.correctedTableAlias = new HashMap<>();
-    }
-
-    public TableDesc getRootTable() {
-        return rootFactTable;
-    }
-
-    public void addContext(String sql, OLAPContext ctx) {
-        if (!this.contexts.containsKey(sql)) {
-            this.contexts.put(sql, new ArrayList<OLAPContext>());
-        }
-        this.contexts.get(sql).add(ctx);
-        this.innerTableRefAlias.putAll(getTableAliasMap(ctx, dict));
-        correctTableAlias();
-    }
-
-    private void correctTableAlias() {
-        Map<String, TableDesc> classifiedAlias = new HashMap<>();
-        for (Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
-            classifiedAlias.put(entry.getValue(), entry.getKey().getTableDesc());
-        }
-        Map<String, String> orig2corrected = new HashMap<>();
-        // correct fact table alias in 1st place
-        String factTableName = rootFactTable.getName();
-        orig2corrected.put(factTableName, factTableName);
-        classifiedAlias.remove(factTableName);
-        for (Entry<String, TableDesc> entry : classifiedAlias.entrySet()) {
-            String original = entry.getKey();
-            String tableName = entry.getValue().getName();
-            String corrected = tableName;
-            int i = 1;
-            while (orig2corrected.containsValue(corrected)) {
-                corrected = tableName + "_" + i;
-                i++;
-            }
-            orig2corrected.put(original, corrected);
-        }
-        for (Entry<TableRef, String> entry : innerTableRefAlias.entrySet()) {
-            String corrected = orig2corrected.get(entry.getValue());
-            correctedTableAlias.put(entry.getKey(), corrected);
-        }
-    }
-
-    public Collection<String> getAllQueries() {
-        return contexts.keySet();
-    }
-
-    public Collection<OLAPContext> getAllOLAPContexts() {
-        List<OLAPContext> result = new ArrayList<>();
-        for (Collection<OLAPContext> contextsBySQL : contexts.values()) {
-            result.addAll(contextsBySQL);
-        }
-        return result;
-    }
-
-    public Collection<OLAPContext> getOLAPContext(String sql) {
-        return contexts.get(sql);
-    }
-
-    public Map<TableRef, String> getAllTableRefAlias() {
-        return this.correctedTableAlias;
-    }
-
-    public String getTableRefAlias(TableRef tableRef) {
-        return correctedTableAlias.get(tableRef);
+        this.modelTree = modelTree;
     }
 
     public String getModelName() {
@@ -138,6 +53,10 @@ public class ModelContext extends AbstractContext {
         this.modelName = modelName;
     }
 
+    public ModelTree getModelTree() {
+        return modelTree;
+    }
+
     public String getProject() {
         return project;
     }
@@ -146,43 +65,11 @@ public class ModelContext extends AbstractContext {
         this.project = project;
     }
 
-    private static Map<TableRef, String> getTableAliasMap(OLAPContext ctx, TableAliasGenerator.TableAliasDict dict) {
-        JoinsTree joinsTree = ctx.joinsTree;
-        if (joinsTree == null) {
-            joinsTree = new JoinsTree(ctx.firstTableScan.getTableRef(), ctx.joins);
-        }
-
-        Map<TableRef, String> allTableAlias = new HashMap<>();
-        TableRef[] allTables = OLAPContextUtil.getAllTableRef(ctx);
-
-        for (TableRef tableRef : allTables) {
-            TableRef[] joinHierachy = getJoinHierchy(joinsTree, tableRef);
-            String[] tableNames = new String[joinHierachy.length];
-
-            for (int i = 0; i < joinHierachy.length; i++) {
-                TableRef table = joinHierachy[i];
-                tableNames[i] = table.getTableIdentity();
-            }
-
-            String tblAlias = (joinHierachy.length == 1 && joinHierachy[0] == ctx.firstTableScan.getTableRef())
-                    ? ctx.firstTableScan.getTableRef().getTableName()
-                    : dict.getHierachyAlias(tableNames);
-
-            allTableAlias.put(tableRef, tblAlias);
-        }
-        return allTableAlias;
+    public TableDesc getRootTable() {
+        return modelTree.getRootFactTable();
     }
 
-    private static TableRef[] getJoinHierchy(JoinsTree joinsTree, TableRef leaf) {
-        if (leaf == null) {
-            return new TableRef[0];
-        }
-
-        JoinDesc join = joinsTree.getJoinByPKSide(leaf);
-        if (join == null) {
-            return new TableRef[] { leaf };
-        }
-
-        return (TableRef[]) ArrayUtils.add(getJoinHierchy(joinsTree, join.getFKSide()), leaf);
+    public Collection<OLAPContext> getAllOLAPContexts() {
+        return modelTree.getOlapContexts();
     }
 }

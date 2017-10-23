@@ -24,11 +24,12 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -46,145 +47,165 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.cube.domain.DefaultDomainBuilder;
 import io.kyligence.kap.smart.cube.domain.Domain;
-import io.kyligence.kap.smart.cube.domain.ModelDomainBuilder;
 import io.kyligence.kap.smart.cube.stats.ICubeStats;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.QueryRunnerFactory;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
-import io.kyligence.kap.smart.query.advisor.ISQLAdvisor;
-import io.kyligence.kap.smart.query.advisor.ModelBasedSQLAdvisor;
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 import io.kyligence.kap.source.hive.modelstats.ModelStatsManager;
 
 public class CubeContextBuilder {
     private static final Logger logger = LoggerFactory.getLogger(CubeContextBuilder.class);
-    private KylinConfig kylinConfig;
-    private SmartConfig smartConfig;
+
+    private final KylinConfig kylinConfig;
+    private final SmartConfig smartConfig;
+    private final TableMetadataManager tableManager;
+    private final ModelStatsManager modelStatsManager;
+    private final DataModelManager modelManager;
 
     public CubeContextBuilder(KylinConfig kylinConfig) {
         this.kylinConfig = kylinConfig;
         this.smartConfig = SmartConfig.wrap(kylinConfig);
+
+        this.tableManager = TableMetadataManager.getInstance(kylinConfig);
+        this.modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
+        this.modelManager = DataModelManager.getInstance(kylinConfig);
+    }
+
+    public Map<String, CubeContext> buildFromProject(String project, String[] sqls) {
+        return internalBuildContexts(project, null, sqls);
     }
 
     public CubeContext buildFromModelDesc(DataModelDesc modelDesc, String[] sqls) {
-        Domain modelDomain = new ModelDomainBuilder(modelDesc).build();
-        CubeDesc modelCube = modelDomain.buildCubeDesc();
-        modelCube.init(kylinConfig);
-        return internalBuild(modelCube, modelDomain, sqls);
+        Map<String, CubeContext> result = internalBuildContexts(modelDesc.getProject(), modelDesc.getName(), sqls);
+        return result.get(modelDesc.getName());
     }
 
-    public CubeContext buildFromModelDesc(DataModelDesc modelDesc, QueryStats queryStats) {
-        Domain modelDomain = new ModelDomainBuilder(modelDesc).build();
-        CubeDesc modelCube = modelDomain.buildCubeDesc();
-        modelCube.init(kylinConfig);
-        return internalBuild(modelCube, modelDomain, queryStats);
+    public CubeContext buildFromModelDesc(DataModelDesc modelDesc, QueryStats queryStats, List<SQLResult> sqlResults) {
+        return internalBuild(modelDesc, queryStats, sqlResults);
     }
 
     public CubeContext buildFromCubeDesc(CubeDesc cubeDesc, String[] sqls) {
-        return buildFromCubeDesc(cubeDesc, null, sqls);
+        return buildFromModelDesc(cubeDesc.getModel(), sqls);
+    }
+
+    public CubeContext buildFromCubeDesc(CubeDesc cubeDesc, QueryStats queryStats, List<SQLResult> sqlResults) {
+        return buildFromModelDesc(cubeDesc.getModel(), queryStats, sqlResults);
     }
 
     public CubeContext buildFromCubeDesc(CubeDesc cubeDesc, ICubeStats cubeStats, String[] sqls) {
-        CubeContext context = internalBuild(cubeDesc, null, sqls);
+        CubeContext context = buildFromCubeDesc(cubeDesc, sqls);
         if (cubeStats != null) {
             context.setCubeStats(cubeDesc, cubeStats);
         }
         return context;
     }
 
-    public CubeContext buildFromCubeDesc(CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats) {
-        CubeContext context = internalBuild(cubeDesc, null, queryStats);
+    public CubeContext buildFromCubeDesc(CubeDesc cubeDesc, ICubeStats cubeStats, QueryStats queryStats,
+            List<SQLResult> sqlResults) {
+        CubeContext context = buildFromCubeDesc(cubeDesc, queryStats, sqlResults);
         if (cubeStats != null) {
             context.setCubeStats(cubeDesc, cubeStats);
         }
         return context;
     }
 
-    private CubeContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, String[] sqls) {
-        QueryStats queryStats = null;
-        Map<String, SQLResult> queryResults = null;
-        Map<String, Collection<OLAPContext>> olapContexts = null;
-        if (sqls != null && sqls.length > 0) {
+    private Map<String, CubeContext> internalBuildContexts(String project, String model, String[] sqls) {
+        Map<String, QueryStats> modelQueryStats = Maps.newHashMap();
+        List<SQLResult> queryResults = null;
+        if (!ArrayUtils.isEmpty(sqls)) {
             try (AbstractQueryRunner extractor = QueryRunnerFactory.createForCubeSuggestion(kylinConfig, sqls,
-                    smartConfig.getQueryDryRunThreads(), initCubeDesc)) {
-                ISQLAdvisor sqlAdvisor = new ModelBasedSQLAdvisor(initCubeDesc.getModel());
+                    smartConfig.getQueryDryRunThreads(), project)) {
                 extractor.execute();
-                queryStats = extractor.getQueryStats();
                 queryResults = extractor.getQueryResults();
-                olapContexts = extractor.getAllOLAPContexts();
-                for (Map.Entry<String, SQLResult> queryResult : queryResults.entrySet()) {
-                    SQLResult sqlResult = queryResult.getValue();
-                    if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                        List<SQLAdvice> advices = sqlAdvisor.provideAdvice(sqlResult,
-                                olapContexts.get(queryResult.getKey()));
-                        if (!advices.isEmpty()) {
-                            StringBuilder msgBuilder = new StringBuilder();
-                            for (SQLAdvice advice : advices) {
-                                msgBuilder.append(advice.getIncapableReason()).append(' ');
+                List<Collection<OLAPContext>> olapContexts = extractor.getAllOLAPContexts();
+                for (int i = 0; i < sqls.length; i++) {
+                    Collection<OLAPContext> ctxs = olapContexts.get(i);
+                    String sql = sqls[i];
+                    for (OLAPContext ctx : ctxs) {
+                        if (ctx.realizationCheck == null || MapUtils.isEmpty(ctx.realizationCheck.getCapableModels())) {
+                            continue;
+                        }
+
+                        Map<DataModelDesc, Map<String, String>> modelMap = ctx.realizationCheck.getCapableModels();
+                        for (Map.Entry<DataModelDesc, Map<String, String>> entry : modelMap.entrySet()) {
+                            DataModelDesc m = entry.getKey();
+                            Map<String, String> aliasMatch = entry.getValue();
+                            if (model == null || m.getName().equals(model)) {
+                                QueryStats s = modelQueryStats.get(m.getName());
+                                if (s == null) {
+                                    s = new QueryStats();
+                                    modelQueryStats.put(m.getName(), s);
+                                }
+                                QueryStats qa = QueryStats.buildFromOLAPContext(ctx, m, aliasMatch);
+                                for (String col : qa.getAppears().keySet()) {
+                                    m.findColumn(col);
+                                }
+                                s.merge(qa);
                             }
-                            sqlResult.setMessage(msgBuilder.toString());
                         }
                     }
                 }
             } catch (Exception e) {
                 logger.error("Failed to execute query stats. ", e);
             }
+        } else {
+            List<DataModelDesc> models = modelManager.getModels(project);
+            for (DataModelDesc m : models) {
+                if (m == null || m.getName().equals(model)) {
+                    modelQueryStats.put(m.getName(), null);
+                }
+            }
         }
-        return internalBuild(initCubeDesc, initDomain, queryStats, queryResults);
+        return internalBuildContexts(modelQueryStats, queryResults);
     }
 
-    private CubeContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats) {
-        return internalBuild(initCubeDesc, initDomain, queryStats, null);
+    private Map<String, CubeContext> internalBuildContexts(Map<String, QueryStats> modelQueryStats,
+            List<SQLResult> queryResults) {
+        Map<String, CubeContext> result = Maps.newHashMapWithExpectedSize(modelQueryStats.size());
+        for (Map.Entry<String, QueryStats> entry : modelQueryStats.entrySet()) {
+            QueryStats qs = entry.getValue();
+            DataModelDesc model = modelManager.getDataModelDesc(entry.getKey());
+            CubeContext ctx = internalBuild(model, qs, queryResults);
+            result.put(entry.getKey(), ctx);
+        }
+        return result;
     }
 
-    private CubeContext internalBuild(CubeDesc initCubeDesc, Domain initDomain, QueryStats queryStats,
-            Map<String, SQLResult> sqlResults) {
+    private CubeContext internalBuild(DataModelDesc model, QueryStats queryStats, List<SQLResult> sqlResults) {
         CubeContext context = new CubeContext(kylinConfig);
-
-        Domain usedDomain = new DefaultDomainBuilder(smartConfig, queryStats, initCubeDesc).build();
-        TableMetadataManager tableManager = TableMetadataManager.getInstance(kylinConfig);
-        DataModelManager modelManager = DataModelManager.getInstance(kylinConfig);
-        ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(kylinConfig);
-        DataModelDesc modelDesc = modelManager.getDataModelDesc(initCubeDesc.getModelName());
+        Domain usedDomain = new DefaultDomainBuilder(smartConfig, queryStats, model).build();
 
         // set model stats
-        ModelStats modelStats = null;
-        try {
-            modelStats = modelStatsManager.getModelStats(modelDesc.getName());
-            if (modelStats.getSingleColumnCardinality().isEmpty()) {
-                // An empty modelStats will return from ModelStatsManager.getModelStats() if not existed.
-                modelStats = null;
-            }
-        } catch (IOException e) {
-            logger.error("Failed to get model stats. ", e);
+        ModelStats modelStats = modelStatsManager.getModelStatsQuietly(model);
+        if (modelStats != null && modelStats.getSingleColumnCardinality().isEmpty()) {
+            // An empty modelStats will return from ModelStatsManager.getModelStats() if not existed.
+            modelStats = null;
         }
 
         // set table stats
         Map<String, TableDesc> tableDescMap = Maps.newHashMap();
         Map<String, TableExtDesc> tableExtDescMap = Maps.newHashMap();
-        for (TableRef tableRef : modelDesc.getAllTables()) {
+        for (TableRef tableRef : model.getAllTables()) {
             String tblRefId = tableRef.getTableIdentity();
             TableDesc tableDesc = tableRef.getTableDesc();
             tableDescMap.put(tblRefId, tableDesc);
 
-            TableExtDesc tableExtDesc = tableManager.getTableExt(tblRefId, modelDesc.getProject());
+            TableExtDesc tableExtDesc = tableManager.getTableExt(tableDesc);
             if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
                 tableExtDescMap.put(tblRefId, tableExtDesc);
             }
         }
 
         context.setDomain(usedDomain);
-        context.setCubeName(initCubeDesc.getName());
         context.setQueryStats(queryStats);
         context.setModelStats(modelStats);
-        context.setModelDesc(modelDesc);
+        context.setModelDesc(model);
         context.setTableDescs(tableDescMap);
         context.setTableExtDescs(tableExtDescMap);
         context.setSqlResults(sqlResults);
 
         return context;
     }
-
 }

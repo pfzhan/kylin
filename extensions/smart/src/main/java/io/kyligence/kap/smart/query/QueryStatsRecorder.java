@@ -27,8 +27,6 @@ package io.kyligence.kap.smart.query;
 import java.util.Collection;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -36,8 +34,6 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
@@ -57,21 +53,19 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
         }
 
         final Cuboid cuboid = gtRequest.getCuboid();
-        Collection<String> groupByCols = Collections2.transform(gtRequest.getGroups(),
-                new Function<TblColRef, String>() {
-                    @Override
-                    public String apply(@Nullable TblColRef tblColRef) {
-                        return tblColRef.getIdentity();
-                    }
-                });
+        Collection<String> groupByCols = Sets.newHashSet();
+        Collection<String> filterCols = Sets.newHashSet();
 
-        Collection<String> filterCols = Collections2.transform(gtRequest.getFilterCols(),
-                new Function<TblColRef, String>() {
-                    @Override
-                    public String apply(@Nullable TblColRef tblColRef) {
-                        return tblColRef.getIdentity();
-                    }
-                });
+        for (TblColRef groupCol : gtRequest.getGroups()) {
+            if (cuboid.getColumns().contains(groupCol)) {
+                groupByCols.add(groupCol.getIdentity());
+            }
+        }
+        for (TblColRef filterCol : gtRequest.getFilterCols()) {
+            if (cuboid.getColumns().contains(filterCol)) {
+                filterCols.add(filterCol.getIdentity());
+            }
+        }
 
         Set<String> usedCols = Sets.newHashSet();
         usedCols.addAll(groupByCols);
@@ -83,7 +77,6 @@ public class QueryStatsRecorder extends AbstractQueryRecorder<QueryStats> {
             func.init(modelDesc);
         }
 
-        queryStats.addCuboid(cuboid.getId());
         queryStats.addMeasures(funcs);
         queryStats.addColPairs(usedCols);
         queryStats.addGroupBy(groupByCols);

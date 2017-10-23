@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube.proposer.recorder;
+package io.kyligence.kap.smart.cube.proposer.aggrgroup;
 
 import java.util.List;
 

@@ -29,27 +29,19 @@ import java.io.File;
 import java.io.FileReader;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerFactory;
-import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.Utils;
 
 public class CuboidTestCLI implements IKeep {
@@ -111,28 +103,28 @@ public class CuboidTestCLI implements IKeep {
         CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc(cubeName);
         CuboidScheduler scheduler = CuboidScheduler.getInstance(cubeDesc);
 
-        try (AbstractQueryRunner runner = QueryRunnerFactory.createForCubeSuggestion(config, sqls, 1, cubeDesc)) {
-            runner.execute();
-            QueryStats stats = runner.getQueryStats();
-
-            logger.info("==========================");
-            for (Set<String> cuboidCols : stats.getCuboids()) {
-                Set<TblColRef> dims = Sets.newHashSet();
-                for (String col : cuboidCols) {
-                    String[] pairs = col.split("\\.");
-                    TblColRef colRef = cubeDesc.findColumnRef(pairs[0], pairs[1]);
-                    dims.add(colRef);
-                }
-                long queryCuboidId = Cuboid.identifyCuboidId(cubeDesc, dims, Lists.<FunctionDesc> newArrayList());
-                boolean isValid = scheduler.isValid(queryCuboidId);
-                if (!isValid) {
-                    long validCuboidId = Cuboid.findById(scheduler, queryCuboidId).getId();
-                    logger.info("Cuboid does not exactly match: exact={}, valid={}", queryCuboidId, validCuboidId);
-                } else {
-                    logger.info("Cuboid exactly matches: exact={}, valid={}", queryCuboidId, queryCuboidId);
-                }
-            }
-            logger.info("==========================");
-        }
+        //        try (AbstractQueryRunner runner = QueryRunnerFactory.createForCubeSuggestion(config, sqls, 1, cubeDesc)) {
+        //            runner.execute();
+        //            QueryStats stats = runner.getQueryStats();
+        //
+        //            logger.info("==========================");
+        //            for (Set<String> cuboidCols : stats.getCuboids()) {
+        //                Set<TblColRef> dims = Sets.newHashSet();
+        //                for (String col : cuboidCols) {
+        //                    String[] pairs = col.split("\\.");
+        //                    TblColRef colRef = cubeDesc.findColumnRef(pairs[0], pairs[1]);
+        //                    dims.add(colRef);
+        //                }
+        //                long queryCuboidId = Cuboid.identifyCuboidId(cubeDesc, dims, Lists.<FunctionDesc> newArrayList());
+        //                boolean isValid = scheduler.isValid(queryCuboidId);
+        //                if (!isValid) {
+        //                    long validCuboidId = Cuboid.findById(scheduler, queryCuboidId).getId();
+        //                    logger.info("Cuboid does not exactly match: exact={}, valid={}", queryCuboidId, validCuboidId);
+        //                } else {
+        //                    logger.info("Cuboid exactly matches: exact={}, valid={}", queryCuboidId, queryCuboidId);
+        //                }
+        //            }
+        //            logger.info("==========================");
+        //        }
     }
 }

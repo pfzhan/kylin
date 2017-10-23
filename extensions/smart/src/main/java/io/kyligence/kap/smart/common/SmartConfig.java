@@ -35,10 +35,14 @@ public class SmartConfig {
         this.kapConfig = kapConfig;
 
         String strategyName = this.kapConfig.getSmartModelingStrategy();
-        if (strategyName.equalsIgnoreCase("default")) {
-            strategy = DefaultSmartStrategy.INSTANCE;
-        } else {
-            throw new RuntimeException("Unknown Strategy: " + strategyName);
+        switch (strategyName) {
+        case BatchSmartStrategy.NAME:
+            this.strategy = BatchSmartStrategy.INSTANCE;
+            break;
+        case DefaultSmartStrategy.NAME:
+        default:
+            this.strategy = DefaultSmartStrategy.INSTANCE;
+            break;
         }
     }
 

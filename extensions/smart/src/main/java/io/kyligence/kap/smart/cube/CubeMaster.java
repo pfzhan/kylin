@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.cube;
 
+import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
 
 import io.kyligence.kap.smart.cube.proposer.ProposerProvider;
@@ -41,8 +42,24 @@ public class CubeMaster {
         return this.context;
     }
 
+    private static String createCubeName(CubeContext context) {
+        String tmpName = context.getCubeName();
+        if (tmpName == null) {
+            tmpName = context.getModelDesc().getName();
+        }
+
+        CubeDescManager cubeDescManager = CubeDescManager.getInstance(context.getKylinConfig());
+        int dupId = 1;
+        String fixPart = tmpName;
+        while (cubeDescManager.getCubeDesc(tmpName) != null) {
+            tmpName = String.format("%s_%d", fixPart, dupId++);
+        }
+        return tmpName;
+    }
+
     public CubeDesc proposeInitialCube() {
-        return context.getDomain().buildCubeDesc();
+        String cubeName = createCubeName(context);
+        return context.getDomain().buildCubeDesc(cubeName);
     }
 
     public CubeDesc proposeDerivedDimensions(final CubeDesc cubeDesc) {

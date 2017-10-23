@@ -24,12 +24,12 @@
 
 package io.kyligence.kap.smart.cube.proposer;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.smart.cube.CubeContext;
+import io.kyligence.kap.smart.util.CubeDescUtil;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -40,13 +40,11 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.model.KapModel;
-import io.kyligence.kap.smart.cube.CubeContext;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DerivedDimensionProposer extends AbstractCubeProposer {
     private static final Logger logger = LoggerFactory.getLogger(DerivedDimensionProposer.class);
@@ -58,27 +56,21 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
     @Override
     public void doPropose(CubeDesc workCubeDesc) {
         if (context.hasTableStats() || context.hasModelStats()) { // tableStats and modelStats have cardinality information.
-            int lastRowkeyNum = 0;
             int retry = 1;
             double derivedRatio = smartConfig.getDimDerivedRatio();
             do {
-                lastRowkeyNum = workCubeDesc.getRowkey().getRowKeyColumns().length;
-
                 buildDerivedDim(workCubeDesc, derivedRatio);
                 CubeDescUtil.fillCubeDefaultAdvSettings(workCubeDesc);
 
-                workCubeDesc.deInit();
-                workCubeDesc.init(context.getKylinConfig());
-
                 derivedRatio = derivedRatio / 2;
             } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63
-                    && workCubeDesc.getRowkey().getRowKeyColumns().length < lastRowkeyNum
                     && retry++ < smartConfig.getDerivedStrictRetryMax());
         } else {
             logger.debug("No table stats or model stats found, skip proposing derived dimensions.");
         }
     }
 
+    // workCubeDesc maybe not fully initialized
     private void buildDerivedDim(CubeDesc workCubeDesc, double derivedRatio) {
         Set<DimensionDesc> normalDims = normalizeAllDerived(workCubeDesc);
         List<DimensionDesc> convertedDims = convertToDerived(workCubeDesc, normalDims, derivedRatio);
@@ -97,30 +89,30 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
 
     private Set<DimensionDesc> normalizeAllDerived(CubeDesc workCubeDesc) {
         Set<DimensionDesc> result = Sets.newHashSet();
-        Map<TblColRef, DimensionDesc> colDimMap = Maps.newHashMap();
+
         List<DimensionDesc> origDims = workCubeDesc.getDimensions();
         for (DimensionDesc origDim : origDims) {
+            String dimTbl = origDim.getTable();
             if (origDim.isDerived()) {
-                for (TblColRef derivedCol : origDim.getColumnRefs()) {
-                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(),
-                            derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
+                for (String derivedCol : origDim.getDerived()) {
+                    TblColRef colRef = workCubeDesc.findColumnRef(dimTbl, derivedCol);
+                    DimensionDesc newDim = newDimensionDesc(workCubeDesc, colRef.getName(), colRef.getTableAlias(),
+                            colRef.getIdentity(), null);
                     result.add(newDim);
-                    colDimMap.put(derivedCol, newDim);
                 }
             } else {
                 result.add(origDim);
-                colDimMap.put(origDim.getColumnRefs()[0], origDim);
-
+                origDim.init(workCubeDesc);
             }
         }
 
         return result;
     }
 
-    private List<DimensionDesc> convertToDerived(CubeDesc cubeDesc, Collection<DimensionDesc> origDimensions,
-            double derivedRatio) {
+    private List<DimensionDesc> convertToDerived(CubeDesc workCubeDesc, Collection<DimensionDesc> origDimensions,
+                                                 double derivedRatio) {
         Set<DimensionDesc> workDimensions = Sets.newHashSet();
-        DataModelDesc modelDesc = context.getModelDesc();
+        DataModelDesc modelDesc = workCubeDesc.getModel();
 
         // MP Columns must be set as normal
         Set<TblColRef> normalWhitelist = Sets.newHashSet();
@@ -145,7 +137,7 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
                 TableRef tblRef = origDim.getTableRef();
                 if (modelDesc.getRootFactTable() != tblRef) {
                     if (!normalDimByTbl.containsKey(tblRef)) {
-                        normalDimByTbl.put(tblRef, Lists.<DimensionDesc> newArrayList());
+                        normalDimByTbl.put(tblRef, Lists.<DimensionDesc>newArrayList());
                     }
                     normalDimByTbl.get(tblRef).add(origDim);
                 } else {
@@ -170,8 +162,8 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
 
             // try to convert normal to derived one by one
             for (DimensionDesc tblDim : tblDims.getValue()) {
-                TblColRef dimColRef = tblDim.getColumnRefs()[0]; // normal dimension only has 1 colRef
-                if (!normalWhitelist.contains(dimColRef) && !allFKCols.containsKey(dimColRef)) {
+                TblColRef dimColRef = modelDesc.findColumn(tblDim.getTable(), tblDim.getColumn()); // normal dimension only has 1 colRef
+                if (!allFKCols.containsKey(dimColRef)) {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) fKeyCardinality;
                     if (colCardRatio > derivedRatio) {
@@ -183,7 +175,7 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
                         workDimensions.add(tblDim);
                     }
                 } else {
-                    workDimensions.add(tblDim); // keep as normal
+                    workDimensions.add(tblDim); // keep FK as normal
                 }
             }
 
@@ -191,8 +183,8 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
                 // only add one derived dim
                 String tblAlias = tblRef.getAlias();
                 String dimName = String.format("%s_%s", tblAlias, "DERIVED");
-                workDimensions.add(
-                        newDimensionDesc(cubeDesc, "{FK}", tblAlias, dimName, derivedDimNames.toArray(new String[0])));
+                workDimensions.add(newDimensionDesc(workCubeDesc, "{FK}", tblAlias, dimName,
+                        derivedDimNames.toArray(new String[0])));
             }
         }
 

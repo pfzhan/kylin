@@ -78,43 +78,29 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
     }
 
     @Override
-    protected Map<String, SQLValidateResult> doBatchValidate(List<String> sqlList, Map<String, SQLResult> queryResults,
-            Map<String, Collection<OLAPContext>> olapContexts) {
+    protected Map<String, SQLValidateResult> doBatchValidate(List<String> sqlList, List<SQLResult> queryResults,
+            List<Collection<OLAPContext>> olapContexts) {
         ModelContextBuilder contextBuilder = new ModelContextBuilder(kylinConfig, projectName);
-        Map<TableDesc, ModelContext> contextMap = contextBuilder.buildFromOLAPContexts(olapContexts);
+        List<ModelContext> ctxs = contextBuilder.buildFromOLAPContexts(sqlList, olapContexts, factTable);
         Map<String, SQLValidateResult> validationResults = super.doBatchValidate(sqlList, queryResults, olapContexts);
-        doValidateJoins(contextMap.get(factTable), sqlList, validationResults);
-
-        Map<String, Collection<OLAPContext>> capableOLAPContext = new HashMap<>();
-        for (Map.Entry<String, Collection<OLAPContext>> olapContext : olapContexts.entrySet()) {
-            String sql = olapContext.getKey();
-            if (!validationResults.containsKey(sql)) {
-                continue;
-            }
-            SQLValidateResult result = validationResults.get(sql);
-            if (result.isCapable()) {
-                capableOLAPContext.put(sql, olapContext.getValue());
-            }
+        if (!ctxs.isEmpty()) {
+            doValidateJoins(ctxs.get(0), sqlList, olapContexts, validationResults);
         }
-
-        Map<TableDesc, ModelContext> capableContextMap = contextBuilder.buildFromOLAPContexts(capableOLAPContext);
-        validatedContext = capableContextMap.get(factTable);
-
         return validationResults;
-
     }
 
-    private void doValidateJoins(ModelContext context, List<String> sqlList,
+    private void doValidateJoins(ModelContext context, List<String> sqlList, List<Collection<OLAPContext>> ctxs,
             Map<String, SQLValidateResult> validationResults) {
         if (context == null) {
             return;
         }
 
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
-        Map<TableRef, String> tableAliasMap = context.getAllTableRefAlias();
+        Map<TableRef, String> tableAliasMap = context.getModelTree().getTableRefAliasMap();
 
-        for (String sql : sqlList) {
-            Collection<OLAPContext> olapContexts = context.getOLAPContext(sql);
+        for (int i = 0; i < sqlList.size(); i++) {
+            String sql = sqlList.get(i);
+            Collection<OLAPContext> olapContexts = ctxs.get(i);
             if (null == olapContexts || olapContexts.isEmpty()) {
                 continue;
             }
@@ -192,12 +178,6 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
             i++;
         }
         return newAlias;
-    }
-
-    @Override
-    public Map<String, SQLValidateResult> batchValidate(List<String> sqlList) {
-        // TODO Auto-generated method stub
-        return super.batchValidate(sqlList);
     }
 
     public ModelMaster buildValidatedModelMaster() {

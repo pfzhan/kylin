@@ -31,6 +31,8 @@ import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.cube.model.TooManyCuboidException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -40,6 +42,8 @@ import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.query.Utils;
 
 public abstract class AbstractCubeProposer {
+    private static final Logger logger = LoggerFactory.getLogger(AbstractCubeProposer.class);
+
     final CubeContext context;
     final SmartConfig smartConfig;
 
@@ -57,7 +61,13 @@ public abstract class AbstractCubeProposer {
         } catch (TooManyCuboidException e) {
             // if cube not tuned, then enlarge combination in override props to bypass init().
             Utils.setLargeCuboidCombinationConf(workCubeDesc.getOverrideKylinProps());
-            workCubeDesc.init(context.getKylinConfig());
+
+            try {
+                workCubeDesc.init(context.getKylinConfig());
+            } catch (TooManyCuboidException ee) {
+                logger.warn("Cuboid number of Cube {} still exceeds limitation, will skip init().",
+                        workCubeDesc.getName());
+            }
         }
 
         doPropose(workCubeDesc);
@@ -66,7 +76,7 @@ public abstract class AbstractCubeProposer {
 
     abstract void doPropose(CubeDesc workCubeDesc);
 
-    void preProcess(CubeDesc workCubeDesc) {
+    private void preProcess(CubeDesc workCubeDesc) {
         // remove invalid agg groups before validate cube_desc
         List<AggregationGroup> original = workCubeDesc.getAggregationGroups();
         List<AggregationGroup> processed = Lists.newArrayList();

@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.smart.cube.domain;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -44,66 +44,64 @@ import io.kyligence.kap.smart.util.CubeDescUtil;
 
 public class DefaultDomainBuilder implements IDomainBuilder {
     private final QueryStats queryStats;
-    private final CubeDesc origCubeDesc;
+    private final DataModelDesc modelDesc;
     private final SmartConfig config;
 
-    public DefaultDomainBuilder(SmartConfig config, QueryStats queryStats, CubeDesc origCubeDesc) {
-        this.queryStats = queryStats;
-        this.origCubeDesc = origCubeDesc;
+    public DefaultDomainBuilder(SmartConfig config, QueryStats queryStats, DataModelDesc modelDesc) {
         this.config = config;
+        this.modelDesc = modelDesc;
+        this.queryStats = queryStats;
     }
 
     @Override
     public Domain build() {
         Set<TblColRef> dimensionCols = buildDimensions();
         List<FunctionDesc> measures = buildMeasures();
-
-        return new Domain(origCubeDesc.getModel(), dimensionCols, measures);
+        return new Domain(modelDesc, dimensionCols, measures);
     }
 
     private Set<TblColRef> buildDimensions() {
         boolean queryEnabled = config.getDomainQueryEnabled();
+
         Set<TblColRef> dimensionCols = Sets.newHashSet();
-        RowKeyColDesc[] rowKeyCols = origCubeDesc.getRowkey().getRowKeyColumns();
-
         if (queryEnabled && queryStats != null) {
-            DataModelDesc modelDesc = origCubeDesc.getModel();
-
             Set<String> appeared = queryStats.getAppears().keySet();
             for (String appear : appeared) {
                 dimensionCols.add(modelDesc.findColumn(appear));
             }
         } else {
-            for (int i = 0; i < rowKeyCols.length; i++) {
-                dimensionCols.add(rowKeyCols[rowKeyCols.length - i - 1].getColRef());
+            for (ModelDimensionDesc dimDesc : modelDesc.getDimensions()) {
+                String[] cols = dimDesc.getColumns();
+                for (String col : cols) {
+                    dimensionCols.add(modelDesc.findColumn(dimDesc.getTable(), col));
+                }
             }
         }
 
+        for (JoinTableDesc join : modelDesc.getJoinTables()) {
+            dimensionCols.addAll(Arrays.asList(join.getJoin().getPrimaryKeyColumns()));
+        }
         return dimensionCols;
     }
 
     private List<FunctionDesc> buildMeasures() {
-        boolean queryEnabled = config.getMeasureQueryEnabled();
-        DataModelDesc modelDesc = origCubeDesc.getModel();
         List<FunctionDesc> measures = Lists.newArrayList();
         if (queryStats != null && queryStats.getMeasures() != null) {
             measures.addAll(queryStats.getMeasures());
         }
 
+        boolean queryEnabled = config.getMeasureQueryEnabled();
         if (!queryEnabled) {
-            List<TblColRef> measureCols = new ArrayList<>();
             for (String col : modelDesc.getMetrics()) {
                 TblColRef colRef = modelDesc.findColumn(col);
-                if (colRef != null) {
-                    measureCols.add(colRef);
+                if (colRef == null) {
+                    continue; // skip non-existing columns
                 }
-            }
 
-            for (TblColRef colRef : measureCols) {
                 if (colRef.getType().isNumberFamily()) {
                     // SUM
-                    measures.add(CubeDescUtil.newFunctionDesc(modelDesc, "SUM", ParameterDesc.newInstance(colRef),
-                            colRef.getDatatype()));
+                    measures.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
+                            ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 }
             }
         }

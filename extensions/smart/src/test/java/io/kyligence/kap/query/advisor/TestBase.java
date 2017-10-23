@@ -25,7 +25,7 @@ package io.kyligence.kap.query.advisor;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
@@ -75,28 +75,29 @@ public class TestBase {
     }
 
     protected void setModelQueryResult(String modelName, String sql) {
-        String[] sqls = new String[]{sql};
+        String[] sqls = new String[] { sql };
         DataModelDesc dataModelDesc = getDataModelDesc(modelName);
-        AbstractQueryRunner queryRunner = QueryRunnerFactory.createForModelSQLValid(kylinConfig, sqls, 1, dataModelDesc);
-        setQueryResult(sql, queryRunner);
+        AbstractQueryRunner queryRunner = QueryRunnerFactory.createForModelSQLValid(kylinConfig, sqls, 1,
+                dataModelDesc);
+        setQueryResult(0, queryRunner);
     }
 
     protected void setCubeQueryResult(String cubeName, String sql) {
         CubeDesc cubeDesc = getCubeDesc(cubeName);
-        String[] sqls = new String[]{sql};
+        String[] sqls = new String[] { sql };
         AbstractQueryRunner queryRunner = QueryRunnerFactory.createForCubeSQLValid(kylinConfig, sqls, 1, cubeDesc);
-        setQueryResult(sql, queryRunner);
+        setQueryResult(0, queryRunner);
     }
 
-    private void setQueryResult(String sql, AbstractQueryRunner queryRunner) {
+    private void setQueryResult(int idx, AbstractQueryRunner queryRunner) {
         try {
             queryRunner.execute();
         } catch (Exception e) {
             System.out.println("batch validate sql error");
         }
-        Map<String, SQLResult> queryResults = queryRunner.getQueryResults();
-        Map<String, Collection<OLAPContext>> olapContexts = queryRunner.getAllOLAPContexts();
-        this.sqlResult = queryResults.get(sql);
-        this.olapContexts = olapContexts.get(sql);
+        List<SQLResult> queryResults = queryRunner.getQueryResults();
+        List<Collection<OLAPContext>> olapContexts = queryRunner.getAllOLAPContexts();
+        this.sqlResult = queryResults.get(idx);
+        this.olapContexts = olapContexts.get(idx);
     }
 }

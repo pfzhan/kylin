@@ -77,6 +77,10 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
         // Load from context
         for (OLAPContext ctx : getModelContext().getAllOLAPContexts()) {
+            if (ctx == null || ctx.joins.size() != ctx.allTableScans.size() - 1) {
+                continue;
+            }
+
             List<FunctionDesc> aggregations = ctx.aggregations;
             Set<TblColRef> aggColumns = new HashSet<>();
             for (FunctionDesc agg : aggregations) {
@@ -145,13 +149,13 @@ public class QueryScopeProposer extends AbstractModelProposer {
     }
 
     private void addCandidate(Map<String, Set<String>> tblColMap, TblColRef column) {
-        String table = getModelContext().getTableRefAlias(column.getTableRef());
+        String table = getModelContext().getModelTree().getTableRefAliasMap().get(column.getTableRef());
         addCandidate(tblColMap, table, column.getName());
     }
 
     private static void addCandidate(Map<String, Set<String>> tblColMap, String table, String column) {
         if (tblColMap.get(table) == null) {
-            tblColMap.put(table, Sets.<String>newHashSet());
+            tblColMap.put(table, Sets.<String> newHashSet());
         }
         tblColMap.get(table).add(column);
     }

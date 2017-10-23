@@ -24,15 +24,14 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.util.ArrayList;
-import java.util.UUID;
-
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.metadata.model.PartitionDesc;
-
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.model.proposer.ProposerProvider;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.PartitionDesc;
+
+import java.util.ArrayList;
 
 public class ModelMaster {
 
@@ -48,9 +47,24 @@ public class ModelMaster {
         return context;
     }
 
+    private static String createModelName(ModelContext context) {
+        String tmpName = context.getModelName();
+        if (tmpName == null) {
+            tmpName = context.getRootTable().getIdentity().replaceAll("\\.", "_");
+        }
+
+        DataModelManager modelManager = DataModelManager.getInstance(context.getKylinConfig());
+        int dupId = 1;
+        String fixPart = tmpName;
+        while (modelManager.getDataModelDesc(tmpName) != null) {
+            tmpName = String.format("%s_%d", fixPart, dupId++);
+        }
+        return tmpName;
+    }
+
     public KapModel proposeInitialModel() {
         KapModel modelDesc = new KapModel();
-        modelDesc.setName(context.getModelName() == null ? UUID.randomUUID().toString() : context.getModelName());
+        modelDesc.setName(createModelName(context));
         modelDesc.setRootFactTableName(context.getRootTable().getIdentity());
         modelDesc.setDescription(StringUtils.EMPTY);
         modelDesc.setFilterCondition(StringUtils.EMPTY);

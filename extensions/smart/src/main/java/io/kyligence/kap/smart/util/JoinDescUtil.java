@@ -84,7 +84,7 @@ public class JoinDescUtil {
             if (fkTables.containsKey(tableAlias)) {
                 tableKindByJoins.add(TableKind.FACT);
             } else {
-                tableKindByJoins.add(TableKind.LOOKUP);
+                tableKindByJoins.add(TableKind.FACT); //TODO: fix snapshot dup key
             }
         }
         return tableKindByJoins;

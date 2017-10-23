@@ -96,7 +96,7 @@ public class CubeDescUtil {
         aggregationGroup.setIncludes(includeCols.toArray(new String[0]));
         SelectRule selectRule = new SelectRule();
         selectRule.hierarchyDims = new String[0][0];
-        selectRule.mandatoryDims = new String[0];
+        selectRule.mandatoryDims = aggregationGroup.getIncludes();
         selectRule.jointDims = new String[0][0];
         aggregationGroup.setSelectRule(selectRule);
 
@@ -106,7 +106,7 @@ public class CubeDescUtil {
     public static FunctionDesc newFunctionDesc(DataModelDesc modelDesc, String expression, ParameterDesc param,
             String returnType) {
         // SUM() may cause overflow on int family, will change precision here.
-        if ("SUM".equals(expression) && returnType != null) {
+        if (FunctionDesc.FUNC_SUM.equals(expression) && returnType != null) {
             DataType type = DataType.getType(returnType);
             if (type.isIntegerFamily()) {
                 returnType = "bigint";

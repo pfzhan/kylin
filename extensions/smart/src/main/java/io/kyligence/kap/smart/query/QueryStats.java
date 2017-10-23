@@ -30,10 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import javax.annotation.Nullable;
+
+import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -43,9 +52,6 @@ import com.google.common.collect.Sets;
 public class QueryStats implements Serializable {
     @JsonProperty("total_queries")
     private int totalQueries;
-
-    @JsonProperty("column_bitmap")
-    private long columnBitmap;
 
     @JsonProperty("group_by")
     private Map<String, Integer> groupBys = Maps.newHashMap();
@@ -65,21 +71,93 @@ public class QueryStats implements Serializable {
     @JsonProperty("coocurrence")
     private Map<String, Integer> coocurrences = Maps.newHashMap();
 
+    public static QueryStats merge(List<QueryStats> queryStats) {
+        QueryStats result = new QueryStats();
+        for (QueryStats stats : queryStats) {
+            result.merge(stats);
+        }
+        return result;
+    }
+
+    public static QueryStats buildFromOLAPContext(final OLAPContext ctx, final DataModelDesc model,
+            Map<String, String> aliasMatch) {
+        QueryStats r = new QueryStats();
+
+        ctx.fixModel(model, aliasMatch);
+        r.addTotalQueries();
+        r.addGroupBy(Collections2.transform(ctx.groupByColumns, new Function<TblColRef, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable TblColRef input) {
+                return input.getIdentity();
+            }
+        }));
+
+        r.addFilter(Collections2.transform(ctx.filterColumns, new Function<TblColRef, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable TblColRef input) {
+                return input.getIdentity();
+            }
+        }));
+
+        Collection<String> allCols = Collections2
+                .transform(Collections2.filter(ctx.allColumns, new Predicate<TblColRef>() {
+                    @Override
+                    public boolean apply(@Nullable TblColRef input) {
+                        if (!model.getAliasMap().containsKey(input.getTableAlias()))
+                            return false;
+
+                        if (ctx.metricsColumns.contains(input) && !ctx.groupByColumns.contains(input)
+                                && !ctx.filterColumns.contains(input))
+                            return false;
+
+                        return true;
+                    }
+                }), new Function<TblColRef, String>() {
+                    @Nullable
+                    @Override
+                    public String apply(@Nullable TblColRef input) {
+                        return input.getIdentity();
+                    }
+                });
+
+        Collection<FunctionDesc> measures = Lists.newArrayList();
+        for (FunctionDesc aggFunc : ctx.aggregations) {
+            ParameterDesc paramDesc = aggFunc.getParameter();
+            ParameterDesc copyParam = null;
+            if (paramDesc == null) {
+                copyParam = null;
+            } else if (paramDesc.isColumnType()) {
+                if (!paramDesc.getColRef().isQualified()) {
+                    continue;
+                }
+                copyParam = ParameterDesc.newInstance(paramDesc.getColRefs().toArray());
+            } else {
+                copyParam = ParameterDesc.newInstance(paramDesc.getValue());
+            }
+
+            FunctionDesc copy = FunctionDesc.newInstance(aggFunc.getExpression(), copyParam, aggFunc.getReturnType());
+            if (copy.getReturnType() == null && copy.getExpression().equals("SUM")) {
+                copy.setReturnType("decimal(19,4)"); //TODO: need to figure out why return_type missing.
+            }
+            measures.add(copy);
+        }
+        r.addAppear(allCols);
+        r.addColPairs(allCols);
+        r.addCuboidCols(Sets.newHashSet(allCols));
+        r.addMeasures(measures);
+        ctx.unfixModel();
+
+        return r;
+    }
+
     public int getTotalQueries() {
         return totalQueries;
     }
 
     public void addTotalQueries() {
         totalQueries++;
-    }
-
-    private String createCoocurrenceKey(String col1, String col2) {
-        int compare = col1.compareTo(col2);
-        if (compare > 0) {
-            return String.format("%s,%s", col1, col2);
-        } else {
-            return String.format("%s,%s", col2, col1);
-        }
     }
 
     public void addColPairs(Collection<String> colNames) {
@@ -129,30 +207,12 @@ public class QueryStats implements Serializable {
         coocurrences.put(key, num);
     }
 
-    private void incMapVal(Map<String, Integer> map, String key) {
-        Integer val = map.get(key);
-        if (val == null) {
-            val = 0;
-        }
-        map.put(key, val + 1);
-    }
-
     public void addMeasures(Collection<FunctionDesc> measureFuncs) {
-        for (FunctionDesc measureFunc : measureFuncs) {
-            measures.add(measureFunc);
-        }
+        measures.addAll(measureFuncs);
     }
 
     public void addMeasure(FunctionDesc measureFunc) {
         measures.add(measureFunc);
-    }
-
-    public void addCuboid(long cuboidId) {
-        columnBitmap |= cuboidId;
-    }
-
-    public long getColumnBitmap() {
-        return columnBitmap;
     }
 
     public Map<String, Integer> getGroupBys() {
@@ -177,5 +237,45 @@ public class QueryStats implements Serializable {
 
     public Map<String, Integer> getCoocurrences() {
         return coocurrences;
+    }
+
+    public void merge(QueryStats other) {
+        if (other == null)
+            return;
+
+        totalQueries += other.getTotalQueries();
+        cuboids.addAll(other.cuboids);
+        measures.addAll(other.measures);
+
+        mergeMapVals(groupBys, other.groupBys);
+        mergeMapVals(filters, other.filters);
+        mergeMapVals(appears, other.appears);
+        mergeMapVals(coocurrences, other.coocurrences);
+    }
+
+    private void incMapVal(Map<String, Integer> map, String key) {
+        Integer val = map.get(key);
+        if (val == null) {
+            val = 0;
+        }
+        map.put(key, val + 1);
+    }
+
+    private void mergeMapVals(Map<String, Integer> self, Map<String, Integer> other) {
+        for (Map.Entry<String, Integer> entry : other.entrySet()) {
+            Integer val = self.get(entry.getKey());
+            if (val == null)
+                val = 0;
+            self.put(entry.getKey(), val + entry.getValue());
+        }
+    }
+
+    private String createCoocurrenceKey(String col1, String col2) {
+        int compare = col1.compareTo(col2);
+        if (compare > 0) {
+            return String.format("%s,%s", col1, col2);
+        } else {
+            return String.format("%s,%s", col2, col1);
+        }
     }
 }

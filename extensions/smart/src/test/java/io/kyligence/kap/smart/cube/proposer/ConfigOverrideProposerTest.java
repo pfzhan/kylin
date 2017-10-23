@@ -59,6 +59,7 @@ public class ConfigOverrideProposerTest {
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc cubeDesc = context.getDomain().buildCubeDesc();
+        cubeDesc.getAggregationGroups().get(0).getSelectRule().mandatoryDims = new String[0];
 
         ConfigOverrideProposer proposer = new ConfigOverrideProposer(context);
         proposer.propose(cubeDesc);
@@ -74,6 +75,7 @@ public class ConfigOverrideProposerTest {
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
                 new String[] { "select count(*) from kylin_sales" });
         CubeDesc cubeDesc = context.getDomain().buildCubeDesc();
+        cubeDesc.getAggregationGroups().get(0).getSelectRule().mandatoryDims = new String[0];
 
         ConfigOverrideProposer proposer = new ConfigOverrideProposer(context);
         proposer.propose(cubeDesc);

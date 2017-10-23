@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.smart.model.proposer;
 
-import java.util.Map;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -63,18 +62,21 @@ public class SimpleScopeProposerTest {
     public void testOnStarModel() throws JsonProcessingException {
         final String project = "learn_kylin";
         ModelContextBuilder contextBuilder = new ModelContextBuilder(kylinConfig, project);
-        Map<TableDesc, ModelContext> context = contextBuilder.buildFromSQLs(new String[]{"select lstg_format_name, sum(price) from kylin_sales group by lstg_format_name"});
+        List<ModelContext> context = contextBuilder.buildFromSQLs(
+                new String[] { "select lstg_format_name, sum(price) from kylin_sales group by lstg_format_name" });
 
-        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig).getDataModelDesc("kylin_sales_model_star");
+        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig)
+                .getDataModelDesc("kylin_sales_model_star");
         KapModel newModelDesc = KapModel.getCopyOf(modelDesc);
         newModelDesc.getDimensions().clear();
 
-        SimpleScopeProposer proposer = new SimpleScopeProposer(context.values().iterator().next());
+        SimpleScopeProposer proposer = new SimpleScopeProposer(context.get(0));
         newModelDesc = proposer.propose(newModelDesc);
         newModelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc>newArrayList());
+                Lists.<DataModelDesc> newArrayList());
 
         Assert.assertEquals(modelDesc.getJoinTables().length + 1, newModelDesc.getDimensions().size());
-        Assert.assertEquals(modelDesc.getRootFactTable().getColumns().size(), newModelDesc.getDimensions().get(0).getColumns().length);
+        Assert.assertEquals(modelDesc.getRootFactTable().getColumns().size(),
+                newModelDesc.getDimensions().get(0).getColumns().length);
     }
 }

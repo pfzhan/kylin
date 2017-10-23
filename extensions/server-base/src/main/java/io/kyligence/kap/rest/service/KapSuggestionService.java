@@ -88,7 +88,7 @@ public class KapSuggestionService extends BasicService {
         CubeContext modelingContext = modelingMaster.getContext();
         cubeOptimizeLog.setSampleSqls(sampleSqls);
         cubeOptimizeLog.setQueryStats(modelingContext.getQueryStats());
-        cubeOptimizeLog.setSqlResult(modelingContext.getSQLResultList(sampleSqls));
+        cubeOptimizeLog.setSqlResult(Lists.newArrayList(modelingContext.getSqlResults()));
         cubeOptimizeLogManager.saveCubeOptimizeLog(cubeOptimizeLog);
     }
 
@@ -110,7 +110,7 @@ public class KapSuggestionService extends BasicService {
         CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
         CubeContext modelingContext = modelingMaster.getContext();
-        return modelingContext.getSQLResultList(sampleSqls);
+        return modelingContext.getSqlResults();
     }
 
     public CubeOptimizeLog getCubeOptLog(String cubeName) throws IOException {
@@ -126,7 +126,7 @@ public class KapSuggestionService extends BasicService {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 
-            CubeMaster master = getModelingMaster(cubeDesc.getName(), cubeDesc.getModelName(),
+            CubeMaster master = getCubeMaster(cubeDesc.getName(), cubeDesc.getModelName(),
                     cubeDesc.getOverrideKylinProps());
             CubeDesc rowkeyCube = master.proposeRowkey(cubeDesc);
             CubeDesc aggGroupCube = master.proposeAggrGroup(rowkeyCube);
@@ -151,7 +151,7 @@ public class KapSuggestionService extends BasicService {
     public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
-            CubeMaster master = getModelingMaster(cubeName, modelName, null);
+            CubeMaster master = getCubeMaster(cubeName, modelName, null);
             CubeDesc dimMeasCube = master.proposeDerivedDimensions(master.proposeInitialCube());
             return dimMeasCube;
         }
@@ -250,8 +250,7 @@ public class KapSuggestionService extends BasicService {
         modelOptimizeLogManager.saveModelOptimizeLog(modelOptimizeLog);
     }
 
-    private CubeMaster getModelingMaster(String cubeName, String modelName, Map<String, String> props)
-            throws IOException {
+    private CubeMaster getCubeMaster(String cubeName, String modelName, Map<String, String> props) throws IOException {
         Map<String, String> overrideProps = Maps.newHashMap();
         ProjectInstance projectInstance = ProjectManager.getInstance(getConfig()).getProjectOfModel(modelName);
         if (projectInstance != null && projectInstance.getOverrideKylinProps() != null) {
@@ -263,10 +262,11 @@ public class KapSuggestionService extends BasicService {
 
         KylinConfig config = KylinConfigExt.createInstance(getConfig(), overrideProps);
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(config);
-        QueryStats queryStats = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName).getQueryStats();
+        CubeOptimizeLog cubeOptLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
+        QueryStats queryStats = cubeOptLog.getQueryStats();
+        List<SQLResult> sqlResults = cubeOptLog.getSqlResult();
         DataModelDesc dataModelDesc = DataModelManager.getInstance(config).getDataModelDesc(modelName);
-        CubeMaster modelingMaster = MasterFactory.createCubeMaster(config, dataModelDesc, queryStats);
-        return modelingMaster;
+        return MasterFactory.createCubeMaster(config, dataModelDesc, queryStats, sqlResults);
     }
 
     private boolean isSampleSqlUpdated(List<String> newSqls, List<String> oldSqls) {

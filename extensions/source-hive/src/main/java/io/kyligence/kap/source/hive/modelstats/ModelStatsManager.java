@@ -33,6 +33,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.DataModelDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,8 +82,16 @@ public class ModelStatsManager {
         this.kylinConfig = config;
     }
 
-    public ModelStats getModelStats(String modelName) throws IOException {
+    public ModelStats getModelStatsQuietly(DataModelDesc modelDesc) {
+        try {
+            return getModelStats(modelDesc.getName());
+        } catch (IOException e) {
+            logger.error("Failed to get model stats. ", e);
+            return null;
+        }
+    }
 
+    public ModelStats getModelStats(String modelName) throws IOException {
         ModelStats result = getStore().getResource(getResourcePath(modelName), ModelStats.class,
                 MODEL_STATISTICS_SERIALIZER);
         // create new

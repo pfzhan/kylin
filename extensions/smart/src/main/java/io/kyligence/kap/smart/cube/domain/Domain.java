@@ -77,10 +77,14 @@ public class Domain {
     }
 
     public CubeDesc buildCubeDesc() {
+        return buildCubeDesc(UUID.randomUUID().toString().replaceAll("-", "_"));
+    }
+
+    public CubeDesc buildCubeDesc(String name) {
         KylinConfig kylinConfig = model.getConfig();
 
         CubeDesc cubeDesc = new CubeDesc();
-        cubeDesc.setName(UUID.randomUUID().toString()); //random name assigned
+        cubeDesc.setName(name);
         cubeDesc.updateRandomUuid();
         cubeDesc.setVersion(KylinVersion.getCurrentVersion().toString());
         cubeDesc.setModelName(model.getName());
@@ -132,7 +136,8 @@ public class Domain {
         for (FunctionDesc measureFunc : measures) {
             measureFunc.init(model);
             MeasureDesc measureDesc = new MeasureDesc();
-            measureDesc.setName(measureFunc.getParameter().getValue() + "_" + measureFunc.getExpression());
+            measureDesc.setName((measureFunc.getParameter() == null ? "" : measureFunc.getParameter().getValue() + "_")
+                    + measureFunc.getExpression());
             measureDesc.setFunction(measureFunc);
             measureDescs.add(measureDesc);
         }
