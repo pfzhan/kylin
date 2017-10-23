@@ -72,8 +72,9 @@
              <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
              <el-table
               :data="statistics.slice(1)"
+              tooltip-effect="dark"
               style="width: 100%" class="staticsTableStyle ksd-mt-10">
-               <el-table-column v-for="(val,index) in statistics[0]" :key="index"
+               <el-table-column show-overflow-tooltip v-for="(val,index) in statistics[0]" :key="index"
                 :prop="''+index"
                 :fixed="index === 0"
                 :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
@@ -83,10 +84,12 @@
             <div style="font-size:12px;" class="ksd-mt-20"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
           <el-table
           :data="modelStatics.slice(1)"
+          tooltip-effect="dark"
           border
           style="width: 100%" class="staticsTableStyle ksd-mt-10">
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
             :fixed="index === 0"
+            show-overflow-tooltip
             :prop="''+index"
             :width="36+15*(modelStatics[0][index]&&modelStatics[0][index].length || 4)"
             :label="modelStatics[0][index]">

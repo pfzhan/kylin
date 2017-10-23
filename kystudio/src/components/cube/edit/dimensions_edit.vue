@@ -239,9 +239,11 @@
     <el-col :span="6" class="dimension-right">
        <el-table
           :data="featureData"
+          tooltip-effect="dark"
           border
           style="width: 100%; margin-bottom: 10px;">
           <el-table-column
+          show-overflow-tooltip
             :label="$t('kylinLang.dataSource.statistics')"
             width="110">
             <template scope="scope">
@@ -249,21 +251,25 @@
             </template>
           </el-table-column>
           <el-table-column
+          show-overflow-tooltip
             prop="content"
             label=""
             >
           </el-table-column>
         </el-table>
           <el-table
+          tooltip-effect="dark"
           :data="modelStatics"
           border
           style="width: 100%">
           <el-table-column
             prop="name"
+            show-overflow-tooltip
             width="86"
             :label="$t('sampleData')">
           </el-table-column>
           <el-table-column
+          show-overflow-tooltip
             prop="content"
             label=""
             >
@@ -1052,9 +1058,6 @@ export default {
     border-right: 1px solid #ddd;
   }
   .dimensionBox{
-    *{
-      border-color: @grey-color!important;
-    }
     .el-tag{
       cursor: pointer;
     }
@@ -1124,6 +1127,7 @@ export default {
     }
   }
   #apply-r{
+    border:solid 1px #48576a;
     border-radius: 3px;
     position: relative;
   }
@@ -1136,6 +1140,9 @@ export default {
     .normal, .direved{
       height: 25px;
       border-radius: 3px;
+    }
+    .direved {
+      border-color:#48576a;
     }
     li{
       float: left;

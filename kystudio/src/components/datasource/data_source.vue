@@ -121,7 +121,7 @@
 		    	</table>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.statistics')" name="third" v-if="tableData.source_type === 0">
-		    	<el-table :data="statistics" border style="width:100%">
+		    	<el-table :data="statistics" border style="width:100%" tooltip-effect="dark">
   			    <el-table-column
   			      type="index"
   			      label="ID"
@@ -129,33 +129,40 @@
   			    </el-table-column>
   			    <el-table-column
   			      prop="column"
+              show-overflow-tooltip
   			      :label="$t('kylinLang.dataSource.columns')"
   			     >
   			    </el-table-column>
   			    <el-table-column
   			      width="120"
+              show-overflow-tooltip
   			      prop="cardinality"
   			      :label="$t('kylinLang.dataSource.cardinality')">
   			    </el-table-column>
   			    <el-table-column
   			      width="100"
+              show-overflow-tooltip
   			      prop="max_value"
   			      :label="$t('kylinLang.dataSource.maximum')">
   			    </el-table-column>
   			    <el-table-column
   			      prop="min_value"
+              show-overflow-tooltip
               width="100"
   			      :label="$t('kylinLang.dataSource.minimal')">
   			    </el-table-column>
   			    <el-table-column
+            show-overflow-tooltip
   			      prop="max_length_value"
   			      :label="$t('kylinLang.dataSource.maxLengthVal')">
   			    </el-table-column>
   			    <el-table-column
+            show-overflow-tooltip
   			      prop="min_length_value"
   			      :label="$t('kylinLang.dataSource.minLengthVal')">
   			    </el-table-column>
   			    <el-table-column
+            show-overflow-tooltip
   			      width="120"
   			      prop="null_count"
   			      :label="$t('kylinLang.dataSource.nullCount')">
@@ -164,9 +171,10 @@
           <p style="font-size:12px;" class="ksd-mt-10">{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
 		    </el-tab-pane>
 		    <el-tab-pane :label="$t('kylinLang.dataSource.sampleData')" name="fourth">
-		      <el-table :data="sampleData.slice(1)" border style="width: 100%">
+		      <el-table :data="sampleData.slice(1)" tooltip-effect="dark" border style="width: 100%">
   			    <el-table-column v-for="(val,index) in sampleData[0]" :key="index"
   			      :prop="''+index"
+              show-overflow-tooltip
               :width="15* (sampleData[0][index] && sampleData[0][index].length || 0) + 20"
   			      :label="sampleData[0][index]">
   			    </el-table-column>
