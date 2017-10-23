@@ -51,6 +51,8 @@ public class EscapeTransformerFunction {
             return ifnullFN(args);
         case "log":
             return logFN(args);
+        case "current_date":
+            return currentdateFN(args);
         default:
             return normalFN(functionName, args);
         }
@@ -136,4 +138,10 @@ public class EscapeTransformerFunction {
         checkArgs(args, 1);
         return normalFN("LN", args);
     }
+
+    private static String currentdateFN(String[] args) {
+        checkArgs(args, 0);
+        return "CURRENT_DATE";
+    }
+    
 }
