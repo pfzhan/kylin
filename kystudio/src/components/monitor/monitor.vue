@@ -1,21 +1,30 @@
 <template>
   <div class="paddingbox ksd-common-tab monitor" id="monitor">
-    <el-tabs v-model="activeName" type="card">
-      <el-tab-pane :label="$t('jobs')" name="jobs" >
-        <jobs></jobs>
-      </el-tab-pane>
-      <el-tab-pane :label="$t('slowQueries')" name="slowQueries" id="slow-query-m">
-       <slow_queries></slow_queries>
-      </el-tab-pane>
+    <el-tabs v-model="rootActiveName" type="card">
+      <el-tab-pane :label="$t('kylinLang.common.overview')" name="overview" >
+      <el-tabs v-model="activeName" class="el-tabs--default">
+        <el-tab-pane :label="$t('jobs')" name="jobs" >
+          <jobs></jobs>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('slowQueries')" name="slowQueries" id="slow-query-m">
+         <slow_queries></slow_queries>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('pushDown')" name="pushDown">
+         <pushdown_queries></pushdown_queries>
+        </el-tab-pane>
+      </el-tabs>
+    </el-tab-pane>
     </el-tabs>
   </div>
 </template>
 <script>
 import jobs from './jobs_list'
 import slowQueries from './slow_queries'
+import pushDownQueries from './pushdown_queries'
 export default {
   data () {
     return {
+      rootActiveName: 'overview',
       activeName: 'jobs'
     }
   },
@@ -32,11 +41,12 @@ export default {
   },
   components: {
     'jobs': jobs,
-    'slow_queries': slowQueries
+    'slow_queries': slowQueries,
+    'pushdown_queries': pushDownQueries
   },
   locales: {
-    'en': {jobs: 'Jobs', slowQueries: 'Slow Queries'},
-    'zh-cn': {jobs: '任务', slowQueries: '慢查询'}
+    'en': {jobs: 'Jobs', slowQueries: 'Slow Queries', 'pushDown': 'Pushdown Queries'},
+    'zh-cn': {jobs: '任务', slowQueries: '慢查询', 'pushDown': 'Pushdown 查询'}
   }
 }
 </script>

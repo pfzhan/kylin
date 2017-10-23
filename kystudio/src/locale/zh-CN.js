@@ -27,6 +27,7 @@ exports.default = {
     zoomIn: '放大视图',
     zoomOut: '缩小视图',
     automaticlayout: '自动布局',
+    search: '搜索',
     // 常规状态
     success: '成功',
     fail: '失败',

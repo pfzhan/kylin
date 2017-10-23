@@ -723,6 +723,14 @@ color: #000;
     color: @content-color;
     border: solid 1px #393e53
   }
+  .el-table.ksd-el-table{
+     .el-table__header .caret-wrapper .ascending{
+        border-color: transparent transparent #97a8be transparent!important;
+      }
+      .el-table__header .caret-wrapper .descending{
+        border-color: #97a8be transparent transparent  transparent!important;
+      }
+  }
   .el-table th {
     background: @grey-color;
 
@@ -742,7 +750,9 @@ color: #000;
     background: @grey-color;
     color: @fff;
   }
-
+ .el-icon-arrow-right {
+    color: #d4d7e3;
+  }
   // notification
   .el-notification {
     background: @grey-color;

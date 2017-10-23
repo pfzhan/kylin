@@ -1,10 +1,50 @@
 <template>
   <div>
-    <el-table
-    :data="slowQueriesList" class="ksd-el-table"
+    <kap-icon-button icon="external-link" class="ksd-mb-8" type="blue" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
+     <div style="width:200px;" class="ksd-mb-10 ksd-fright">
+        <el-input :placeholder="$t('kylinLang.common.search')" icon="search" v-model="serarchChar" class="show-search-btn" >
+          </el-input>
+        </div>
+    <el-table class="ksd-el-table"
+    :data="slowQueriesList"
+    @selection-change="handleSelectionChange"
     border
     :default-sort = "{prop: 'last_modified', order: 'descending'}"
     style="width:100%">
+        <el-table-column type="expand">
+          <template scope="props">
+             <el-tabs v-model="activeName" class="el-tabs--default">
+                <el-tab-pane :label="$t('kylinLang.common.overview')" name="overview" >
+                    <div class="cube-info-view ksd-common-table ksd-mt-10">
+                      <el-row class="tableheader">
+                        <el-col :span="4" class="left-part"><b>{{$t('modelName')}}</b></el-col>
+                        <el-col :span="20">xxxx</el-col>
+                      </el-row>
+                      <el-row class="tableheader">
+                        <el-col :span="4" class="left-part"><b>{{$t('cubeName')}}</b></el-col>
+                        <el-col :span="20">xxx</el-col>
+                      </el-row>
+                      <el-row class="tableheader">
+                        <el-col :span="4" class="left-part"><b>{{$t('notificationEmailList')}}</b></el-col>
+                        <el-col :span="20">xxx</el-col>
+                      </el-row>
+                      <el-row class="tableheader">
+                        <el-col :span="4" class="left-part"><b>{{$t('notificationEvents')}}</b></el-col>
+                        <el-col :span="20">xxx</el-col>
+                      </el-row>
+                      <el-row class="tableheader">
+                        <el-col :span="4" class="left-part"><b>{{$t('description')}}</b></el-col>
+                        <el-col :span="20">xxx</el-col>
+                      </el-row>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+          </template>
+        </el-table-column>
+    <el-table-column
+      type="selection"
+      width="55">
+    </el-table-column>
       <el-table-column
       :label="$t('server')"
       sortable
@@ -69,12 +109,14 @@ import { mapActions } from 'vuex'
 import { pageCount } from '../../config'
 import { transToGmtTime } from '../../util/business'
 export default {
-  name: 'slowQueriesList',
+  name: 'pushDownQueries',
   data () {
     return {
       pageSize: 4,
       currentPage: 1,
-      project: localStorage.getItem('selected_project') || null
+      project: localStorage.getItem('selected_project') || null,
+      activeName: 'overview',
+      multipleSelection: []
     }
   },
   created () {
@@ -98,6 +140,11 @@ export default {
     },
     slowQueiesTotal () {
       return this.$store.state.monitor.totalSlowQueries
+    },
+    handleSelectionChange (val) {
+      this.multipleSelection = val
+    },
+    exportData () {
     }
   },
   methods: {

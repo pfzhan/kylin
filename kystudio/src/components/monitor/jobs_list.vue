@@ -25,9 +25,9 @@
         </el-checkbox-group>
       </el-col>
     </el-row>
-    <el-table
+    <el-table class="ksd-el-table table_margin"
       tooltip-effect="dark"
-      border class="table_margin"
+      border
       :data="jobsList"
       style="width:100%"
       highlight-current-row
@@ -528,12 +528,6 @@
 <style lang="less">
   @import '../../less/config.less';
   #jobs_list {
-  .el-table__header .caret-wrapper .ascending{
-    border-color: transparent transparent #97a8be transparent;
-  }
-  .el-table__header .caret-wrapper .descending{
-    border-color: #97a8be transparent transparent  transparent;
-  }
   border-color: @grey-color;
   .el-dialog__title{
     font-size: 14px!important;
