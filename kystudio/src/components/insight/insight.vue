@@ -5,23 +5,25 @@
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
-	  <el-tab-pane :label="$t('newQuery')" name="first">
-      <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="monokai" width="100%" height="200" useWrapMode="true"></editor>
-      <p class="tips_box" style="margin-top: 10px;color: #9095ab;">{{$t('tips')}}</p>
-      <p class="ksd-right">
-        <el-form :inline="true" class="demo-form-inline">
-          <el-form-item>
-            <el-checkbox v-model="hasLimit" @change="changeLimit"></el-checkbox>   
-          </el-form-item>      
-          <el-form-item label="Limit">
-            <el-input  placeholder="" style="width:90px;" v-model="listRows" class="limit-input" :disabled="!hasLimit"></el-input>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
-          </el-form-item>
-        </el-form>
-      </p>
-    </el-tab-pane>
+     <el-tab-pane :label="$t('newQuery')" name="first">
+       <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="monokai" width="100%" height="170" useWrapMode="true"></editor>
+       <div class="clearfix operatorBox">
+         <p class="tips_box">{{$t('tips')}}</p>
+         <p class="operator">
+           <el-form :inline="true" class="demo-form-inline">
+             <el-form-item>
+               <el-checkbox v-model="hasLimit" @change="changeLimit"></el-checkbox>
+             </el-form-item>
+             <el-form-item label="Limit">
+               <el-input  placeholder="" size="small" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
+             </el-form-item>
+             <el-form-item>
+               <el-button type="primary" size="small" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
+             </el-form-item>
+           </el-form>
+         </p>
+       </div>
+     </el-tab-pane>
 	  <el-tab-pane :label="$t('saveQueries')" name="second">
     <kap-nodata v-if="!savedSize"></kap-nodata>
     <div>
@@ -39,14 +41,14 @@
           {{savequery.description}}
         </el-form-item>
         <el-collapse >
-        <div class="ksd-fright"> 
+        <div class="ksd-fright">
         <kap-icon-button  icon="refresh" type="blue" size="small" @click.native="resubmit(savequery.sql)">Resubmit</kap-icon-button>
         <kap-icon-button  icon="close" type="danger" size="small" @click.native="removeQuery(savequery.id)">Remove</kap-icon-button>
         </div>
           <el-collapse-item title="SQL" name="1" style="color:#9095ab;font-size:12px">
             <editor v-model="savequery.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
           </el-collapse-item>
-        </el-collapse>  
+        </el-collapse>
       </el-form>
       </div>
       <!-- <div v-for="(savequery, index) in savedList"> {{savequery.name}}</div> -->
@@ -68,16 +70,16 @@
           <el-collapse-item title="SQL" name="1">
             <editor v-model="query.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
           </el-collapse-item>
-        </el-collapse>  
+        </el-collapse>
       </el-form>
       </div>
       <pager ref="savedQueryPagerForCookie" class="ksd-center" :totalSize="cookieQuerySize"  v-on:handleCurrentChange='pageCurrentChangeForCookie' ></pager>
     </el-tab-pane>
 	</el-tabs>
-  <div class="line" style="margin-top:10px;margin-bottom:4px;"></div>
+  <div class="line" style="margin:0 0 0 20px"></div>
   <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
-     <div>
-     <h3 class="ksd-inline ksd-mt-2 ksd-mb-6" style="font-size:14px;">{{$t('result')}}</h3>
+     <!--<div>-->
+     <!--<h3 class="ksd-inline ksd-mt-2 ksd-mb-6" style="font-size:14px;">{{$t('result')}}</h3>-->
       <!-- <el-form :inline="true" class="demo-form-inline ksd-fright ksd-mr-20 ksd-mt-20">
           <el-form-item label="Status">
            <el-select v-model="defaultQueryStatus" placeholder="请选择" style="width:90px">
@@ -89,9 +91,9 @@
             </el-select>
           </el-form-item>
         </el-form> -->
-      </div>
+      <!--</div>-->
 
-     <tab type="border-card" class="insight_tab ksd-mt-2" v-on:addtab="addTab" :isedit="true"   :tabslist="editableTabs"  :active="activeSubMenu"  v-on:removetab="delTab">
+     <tab type="border-card" class="insight_tab" v-on:addtab="addTab" :isedit="true"   :tabslist="editableTabs"  :active="activeSubMenu"  v-on:removetab="delTab">
        <template scope="props">
         <component :is="props.item.content" v-on:changeView="changeTab" v-on:reloadSavedProject="loadSavedQuery" :extraoption="props.item.extraoption"></component>
        </template>
@@ -477,6 +479,29 @@ export default {
   @import '../../less/config.less';
   .insight_box {
     position: relative;
+    .operatorBox{
+      margin-top:10px;
+      display:flex;
+      .tips_box{
+        color: #9095ab;
+        flex:1;
+        display: flex;
+        align-items: center;
+      }
+      .operator{
+        height: 30px;
+        line-height: 30px;
+        .el-form-item__label{
+          padding:0 12px 0 0;
+        }
+        .el-form-item{
+          margin-bottom:0;
+        }
+        .el-form-item__content{
+          line-height: 30px;
+        }
+      }
+    }
     .el-collapse-item__header {
       color: #9095ab
     }
@@ -528,8 +553,10 @@ export default {
 
     }
     .query_box.el-tabs{
-      margin: 20px;
-      margin-top: 0;
+      margin:0 20px 15px 20px;
+      .el-tabs__nav-wrap{
+        border-bottom: none;
+      }
     }
     .tips_box{
       font-size: 12px;
@@ -538,6 +565,13 @@ export default {
       .el-tabs__new-tab{
         display: none;
       }
+      .el-tabs__nav-wrap{
+        margin-bottom:1px;
+      }
+      .el-tabs__nav-scroll{
+        background: #292b38;
+        border-bottom: 1px solid #35394c;
+      }
     }
     .query_result_box{
       border: 0;
@@ -545,15 +579,19 @@ export default {
         margin: 20px;
       }
       .el-tabs{
-        margin-top: 20px;
+        margin-top: 12px;
         .el-tabs__nav{
           margin-left: 20px;
         }
         .el-tabs__content{
           padding: 0px;
           .el-tab-pane{
-            padding: 20px;
+            padding: 10px 20px 20px 20px;
           }
+        }
+        .el-tabs__item{
+          height: 28px!important;
+          line-height: 28px!important;
         }
       }
     }

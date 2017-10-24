@@ -17,6 +17,15 @@ ul,li {list-style:none;}
 .clear {
   clear: both;
 }
+.clearfix:after{
+  content: '.';
+  clear: both;
+  display: block;
+  height: 0;
+  visibility: hidden;
+  font-size: 0;
+  line-height: 0
+}
 // 滚动条优化
 // chrome
 ::-webkit-scrollbar
@@ -729,6 +738,12 @@ color: #000;
       }
       .el-table__header .caret-wrapper .descending{
         border-color: #97a8be transparent transparent  transparent!important;
+      }
+      .el-table__header .ascending .caret-wrapper .ascending{
+        border-bottom-color: #48576a!important;
+      }
+      .el-table__header .descending .caret-wrapper .descending{
+        border-top-color: #48576a!important;
       }
   }
   .el-table th {

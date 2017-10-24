@@ -1,30 +1,29 @@
 <template>
   <div class="result_box">
-    <el-row  class="resultTips" >
-      <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.status')}}<span style="color:green"> success</span></p></div></el-col>
-      <el-col :span="6"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.startTime')}}<span> {{queryInfo.starttime|timeFormatHasTimeZone}}</span></p></div></el-col>
-      <el-col :span="3"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.duration')}}<span> {{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span></p></div></el-col>
-      <el-col :span="7"><div class="grid-content bg-purple"><p>{{$t('kylinLang.query.project')}}<span> {{queryInfo.project}}</span></p></div></el-col>
-      <el-col :span="5">
+    <div class="resultTipsLine">
+      <div class="resultTips">
+        <div class="resultText"><p>{{$t('kylinLang.query.status')}}<span style="color:green" class="text"> success</span></p></div>
+        <div class="resultText"><p>{{$t('kylinLang.query.startTime')}}<span class="text"> {{queryInfo.starttime|timeFormatHasTimeZone}}</span></p></div>
+        <div class="resultText"><p>{{$t('kylinLang.query.duration')}}<span class="text"> {{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span></p></div>
+        <div class="resultText projectText"><p>{{$t('kylinLang.query.project')}}<span class="blue"> {{queryInfo.project}}</span></p></div>
+        <div v-if="!extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">{{queryInfo.cube.replace(/\[name=/g, ' [')}}</span></p></div>
+        <div v-if="extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">Push down</span></p></div>
+      </div>
+      <div class="resultOperator">
         <div class="grid-content bg-purple" style="text-align:right" >
-        <kap-icon-button   icon="refresh" type="blue" size="small" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
-        <kap-icon-button   icon="save" type="primary" size="small" @click.native="openSaveQueryDialog" style="display:inline-block">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
+          <kap-icon-button icon="refresh" size="small" @click.native="refreshQuery" style="display:inline-block"></kap-icon-button>
+          <kap-icon-button icon="save" size="small" @click.native="openSaveQueryDialog" style="display:inline-block">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
         </div>
-      </el-col>
-    </el-row>
-    <el-row class="resultTips" >
-      <el-col :span="24">
-        <div v-if="!extraoption.data.pushDown" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>{{queryInfo.cube.replace(/\[name=/g, ' [')}}</span></p></div>
-        <div v-if="extraoption.data.pushDown" class="grid-content bg-purple"><p>{{$t('kylinLang.query.queryEngine')}}<span>Push down</span></p></div>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
+
   	<div class="ksd-mt-14">
-<kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" size="small" style="border-width:1px" @click.native="changeViewModel">{{$t('kylinLang.query.visualization')}}</kap-icon-button>
-<kap-icon-button v-show="!viewModel" icon="table" size="small" type="blue" @click.native="changeViewModel">{{$t('kylinLang.query.grid')}}</kap-icon-button>
-<kap-icon-button icon="external-link" type="primary" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
-   <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
-   </div>
-  	<div class="ksd-mt-20 grid-box" v-show="viewModel">
+      <kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" size="small" style="border-width:1px" @click.native="changeViewModel">{{$t('kylinLang.query.visualization')}}</kap-icon-button>
+      <kap-icon-button v-show="!viewModel" icon="table" size="small" type="blue" @click.native="changeViewModel">{{$t('kylinLang.query.grid')}}</kap-icon-button>
+      <kap-icon-button icon="external-link" type="primary" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
+      <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
+    </div>
+  	<div class="ksd-mt-20 grid-box narrowTable" v-show="viewModel">
   		<el-table
 		    :data="pagerTableData"
 		    border
@@ -464,6 +463,40 @@ export default {
 }
 </script>
 <style  lang="less">
+  .narrowTable{
+    .el-table td, .el-table th{
+      height: 30px;
+    }
+  }
+  .resultTipsLine{
+    display: flex;
+    .resultTips{
+      flex:1;
+      display: flex;
+      align-items: center;
+      flex-wrap:wrap;
+      .resultText{
+        padding-left:14px;
+        padding-right:14px;
+        &:first-child{
+          padding-left:0px;
+        }
+        &:last-child{
+           padding-right:0px;
+        }
+        color:#9095ab;
+        .text{
+          color:#d0d2db;
+        }
+        .blue{
+          color:#20a0ff;
+        }
+      }
+      .projectText{
+        border-right:1px solid #9095ab;
+      }
+    }
+  }
   .resultTips{
      font-size: 12px;
      p{
