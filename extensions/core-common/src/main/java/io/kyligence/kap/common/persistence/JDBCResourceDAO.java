@@ -425,7 +425,7 @@ public class JDBCResourceDAO {
     }
 
     public Path bigCellHDFSPath(String resPath) {
-        String hdfsWorkingDirectory = this.kylinConfig.getHdfsWorkingDirectory();
+        String hdfsWorkingDirectory = this.kapConfig.getWriteHdfsWorkingDirectory();
         Path redirectPath = new Path(hdfsWorkingDirectory, "resources-jdbc" + resPath);
         return redirectPath;
     }

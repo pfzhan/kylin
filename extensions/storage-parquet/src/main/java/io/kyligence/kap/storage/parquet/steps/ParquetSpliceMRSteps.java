@@ -104,8 +104,8 @@ public class ParquetSpliceMRSteps extends ParquetMRSteps {
     }
 
     @Override
-    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId) {
-        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep();
+    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId, CubeSegment segment) {
+        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep(segment);
         step.setName("Collect Cube File Mapping");
         step.setParam(ParquetCubeInfoCollectionStep.INPUT_PATH, getCubeFolderPath(seg));
         step.setParam(ParquetCubeInfoCollectionStep.OUTPUT_PATH, getCubeFolderPath(seg) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME);

@@ -26,6 +26,8 @@ package org.apache.kylin.common;
 
 import java.io.File;
 
+import org.apache.hadoop.fs.Path;
+
 public class KapConfig {
 
     // no need to cache KapConfig as it is so lightweight
@@ -59,6 +61,18 @@ public class KapConfig {
         return config.isDevEnv();
     }
 
+    public String getWriteHdfsWorkingDirectory() {
+        return config.getHdfsWorkingDirectory();
+    }
+
+    public String getReadHdfsWorkingDirectory() {
+        if (isParquetSeparateFsEnabled()) {
+            Path workingDir = new Path(getWriteHdfsWorkingDirectory());
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString() + "/";
+        }
+        return getWriteHdfsWorkingDirectory();
+    }
+
     public int getJdbcResourceStoreMaxCellSize() {
         return Integer.parseInt(config.getOptional("kap.metadata.jdbc.max-cell-size", "262144")); //256k
     }
@@ -67,7 +81,7 @@ public class KapConfig {
         return Boolean.parseBoolean(config.getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
     }
 
-    public String getParquetFileSystem() {
+    public String getParquetReadFileSystem() {
         return config.getOptional("kylin.storage.columnar.file-system", "");
     }
 
@@ -173,9 +187,17 @@ public class KapConfig {
     /**
      * where is parquet fles stored in hdfs , end with /
      */
-    public String getParquetStoragePath() {
+    public String getWriteParquetStoragePath() {
         String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
         return config.getOptional("kap.storage.columnar.hdfs-dir", defaultPath);
+    }
+
+    public String getReadParquetStoragePath() {
+        if (isParquetSeparateFsEnabled()) {
+            Path parquetPath = new Path(getWriteParquetStoragePath());
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString() + "/";
+        }
+        return getWriteParquetStoragePath();
     }
 
     /**

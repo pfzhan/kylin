@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
-import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
@@ -34,55 +33,37 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 
 public class ColumnarStorageUtils {
-    public static String getSegmentDir(RawTableInstance raw, RawTableSegment segment) {
+    public static String getWriteSegmentDir(RawTableInstance raw, RawTableSegment segment) {
         KapConfig kapConfig = KapConfig.wrap(raw.getConfig());
-        return new StringBuffer(kapConfig.getParquetStoragePath()).append(raw.getUuid()).append("/")
+        return new StringBuffer(kapConfig.getWriteParquetStoragePath()).append(raw.getUuid()).append("/")
                 .append(segment.getUuid()).append("/").toString();
     }
 
-    public static String getSegmentDir(CubeInstance cube, CubeSegment segment) {
+    public static String getWriteSegmentDir(CubeInstance cube, CubeSegment segment) {
         KapConfig kapConfig = KapConfig.wrap(cube.getConfig());
-        return new StringBuffer(kapConfig.getParquetStoragePath()).append(cube.getUuid()).append("/")
+        return new StringBuffer(kapConfig.getWriteParquetStoragePath()).append(cube.getUuid()).append("/")
                 .append(segment.getUuid()).append("/").toString();
     }
 
-    public static String getLocalSegmentDir(String localFs, CubeInstance cube, CubeSegment segment) {
-        return getLocalDir(cube.getConfig(), localFs, getSegmentDir(cube, segment));
+    public static String getReadSegmentDir(CubeSegment segment) {
+        return getReadCubeDir(segment.getCubeInstance()) + segment.getUuid() + "/";
     }
 
-    public static String getLocalSegmentDir(String localFs, RawTableInstance raw, RawTableSegment segment) {
-        return getLocalRawtableDir(localFs, raw) + segment.getUuid() + "/";
+    public static String getReadSegmentDir(RawTableSegment segment) {
+        return getReadRawtableDir(segment.getRawTableInstance()) + segment.getUuid() + "/";
     }
 
-
-    public static String getLocalRawtableDir(String localFs, RawTableInstance raw) {
-        return new StringBuffer(getLocalParquetStoragePath(raw.getConfig(), localFs)).append(raw.getUuid()).append("/")
+    public static String getReadRawtableDir(RawTableInstance raw) {
+        return new StringBuffer(getLocalParquetStoragePath(raw.getConfig())).append(raw.getUuid()).append("/")
                 .toString();
     }
 
-    public static String getLocalCubeDir(String localFs, CubeInstance cube) {
-        return new StringBuffer(getLocalParquetStoragePath(cube.getConfig(), localFs)).append(cube.getUuid())
-                .append("/").toString();
+    public static String getReadCubeDir(CubeInstance cube) {
+        return new StringBuffer(getLocalParquetStoragePath(cube.getConfig())).append(cube.getUuid()).append("/")
+                .toString();
     }
 
-    public static String getLocalWorkingDir(KylinConfig config, String localFs) {
-        return getLocalDir(config, localFs, config.getHdfsWorkingDirectory());
-    }
-
-    public static String getLocalParquetStoragePath(KylinConfig config, String localFs) {
-        KapConfig kapConfig = KapConfig.wrap(config);
-        return getLocalDir(config, localFs, kapConfig.getParquetStoragePath());
-    }
-
-    private static String getLocalDir(KylinConfig config, String localFs, String path) {
-        Path remotePath = new Path(path);
-        Path remotePathWithoutSchema = Path.getPathWithoutSchemeAndAuthority(remotePath);
-        Path localPath = new Path(localFs, remotePathWithoutSchema);
-        String localPathStr = localPath.toString();
-        if (localPathStr.endsWith("/") == false) {
-            localPathStr = localPathStr + "/";
-        }
-
-        return localPathStr;
+    public static String getLocalParquetStoragePath(KylinConfig config) {
+        return KapConfig.wrap(config).getReadParquetStoragePath();
     }
 }

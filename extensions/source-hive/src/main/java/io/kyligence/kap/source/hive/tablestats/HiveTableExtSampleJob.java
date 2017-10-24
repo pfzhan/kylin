@@ -56,6 +56,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     private String tableName;
     private int frequency;
     KylinConfig config;
+    KapConfig kapConfig;
 
     // for reflection only
     public HiveTableExtSampleJob() {
@@ -75,6 +76,7 @@ public class HiveTableExtSampleJob extends CubingJob {
         this.tableName = tableName;
         this.frequency = frequency;
         this.config = KylinConfig.getInstanceFromEnv();
+        this.kapConfig = KapConfig.wrap(config);
     }
 
     public String start() throws IOException {
@@ -244,7 +246,7 @@ public class HiveTableExtSampleJob extends CubingJob {
     }
 
     private String getOutputPath(String jobId) {
-        return config.getHdfsWorkingDirectory() + "table_stats/" + jobId + "/";
+        return kapConfig.getWriteHdfsWorkingDirectory() + "table_stats/" + jobId + "/";
     }
 
 }

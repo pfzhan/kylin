@@ -24,11 +24,14 @@
 
 package io.kyligence.kap.source.hive.modelstats;
 
+import static io.kyligence.kap.source.hive.modelstats.ModelStatsManager.MODEL_STATISTICS_ROOT;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.engine.mr.CubingJob;
@@ -50,6 +53,8 @@ import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,11 +63,12 @@ import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
 public class CollectModelStatsJob extends CubingJob {
     private static final Logger logger = LoggerFactory.getLogger(CollectModelStatsJob.class);
-    private static final KylinConfig config = KylinConfig.getInstanceFromEnv();
     private static final int doFactStats = 1;
     private static final int doLookupStats = 2;
     private static final int doModelCheck = 4;
 
+    private KylinConfig config = null;
+    private KapConfig kapConfig = null;
     private SegmentRange segRange;
     private String project;
     private String modelName;
@@ -73,6 +79,8 @@ public class CollectModelStatsJob extends CubingJob {
 
     // for reflection only
     public CollectModelStatsJob() {
+        config = KylinConfig.getInstanceFromEnv();
+        kapConfig = KapConfig.wrap(config);
     }
 
     public CollectModelStatsJob(String project, String modelName, String submitter, SegmentRange segRange,
@@ -84,11 +92,25 @@ public class CollectModelStatsJob extends CubingJob {
         this.frequency = frequency;
         this.checkList = checkList;
         this.forceUpdate = forceUpdate;
+        initConfig();
     }
 
     public CollectModelStatsJob(String project, String modelName) {
         this.project = project;
         this.modelName = modelName;
+        initConfig();
+    }
+
+    private void initConfig() {
+        ProjectManager projectManager = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        if (projectInstance == null) {
+            logger.info("project {} is null", project);
+            this.config = KylinConfig.getInstanceFromEnv();
+        } else {
+            this.config = projectInstance.getConfig();
+        }
+        this.kapConfig = KapConfig.wrap(config);
     }
 
     public String start() throws IOException {
@@ -256,7 +278,7 @@ public class CollectModelStatsJob extends CubingJob {
     }
 
     private String getOutputPath(String jobID) {
-        return config.getHdfsWorkingDirectory() + "model_stats/" + jobID + "/";
+        return kapConfig.getWriteHdfsWorkingDirectory() + MODEL_STATISTICS_ROOT + "/" + jobID + "/";
     }
 
     private boolean isSelected(final int item, final int list) {

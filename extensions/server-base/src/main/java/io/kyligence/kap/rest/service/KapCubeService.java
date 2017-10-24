@@ -109,7 +109,6 @@ public class KapCubeService extends BasicService implements InitializingBean {
     }
 
     private ColumnarResponse getColumnarInfo(String segStoragePath, CubeSegment segment) throws IOException {
-        final KapConfig kapConfig = KapConfig.wrap(segment.getConfig());
         String key = segment.getCubeInstance().getName() + "/" + segment.getUuid();
         ColumnarResponse response = columnarInfoCache.getIfPresent(key);
         if (response != null) {
@@ -141,15 +140,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
             List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByTSRange(raw, segment.getTSRange());
             if (rawSegs.size() != 0) {
                 Preconditions.checkArgument(rawSegs.size() == 1);
-                String rawSegmentDir;
-                RawTableSegment rawSegment = rawSegs.get(0);
-                if (kapConfig.isParquetSeparateFsEnabled()) {
-                    rawSegmentDir = ColumnarStorageUtils.getLocalSegmentDir(
-                            KapConfig.wrap(segment.getConfig()).getParquetFileSystem(),
-                            rawSegment.getRawTableInstance(), rawSegment);
-                } else {
-                    rawSegmentDir = getRawParquetFolderPath(rawSegs.get(0));
-                }
+                String rawSegmentDir = ColumnarStorageUtils.getReadSegmentDir(rawSegs.get(0));
                 columnarResp.setRawTableSegmentPath(rawSegmentDir);
 
                 if (fs.exists(new Path(rawSegmentDir))) {
@@ -195,7 +186,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
     }
 
     protected String getRawParquetFolderPath(RawTableSegment rawSegment) {
-        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getParquetStoragePath())
+        return new StringBuffer(KapConfig.wrap(rawSegment.getConfig()).getReadParquetStoragePath())
                 .append(rawSegment.getRawTableInstance().getUuid()).append("/").append(rawSegment.getUuid()).append("/")
                 .append("RawTable/").toString();
     }
@@ -313,7 +304,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
                     continue;
                 }
 
-                String storagePath = ColumnarStorageUtils.getSegmentDir(cube, seg);
+                String storagePath = ColumnarStorageUtils.getReadSegmentDir(seg);
 
                 ColumnarResponse info;
                 try {

@@ -23,8 +23,10 @@
  */
 package io.kyligence.kap.tool.storage;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
@@ -35,6 +37,7 @@ import org.apache.hadoop.hdfs.protocol.CacheDirectiveInfo;
 import org.apache.hadoop.hdfs.protocol.CachePoolEntry;
 import org.apache.hadoop.hdfs.protocol.CachePoolInfo;
 import org.apache.hadoop.hdfs.protocol.CachePoolStats;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.CubeInstance;
@@ -42,9 +45,8 @@ import org.apache.kylin.cube.CubeManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 
 public class HDFSCacheUtil {
 
@@ -209,22 +211,23 @@ public class HDFSCacheUtil {
     protected List<String> getDirByCubeName(String cubeName) throws IOException {
         List<String> dirs = new ArrayList<>();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
         //cuboid file path
         CubeManager manager = CubeManager.getInstance(kylinConfig);
         CubeInstance cubeInstance = manager.getCube(cubeName);
         if (cubeInstance != null) {
             String uuid = cubeInstance.getUuid();
-            String dir = kylinConfig.getHdfsWorkingDirectory() + "/parquet/" + uuid;
+            String dir = kapConfig.getReadParquetStoragePath() + uuid;
             dirs.add(dir);
             logger.info("found cuboid file path : " + dir);
         }
+
         //raw table file path
         RawTableManager manager2 = RawTableManager.getInstance(kylinConfig);
         RawTableInstance rawInstance = manager2.getRawTableInstance(cubeName);
-
         if (rawInstance != null) {
             String uuid2 = rawInstance.getUuid();
-            String dir2 = kylinConfig.getHdfsWorkingDirectory() + "/parquet/" + uuid2;
+            String dir2 = kapConfig.getReadParquetStoragePath() + uuid2;
             dirs.add(dir2);
             logger.info("found raw table file path : " + dir2);
         }

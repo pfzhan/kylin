@@ -57,6 +57,7 @@ import io.kyligence.kap.cube.raw.RawTableDesc;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 
+// TODO: Should consider read/write separate
 public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
     private static final Logger logger = LoggerFactory.getLogger(KapCubeMigrationCLI.class);
@@ -92,10 +93,9 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
     }
 
     private void renameKAPRealizationStoragePath(String uuid) throws IOException {
-        String src = KapConfig.wrap(srcConfig).getParquetStoragePath() + uuid;
-        String tgt = KapConfig.wrap(dstConfig).getParquetStoragePath() + uuid;
-
-        Path tgtParent = new Path(KapConfig.wrap(dstConfig).getParquetStoragePath());
+        String src = KapConfig.wrap(srcConfig).getReadParquetStoragePath() + uuid;
+        String tgt = KapConfig.wrap(dstConfig).getReadParquetStoragePath() + uuid;
+        Path tgtParent = new Path(KapConfig.wrap(dstConfig).getReadParquetStoragePath());
         FileSystem fs = HadoopUtil.getWorkingFileSystem();
         if (!fs.exists(tgtParent)) {
             fs.mkdirs(tgtParent);
@@ -164,7 +164,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
     private void putLocalCubeResourcesToHDFS(CubeInstance cube, String localDir) throws IOException {
         String cubeName = cube.getName();
-        String cubeStoragePath = KapConfig.wrap(srcConfig).getParquetStoragePath() + cube.getUuid();
+        String cubeStoragePath = KapConfig.wrap(srcConfig).getReadParquetStoragePath() + cube.getUuid();
         Path migrating_cube_path = new Path(getMigratingCubeRootPath(cubeName));
 
         if (hdfsFS.exists(migrating_cube_path))
@@ -180,7 +180,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
         RawTableInstance raw = detectRawTable(cube);
         if (raw != null) {
-            String rawTableStoragePath = KapConfig.wrap(srcConfig).getParquetStoragePath() + raw.getUuid();
+            String rawTableStoragePath = KapConfig.wrap(srcConfig).getReadParquetStoragePath() + raw.getUuid();
             copyCubeOrRaw(cubeName, rawTableStoragePath, copyToPath);
         }
     }
@@ -249,7 +249,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         doOpts();
 
         String copyFrom = getMigratingCubeDataPath(cubeName) + "/" + cube.getUuid();
-        String copyTo = KapConfig.wrap(dstConfig).getParquetStoragePath();
+        String copyTo = KapConfig.wrap(dstConfig).getReadParquetStoragePath();
         copyCubeOrRaw(cubeName, copyFrom, copyTo);
 
         RawTableInstance raw = detectRawTable(cube);

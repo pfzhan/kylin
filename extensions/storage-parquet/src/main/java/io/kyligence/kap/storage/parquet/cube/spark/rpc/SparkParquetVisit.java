@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -155,7 +154,7 @@ public class SparkParquetVisit implements Serializable {
                     this.isSplice = false;
                     long listFileStartTime = System.currentTimeMillis();
                     this.parquetPathCollection = listFilesWithCache(
-                            new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                            new StringBuilder(kapConfig.getReadParquetStoragePath()).//
                                     append(request.getRealizationId()).append("/").//
                                     append(request.getSegmentId()).append("/").//
                                     append(request.getDataFolderName()).toString(),
@@ -184,7 +183,7 @@ public class SparkParquetVisit implements Serializable {
                 sc.setLocalProperty("spark.scheduler.pool", "table_index");
                 this.isSplice = false;
                 this.parquetPathCollection = listFilesWithCache(
-                        new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+                        new StringBuilder(kapConfig.getReadParquetStoragePath()).//
                                 append(request.getRealizationId()).append("/").//
                                 append(request.getSegmentId()).append("/").//
                                 append(request.getDataFolderName()).toString(),
@@ -225,7 +224,7 @@ public class SparkParquetVisit implements Serializable {
 
     // Transform relative path to absolute path
     private class PathTransformer implements Function<String, String> {
-        private String workingDir = kylinConfig.getHdfsWorkingDirectory();
+        private String workingDir = kapConfig.getReadHdfsWorkingDirectory();
 
         @Nullable
         @Override
@@ -267,19 +266,8 @@ public class SparkParquetVisit implements Serializable {
         return result;
     }
 
-    private String getWorkingDir() {
-        if (workingDir == null) {
-            if (kapConfig.isParquetSeparateFsEnabled()) {
-                workingDir = ColumnarStorageUtils.getLocalWorkingDir(kylinConfig, kapConfig.getParquetFileSystem());
-            } else {
-                workingDir = kylinConfig.getHdfsWorkingDirectory();
-            }
-        }
-        return workingDir;
-    }
-
     private Map<Long, Set<String>> readCubeMappingInfo() throws IOException, ClassNotFoundException {
-        String cubeInfoPath = new StringBuilder(getWorkingDir()).append("parquet/")//
+        String cubeInfoPath = new StringBuilder(kapConfig.getReadParquetStoragePath())//
                 .append(request.getRealizationId()).append("/")//
                 .append(request.getSegmentId()).append("/")//
                 .append(ParquetCubeInfoCollectionStep.CUBE_INFO_NAME).toString();

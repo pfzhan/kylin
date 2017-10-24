@@ -101,7 +101,8 @@ public class KapBatchCubingJobBuilder extends JobBuilderSupport {
     private String getCubeRootPath(CubeSegment seg) {
         CubeInstance cube = seg.getCubeInstance();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        return new StringBuffer(KapConfig.wrap(kylinConfig).getParquetStoragePath()).append(cube.getUuid()).append("/")
+        return new StringBuffer(KapConfig.wrap(kylinConfig).getWriteParquetStoragePath()).append(cube.getUuid())
+                .append("/")
                 .append(seg.getUuid()).append("/").toString();
     }
 

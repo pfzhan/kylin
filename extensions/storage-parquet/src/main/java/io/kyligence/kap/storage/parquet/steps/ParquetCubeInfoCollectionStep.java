@@ -34,8 +34,10 @@ import java.util.Set;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
@@ -59,7 +61,12 @@ public class ParquetCubeInfoCollectionStep extends AbstractExecutable {
     private static final String SCHEMA_HINT = "://";
 
     public ParquetCubeInfoCollectionStep() {
-        String fullPath = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        this(null);
+    }
+
+    public ParquetCubeInfoCollectionStep(CubeSegment segment) {
+        String fullPath = KapConfig.wrap(segment == null ? KylinConfig.getInstanceFromEnv() : segment.getConfig())
+                .getWriteHdfsWorkingDirectory();
         int index = fullPath.indexOf(SCHEMA_HINT);
         if (index >= 0) {
             WORKING_DIR = fullPath.substring(index + SCHEMA_HINT.length());

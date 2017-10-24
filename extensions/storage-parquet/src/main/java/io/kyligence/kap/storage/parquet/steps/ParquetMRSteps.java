@@ -251,8 +251,8 @@ public class ParquetMRSteps extends JobBuilderSupport {
         return result;
     }
 
-    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId) {
-        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep();
+    public ParquetCubeInfoCollectionStep createCubeInfoCollectionStep(String jobId, CubeSegment segment) {
+        ParquetCubeInfoCollectionStep step = new ParquetCubeInfoCollectionStep(segment);
         step.setName("Collect Cube File Mapping");
         step.setParam(ParquetCubeInfoCollectionStep.SKIP, "true");
         return step;
@@ -404,15 +404,16 @@ public class ParquetMRSteps extends JobBuilderSupport {
     protected String getRawTableFolderPath(CubeSegment cubeSegment) {
         RawTableInstance instance = detectRawTable(cubeSegment);
         RawTableSegment rawSeg = instance.getSegmentById(cubeSegment.getUuid());
-        return ColumnarStorageUtils.getSegmentDir(instance, rawSeg);
+        return ColumnarStorageUtils.getWriteSegmentDir(instance, rawSeg);
     }
 
     protected String getRawTableFolderPath(RawTableSegment rawSegment) {
-        return ColumnarStorageUtils.getSegmentDir(rawSegment.getRawTableInstance(), rawSegment);
+        return ColumnarStorageUtils.getWriteSegmentDir(rawSegment.getRawTableInstance(),
+                rawSegment);
     }
 
     protected String getCubeFolderPath(CubeSegment cubeSegment) {
-        return ColumnarStorageUtils.getSegmentDir(cubeSegment.getCubeInstance(), cubeSegment);
+        return ColumnarStorageUtils.getWriteSegmentDir(cubeSegment.getCubeInstance(), cubeSegment);
     }
 
     protected RawTableInstance detectRawTable(CubeSegment cubeSegment) {

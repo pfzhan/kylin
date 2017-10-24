@@ -89,8 +89,9 @@ public class MockedCubeSparkRPC extends CubeSparkRPC {
 
         Configuration conf = HadoopUtil.getCurrentConfiguration();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
 
-        String dataFolder = new StringBuilder(kylinConfig.getHdfsWorkingDirectory()).append("parquet/").//
+        String dataFolder = new StringBuilder(kapConfig.getReadParquetStoragePath()).//
                 append(cubeSegment.getCubeInstance().getUuid()).append("/").//
                 append(cubeSegment.getUuid()).append("/").//
                 append(cuboid.getId()).//

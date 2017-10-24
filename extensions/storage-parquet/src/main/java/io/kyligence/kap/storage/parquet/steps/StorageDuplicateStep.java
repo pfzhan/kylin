@@ -58,7 +58,7 @@ public class StorageDuplicateStep extends AbstractExecutable {
             return new ExecuteResult(ExecuteResult.State.SUCCEED);
         }
 
-        String fsPrefix = kapConfig.getParquetFileSystem();
+        String fsPrefix = kapConfig.getParquetReadFileSystem();
         if (Strings.isEmpty(fsPrefix)) {
             throw new IllegalArgumentException("kylin.storage.columnar.file-system missing in kylin.properties");
         }
@@ -66,8 +66,8 @@ public class StorageDuplicateStep extends AbstractExecutable {
         CubeInstance cube = CubeManager.getInstance(kylinConfig).getCube(CubingExecutableUtil.getCubeName(this.getParams()));
         CubeSegment cubeSegment = cube.getSegmentById(CubingExecutableUtil.getSegmentId(this.getParams()));
 
-        String remotePath = ColumnarStorageUtils.getSegmentDir(cube, cubeSegment);
-        String localPath = ColumnarStorageUtils.getLocalCubeDir(fsPrefix, cube);
+        String remotePath = ColumnarStorageUtils.getWriteSegmentDir(cube, cubeSegment);
+        String localPath = ColumnarStorageUtils.getReadCubeDir(cube);
         try {
             logger.info("copy cube files: from {} to {}", remotePath, localPath);
             DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath)));
@@ -80,8 +80,8 @@ public class StorageDuplicateStep extends AbstractExecutable {
         RawTableInstance raw = RawTableManager.getInstance(cubeSegment.getConfig()).getAccompanyRawTable(cubeSegment.getCubeInstance());
         if (null != raw) {
             RawTableSegment rawSegment = raw.getSegmentById(cubeSegment.getUuid());
-            remotePath = ColumnarStorageUtils.getSegmentDir(raw, rawSegment);
-            localPath = ColumnarStorageUtils.getLocalRawtableDir(fsPrefix, raw);
+            remotePath = ColumnarStorageUtils.getWriteSegmentDir(raw, rawSegment);
+            localPath = ColumnarStorageUtils.getReadRawtableDir(raw);
             try {
                 logger.info("copy rawtable files: from {} to {}", remotePath, localPath);
                 DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath)));

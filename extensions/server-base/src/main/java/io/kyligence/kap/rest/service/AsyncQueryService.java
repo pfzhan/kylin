@@ -38,7 +38,7 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -182,7 +182,7 @@ public class AsyncQueryService extends QueryService {
     }
 
     protected Path getAsyncQueryResultDir() {
-        String hdfsWorkingDirectory = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        String hdfsWorkingDirectory = KapConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory();
         Path asyncQueryResultDir = new Path(hdfsWorkingDirectory, BASE_FOLDER);
         return asyncQueryResultDir;
     }
