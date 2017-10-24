@@ -88,7 +88,7 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
         public ParquetCubeWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
                 Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
-            this.outputDir = committer.getTaskAttemptPath(context);
+            this.outputDir = committer.getWorkPath();
 
             logger.info("tmp output dir: {}", outputDir);
             logger.info("final output dir: {}", committer.getCommittedTaskPath(context));

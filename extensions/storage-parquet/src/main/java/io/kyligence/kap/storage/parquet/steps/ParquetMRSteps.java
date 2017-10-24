@@ -374,31 +374,31 @@ public class ParquetMRSteps extends JobBuilderSupport {
     }
 
     protected String getRawtableFuzzyIndexTmpFolderPath(CubeSegment cubeSegment) {
-        return getRawTableFolderPath(cubeSegment) + "/" + RawtableFuzzyIndexTmpFolderPrefix;
+        return getRawTableFolderPath(cubeSegment) + RawtableFuzzyIndexTmpFolderPrefix;
     }
 
     protected String getRawtablePageIndexTmpFolderPath(CubeSegment cubeSegment) {
-        return getRawTableFolderPath(cubeSegment) + "/" + RawtablePageIndexTmpFolderPrefix;
+        return getRawTableFolderPath(cubeSegment) + RawtablePageIndexTmpFolderPrefix;
     }
 
     protected String getRawtableTmpFolderPath(CubeSegment cubeSegment) {
-        return getRawTableFolderPath(cubeSegment) + "/" + RawtableTmpFolderPrefix;
+        return getRawTableFolderPath(cubeSegment) + RawtableTmpFolderPrefix;
     }
 
     protected String getRawtableMergeTmpFolderPath(CubeSegment cubeSegment) {
-        return getRawTableFolderPath(cubeSegment) + "/" + RawtableMergeTmpFolderPrefix;
+        return getRawTableFolderPath(cubeSegment) + RawtableMergeTmpFolderPrefix;
     }
 
     protected String getCubePageIndexTmpFolderPath(CubeSegment cubeSegment) {
-        return getCubeFolderPath(cubeSegment) + "/" + CubePageIndexTmpFolderPrefix;
+        return getCubeFolderPath(cubeSegment) + CubePageIndexTmpFolderPrefix;
     }
 
     protected String getCubeTarballTmpFolderPath(CubeSegment cubeSegment) {
-        return getCubeFolderPath(cubeSegment) + "/" + CubeTarballTmpFolderPrefix;
+        return getCubeFolderPath(cubeSegment) + CubeTarballTmpFolderPrefix;
     }
 
     protected String getCubeMergeTmpFolderPath(CubeSegment cubeSegment) {
-        return getCubeFolderPath(cubeSegment) + "/" + CubeMergeTmpFolderPrefix;
+        return getCubeFolderPath(cubeSegment) + CubeMergeTmpFolderPrefix;
     }
 
     protected String getRawTableFolderPath(CubeSegment cubeSegment) {
