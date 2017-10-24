@@ -25,6 +25,7 @@
 package io.kyligence.kap.storage.parquet.adhoc.udf;
 
 import java.sql.Date;
+import java.sql.Time;
 import java.sql.Timestamp;
 
 import org.apache.commons.lang3.StringUtils;
@@ -37,43 +38,29 @@ public class TimestampDiff extends UDF {
         if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
             return null;
         }
-
         Duration duration = new Duration(arg2.getTime(), arg3.getTime());
-        Long durationDays = duration.getStandardDays();
-
-        switch (arg1.toUpperCase()) {
-        case "FRAC_SECOND":
-            return duration.getMillis();
-        case "SECOND":
-            return duration.getStandardSeconds();
-        case "MINUTE":
-            return duration.getStandardMinutes();
-        case "HOUR":
-            return duration.getStandardHours();
-        case "DAY":
-            return durationDays;
-        case "WEEK":
-            return (durationDays / 7);
-        case "MONTH":
-            return (durationDays / 30);
-        case "QUARTER":
-            return (durationDays / 90);
-        case "YEAR":
-            return (durationDays / 365);
-        default:
-            return null;
-        }
+        return convertDuration(duration, arg1);
     }
 
     public Long evaluate(String arg1, Date arg2, Date arg3) {
         if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
             return null;
         }
-
         Duration duration = new Duration(arg2.getTime(), arg3.getTime());
-        Long durationDays = duration.getStandardDays();
+        return convertDuration(duration, arg1);
+    }
 
-        switch (arg1.toUpperCase()) {
+    public Long evaluate(String arg1, Time arg2, Time arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+    
+    private static Long convertDuration(Duration duration, String type) {
+        Long durationDays = duration.getStandardDays();
+        switch (type.toUpperCase()) {
         case "FRAC_SECOND":
             return duration.getMillis();
         case "SECOND":
