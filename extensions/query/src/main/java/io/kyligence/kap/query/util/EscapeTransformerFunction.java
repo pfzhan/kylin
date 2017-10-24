@@ -52,7 +52,11 @@ public class EscapeTransformerFunction {
         case "log":
             return logFN(args);
         case "current_date":
-            return currentdateFN(args);
+            return currentDateFN(args);
+        case "current_time":
+            return currentTimeFN(args);
+        case "current_timestamp":
+            return currentTimestampFN(args);
         default:
             return normalFN(functionName, args);
         }
@@ -139,9 +143,19 @@ public class EscapeTransformerFunction {
         return normalFN("LN", args);
     }
 
-    private static String currentdateFN(String[] args) {
+    private static String currentDateFN(String[] args) {
         checkArgs(args, 0);
         return "CURRENT_DATE";
+    }
+
+    private static String currentTimeFN(String[] args) {
+        checkArgs(args, 0);
+        return "CURRENT_TIME";
+    }
+
+    private static String currentTimestampFN(String[] args) {
+        checkArgs(args, 0);
+        return "CURRENT_TIMESTAMP";
     }
     
 }

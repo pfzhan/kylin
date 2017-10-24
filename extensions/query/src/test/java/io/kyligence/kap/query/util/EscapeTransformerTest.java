@@ -122,9 +122,29 @@ public class EscapeTransformerTest {
     }
 
     @Test
-    public void currentdateFNTest() {
+    public void currentDateFNTest() {
         String originalSQL = "select { fn CURRENT_DATE() }";
         String expectedSQL = "select CURRENT_DATE";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void currentTimeFNTest() {
+        String originalSQL = "select { fn CURRENT_TIME() }";
+        String expectedSQL = "select CURRENT_TIME";
+
+        EscapeTransformer transformer = new EscapeTransformer();
+        String transformedSQL = transformer.transform(originalSQL, null, null);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void currentTimestampFNTest() {
+        String originalSQL = "select { fn CURRENT_TIMESTAMP() }";
+        String expectedSQL = "select CURRENT_TIMESTAMP";
 
         EscapeTransformer transformer = new EscapeTransformer();
         String transformedSQL = transformer.transform(originalSQL, null, null);
