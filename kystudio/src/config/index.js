@@ -103,3 +103,7 @@ export const personalEmail = {
   'foxmail.com': 'http://www.foxmail.com'
 }
 
+export const computedDataType = [
+  'TINYINT', 'SMALLINT', 'INT/INTEGER', 'BIGINT', 'FLOAT', 'DOUBLE', 'DECIMAL', 'TIMESTAMP', 'DATE', 'STRING', 'VARCHAR', 'CHAR', 'BOOLEAN'
+]
+

@@ -303,7 +303,7 @@
 <script>
 import { jsPlumb } from 'jsplumb'
 import { sampleGuid, indexOfObjWithSomeKey, filterObjectArray, objectArraySort, objectClone, getNextValInArray, isIE } from '../../util/index'
-import { NamedRegex, DatePartitionRule, permissions, TimePartitionRule, IntegerType } from '../../config'
+import { NamedRegex, DatePartitionRule, permissions, TimePartitionRule, IntegerType, computedDataType } from '../../config'
 import { mapActions } from 'vuex'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
@@ -322,6 +322,7 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      computedDataTypeSelects: computedDataType,
       firstLoad: false,
       ignoreErrorSql: false,
       sqlBtnLoading: false,
@@ -2779,13 +2780,13 @@ export default {
     useLimitFact () {
       return this.$store.state.system.limitlookup === 'false'
     },
-    computedDataTypeSelects () {
-      var result = []
-      for (var i in this.$store.state.datasource.encodingMatchs) {
-        result.push(i)
-      }
-      return result
-    },
+    // computedDataTypeSelects () {
+    //   var result = []
+    //   for (var i in this.$store.state.datasource.encodingMatchs) {
+    //     result.push(i)
+    //   }
+    //   return result
+    // },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
     },
