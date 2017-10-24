@@ -1,5 +1,5 @@
 <template>
-  <div id="jobs_list" @click.stop>
+  <div id="jobs_list" @click.stop :style="{width:showStep?'70%':'100%'}">
     <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
       <el-col :span="4">
         <el-input
@@ -25,7 +25,7 @@
         </el-checkbox-group>
       </el-col>
     </el-row>
-    <el-table class="ksd-el-table table_margin"
+    <el-table class="ksd-el-table table_margin" 
       tooltip-effect="dark"
       border
       :data="jobsList"
@@ -52,8 +52,7 @@
         prop="related_cube">
       </el-table-column>
       <el-table-column
-        :label="$t('ProgressStatus')"
-        width="220">
+        :label="$t('ProgressStatus')">
         <template scope="scope">
           <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
            </el-progress>
@@ -66,7 +65,6 @@
       </el-table-column>
       <el-table-column
         :label="$t('LastModifiedTime')"
-        :width="200"
         show-overflow-tooltip
         sortable>
         <template scope="scope">
@@ -74,8 +72,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('Duration')"
-        width="110">
+        :label="$t('Duration')">
         <template scope="scope">
           {{scope.row.duration/60 | number(2) }}  mins
         </template>
