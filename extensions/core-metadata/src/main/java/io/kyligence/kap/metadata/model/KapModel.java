@@ -40,6 +40,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
@@ -64,7 +65,7 @@ public class KapModel extends DataModelDesc {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(KapModel.class);
-    
+
     @JsonProperty("multilevel_partition_cols")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private String[] mpColStrs = new String[0];
@@ -72,7 +73,7 @@ public class KapModel extends DataModelDesc {
     @JsonProperty("computed_columns")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
-    
+
     // calculated fields
     private TblColRef[] mpCols;
 
@@ -93,23 +94,29 @@ public class KapModel extends DataModelDesc {
         }
 
         super.init(config, tables, otherModels);
-        
+
         initComputedColumns(otherModels);
         initMultilevelPartitionCols();
     }
 
     private void initMultilevelPartitionCols() {
+        if (mpColStrs.length == 0)
+            return;
+
         StringUtil.toUpperCaseArray(mpColStrs, mpColStrs);
         mpCols = new TblColRef[mpColStrs.length];
+
         for (int i = 0; i < mpColStrs.length; i++) {
             mpCols[i] = findColumn(mpColStrs[i]);
             mpColStrs[i] = mpCols[i].getIdentity();
-            
+
             DataType type = mpCols[i].getType();
             if (!type.isNumberFamily() && !type.isStringFamily())
                 throw new IllegalStateException(
                         "Multi-level partition column must be Number or String, but " + mpCols[i] + " is " + type);
         }
+
+        checkColRefBelongToModel(mpCols);
     }
 
     private void initComputedColumns(List<DataModelDesc> otherModels) {
@@ -154,6 +161,40 @@ public class KapModel extends DataModelDesc {
             }
             existingCCs.add(Pair.newPair(newCC, this));
         }
+    }
+
+    private void checkColRefBelongToModel(TblColRef tcr) {
+        TblColRef[] tblColRefs = new TblColRef[] { tcr };
+        checkColRefBelongToModel(tblColRefs);
+    }
+
+    private void checkColRefBelongToModel(TblColRef[] tcr) {
+        Set<TblColRef> refSet = getAllDimensionColRef();
+        if (refSet.containsAll(Sets.newHashSet(tcr)) == false) {
+            throw new IllegalStateException("Primary partition column should inside of this model.");
+        }
+    }
+
+    private Set<TblColRef> getAllDimensionColRef() {
+        Set<TblColRef> result = Sets.newHashSet();
+
+        List<ModelDimensionDesc> mddList = getDimensions();
+        for (ModelDimensionDesc mdd : mddList) {
+            for (String column : mdd.getColumns()) {
+                result.add(findColumn(mdd.getTable() + "." + column));
+            }
+        }
+        return result;
+    }
+
+    private Set<TblColRef> getAllMetricColRef() {
+        Set<TblColRef> result = Sets.newHashSet();
+
+        String[] metrics = getMetrics();
+        for (String metric : metrics) {
+            result.add(findColumn(metric));
+        }
+        return result;
     }
 
     private boolean isTwoCCDefinitionEquals(String definition0, String definition1) {
@@ -206,27 +247,27 @@ public class KapModel extends DataModelDesc {
         }
         return Collections.unmodifiableSet(ccColumnNames);
     }
-    
+
     public boolean isTimePartitioned() {
         return getPartitionDesc().isPartitioned();
     }
-    
+
     public boolean isMultiLevelPartitioned() {
         return mpColStrs.length > 0;
     }
-    
+
     public String[] getMutiLevelPartitionColStrs() {
         return mpColStrs;
     }
-    
+
     public void setMutiLevelPartitionColStrs(String[] colStrs) {
         this.mpColStrs = colStrs;
     }
-    
+
     public TblColRef[] getMutiLevelPartitionCols() {
         return mpCols;
     }
-    
+
     public String[] getMpColStrs() {
         return mpColStrs;
     }

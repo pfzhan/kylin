@@ -251,9 +251,8 @@ export default {
       })
     },
     changeSepatate (val) {
-      if (!val && !this.modelInfo.uuid) {
-        this.$set(this.checkPartition, 'mutilLevel_column', '')
-      }
+      this.$set(this.checkPartition, 'mutilLevel_column', '')
+      this.$set(this.checkPartition, 'mutilLevel_table', '')
     }
   },
   computed: {

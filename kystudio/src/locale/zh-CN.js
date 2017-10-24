@@ -108,7 +108,7 @@ exports.default = {
     scanRangeSetting: '时间范围设置',
     sameModelName: '已存在同名的模型。',
     modelNameTips: '1. 模型名称需要是所有项目中是唯一的。<br/> 2. 模型创建后将不能重命名。',
-    partitionDateTip: '1. 分区日期列是可选的；如果需要经常全量构建, 请将分区日期列留空。<br/> 2. 分区日期列中应该为日期值（类型可以是Date, Timestamp, String, VARCHAR, Int, Integer, BigInt）',
+    partitionDateTip: '1. 时间分区列是可选的；如果需要经常全量构建, 请将分区时间列留空。<br/> 2. 时间分区列中应该为时间值。（类型可以是date，timestamp，string，varchar，int，integer，bigint）',
     partitionSplitTip: '增加多级分区列。',
     secondaryPartitionWarring: '设置一级分区列之前，请先设置时间分区列。',
     mutilPartitionTip: '一级分区列应该是整数或字符串类型（long，bigint，short，int，tinyint，integer，string，char，varchar）。',

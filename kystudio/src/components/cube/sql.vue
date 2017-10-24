@@ -14,7 +14,7 @@ export default {
   props: ['cube'],
   computed: {
     sqlPatterns () {
-      return this.cube.sql && this.cube.sql.join(';\r\n') || ''
+      return this.cube.sql && this.cube.sql.join(';\r\n') + ';' || ''
     }
   },
   methods: {

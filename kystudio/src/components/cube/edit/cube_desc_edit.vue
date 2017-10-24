@@ -927,7 +927,7 @@ export default {
           if (data.sqls) {
             this.sampleSql.sqlCount = data.sqls.length
             this.sampleSql.result = data.results
-            this.sampleSql.sqlString = data.sqls.join(';\r\n')
+            this.sampleSql.sqlString = data.sqls.join(';\r\n') + ';'
           }
         })
       })

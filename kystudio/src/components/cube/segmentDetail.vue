@@ -1,6 +1,6 @@
 <template>
   <div id="segments">
-     <div class="ksd-common-table rowkeys ksd-mt-10" v-if="extraoption.type==='hbase'">
+     <div class="ksd-common-table ksd-mt-20 ksd-mr-20 ksd-ml-20" v-if="extraoption.type==='hbase'">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part">{{$t('SegmentID')}}</el-col>
           <el-col :span="20" class="right-part">{{extraoption.uuid}}</el-col>
@@ -10,23 +10,23 @@
           <el-col :span="20" class="right-part">{{extraoption.name}}</el-col>
        </el-row>
        <el-row class="tableheader" >
-          <el-col :span="4" class="left-part">HTable:</el-col>
+          <el-col :span="4" class="left-part">HTable</el-col>
           <el-col :span="20" class="right-part">{{extraoption.additionalInfo.hbaseTableName}}</el-col>
        </el-row>
        <el-row class="tableheader" >
-          <el-col :span="4" class="left-part">Segment Status:</el-col>
+          <el-col :span="4" class="left-part">Segment Status</el-col>
           <el-col :span="20" class="right-part">{{extraoption.status}}</el-col>
        </el-row>
        <el-row class="tableheader" >
-          <el-col :span="4" class="left-part">Source Count:</el-col>
+          <el-col :span="4" class="left-part">Source Count</el-col>
           <el-col :span="20" class="right-part">{{extraoption.input_records}}</el-col>
        </el-row>
        <el-row class="tableheader" v-if="extraoption.source_offset_start>0">
-          <el-col :span="4" class="left-part">Source Offset Start:</el-col>
+          <el-col :span="4" class="left-part">Source Offset Start</el-col>
           <el-col :span="20" class="right-part">{{extraoption.source_offset_start}}</el-col>
        </el-row>
         <el-row class="tableheader" v-if="extraoption.source_offset_end>0">
-          <el-col :span="4" class="left-part">Source Offset End:</el-col>
+          <el-col :span="4" class="left-part">Source Offset End</el-col>
           <el-col :span="20" class="right-part">{{extraoption.source_offset_end}}</el-col>
        </el-row>
        <el-row class="tableheader">
@@ -47,7 +47,7 @@
        </el-row>
      </div>
 
-   <div class="ksd-common-table ksd-mt-10"  v-if="extraoption.type==='columnar'">
+   <div class="ksd-common-table ksd-mt-20 ksd-mt-20 ksd-mr-20 ksd-ml-20"  v-if="extraoption.type==='columnar'">
        <el-row class="tableheader" >
           <el-col :span="4" class="left-part"><b>{{$t('SegmentID')}}</b></el-col>
           <el-col :span="20" class="right-part">{{extraoption.uuid}}</el-col>
@@ -101,8 +101,8 @@ export default {
     }
   },
   locales: {
-    'en': {SegmentID: 'Segment ID:', SegmentName: 'Segment Name:', SegmentPath: 'Segment Path:', FileNumber: 'File Number:', StorageSize: 'Storage Size:', RangeStartTime: 'Start Time:', RangeEndTime: 'End Time:', RawTableSegmentPath: 'Table Index Segment Path:', RawTableFileNumber: 'Table Index File Number:', RawTableStorageSize: 'Table Index Storage Size:', TotalSize: 'Total Size:', TotalNumber: 'Total Segment Number:', CubeID: 'Cube ID:', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count: ', cubeHBSize: 'Storage Size: ', cubeHBStartTime: 'Start Time: ', cubeHBEndTime: 'End Time: '},
-    'zh-cn': {SegmentID: 'Segment ID：', SegmentName: 'Segment 名称：', SegmentPath: 'Segment 路径：', FileNumber: '索引文件数：', StorageSize: '存储空间：', RangeStartTime: '起始时间：', RangeEndTime: '结束时间：', RawTableSegmentPath: 'Table Index Segment 路径：', RawTableFileNumber: 'Table Index 索引文件数：', RawTableStorageSize: 'Table Index 存储空间：', TotalSize: '总大小：', TotalNumber: '总个数：', CubeID: 'Cube ID：', NoStorageInfo: '没有存储的相关信息。', cubeHBRegionCount: 'Region数量: ', cubeHBSize: '存储空间: ', cubeHBStartTime: '起始时间: ', cubeHBEndTime: '结束时间: '}
+    'en': {SegmentID: 'Segment ID', SegmentName: 'Segment Name', SegmentPath: 'Segment Path', FileNumber: 'File Number', StorageSize: 'Storage Size', RangeStartTime: 'Start Time', RangeEndTime: 'End Time', RawTableSegmentPath: 'Table Index Segment Path', RawTableFileNumber: 'Table Index File Number', RawTableStorageSize: 'Table Index Storage Size', TotalSize: 'Total Size', TotalNumber: 'Total Segment Number', CubeID: 'Cube ID', NoStorageInfo: 'No Storage Info.', cubeHBRegionCount: 'Region Count', cubeHBSize: 'Storage Size', cubeHBStartTime: 'Start Time', cubeHBEndTime: 'End Time'},
+    'zh-cn': {SegmentID: 'Segment ID', SegmentName: 'Segment 名称', SegmentPath: 'Segment 路径', FileNumber: '索引文件数', StorageSize: '存储空间', RangeStartTime: '起始时间', RangeEndTime: '结束时间', RawTableSegmentPath: 'Table Index Segment 路径', RawTableFileNumber: 'Table Index 索引文件数', RawTableStorageSize: 'Table Index 存储空间', TotalSize: '总大小', TotalNumber: '总个数', CubeID: 'Cube ID', NoStorageInfo: '没有存储的相关信息。', cubeHBRegionCount: 'Region 数量', cubeHBSize: '存储空间', cubeHBStartTime: '起始时间', cubeHBEndTime: '结束时间'}
   }
 }
 </script>
@@ -128,6 +128,7 @@ export default {
       .right-part{
         border-left:solid 1px #393e53;
         white-space: pre-wrap;
+        min-height: 38px;
       }
     }
   }

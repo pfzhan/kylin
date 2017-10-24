@@ -730,8 +730,8 @@ export default {
               //   this.hasCheck = true
               // }
               this.hasCheck = true
-              this.sqlString = sqls.join(';\r\n')
-              this.oldSqlString = sqls.join(';\r\n')
+              this.sqlString = sqls.join(';\r\n') + ';'
+              this.oldSqlString = sqls.join(';\r\n') + ';'
               this.firstLoad = true
               this.addBreakPoint(errorInfo, editor)
               editor && editor.on('change', this.editerChangeHandle)
@@ -1240,11 +1240,11 @@ export default {
             }
             var tabeFullName = tableList[i].alias
             dateColumns[tabeFullName] = dateColumns[tabeFullName] || []
-            dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat, database: tableList[i].database, table: tableList[i].name})
+            dateColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: needFormat, database: tableList[i].database, table: tableList[i].name, column: tableList[i].columns[k]})
           }
-          if (TimePartitionRule.indexOf(datatype) >= 0) {
+          if (TimePartitionRule.indexOf(datatype) >= 0 && tableList[i].columns[k].btype === 'D') {
             timeColumns[tabeFullName] = timeColumns[tabeFullName] || []
-            timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true, database: tableList[i].database, table: tableList[i].name})
+            timeColumns[tabeFullName].push({name: tableList[i].columns[k].name, isFormat: true, database: tableList[i].database, table: tableList[i].name, column: tableList[i].columns[k]})
           }
         }
       }
@@ -1341,6 +1341,7 @@ export default {
       }
       this.editTableColumnInfo(id, 'name', columnName, 'btype', willSetType)
       // var fullName = tableInfo.database + '.' + tableInfo.name
+      this.getPartitionDateColumns()
     },
     changeComputedColumnDisable (alias, column) {
       var len = this.modelInfo.computed_columns && this.modelInfo.computed_columns.length || 0

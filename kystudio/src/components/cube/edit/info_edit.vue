@@ -269,7 +269,7 @@ export default {
               this.sampleSql.result = data.results
               this.sampleSql.sqlString = ''
               this.$nextTick(() => {
-                this.sampleSql.sqlString = data.sqls.join(';\r\n')
+                this.sampleSql.sqlString = data.sqls.join(';\r\n') + ';'
                 this.addBreakPoint(this.sampleSql.result, editor)
                 this.bindBreakClickEvent(editor)
                 this.$nextTick(() => {
@@ -292,7 +292,7 @@ export default {
     saveSql () {
       this.errorMsg = ''
       this.sqlBtnLoading = true
-      var sqls = this.filterSqls(this.sampleSql.sqlString)
+      var sqls = filterMutileSqlsToOneLine(this.sampleSql.sqlString)
       this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: sqls}).then((res) => {
         this.sqlBtnLoading = false
         handleSuccess(res, (data, code, status, msg) => {

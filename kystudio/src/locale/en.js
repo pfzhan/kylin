@@ -110,7 +110,7 @@ exports.default = {
     scanRangeSetting: 'Time range setting',
     sameModelName: 'Model with the same name existed.',
     modelNameTips: '1. Model name is unique name of entire system.<br/> 2. Can not edit model name after created.',
-    partitionDateTip: '1. Partition date column not required, leave as default if cube always need full build.<br/> 2. Column should contain date value (type can be Date, Timestamp, String, VARCHAR, Int, Integer, BigInt, etc.)',
+    partitionDateTip: '1. Time Partition Column is not required, leave as default if cube always need full build.<br/> 2. Column should contain time value. (type can be date, timestamp, string, varchar, int, integer, bigint, etc.)',
     partitionSplitTip: 'Add multi-level partition column.',
     mutilPartitionTip: 'Primary partition column includes integer column and string column (long, bigint, int, short, integer, tinyint, string, char, varchar).',
     modelCheckTips1: 'Model health check is highly recommended to help generate a cube optimize result.',

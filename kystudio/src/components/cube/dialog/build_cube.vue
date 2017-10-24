@@ -214,8 +214,11 @@ export default {
     }
     .el-form-item{
       display: grid;
-      height: 50px;
       margin: 15px 0px 0px 0px;
+      .el-form-item__error {
+        position: relative;
+        top: 0;
+      }
       .el-form-item__label {
         padding: 0 0 5px;
       }

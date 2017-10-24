@@ -650,7 +650,22 @@ export default {
         if (cube.partitionDateColumn) {
           this.buildCubeFormVisible = true
         } else {
-          this.buildFullCubeVisible = true
+          // this.buildFullCubeVisible = true
+          this.$confirm(this.selected_cube.name + this.$t('cubeFullBuild'), 'Cube [' + (this.selected_cube.name.length > 18 ? this.selected_cube.name.substring(0, 16) + '...' : this.selected_cube.name) + '] ' + this.$t('cubeBuildConfirm'), {confirmButtonText: this.$t('kylinLang.common.continue')}).then(() => {
+            let time = {buildType: 'BUILD', startTime: 0, endTime: 0}
+            this.rebuildCube({cubeName: this.selected_cube.name, timeZone: time}).then((res) => {
+              handleSuccess(res, (data) => {
+                this.$message({
+                  type: 'success',
+                  message: this.$t('kylinLang.common.submitSuccess'),
+                  duration: 3000
+                })
+                this.loadCubesList(this.currentPage - 1)
+              })
+            }, (res) => {
+              handleError(res)
+            })
+          })
         }
       }
     },
@@ -900,6 +915,7 @@ export default {
         width: 390px;
         .el-dialog__body {
           padding: 5px 20px 20px 20px;
+          min-height: 90px;
         }
       }
     }

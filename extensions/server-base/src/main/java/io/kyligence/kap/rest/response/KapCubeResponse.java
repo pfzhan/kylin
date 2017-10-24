@@ -30,6 +30,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.draft.Draft;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -71,7 +72,14 @@ public class KapCubeResponse extends CubeInstanceResponse {
 
         // MPMaster expose one fake segment to indicate the build time
         if (mgr.isMPMaster(cube)) {
-            ret.setSegments(findLatestSegment(segments));
+            Segments<CubeSegment> cubeSegments = findLatestSegment(segments);
+
+            CubeSegment cubeSeg = cubeSegments.getFirstSegment();
+            cubeSeg.setCubeInstance(cube);
+            SegmentRange.TSRange tsRange = new SegmentRange.TSRange(cube.getDescriptor().getPartitionDateStart(),
+                    cube.getDescriptor().getPartitionDateStart());
+            cubeSeg.setTSRange(tsRange);
+            ret.setSegments(cubeSegments);
         }
 
         return ret;
@@ -93,8 +101,11 @@ public class KapCubeResponse extends CubeInstanceResponse {
         }
 
         Segments<CubeSegment> result = new Segments<>();
-        if (latest != null)
-            result.add(latest);
+        CubeSegment seg = new CubeSegment();
+        if (latest != null) {
+            seg.setLastBuildTime(latest.getLastBuildTime());
+        }
+        result.add(seg);
         return result;
     }
 

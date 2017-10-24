@@ -18,7 +18,7 @@
         </el-select>
       </div>
 
-      <div class="ksd-fright">
+      <div class="ksd-fright" v-if="segments.length > 0">
         <el-button @click="refresh" v-show="cube.status!=='DESCBROKEN' && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) ">{{$t('REFRESH')}}</el-button>
         <el-button @click="merge" v-show="cube.status!== 'DESCBROKEN' && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) ">{{$t('MERGE')}}</el-button>
         <el-button @click="drop" v-show="cube.status!=='DESCBROKEN' && (isAdmin || hasSomePermissionOfProject(selected_project) || hasOperationPermissionOfProject(selected_project)) ">{{$t('DROP')}}</el-button>
@@ -40,7 +40,7 @@
           width="50">
         </el-table-column>
         <el-table-column
-          label="Segments ID"
+          label="Segment ID"
           show-overflow-tooltip
           width="120">
           <template scope="scope">
@@ -400,7 +400,7 @@ export default {
     }
   },
   locales: {
-    'en': {REFRESH: 'Refresh', MERGE: 'Merge', DROP: 'Drop', refreshSeg: 'Refresh Segments', mergeSeg: 'Merge Segments', dropSeg: 'Drop Segments', SegmentsName: 'Segments Name', cubeVersion: 'Cube Version', StorageSize: 'Storage Size', startTime: 'Start Time', endTime: 'End Time', NoStorageInfo: 'No Segment Info.', cubeHBRegionCount: 'Region Count', cubeHBSize: 'Segment Size', cubeHBStartTime: 'Start Time', cubeHBEndTime: 'End Time', totalSize: 'Total Size :', viewCube: 'View Cube', viewSeg: 'View Detail', action: 'Action', mergeNumberNote: 'Merge action will require checking two segments at lease.', mergeDiscontinueNote: 'Selected segments are discontinue, do you want to merge them anyway?', refreshMultipleNote: 'Refresh multiple segments may trigger related build jobs.', refreshNumberNote: 'Refresh action will require one segment at least.', dropNumberNote: 'Drop action will require one segment at least.', REFRESHSuccessful: 'Refresh the segments successful!', MERGESuccessful: 'Merge the segments successful!', DROPSuccessful: 'Drop the segments successful!', REFRESHActionMeg: 'Confirm to refresh the segments?', MERGEActionMeg: 'Confirm to merge the segments?', DROPActionMeg: 'Confirm to drop the segments?', applyLatestCube: 'Apply the latest cube definition to refresh.', applyOriginalCube: 'Apply the original cube definition to refresh.', segsOverlap: 'Selected Segments have overlap in timeline, please try a different segment.', differentDefinition: 'Selected segments have difference on cube definition, please try a differenr segment.', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', buildSegment: 'A building segment. Click its \'Segment ID\' can refer to the build job.'},
+    'en': {REFRESH: 'Refresh', MERGE: 'Merge', DROP: 'Drop', refreshSeg: 'Refresh Segments', mergeSeg: 'Merge Segments', dropSeg: 'Drop Segments', SegmentsName: 'Segments Name', cubeVersion: 'Cube Version', StorageSize: 'Storage Size', startTime: 'Start Time', endTime: 'End Time', NoStorageInfo: 'No Segment Info.', cubeHBRegionCount: 'Region Count', cubeHBSize: 'Segment Size', cubeHBStartTime: 'Start Time', cubeHBEndTime: 'End Time', totalSize: 'Total Size :', viewCube: 'View Cube', viewSeg: 'View Details', action: 'Action', mergeNumberNote: 'Merge action will require checking two segments at lease.', mergeDiscontinueNote: 'Selected segments are discontinue, do you want to merge them anyway?', refreshMultipleNote: 'Refresh multiple segments may trigger related build jobs.', refreshNumberNote: 'Refresh action will require one segment at least.', dropNumberNote: 'Drop action will require one segment at least.', REFRESHSuccessful: 'Refresh the segments successful!', MERGESuccessful: 'Merge the segments successful!', DROPSuccessful: 'Drop the segments successful!', REFRESHActionMeg: 'Confirm to refresh the segments?', MERGEActionMeg: 'Confirm to merge the segments?', DROPActionMeg: 'Confirm to drop the segments?', applyLatestCube: 'Apply the latest cube definition to refresh.', applyOriginalCube: 'Apply the original cube definition to refresh.', segsOverlap: 'Selected Segments have overlap in timeline, please try a different segment.', differentDefinition: 'Selected segments have difference on cube definition, please try a differenr segment.', purgeCube: 'Are you sure to purge the cube? ', purgeSuccessful: 'Purge the cube successful!', buildSegment: 'A building segment. Click its \'Segment ID\' can refer to the build job.'},
     'zh-cn': {REFRESH: '刷新', MERGE: '合并', DROP: '删除', refreshSeg: '刷新 Segments', mergeSeg: '合并 Segments', dropSeg: '删除 Segments', SegmentsName: 'Segments 名称', cubeVersion: 'Cube版本', StorageSize: '存储空间', startTime: '起始时间', endTime: '结束时间', totalSize: '总大小 ：', RawTableStorageSize: 'Table Index 存储空间', NoStorageInfo: '没有Segment相关信息.', cubeHBSize: '大小', cubeHBStartTime: '开始时间', cubeHBEndTime: '结束时间', viewCube: '查看Cube', viewSeg: '查看详细信息', action: '操作', mergeNumberNote: '合并需要至少选择两个segments。', mergeDiscontinueNote: '您选择的segment不连续，是否继续合并？', refreshMultipleNote: '刷新多个segment可能会触发关联的构建任务。', refreshNumberNote: '刷新需要至少选择一个segment。', dropNumberNote: '删除需要至少选择一个segment。', REFRESHSuccessful: '刷新Segments成功!', MERGESuccessful: '合并Segments成功!', DROPSuccessful: '清理Segments成功!', REFRESHActionMeg: '确定刷新以下Segments?', MERGEActionMeg: '确定合并以下Segments?', DROPActionMeg: '确定删除以下Segments?', applyLatestCube: '应用最新Cube定义刷新。', applyOriginalCube: '应用原Cube定义刷新。', segsOverlap: '您选择的segment时间有重合，请重新选择。', differentDefinition: '您选择的segment属于不同版本的cube，请重新选择。', buildSegment: '当前Segment正在生成，点击\'Segment ID\'可见相关任务。'}
   }
 }
@@ -419,7 +419,6 @@ export default {
   #segments{
     .noSegments {
       font-size: 12px;
-      width: 90%;
       border: 1px solid #393E53;
       background: #292b38;
     }
