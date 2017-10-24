@@ -67,7 +67,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
         super.execute(optionsHelper);
         Configuration conf = new Configuration();
         cleanUnusedParquetFolders(conf);
-        cleanUnusedIntermediateStatsFile(conf);
+        cleanUnusedIntermediateHDFSFile(conf);
     }
 
     @Override
@@ -80,15 +80,31 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
         }
     }
 
-    private List<String> getNeedToDeletePath(Configuration conf, Path rootPath) throws IOException {
+    private List<String> getNeedToDeletePath(Configuration conf, String rootDir) throws IOException {
+        logger.info("The root path is: {}", rootDir);
         List<String> deleteList = new ArrayList<>();
         FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
-        FileStatus[] statsFolders;
-        logger.info("The stats root path is: {}", rootPath);
+        FileStatus[] rootFolders;
+
+        Path rootPath = new Path(rootDir);
+
+        if ("/tmp".equals(rootDir) && fs.exists(rootPath)) {
+            rootPath = fs.makeQualified(rootPath);
+            rootFolders = fs.listStatus(rootPath);
+            if (rootFolders != null) {
+                for (FileStatus statsFolder : rootFolders) {
+                    String name = statsFolder.getPath().getName();
+                    if (name.startsWith("migrating_cube_"))
+                        deleteList.add(rootPath + File.separator + name);
+                }
+            }
+            return deleteList;
+        }
+
         if (fs.exists(rootPath)) {
-            statsFolders = fs.listStatus(rootPath);
-            if (statsFolders != null) {
-                for (FileStatus statsFolder : statsFolders) {
+            rootFolders = fs.listStatus(rootPath);
+            if (rootFolders != null) {
+                for (FileStatus statsFolder : rootFolders) {
                     try {
                         String jobId = statsFolder.getPath().getName();
                         final ExecutableState state = executableManager.getOutput(jobId).getState();
@@ -106,18 +122,19 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
         return deleteList;
     }
 
-    private void cleanUnusedIntermediateStatsFile(Configuration conf) throws IOException {
+    private void cleanUnusedIntermediateHDFSFile(Configuration conf) throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        List<String> allStatsPathsNeedToBeDeleted = new ArrayList<>();
+        List<String> allHDFSPathsNeedToBeDeleted = new ArrayList<>();
 
-        Path modelStatsStoragePath = new Path(config.getHdfsWorkingDirectory() + "model_stats");
-        Path tableStatsStoragePath = new Path(config.getHdfsWorkingDirectory() + "table_stats");
-        allStatsPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, modelStatsStoragePath));
-        allStatsPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, tableStatsStoragePath));
+        String modelStatsStoragePath = config.getHdfsWorkingDirectory() + "model_stats";
+        String tableStatsStoragePath = config.getHdfsWorkingDirectory() + "table_stats";
+        allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, modelStatsStoragePath));
+        allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, tableStatsStoragePath));
+        allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, "/tmp"));
 
         if (delete) {
             FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
-            for (String hdfsPath : allStatsPathsNeedToBeDeleted) {
+            for (String hdfsPath : allHDFSPathsNeedToBeDeleted) {
                 logger.info("Deleting hdfs path " + hdfsPath);
                 Path p = new Path(hdfsPath);
                 if (fs.exists(p)) {
@@ -130,7 +147,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
         } else {
             System.out.println("--------------- Intermediate Stats HDFS Path To Be Deleted ---------------");
-            for (String hdfsPath : allStatsPathsNeedToBeDeleted) {
+            for (String hdfsPath : allHDFSPathsNeedToBeDeleted) {
                 System.out.println(hdfsPath);
             }
             System.out.println("-------------------------------------------------------");
