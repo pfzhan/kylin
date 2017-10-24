@@ -203,23 +203,23 @@
        </el-row>
         <el-row  :disabled="isReadyCube"  v-show="convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
-          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
+          <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53;">
            <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
-          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
+          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53">
             <select class="rowkeySelect" v-model="row.encoding" @change="changeEncoding(row, index);changeRowkey(row, index);">
               <option v-for="(item, encodingindex) in row.selectEncodings" :key="encodingindex" :value="item.name + ':' + item.version">{{item.name}}</option>
             </select>
           </el-col>
-          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53">
             <el-input v-model="row.valueLength"  :disabled="row.encoding.indexOf('dict')>=0||row.encoding.indexOf('date')>=0||row.encoding.indexOf('time')>=0||row.encoding.indexOf('boolean')>=0" @change="changeRowkey(row, index)"></el-input>
           </el-col>
-          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53">
             <select class="rowkeySelect" v-model="row.isShardBy" @change="changeRowkey(row, index)">
               <option v-for="item in shardByType" :key="item.name" :value="item.value">{{item.name}}</option>
             </select>
           </el-col>
-          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;"> {{row.datatype}}</el-col>
-          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #ccc;">{{row.cardinality}}</el-col>
+          <el-col :span="4" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53"> {{row.datatype}}</el-col>
+          <el-col :span="2" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53">{{row.cardinality}}</el-col>
         </el-row>
         </div>
 
@@ -977,11 +977,9 @@ export default {
     .rowkeySelect::-ms-expand { display: none; }
     .rowkeySelect {
       height: 30px;
-      border-color: #393e53;
       width: 100%;
       color:rgba(255, 255, 255, 0.6);
-
-      border: solid 1px #000;
+      border: solid 1px #393e53;
       background: url('../../../assets/img/arrow.png') no-repeat scroll right center transparent!important;
       /*很关键：将默认的select选择框样式清除*/
       appearance:none;

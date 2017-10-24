@@ -67,6 +67,8 @@ exports.default = {
     actionSuccess: 'Operate successfully.',
     confirmDel: 'Are you sure to delete it?',
     checkDraft: 'Detected the unsaved content, are you going to continue the last edit?',
+    copySuccess: 'Content has been copied to the Clipboard.',
+    copyfail: 'Failed to copy! Your browser does not support paste boards!',
     // placeholder
     pleaseInput: 'Please input here',
     pleaseFilter: 'Filter...',

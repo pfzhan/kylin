@@ -22,7 +22,7 @@
         <el-button v-clipboard:copy="$store.state.config.errorMsgBox.detail"
       v-clipboard:success="onCopy" v-clipboard:error="onError" type="default" v-show="showDetail" class="ksd-fleft ksd-mt-10 ksd-mb-20">{{$t('kylinLang.common.copy')}}</el-button>
       <transition name="fade">
-        <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('copySuccess')}}</span></div>
+        <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
       </transition>
       </span>
     </el-dialog>
@@ -71,7 +71,7 @@ export default {
       })
     },
     onError () {
-      this.$message(this.$t('copyfail'))
+      this.$message(this.$t('kylinLang.common.copyfail'))
     },
     handleClose () {
       this.showDetail = false
@@ -90,8 +90,8 @@ export default {
     this.showCopyStatus = false
   },
   locales: {
-    'en': {'copySuccess': 'Content has been copied to the Clipboard.', 'copyfail': 'Failed to copy! Your browser does not support paste boards!'},
-    'zh-cn': {'copySuccess': '复制成功！', 'copyfail': '复制失败，您的浏览器不支持粘贴板功能!'}
+    'en': {},
+    'zh-cn': {}
   }
 }
 </script>

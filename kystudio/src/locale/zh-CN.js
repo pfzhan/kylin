@@ -66,6 +66,8 @@ exports.default = {
     confirmDel: '确认删除吗？',
     actionSuccess: '操作成功。',
     checkDraft: '检测到有未保存的内容，是否继续上次的编辑？',
+    copySuccess: '复制成功！',
+    copyfail: '复制失败，您的浏览器不支持粘贴板功能!',
     // placeholder
     pleaseInput: '请输入',
     pleaseFilter: '筛选...',

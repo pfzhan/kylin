@@ -9,7 +9,13 @@ export default {
     return Vue.resource(apiUrl + 'jobs{?status}').get(params)
   },
   getSlowQueries: (para) => {
-    return Vue.resource(apiUrl + 'diag/sql').get(para.page)
+    return Vue.resource(apiUrl + 'diag/slow_query').get(para.page)
+  },
+  getPushDownQueries: (para) => {
+    return Vue.resource(apiUrl + 'diag/push_down').get(para.page)
+  },
+  exportPushDownQueries: (para) => {
+    return Vue.resource(apiUrl + 'diag/export/push_down').save(para)
   },
   getStepOutputs: (stepDetail) => {
     return Vue.resource(apiUrl + 'jobs/' + stepDetail.jobID + '/steps/' + stepDetail.stepID + '/output').get()
