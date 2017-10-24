@@ -77,6 +77,8 @@ public class SparkSqlClient implements Serializable {
                 "CREATE TEMPORARY FUNCTION timestampadd AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampAdd'");
         hiveContext.sql(
                 "CREATE TEMPORARY FUNCTION timestampdiff AS 'io.kyligence.kap.storage.parquet.adhoc.udf.TimestampDiff'");
+        hiveContext.sql(
+                "CREATE TEMPORARY FUNCTION truncate AS 'io.kyligence.kap.storage.parquet.adhoc.udf.Truncate'");
     }
 
     public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.PushDownRequest request,
