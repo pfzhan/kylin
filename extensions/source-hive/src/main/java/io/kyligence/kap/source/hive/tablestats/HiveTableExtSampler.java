@@ -53,10 +53,11 @@ public class HiveTableExtSampler implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(HiveTableExtSampler.class);
     private static final long serialVersionUID = 1L;
 
-    public static final int HASH_SEED = 7;
-    public static final int SAMPLE_RAW_VALUE_NUMBER = 10;
-    public static final int DEFAULT_BUFFER_SIZE = 65536;
-    public static final String HLLC_DATATYPE = "hllc";
+    private static final int HASH_SEED = 7;
+    private static final int SAMPLE_RAW_VALUE_NUMBER = 10;
+    private static final int DEFAULT_BUFFER_SIZE = 65536;
+    private static final String HLLC_DATATYPE = "hllc";
+    private static final int DEFAULT_VARCHAR_PRECISION = 256;
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
 
@@ -94,6 +95,9 @@ public class HiveTableExtSampler implements Serializable {
     private int statsSampleFrequency = 1;
     private long counter = 0;
     private String dataType = "String";
+    private long exceedPrecisionCount = 0;
+    private String exceedPrecisionMaxLengthValue = null;
+    private int dataTypePrecision;
     private List<HLLCounter> hllList = new ArrayList<>();
     private List<Long> mapperRows = new ArrayList<>();
 
@@ -103,8 +107,8 @@ public class HiveTableExtSampler implements Serializable {
 
     public HiveTableExtSampler(String type, int precision, int curIndex, int allColumns) {
 
-        precision = precision < 256 ? 256 : precision;
-        this.dataType = "varchar(" + precision + ")";
+        dataTypePrecision = precision < 0 ? DEFAULT_VARCHAR_PRECISION : precision;
+        this.dataType = "varchar(" + dataTypePrecision + ")";
         this.curIndex = curIndex;
         this.lastIndex = allColumns - 1;
         //special samples
@@ -116,6 +120,7 @@ public class HiveTableExtSampler implements Serializable {
         sampleValues.put("counter", "0");
         sampleValues.put("null_counter", "0");
         sampleValues.put("statsSampleFrequency", "1");
+        sampleValues.put("exceed_precision_counter", "0");
 
         //raw value samples
         for (int i = 0; i < SAMPLE_RAW_VALUE_NUMBER; i++) {
@@ -194,6 +199,14 @@ public class HiveTableExtSampler implements Serializable {
         return ccMap;
     }
 
+    public void setExceedPrecisionMaxLengthValue(String value) {
+        this.exceedPrecisionMaxLengthValue = value;
+    }
+
+    public String getExceedPrecisionMaxLengthValue() {
+        return this.exceedPrecisionMaxLengthValue;
+    }
+
     public void setColumnName(String columnName) {
         this.sampleValues.put("column_name", columnName);
     }
@@ -201,6 +214,14 @@ public class HiveTableExtSampler implements Serializable {
     public void setStatsSampleFrequency(int frequency) {
         this.sampleValues.put("statsSampleFrequency", String.valueOf(frequency));
         statsSampleFrequency = frequency;
+    }
+
+    public long getExceedPrecisionCount() {
+        return Long.parseLong(this.sampleValues.get("exceed_precision_counter"));
+    }
+
+    public void setExceedPrecisionCount(long counter) {
+        this.sampleValues.put("exceed_precision_counter", String.valueOf(counter));
     }
 
     public int getStatsSampleFrequency() {
@@ -231,6 +252,7 @@ public class HiveTableExtSampler implements Serializable {
         implementor.sync();
         setNullCounter(String.valueOf(nullCount));
         setCounter(String.valueOf(counter));
+        setExceedPrecisionCount(exceedPrecisionCount);
         mapperRows.add(counter);
     }
 
@@ -283,6 +305,8 @@ public class HiveTableExtSampler implements Serializable {
             samplerCoder.serializers[i].serialize(hllList.get(j), buf);
         }
 
+        codeSpecials();
+
         codeMapperRows();
 
         topN.code(buf);
@@ -305,6 +329,29 @@ public class HiveTableExtSampler implements Serializable {
                     throw e;
                 estimateSize = estimateSize << 1;
             }
+        }
+    }
+
+    public void codeSpecials() {
+        long length = -1;
+        if (exceedPrecisionMaxLengthValue != null)
+            length = StringUtil.utf8Length(exceedPrecisionMaxLengthValue) + 1;
+        DataTypeSerializer longSer = DataTypeSerializer.create("long");
+        longSer.serialize(length, buf);
+        if (-1 != length) {
+            String type = "varchar(" + length + ")";
+            DataTypeSerializer strSer = DataTypeSerializer.create(type);
+            strSer.serialize(exceedPrecisionMaxLengthValue, buf);
+        }
+    }
+
+    public void decodeSpecials(ByteBuffer buffer) {
+        DataTypeSerializer longSer = DataTypeSerializer.create("long");
+        long length = (long) longSer.deserialize(buffer);
+        if (-1 != length) {
+            String type = "varchar(" + length + ")";
+            DataTypeSerializer strSer = DataTypeSerializer.create(type);
+            exceedPrecisionMaxLengthValue = strSer.deserialize(buffer).toString();
         }
     }
 
@@ -347,6 +394,8 @@ public class HiveTableExtSampler implements Serializable {
             hllList.add((HLLCounter) objects[i]);
         }
 
+        decodeSpecials(buffer);
+
         decodeMapperRows(buffer);
 
         topN.decode(buffer);
@@ -358,6 +407,13 @@ public class HiveTableExtSampler implements Serializable {
             return true;
         }
         return false;
+    }
+
+    public void sampleExceedPrecisionMaxLengthValue(String value) {
+        if (exceedPrecisionMaxLengthValue == null
+                || StringUtil.utf8Length(value) > StringUtil.utf8Length(exceedPrecisionMaxLengthValue)) {
+            setExceedPrecisionMaxLengthValue(value);
+        }
     }
 
     public void sampleMaxLength(String value) {
@@ -379,6 +435,15 @@ public class HiveTableExtSampler implements Serializable {
         if (0 != counter % statsSampleFrequency)
             return;
 
+        if (isNullValue(next))
+            return;
+
+        if (StringUtil.utf8Length(next) > dataTypePrecision) {
+            sampleExceedPrecisionMaxLengthValue(next);
+            exceedPrecisionCount++;
+            return;
+        }
+
         if (rawSampleIndex < SAMPLE_RAW_VALUE_NUMBER) {
             sampleValues.put(String.valueOf(rawSampleIndex), next);
             rawSampleIndex++;
@@ -389,9 +454,6 @@ public class HiveTableExtSampler implements Serializable {
                 updateRawSampleIndex++;
             }
         }
-
-        if (isNullValue(next))
-            return;
 
         topN.offer(next);
 
@@ -412,11 +474,10 @@ public class HiveTableExtSampler implements Serializable {
         if (0 != counter % statsSampleFrequency)
             return;
 
-        int i = 1;
-
         if (isNullValue(values[curIndex]))
             return;
 
+        int i = 1;
         for (HLLCounter hllc : hllList) {
             hllc.add(values[curIndex] + "|" + values[curIndex + i]);
             i++;
@@ -447,10 +508,14 @@ public class HiveTableExtSampler implements Serializable {
         if (another.getMinLenValue() != null)
             sampleMinLength(another.getMinLenValue());
 
+        if (another.getExceedPrecisionMaxLengthValue() != null)
+            sampleExceedPrecisionMaxLengthValue(another.getExceedPrecisionMaxLengthValue());
+
         mapperRows.addAll(another.getMapperRows());
         topN.merge(another.getTopN());
         setCounter(String.valueOf(Long.parseLong(getCounter()) + Long.parseLong(another.getCounter())));
         setNullCounter(String.valueOf(Long.parseLong(getNullCounter()) + Long.parseLong(another.getNullCounter())));
+        setExceedPrecisionCount(getExceedPrecisionCount() + another.getExceedPrecisionCount());
 
         Random rand = new Random();
         if (rand.nextBoolean()) {

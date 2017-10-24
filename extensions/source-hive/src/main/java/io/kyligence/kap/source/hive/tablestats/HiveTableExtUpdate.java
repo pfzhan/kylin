@@ -119,6 +119,8 @@ public class HiveTableExtUpdate extends AbstractHadoopJob {
             columnStats.setNullCount(Long.parseLong(sampler.getNullCounter()));
             columnStats.setCardinality(getEstimateCardinality(frequency, cardinality, counter));
             columnStats.setDataSkewSamples(topN);
+            columnStats.setExceedPrecisionCount(sampler.getExceedPrecisionCount());
+            columnStats.setExceedPrecisionMaxLengthValue(sampler.getExceedPrecisionMaxLengthValue());
             sampleRows.add(sampler.getRawSampleValues());
             columnStatsList.add(columnStats);
             if (once) {

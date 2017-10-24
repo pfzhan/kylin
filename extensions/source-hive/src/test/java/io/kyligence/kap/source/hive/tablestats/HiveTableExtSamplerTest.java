@@ -95,6 +95,39 @@ public class HiveTableExtSamplerTest extends TestCase {
     }
 
     @Test
+    public void testExceedPrecisionValues() {
+        String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true",
+                "Dinner is perfect", "Not very good", "KYLIN is the best Big Data Warehouse" };
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 3);
+
+        for (int i = 0; i < stringValues.length; i++) {
+            sampler.samples(stringValues[i]);
+        }
+
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+
+        assertEquals("KYLIN is the best Big Data Warehouse", sampler.getExceedPrecisionMaxLengthValue());
+        assertEquals(8, sampler.getExceedPrecisionCount());
+
+        sampler = new HiveTableExtSampler("varchar", 256);
+
+        for (int i = 0; i < stringValues.length; i++) {
+            sampler.samples(stringValues[i]);
+        }
+
+        sampler.sync();
+        buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+
+        assertEquals(null, sampler.getExceedPrecisionMaxLengthValue());
+        assertEquals(0, sampler.getExceedPrecisionCount());
+    }
+
+    @Test
     public void testSampleRaw() {
 
         HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100);
@@ -118,8 +151,8 @@ public class HiveTableExtSamplerTest extends TestCase {
                 skewSamples.add(String.valueOf(0));
             else {
                 String v = UUID.randomUUID().toString();
-                for (int j = 0 ; j < 4 ;j++)
-                    v = v+v;
+                for (int j = 0; j < 4; j++)
+                    v = v + v;
                 skewSamples.add(v);
             }
         }
