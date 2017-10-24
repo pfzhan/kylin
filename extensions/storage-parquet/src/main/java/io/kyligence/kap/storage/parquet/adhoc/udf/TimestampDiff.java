@@ -62,22 +62,31 @@ public class TimestampDiff extends UDF {
         Long durationDays = duration.getStandardDays();
         switch (type.toUpperCase()) {
         case "FRAC_SECOND":
+        case "SQL_TSI_FRAC_SECOND":
             return duration.getMillis();
         case "SECOND":
+        case "SQL_TSI_SECOND":
             return duration.getStandardSeconds();
         case "MINUTE":
+        case "SQL_TSI_MINUTE":
             return duration.getStandardMinutes();
         case "HOUR":
+        case "SQL_TSI_HOUR":
             return duration.getStandardHours();
         case "DAY":
+        case "SQL_TSI_DAY":
             return durationDays;
         case "WEEK":
+        case "SQL_TSI_WEEK":
             return (durationDays / 7);
         case "MONTH":
+        case "SQL_TSI_MONTH":
             return (durationDays / 30);
         case "QUARTER":
+        case "SQL_TSI_QUARTER":
             return (durationDays / 90);
         case "YEAR":
+        case "SQL_TSI_YEAR":
             return (durationDays / 365);
         default:
             return null;
