@@ -18,9 +18,9 @@
     </div>
 
   	<div class="ksd-mt-14">
-      <kap-icon-button  v-show="viewModel" icon="area-chart" type="blue" size="small" style="border-width:1px" @click.native="changeViewModel">{{$t('kylinLang.query.visualization')}}</kap-icon-button>
-      <kap-icon-button v-show="!viewModel" icon="table" size="small" type="blue" @click.native="changeViewModel">{{$t('kylinLang.query.grid')}}</kap-icon-button>
-      <kap-icon-button icon="external-link" type="primary" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
+      <kap-icon-button v-show="viewModel" icon="area-chart" size="small" style="border-width:1px" @click.native="changeViewModel">{{$t('kylinLang.query.visualization')}}</kap-icon-button>
+      <kap-icon-button v-show="!viewModel" icon="table" size="small" @click.native="changeViewModel">{{$t('kylinLang.query.grid')}}</kap-icon-button>
+      <kap-icon-button icon="external-link" size="small" @click.native="exportData">{{$t('kylinLang.query.export')}}</kap-icon-button>
       <!-- <el-button><icon name="external-link"></icon> Export</el-button> -->
     </div>
   	<div class="ksd-mt-20 grid-box narrowTable" v-show="viewModel">
@@ -39,7 +39,7 @@
 
       <pager v-on:handleCurrentChange='pageSizeChange' class="ksd-center" ref="pager"  :totalSize="modelsTotal"  ></pager>
   	</div>
-    <div class="ksd-mt-20" v-show="!viewModel">
+    <div class="ksd-mt-10 graphBox" v-show="!viewModel">
        <el-form :inline="true"  class="demo-form-inline">
         <el-form-item :label="$t('kylinLang.query.graphType')">
           <el-select  placeholder="Graph Type" v-model="graphType" @change="changeGraphInfo">
@@ -508,6 +508,26 @@ export default {
        word-break: break-all!important;
        // white-space: normal!important;
      }
+  }
+  .graphBox{
+    .el-form-item{
+      margin-bottom:10px;
+      .el-form-item__label{
+        font-size:12px;
+        padding-top:8px;
+        padding-bottom:8px;
+      }
+      .el-form-item__content{
+        line-height:30px;
+        .el-input{
+          font-size: 12px;
+        }
+        .el-input__inner{
+          height: 30px;
+          line-height: 30px;
+        }
+      }
+    }
   }
   // .grid-box{
   //   border-width: 1px!important;

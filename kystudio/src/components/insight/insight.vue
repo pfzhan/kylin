@@ -28,15 +28,15 @@
     <kap-nodata v-if="!savedSize"></kap-nodata>
     <div>
        <el-form  label-width="90px"  v-for="savequery in savedList" :key="savequery.name">
-        <el-form-item label="SQL Name:" class="ksd-mb-2" >
+        <el-form-item label="SQL Name:" class="ksd-mb-2 narrowFormItem" >
         <span slot="label" style="color:#9095ab;font-size:12px">SQL Name:</span>
           {{savequery.name}}
         </el-form-item>
-        <el-form-item label="Project:" class="ksd-mb-2" >
+        <el-form-item label="Project:" class="ksd-mb-2 narrowFormItem" >
         <span slot="label" style="color:#9095ab;font-size:12px">Project:</span>
           {{savequery.project}}
         </el-form-item>
-        <el-form-item label="Description:" class="ksd-mb-2" >
+        <el-form-item label="Description:" class="ksd-mb-2 narrowFormItem" >
           <span slot="label" style="color:#9095ab;font-size:12px">Description:</span>
           {{savequery.description}}
         </el-form-item>
@@ -46,19 +46,19 @@
         <kap-icon-button  icon="close" type="danger" size="small" @click.native="removeQuery(savequery.id)">Remove</kap-icon-button>
         </div>
           <el-collapse-item title="SQL" name="1" style="color:#9095ab;font-size:12px">
-            <editor v-model="savequery.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
+            <editor v-model="savequery.sql" lang="sql" theme="chrome" class="ksd-mt-10" width="100%" height="200" useWrapMode="true"></editor>
           </el-collapse-item>
         </el-collapse>
       </el-form>
       </div>
       <!-- <div v-for="(savequery, index) in savedList"> {{savequery.name}}</div> -->
-      <pager ref="savedQueryPager" class="ksd-center" :totalSize="savedSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+      <pager ref="savedQueryPager" class="ksd-center pagerMbReset" :totalSize="savedSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
     </el-tab-pane>
 	  <el-tab-pane :label="$t('queryHistory')" name="third">
-    <div>
+    <div class="cookieQueries">
       <kap-nodata v-if="!cookieQuerySize"></kap-nodata>
       <el-form  label-width="90px"  v-for="query in cookieQueries" :key="query.queryTime">
-        <el-form-item label="Queried At:" class="ksd-mb-2" >
+        <el-form-item label="Queried At:" class="ksd-mb-2 narrowFormItem" >
         <span slot="label" style="color:#9095ab;font-size:12px">Queried At:</span>
           {{transToGmtTime(query.queryTime)}} in Project: <span style="color:#20a0ff">{{ project }}</span>
         </el-form-item>
@@ -68,12 +68,12 @@
           <kap-icon-button icon="close"  size="small" type="danger" @click.native="removeQueryCache(query.sql)">Remove</kap-icon-button>
           </div>
           <el-collapse-item title="SQL" name="1">
-            <editor v-model="query.sql" lang="sql" theme="chrome" class="ksd-mt-20" width="100%" height="200" useWrapMode="true"></editor>
+            <editor v-model="query.sql" lang="sql" theme="chrome" class="ksd-mt-10" width="100%" height="200" useWrapMode="true"></editor>
           </el-collapse-item>
         </el-collapse>
       </el-form>
       </div>
-      <pager ref="savedQueryPagerForCookie" class="ksd-center" :totalSize="cookieQuerySize"  v-on:handleCurrentChange='pageCurrentChangeForCookie' ></pager>
+      <pager ref="savedQueryPagerForCookie" class="ksd-center pagerMbReset" :totalSize="cookieQuerySize"  v-on:handleCurrentChange='pageCurrentChangeForCookie' ></pager>
     </el-tab-pane>
 	</el-tabs>
   <div class="line" style="margin:0 0 0 20px"></div>
@@ -501,6 +501,25 @@ export default {
           line-height: 30px;
         }
       }
+    }
+    .narrowFormItem{
+      .el-form-item__label{
+        padding: 6px 12px 6px 0;
+        font-size: 12px;
+      }
+      .el-form-item__content{
+        line-height: 24px;
+        font-size: 12px;
+      }
+    }
+    .cookieQueries .el-form{
+      margin-bottom:10px;
+      &:last-child{
+        margin-bottom:0;
+      }
+    }
+    .pagerMbReset{
+      margin-bottom:20px!important;
     }
     .el-collapse-item__header {
       color: #9095ab
