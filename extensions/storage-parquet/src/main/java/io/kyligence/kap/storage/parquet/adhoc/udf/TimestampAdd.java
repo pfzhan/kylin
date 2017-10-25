@@ -94,30 +94,39 @@ public class TimestampAdd extends UDF {
 
         switch (arg1.toUpperCase()) {
         case "FRAC_SECOND":
+        case "SQL_TSI_FRAC_SECOND":
             cal.add(Calendar.MILLISECOND, arg2);
             break;
         case "SECOND":
+        case "SQL_TSI_SECOND":
             cal.add(Calendar.SECOND, arg2);
             break;
         case "MINUTE":
+        case "SQL_TSI_MINUTE":
             cal.add(Calendar.MINUTE, arg2);
             break;
         case "HOUR":
+        case "SQL_TSI_HOUR":
             cal.add(Calendar.HOUR, arg2);
             break;
         case "DAY":
+        case "SQL_TSI_DAY":
             cal.add(Calendar.DATE, arg2);
             break;
         case "WEEK":
+        case "SQL_TSI_WEEK":
             cal.add(Calendar.WEEK_OF_YEAR, arg2);
             break;
         case "MONTH":
+        case "SQL_TSI_MONTH":
             cal.add(Calendar.MONTH, arg2);
             break;
         case "QUARTER":
+        case "SQL_TSI_QUARTER":
             cal.add(Calendar.MONTH, arg2 * 3);
             break;
         case "YEAR":
+        case "SQL_TSI_YEAR":
             cal.add(Calendar.YEAR, arg2);
             break;
         default:
