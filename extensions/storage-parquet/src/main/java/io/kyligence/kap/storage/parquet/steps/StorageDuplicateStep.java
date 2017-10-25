@@ -70,7 +70,9 @@ public class StorageDuplicateStep extends AbstractExecutable {
         String localPath = ColumnarStorageUtils.getReadCubeDir(cube);
         try {
             logger.info("copy cube files: from {} to {}", remotePath, localPath);
-            DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath)));
+            DistCpOptions options = new DistCpOptions(Lists.newArrayList(new Path(remotePath)), new Path(localPath));
+            options.preserve(DistCpOptions.FileAttribute.BLOCKSIZE);
+            DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(), options);
             distCp.execute();
         } catch (Exception e) {
             logger.info("{}", org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
