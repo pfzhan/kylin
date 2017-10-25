@@ -1,7 +1,7 @@
 <template>
   <div class="insight_box ksd-border-tab">
   	<div class="ksd_left_bar" id="input-inner">
-     <tree class="insight-search" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable" maxlevel="4"></tree>
+     <tree class="insight-search" :empty-text="$t('treeNoData')" :expandnodeclick="false" :treedata="tableData" :placeholder="$t('kylinLang.common.pleaseFilter')"  :indent="4" :expandall="false" :showfilter="true" :allowdrag="false" @contentClick="clickTable" maxlevel="4"></tree>
     </div>
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
@@ -413,7 +413,8 @@ export default {
     // editor.setTheme('ace/theme/monokai')
     // editor.getSession().setMode('brace/mode/sql')
     // alert(screen.availHeight - 65 - 50 - 55)
-    let iHeight = screen.availHeight - 65 - 50 - 103
+    // let iHeight = screen.availHeight - 65 - 50 - 103
+    let iHeight = document.documentElement.clientHeight - 66 - 48 - 69
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
     var autoCompeleteData = []
     // setCompleteData(autoCompeleteData)
@@ -422,6 +423,15 @@ export default {
     }
     this.loadBuildCompleteTables(this.project).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
+        if (data.length === 0) {
+          this.tableData = []
+        } else {
+          this.tableData = [{
+            id: 1,
+            label: 'Tables',
+            children: []
+          }]
+        }
         var databaseObj = groupData(data, 'table_SCHEM')
         for (var i in databaseObj) {
           var obj = {
@@ -470,8 +480,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result', 'willGo': 'You have unfinished request detected, Do you want to continue?', 'go': 'Continue go'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果', 'willGo': '检测到有执行的请求，是否继续跳转？', 'go': '继续跳转'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result', 'willGo': 'You have unfinished request detected, Do you want to continue?', 'go': 'Continue go', 'treeNoData': 'No data'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果', 'willGo': '检测到有执行的请求，是否继续跳转？', 'go': '继续跳转', 'treeNoData': '暂无数据'}
   }
 }
 </script>
