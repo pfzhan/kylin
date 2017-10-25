@@ -32,15 +32,17 @@ rm -f ./${RANDNAME}
 hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
 
 # test remote hdfs if necessary
-## in read-write separation mode this is query cluster
-#if [ -n ${ENABLE_FS_SEPARATE} ] && [ "${ENABLE_FS_SEPARATE}" == "true" ]; then
-#    remote_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
-#    hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir} || quit "ERROR: Please create working directory '${remote_working_dir}' and grant access permission to current user."
-#
-#    touch ./${RANDNAME}
-#    TEST_FILE=${remote_working_dir}/${RANDNAME}
-#    hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit "ERROR: Have no permission to create/modify file in working directory '${remote_working_dir}'. Please grant permission to current user."
-#
-#    rm -f ./${RANDNAME}
-#    hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
-#fi
+# in read-write separation mode this is query cluster
+if [ -n ${ENABLE_FS_SEPARATE} ] && [ "${ENABLE_FS_SEPARATE}" == "true" ]; then
+    #convert local working dir to remote
+    remote_working_dir=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.setup.KapGetPathWithoutSchemeAndAuthorityCLI ${WORKING_DIR}| grep -v 'Usage'|tail -1)
+    remote_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${remote_working_dir}
+    hadoop ${hadoop_conf_param} fs -test -d ${remote_working_dir} || quit "ERROR: Please create working directory '${remote_working_dir}' and grant access permission to current user."
+
+    touch ./${RANDNAME}
+    TEST_FILE=${remote_working_dir}/${RANDNAME}
+    hadoop ${hadoop_conf_param} fs -put -f ./${RANDNAME} ${TEST_FILE} || quit "ERROR: Have no permission to create/modify file in working directory '${remote_working_dir}'. Please grant permission to current user."
+
+    rm -f ./${RANDNAME}
+    hadoop ${hadoop_conf_param} fs -rm -skipTrash ${TEST_FILE}
+fi
