@@ -26,6 +26,7 @@ package io.kyligence.kap.source.hive.tablestats;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -98,10 +99,20 @@ public class HiveTableExtSamplerTest extends TestCase {
     public void testExceedPrecisionValues() {
         String[] stringValues = { "I love China", "麒麟最牛逼啊", "USA", "what is your name", "USA", "yes, I like it", "true",
                 "Dinner is perfect", "Not very good", "KYLIN is the best Big Data Warehouse" };
-        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 3);
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 256);
 
-        for (int i = 0; i < stringValues.length; i++) {
-            sampler.samples(stringValues[i]);
+        List<String> allValues = new ArrayList<>();
+        allValues.addAll(Arrays.asList(stringValues));
+
+        String oddString = "";
+        for (int i = 0; i < 1200; i++) {
+            oddString += "K";
+        }
+
+        allValues.add(oddString);
+
+        for (String s : allValues) {
+            sampler.samples(s);
         }
 
         sampler.sync();
@@ -109,8 +120,8 @@ public class HiveTableExtSamplerTest extends TestCase {
         buf.flip();
         sampler.decode(buf);
 
-        assertEquals("KYLIN is the best Big Data Warehouse", sampler.getExceedPrecisionMaxLengthValue());
-        assertEquals(8, sampler.getExceedPrecisionCount());
+        assertEquals(oddString, sampler.getExceedPrecisionMaxLengthValue());
+        assertEquals(1, sampler.getExceedPrecisionCount());
 
         sampler = new HiveTableExtSampler("varchar", 256);
 
