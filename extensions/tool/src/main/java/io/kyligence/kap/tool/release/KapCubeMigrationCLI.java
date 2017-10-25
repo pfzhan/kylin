@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
@@ -248,16 +249,13 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         addCubeAndModelIntoProject(cube, cubeName);
         doOpts();
 
-        String copyFrom = getMigratingCubeDataPath(cubeName) + "/" + cube.getUuid();
         String copyTo = KapConfig.wrap(dstConfig).getReadParquetStoragePath();
-        copyCubeOrRaw(cubeName, copyFrom, copyTo);
-
-        RawTableInstance raw = detectRawTable(cube);
-        if (raw != null) {
-            copyFrom = getMigratingCubeDataPath(cubeName) + "/" + raw.getUuid();
-            copyCubeOrRaw(cubeName, copyFrom, copyTo);
+        Path copyFrom = new Path(getMigratingCubeDataPath(cubeName) + "/*");
+        FileStatus[] status = hdfsFS.globStatus(copyFrom);
+        Path[] paths = FileUtil.stat2Paths(status);
+        for (Path p : paths) {
+            FileUtil.copy(hdfsFS, p, hdfsFS, new Path(copyTo), false, HadoopUtil.getCurrentConfiguration());
         }
-
     }
 
     private void dumpSrcProject(String prj, ResourceStore dstStore) throws IOException {
