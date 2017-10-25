@@ -1,0 +1,11 @@
+{
+  "uuid" : "f8edd777-8756-40d5-be19-3159120e4f7b-12",
+  "last_modified" : 1508914246409,
+  "version" : "2.3.0.20500",
+  "content" : "Hive table default.kylin_intermediate_sample_cube_2838c7fc_722a_48fa_9d1a_8ab37837a952 is dropped. \nHive table default.kylin_intermediate_sample_cube_2838c7fc_722a_48fa_9d1a_8ab37837a952 external data path hdfs://sandbox.hortonworks.com:8020/kylin/g-dev_kylinmaster_ci_instance/kylin-f8edd777-8756-40d5-be19-3159120e4f7b/kylin_intermediate_sample_cube_2838c7fc_722a_48fa_9d1a_8ab37837a952 is deleted. \n",
+  "status" : "SUCCEED",
+  "info" : {
+    "startTime" : "1508914232040",
+    "endTime" : "1508914246346"
+  }
+}
