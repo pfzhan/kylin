@@ -6,7 +6,7 @@
 		    <el-radio-button label="Kfka" @click.native="openKafkaDialog"><icon name="download" scale="0.8"></icon><span> Kafka</span></el-radio-button>
 		  </el-radio-group>
 
-      <tree :treedata="hiveAssets" :empty-text="$t('dialogHiveTreeNoData')" :expandall='true'  maxLabelLen="20" :indent="2" :showfilter="false" :allowdrag="false" @nodeclick="clickTable" maxlevel="3"></tree>
+      <tree :treedata="hiveAssets" :empty-text="$t('dialogHiveTreeNoData')" :expandall='true'  maxLabelLen="24" :indent="2" :showfilter="false" :allowdrag="false" @nodeclick="clickTable" maxlevel="3"></tree>
       </div>
       <div class="table_content" >
        <img class="null_pic" src="../../assets/img/no_table.png" v-show="!tableData"/>
@@ -315,21 +315,21 @@
       <el-dialog  :title="$t('kylinLang.common.tip')"
         v-model="loadResultVisible" :close-on-press-escape="false" :close-on-click-modal="false">
          <el-alert v-for=" su in loadResult.success" :key="su"
-            :title="currentAction + ' ' + $t('kylinLang.common.success') + ' ! ' + '['+su+']'"
+            :title="currentAction + $t('kylinLang.common.success') + ' ! ' + '['+su+']'"
             type="success"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
             <el-alert v-for=" fa in loadResult.fail" :key="fa"
-            :title="currentAction + ' ' + $t('kylinLang.common.fail') + ' ! ' + '['+fa+']'"
+            :title="currentAction + $t('kylinLang.common.fail') + ' ! ' + '['+fa+']'"
             type="error"
             :closable="false"
             class="ksd-mt-10"
             show-icon>
           </el-alert>
            <el-alert v-for=" fa in loadResult.running" :key="fa"
-            :title=" currentAction + ' ' + $t('kylinLang.common.fail') + ' ! ' + $t('kylinLang.common.running') + '['+fa+']'"
+            :title=" currentAction + $t('kylinLang.common.fail') + ' ! ' + $t('kylinLang.common.running') + '['+fa+']'"
             type="error"
             :closable="false"
             class="ksd-mt-10"
@@ -1005,7 +1005,7 @@ export default {
     }
   },
   locales: {
-    'en': {'dialogHiveTreeNoData': 'No data', 'dialogHiveTreeLoading': 'loading', 'load': 'Load', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '<p style="font-weight: bold">HOW TO SYNC TABLE\'S METADATA</p><p class="ksd-mt-10"><span style="font-weight: bold">Select tables from hive tree: </span>click tables in the left hive tree and the maximum is 1,000 tables.</p><p><span style="font-weight: bold">Enter table name as \'database.table\': </span>if you don\'t need to take a look at tables, just enter table name as \'database.table\'; use comma to separate multiple tables\' name; use ENTER to close entering. The maximum is 1000 tables.</p>', 'access': 'Access', 'selectedHiveValidateFailText': 'Please enter table name as \'database.table\'.'},
+    'en': {'dialogHiveTreeNoData': 'No data', 'dialogHiveTreeLoading': 'loading', 'load': 'Load ', 'reload': 'Reload', 'samplingBtn': 'Sampling', 'sampling': 'Table Sampling', 'unload': 'Unload ', 'loadhiveTables': 'Load Hive Table Metadata', 'selectLeftHiveTip': 'Please select tables from the left hive table tree', 'setScanRange': 'Table Sampling', 'filterInputTips': 'Please input the hive table name to filter', 'loadTableJobBeginTips': 'Collect job start running!You can go to Monitor page to watch the progress!', 'hasCollectJob': 'There has been a running collect job!You can go to Monitor page to watch the progress!', 'loadHiveTip': '<p style="font-weight: bold">HOW TO SYNC TABLE\'S METADATA</p><p class="ksd-mt-10"><span style="font-weight: bold">Select tables from hive tree: </span>click tables in the left hive tree and the maximum is 1,000 tables.</p><p><span style="font-weight: bold">Enter table name as \'database.table\': </span>if you don\'t need to take a look at tables, just enter table name as \'database.table\'; use comma to separate multiple tables\' name; use ENTER to close entering. The maximum is 1000 tables.</p>', 'access': 'Access', 'selectedHiveValidateFailText': 'Please enter table name as \'database.table\'.'},
     'zh-cn': {'dialogHiveTreeNoData': '暂无数据', 'dialogHiveTreeLoading': '加载中', 'load': '加载', 'reload': '重载', 'samplingBtn': '采样', 'sampling': '收集表信息', 'unload': '卸载', 'loadhiveTables': '加载Hive表元数据', 'selectLeftHiveTip': '请在左侧选择要加载的table', 'setScanRange': '表采样', 'filterInputTips': '请输入hive表名进行过滤', 'loadTableJobBeginTips': '采集开始，您可以到Monitor页面查看采样进度！', 'hasCollectJob': '已有一个收集作业正在进行中，您可以去Monitor页面查看进度!', 'loadHiveTip': '<p style="font-weight: bold">加载表元数据的方式</p><p class="ksd-mt-10">选择表：可以在左侧的Hive tree选择需要加载的表。每次最多可加载1000张表。</p><p>输入表：可以在右侧的加载框中直接输入‘database.table’，按回车键结束输入。输入多张表名时，请使用逗号分隔，每次最多可加载1000张表。</p>', 'access': '权限', 'selectedHiveValidateFailText': '请输入完整表名\'database.table\'。'}
   }
 }
