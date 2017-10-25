@@ -50,6 +50,8 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
 import io.kyligence.kap.rest.msg.KapMsgPicker;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -72,9 +74,10 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        ServletRequestAttributes attributes = (ServletRequestAttributes)RequestContextHolder.currentRequestAttributes();
+        KapMsgPicker.setMsg(attributes.getRequest().getHeader("Accept-Language"));
 
         MessageDigest md = null;
-
         try {
             md = MessageDigest.getInstance("MD5");
         } catch (NoSuchAlgorithmException e) {
