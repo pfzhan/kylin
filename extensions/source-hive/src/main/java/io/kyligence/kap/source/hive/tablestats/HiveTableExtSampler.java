@@ -107,7 +107,7 @@ public class HiveTableExtSampler implements Serializable {
 
     public HiveTableExtSampler(String type, int precision, int curIndex, int allColumns) {
 
-        dataTypePrecision = precision < 0 ? DEFAULT_VARCHAR_PRECISION : precision;
+        dataTypePrecision = precision < DEFAULT_VARCHAR_PRECISION ? DEFAULT_VARCHAR_PRECISION : precision;
         this.dataType = "varchar(" + dataTypePrecision + ")";
         this.curIndex = curIndex;
         this.lastIndex = allColumns - 1;
