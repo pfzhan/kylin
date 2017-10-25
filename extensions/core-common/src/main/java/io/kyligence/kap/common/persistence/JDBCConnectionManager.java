@@ -27,7 +27,9 @@ package io.kyligence.kap.common.persistence;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -38,6 +40,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class JDBCConnectionManager {
 
@@ -57,16 +61,16 @@ public class JDBCConnectionManager {
         }
         return INSTANCE;
     }
-    
+
     // ============================================================================
 
     private final Map<String, String> dbcpProps;
     private final DataSource dataSource;
 
     private JDBCConnectionManager(KylinConfig config) {
-        this.dbcpProps = initDbcpProps(config);
-        
         try {
+            this.dbcpProps = initDbcpProps(config);
+
             dataSource = BasicDataSourceFactory.createDataSource(getDbcpProperties());
             Connection conn = getConn();
             DatabaseMetaData mdm = conn.getMetaData();
@@ -81,17 +85,26 @@ public class JDBCConnectionManager {
         // metadataUrl is like "kylin_default_instance@jdbc,url=jdbc:mysql://localhost:3306/kylin,username=root,password=xxx"
         StorageURL metadataUrl = config.getMetadataUrl();
         JDBCResourceStore.checkScheme(metadataUrl);
-        
+
         LinkedHashMap<String, String> ret = new LinkedHashMap<>(metadataUrl.getAllParameters());
-        putIfMissing(ret, "url", "jdbc:mysql://localhost:3306/kylin");
-        putIfMissing(ret, "username", "root");
-        putIfMissing(ret, "password", "");
+        List<String> mandatoryItems = Arrays.asList("url", "username", "password");
+
+        for (String item : mandatoryItems) {
+            Preconditions.checkNotNull(ret.get(item),
+                    "Setting item \"" + item + "\" is mandatory for Jdbc connections.");
+        }
+
+        logger.info("Connecting to Jdbc with url:" + ret.get("url") + " by user " + ret.get("username"));
+
         putIfMissing(ret, "driverClassName", "com.mysql.jdbc.Driver");
         putIfMissing(ret, "maxActive", "5");
         putIfMissing(ret, "maxIdle", "5");
         putIfMissing(ret, "maxWait", "1000");
         putIfMissing(ret, "removeAbandoned", "true");
         putIfMissing(ret, "removeAbandonedTimeout", "180");
+        putIfMissing(ret, "testOnBorrow", "true");
+        putIfMissing(ret, "testWhileIdle", "true");
+        putIfMissing(ret, "validationQuery", "select 1");
         return ret;
     }
 
@@ -103,7 +116,7 @@ public class JDBCConnectionManager {
     public final Connection getConn() throws SQLException {
         return dataSource.getConnection();
     }
-    
+
     public Properties getDbcpProperties() {
         Properties ret = new Properties();
         ret.putAll(dbcpProps);
