@@ -25,7 +25,7 @@
         </el-checkbox-group>
       </el-col>
     </el-row>
-    <el-table class="ksd-el-table table_margin" 
+    <el-table class="ksd-el-table table_margin"
       tooltip-effect="dark"
       border
       :data="jobsList"
@@ -154,7 +154,7 @@
           <el-popover
             placement="left"
             width="300"
-            trigger="hover">
+            trigger="hover" popper-class="jobPoplayer">
             <i slot="reference"
                :class="{
               'fa el-icon-more bg-gray' : step.step_status=='PENDING',
@@ -774,6 +774,12 @@
   #jobs_list .timeline .jobActivityLabel{
     color:#d4d7e3!important;
     font-size: 12px;
+  }
+  .jobPoplayer.el-popover[x-placement^=left] .popper__arrow{
+    border-left-color: #333;
+    &:after{
+     border-left-color:#393e53;
+   }
   }
 
 </style>

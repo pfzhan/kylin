@@ -183,6 +183,10 @@
       }
     }
   }
+  &>.el-tabs--card>.el-tabs__header>.el-tabs__nav-wrap>.el-tabs__nav-scroll>.el-tabs__nav>.el-tabs__item{
+     transition: all .3s cubic-bezier(.645,.045,.355,1);
+     border:none;
+   }
   .el-tabs__nav div:nth-child(1) .el-icon-close{
     visibility: hidden;
     display: none;
@@ -190,7 +194,7 @@
   .el-tabs__nav{
     margin-left: 0;
   }
-} 
+}
 .el-tabs:not(.el-tabs--card) .el-tabs__header{
   border-top: 0;
 }
@@ -199,7 +203,7 @@
     .el-tabs__nav-scroll{
       margin-left: 30px;
     }
-  } 
+  }
   #cube-view{
     .el-tabs__nav-scroll{
       margin-left: 0;
