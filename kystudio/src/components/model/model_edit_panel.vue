@@ -2,7 +2,7 @@
 	<div class="model_edit_tool">
   <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
 		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
-		    <el-tab-pane label="Overview" name="first" >
+		    <el-tab-pane :label="$t('kylinLang.common.overview')" name="first" >
             <el-tabs class="el-tabs--default modelExtraInfoTab" v-model="subMenuActive" >
                 <el-tab-pane :label="$t('modelInfo')" name="first">
                     <table  cellspacing="0" cellpadding="0">

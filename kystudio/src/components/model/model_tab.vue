@@ -23,11 +23,12 @@
       return {
         editable: true,
         editableTabs: [{
-          title: this.$t('kylinLang.common.overview'),
+          title: 'overview',
           name: 'Overview',
           content: 'modelSubMenu',
           closable: false,
-          guid: sampleGuid()
+          guid: sampleGuid(),
+          i18n: 'overview'
         }],
         extraoption: {},
         currentView: 'modelList',
@@ -79,6 +80,7 @@
             name: tabType + title,
             content: componentName,
             extraoption: extraData,
+            i18n: extraData.i18n,
             guid: sampleGuid(),
             icon: tabType.indexOf('model') !== -1 ? 'cube' : 'cubes'
           })

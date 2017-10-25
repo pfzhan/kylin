@@ -550,7 +550,8 @@ export default {
         modelName: modelInfo.name,
         uuid: modelInfo.uuid,
         status: modelInfo.is_draft,
-        mode: 'view'
+        mode: 'view',
+        i18n: 'view'
       })
     },
     addModel () {
