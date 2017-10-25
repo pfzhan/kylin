@@ -430,6 +430,15 @@ public class CubeControllerV2 extends BasicController {
     }
 
     /** Build/Rebuild a cube segment by source offset */
+    @RequestMapping(value = "/{cubeName}/build_by_offset", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse buildByOffset(@PathVariable String cubeName, @RequestBody KapStreamingBuildRequest req)
+            throws IOException {
+        return rebuildStreaming(cubeName, req);
+    }
+    
+    /** Build/Rebuild a cube segment by source offset */
     @RequestMapping(value = "/{cubeName}/rebuild_streaming", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
