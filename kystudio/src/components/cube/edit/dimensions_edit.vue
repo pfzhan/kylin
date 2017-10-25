@@ -55,7 +55,7 @@
 <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length"></div>
 
 
-  <el-tabs v-model="activeName" class="el-tabs--default ksd-mt-40" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+  <el-tabs v-model="activeName" class="el-tabs--default ksd-mt-40 fixTagsTransform" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
     <el-tab-pane name="first">
     <span slot="label">{{$t('aggregationGroups')}} <common-tip :content="$t('AGG')" >
              <icon name="question-circle" class="ksd-question-circle"></icon>
@@ -1155,5 +1155,11 @@ export default {
   .d-tip{
     position: relative;
     top: 3px;
+  }
+  .fixTagsTransform{
+    .el-select__tags{
+      top:0;
+      transform: translateY(0);
+    }
   }
 </style>
