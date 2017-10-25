@@ -43,6 +43,7 @@ import org.apache.kylin.dimension.DimensionEncodingFactory;
 import org.apache.kylin.engine.EngineFactory;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.job.JoinedFlatTable;
+import org.apache.kylin.metadata.ModifiedOrder;
 import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
@@ -128,24 +129,37 @@ public class CubeControllerV2 extends BasicController {
         List<CubeInstanceResponse> response = new ArrayList<CubeInstanceResponse>();
         List<CubeInstance> cubes = cubeService.listAllCubes(cubeName, projectName, modelName, exactMatch);
         MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
-
-        // official cubes
-        for (CubeInstance cube : cubes) {
-            if (mpCubeMgr.isMPCube(cube))
-                continue;
-
-            try {
-                response.add(createCubeResponse(cube));
-            } catch (Exception e) {
-                logger.error("Error creating cube instance response, skipping.", e);
-            }
-        }
+        List<CubeDesc> cubeDescList = new ArrayList<>();
+        Map<String, CubeInstance> descToCubeMap = new HashMap<>();
 
         // draft cubes
         for (Draft d : cubeService.listCubeDrafts(cubeName, modelName, projectName, exactMatch)) {
             CubeDesc c = (CubeDesc) d.getEntity();
             if (contains(response, c.getName()) == false) {
                 response.add(KapCubeResponse.create(d));
+            }
+        }
+
+        // official cubes
+        for (CubeInstance cube : cubes) {
+            if (mpCubeMgr.isMPCube(cube))
+                continue;
+
+            CubeDesc cubeDesc = cube.getDescriptor();
+
+            if (cubeDesc != null) {
+                cubeDescList.add(cubeDesc);
+                descToCubeMap.put(cubeDesc.getName(), cube);
+            }
+        }
+
+        Collections.sort(cubeDescList, new ModifiedOrder());
+
+        for (CubeDesc cubeDesc : cubeDescList) {
+            try {
+                response.add(createCubeResponse(descToCubeMap.get(cubeDesc.getName())));
+            } catch (Exception e) {
+                logger.error("Error creating cube instance response, skipping.", e);
             }
         }
 
