@@ -73,12 +73,15 @@
              <el-table
               :data="statistics.slice(1)"
               tooltip-effect="dark"
+              border
               style="width: 100%" class="staticsTableStyle ksd-mt-10">
                <el-table-column show-overflow-tooltip v-for="(val,index) in statistics[0]" :key="index"
-                :prop="''+index"
                 :fixed="index === 0"
                 :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
                 :label="statistics[0][index]">
+                 <template scope="scope">
+                    {{index === 0? $t('kylinLang.dataSource.'+scope.row[0]): '' + scope.row[index]}}
+                  </template>
               </el-table-column>
             </el-table>
             <div style="font-size:12px;" class="ksd-mt-20"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
@@ -184,6 +187,8 @@ export default {
       this.slideSubMenu('hide')
     },
     loadTableStatics (database, tableName) {
+      this.statistics = []
+      this.modelStatics = []
       this.loadTableExt({tableName: database + '.' + tableName, project: this.project}).then((res) => {
         handleSuccess(res, (data) => {
           if (!data) {
@@ -192,7 +197,7 @@ export default {
           var arr = []
           var lenOffeature = data && data.columns_stats && data.columns_stats.length || 0
           if (lenOffeature) {
-            arr = [[''], [this.$t('kylinLang.dataSource.cardinality')], [this.$t('kylinLang.dataSource.maxLengthVal')], [this.$t('kylinLang.dataSource.maximum')], [this.$t('kylinLang.dataSource.minLengthVal')], [this.$t('kylinLang.dataSource.minimal')], [this.$t('kylinLang.dataSource.nullCount')]]
+            arr = [[''], ['cardinality'], ['maxLengthVal'], ['maximum'], ['minLengthVal'], ['minimal'], ['nullCount']]
             for (let i = 0; i < lenOffeature; i++) {
               arr[0].push(data.columns_stats[i].column_name)
               arr[1].push(data.columns_stats[i].cardinality)

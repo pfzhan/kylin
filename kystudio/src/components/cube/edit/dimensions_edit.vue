@@ -243,9 +243,8 @@
           border
           style="width: 100%; margin-bottom: 10px;">
           <el-table-column
-          show-overflow-tooltip
             :label="$t('kylinLang.dataSource.statistics')"
-            width="110">
+            >
             <template scope="scope">
               {{$t('kylinLang.dataSource.'+scope.row.name)}}
             </template>
@@ -791,10 +790,12 @@ export default {
           }
         })
         var tag = this.$refs.includesSelect[index].tags[i]
-        if (!isUsed) {
-          tag.setAttribute('data-tag', '')
-        } else {
-          tag.setAttribute('data-tag', 'useDimension')
+        if (tag) {
+          if (!isUsed) {
+            tag.setAttribute('data-tag', '')
+          } else {
+            tag.setAttribute('data-tag', 'useDimension')
+          }
         }
       })
     },
