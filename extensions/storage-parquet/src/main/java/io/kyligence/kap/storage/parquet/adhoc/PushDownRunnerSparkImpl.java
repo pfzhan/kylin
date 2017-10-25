@@ -77,8 +77,8 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
             int nullable = fieldList.get(i).getNullable() ? 1 : 0;
             columnMetas.add(new SelectedColumnMeta(false, false, false, false, nullable, true, Integer.MAX_VALUE,
                     fieldList.get(i).getName().toUpperCase(), fieldList.get(i).getName().toUpperCase(), null, null,
-                    fieldList.get(i).getTable(), fieldList.get(i).getPrecision(), fieldList.get(i).getScale(),
-                    fieldList.get(i).getDataType(), fieldList.get(i).getDataTypeName(), false, false, false));
+                    null, fieldList.get(i).getPrecision(), fieldList.get(i).getScale(), fieldList.get(i).getDataType(),
+                    fieldList.get(i).getDataTypeName(), false, false, false));
         }
     }
 
