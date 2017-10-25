@@ -1,10 +1,10 @@
 <template>
   <div class="pushDownQueries">
     <kap-icon-button :disabled="multipleSelection.length ===0" icon="external-link" class="ksd-mb-8" type="blue" size="small" @click.native="exportCheckedQueries">{{$t('kylinLang.query.export')}}</kap-icon-button>
-       <div style="width:200px;" class="ksd-mb-10 ksd-fright">
+   <!--     <div style="width:200px;" class="ksd-mb-10 ksd-fright">
         <el-input :placeholder="$t('kylinLang.common.search')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
-        </div>
+        </div> -->
  
     <el-alert class="ksd-mt-10 ksd-mb-10 trans ksd-center" v-show="allSelectTipVisible"
         :closable="false"
@@ -68,6 +68,7 @@
     </el-table-column>
       <el-table-column
       :label="$t('server')"
+      :width="100"
       sortable
       show-overflow-tooltip
       prop="server">
@@ -81,8 +82,7 @@
       </el-table-column>
       <el-table-column
       :label="$t('sql')"
-      show-overflow-tooltip
-      width="150">
+      show-overflow-tooltip>
         <template scope="scope">
           {{scope.row.sql}}
         </template>
@@ -90,12 +90,13 @@
       <el-table-column
       :label="$t('adj')"
       sortable
-      :width="100"
+      :width="155"
       show-overflow-tooltip
       prop="adj">
       </el-table-column>
       <el-table-column
-      :width="100"
+      :width="165"
+      sortable
       :label="$t('running_seconds')">
         <template scope="scope">
           {{scope.row.running_seconds}} (s)
@@ -104,6 +105,7 @@
       <el-table-column
       sortable
       show-overflow-tooltip
+      :width="150"
       :label="$t('start_time')">
         <template scope="scope">
           {{scope.row.start_time}}
@@ -111,6 +113,7 @@
       </el-table-column>
       <el-table-column
       sortable
+      :width="150"
       show-overflow-tooltip
       :label="$t('last_modified')">
         <template scope="scope">
@@ -119,6 +122,7 @@
       </el-table-column>
       <el-table-column
       sortable
+      :width="120"
       show-overflow-tooltip
       :label="$t('thread')"
       prop="thread">

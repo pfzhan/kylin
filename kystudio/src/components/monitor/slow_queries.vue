@@ -7,12 +7,14 @@
     style="width:100%">
       <el-table-column
       :label="$t('server')"
+      :width="100"
       sortable
       show-overflow-tooltip
       prop="server">
       </el-table-column>
       <el-table-column
       :label="$t('user')"
+      :width="100"
       sortable
       show-overflow-tooltip
       prop="user">
@@ -20,7 +22,7 @@
       <el-table-column
       :label="$t('sql')"
       show-overflow-tooltip
-      width="150">
+      >
         <template scope="scope">
           {{scope.row.sql}}
         </template>
@@ -32,6 +34,7 @@
       prop="adj">
       </el-table-column>
       <el-table-column
+      :width="165"
       :label="$t('running_seconds')">
         <template scope="scope">
           {{scope.row.running_seconds}} (s)
@@ -39,6 +42,7 @@
       </el-table-column>
       <el-table-column
       sortable
+      :width="150"
       show-overflow-tooltip
       :label="$t('start_time')">
         <template scope="scope">
@@ -47,6 +51,7 @@
       </el-table-column>
       <el-table-column
       sortable
+      :width="150"
       show-overflow-tooltip
       :label="$t('last_modified')">
         <template scope="scope">
@@ -55,6 +60,7 @@
       </el-table-column>
       <el-table-column
       sortable
+      :width="120"
       show-overflow-tooltip
       :label="$t('thread')"
       prop="thread">

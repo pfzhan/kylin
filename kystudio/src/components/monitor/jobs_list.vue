@@ -38,7 +38,7 @@
       <el-table-column
         :label="$t('JobName')"
         sortable
-        :width="280"
+        :min-width="200"
         prop="jobname"
       >
         <template scope="scope">
@@ -48,10 +48,12 @@
       <el-table-column
         :label="$t('TableModelCube')"
         sortable
+        :width="180"
         show-overflow-tooltip
         prop="related_cube">
       </el-table-column>
       <el-table-column
+        :width="180"
         :label="$t('ProgressStatus')">
         <template scope="scope">
           <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
@@ -64,6 +66,7 @@
         </template>
       </el-table-column>
       <el-table-column
+        :width="180"
         :label="$t('LastModifiedTime')"
         show-overflow-tooltip
         sortable>
