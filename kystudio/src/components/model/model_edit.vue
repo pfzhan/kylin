@@ -730,8 +730,8 @@ export default {
               //   this.hasCheck = true
               // }
               this.hasCheck = true
-              this.sqlString = sqls.join(';\r\n') + ';'
-              this.oldSqlString = sqls.join(';\r\n') + ';'
+              this.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
+              this.oldSqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
               this.firstLoad = true
               this.addBreakPoint(errorInfo, editor)
               editor && editor.on('change', this.editerChangeHandle)

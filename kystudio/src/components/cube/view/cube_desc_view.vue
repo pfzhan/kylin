@@ -56,22 +56,22 @@ export default {
   methods: {
     ...mapActions({
       loadCubeDesc: 'LOAD_CUBE_DESC',
+      loadDataSourceByProject: 'LOAD_DATASOURCE',
       loadModelInfo: 'LOAD_MODEL_INFO'
     }),
     step: function (num) {
       this.activeStep = num
     },
     getTables: function () {
-      let _this = this
-      let rootFactTable = removeNameSpace(_this.cube.modelDesc.fact_table)
+      let rootFactTable = removeNameSpace(this.cube.modelDesc.fact_table)
       let factTables = []
       let lookupTables = []
       factTables.push(rootFactTable)
-      _this.$set(_this.cube.modelDesc, 'columnsDetail', {})
-      _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
-        if (_this.cube.modelDesc.fact_table === table.database + '.' + table.name) {
-          table.columns.forEach(function (column) {
-            _this.$set(_this.cube.modelDesc.columnsDetail, rootFactTable + '.' + column.name, {
+      this.$set(this.cube.modelDesc, 'columnsDetail', {})
+      this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
+        if (this.cube.modelDesc.fact_table === table.database + '.' + table.name) {
+          table.columns.forEach((column) => {
+            this.$set(this.cube.modelDesc.columnsDetail, rootFactTable + '.' + column.name, {
               name: column.name,
               datatype: column.datatype,
               cardinality: table.cardinality[column.name],
@@ -80,7 +80,7 @@ export default {
           this.aliasMap[table.name] = table.database + '.' + table.name
         }
       })
-      _this.cube.modelDesc.lookups.forEach((lookup) => {
+      this.cube.modelDesc.lookups.forEach((lookup) => {
         if (lookup.kind === 'FACT') {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
@@ -94,10 +94,10 @@ export default {
           lookupTables.push(lookup.alias)
           this.aliasMap[lookup.alias] = lookup.table
         }
-        _this.$store.state.datasource.dataSource[_this.selected_project].forEach((table) => {
+        this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
           if (lookup.table === table.database + '.' + table.name) {
             table.columns.forEach(function (column) {
-              _this.$set(_this.cube.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
+              this.$set(this.cube.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
                 name: column.name,
                 datatype: column.datatype,
                 cardinality: table.cardinality[column.name],
@@ -106,15 +106,15 @@ export default {
           }
         })
       })
-      if (_this.cube.modelDesc.computed_columns) {
-        _this.cube.modelDesc.computed_columns.forEach((co) => {
+      if (this.cube.modelDesc.computed_columns) {
+        this.cube.modelDesc.computed_columns.forEach((co) => {
           var alias = ''
           for (var i in this.aliasMap) {
             if (this.aliasMap[i] === co.tableIdentity) {
               alias = i
             }
           }
-          this.$set(_this.cube.modelDesc.columnsDetail, alias + '.' + co.columnName, {
+          this.$set(this.cube.modelDesc.columnsDetail, alias + '.' + co.columnName, {
             name: co.columnName,
             datatype: co.datatype,
             cardinality: 'N/A',
@@ -125,24 +125,27 @@ export default {
     }
   },
   created () {
-    let _this = this
-    if (!_this.cube.desc) {
-      this.loadCubeDesc({cubeName: _this.cube.name, project: _this.selected_project}).then((res) => {
+    if (!this.cube.desc) {
+      this.loadCubeDesc({cubeName: this.cube.name, project: this.selected_project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cube, 'desc', data.cube)
+          this.$set(this.cube, 'desc', data.cube)
         })
       }).catch((res) => {
         handleError(res, () => {})
       })
     }
-    if (!_this.cube.modelDesc) {
-      _this.loadModelInfo({modelName: _this.cube.model, project: _this.selected_project}).then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          _this.$set(_this.cube, 'modelDesc', data.model)
-          _this.getTables()
+    if (!this.cube.modelDesc) {
+      this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
+        this.loadModelInfo({modelName: this.cube.model, project: this.selected_project}).then((res) => {
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$set(this.cube, 'modelDesc', data.model)
+            this.getTables()
+          })
+        }).catch((res) => {
+          handleError(res, () => {})
         })
-      }).catch((res) => {
-        handleError(res, () => {})
+      }, (res) => {
+        handleError(res)
       })
     }
   },
@@ -170,6 +173,12 @@ export default {
   }
   .el-steps.is-horizontal.is-center{
     margin-left: 20px;
+  }
+  .el-table tr th:first-child {
+    border-right: 1px solid #2c2f3c;
+  }
+  .el-table tr td:first-child {
+    border-right: 1px solid #393e53;
   }
 }
 </style>

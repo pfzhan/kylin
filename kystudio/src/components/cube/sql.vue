@@ -53,7 +53,6 @@ export default {
 }
 .noSqlPatterns{
   font-size: 12px;
-  width: 90%;
   border: 1px solid #393E53;
   background: #292b38;
 }
