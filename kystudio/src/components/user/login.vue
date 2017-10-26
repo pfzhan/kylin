@@ -64,7 +64,9 @@
 
     <el-dialog class="updateKAPLicense" @close="closeDialog" :title="$t('license')" v-model="hasLicense" size="tiny" v-if="!isPlusVersion" :close-on-click-modal="false">
       <license ref="licenseEnter" v-on:validSuccess="licenseValidSuccess"></license>
-      <p @click="apply">{{$t('applyLicense')}}</p>
+      <p>
+        <span @click="apply">{{$t('applyLicense')}}</span>
+      </p>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeDialog">{{$t('cancel')}}</el-button>
         <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
@@ -349,7 +351,8 @@ export default {
 <style lang="less">
   @import '../../less/config.less';
   .kapLicense {
-    .el-dialog {
+    .el-dialog.el-dialog--small {
+      width: 390px;
       .el-dialog__header {
         .el-dialog__title {
           font-size: 14px;

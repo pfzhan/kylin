@@ -59,7 +59,7 @@
           <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
           <!--</transition>-->
         </el-col>
-        <el-dialog title="Project" v-model="FormVisible" @close="resetProjectForm">
+        <el-dialog :title="$t('kylinLang.common.project')" v-model="FormVisible" @close="resetProjectForm">
           <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible">
           </project_edit>
           <span slot="footer" class="dialog-footer">

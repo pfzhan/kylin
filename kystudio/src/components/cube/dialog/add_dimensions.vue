@@ -32,18 +32,21 @@
         :label="$t('column')">
       </el-table-column>
       <el-table-column
-        :label="$t('datatype')">
+        :label="$t('datatype')"
+        width="110">
         <template scope="scope">
           {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('cardinality')">
+        :label="$t('cardinality')"
+        width="100">
         <template scope="scope">
           {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>
-      <el-table-column>
+      <el-table-column
+      width="185">
       </el-table-column>
     </el-table>
   </div>
@@ -73,23 +76,26 @@
         :label="$t('column')">
       </el-table-column>
       <el-table-column
-        :label="$t('datatype')">
+        :label="$t('datatype')"
+        width="110">
         <template scope="scope">
           {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('cardinality')">
+        :label="$t('cardinality')"
+        width="100">
         <template scope="scope">
           {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>
       <el-table-column
-        :label="$t('type')">
+        :label="$t('type')"
+        width="185">
         <template scope="scope">
           <el-radio-group @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
-            <el-radio-button label="false">Normal</el-radio-button>
-            <el-radio-button label="true">Derived</el-radio-button>
+            <el-radio-button label="false">Normal</el-radio-button><!-- 
+            注释是为了取消button之间的间距，不要删--><el-radio-button label="true">Derived</el-radio-button>
           </el-radio-group>
         </template>
       </el-table-column>
@@ -333,7 +339,8 @@ export default {
   @import '../../../less/config.less';
   .add_dimensions{
     max-height: 500px;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: scroll;
     .el-table td, .el-table th {
       height: auto;
     }

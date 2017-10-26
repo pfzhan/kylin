@@ -55,7 +55,9 @@
     <el-dialog :title="$t('license')" v-model="updateLicenseVisible" :close-on-click-modal="false" class="updateKAPLicense" size="tiny">
       <span style="float: left;font-size: 14px;font-color:#9095AB;">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</span>
       <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
-      <p @click="apply" v-if="!isPlusVersion">{{$t('applyLicense')}}</p>
+      <p v-if="!isPlusVersion"> 
+        <span @click="apply">{{$t('applyLicense')}}</span>
+      </p>
       <div slot="footer" class="dialog-footer">
         <el-button @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
         <el-button type="primary" :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
@@ -461,10 +463,13 @@
         font-size: 14px;
       }
       p {
+        span {
+          cursor:pointer;
+          color:#218fea;
+        }
         margin-bottom: 50px;
-        cursor:pointer;
-        color:#218fea;
         font-size:14px;
+        color:#218fea;
         text-align: left;
         text-decoration-line: underline;
       }
@@ -499,9 +504,13 @@
         padding: 3px 0px 3px 0px;
       }
     }
-    .dialog-footer {
-      .el-button {
-        width: 100%;
+    .el-dialog__footer {
+      padding: 15px 50px 15px 50px;
+      .dialog-footer {
+        .el-button {
+          margin: 0px 0px 0px 0px; 
+          width: 100%
+        }
       }
     }
   }
