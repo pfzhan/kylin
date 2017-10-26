@@ -106,7 +106,7 @@
             <a target="_blank" href="https://kybot.io/#/kybot/kb?src=kap250" style="color:#fff; text-decoration:none;"><span>{{$t('kylinLang.common.qa')}}</span></a>
           </div>
           <div v-for="o in blogsList" :key="o.title" class="text item">
-            <a :href="o.link" target="_blank">{{o.title }}</a>
+            <a :href="o.link+kapVersionPara" target="_blank">{{o.title }}</a>
           </div>
         </el-card>
       </div>
@@ -154,7 +154,7 @@ export default {
   data () {
     return {
       sliderImgs: [{index: 0, src: require('../../assets/img/banner.png')}, {index: 1, src: require('../../assets/img/banner.png')}, {index: 2, src: require('../../assets/img/banner.png')}, {index: 3, src: require('../../assets/img/banner.png')}],
-      blogsList: [{id: 0, title: 'Query returns incorrect date via JDBC', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003630227?src=kap250'}, {id: 0, title: 'How to clean up hive temporary tables', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115004004868?src=kap250'}, {id: 0, title: 'What latency should I expect while streaming from Kafka?', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003632207?src=kap250'}, {id: 0, title: 'Size of table snapshot exceeds the limitation', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003988308?src=kap250'}],
+      blogsList: [{id: 0, title: 'Query returns incorrect date via JDBC', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003630227'}, {id: 0, title: 'How to clean up hive temporary tables', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115004004868'}, {id: 0, title: 'What latency should I expect while streaming from Kafka?', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003632207'}, {id: 0, title: 'Size of table snapshot exceeds the limitation', time: '3/14/2017', link: 'https://kybot.io/#/kybot/searchDetail/115003988308'}],
       manualList: [{id: 0, title: 'kapManual', time: '3/14/2017', link: 'https://kyligence.gitbooks.io/kap-manual/content/zh-cn/'}, {id: 0, title: 'kylinManual', time: '3/14/2017', link: 'http://kylin.apache.org/docs20/'}]
 
     }
@@ -177,6 +177,10 @@ export default {
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    kapVersionPara () {
+      var _kapV = this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.version'] || null
+      return _kapV ? '?src=' + _kapV : ''
     }
   },
   mounted () {
