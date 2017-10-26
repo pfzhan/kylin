@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
 */
-package org.apache.kylin.metadata.model;
+package io.kyligence.kap.metadata.model;
 
 import java.io.Serializable;
 import java.util.Map;
@@ -29,6 +29,8 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +54,8 @@ public class ComputedColumnDesc implements Serializable {
     private String columnName; // the new col name
     @JsonProperty
     private String expression;
+    @JsonProperty
+    private String innerExpression; // QueryUtil massaged expression
     @JsonProperty
     private String datatype;
     @JsonProperty
@@ -167,6 +171,17 @@ public class ComputedColumnDesc implements Serializable {
 
     public String getExpression() {
         return expression;
+    }
+    
+    public void setInnerExpression(String innerExpression) {
+        this.innerExpression = innerExpression;
+    }
+    
+    public String getInnerExpression() {
+        if (StringUtils.isEmpty(innerExpression)) {
+            return expression;
+        }
+        return innerExpression;
     }
 
     public String getDatatype() {
