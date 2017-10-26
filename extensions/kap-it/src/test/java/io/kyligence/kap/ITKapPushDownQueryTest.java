@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.NoRealizationFoundException;
 import org.apache.kylin.query.routing.RoutingIndicatorException;
@@ -205,6 +207,19 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
             RemoveBlackoutRealizationsRule.blackList.remove("CUBE[name=ci_left_join_cube]");
             RemoveBlackoutRealizationsRule.blackList.add("HYBRID[name=ci_inner_join_hybrid]");
         }
+    }
+
+    @Test
+    public void testResultWithNull() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+
+        String testSql = getTextFromFile(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query07.sql"));
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
+        Assert.assertNotNull(result.getFirst());
+        Assert.assertTrue(result.getFirst().size() == 1);
+        Assert.assertTrue(result.getFirst().get(0).get(0) == null);
     }
 
     @Test
