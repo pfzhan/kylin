@@ -9,9 +9,9 @@
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">
-      <li><span class="iconD">D </span><span class="info">Dimension</span></li>
-      <li><span class="iconM">M </span><span class="info">Measure</span></li>
-      <li><span class="iconDis">－ </span><span class="info">Disable</span></li>
+      <li><span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
+      <li><span class="iconM">M </span><span class="info">{{$t('kylinLang.common.measure')}}</span></li>
+      <li><span class="iconDis">－ </span><span class="info">{{$t('kylinLang.common.disable')}}</span></li>
     </ul>
     <div class="notable_tip" v-show="!(tableList&&tableList.length)">
       <img src="../../assets/img/dragtable.png">
