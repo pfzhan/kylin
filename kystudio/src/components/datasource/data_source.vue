@@ -167,6 +167,12 @@
   			      prop="null_count"
   			      :label="$t('kylinLang.dataSource.nullCount')">
   			    </el-table-column>
+             <el-table-column
+            show-overflow-tooltip
+              width="120"
+              prop="exceed_precision_max_length_value"
+              :label="$t('kylinLang.dataSource.exceedPrecisionMaxLengthValue')">
+            </el-table-column>
   			  </el-table>
           <p style="font-size:12px;" class="ksd-mt-10">{{$t('kylinLang.dataSource.totalRow')}} {{extendData.total_rows}}</p>
 		    </el-tab-pane>

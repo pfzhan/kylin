@@ -1,7 +1,7 @@
 <template>
   <div id="jobs_list" @click.stop :style="{width:showStep?'70%':'100%'}">
     <el-row :gutter="20" style="padding-top: 10px; margin-bottom: -8px;">
-      <el-col :span="4">
+      <el-col  :xs="12" :md="4" :lg="4">
         <el-input
           icon="search"
           v-model="filter.jobName"
@@ -9,8 +9,8 @@
           @change="filterChange">
         </el-input>
       </el-col>
-      <el-col :span="4" >
-        <el-select v-model="filter.timeFilter" @change="refreshJobs">
+      <el-col  :xs="12" :md="4" :lg="4">
+        <el-select v-model="filter.timeFilter" @change="refreshJobs" style="width:100%;">
           <el-option
             v-for="(item, item_index) in timeFilter"
             :key="item_index"
@@ -19,7 +19,7 @@
           </el-option>
         </el-select>
       </el-col>
-      <el-col :span="16">
+      <el-col  :xs="24" :md="16" :lg="16">
         <el-checkbox-group v-model="filter.status" @change="refreshJobs" style="float: right;">
           <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
         </el-checkbox-group>
@@ -38,7 +38,7 @@
       <el-table-column
         :label="$t('JobName')"
         sortable
-        :min-width="200"
+        :width="300"
         prop="jobname"
       >
         <template scope="scope">
@@ -48,7 +48,7 @@
       <el-table-column
         :label="$t('TableModelCube')"
         sortable
-        :width="180"
+        :min-width="180"
         show-overflow-tooltip
         prop="related_cube">
       </el-table-column>
@@ -66,7 +66,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :width="180"
+        :width="230"
         :label="$t('LastModifiedTime')"
         show-overflow-tooltip
         sortable>
@@ -75,6 +75,7 @@
         </template>
       </el-table-column>
       <el-table-column
+        :width="180"
         :label="$t('Duration')">
         <template scope="scope">
           {{scope.row.duration/60 | number(2) }}  mins
@@ -721,7 +722,7 @@
   }
   .jobBtn i {
     position: relative;
-    top: 12px;
+    top: 16px;
     color: #909eb0;
     font-size:12px;
   }

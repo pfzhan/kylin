@@ -201,6 +201,7 @@ exports.default = {
     maximum: 'Max Value',
     minimal: 'Min Value',
     nullCount: 'Null Count',
+    exceedPrecisionMaxLengthValue: 'Longest Value Over Precision',
     minLengthVal: 'Min Length Value',
     maxLengthVal: 'Max Length Value',
     expression: 'Expression',

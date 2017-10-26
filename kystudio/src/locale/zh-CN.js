@@ -200,6 +200,7 @@ exports.default = {
     maximum: '最大值',
     minimal: '最小值',
     nullCount: '空值计数',
+    exceedPrecisionMaxLengthValue: '超出精度最长值',
     minLengthVal: '最小长度值',
     maxLengthVal: '最大长度值',
     expression: '表达式',
