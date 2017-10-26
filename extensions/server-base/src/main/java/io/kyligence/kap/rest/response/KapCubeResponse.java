@@ -118,7 +118,7 @@ public class KapCubeResponse extends CubeInstanceResponse {
         r.setDescName(desc.getName());
         r.setStatus(RealizationStatusEnum.DISABLED);
         r.setModel(desc.getModelName());
-        r.setLastModified(desc.getLastModified());
+        r.setLastModified(d.getLastModified());
         return r;
     }
 

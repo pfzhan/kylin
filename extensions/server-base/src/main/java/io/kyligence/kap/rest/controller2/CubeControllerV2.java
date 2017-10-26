@@ -127,11 +127,17 @@ public class CubeControllerV2 extends BasicController {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         List<CubeInstanceResponse> response = new ArrayList<CubeInstanceResponse>();
-        List<CubeInstance> cubes = cubeService.listAllCubes(cubeName, projectName, modelName, exactMatch);
         MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
-        List<CubeDesc> cubeDescList = new ArrayList<>();
-        Map<String, CubeInstance> descToCubeMap = new HashMap<>();
 
+        // official cubes
+        List<CubeInstance> official = cubeService.listAllCubes(cubeName, projectName, modelName, exactMatch);
+        for (CubeInstance cube : official) {
+            if (mpCubeMgr.isMPCube(cube))
+                continue;
+            
+            response.add(createCubeResponse(cube));
+        }
+        
         // draft cubes
         for (Draft d : cubeService.listCubeDrafts(cubeName, modelName, projectName, exactMatch)) {
             CubeDesc c = (CubeDesc) d.getEntity();
@@ -140,28 +146,7 @@ public class CubeControllerV2 extends BasicController {
             }
         }
 
-        // official cubes
-        for (CubeInstance cube : cubes) {
-            if (mpCubeMgr.isMPCube(cube))
-                continue;
-
-            CubeDesc cubeDesc = cube.getDescriptor();
-
-            if (cubeDesc != null) {
-                cubeDescList.add(cubeDesc);
-                descToCubeMap.put(cubeDesc.getName(), cube);
-            }
-        }
-
-        Collections.sort(cubeDescList, new ModifiedOrder());
-
-        for (CubeDesc cubeDesc : cubeDescList) {
-            try {
-                response.add(createCubeResponse(descToCubeMap.get(cubeDesc.getName())));
-            } catch (Exception e) {
-                logger.error("Error creating cube instance response, skipping.", e);
-            }
-        }
+        Collections.sort(response, new ModifiedOrder());
 
         data.put("cubes", PagingUtil.cutPage(response, pageOffset, pageSize));
         data.put("size", response.size());
