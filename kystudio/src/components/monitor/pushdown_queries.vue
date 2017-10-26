@@ -10,8 +10,8 @@
         :closable="false"
         title=""
         type="warning">
-        <p v-if="isSelectAll"> {{$t('tipTitleText', {count: pushDownQueiesTotal })}}<a @click="clearSelection">{{$t('clearSelection')}}</a></p>
-        <p v-else> {{$t('tipTitleText', {count: multipleSelection.length })}}<a @click="toggleChecked(pushDownQueriesList)">{{$t('selectAllTip')}}</a></p>
+        <p v-if="isSelectAll"> {{$t('tipTitleText', {count: pushDownQueiesTotal })}}&nbsp;<a @click="clearSelection">{{$t('clearSelection')}}</a></p>
+        <p v-else> {{$t('tipTitleText', {count: multipleSelection.length })}}&nbsp;<a @click="toggleChecked(pushDownQueriesList)">{{$t('selectAllTip')}}</a></p>
       </el-alert>
     <el-table class="ksd-el-table"
     :data="pushDownQueriesList"
@@ -41,16 +41,16 @@
                         <el-col :span="4" class="left-part">{{$t('thread')}}</el-col>
                         <el-col :span="20" class="ksd-left ksd-pl-10">{{scope.row.thread}}</el-col>
                       </el-row>
-                      <el-row class="tableheader ksd-h-140">
-                        <el-col :span="4" class="left-part ksd-h-140">{{$t('sql')}}</el-col>
-                        <el-col :span="20" class="ksd-h-140 ksd-pt-10 ksd-pl-10 ksd-pr-10 ksd-pb-10">
+                      <el-row class="tableheader ksd-h-144">
+                        <el-col :span="4" class="left-part ksd-h-144">{{$t('sql')}}</el-col>
+                        <el-col :span="20" class="ksd-h-144 ksd-pt-10 ksd-pl-10 ksd-pr-10 ksd-pb-10">
                          <el-input 
                             type="textarea"
-                            :rows="6"
+                            :rows="4"
                             :readonly="true"
                             v-model="scope.row.sql">
                           </el-input>
-                          <el-button v-clipboard:copy="scope.row.sql"
+                          <el-button size="mini" v-clipboard:copy="scope.row.sql"
       v-clipboard:success="onCopy(scope.row)" v-clipboard:error="onError" type="default" class="ksd-fleft ksd-mt-10 ksd-mb-20 copy-btn">{{$t('kylinLang.common.copy')}}</el-button>
       <transition name="fade">
         <div class="copyStatusMsg" v-show="scope.row.showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
@@ -82,6 +82,7 @@
       </el-table-column>
       <el-table-column
       :label="$t('sql')"
+      :open-delay="1000"
       show-overflow-tooltip>
         <template scope="scope">
           {{scope.row.sql}}
@@ -122,7 +123,6 @@
       </el-table-column>
       <el-table-column
       sortable
-      :width="120"
       show-overflow-tooltip
       :label="$t('thread')"
       prop="thread">
@@ -266,14 +266,11 @@ export default {
     }
   }
   .copy-btn{
-    position: absolute;
-    right: 20px;
-    bottom: 0;
   }
   .copyStatusMsg {
-    position: absolute;
-    left: 50%;
-    top: 40%;
+    padding-top: 2px;
+    float: left;
+    margin-left: 4px;
     color:#fff;
     i{
       color:#28cd6b;
