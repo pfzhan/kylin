@@ -80,7 +80,7 @@ public class MetadataChecker implements IKeep {
             tableIndexDescPaths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT,
                     MetadataConstants.FILE_SURFIX);
         } catch (IOException e) {
-            logger.info("Failed to get cube resource path, details: {}", e);
+            logger.info("Failed to get cube/table-index resource path, details: {}", e);
         }
 
         List<String> toCleanEntity = new ArrayList<>();
@@ -91,6 +91,7 @@ public class MetadataChecker implements IKeep {
             for (String cubePath : cubePaths) {
                 if (cubePath.contains(name)) {
                     bFind = true;
+                    break;
                 }
             }
             if (bFind == false) {
@@ -104,6 +105,7 @@ public class MetadataChecker implements IKeep {
             for (String cubePath : cubePaths) {
                 if (cubePath.contains(name)) {
                     bFind = true;
+                    break;
                 }
             }
             if (bFind == false) {
@@ -127,11 +129,19 @@ public class MetadataChecker implements IKeep {
             schedulerJobPaths = store.collectResourceRecursively(SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT,
                     MetadataConstants.FILE_SURFIX);
         } catch (IOException e) {
-            logger.info("Failed to get cube resource path, details: {}", e);
+            logger.info("Failed to get cube/scheduler-job resource path, details: {}", e);
         }
 
         for (String path : schedulerJobPaths) {
-            if (cubePaths.contains(getEntityName(path)) == false) {
+            boolean bFind = false;
+            String name = getEntityName(path);
+            for (String cubePath : cubePaths) {
+                if (cubePath.contains(name)) {
+                    bFind = true;
+                    break;
+                }
+            }
+            if (bFind == false) {
                 toCleanEntity.add(path);
             }
         }
@@ -153,7 +163,6 @@ public class MetadataChecker implements IKeep {
         List<String> toCleanEntity = new ArrayList<>();
 
         for (ExecutablePO executable : allExecutable) {
-
             boolean ok = isExecuteOK(executable, allOutput);
             String jobId = executable.getId();
             if (ok == false) {

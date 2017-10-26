@@ -54,6 +54,9 @@ public class MetadataCheckerTest extends LocalFileMetadataTestCase {
     @Test
     public void testBasics() throws IOException {
 
+        SchedulerJobInstance job = new SchedulerJobInstance("ssb_cube1", "default", "Cube", "ssb_cube1", false, 0, 0, 0,
+                0, 0, 0);
+        SchedulerJobManager.getInstance(getTestConfig()).addSchedulerJob(job);
         MetadataChecker checker = new MetadataChecker();
         checker.checkCubeWithTableIndex();
         checker.checkCubeWithSchedulerJob();
