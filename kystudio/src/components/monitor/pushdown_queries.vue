@@ -161,7 +161,7 @@ export default {
       pageSize: pageCount
     }
     if (this.project) {
-      para.projectName = this.project
+      para.project = this.project
     }
     this.loadPushdownQueries({
       page: para
@@ -230,7 +230,7 @@ export default {
         pageSize: pageCount
       }
       if (this.project) {
-        para.projectName = this.project
+        para.project = this.project
       }
       this.loadPushdownQueries({
         page: para
