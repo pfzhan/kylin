@@ -33,66 +33,55 @@ import org.apache.hadoop.hive.ql.exec.UDF;
 
 public class TimestampAdd extends UDF {
     public Timestamp evaluate(String arg1, Integer arg2, Timestamp arg3) {
-        if (StringUtils.isAnyEmpty(arg1) && arg3 != null) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
             return null;
         }
 
         Calendar cal = Calendar.getInstance();
         cal.setTime(arg3);
-
-        switch (arg1.toUpperCase()) {
-        case "FRAC_SECOND":
-        case "SQL_TSI_FRAC_SECOND":
-            cal.add(Calendar.MILLISECOND, arg2);
-            break;
-        case "SECOND":
-        case "SQL_TSI_SECOND":
-            cal.add(Calendar.SECOND, arg2);
-            break;
-        case "MINUTE":
-        case "SQL_TSI_MINUTE":
-            cal.add(Calendar.MINUTE, arg2);
-            break;
-        case "HOUR":
-        case "SQL_TSI_HOUR":
-            cal.add(Calendar.HOUR, arg2);
-            break;
-        case "DAY":
-        case "SQL_TSI_DAY":
-            cal.add(Calendar.DATE, arg2);
-            break;
-        case "WEEK":
-        case "SQL_TSI_WEEK":
-            cal.add(Calendar.WEEK_OF_YEAR, arg2);
-            break;
-        case "MONTH":
-        case "SQL_TSI_MONTH":
-            cal.add(Calendar.MONTH, arg2);
-            break;
-        case "QUARTER":
-        case "SQL_TSI_QUARTER":
-            cal.add(Calendar.MONTH, arg2 * 3);
-            break;
-        case "YEAR":
-        case "SQL_TSI_YEAR":
-            cal.add(Calendar.YEAR, arg2);
-            break;
-        default:
-            return null;
-        }
+        addTime(arg1, arg2, cal);
 
         return new Timestamp(cal.getTimeInMillis());
     }
 
     public Date evaluate(String arg1, Integer arg2, Date arg3) {
-        if (StringUtils.isAnyEmpty(arg1) && arg3 != null) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
             return null;
         }
 
         Calendar cal = Calendar.getInstance();
         cal.setTime(arg3);
+        addTime(arg1, arg2, cal);
 
-        switch (arg1.toUpperCase()) {
+        return new Date(cal.getTimeInMillis());
+    }
+
+    public Timestamp evaluate(String arg1, Long arg2, Timestamp arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(arg3);
+        addTime(arg1, arg2.intValue(), cal);
+
+        return new Timestamp(cal.getTimeInMillis());
+    }
+
+    public Date evaluate(String arg1, Long arg2, Date arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(arg3);
+        addTime(arg1, arg2.intValue(), cal);
+
+        return new Date(cal.getTimeInMillis());
+    }
+    
+    private void addTime(String unit, Integer arg2, Calendar cal) {
+        switch (unit.toUpperCase()) {
         case "FRAC_SECOND":
         case "SQL_TSI_FRAC_SECOND":
             cal.add(Calendar.MILLISECOND, arg2);
@@ -130,9 +119,7 @@ public class TimestampAdd extends UDF {
             cal.add(Calendar.YEAR, arg2);
             break;
         default:
-            return null;
+            break;
         }
-
-        return new Date(cal.getTimeInMillis());
     }
 }
