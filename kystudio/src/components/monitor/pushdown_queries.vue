@@ -82,10 +82,12 @@
       </el-table-column>
       <el-table-column
       :label="$t('sql')"
-      :open-delay="1000"
-      show-overflow-tooltip>
+      class-name="hideOverContent"
+      prop="sql">
         <template scope="scope">
-          {{scope.row.sql}}
+           <common-tip :content="scope.row.sql" placement="top-start">
+            <p>{{scope.row.sql}}</p>
+          </common-tip>
         </template>
       </el-table-column>
       <el-table-column
@@ -251,6 +253,18 @@ export default {
 </script>
 <style scope="" lang="less">
 .pushDownQueries{
+  .hideOverContent{
+    text-overflow:ellipsis;
+    .cell{
+      white-space:nowrap;
+      text-overflow: ellipsis;
+      p{
+         white-space:nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
+    }
+  }
   .left-part{
     border-right:solid 1px #393e53;
     text-align: right;
