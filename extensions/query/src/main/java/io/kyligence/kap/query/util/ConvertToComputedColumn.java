@@ -47,7 +47,6 @@ import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -60,6 +59,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {

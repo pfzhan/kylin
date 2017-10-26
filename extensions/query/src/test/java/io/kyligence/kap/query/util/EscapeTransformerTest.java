@@ -35,7 +35,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select count(*), avg(sales) from tbl";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -45,7 +45,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, 1, 2) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -55,7 +55,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) - 1, 2) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -65,7 +65,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CHAR_LENGTH('Happy')";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
@@ -76,7 +76,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
@@ -87,7 +87,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select LOWER(LSTG_FORMAT_NAME) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -97,7 +97,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select UPPER(LSTG_FORMAT_NAME) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -107,7 +107,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select NULLIF(LSTG_FORMAT_NAME, 'Bad name') from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -117,7 +117,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select LN(PRICE) from KYLIN_SALES";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -127,7 +127,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CURRENT_DATE";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -137,7 +137,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CURRENT_TIME";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -147,7 +147,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CURRENT_TIMESTAMP";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
 
@@ -157,7 +157,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select 'Hello World!', CHAR_LENGTH('12345 67890')";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
@@ -168,7 +168,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select 'Hello World!',\r\n\t CHAR_LENGTH('12345 \r\n\t 67890')\nlimit 1";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
@@ -180,7 +180,7 @@ public class EscapeTransformerTest {
         String expectedSQL = "select CAST('2013-01-01 00:00:00' AS TIMESTAMP), CAST('2013-01-01' AS DATE), CAST('00:00:00' AS TIME)";
 
         EscapeTransformer transformer = new EscapeTransformer();
-        String transformedSQL = transformer.transform(originalSQL, null, null);
+        String transformedSQL = transformer.transform(originalSQL);
 
         Assert.assertEquals(expectedSQL, transformedSQL);
     }

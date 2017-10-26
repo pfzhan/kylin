@@ -38,7 +38,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -223,7 +222,7 @@ public class KapModel extends DataModelDesc {
             public ColumnDesc apply(@Nullable ComputedColumnDesc input) {
                 id.increment();
                 ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
-                        input.getComment(), null, null, input.getExpression());
+                        input.getComment(), null, null, input.getInnerExpression());
                 return columnDesc;
             }
         }).toArray(ColumnDesc.class);

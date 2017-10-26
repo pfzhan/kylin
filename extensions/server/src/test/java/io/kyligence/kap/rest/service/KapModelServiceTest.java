@@ -34,7 +34,6 @@ import java.util.List;
 
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.job.exception.JobException;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.rest.service.ModelService;
 import org.junit.Assert;
@@ -44,6 +43,7 @@ import org.junit.rules.ExpectedException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 
 public class KapModelServiceTest extends ServiceTestBase {

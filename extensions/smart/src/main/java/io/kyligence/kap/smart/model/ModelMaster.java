@@ -28,9 +28,9 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.model.proposer.ProposerProvider;
 

@@ -371,6 +371,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.implicit-computed-column-convert", "true"));
     }
 
+    public boolean isJdbcEscapeEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.jdbc-escape-enabled", "true"));
+    }
+
     public boolean isCognosParenthesesEscapeEnabled() {
         return Boolean.valueOf(config.getOptional("kap.query.cognos-parentheses-escape", "false"));
     }

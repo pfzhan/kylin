@@ -36,7 +36,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.JoinedFlatTable;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISegment;
@@ -52,8 +51,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.cube.mp.MPSqlCondBuilder;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DimensionAdvisor;
 import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.ModelStatusRequest;
@@ -175,7 +176,7 @@ public class KapModelService extends BasicService {
             }
         }
     }
-    
+
     /**
      * check if the computed column expressions are valid ( in hive)
      */
@@ -191,12 +192,13 @@ public class KapModelService extends BasicService {
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
 
             //check by calcite parser
-            cc.simpleParserCheck(cc.getExpression(), dataModelDesc.getAliasMap().keySet());
+            String ccExpression = KapQueryUtil.massageComputedColumn(cc.getExpression(), project, "");
+            cc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
 
             //check by hive cli, this could be slow
             StringBuilder sb = new StringBuilder();
             sb.append("select ");
-            sb.append(cc.getExpression());
+            sb.append(ccExpression);
             sb.append(" ");
             JoinedFlatTable.appendJoinStatement(new IJoinedFlatTableDesc() {
                 @Override
@@ -258,7 +260,7 @@ public class KapModelService extends BasicService {
         return true;
     }
 
-    public void preProcessBeforeModuleSave(KapModel model, String project) {
+    public void preProcessBeforeModelSave(KapModel model, String project) {
         String condBldClz = null;
         if (model.isMultiLevelPartitioned()) {
             // set MPHiveCondBuilder if it is a MP model
@@ -270,13 +272,18 @@ public class KapModelService extends BasicService {
                 condBldClz = null;
         }
         model.getPartitionDesc().setPartitionConditionBuilderClz(condBldClz);
-        
+
         // check fact table is not streaming
         String rootFactTableName = model.getRootFactTableName();
         TableDesc factTable = getTableManager().getTableDesc(rootFactTableName, project);
         if (factTable.getSourceType() == ISourceAware.ID_STREAMING) {
             KapMessage msg = KapMsgPicker.getMsg();
             throw new BadRequestException(msg.getMPMODEL_HATES_STREAMING());
+        }
+
+        // Update CC expression from query transformers
+        for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
+            ccDesc.setInnerExpression(KapQueryUtil.massageComputedColumn(ccDesc.getExpression(), project, ""));
         }
     }
 

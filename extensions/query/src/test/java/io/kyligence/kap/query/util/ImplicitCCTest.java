@@ -30,7 +30,6 @@ import java.util.List;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.ComputedColumnDesc;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -42,6 +41,8 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 
 public class ImplicitCCTest {
 

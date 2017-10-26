@@ -173,7 +173,7 @@ public class ModelControllerV2 extends BasicController {
         // don't use checkpoint/rollback, the following update is the only change that must succeed
 
         // save/update model
-        kapModelService.preProcessBeforeModuleSave(modelDesc, project);
+        kapModelService.preProcessBeforeModelSave(modelDesc, project);
         modelDesc = (KapModel) modelService.updateModelToResourceStore(modelDesc, project);
 
         // remove any previous draft
@@ -285,7 +285,7 @@ public class ModelControllerV2 extends BasicController {
         KapModel newModelDesc = KapModel.getCopyOf(modelDesc);
         newModelDesc.setName(newModelName);
 
-        kapModelService.preProcessBeforeModuleSave(newModelDesc, project);
+        kapModelService.preProcessBeforeModelSave(newModelDesc, project);
         newModelDesc = (KapModel) modelService.createModelDesc(project, newModelDesc);
 
         //reload avoid shallow

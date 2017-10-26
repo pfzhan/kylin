@@ -32,6 +32,8 @@ import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.query.util.DefaultQueryTransformer;
+import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +41,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.util.CognosParenthesesEscape;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
+import io.kyligence.kap.query.util.EscapeTransformer;
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import io.kyligence.kap.smart.query.mockup.MockupStorage;
 
@@ -60,6 +63,9 @@ public class Utils {
 
         List<String> queryTransformers = Lists.newArrayList();
         queryTransformers.add(ConvertToComputedColumn.class.getName());
+        queryTransformers.add(EscapeTransformer.class.getName());
+        queryTransformers.add(DefaultQueryTransformer.class.getName());
+        queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
         queryTransformers.add(CognosParenthesesEscape.class.getName());
         props.setProperty("kylin.query.transformers", StringUtils.join(queryTransformers, ","));
 
