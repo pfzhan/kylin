@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.cube;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,9 +110,11 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
 
     private void checkQueryConditions(List<TblColRef> mpCols, Set<TblColRef> querySingleValueCols) {
         if (querySingleValueCols.containsAll(mpCols) == false) {
+            Set<TblColRef> missing = new HashSet<>(mpCols);
+            missing.removeAll(querySingleValueCols);
             throw new IllegalStateException(
-                    "Invalid query, multi-level partitioned query must provide all partition values as '=' filter condition. Missing "
-                            + mpCols.removeAll(querySingleValueCols));
+                    "Invalid query, multi-level partitioned query must provide all partition values as '=' filter condition. "
+                            + "Missing filter on " + missing + ".");
         }
     }
 
