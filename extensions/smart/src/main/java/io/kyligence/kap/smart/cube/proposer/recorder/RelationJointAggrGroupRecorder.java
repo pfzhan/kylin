@@ -33,11 +33,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import javax.annotation.Nullable;
+import org.apache.commons.collections.CollectionUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -45,7 +42,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.smart.common.SmartConfig;
 
 public class RelationJointAggrGroupRecorder {
-    private SmartConfig smartConfig;
+    private final SmartConfig smartConfig;
 
     public RelationJointAggrGroupRecorder(SmartConfig smartConfig) {
         this.smartConfig = smartConfig;
@@ -92,51 +89,70 @@ public class RelationJointAggrGroupRecorder {
         }
 
         Collection<Node> nodes = nodeMap.values();
-        Iterator<Node> itr = nodes.iterator();
         Set<SortedSet<Node>> candidates = Sets.newHashSet();
-        while (itr.hasNext()) {
-            Node n = itr.next();
-            SortedSet<Node> path = Sets.newTreeSet();
-            n.buildAllPath(path, candidates);
 
-            for (Node nn : n.neighbor) {
-                nn.neighbor.remove(n);
+        for (Node node : nodes) {
+            Set<SortedSet<Node>> tmpResult = Sets.newHashSet();
+            for (Set<Node> p : candidates) {
+                if (node.neighbor.containsAll(p)) {
+                    SortedSet<Node> newCand = Sets.newTreeSet(p);
+                    newCand.add(node);
+                    tmpResult.add(newCand);
+                }
             }
-            n.neighbor.clear();
+
+            SortedSet<Node> t = Sets.newTreeSet();
+            t.add(node);
+            tmpResult.add(t);
+
+            candidates.addAll(tmpResult);
         }
+
+        List<SortedSet<Node>> sortedCands = Lists.newArrayList(candidates);
+        Collections.sort(sortedCands, new Comparator<SortedSet<Node>>() {
+            @Override
+            public int compare(SortedSet<Node> o1, SortedSet<Node> o2) {
+                return o2.size() - o1.size();
+            }
+        });
 
         List<List<String>> results = Lists.newArrayList();
         final Set<Node> usedCols = Sets.newHashSet();
-        while (!candidates.isEmpty()) {
-            SortedSet<Node> bestCandidate = Collections.max(candidates, new Comparator<SortedSet<Node>>() {
-                @Override
-                public int compare(SortedSet<Node> o1, SortedSet<Node> o2) {
-                    return o1.size() - o2.size();
-                }
-            });
 
-            List<String> newResult = Lists
-                    .newArrayList(Collections2.transform(Collections2.filter(bestCandidate, new Predicate<Node>() {
-                        @Override
-                        public boolean apply(@Nullable Node input) {
-                            return !usedCols.contains(input);
-                        }
-                    }), new Function<Node, String>() {
-                        @Nullable
-                        @Override
-                        public String apply(@Nullable Node input) {
-                            return input.value;
-                        }
-                    }));
+        Iterator<SortedSet<Node>> candIter = sortedCands.iterator();
+        while (candIter.hasNext()) {
+            SortedSet<Node> bestCandidate = candIter.next();
 
-            if (newResult.size() > 1) {
-                results.add(newResult);
+            if (CollectionUtils.containsAny(bestCandidate, usedCols)) {
+                continue;
             }
 
+            if (bestCandidate.size() <= 1) {
+                continue;
+            }
+
+            results.addAll(splitWithSizeLimit(bestCandidate));
             usedCols.addAll(bestCandidate);
-            candidates.remove(bestCandidate);
         }
 
+        return results;
+    }
+
+    private List<List<String>> splitWithSizeLimit(Set<Node> list) {
+        List<List<String>> results = Lists.newArrayList();
+
+        List<String> currentResult = Lists.newArrayList();
+        for (Node s : list) {
+            if (currentResult.size() >= smartConfig.getJointColNumMax()) {
+                results.add(currentResult);
+                currentResult = Lists.newArrayList();
+            }
+            currentResult.add(s.value);
+        }
+
+        if (currentResult.size() > 1) {
+            results.add(currentResult);
+        }
         return results;
     }
 
@@ -148,29 +164,6 @@ public class RelationJointAggrGroupRecorder {
         private Node(String value, double cost) {
             this.value = value;
             this.cost = cost;
-        }
-
-        void buildAllPath(final SortedSet<Node> path, Set<SortedSet<Node>> result) {
-            if (!neighbor.containsAll(path)) {
-                return;
-            }
-
-            path.add(this);
-            Collection<Node> children = Collections2.filter(neighbor, new Predicate<Node>() {
-                @Override
-                public boolean apply(@Nullable Node input) {
-                    return !path.contains(input);
-                }
-            });
-
-            if (children.isEmpty() && path.size() > 1 && path.size() <= smartConfig.getJointColNumMax()) {
-                result.add(Sets.newTreeSet(path));
-            }
-
-            for (Node child : children) {
-                child.buildAllPath(path, result);
-            }
-            path.remove(this);
         }
 
         @Override
