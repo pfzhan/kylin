@@ -249,12 +249,16 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         addCubeAndModelIntoProject(cube, cubeName);
         doOpts();
 
-        String copyTo = KapConfig.wrap(dstConfig).getReadParquetStoragePath();
-        Path copyFrom = new Path(getMigratingCubeDataPath(cubeName) + "/*");
-        FileStatus[] status = hdfsFS.globStatus(copyFrom);
-        Path[] paths = FileUtil.stat2Paths(status);
-        for (Path p : paths) {
-            FileUtil.copy(hdfsFS, p, hdfsFS, new Path(copyTo), false, HadoopUtil.getCurrentConfiguration());
+        Path copyTo = new Path(KapConfig.wrap(dstConfig).getReadParquetStoragePath());
+
+        if (!hdfsFS.exists(copyTo))
+            hdfsFS.mkdirs(copyTo);
+
+        Path copyFrom = new Path(getMigratingCubeDataPath(cubeName));
+        FileStatus[] status = hdfsFS.listStatus(copyFrom);
+        for (FileStatus s : status) {
+            logger.info("Copy from: {} to: {}", s.getPath(), copyTo);
+            FileUtil.copy(hdfsFS, s.getPath(), hdfsFS, copyTo, true, HadoopUtil.getCurrentConfiguration());
         }
     }
 
