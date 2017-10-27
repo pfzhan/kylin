@@ -374,12 +374,14 @@
           if (this.showStep) {
             var sTop = document.getElementById('scrollBox').scrollTop
             if (sTop < this.beforeScrollPos) {
-              var result = sTop - 100
+              var result = sTop - 16
               document.getElementById('stepList').style.top = result + 'px'
-              // this.beforeScrollPos = document.getElementById('scrollBox').scrollTop
+            }
+            if (sTop === 0) {
+              this.beforeScrollPos = 0
             }
           }
-        }, 100)
+        }, 10)
       },
       transToGmtTime: transToGmtTime,
       currentChange: function (val) {
@@ -405,7 +407,6 @@
         return this.loadJobsList(this.filter)
       },
       sortJobList (column, prop, order) {
-        console.log(column, prop, order)
         let _column = column.column
         if (_column.order === 'ascending') {
           this.filter.reverse = false
@@ -474,22 +475,27 @@
         })
       },
       showLineSteps: function (row, v1, v2) {
-        // var target = v1.currentTarget || v1.srcElement || v1.target
-        // 获取div距离顶部的距离
-        // var mTop = target.offsetTop
+        var needShow = false
         // 减去滚动条的高度
-        var sTop = document.getElementById('scrollBox').scrollTop
-        // alert(sTop)
-        // console.log(mTop, sTop, 99001)
-        this.beforeScrollPos = sTop
-        var result = sTop - 100
-        document.getElementById('stepList').style.top = result + 'px'
         if (row.uuid !== this.selected_job.uuid) {
-          this.showStep = true
+          needShow = true
         } else {
-          this.showStep = !this.showStep
+          needShow = !this.showStep
         }
-        this.selected_job = row
+        this.showStep = false
+        this.$nextTick(() => {
+          this.showStep = needShow
+          var sTop = document.getElementById('scrollBox').scrollTop
+          this.beforeScrollPos = sTop
+          var result = sTop
+          if (sTop > 129) {
+            result = sTop - 144
+          } else {
+            result = -16
+          }
+          document.getElementById('stepList').style.top = result + 'px'
+          this.selected_job = row
+        })
       },
       clickKey: function (step) {
         this.stepAttrToShow = 'cmd'
