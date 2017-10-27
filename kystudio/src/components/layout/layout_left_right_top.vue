@@ -60,7 +60,7 @@
           <!--</transition>-->
         </el-col>
         <el-dialog :title="$t('kylinLang.common.project')" v-model="FormVisible" @close="resetProjectForm">
-          <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible">
+          <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible" :isEdit="isEdit">
           </project_edit>
           <span slot="footer" class="dialog-footer">
             <el-button @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -112,6 +112,7 @@
       return {
         projectSaveLoading: false,
         project: {},
+        isEdit: false,
         FormVisible: false,
         currentPathName: 'DesignModel',
         currentPathNameParent: 'Model',
@@ -312,6 +313,7 @@
         this._isAjaxProjectAcess(this.$store.state.project.allProject, val, this.$store.state.project.projectEndAccess, currentPath)
       },
       addProject () {
+        this.isEdit = false
         this.FormVisible = true
         this.project = {name: '', description: '', override_kylin_properties: {}}
       },

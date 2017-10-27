@@ -2,10 +2,10 @@
   <div class="project_edit">
     <el-form label-position="top" :model="projectDesc" :rules="rules" ref="projectForm">
       <el-form-item :label="$t('projectName')" prop="name">
-        <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off"></el-input>
+        <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off" :disabled="isEdit"></el-input>
       </el-form-item>
       <el-form-item :label="$t('description')" prop="description">
-        <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off"></el-input>
+        <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off" :disabled="isEdit"></el-input>
       </el-form-item>
       <el-form-item :label="$t('projectConfig')" prop="configuration">
         <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
@@ -32,7 +32,7 @@
 import { fromObjToArr, fromArrToObj } from '../../util/index'
 export default {
   name: 'project_edit',
-  props: ['project', 'visible'],
+  props: ['project', 'visible', 'isEdit'],
   data () {
     return {
       convertedProperties: fromObjToArr(this.project.override_kylin_properties),
@@ -114,13 +114,26 @@ export default {
   }
 }
 </script>
-<style>
-.project_edit .project-config {
-  height: 30px;
-  line-height: 30px;
-}
-.project_edit .el-form-item .el-icon-close {
-  font-weight: 700;
-  transform: rotate(45deg) scale(0.6);
-}
+<style lang="less">
+  @import url(../../less/config.less);
+  .project_edit {
+    .project-config {
+      height: 30px;
+      line-height: 30px;
+    }
+    .el-input.is-disabled {
+      .el-input__inner {
+        border-color: #7881aa;
+      }
+    }
+    .el-textarea.is-disabled {
+      .el-textarea__inner {
+        border-color: #7881aa!important;
+      } 
+    }
+  }
+  .project_edit .el-form-item .el-icon-close {
+    font-weight: 700;
+    transform: rotate(45deg) scale(0.6);
+  }
 </style>

@@ -61,7 +61,7 @@
       </el-select>
     </el-form-item>
     <el-form-item :label="getReturnTypeLab" >
-      <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || measure.function.expression === 'PERCENTILE' || measure.function.parameter.type === 'constant'">
+      <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || measure.function.expression === 'PERCENTILE' || (measure.function.parameter.type === 'constant' && measure.function.expression !== 'TOP_N')">
         {{getReturnType}}
       </el-tag>
       <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'COUNT_DISTINCT'">
@@ -616,6 +616,30 @@ export default {
             }
           }
         }
+        if (this.measure.function.expression === 'COUNT_DISTINCT') {
+          if (this.measure.function.parameter.value === '') {
+            this.$message({
+              showClose: true,
+              duration: 0,
+              message: this.$t('countDistParamValueNull'),
+              type: 'error'
+            })
+            return false
+          }
+          if (this.convertedColumns.length > 0) {
+            for (let i = 0; i < this.convertedColumns.length; i++) {
+              if (this.convertedColumns[i].column === '') {
+                this.$message({
+                  showClose: true,
+                  duration: 0,
+                  message: this.$t('emptyCountDistColumnsTip'),
+                  type: 'error'
+                })
+                return false
+              }
+            }
+          }
+        }
         let hasExisted = []
         for (let column in this.convertedColumns) {
           if (hasExisted.indexOf(this.convertedColumns[column].column) === -1) {
@@ -785,8 +809,8 @@ export default {
     })
   },
   locales: {
-    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.', nameReuse: 'The measure name is reused.', convertedColumnsTip: '[ TOP_N] Group by Column is required', emptyColumnsTip: '[ TOP_N] Group by Column should not be empty.', paramValueNull: 'Param Value is required', topnParamValueNull: '[ TOP_N] ORDER|SUM by Column  is required', returntypeNull: 'Return Type is required', duplicateColumnPartOne: 'The column named [ ', duplicateColumnPartTwo: ' ] already exists.'},
-    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称', nameReuse: 'Measure名称已被使用', convertedColumnsTip: '[ TOP_N] 的Group by Column不能为空', emptyColumnsTip: '[ TOP_N] 的Group by Column不能为空。', paramValueNull: 'Param Value 不能为空', topnParamValueNull: '[ TOP_N] 的ORDER|SUM by Column不能为空', returntypeNull: '返回类型不能为空', duplicateColumnPartOne: '名为 [ ', duplicateColumnPartTwo: '] 的度量已经存在。'}
+    'en': {name: 'Name', expression: 'Expression', paramType: 'Param Type', paramValue: 'Param Value', returnType: 'Return Type', includeDimensions: 'Include Dimensions', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: 'Column', encoding: 'Encoding', length: 'Length', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: 'Reuse', newColumn: 'New Column', requiredName: 'The measure name is required.', nameReuse: 'The measure name is reused.', convertedColumnsTip: '[ TOP_N] Group by Column is required', emptyColumnsTip: '[ TOP_N] Group by Column should not be empty.', emptyCountDistColumnsTip: '[ COUNT_DISTINCT] Column should not be empty.', paramValueNull: 'Param Value is required', topnParamValueNull: '[ TOP_N] ORDER|SUM by Column  is required.', countDistParamValueNull: '[ COUNT_DISTINCT]  ORDER|SUM by Column  is required.', returntypeNull: 'Return Type is required', duplicateColumnPartOne: 'The column named [ ', duplicateColumnPartTwo: ' ] already exists.'},
+    'zh-cn': {name: '名称', expression: '表达式', paramType: '参数类型', paramValue: '参数值', returnType: '返回类型', includeDimensions: '包含维度', ORDERSUM: 'ORDER|SUM by Column', groupByColumn: 'Group by Column', ID: 'ID', column: '列', encoding: '编码', length: '长度', hostColumn: 'Host column On Fact Table', extendedColumn: 'Extended column On Fact Table', extendedColumnLength: 'Maximum length of extended column', reuse: '复用', newColumn: '新加列', requiredName: '请输入Measure名称', nameReuse: 'Measure名称已被使用', convertedColumnsTip: '[ TOP_N] 的Group by Column不能为空', emptyColumnsTip: '[ TOP_N] 的Group by Column不能为空。', emptyCountDistColumnsTip: '[ COUNT_DISTINCT] 的Column不能为空。', paramValueNull: 'Param Value 不能为空。', topnParamValueNull: '[ TOP_N] 的ORDER|SUM by Column不能为空。', countDistParamValueNull: '[ COUNT_DISTINCT] 的ORDER|SUM by Column不能为空。', returntypeNull: '返回类型不能为空', duplicateColumnPartOne: '名为 [ ', duplicateColumnPartTwo: '] 的度量已经存在。'}
   }
 }
 </script>
@@ -854,7 +878,6 @@ export default {
     }
     .el-tag{
       position: relative;
-      top: 12px;
     }
     .el-dialog__body .el-input{
       padding: 0!important;

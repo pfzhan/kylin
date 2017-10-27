@@ -1136,6 +1136,11 @@ export default {
     }
   }
   .dimension-type{
+    .el-tag--primary:hover {
+      background: rgba(33,143,234,0.1);
+      color: rgb(33,143,234);
+      border-color: rgba(33,143,234,0.2);
+    }
     .normal, .direved{
       height: 25px;
       border-radius: 3px;
