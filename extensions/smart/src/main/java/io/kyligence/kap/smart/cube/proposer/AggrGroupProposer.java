@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.cube.model.AggregationGroup;
@@ -41,8 +42,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.ArrayUtils;
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.cube.proposer.recorder.FragmentJointAggrGroupRecorder;
 import io.kyligence.kap.smart.cube.proposer.recorder.HierarchyAggGroupRecorder;
@@ -62,11 +65,6 @@ public class AggrGroupProposer extends AbstractCubeProposer {
 
     @Override
     public void doPropose(CubeDesc workCubeDesc) {
-        if (!context.hasModelStats() && !context.hasQueryStats()) {
-            logger.debug("No model stats or query stats found, skip proposing aggregation groups.");
-            return;
-        }
-
         KylinConfigExt configExt = (KylinConfigExt) workCubeDesc.getConfig();
         Utils.removeCuboidCombinationConf(configExt.getExtendedOverrides());
 
@@ -102,7 +100,7 @@ public class AggrGroupProposer extends AbstractCubeProposer {
         final CubeDesc workCubeDesc;
         final Map<String, Long> colCardinalityMap;
         final List<String> aggGroupCandidates;
-        final List<String> mandatoryCandidates = Lists.newArrayList();
+        final Set<String> mandatoryCandidates = Sets.newHashSet();
         final RelationJointAggrGroupRecorder relationJointAggRecorder = new RelationJointAggrGroupRecorder(smartConfig);
         final HierarchyAggGroupRecorder hierAggRecorder = new HierarchyAggGroupRecorder();
         final FragmentJointAggrGroupRecorder fragmentRecorder = new FragmentJointAggrGroupRecorder(smartConfig);
@@ -123,7 +121,6 @@ public class AggrGroupProposer extends AbstractCubeProposer {
             }
 
             aggGroupCandidates = Lists.newArrayList(includes);
-
             Collections.sort(aggGroupCandidates, new Comparator<String>() {
                 @Override
                 public int compare(String o1, String o2) {
@@ -139,6 +136,13 @@ public class AggrGroupProposer extends AbstractCubeProposer {
         }
 
         private void buildMandatory() {
+            if (workCubeDesc.getModel() instanceof KapModel) {
+                List<String> mpCols = Arrays
+                        .asList(((KapModel) (workCubeDesc.getModel())).getMutiLevelPartitionColStrs());
+                mandatoryCandidates.addAll(mpCols);
+                aggGroupCandidates.removeAll(mpCols);
+            }
+
             Iterator<String> candidatesItr = aggGroupCandidates.iterator();
             // according to table stats
             if (context.hasTableStats()) {
@@ -284,8 +288,7 @@ public class AggrGroupProposer extends AbstractCubeProposer {
                 long cuboids = getEstimatedCuboidCombination();
                 int retry = 0;
                 while (cuboids > smartConfig.getAggGroupStrictCombinationMax()
-                        && retry++ < smartConfig.getAggGroupStrictRetryMax()
-                        && dimCap > smartConfig.getDimCapMin()) {
+                        && retry++ < smartConfig.getAggGroupStrictRetryMax() && dimCap > smartConfig.getDimCapMin()) {
                     aggGroup.getSelectRule().dimCap = --dimCap;
                     cuboids = getEstimatedCuboidCombination();
                 }

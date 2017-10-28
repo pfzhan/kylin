@@ -11,6 +11,7 @@
   ],
   "models": [
     "kylin_sales_model",
-    "kylin_sales_model_star"
+    "kylin_sales_model_star",
+    "mp"
   ]
 }

@@ -40,12 +40,14 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -77,6 +79,9 @@ import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.cube.raw.RawTableSegment;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
+import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.rest.msg.KapMessage;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.response.ColumnarResponse;
 import io.kyligence.kap.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
@@ -415,4 +420,24 @@ public class KapCubeService extends BasicService implements InitializingBean {
                     String.format(msg.getINCONSISTENT_CUBE_DESC_SIGNATURE(), cube.getDescriptor()));
         }
     }
+
+    public void validateMPDimensions(CubeDesc cubeDesc, KapModel model) {
+        TblColRef[] mpCols = model.getMutiLevelPartitionCols();
+        RowKeyColDesc[] rowKeyCols = cubeDesc.getRowkey().getRowKeyColumns();
+        for (TblColRef c : mpCols) {
+            if (existInRowKeys(c, rowKeyCols) == false) {
+                KapMessage msg = KapMsgPicker.getMsg();
+                throw new BadRequestException(msg.getMPCUBE_REQUIRES_MPCOLS() + ": " + c.getIdentity());
+            }
+        }
+    }
+
+    private boolean existInRowKeys(TblColRef c, RowKeyColDesc[] rowKeyCols) {
+        for (RowKeyColDesc rkey : rowKeyCols) {
+            if (rkey.getColumn().equals(c.getIdentity()))
+                return true;
+        }
+        return false;
+    }
+
 }

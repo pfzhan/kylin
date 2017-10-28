@@ -45,6 +45,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.query.Utils;
 
 public class CubeDescUtil {
@@ -78,6 +79,7 @@ public class CubeDescUtil {
 
         // fill aggregation groups
         fillCubeDefaultAggGroups(cubeDesc);
+        fillAggregationGroupsForMPCube(cubeDesc);
 
         Utils.setLargeCuboidCombinationConf(cubeDesc.getOverrideKylinProps());
         if (cubeDesc.getRowkey().getRowKeyColumns().length > 63) {
@@ -101,53 +103,6 @@ public class CubeDescUtil {
         cubeDesc.setAggregationGroups(Lists.newArrayList(aggregationGroup));
     }
 
-    public static void addRowKeyToAggGroup(AggregationGroup aggGroup, String rowKeyName) {
-        if (aggGroup == null) {
-            return;
-        }
-
-        if (aggGroup.getIncludes() == null) {
-            aggGroup.setIncludes(new String[0]);
-        }
-
-        if (!ArrayUtils.contains(aggGroup.getIncludes(), rowKeyName)) {
-            String[] includes = new String[aggGroup.getIncludes().length + 1];
-            System.arraycopy(aggGroup.getIncludes(), 0, includes, 0, aggGroup.getIncludes().length);
-            includes[includes.length - 1] = rowKeyName;
-            aggGroup.setIncludes(includes);
-        }
-    }
-
-    public static void removeRowKeyFromAggGroup(AggregationGroup aggGroup, String rowKeyName) {
-        if (aggGroup == null || aggGroup.getIncludes() == null) {
-            return;
-        }
-
-        if (ArrayUtils.contains(aggGroup.getIncludes(), rowKeyName)) {
-            aggGroup.setIncludes((String[]) ArrayUtils.removeElement(aggGroup.getIncludes(), rowKeyName));
-
-            SelectRule selectRule = aggGroup.getSelectRule();
-            if (selectRule != null) {
-                if (ArrayUtils.contains(selectRule.mandatoryDims, rowKeyName)) {
-                    ArrayUtils.removeElement(selectRule.mandatoryDims, rowKeyName);
-                } else {
-                    for (String[] joints : selectRule.jointDims) {
-                        if (ArrayUtils.contains(joints, rowKeyName)) {
-                            ArrayUtils.removeElement(joints, rowKeyName);
-                            return;
-                        }
-                    }
-                    for (String[] hiers : selectRule.hierarchyDims) {
-                        if (ArrayUtils.contains(hiers, rowKeyName)) {
-                            ArrayUtils.removeElement(hiers, rowKeyName);
-                            return;
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     public static FunctionDesc newFunctionDesc(DataModelDesc modelDesc, String expression, ParameterDesc param,
             String returnType) {
         // SUM() may cause overflow on int family, will change precision here.
@@ -167,5 +122,40 @@ public class CubeDescUtil {
         FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
         ret.init(modelDesc);
         return ret;
+    }
+
+    public static DimensionDesc newDimensionDesc(TblColRef colRef) {
+        DimensionDesc dimension = new DimensionDesc();
+        dimension.setName(colRef.getIdentity());
+        dimension.setTable(colRef.getTableAlias());
+        dimension.setColumn(colRef.getName());
+        return dimension;
+    }
+
+    public static void fillAggregationGroupsForMPCube(CubeDesc cubeDesc) {
+        DataModelDesc modelDesc = cubeDesc.getModel();
+        if (modelDesc instanceof KapModel) {
+            KapModel kapModel = (KapModel) modelDesc;
+            TblColRef[] mpCols = kapModel.getMutiLevelPartitionCols();
+
+            for (AggregationGroup aggr : cubeDesc.getAggregationGroups()) {
+                aggr.setIncludes(addColsToStrs(aggr.getIncludes(), mpCols));
+                SelectRule selectRule = aggr.getSelectRule();
+                selectRule.mandatoryDims = addColsToStrs(selectRule.mandatoryDims, mpCols);
+            }
+        }
+    }
+
+    private static String[] addColsToStrs(String[] strs, TblColRef[] mpCols) {
+        if (strs == null)
+            strs = new String[0];
+
+        for (TblColRef col : mpCols) {
+            String colStr = col.getIdentity();
+            if (!ArrayUtils.contains(strs, colStr)) {
+                strs = (String[]) ArrayUtils.add(strs, colStr);
+            }
+        }
+        return strs;
     }
 }

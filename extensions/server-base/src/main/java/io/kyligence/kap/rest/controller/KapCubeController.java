@@ -38,7 +38,6 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.cube.model.SelectRule;
 import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.model.Segments;
@@ -284,28 +283,13 @@ public class KapCubeController extends BasicController implements InitializingBe
         }
 
         // make MP columns mandatory in aggregation groups
+        kapCubeService.validateMPDimensions(cubeDesc, model);
         TblColRef[] mpCols = model.getMutiLevelPartitionCols();
-        RowKeyColDesc[] rowKeyCols = cubeDesc.getRowkey().getRowKeyColumns();
-        for (TblColRef c : mpCols) {
-            if (existInRowKeys(c, rowKeyCols) == false) {
-                KapMessage msg = KapMsgPicker.getMsg();
-                throw new BadRequestException(msg.getMPCUBE_REQUIRES_MPCOLS() + ": " + c.getIdentity());
-            }
-        }
-
         for (AggregationGroup aggr : cubeDesc.getAggregationGroups()) {
             aggr.setIncludes(addColsToStrs(aggr.getIncludes(), mpCols));
             SelectRule selectRule = aggr.getSelectRule();
             selectRule.mandatoryDims = addColsToStrs(selectRule.mandatoryDims, mpCols);
         }
-    }
-
-    private boolean existInRowKeys(TblColRef c, RowKeyColDesc[] rowKeyCols) {
-        for (RowKeyColDesc rkey : rowKeyCols) {
-            if (rkey.getColumn().equals(c.getIdentity()))
-                return true;
-        }
-        return false;
     }
 
     private String[] addColsToStrs(String[] strs, TblColRef[] mpCols) {

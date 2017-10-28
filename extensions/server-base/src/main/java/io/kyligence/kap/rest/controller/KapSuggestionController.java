@@ -116,7 +116,6 @@ public class KapSuggestionController extends BasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse proposeAggGroups(@RequestBody CubeRequest cubeRequest) throws IOException {
-
         CubeDesc cubeDesc = deserializeCubeDesc(cubeRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.proposeAggGroups(cubeDesc), "");
     }

@@ -100,11 +100,11 @@ public class KapModel extends DataModelDesc {
     }
 
     private void initMultilevelPartitionCols() {
+        mpCols = new TblColRef[mpColStrs.length];
         if (mpColStrs.length == 0)
             return;
 
         StringUtil.toUpperCaseArray(mpColStrs, mpColStrs);
-        mpCols = new TblColRef[mpColStrs.length];
 
         for (int i = 0; i < mpColStrs.length; i++) {
             mpCols[i] = findColumn(mpColStrs[i]);

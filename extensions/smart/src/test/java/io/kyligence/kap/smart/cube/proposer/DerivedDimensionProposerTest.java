@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -35,6 +36,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.cube.CubeContextBuilder;
 import io.kyligence.kap.smart.query.Utils;
@@ -59,12 +61,36 @@ public class DerivedDimensionProposerTest {
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        Assert.assertEquals(28, initCubeDesc.getDimensions().size());
+        initCubeDesc.init(kylinConfig);
+        Assert.assertEquals(28, initCubeDesc.listDimensionColumnsExcludingDerived(false).size());
 
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(26, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(22, newCubeDesc.listDimensionColumnsExcludingDerived(false).size());
+    }
+
+    @Test
+    public void testOnMPModel() throws JsonProcessingException {
+        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig).getDataModelDesc("mp");
+        TblColRef[] mpCols = modelDesc.getMutiLevelPartitionCols();
+
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
+
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        initCubeDesc.init(kylinConfig);
+
+        Assert.assertEquals(28, initCubeDesc.listDimensionColumnsExcludingDerived(false).size());
+        Assert.assertTrue(initCubeDesc.listAllColumns().contains(mpCols[0]));
+
+        DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        Assert.assertEquals(25, newCubeDesc.listDimensionColumnsExcludingDerived(false).size());
+        for (TblColRef mpColRef : modelDesc.getMutiLevelPartitionCols()) {
+            Assert.assertTrue(newCubeDesc.listDimensionColumnsExcludingDerived(false).contains(mpColRef));
+        }
     }
 
     @Test
@@ -74,12 +100,13 @@ public class DerivedDimensionProposerTest {
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        Assert.assertEquals(32, initCubeDesc.getDimensions().size());
+        initCubeDesc.init(kylinConfig);
+        Assert.assertEquals(32, initCubeDesc.listDimensionColumnsExcludingDerived(false).size());
 
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(28, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(22, newCubeDesc.listDimensionColumnsExcludingDerived(false).size());
     }
 
     @Test
@@ -90,11 +117,12 @@ public class DerivedDimensionProposerTest {
                 new String[] { "select count(*) from kylin_sales" });
 
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        Assert.assertEquals(32, initCubeDesc.getDimensions().size());
+        initCubeDesc.init(kylinConfig);
+        Assert.assertEquals(32, initCubeDesc.listDimensionColumnsExcludingDerived(false).size());
 
         DerivedDimensionProposer proposer = new DerivedDimensionProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
-        Assert.assertEquals(28, newCubeDesc.getDimensions().size());
+        Assert.assertEquals(22, newCubeDesc.listDimensionColumnsExcludingDerived(false).size());
     }
 }

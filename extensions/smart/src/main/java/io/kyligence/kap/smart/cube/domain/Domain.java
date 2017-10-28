@@ -45,6 +45,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.util.CubeDescUtil;
 
 public class Domain {
@@ -96,15 +97,23 @@ public class Domain {
 
     private void fillDimensions(CubeDesc cubeDesc) {
         // fill dimensions
-        List<DimensionDesc> dimensions = new ArrayList<>();
-        for (TblColRef colRef : this.getDimensions()) {
-            DimensionDesc dimension = new DimensionDesc();
-            dimension.setName(colRef.getIdentity());
-            dimension.setTable(colRef.getTableAlias());
-            dimension.setColumn(colRef.getName());
-            dimensions.add(dimension);
+        List<DimensionDesc> cubeDims = new ArrayList<>();
+        for (TblColRef colRef : dimensions) {
+            cubeDims.add(CubeDescUtil.newDimensionDesc(colRef));
         }
-        cubeDesc.setDimensions(dimensions);
+
+        if (model instanceof KapModel) {
+            // Partition columns of MPCubes must appear in rowkey, and be added as mandatory in each aggregation groups.
+            KapModel kapModel = (KapModel) model;
+            TblColRef[] mpCols = kapModel.getMutiLevelPartitionCols();
+
+            for (TblColRef c : mpCols) {
+                if (dimensions.contains(c))
+                    continue;
+                cubeDims.add(CubeDescUtil.newDimensionDesc(c));
+            }
+        }
+        cubeDesc.setDimensions(cubeDims);
     }
 
     private void fillMeasures(CubeDesc cubeDesc) {

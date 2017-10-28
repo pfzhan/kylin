@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart.cube.proposer;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,6 +44,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.util.CubeDescUtil;
 
@@ -99,9 +101,6 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
         List<DimensionDesc> origDims = workCubeDesc.getDimensions();
         for (DimensionDesc origDim : origDims) {
             if (origDim.isDerived()) {
-                //                for (TblColRef fkCol : origDim.getJoin().getForeignKeyColumns()) {
-                //                    result.add(newDimensionDesc(workCubeDesc, fkCol.getName(), fkCol.getTableAlias(), fkCol.getIdentity(), null));
-                //                }
                 for (TblColRef derivedCol : origDim.getColumnRefs()) {
                     DimensionDesc newDim = newDimensionDesc(workCubeDesc, derivedCol.getName(),
                             derivedCol.getTableAlias(), derivedCol.getIdentity(), null);
@@ -122,6 +121,12 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
             double derivedRatio) {
         Set<DimensionDesc> workDimensions = Sets.newHashSet();
         DataModelDesc modelDesc = context.getModelDesc();
+
+        // MP Columns must be set as normal
+        Set<TblColRef> normalWhitelist = Sets.newHashSet();
+        if (modelDesc instanceof KapModel) {
+            Collections.addAll(normalWhitelist, ((KapModel) modelDesc).getMutiLevelPartitionCols());
+        }
 
         // backup all FKs from joins
         Map<TblColRef, TableRef> allFKCols = Maps.newHashMap();
@@ -166,7 +171,7 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
             // try to convert normal to derived one by one
             for (DimensionDesc tblDim : tblDims.getValue()) {
                 TblColRef dimColRef = tblDim.getColumnRefs()[0]; // normal dimension only has 1 colRef
-                if (!allFKCols.containsKey(dimColRef)) {
+                if (!normalWhitelist.contains(dimColRef) && !allFKCols.containsKey(dimColRef)) {
                     long colCardinality = context.getColumnsCardinality(dimColRef.getIdentity());
                     double colCardRatio = (double) colCardinality / (double) fKeyCardinality;
                     if (colCardRatio > derivedRatio) {
@@ -178,7 +183,7 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
                         workDimensions.add(tblDim);
                     }
                 } else {
-                    workDimensions.add(tblDim); // keep FK as normal
+                    workDimensions.add(tblDim); // keep as normal
                 }
             }
 

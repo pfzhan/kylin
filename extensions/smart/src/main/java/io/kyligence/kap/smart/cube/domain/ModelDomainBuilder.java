@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.cube.domain;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.util.CubeDescUtil;
 
 public class ModelDomainBuilder implements IDomainBuilder {
@@ -63,6 +65,11 @@ public class ModelDomainBuilder implements IDomainBuilder {
                     dimensionCols.add(colRef);
                 }
             }
+        }
+
+        if (modelDesc instanceof KapModel) {
+            KapModel kapModel = (KapModel) modelDesc;
+            Collections.addAll(dimensionCols, kapModel.getMutiLevelPartitionCols());
         }
 
         // Setup measures

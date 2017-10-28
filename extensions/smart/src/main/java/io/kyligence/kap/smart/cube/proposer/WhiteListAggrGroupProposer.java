@@ -39,6 +39,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.cube.CubeContext;
+import io.kyligence.kap.smart.util.CubeDescUtil;
 
 public class WhiteListAggrGroupProposer extends AbstractCubeProposer {
     private static final Logger logger = LoggerFactory.getLogger(WhiteListAggrGroupProposer.class);
@@ -90,5 +91,7 @@ public class WhiteListAggrGroupProposer extends AbstractCubeProposer {
             aggGroups.add(aggGroup);
         }
         workCubeDesc.setAggregationGroups(aggGroups);
+
+        CubeDescUtil.fillAggregationGroupsForMPCube(workCubeDesc);
     }
 }

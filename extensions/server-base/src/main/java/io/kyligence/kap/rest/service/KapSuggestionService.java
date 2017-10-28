@@ -40,12 +40,15 @@ import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.rest.service.BasicService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.cube.CubeMaster;
@@ -61,6 +64,11 @@ import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
 @Component("kapSuggestionService")
 public class KapSuggestionService extends BasicService {
+
+    @Autowired
+    @Qualifier("kapCubeService")
+    private KapCubeService kapCubeService;
+
     public void saveSampleSqls(String modelName, String cubeName, List<String> sampleSqls) throws Exception {
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
         CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
@@ -109,6 +117,9 @@ public class KapSuggestionService extends BasicService {
     }
 
     public CubeDesc proposeAggGroups(CubeDesc cubeDesc) throws IOException {
+        kapCubeService.validateMPDimensions(cubeDesc,
+                (KapModel) getDataModelManager().getDataModelDesc(cubeDesc.getModelName()));
+
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 
@@ -138,8 +149,8 @@ public class KapSuggestionService extends BasicService {
         }
     }
 
-    public List<SQLValidateResult> validateModelSqls(String project, String modelName, String factTable, List<String> sqls)
-            throws IOException {
+    public List<SQLValidateResult> validateModelSqls(String project, String modelName, String factTable,
+            List<String> sqls) throws IOException {
         try (SetThreadName ignored = new SetThreadName("Suggestion %s",
                 Long.toHexString(Thread.currentThread().getId()))) {
 

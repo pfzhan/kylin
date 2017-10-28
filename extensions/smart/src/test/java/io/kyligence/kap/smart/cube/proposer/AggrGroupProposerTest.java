@@ -25,7 +25,9 @@
 package io.kyligence.kap.smart.cube.proposer;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
@@ -39,6 +41,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.cube.CubeContextBuilder;
 import io.kyligence.kap.smart.query.Utils;
@@ -69,6 +72,45 @@ public class AggrGroupProposerTest {
 
         SelectRule rule = newCubeDesc.getAggregationGroups().get(0).getSelectRule();
         Assert.assertTrue(rule.hierarchyDims.length + rule.jointDims.length + rule.mandatoryDims.length > 0);
+    }
+
+    @Test
+    public void testOnMPModel() throws JsonProcessingException {
+        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig).getDataModelDesc("mp");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        newCubeDesc.validateAggregationGroups();
+
+        List<AggregationGroup> aggGroups = newCubeDesc.getAggregationGroups();
+        for (AggregationGroup aggGroup : aggGroups) {
+            for (String mpCol : modelDesc.getMpColStrs()) {
+                Assert.assertTrue(ArrayUtils.contains(aggGroup.getSelectRule().mandatoryDims, mpCol));
+            }
+        }
+    }
+
+    @Test
+    public void testOnMPModelWithSQL() throws JsonProcessingException {
+        KapModel modelDesc = (KapModel) DataModelManager.getInstance(kylinConfig).getDataModelDesc("mp");
+        CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
+        CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
+                new String[] { "select count(*) from kylin_sales" });
+        CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
+        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
+        newCubeDesc.init(kylinConfig);
+        newCubeDesc.validateAggregationGroups();
+
+        List<AggregationGroup> aggGroups = newCubeDesc.getAggregationGroups();
+        for (AggregationGroup aggGroup : aggGroups) {
+            for (String mpCol : modelDesc.getMpColStrs()) {
+                Assert.assertTrue(ArrayUtils.contains(aggGroup.getSelectRule().mandatoryDims, mpCol));
+            }
+        }
     }
 
     @Test
