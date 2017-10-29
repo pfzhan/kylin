@@ -33,9 +33,10 @@ import org.apache.kylin.metadata.model.PartitionDesc.IPartitionConditionBuilder;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.model.KapModel;
 
-public class MPSqlCondBuilder implements IPartitionConditionBuilder {
+public class MPSqlCondBuilder implements IPartitionConditionBuilder, IKeepNames {
 
     @Override
     public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
