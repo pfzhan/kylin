@@ -105,7 +105,7 @@ export default {
           break
         }
       }
-      this.$emit('removeTag', data.value)
+      this.$emit('removeTag', data.value, this.refreshInfo)
     },
     selectTag (e) {
       var ev = e || window.event

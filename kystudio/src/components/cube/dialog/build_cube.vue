@@ -2,7 +2,7 @@
   <el-form id="build-cube" :model="timeZone" label-position="top" :rules="rules" ref="buildCubeForm">
 
     <div v-if="cubeDesc.multilevel_partition_cols.length > 0">
-      <el-form-item :label="$t('kylinLang.model.primaryPartitionColumn')" >
+      <el-form-item :label="$t('primaryPartitionColumn')" >
         <el-tag>{{cubeDesc.multilevel_partition_cols[0]}}</el-tag>
       </el-form-item>
       <el-form-item :label="$t('partitionValues')" prop="mpValues">
@@ -200,8 +200,8 @@ export default {
   },
 
   locales: {
-    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.'},
-    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。'}
+    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column'},
+    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列'}
   }
 }
 </script>

@@ -92,7 +92,7 @@
                 </el-row>
                 <el-row>
                   <el-col :span="24" class="includes_tag">
-                    <area_label ref="includesSelect" :disabled="isReadyCube" :labels="convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" >
+                    <area_label ref="includesSelect" :disabled="isReadyCube" :labels="rowkeyColumns.convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" @removeTag="removeIncludes">
                     </area_label>
                   </el-col>
                 </el-row>
@@ -191,7 +191,7 @@
         </el-col>
       </el-row> -->
       <div class="ksd-mb-20" style="color:grey">{{$t('dragtips')}}</div>
-      <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length && convertedRowkeys.length">
+      <div class="ksd-common-table rowkeys" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length && rowkeyColumns.convertedRowkeys.length">
        <el-row class="tableheader" >
          <el-col :span="1">{{$t('ID')}}</el-col>
          <el-col :span="9">{{$t('column')}}</el-col>
@@ -201,7 +201,7 @@
          <el-col :span="4">{{$t('dataType')}}</el-col>
          <el-col :span="2">{{$t('cardinality')}}</el-col>
        </el-row>
-        <el-row  :disabled="isReadyCube"  v-show="convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in convertedRowkeys"  v-dragging="{ item: row, list: convertedRowkeys, group: 'row' }" :key="row.column">
+        <el-row  :disabled="isReadyCube"  v-show="rowkeyColumns.convertedRowkeys.length" class="tablebody dimension-row" v-for="(row, index) in rowkeyColumns.convertedRowkeys"  v-dragging="{ item: row, list: rowkeyColumns.convertedRowkeys, group: 'row' }" :key="row.column">
           <el-col :span="1">{{index+1}}</el-col>
           <el-col :span="9" style="word-wrap: break-word; white-space:nowrap;text-overflow: ellipsis;overflow: hidden;border-left:solid 1px #393e53;">
            <common-tip placement="right" :tips="row.column" class="drag_bar">{{row.column}}</common-tip></el-col>
@@ -303,24 +303,23 @@ export default {
       activeName: 'first',
       dim_cap: 0,
       totalCuboid: 0,
-      sqlBtnLoading: false,
       applyLoading: false,
       addDimensionsFormVisible: false,
       addSQLFormVisible: false,
-      selected_dimension: {},
-      sqlString: '',
       selected_project: this.modelDesc.project,
       pfkMap: {},
       cuboidList: [],
       groupErrorList: [],
       shardByType: [{name: 'true', value: true}, {name: 'false', value: false}],
-      rowkeyColumns: [],
-      oldRowkey: [],
-      currentRowkey: [],
-      convertedRowkeys: [],
+      rowkeyColumns: {
+        oldRowkeys: [],
+        currentRowkeys: [],
+        convertedRowkeys: [],
+        removeRowkeys: [],
+        additionRowkeys: []
+      },
       featureData: [],
       modelStatics: [],
-      testSort: [{name: 1}, {name: 2}, {name: 3}, {name: 4}],
       tableStaticsCache: {},
       suggestLoading: false,
       cuboidCache: {},
@@ -347,15 +346,11 @@ export default {
       this.addSQLFormVisible = true
     },
     resetDimensions: function () {
-      // this.cubeDesc.dimensions.splice(0, this.cubeDesc.dimensions.length)
       this.dim_cap = 0
-      // this.totalCuboid = 0
       this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
       this.initRowkeyColumns()
       this.initAggregationGroup(true)
       this.calcAllCuboid()
-      // this.cubeDesc.rowkey.rowkey_columns.splice(0, this.cubeDesc.rowkey.rowkey_columns.length)
-      // this.initConvertedRowkeys()
     },
     showDetail: function (text, target) {
       this.dimensionRightDom.style.paddingTop = (document.getElementById('scrollBox').scrollTop - 180) + 'px'
@@ -405,24 +400,6 @@ export default {
         this.modelStatics.push({ name: i + 1, content: sampleData[i] })
       }
     },
-    // collectSqlToServer () {
-    //   if (this.sqlString !== '') {
-    //     this.sqlBtnLoading = true
-    //     this.saveSampleSql({modelName: this.modelDesc.name, cubeName: this.cubeDesc.name, sqls: this.sqlString.split(/;/)}).then((res) => {
-    //       this.sqlBtnLoading = false
-    //       handleSuccess(res, (data, code, status, msg) => {
-    //         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
-    //         // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
-    //         this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
-    //         this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
-    //         this.addSQLFormVisible = false
-    //       })
-    //     }, (res) => {
-    //       this.sqlBtnLoading = false
-    //       handleError(res)
-    //     })
-    //   }
-    // },
     cubeSuggestions: function () {
       this.suggestLoading = true
       this.getCubeSuggestions({cubeDescData: JSON.stringify(this.cubeDesc)}).then((res) => {
@@ -505,9 +482,7 @@ export default {
         }, 1000)
       })
     },
-    initRowkeyColumns: function (moreRowKeyCallback) {
-      this.currentRowkey.splice(0, this.currentRowkey.length)
-      this.oldRowkey = []
+    initModelLine: function () {
       this.modelDesc.lookups.forEach((lookup) => {
         let table = lookup.alias
         this.pfkMap[table] = {}
@@ -515,19 +490,20 @@ export default {
           this.pfkMap[table][pk] = lookup.join.foreign_key[index]
         })
       })
+    },
+    initRowkeyColumns: function (moreRowKeyCallback) {
+      this.rowkeyColumns.currentRowkeys.splice(0, this.rowkeyColumns.currentRowkeys.length)
+      this.rowkeyColumns.oldRowkeys = []
+      this.rowkeyColumns.removeRowkeys = []
+      this.rowkeyColumns.additionRowkeys = []
       this.cubeDesc.dimensions.forEach((dimension, index) => {
         if (dimension.derived && dimension.derived.length) {
-          let lookup = []
-          this.modelDesc.lookups.forEach(function (lookupTable) {
-            if (lookupTable.alias === dimension.table) {
-              lookup = lookupTable
+          for (let pk in this.pfkMap[dimension.table]) {
+            let fk = this.pfkMap[dimension.table][pk]
+            if (this.rowkeyColumns.currentRowkeys.indexOf(fk) === -1) {
+              this.rowkeyColumns.currentRowkeys.push(fk)
             }
-          })
-          lookup.join.foreign_key.forEach((fk, index) => {
-            if (this.currentRowkey.indexOf(fk) === -1) {
-              this.currentRowkey.push(fk)
-            }
-          })
+          }
         } else if (dimension.column && !dimension.derived) {
           let tableName = dimension.table
           let columnName = dimension.column
@@ -535,16 +511,17 @@ export default {
           if (this.pfkMap[tableName] && this.pfkMap[tableName][columnName]) {
             rowkeyColumn = this.pfkMap[tableName][columnName]
           }
-          if (this.currentRowkey.indexOf(rowkeyColumn) === -1) {
-            this.currentRowkey.push(rowkeyColumn)
+          if (this.rowkeyColumns.currentRowkeys.indexOf(rowkeyColumn) === -1) {
+            this.rowkeyColumns.currentRowkeys.push(rowkeyColumn)
           }
         }
       })
       this.cubeDesc.rowkey.rowkey_columns.forEach((rowkeyColumn) => {
-        this.oldRowkey.push(rowkeyColumn.column)
+        this.rowkeyColumns.oldRowkeys.push(rowkeyColumn.column)
       })
-      this.currentRowkey.forEach((rowkey) => {
-        if (this.oldRowkey.indexOf(rowkey) === -1) {
+      this.rowkeyColumns.currentRowkeys.forEach((rowkey) => {
+        if (this.rowkeyColumns.oldRowkeys.indexOf(rowkey) === -1) {
+          this.rowkeyColumns.additionRowkeys.push(rowkey)
           let baseEncodings = loadBaseEncodings(this.$store.state.datasource)
           this.cubeDesc.rowkey.rowkey_columns.push({
             column: rowkey,
@@ -554,8 +531,9 @@ export default {
           })
         }
       })
-      this.oldRowkey.forEach((rowkey) => {
-        if (this.currentRowkey.indexOf(rowkey) === -1) {
+      this.rowkeyColumns.oldRowkeys.forEach((rowkey) => {
+        if (this.rowkeyColumns.currentRowkeys.indexOf(rowkey) === -1) {
+          this.rowkeyColumns.removeRowkeys.push(rowkey)
           let len = this.cubeDesc.rowkey.rowkey_columns.length
           for (let i = 0; i < len; i++) {
             if (this.cubeDesc.rowkey.rowkey_columns[i].column === rowkey) {
@@ -568,7 +546,7 @@ export default {
       this.initConvertedRowkeys(moreRowKeyCallback)
     },
     initConvertedRowkeys: function (moreRowKeyCallback) {
-      this.convertedRowkeys.splice(0, this.convertedRowkeys.length)
+      this.rowkeyColumns.convertedRowkeys.splice(0, this.rowkeyColumns.convertedRowkeys.length)
       this.$nextTick(() => {
         this.cubeDesc.rowkey.rowkey_columns.forEach((rowkey) => {
           let version = rowkey.encoding_version || 1
@@ -579,10 +557,10 @@ export default {
             rowKeyObj.datatype = rowkeyColumnInfo.datatype
             rowKeyObj.cardinality = rowkeyColumnInfo.cardinality
           }
-          this.convertedRowkeys.push(rowKeyObj)
+          this.rowkeyColumns.convertedRowkeys.push(rowKeyObj)
         })
         if (typeof moreRowKeyCallback === 'function') {
-          moreRowKeyCallback(this.convertedRowkeys)
+          moreRowKeyCallback(this.rowkeyColumns.convertedRowkeys)
         }
       })
     },
@@ -644,51 +622,21 @@ export default {
         this.cuboidList.push(0)
       }
       this.cubeDesc.aggregation_groups.forEach((aggregationGroup, groupIndex) => {
-        var aggLen = aggregationGroup.includes && aggregationGroup.includes.length || 0
-        for (let i = 0; i < aggLen; i++) {
-          if (this.currentRowkey.indexOf(aggregationGroup.includes[i]) === -1) {
-            let removeColumn = aggregationGroup.includes[i]
-            aggregationGroup.includes.splice(i, 1)
-            i--
-            aggLen--
-            let mandatory = aggregationGroup.select_rule.mandatory_dims
-            if (mandatory && mandatory.length) {
-              let columnIndex = mandatory.indexOf(removeColumn)
-              if (columnIndex >= 0) {
-                mandatory.splice(columnIndex, 1)
-              }
-            }
-            let hierarchys = aggregationGroup.select_rule.hierarchy_dims
-            var hierarchysLen = hierarchys && hierarchys.length || 0
-            for (let h = 0; h < hierarchysLen; h++) {
-              let hierarchysIndex = hierarchys[h].indexOf(removeColumn)
-              if (hierarchysIndex >= 0) {
-                hierarchys[h].splice(hierarchysIndex, 1)
-              }
-              if (hierarchys[h].length === 0) {
-                hierarchys.splice(h, 1)
-                h--
-                hierarchysLen--
-              }
-            }
-            let joints = aggregationGroup.select_rule.joint_dims
-            var jointsLen = joints && joints.length || 0
-            for (let j = 0; j < jointsLen; j++) {
-              let jointIndex = joints[j].indexOf(removeColumn)
-              if (jointIndex >= 0) {
-                joints[j].splice(jointIndex, 1)
-              }
-              if (joints[j].length === 0) {
-                joints.splice(j, 1)
-                j--
-                jointsLen--
-              }
-            }
+        this.rowkeyColumns.removeRowkeys.forEach((removeColumn) => {
+          let removeIndex = aggregationGroup.includes.indexOf(removeColumn)
+          if (aggregationGroup.includes.indexOf(removeColumn) >= 0) {
+            aggregationGroup.includes.splice(removeIndex, 1)
+            this.removeIncludes(removeColumn, {index: groupIndex})
           }
-        }
+        })
         this.refreshAggragation(groupIndex)
         this.initAggSelectRange(this.cubeDesc.aggregation_groups[groupIndex], groupIndex)
       })
+      if (this.cubeDesc.aggregation_groups.length > 0) {
+        this.cubeDesc.aggregation_groups[0].includes = this.cubeDesc.aggregation_groups[0].includes.concat(this.rowkeyColumns.additionRowkeys)
+        this.refreshAggragation(0)
+        this.initAggSelectRange(this.cubeDesc.aggregation_groups[0], 0)
+      }
     },
     dimensionsChangeCalc: function (groupindex) {
       this.refreshAggragation(groupindex)
@@ -789,7 +737,8 @@ export default {
             isUsed = true
           }
         })
-        var tag = this.$refs.includesSelect[index].tags[i]
+        let cloumnIndex = indexOfObjWithSomeKey(this.$refs.includesSelect[index].tags, 'textContent', dimension)
+        var tag = this.$refs.includesSelect[index].tags[cloumnIndex]
         if (tag) {
           if (!isUsed) {
             tag.setAttribute('data-tag', '')
@@ -798,6 +747,42 @@ export default {
           }
         }
       })
+    },
+    removeIncludes (removeColumn, refreshInfo) {
+      var groupIndex = refreshInfo.index
+      let mandatory = this.cubeDesc.aggregation_groups[groupIndex].select_rule.mandatory_dims
+      if (mandatory && mandatory.length) {
+        let columnIndex = mandatory.indexOf(removeColumn)
+        if (columnIndex >= 0) {
+          mandatory.splice(columnIndex, 1)
+        }
+      }
+      let hierarchys = this.cubeDesc.aggregation_groups[groupIndex].select_rule.hierarchy_dims
+      var hierarchysLen = hierarchys && hierarchys.length || 0
+      for (let h = 0; h < hierarchysLen; h++) {
+        let hierarchysIndex = hierarchys[h].indexOf(removeColumn)
+        if (hierarchysIndex >= 0) {
+          hierarchys[h].splice(hierarchysIndex, 1)
+        }
+        if (hierarchys[h].length === 0) {
+          hierarchys.splice(h, 1)
+          h--
+          hierarchysLen--
+        }
+      }
+      let joints = this.cubeDesc.aggregation_groups[groupIndex].select_rule.joint_dims
+      var jointsLen = joints && joints.length || 0
+      for (let j = 0; j < jointsLen; j++) {
+        let jointIndex = joints[j].indexOf(removeColumn)
+        if (jointIndex >= 0) {
+          joints[j].splice(jointIndex, 1)
+        }
+        if (joints[j].length === 0) {
+          joints.splice(j, 1)
+          j--
+          jointsLen--
+        }
+      }
     },
     refreshIncludeData (data, refreshInfo) {
       var index = refreshInfo.index
@@ -929,6 +914,7 @@ export default {
     }
   },
   created () {
+    this.initModelLine()
     this.initAllAggSelectRange()
     this.initCalCuboid()
     setTimeout(() => {
@@ -941,19 +927,13 @@ export default {
     this.getSmartDimensions({model: this.cubeDesc.model_name, cube: this.cubeDesc.name}).then((res) => {
       handleSuccess(res, (data, code, status, msg) => {
         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
-        // this.$set(this.cubeDesc, 'aggregation_groups', data.aggregation_groups)
-        // this.$set(this.cubeDesc, 'override_kylin_properties', data.override_kylin_properties)
-        // this.dim_cap = data.aggregation_groups[0].select_rule.dim_cap || 0
-        // this.$set(this.cubeDesc.rowkey, 'rowkey_columns', data.rowkey.rowkey_columns)
-        // this.initConvertedRowkeys()
-        // this.initCalCuboid()
       })
     })
     this.dim_cap = this.cubeDesc.aggregation_groups && this.cubeDesc.aggregation_groups[0] && this.cubeDesc.aggregation_groups[0].select_rule.dim_cap || 0
     this.$dragging.$on('dragged', ({ value }) => {
       clearTimeout(this.ST)
       this.ST = setTimeout(() => {
-        this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
+        this.cubeDesc.rowkey.rowkey_columns = ObjectArraySortByArray(this.rowkeyColumns.convertedRowkeys, this.cubeDesc.rowkey.rowkey_columns, 'column', 'column')
       }, 2000)
     })
   },
