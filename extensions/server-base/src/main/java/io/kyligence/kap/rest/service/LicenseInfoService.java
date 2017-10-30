@@ -77,7 +77,7 @@ public class LicenseInfoService extends BasicService {
                 BufferedReader reader = new BufferedReader(new StringReader(lic));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("License for KAP Evaluation")) {
+                    if (line.toLowerCase().contains("evaluation")) {
                         result.put("kap.license.isEvaluation", "true");
                     }
                     if (line.startsWith("Service End:")) {
@@ -167,10 +167,11 @@ public class LicenseInfoService extends BasicService {
         int proxyPort = kapConfig.getHttpProxyPort();
         String url;
         try {
-            url = kapConfig.getKyAccountSiteUrl() + String.format("/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
-                    URLEncoder.encode(licenseRequest.getUserName(), "UTF-8"),
-                    URLEncoder.encode(licenseRequest.getEmail(), "UTF-8"),
-                    URLEncoder.encode(licenseRequest.getCompany(), "UTF-8"), licenseRequest.getLang());
+            url = kapConfig.getKyAccountSiteUrl()
+                    + String.format("/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
+                            URLEncoder.encode(licenseRequest.getUserName(), "UTF-8"),
+                            URLEncoder.encode(licenseRequest.getEmail(), "UTF-8"),
+                            URLEncoder.encode(licenseRequest.getCompany(), "UTF-8"), licenseRequest.getLang());
         } catch (UnsupportedEncodingException e) {
             url = kapConfig.getKyAccountSiteUrl() + String.format(
                     "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s", licenseRequest.getUserName(),
