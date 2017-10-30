@@ -40,7 +40,7 @@ import { mapActions } from 'vuex'
 import { transToUtcTimeFormat, transToUTCMs, handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'build_cube',
-  props: ['cubeDesc'],
+  props: ['cubeDesc', 'formVisible'],
   data () {
     return {
       mpValuesList: [],
@@ -182,17 +182,19 @@ export default {
   },
 
   watch: {
-    cubeDesc (cubeDesc) {
-      this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart)
-      this.timeZone.endDate = null
-      if (this.cubeDesc.multilevel_partition_cols.length > 0) {
-        this.getMPValues(this.cubeDesc.name).then((res) => {
-          handleSuccess(res, (data) => {
-            this.mpValuesList = data
+    formVisible (formVisible) {
+      if (formVisible) {
+        this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart)
+        this.timeZone.endDate = null
+        if (this.cubeDesc.multilevel_partition_cols.length > 0) {
+          this.getMPValues(this.cubeDesc.name).then((res) => {
+            handleSuccess(res, (data) => {
+              this.mpValuesList = data
+            })
+          }, (res) => {
+            handleError(res)
           })
-        }, (res) => {
-          handleError(res)
-        })
+        }
       }
     }
   },

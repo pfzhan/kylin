@@ -54,7 +54,7 @@
               <div slot="content">
                {{$t('buildSegment')}}
               </div>
-              <i class="el-icon-loading ksd-fright"></i>
+              <i class="el-icon-loading"></i>
             </el-tooltip>
           </template>
         </el-table-column>
@@ -476,6 +476,7 @@ export default {
         i {
           font-size: 16px;
           margin-top:4px;
+          margin-left: 20px;
           cursor:pointer;
         }
       }

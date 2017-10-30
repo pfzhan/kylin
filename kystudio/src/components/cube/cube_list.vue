@@ -144,7 +144,7 @@
   <div class="null_pic_box" v-if="!(cubesList && cubesList.length)"><img src="../../assets/img/no_cube.png" class="null_pic_2"></div>
 
   <el-dialog :title="'Cube [' + (selected_cube.name.length > 18? selected_cube.name.substring(0,16) + '...' :  selected_cube.name) + '] ' + $t('cubeBuildConfirm')" v-model="buildCubeFormVisible" :close-on-press-escape="false" :close-on-click-modal="false" @close="resetCubeBuildField" class="build-cube">
-    <build_cube :cubeDesc="selected_cube" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
+    <build_cube :cubeDesc="selected_cube" :formVisible="buildCubeFormVisible" ref="buildCubeForm" v-on:validSuccess="buildCubeValidSuccess"></build_cube>
     <div slot="footer" class="dialog-footer">
       <el-button @click="buildCubeFormVisible = false">{{$t('cancel')}}</el-button>
       <el-button type="primary" @click="checkBuildCubeForm">{{$t('yes')}}</el-button>
