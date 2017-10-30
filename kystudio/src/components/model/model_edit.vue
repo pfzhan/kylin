@@ -196,6 +196,7 @@
               :data="currentTableComputedColumns"
               style="width: 100%; font-size:12px;" class="formTable">
               <el-table-column
+                show-overflow-tooltip
                 prop="columnName"
                 :label="$t('kylinLang.dataSource.columns')"
                 width="180">
@@ -209,6 +210,7 @@
               <el-table-column
               width="100"
                 prop="datatype"
+              show-overflow-tooltip
                 :label="$t('kylinLang.dataSource.returnType')">
               </el-table-column>
               <el-table-column

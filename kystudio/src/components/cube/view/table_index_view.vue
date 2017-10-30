@@ -15,12 +15,14 @@
       </template>
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       :label="$t('column')"
       header-align="center"
       prop="column"
       align="center">
     </el-table-column>
     <el-table-column
+        show-overflow-tooltip
         :label="$t('dataType')"
         header-align="center"
         align="center">      
@@ -29,12 +31,14 @@
       </template>
     </el-table-column>  
     <el-table-column
+        show-overflow-tooltip
         :label="$t('tableAlias')"
         prop="table"
         header-align="center"
         align="center">   
     </el-table-column>    
     <el-table-column
+        show-overflow-tooltip
         :label="$t('Encoding')"
         header-align="center"
         align="center">   
@@ -43,6 +47,7 @@
         </template>
     </el-table-column>  
     <el-table-column
+        show-overflow-tooltip
         :label="$t('Length')"
         header-align="center"
         align="center">   

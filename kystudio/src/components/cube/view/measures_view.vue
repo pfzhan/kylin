@@ -6,12 +6,14 @@
     border stripe 
     style="width: 100%">
     <el-table-column
+      show-overflow-tooltip
       property="name"
       :label="$t('name')"
       header-align="center"
       align="center">
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       property="function.expression"
       :label="$t('expression')"
       align="center"
@@ -19,6 +21,7 @@
       width="180">
     </el-table-column>    
     <el-table-column
+      show-overflow-tooltip
       :label="$t('parameters')"
       header-align="center"
       align="center">
@@ -28,6 +31,7 @@
       </template>
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       :label="$t('datatype')"
       header-align="center"
       align="center"
@@ -39,6 +43,7 @@
       </template>  
     </el-table-column>  
     <el-table-column
+      show-overflow-tooltip
       :label="$t('comment')"
       header-align="center"
       align="center"
@@ -50,6 +55,7 @@
       </template>  
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       property="function.returntype"    
       :label="$t('returnType')"
       header-align="center"
@@ -64,11 +70,13 @@
     :data="cubeDesc.desc.hbase_mapping.column_family"
     style="width: 100%">
     <el-table-column
+        show-overflow-tooltip
         property="name"
         :label="$t('columnFamily')"
         width="150">
     </el-table-column>       
     <el-table-column
+        show-overflow-tooltip
         :label="$t('measures')">
         <template scope="scope">
           <el-col :span="24">

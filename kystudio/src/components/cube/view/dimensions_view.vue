@@ -80,10 +80,12 @@
         width="55">
     </el-table-column>
     <el-table-column
+        show-overflow-tooltip
         property="column"
         :label="$t('column')">
     </el-table-column>       
     <el-table-column
+        show-overflow-tooltip
         :label="$t('encoding')"
         header-align="center"
         align="center"
@@ -93,6 +95,7 @@
         </template>
     </el-table-column>    
     <el-table-column
+        show-overflow-tooltip
         :label="$t('length')"
         header-align="center"
         align="center"
@@ -102,6 +105,7 @@
         </template>        
     </el-table-column>    
     <el-table-column
+        show-overflow-tooltip
         :label="$t('shardBy')"
         header-align="center"
         align="center"
@@ -111,6 +115,7 @@
         </template>
     </el-table-column>    
     <el-table-column
+        show-overflow-tooltip
         :label="$t('dataType')"
         header-align="center"
         align="center"
@@ -120,6 +125,7 @@
         </template>
     </el-table-column>    
     <el-table-column
+        show-overflow-tooltip
         :label="$t('cardinality')"
         header-align="center"
         align="center"

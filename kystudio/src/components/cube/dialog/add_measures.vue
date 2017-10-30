@@ -126,6 +126,7 @@
       border
       :data="convertedColumns">
       <el-table-column
+        show-overflow-tooltip
         :label="$t('ID')"
         width="60">
         <template scope="scope">
@@ -133,6 +134,7 @@
         </template>
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         :label="$t('column')">
         <template scope="scope">
           <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct, topnWidth : !isCountDistinct}" filterable>
@@ -145,7 +147,9 @@
           </el-select>
         </template>
       </el-table-column>
-      <el-table-column v-if="measure.function.expression === 'TOP_N'"
+      <el-table-column
+        show-overflow-tooltip
+        v-if="measure.function.expression === 'TOP_N'"
         :label="$t('encoding')"
         width="100">
         <template scope="scope">
@@ -163,7 +167,8 @@
         </el-select>
       </template>
       </el-table-column>
-      <el-table-column v-if="measure.function.expression === 'TOP_N'"
+      <el-table-column show-overflow-tooltip
+                       v-if="measure.function.expression === 'TOP_N'"
         :label="$t('length')"
         width="100">
         <template scope="scope">

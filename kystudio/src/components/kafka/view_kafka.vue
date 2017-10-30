@@ -6,6 +6,7 @@
           :data='kafkaMeta.clusters&&kafkaMeta.clusters[0].brokers'
           style='width: 100%'>
           <el-table-column
+            show-overflow-tooltip
             label='ID'
             header-align='center'
             align='center'>
@@ -14,6 +15,7 @@
             </template>
           </el-table-column>
           <el-table-column
+            show-overflow-tooltip
             :label="$t('host')"
             prop='host'
             header-align='center'
@@ -23,6 +25,7 @@
             </template>
           </el-table-column>
           <el-table-column
+            show-overflow-tooltip
             :label="$t('port')"
             prop='port'
             header-align='center'

@@ -28,10 +28,12 @@
         </template>
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         property="column"
         :label="$t('column')">
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         :label="$t('datatype')"
         width="110">
         <template scope="scope">
@@ -39,6 +41,7 @@
         </template>
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         :label="$t('cardinality')"
         width="100">
         <template scope="scope">
@@ -72,10 +75,12 @@
         </template>
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         property="column"
         :label="$t('column')">
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         :label="$t('datatype')"
         width="110">
         <template scope="scope">
@@ -83,6 +88,7 @@
         </template>
       </el-table-column>
       <el-table-column
+        show-overflow-tooltip
         :label="$t('cardinality')"
         width="100">
         <template scope="scope">
@@ -94,7 +100,7 @@
         width="185">
         <template scope="scope">
           <el-radio-group @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
-            <el-radio-button label="false">Normal</el-radio-button><!-- 
+            <el-radio-button label="false">Normal</el-radio-button><!--
             注释是为了取消button之间的间距，不要删--><el-radio-button label="true">Derived</el-radio-button>
           </el-radio-group>
         </template>

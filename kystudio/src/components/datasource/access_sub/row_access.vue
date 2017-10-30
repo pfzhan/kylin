@@ -11,6 +11,7 @@
             :data="pagerAclRowList"
             style="width: 100%">
             <el-table-column
+              show-overflow-tooltip
               sortable
               prop="name"
               :label="$t('userName')"

@@ -13,28 +13,32 @@
     border stripe
     style="width: 100%">
     <el-table-column
+      show-overflow-tooltip
       property="name"
       :label="$t('name')"
       header-align="center"
       align="center">
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       property="function.expression"
       header-align="center"
       align="center"
       :label="$t('expression')"
-      width="180">
+      width="150">
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       :label="$t('parameters')"
       header-align="center"
-      align="center">
+      align="center" width="150">
       <template scope="scope">
         <parameter_tree :measure="scope.row">
         </parameter_tree>
       </template>
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       :label="$t('datatype')"
       header-align="center"
       align="center"
@@ -46,6 +50,7 @@
       </template>
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       :label="$t('comment')"
       width="110">
       <template scope="scope">
@@ -55,6 +60,7 @@
       </template>
     </el-table-column>
     <el-table-column
+      show-overflow-tooltip
       property="function.returntype"
       :label="$t('returnType')"
       header-align="center"
@@ -67,8 +73,8 @@
       align="center"
       width="100">
       <template scope="scope">
-        <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button>
-        <el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
+        <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button><!--
+         处理inline-block的间隙 勿删此处注释--><el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
     </el-table-column>
   </el-table>
