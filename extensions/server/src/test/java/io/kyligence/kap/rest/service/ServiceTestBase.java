@@ -55,6 +55,10 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
     @BeforeClass
     public static void setupResource() throws Exception {
         System.setProperty("spring.profiles.active", "testing");
+        
+        // disable job scheduler temporarily
+        System.setProperty("kylin.job.scheduler.default", "77");
+        System.setProperty("kylin.job.lock", "org.apache.kylin.job.lock.MockJobLock");
 
         staticCreateTestMetadata();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
@@ -63,6 +67,8 @@ public class ServiceTestBase extends LocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDownResource() {
+        System.clearProperty("kylin.job.scheduler.default");
+        System.clearProperty("kylin.job.lock");
     }
 
     @Before

@@ -29,14 +29,28 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.CubeService;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.cube.mp.MPCubeManager;
+import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.rest.controller2.CubeControllerV2;
+import io.kyligence.kap.rest.request.KapBuildRequest;
+import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.KapCubeResponse;
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
@@ -49,6 +63,8 @@ public class CubeControllerTest extends ServiceTestBase {
 
     @Autowired
     CubeService cubeService;
+
+    private static String G_CUBE_NAME = "ci_left_join_cube";
 
     @Test
     public void testCubesOrder() throws IOException, InterruptedException {
@@ -83,5 +99,133 @@ public class CubeControllerTest extends ServiceTestBase {
         for (int i = 0; i < firstOrder.size(); i++) {
             Assert.assertEquals(firstOrder.get(i), secondOrder.get(firstOrder.size() - 1 - i));
         }
+    }
+
+    private void prepare() throws IOException {
+
+        String[] mps = { "LSTG_FORMAT_NAME" };
+
+        KylinConfig config = getTestConfig();
+        CubeManager cubeMgr = CubeManager.getInstance(config);
+        CubeInstance cubeInstance = cubeMgr.getCube(G_CUBE_NAME);
+        cubeInstance.setStatus(RealizationStatusEnum.READY);
+        KapModel kapModel = (KapModel) cubeInstance.getDescriptor().getModel();
+        kapModel.setMutiLevelPartitionColStrs(mps);
+        DataModelManager.getInstance(config).updateDataModelDesc(kapModel);
+    }
+
+    @Test
+    public void testBuildSegment() throws IOException {
+        prepare();
+
+        prepareBuildSegments();
+    }
+
+    @Test
+    public void testDropSegment() throws IOException {
+        prepare();
+
+        Segments<CubeSegment> segments = prepareBuildSegments();
+        List<String> segmentList = Lists.newArrayList();
+        for (CubeSegment cs : segments) {
+            segmentList.add(cs.getName());
+        }
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("DROP");
+        request.setMpValues("ABIN");
+        request.setSegments(segmentList);
+        request.setForce(true);
+
+        CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
+                new String[] { "ABIN" });
+        Segments<CubeSegment> segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 2);
+        EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
+        Assert.assertEquals(response.code, "000");
+
+        segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 0);
+    }
+
+    @Test
+    public void testMergeSegment() throws IOException {
+        prepare();
+
+        Segments<CubeSegment> segments = prepareBuildSegments();
+        List<String> segmentList = Lists.newArrayList();
+        for (CubeSegment cs : segments) {
+            segmentList.add(cs.getName());
+        }
+
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("MERGE");
+        request.setMpValues("ABIN");
+        request.setSegments(segmentList);
+        request.setForce(true);
+
+        CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
+                new String[] { "ABIN" });
+        Segments<CubeSegment> segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 2);
+        EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
+        Assert.assertEquals(response.code, "000");
+
+        segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 3);
+    }
+
+    @Test
+    public void testRefreshSegment() throws IOException {
+        prepare();
+
+        Segments<CubeSegment> segments = prepareBuildSegments();
+        List<String> segmentList = Lists.newArrayList();
+        for (CubeSegment cs : segments) {
+            segmentList.add(cs.getName());
+        }
+
+        SegmentMgmtRequest request = new SegmentMgmtRequest();
+        request.setBuildType("REFRESH");
+        request.setMpValues("ABIN");
+        request.setSegments(segmentList);
+        request.setForce(true);
+
+        CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
+                new String[] { "ABIN" });
+        Segments<CubeSegment> segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 2);
+        EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
+        Assert.assertEquals(response.code, "000");
+
+        segs = cube.getSegments();
+        Assert.assertEquals(segs.size(), 4);
+    }
+
+    private Segments<CubeSegment> prepareBuildSegments() throws IOException {
+        KapBuildRequest request = new KapBuildRequest();
+        request.setBuildType("BUILD");
+        request.setMpValues("ABIN");
+        request.setStartTime(0L);
+        request.setEndTime(1508866031000L);
+        request.setForce(true);
+
+        EnvelopeResponse response = cubeControllerV2.build(G_CUBE_NAME, request);
+        Assert.assertEquals(response.code, "000");
+
+        request.setStartTime(1508866031000L);
+        request.setEndTime(1509270087926L);
+        response = cubeControllerV2.build(G_CUBE_NAME, request);
+        Assert.assertEquals(response.code, "000");
+
+        CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
+                new String[] { "ABIN" });
+
+        Segments<CubeSegment> segments = cube.getSegments();
+        for (CubeSegment cs : segments) {
+            cs.setStatus(SegmentStatusEnum.READY);
+        }
+        Assert.assertEquals(segments.size(), 2);
+
+        return segments;
     }
 }

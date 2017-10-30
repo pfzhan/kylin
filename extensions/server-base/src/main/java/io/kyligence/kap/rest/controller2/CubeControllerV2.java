@@ -358,8 +358,6 @@ public class CubeControllerV2 extends BasicController {
                 cubeService.disableCube(cube);
             }
 
-            dropMPCubeIfNeeded(cubeName);
-
             return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, createCubeResponse(cube), "");
         default:
             return new EnvelopeResponse<>(ResponseCode.CODE_UNDEFINED, "Invalid build type.", "");
@@ -473,8 +471,6 @@ public class CubeControllerV2 extends BasicController {
         CubeInstance cube = cubeService.getCubeManager().getCube(cubeName);
 
         CubeInstance purgeCube = cubeService.purgeCube(cube);
-
-        dropMPCubeIfNeeded(purgeCube.getName());
 
         CubeInstance originCube = cubeService.getCubeManager().getCube(originCubeName);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, createCubeResponse(originCube), "");
@@ -622,11 +618,6 @@ public class CubeControllerV2 extends BasicController {
         }
 
         return (segments.getSegments(SegmentStatusEnum.READY).size() == 0);
-    }
-
-    private void dropMPCubeIfNeeded(String cubeName) throws IOException {
-        MPCubeManager mpCubeMgr = MPCubeManager.getInstance(cubeService.getConfig());
-        mpCubeMgr.dropMPCubeIfNeeded(cubeName);
     }
 
     private CubeInstance convertToMPMasterIfNeeded(String cubeName) {

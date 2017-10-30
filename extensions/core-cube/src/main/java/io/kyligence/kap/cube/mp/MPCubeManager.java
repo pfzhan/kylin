@@ -35,10 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +52,6 @@ import io.kyligence.kap.metadata.model.KapModel;
  */
 public class MPCubeManager {
 
-    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(MPCubeManager.class);
 
     private static String MPMASTER_PRIFIX = "MPMASTER_";
@@ -109,24 +106,6 @@ public class MPCubeManager {
         cubeInstance = CubeManager.getInstance(config).getCube(mpMasterName);
 
         return cubeInstance;
-    }
-
-    // drop MPCube, if it has no segments
-    public void dropMPCubeIfNeeded(String cubeName) throws IOException {
-        CubeInstance cubeInstance = CubeManager.getInstance(config).getCube(cubeName);
-
-        if (isCommonCube(cubeInstance)) {
-            return;
-        }
-
-        if (isMPMaster(cubeInstance)) {
-            return;
-        }
-
-        Segments<CubeSegment> segments = cubeInstance.getSegments();
-        if (segments.isEmpty()) {
-            CubeManager.getInstance(config).dropCube(cubeName, false);
-        }
     }
 
     // List all mpcube mpvalues of a mpmaster
@@ -311,6 +290,17 @@ public class MPCubeManager {
 
         for (CubeInstance c : list) {
             if (ownerMatch.equals(c.getOwner())) {
+                
+                // don't report empty MP cubes and they should be removed
+                if (c.getSegments().isEmpty()) {
+                    try {
+                        CubeManager.getInstance(config).dropCube(c.getName(), false);
+                    } catch (IOException e) {
+                        logger.error("Failed to drop empty MP cube " + c, e);
+                    }
+                    continue;
+                }
+                
                 result.add(c);
             }
         }
