@@ -15,6 +15,8 @@ echo "Checking Hive write permission..."
 HIVE_CLIENT_TYPE=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.client`
 HIVE_TEST_DB=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.database-for-flat-table`
 WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+CHECK_TMP_DIR=${WORKING_DIR}/tmp
+
 if [ -z "${HIVE_TEST_DB}" ]
 then
     HIVE_TEST_DB=default
@@ -35,7 +37,7 @@ then
     [[ $? == 0 ]] || quit "ERROR: Current user has no permission to create Hive table in working directory: ${WORKING_DIR}"
 
     echo "Checking HCat Available"
-    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
+    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} ${CHECK_TMP_DIR}
     [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 elif [ ${HIVE_CLIENT_TYPE} = "beeline" ]
 then
@@ -56,7 +58,7 @@ then
     [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Current user has no permission to create table in working directory: ${WORKING_DIR}"; }
 
     echo "Checking HCat Available"
-    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} /tmp/kylin/check_hcatalog
+    ${dir}/kylin.sh io.kyligence.kap.source.hive.tool.CheckHCatalogJob ${HIVE_TEST_DB} ${RANDNAME} ${CHECK_TMP_DIR}
     [[ $? == 0 ]] || quit "ERROR: Cannot read Hive table (${HIVE_TEST_TABLE}) via HCatInputFormat API. Please check 'logs/check-env.out' for details."
 else
     quit "ERROR: Only support 'cli' or 'beeline' hive client. Please correct 'kylin.source.hive.client' in 'conf/kylin.properties'."
@@ -76,4 +78,5 @@ then
 fi
 
 hadoop ${hadoop_conf_param} fs -rm -R -skipTrash "${WORKING_DIR}/chkenv__*"
+hadoop ${hadoop_conf_param} fs -rm -R -skipTrash "${CHECK_TMP_DIR}"
 exit 0
