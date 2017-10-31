@@ -119,7 +119,7 @@ export default {
   @import url(../../less/config.less);
   .project_edit {
     .line-primary {
-      margin: 0px -20px 15px -20px;
+      margin: 0px 0px 15px 0px;
     }
     .el-row {
       .el-col {
@@ -157,6 +157,9 @@ export default {
         padding: 8px 15px 8px 15px;
         font-size:12px;
         color:#ffffff;
+        .el-icon-close {
+          color:#ffffff;
+        }
       }
       .el-form-item__content::after {
         display: none;
