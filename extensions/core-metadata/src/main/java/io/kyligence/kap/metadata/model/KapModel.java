@@ -84,6 +84,13 @@ public class KapModel extends DataModelDesc {
 
     @Override
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<DataModelDesc> otherModels) {
+        
+        // A quick fix for Ticket #2338, tolerate bad ConditionBuilderClz "io.kyligence.t"
+        // Can be safely removed later, once 2.5.2 is released
+        if (isMultiLevelPartitioned()) {
+            getPartitionDesc().setPartitionConditionBuilderClz("io.kyligence.kap.cube.mp.MPSqlCondBuilder");
+        }
+        
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {
