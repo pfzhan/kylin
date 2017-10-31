@@ -45,7 +45,6 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.broadcaster.BroadcasterReceiveServlet;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -222,9 +221,9 @@ public class CacheServiceTest extends LocalFileMetadataTestCase {
         assertTrue(cubeManager.getCube(cubeName) == null);
         assertTrue(cubeManagerB.getCube(cubeName) == null);
         assertTrue(!containsRealization(projectManager.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
         assertTrue(!containsRealization(projectManagerB.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
         cubeManager.createCube(cubeName, ProjectInstance.DEFAULT_PROJECT_NAME, cubeDesc, null);
         //one for cube update, one for project update
         assertEquals(2, broadcaster.getCounterAndClear());
@@ -233,9 +232,9 @@ public class CacheServiceTest extends LocalFileMetadataTestCase {
         assertNotNull(cubeManager.getCube(cubeName));
         assertNotNull(cubeManagerB.getCube(cubeName));
         assertTrue(containsRealization(projectManager.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
         assertTrue(containsRealization(projectManagerB.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
 
         //update cube
         CubeInstance cube = cubeManager.getCube(cubeName);
@@ -256,10 +255,10 @@ public class CacheServiceTest extends LocalFileMetadataTestCase {
 
         assertTrue(cubeManager.getCube(cubeName) == null);
         assertTrue(!containsRealization(projectManager.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
         assertTrue(cubeManagerB.getCube(cubeName) == null);
         assertTrue(!containsRealization(projectManagerB.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME),
-                RealizationType.CUBE, cubeName));
+                cubeManager.getRealizationType(), cubeName));
 
         final String cubeDescName = "test_cube_desc";
         cubeDesc.setName(cubeDescName);
@@ -342,9 +341,9 @@ public class CacheServiceTest extends LocalFileMetadataTestCase {
 
     }
 
-    private boolean containsRealization(Set<IRealization> realizations, RealizationType type, String name) {
+    private boolean containsRealization(Set<IRealization> realizations, String type, String name) {
         for (IRealization realization : realizations) {
-            if (realization.getType() == type && realization.getName().equals(name)) {
+            if (realization.getType().equals(type) && realization.getName().equals(name)) {
                 return true;
             }
         }

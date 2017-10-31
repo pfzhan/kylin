@@ -18,12 +18,12 @@
 
 package org.apache.kylin.measure;
 
+import java.nio.ByteBuffer;
+import java.util.Collection;
+
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.MeasureDesc;
-
-import java.nio.ByteBuffer;
-import java.util.Collection;
 
 /**
  * @author yangli9
@@ -82,13 +82,25 @@ public class MeasureCodec implements java.io.Serializable {
 
     public int[] getPeekLength(ByteBuffer buf) {
         int[] length = new int[nMeasures];
-        int offset = 0;
+        int offset = buf.position();
         for (int i = 0; i < nMeasures; i++) {
             length[i] = serializers[i].peekLength(buf);
             offset += length[i];
             buf.position(offset);
         }
         return length;
+    }
+
+    public int[] getMaxLength() {
+        int[] maxLen = new int[nMeasures];
+        for (int i = 0; i < nMeasures; i++) {
+            maxLen[i] = serializers[i].maxLength();
+        }
+        return maxLen;
+    }
+
+    public Object decode(int index, ByteBuffer buf) {
+        return serializers[index].deserialize(buf);
     }
 
     public void decode(ByteBuffer buf, Object[] result) {

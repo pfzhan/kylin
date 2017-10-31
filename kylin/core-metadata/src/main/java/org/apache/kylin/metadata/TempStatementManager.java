@@ -161,7 +161,7 @@ public class TempStatementManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(config);
     }
 
     @SuppressWarnings({ "serial", "unused" })

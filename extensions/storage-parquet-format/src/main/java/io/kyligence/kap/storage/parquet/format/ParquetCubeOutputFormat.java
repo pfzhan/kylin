@@ -86,7 +86,7 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
         private Path outputDir = null;
 
         public ParquetCubeWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
-                Class<?> valueClass) throws IOException, InterruptedException {
+                                 Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
             this.outputDir = committer.getWorkPath();
 
@@ -97,7 +97,7 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
 
             if ("spark".equals(jobType)) {
                 String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
-                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
+                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfsIfNeeded(metaUrl);
             } else
                 kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 

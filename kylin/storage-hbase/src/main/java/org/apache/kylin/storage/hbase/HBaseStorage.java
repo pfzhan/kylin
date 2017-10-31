@@ -23,12 +23,11 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.engine.mr.IMROutput;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
 import org.apache.kylin.storage.hbase.steps.HBaseMROutput;
@@ -45,19 +44,21 @@ public class HBaseStorage implements IStorage {
     @Override
     public IStorageQuery createQuery(IRealization realization) {
 
-        if (realization.getType() == RealizationType.CUBE) {
+        if (realization.getType().equals(CubeInstance.REALIZATION_TYPE)) {
 
             CubeInstance cubeInstance = (CubeInstance) realization;
             String cubeStorageQuery;
             if (cubeInstance.getStorageType() == IStorageAware.ID_HBASE) {//v2 query engine cannot go with v1 storage now
-                throw new IllegalStateException("Storage Engine (id=" + IStorageAware.ID_HBASE + ") is not supported any more");
+                throw new IllegalStateException(
+                        "Storage Engine (id=" + IStorageAware.ID_HBASE + ") is not supported any more");
             } else {
                 cubeStorageQuery = v2CubeStorageQuery;//by default use v2
             }
 
             IStorageQuery ret;
             try {
-                ret = (IStorageQuery) Class.forName(cubeStorageQuery).getConstructor(CubeInstance.class).newInstance((CubeInstance) realization);
+                ret = (IStorageQuery) Class.forName(cubeStorageQuery).getConstructor(CubeInstance.class)
+                        .newInstance((CubeInstance) realization);
             } catch (Exception e) {
                 throw new RuntimeException("Failed to initialize storage query for " + cubeStorageQuery, e);
             }
@@ -70,11 +71,13 @@ public class HBaseStorage implements IStorage {
 
     private static TblColRef getPartitionCol(IRealization realization) {
         String modelName = realization.getModel().getName();
-        DataModelDesc dataModelDesc = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv()).getDataModelDesc(modelName);
+        DataModelDesc dataModelDesc = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getDataModelDesc(modelName);
         PartitionDesc partitionDesc = dataModelDesc.getPartitionDesc();
         Preconditions.checkArgument(partitionDesc != null, "PartitionDesc for " + realization + " is null!");
         TblColRef partitionColRef = partitionDesc.getPartitionDateColumnRef();
-        Preconditions.checkArgument(partitionColRef != null, "getPartitionDateColumnRef for " + realization + " is null");
+        Preconditions.checkArgument(partitionColRef != null,
+                "getPartitionDateColumnRef for " + realization + " is null");
         return partitionColRef;
     }
 

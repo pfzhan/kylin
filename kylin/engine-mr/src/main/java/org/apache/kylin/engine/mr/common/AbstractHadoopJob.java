@@ -57,6 +57,7 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigCannotInitException;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -87,7 +88,7 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
     protected static final Option OPTION_CUBING_JOB_ID = OptionBuilder.withArgName(BatchConstants.ARG_CUBING_JOB_ID)
             .hasArg().isRequired(false).withDescription("ID of cubing job executable")
             .create(BatchConstants.ARG_CUBING_JOB_ID);
-    //    @Deprecated
+    // @Deprecated
     protected static final Option OPTION_SEGMENT_NAME = OptionBuilder.withArgName(BatchConstants.ARG_SEGMENT_NAME)
             .hasArg().isRequired(true).withDescription("Cube segment name").create(BatchConstants.ARG_SEGMENT_NAME);
     protected static final Option OPTION_SEGMENT_ID = OptionBuilder.withArgName(BatchConstants.ARG_SEGMENT_ID).hasArg()
@@ -200,7 +201,7 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
         logger.trace("Hadoop job classpath is: " + job.getConfiguration().get(MAP_REDUCE_CLASSPATH));
 
         /*
-         *  set extra dependencies as tmpjars & tmpfiles if configured
+         * set extra dependencies as tmpjars & tmpfiles if configured
          */
         StringBuilder kylinDependency = new StringBuilder();
 
@@ -263,8 +264,6 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
 
         setJobTmpJarsAndFiles(job, kylinDependency.toString());
     }
-
-
 
     private String filterKylinHiveDependency(String kylinHiveDependency, KylinConfig config) {
         if (StringUtils.isBlank(kylinHiveDependency))
@@ -413,7 +412,7 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
     }
 
     public static int addInputDirs(String[] inputs, Job job) throws IOException {
-        int ret = 0;//return number of added folders
+        int ret = 0;// return number of added folders
         for (String inp : inputs) {
             inp = inp.trim();
             if (inp.endsWith("/*")) {
@@ -462,27 +461,35 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
         }
     }
 
+    public static KylinConfig loadKylinConfigFromHdfsIfNeeded(String uri) {
+        KylinConfig config;
+        try {
+            config = KylinConfig.getInstanceFromEnv();
+        } catch (KylinConfigCannotInitException e) {
+            logger.warn("No available KylinConfig in environment, fetch it from URI.");
+            config = loadKylinConfigFromHdfs(uri);
+            KylinConfig.setKylinConfigThreadLocal(config);
+        }
+        return config;
+    }
+
     public static KylinConfig loadKylinConfigFromHdfs(String uri) {
         if (uri == null)
-            throw new IllegalArgumentException("meta url should not be null");
-
+            throw new IllegalArgumentException("StorageUrl should not be null");
         if (!uri.contains("@hdfs"))
-            throw new IllegalArgumentException("meta url should like @hdfs schema");
-
+            throw new IllegalArgumentException("StorageUrl should like @hdfs schema");
         logger.info("Ready to load KylinConfig from uri: {}", uri);
-        KylinConfig config;
-        FileSystem fs;
-        String realHdfsPath = StorageURL.valueOf(uri).getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
+        StorageURL url = StorageURL.valueOf(uri);
+        String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
         try {
-            fs = HadoopUtil.getFileSystem(realHdfsPath);
-            InputStream is = fs.open(new Path(realHdfsPath));
+            FileSystem fs = HadoopUtil.getFileSystem(metaDir);
+            InputStream is = fs.open(new Path(metaDir));
             Properties prop = KylinConfig.streamToProps(is);
-            config = KylinConfig.createKylinConfig(prop);
+            KylinConfig config = KylinConfig.createKylinConfig(prop);
+            return config;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        KylinConfig.setKylinConfigThreadLocal(config);
-        return config;
     }
 
     protected void attachTableMetadata(TableDesc table, Configuration conf) throws IOException {

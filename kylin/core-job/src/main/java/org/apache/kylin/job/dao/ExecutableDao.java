@@ -57,7 +57,7 @@ public class ExecutableDao {
 
     private ExecutableDao(KylinConfig config) {
         logger.info("Using metadata url: " + config);
-        this.store = ResourceStore.getStore(config);
+        this.store = ResourceStore.getKylinMetaStore(config);
     }
 
     private String pathOfJob(ExecutablePO job) {

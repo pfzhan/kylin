@@ -36,9 +36,9 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.HBaseMetadataTestCase;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.CompareQueryBySuffix;
 import org.apache.kylin.query.H2Database;
 import org.apache.kylin.query.ITKylinQueryTest;
@@ -47,6 +47,7 @@ import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
+import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -111,17 +112,17 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     protected static void configure(String joinType, Boolean rawTableFirst) {
         if (rawTableFirst) {
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 1);
-            priorities.put(RealizationType.CUBE, 1);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Map<String, Integer> priorities = Maps.newHashMap();
+            priorities.put(HybridInstance.REALIZATION_TYPE, 1);
+            priorities.put(CubeInstance.REALIZATION_TYPE, 1);
+            priorities.put(RawTableInstance.REALIZATION_TYPE, 0);
             Candidate.setPriorities(priorities);
             ITKapKylinQueryTest.rawTableFirst = true;
         } else {
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 0);
-            priorities.put(RealizationType.CUBE, 0);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Map<String, Integer> priorities = Maps.newHashMap();
+            priorities.put(HybridInstance.REALIZATION_TYPE, 0);
+            priorities.put(CubeInstance.REALIZATION_TYPE, 0);
+            priorities.put(RawTableInstance.REALIZATION_TYPE, 0);
             Candidate.setPriorities(priorities);
             ITKapKylinQueryTest.rawTableFirst = false;
         }

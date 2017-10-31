@@ -18,6 +18,11 @@
 
 package org.apache.kylin.engine.mr.common;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -27,11 +32,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 public class JobRelatedMetaUtil {
     private static final Logger logger = LoggerFactory.getLogger(JobRelatedMetaUtil.class);
@@ -56,9 +56,9 @@ public class JobRelatedMetaUtil {
     public static void dumpResources(KylinConfig kylinConfig, File metaDir, Set<String> dumpList) throws IOException {
         long startTime = System.currentTimeMillis();
 
-        ResourceStore from = ResourceStore.getStore(kylinConfig);
+        ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
         KylinConfig localConfig = KylinConfig.createInstanceFromUri(metaDir.getAbsolutePath());
-        ResourceStore to = ResourceStore.getStore(localConfig);
+        ResourceStore to = ResourceStore.getKylinMetaStore(localConfig);
         for (String path : dumpList) {
             RawResource res = from.getResource(path);
             if (res == null)

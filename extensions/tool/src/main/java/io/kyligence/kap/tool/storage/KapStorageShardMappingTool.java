@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.tool.storage;
 
-import static io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep.CUBE_INFO_NAME;
-
 import java.io.ObjectInputStream;
 import java.util.Map;
 import java.util.Set;
@@ -39,6 +37,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 
 import io.kyligence.kap.storage.parquet.steps.ColumnarStorageUtils;
+import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
 
 public class KapStorageShardMappingTool {
     public static void main(String[] args) throws Exception {
@@ -55,7 +54,7 @@ public class KapStorageShardMappingTool {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         CubeInstance cube = CubeManager.getInstance(kylinConfig).getCube(cubeName);
         for (CubeSegment segment : cube.getSegments()) {
-            String segmentInfo = ColumnarStorageUtils.getWriteSegmentDir(cube, segment) + CUBE_INFO_NAME;
+            String segmentInfo = ColumnarStorageUtils.getWriteSegmentDir(cube, segment) + ParquetCubeInfoCollectionStep.CUBE_INFO_NAME;
 
             FileSystem fs = HadoopUtil.getFileSystem(segmentInfo);
             ObjectInputStream ois = new ObjectInputStream(fs.open(new Path(segmentInfo)));

@@ -65,7 +65,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealizationConstants;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hbase.HBaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,9 +114,9 @@ public class CubeMigrationCLI {
     public static void moveCube(KylinConfig srcCfg, KylinConfig dstCfg, String cubeName, String projectName, String copyAcl, String purgeAndDisable, String overwriteIfExists, String realExecute) throws IOException, InterruptedException {
 
         srcConfig = srcCfg;
-        srcStore = ResourceStore.getStore(srcConfig);
+        srcStore = ResourceStore.getKylinMetaStore(srcConfig);
         dstConfig = dstCfg;
-        dstStore = ResourceStore.getStore(dstConfig);
+        dstStore = ResourceStore.getKylinMetaStore(dstConfig);
 
         CubeManager cubeManager = CubeManager.getInstance(srcConfig);
         CubeInstance cube = cubeManager.getCube(cubeName);
@@ -424,8 +423,8 @@ public class CubeMigrationCLI {
             ProjectInstance project = dstStore.getResource(projectResPath, ProjectInstance.class, projectSerializer);
 
             project.addModel(modelName);
-            project.removeRealization(RealizationType.CUBE, cubeName);
-            project.addRealizationEntry(RealizationType.CUBE, cubeName);
+            project.removeRealization(srcCube.getType(), cubeName);
+            project.addRealizationEntry(srcCube.getType(), cubeName);
 
             dstStore.putResource(projectResPath, project, projectSerializer);
             logger.info("Project instance for " + projectName + " is corrected");

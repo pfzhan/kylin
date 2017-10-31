@@ -31,7 +31,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.metadata.realization.RealizationType;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -95,7 +94,9 @@ public class ProjectInstance extends RootPersistentEntity {
         return ResourceStore.PROJECT_RESOURCE_ROOT + "/" + projectName + ".json";
     }
 
-    public static ProjectInstance create(String name, String owner, String description, LinkedHashMap<String, String> overrideProps, List<RealizationEntry> realizationEntries, List<String> models) {
+    public static ProjectInstance create(String name, String owner, String description,
+            LinkedHashMap<String, String> overrideProps, List<RealizationEntry> realizationEntries,
+            List<String> models) {
         ProjectInstance projectInstance = new ProjectInstance();
 
         projectInstance.updateRandomUuid();
@@ -167,52 +168,51 @@ public class ProjectInstance extends RootPersistentEntity {
         this.name = name;
     }
 
-    public boolean containsRealization(final RealizationType type, final String realization) {
+    public boolean containsRealization(final String realizationType, final String realization) {
         return Iterables.any(this.realizationEntries, new Predicate<RealizationEntry>() {
             @Override
             public boolean apply(RealizationEntry input) {
-                return input.getType() == type && input.getRealization().equalsIgnoreCase(realization);
+                return input.getType().equals(realizationType) && input.getRealization().equalsIgnoreCase(realization);
             }
         });
     }
 
-    public void removeRealization(final RealizationType type, final String realization) {
+    public void removeRealization(final String type, final String realization) {
         Iterables.removeIf(this.realizationEntries, new Predicate<RealizationEntry>() {
             @Override
             public boolean apply(RealizationEntry input) {
-                return input.getType() == type && input.getRealization().equalsIgnoreCase(realization);
+                return input.getType().equals(type) && input.getRealization().equalsIgnoreCase(realization);
             }
         });
     }
 
-    public List<RealizationEntry> getRealizationEntries(final RealizationType type) {
-        if (type == null)
+    public List<RealizationEntry> getRealizationEntries(final String realizationType) {
+        if (realizationType == null)
             return getRealizationEntries();
 
         return ImmutableList.copyOf(Iterables.filter(realizationEntries, new Predicate<RealizationEntry>() {
             @Override
             public boolean apply(@Nullable RealizationEntry input) {
-                return input.getType() == type;
+                return input.getType().equals(realizationType);
             }
         }));
     }
 
-    public int getRealizationCount(final RealizationType type) {
-
-        if (type == null)
+    public int getRealizationCount(final String realizationType) {
+        if (realizationType == null)
             return this.realizationEntries.size();
 
         return Iterables.size(Iterables.filter(this.realizationEntries, new Predicate<RealizationEntry>() {
             @Override
             public boolean apply(RealizationEntry input) {
-                return input.getType() == type;
+                return input.getType().equals(realizationType);
             }
         }));
     }
 
-    public void addRealizationEntry(final RealizationType type, final String realizationName) {
+    public void addRealizationEntry(final String realizationType, final String realizationName) {
         RealizationEntry pdm = new RealizationEntry();
-        pdm.setType(type);
+        pdm.setType(realizationType);
         pdm.setRealization(realizationName);
         this.realizationEntries.add(pdm);
     }

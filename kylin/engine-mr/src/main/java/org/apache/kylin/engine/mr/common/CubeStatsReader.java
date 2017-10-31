@@ -80,7 +80,7 @@ public class CubeStatsReader {
     final CuboidScheduler cuboidScheduler;
 
     public CubeStatsReader(CubeSegment cubeSegment, KylinConfig kylinConfig) throws IOException {
-        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
         cuboidScheduler = cubeSegment.getCuboidScheduler();
         String statsKey = cubeSegment.getStatisticsResourcePath();
         File tmpSeqFile = writeTmpSeqFile(store.getResource(statsKey).inputStream);

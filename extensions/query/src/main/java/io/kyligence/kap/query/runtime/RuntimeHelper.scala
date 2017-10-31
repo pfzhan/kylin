@@ -29,7 +29,6 @@ import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.util.SparderTupleConverter
 import io.kyligence.kap.storage.parquet.cube.CubeStorageQuery
 import org.apache.kylin.cube.CubeSegment
-import org.apache.kylin.cube.model.CubeDesc.DeriveType
 import org.apache.kylin.dict.BuiltInFunctionTransformer
 import org.apache.kylin.gridtable.{GTInfo, GTScanRequest}
 import org.apache.kylin.metadata.datatype.DataType
@@ -39,6 +38,7 @@ import org.apache.kylin.metadata.filter.{
   TupleFilter,
   TupleFilterSerializer
 }
+import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.kylin.query.relnode.OLAPContext
 import org.apache.kylin.storage.gtrecord.{

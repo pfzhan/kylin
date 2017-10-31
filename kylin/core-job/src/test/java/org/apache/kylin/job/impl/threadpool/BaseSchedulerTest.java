@@ -29,7 +29,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.After;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,8 +43,8 @@ public abstract class BaseSchedulerTest extends LocalFileMetadataTestCase {
 
     protected static ExecutableManager jobService;
 
-    @BeforeClass
-    public static void setup() throws Exception {
+    @Before
+    public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         staticCreateTestMetadata();
         jobService = ExecutableManager.getInstance(KylinConfig.getInstanceFromEnv());
@@ -57,6 +57,7 @@ public abstract class BaseSchedulerTest extends LocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
+        DefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }

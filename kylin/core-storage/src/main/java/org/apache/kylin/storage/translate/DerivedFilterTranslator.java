@@ -25,8 +25,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.kv.RowKeyColumnOrder;
-import org.apache.kylin.cube.model.CubeDesc.DeriveInfo;
-import org.apache.kylin.cube.model.CubeDesc.DeriveType;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.dict.lookup.LookupStringTable;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -56,7 +55,7 @@ public class DerivedFilterTranslator {
         TblColRef[] hostCols = hostInfo.columns;
         TblColRef[] pkCols = hostInfo.join.getPrimaryKeyColumns();
 
-        if (hostInfo.type == DeriveType.PK_FK) {
+        if (hostInfo.type == DeriveInfo.DeriveType.PK_FK) {
             assert hostCols.length == 1;
             CompareTupleFilter newComp = new CompareTupleFilter(compf.getOperator());
             newComp.addChild(new ColumnTupleFilter(hostCols[0]));
@@ -64,7 +63,7 @@ public class DerivedFilterTranslator {
             return new Pair<TupleFilter, Boolean>(newComp, false);
         }
 
-        assert hostInfo.type == DeriveType.LOOKUP;
+        assert hostInfo.type == DeriveInfo.DeriveType.LOOKUP;
         assert hostCols.length == pkCols.length;
 
         int di = derivedCol.getColumnDesc().getZeroBasedIndex();

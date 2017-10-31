@@ -21,6 +21,7 @@ package org.apache.kylin.engine.spark;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.engine.spark.util.PercentileCounterSerializer;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.spark.serializer.KryoRegistrator;
@@ -141,8 +142,8 @@ public class KylinKryoRegistrator implements KryoRegistrator {
         kyroClasses.add(org.apache.kylin.cube.model.AggregationGroup.class);
         kyroClasses.add(org.apache.kylin.cube.model.AggregationGroup.HierarchyMask.class);
         kyroClasses.add(org.apache.kylin.cube.model.CubeDesc.class);
-        kyroClasses.add(org.apache.kylin.cube.model.CubeDesc.DeriveInfo.class);
-        kyroClasses.add(org.apache.kylin.cube.model.CubeDesc.DeriveType.class);
+        kyroClasses.add(DeriveInfo.class);
+        kyroClasses.add(DeriveInfo.DeriveType.class);
         kyroClasses.add(org.apache.kylin.cube.model.CubeJoinedFlatTableDesc.class);
         kyroClasses.add(org.apache.kylin.cube.model.CubeJoinedFlatTableEnrich.class);
         kyroClasses.add(org.apache.kylin.cube.model.DictionaryDesc.class);

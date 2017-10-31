@@ -19,6 +19,7 @@
 package org.apache.kylin.metadata.badquery;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.NavigableSet;
 
 import org.apache.commons.lang3.StringUtils;
@@ -30,10 +31,14 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
 public class BadQueryHistoryManager {
-    public static final Serializer<BadQueryHistory> BAD_QUERY_INSTANCE_SERIALIZER = new JsonSerializer<>(BadQueryHistory.class);
+    public static final Serializer<BadQueryHistory> BAD_QUERY_INSTANCE_SERIALIZER = new JsonSerializer<>(
+            BadQueryHistory.class);
     private static final Logger logger = LoggerFactory.getLogger(BadQueryHistoryManager.class);
-    
+
     public static BadQueryHistoryManager getInstance(KylinConfig config) {
         return config.getManager(BadQueryHistoryManager.class);
     }
@@ -42,7 +47,7 @@ public class BadQueryHistoryManager {
     static BadQueryHistoryManager newInstance(KylinConfig config) throws IOException {
         return new BadQueryHistoryManager(config);
     }
-    
+
     // ============================================================================
 
     private KylinConfig kylinConfig;
@@ -53,11 +58,12 @@ public class BadQueryHistoryManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.kylinConfig);
+        return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
 
     public BadQueryHistory getBadQueriesForProject(String project) throws IOException {
-        BadQueryHistory badQueryHistory = getStore().getResource(getResourcePathForProject(project), BadQueryHistory.class, BAD_QUERY_INSTANCE_SERIALIZER);
+        BadQueryHistory badQueryHistory = getStore().getResource(getResourcePathForProject(project),
+                BadQueryHistory.class, BAD_QUERY_INSTANCE_SERIALIZER);
         if (badQueryHistory == null) {
             badQueryHistory = new BadQueryHistory(project);
         }
@@ -67,20 +73,35 @@ public class BadQueryHistoryManager {
     }
 
     public BadQueryHistory upsertEntryToProject(BadQueryEntry badQueryEntry, String project) throws IOException {
-        if (StringUtils.isEmpty(project) || badQueryEntry.getAdj() == null || badQueryEntry.getSql() == null)
+        return upsertEntryToProject(Lists.newArrayList(badQueryEntry), project);
+    }
+
+    public BadQueryHistory upsertEntryToProject(Collection<BadQueryEntry> badQueryEntries, String project)
+            throws IOException {
+        if (StringUtils.isEmpty(project) || badQueryEntries == null)
             throw new IllegalArgumentException();
 
         BadQueryHistory badQueryHistory = getBadQueriesForProject(project);
         NavigableSet<BadQueryEntry> entries = badQueryHistory.getEntries();
-        
-        entries.remove(badQueryEntry); // in case the entry already exists and this call means to update
-        
-        entries.add(badQueryEntry);
-        
+
+        for (BadQueryEntry entry : badQueryEntries) {
+            Preconditions.checkArgument(entry != null && entry.getAdj() != null && entry.getSql() != null);
+            entries.remove(entry); // in case the entry already exists and this call means to update
+            entries.add(entry);
+        }
+
         int maxSize = kylinConfig.getBadQueryHistoryNum();
         if (entries.size() > maxSize) {
             entries.pollFirst();
         }
+
+        getStore().putResource(badQueryHistory.getResourcePath(), badQueryHistory, BAD_QUERY_INSTANCE_SERIALIZER);
+        return badQueryHistory;
+    }
+
+    public BadQueryHistory upsertToProject(BadQueryHistory badQueryHistory, String project) throws IOException {
+        if (StringUtils.isEmpty(project) || badQueryHistory == null)
+            throw new IllegalArgumentException();
 
         getStore().putResource(badQueryHistory.getResourcePath(), badQueryHistory, BAD_QUERY_INSTANCE_SERIALIZER);
         return badQueryHistory;

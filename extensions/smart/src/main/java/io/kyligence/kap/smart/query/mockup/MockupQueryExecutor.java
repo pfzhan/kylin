@@ -32,6 +32,7 @@ import java.util.Collection;
 
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.util.DBUtils;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -89,22 +90,29 @@ public class MockupQueryExecutor {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) {
-            if (e.getCause() != null
-                    && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
-                StackTraceElement[] stackTrace = e.getCause().getStackTrace();
-                for (StackTraceElement s : stackTrace) {
-                    if (s.toString().contains(LookupTableEnumerator.class.getName())) {
-                        logger.debug("This query hits table snapshot.");
+            Throwable cause = e.getCause();
+            boolean printException = true;
+            if (cause != null) {
+                if (cause instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
+                    StackTraceElement[] stackTrace = e.getCause().getStackTrace();
+                    for (StackTraceElement s : stackTrace) {
+                        if (s.toString().contains(LookupTableEnumerator.class.getName())) {
+                            logger.debug("This query hits table snapshot.");
 
-                        sqlResult.setStatus(SQLResult.Status.SUCCESS);
-                        return record;
+                            sqlResult.setStatus(SQLResult.Status.SUCCESS);
+                            return record;
+                        }
                     }
+                } else if (cause instanceof NoRealizationFoundException) {
+                    printException = false;
                 }
             }
 
-            String message = e.getMessage() == null ? e.getClass().toString() + ", check kylin.log for details" : QueryUtil.makeErrorMsgUserFriendly(e);
-            logger.debug("Failed to run in MockupQueryExecutor", e);
-            
+            String message = e.getMessage() == null ? e.getClass().toString() + ", check kylin.log for details"
+                    : QueryUtil.makeErrorMsgUserFriendly(e);
+            if (printException)
+                logger.debug("Failed to run in MockupQueryExecutor", e);
+
             sqlResult.setStatus(SQLResult.Status.FAILED);
             sqlResult.setMessage(message);
             sqlResult.setException(e);

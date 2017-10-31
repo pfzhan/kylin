@@ -33,7 +33,6 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,12 +89,12 @@ public class ProjectManagerTest extends LocalFileMetadataTestCase {
         assertTrue(prjMgr.listAllRealizations("ALIEN").iterator().next().getName().equalsIgnoreCase("CUBE_IN_ALIEN_PROJECT"));
         assertTrue(cubeMgr.listAllCubes().size() == originalCubeCount + 1);
 
-        prjMgr.moveRealizationToProject(RealizationType.CUBE, "cube_in_alien_project", "default", null);
+        prjMgr.moveRealizationToProject(CubeInstance.REALIZATION_TYPE, "cube_in_alien_project", "default", null);
         assertTrue(prjMgr.listAllRealizations("ALIEN").size() == 0);
         assertTrue(prjMgr.listAllRealizations("default").size() == originalCubeCountInDefault + 1);
         assertTrue(ProjectManager.getInstance(getTestConfig()).listAllRealizations("default").contains(createdCube));
 
-        prjMgr.moveRealizationToProject(RealizationType.CUBE, "cube_in_alien_project", "alien", null);
+        prjMgr.moveRealizationToProject(CubeInstance.REALIZATION_TYPE, "cube_in_alien_project", "alien", null);
         assertTrue(prjMgr.listAllRealizations("ALIEN").size() == 1);
         assertTrue(prjMgr.listAllRealizations("default").size() == originalCubeCountInDefault);
         assertTrue(ProjectManager.getInstance(getTestConfig()).listAllRealizations("alien").contains(createdCube));
@@ -164,11 +163,11 @@ public class ProjectManagerTest extends LocalFileMetadataTestCase {
         CubeInstance cube = cubeMgr.getCube("ci_left_join_cube");
         assertTrue(prjMgr.getRealizationsByTable("default", "default.test_kylin_fact").contains(cube));
 
-        prjMgr.removeRealizationsFromProjects(RealizationType.CUBE, cube.getName());
+        prjMgr.removeRealizationsFromProjects(CubeInstance.REALIZATION_TYPE, cube.getName());
 
         assertTrue(!prjMgr.getRealizationsByTable("default", "default.test_kylin_fact").contains(cube));
 
-        prjMgr.moveRealizationToProject(RealizationType.CUBE, cube.getName(), "default", "tester");
+        prjMgr.moveRealizationToProject(CubeInstance.REALIZATION_TYPE, cube.getName(), "default", "tester");
 
         assertTrue(prjMgr.getRealizationsByTable("default", "default.test_kylin_fact").contains(cube));
     }

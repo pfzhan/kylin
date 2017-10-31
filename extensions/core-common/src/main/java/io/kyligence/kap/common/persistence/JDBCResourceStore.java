@@ -48,11 +48,10 @@ public class JDBCResourceStore extends ResourceStore {
 
     private JDBCResourceDAO resourceDAO;
 
-    public JDBCResourceStore(KylinConfig kylinConfig) throws IOException, SQLException {
-        super(kylinConfig);
-        StorageURL metadataUrl = kylinConfig.getMetadataUrl();
-        checkScheme(metadataUrl);
-        this.tableName = metadataUrl.getIdentifier();
+    public JDBCResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) throws IOException, SQLException {
+        super(kylinConfig, storageUrl);
+        checkScheme(storageUrl);
+        this.tableName = storageUrl.getIdentifier();
         this.resourceDAO = new JDBCResourceDAO(kylinConfig, tableName);
     }
 

@@ -64,7 +64,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealizationConstants;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hbase.HBaseConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,9 +124,10 @@ public class CubeMigrationCLI extends AbstractApplication {
         doAclCopy = Boolean.parseBoolean(copyAcl);
         doOverwrite = Boolean.parseBoolean(overwriteIfExists);
         srcConfig = srcCfg;
-        srcStore = ResourceStore.getStore(srcConfig);
+        srcStore = ResourceStore.getKylinMetaStore(srcConfig);
         dstConfig = dstCfg;
-        dstStore = ResourceStore.getStore(dstConfig);
+        dstStore = ResourceStore.getKylinMetaStore(dstConfig);
+
         dstProject = projectName;
 
         CubeManager cubeManager = CubeManager.getInstance(srcConfig);
@@ -492,8 +492,8 @@ public class CubeMigrationCLI extends AbstractApplication {
 
             if (project.getModels().contains(modelName) == false)
                 project.addModel(modelName);
-            project.removeRealization(RealizationType.CUBE, cubeName);
-            project.addRealizationEntry(RealizationType.CUBE, cubeName);
+            project.removeRealization(srcCube.getType(), cubeName);
+            project.addRealizationEntry(srcCube.getType(), cubeName);
 
             dstStore.putResource(projectResPath, project, projectSerializer);
             logger.info("Project instance for " + projectName + " is corrected");

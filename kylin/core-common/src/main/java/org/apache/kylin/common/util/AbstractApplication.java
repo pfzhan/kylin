@@ -19,7 +19,6 @@ package org.apache.kylin.common.util;
 
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  */
@@ -31,7 +30,6 @@ public abstract class AbstractApplication {
 
     public final void execute(String[] args) {
         OptionsHelper optionsHelper = new OptionsHelper();
-        System.out.println("Abstract Application args:" + StringUtils.join(args, " "));
         try {
             optionsHelper.parseOptions(getOptions(), args);
             execute(optionsHelper);

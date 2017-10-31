@@ -1,0 +1,1 @@
+select count(*) as CNT from test_kylin_fact

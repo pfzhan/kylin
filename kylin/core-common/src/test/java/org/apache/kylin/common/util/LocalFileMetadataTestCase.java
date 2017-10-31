@@ -31,12 +31,11 @@ public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
     public static String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
 
     @Override
-    public void createTestMetadata(String... overlayMetadataDirs) {
-        //overlayMetadataDirs is useless yet
+    public void createTestMetadata() {
         staticCreateTestMetadata();
     }
 
-    public static void staticCreateTestMetadata(String... overlayMetadataDirs) {
+    public static void staticCreateTestMetadata() {
         String testDataFolder = LOCALMETA_TEST_DATA;
         KylinConfig.destroyInstance();
 
@@ -48,12 +47,7 @@ public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
             e.printStackTrace();
         }
 
-        if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
-            System.setProperty(KylinConfig.KYLIN_CONF, tempTestMetadataUrl);
-
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setMetadataUrl(tempTestMetadataUrl);
-        config.setProperty("kylin.env.hdfs-working-dir", "file:///tmp/kylin");
+        KylinConfig.setKylinConfigForLocalTest(tempTestMetadataUrl);
     }
 
     public static void cleanAfterClass() {
@@ -84,6 +78,6 @@ public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
     }
 
     protected ResourceStore getStore() {
-        return ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 }

@@ -85,15 +85,14 @@ public class HBaseResourceStore extends ResourceStore {
         return HBaseConnection.get(metadataUrl);
     }
 
-    public HBaseResourceStore(KylinConfig kylinConfig) throws IOException {
-        super(kylinConfig);
-        metadataUrl = buildMetadataUrl(kylinConfig);
+    public HBaseResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) throws IOException {
+        super(kylinConfig, storageUrl);
+        metadataUrl = buildMetadataUrl(storageUrl);
         tableName = metadataUrl.getIdentifier();
         createHTableIfNeeded(tableName);
     }
 
-    private StorageURL buildMetadataUrl(KylinConfig kylinConfig) throws IOException {
-        StorageURL url = kylinConfig.getMetadataUrl();
+    private StorageURL buildMetadataUrl(StorageURL url) throws IOException {
         if (!url.getScheme().equals("hbase"))
             throw new IOException("Cannot create HBaseResourceStore. Url not match. Url: " + url);
 

@@ -70,7 +70,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -84,7 +83,6 @@ import org.apache.kylin.metadata.querymeta.ColumnMetaWithType;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
@@ -156,7 +154,7 @@ public class QueryService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     public QueryService() {
-        queryStore = ResourceStore.getStore(getConfig());
+        queryStore = ResourceStore.getKylinMetaStore(getConfig());
         badQueryDetector.start();
     }
 
@@ -277,11 +275,12 @@ public class QueryService extends BasicService {
 
         if (!response.isHitExceptionCache() && null != OLAPContext.getThreadLocalContexts()) {
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-                Cuboid cuboid = ctx.storageContext.getCuboid();
-                if (cuboid != null) {
-                    //Some queries do not involve cuboid, e.g. lookup table query
-                    cuboidIds.add(cuboid.getId());
-                }
+                // TODO: uncomment these lines
+                //                Cuboid cuboid = ctx.storageContext.getCuboid();
+                //                if (cuboid != null) {
+                //                    Some queries do not involve cuboid, e.g. lookup table query
+                //                    cuboidIds.add(cuboid.getId());
+                //                }
 
                 if (ctx.realization != null) {
                     realizationNames.add(ctx.realization.getCanonicalName());
@@ -350,7 +349,7 @@ public class QueryService extends BasicService {
             Iterable<String> parts = Splitter.on(CharMatcher.anyOf("[]=,")).split(split);
             String[] partsStr = Iterables.toArray(parts, String.class);
 
-            if (RealizationType.HYBRID.toString().equals(partsStr[0])) {
+            if (HybridInstance.REALIZATION_TYPE.equals(partsStr[0])) {
                 // special care for hybrid
                 HybridInstance hybridInstance = getHybridManager().getHybridInstance(partsStr[2]);
                 Preconditions.checkNotNull(hybridInstance);
@@ -370,12 +369,17 @@ public class QueryService extends BasicService {
         List<RealizationEntry> realizationEntries = hybridInstance.getRealizationEntries();
         for (RealizationEntry realizationEntry : realizationEntries) {
             String reName = realizationEntry.getRealization();
-            if (RealizationType.CUBE == realizationEntry.getType()) {
+            switch (realizationEntry.getType()) {
+            case CubeInstance.REALIZATION_TYPE:
                 CubeInstance cubeInstance = getCubeManager().getCube(reName);
                 checkCubeAuthorization(cubeInstance);
-            } else if (RealizationType.HYBRID == realizationEntry.getType()) {
+                break;
+            case HybridInstance.REALIZATION_TYPE:
                 HybridInstance innerHybridInstance = getHybridManager().getHybridInstance(reName);
                 checkHybridAuthorization(innerHybridInstance);
+                break;
+            default:
+                break;
             }
         }
     }

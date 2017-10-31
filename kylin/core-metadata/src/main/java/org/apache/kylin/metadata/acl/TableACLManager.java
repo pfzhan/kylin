@@ -90,7 +90,7 @@ public class TableACLManager {
     }
 
     public ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     public TableACL getTableACLByCache(String project) {

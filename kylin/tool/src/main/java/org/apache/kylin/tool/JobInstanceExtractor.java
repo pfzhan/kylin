@@ -43,7 +43,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +108,7 @@ public class JobInstanceExtractor extends AbstractInfoExtractor {
                         shouldExtract = true;
                     } else {
                         ProjectInstance projectInstance = projectManager.getProject(project);
-                        if (projectInstance != null && projectInstance.containsRealization(RealizationType.CUBE, cubeName)) {
+                        if (projectInstance != null && projectInstance.containsRealization(CubeInstance.REALIZATION_TYPE, cubeName)) {
                             shouldExtract = true;
                         }
                     }

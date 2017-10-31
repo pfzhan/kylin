@@ -54,6 +54,12 @@ public class HadoopUtil {
         return conf;
     }
 
+    public static Configuration newLocalConfiguration() {
+        Configuration conf = new Configuration(false);
+        conf.set("fs.default.name", "file:///");
+        return conf;
+    }
+
     public static Configuration healSickConfig(Configuration conf) {
         // https://issues.apache.org/jira/browse/KYLIN-953
         if (StringUtils.isBlank(conf.get("hadoop.tmp.dir"))) {
@@ -104,9 +110,14 @@ public class HadoopUtil {
 
     public static String fixWindowsPath(String path) {
         // fix windows path
-        if (path.startsWith("file://") && !path.startsWith("file:///") && path.contains(":\\")) {
+        if (path.startsWith("C:\\") || path.startsWith("D:\\")) {
+            path = "file:///" + path;
+        } else if (path.startsWith("C:/") || path.startsWith("D:/")) {
+            path = "file:///" + path;
+        } else if (path.startsWith("file://") && !path.startsWith("file:///") && path.contains(":\\")) {
             path = path.replace("file://", "file:///");
         }
+        
         if (path.startsWith("file:///")) {
             path = path.replace('\\', '/');
         }

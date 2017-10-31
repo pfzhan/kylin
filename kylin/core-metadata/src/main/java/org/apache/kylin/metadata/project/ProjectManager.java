@@ -43,7 +43,6 @@ import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -252,15 +251,15 @@ public class ProjectManager {
         }
     }
 
-    public ProjectInstance moveRealizationToProject(RealizationType type, String realizationName, String newProjectName,
+    public ProjectInstance moveRealizationToProject(String realizationType, String realizationName, String newProjectName,
             String owner) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            removeRealizationsFromProjects(type, realizationName);
-            return addRealizationToProject(type, realizationName, newProjectName, owner);
+            removeRealizationsFromProjects(realizationType, realizationName);
+            return addRealizationToProject(realizationType, realizationName, newProjectName, owner);
         }
     }
 
-    private ProjectInstance addRealizationToProject(RealizationType type, String realizationName, String project,
+    private ProjectInstance addRealizationToProject(String realizationType, String realizationName, String project,
             String user) throws IOException {
         if (StringUtils.isEmpty(project)) {
             throw new IllegalArgumentException("Project name should not be empty.");
@@ -268,20 +267,20 @@ public class ProjectManager {
         ProjectInstance newProject = getProject(project);
         if (newProject == null) {
             newProject = this.createProject(project, user,
-                    "This is a project automatically added when adding realization " + realizationName + "(" + type
-                            + ")",
+                    "This is a project automatically added when adding realization " + realizationName + "("
+                            + realizationType + ")",
                     null);
         }
-        newProject.addRealizationEntry(type, realizationName);
+        newProject.addRealizationEntry(realizationType, realizationName);
         save(newProject);
 
         return newProject;
     }
 
-    public void removeRealizationsFromProjects(RealizationType type, String realizationName) throws IOException {
+    public void removeRealizationsFromProjects(String realizationType, String realizationName) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            for (ProjectInstance projectInstance : findProjects(type, realizationName)) {
-                projectInstance.removeRealization(type, realizationName);
+            for (ProjectInstance projectInstance : findProjects(realizationType, realizationName)) {
+                projectInstance.removeRealization(realizationType, realizationName);
                 save(projectInstance);
             }
         }
@@ -364,12 +363,12 @@ public class ProjectManager {
         }
     }
 
-    public List<ProjectInstance> findProjects(RealizationType type, String realizationName) {
+    public List<ProjectInstance> findProjects(String realizationType, String realizationName) {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             List<ProjectInstance> result = Lists.newArrayList();
             for (ProjectInstance prj : projectMap.values()) {
                 for (RealizationEntry entry : prj.getRealizationEntries()) {
-                    if (entry.getType().equals(type) && entry.getRealization().equals(realizationName)) {
+                    if (entry.getType().equals(realizationType) && entry.getRealization().equals(realizationName)) {
                         result.add(prj);
                         break;
                     }
@@ -456,7 +455,7 @@ public class ProjectManager {
     }
 
     ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     TableMetadataManager getTableManager() {

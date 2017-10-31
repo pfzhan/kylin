@@ -100,7 +100,7 @@ public class AclService implements MutableAclService {
     public AclService() throws IOException {
         fieldAces.setAccessible(true);
         fieldAcl.setAccessible(true);
-        aclStore = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        aclStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
     @Override

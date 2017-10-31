@@ -244,7 +244,7 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testGetAllCubes() throws Exception {
-        final ResourceStore store = ResourceStore.getStore(getTestConfig());
+        final ResourceStore store = ResourceStore.getKylinMetaStore(getTestConfig());
         final NavigableSet<String> cubePath = store.listResources(ResourceStore.CUBE_RESOURCE_ROOT);
         assertTrue(cubePath.size() > 1);
 

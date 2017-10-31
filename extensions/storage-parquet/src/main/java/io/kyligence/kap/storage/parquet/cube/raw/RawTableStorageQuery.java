@@ -48,8 +48,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableSegment;
-import io.kyligence.kap.gtrecord.RawTableSegmentScanner;
-import io.kyligence.kap.gtrecord.SequentialRawTableTupleIterator;
+import io.kyligence.kap.storage.gtrecord.RawTableSegmentScanner;
+import io.kyligence.kap.storage.gtrecord.SequentialRawTableTupleIterator;
 
 public class RawTableStorageQuery implements IStorageQuery {
 

@@ -18,29 +18,27 @@
 
 package org.apache.kylin.metadata.project;
 
-import org.apache.kylin.metadata.realization.RealizationType;
+import java.io.Serializable;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.io.Serializable;
-
 /**
  */
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class RealizationEntry implements Serializable{
+public class RealizationEntry implements Serializable {
 
     @JsonProperty("type")
-    private RealizationType type;
+    private String type;
 
     @JsonProperty("realization")
     private String realization;
 
-    public RealizationType getType() {
+    public String getType() {
         return type;
     }
 
-    public void setType(RealizationType type) {
+    public void setType(String type) {
         this.type = type;
     }
 
@@ -78,10 +76,10 @@ public class RealizationEntry implements Serializable{
 
     @Override
     public String toString() {
-        return "" + type.name() + "." + realization;
+        return "" + type + "." + realization;
     }
 
-    public static RealizationEntry create(RealizationType type, String realization) {
+    public static RealizationEntry create(String type, String realization) {
         RealizationEntry entry = new RealizationEntry();
         entry.setRealization(realization);
         entry.setType(type);

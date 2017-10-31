@@ -37,4 +37,13 @@ public interface IKapStorageAware extends IStorageAware {
      * io.kyligence.kap.storage.parquet.ParquetSpliceStorage
      */
     int ID_SPLICE_PARQUET = 99;
+
+    int ID_NDATA_STORAGE = 20;
+
+    // ==================================================
+
+    // used for IGTStorage
+
+    int ID_NPARQUET = 81;
+
 }

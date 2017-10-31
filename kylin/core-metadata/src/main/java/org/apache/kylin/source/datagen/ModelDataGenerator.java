@@ -61,7 +61,7 @@ public class ModelDataGenerator {
     boolean outprint = false; // for debug
 
     public ModelDataGenerator(DataModelDesc model, int nRows) {
-        this(model, nRows, ResourceStore.getStore(model.getConfig()));
+        this(model, nRows, ResourceStore.getKylinMetaStore(model.getConfig()));
     }
 
     private ModelDataGenerator(DataModelDesc model, int nRows, ResourceStore outputStore) {
@@ -308,7 +308,7 @@ public class ModelDataGenerator {
         
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         DataModelDesc model = DataModelManager.getInstance(conf).getDataModelDesc(modelName);
-        ResourceStore store = outputDir == null ? ResourceStore.getStore(conf) : ResourceStore.getStore(mockup(outputDir));
+        ResourceStore store = outputDir == null ? ResourceStore.getKylinMetaStore(conf) : ResourceStore.getKylinMetaStore(mockup(outputDir));
         
         ModelDataGenerator gen = new ModelDataGenerator(model, nRows, store);
         gen.generate();

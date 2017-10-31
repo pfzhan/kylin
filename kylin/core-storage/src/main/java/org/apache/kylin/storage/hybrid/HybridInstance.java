@@ -34,7 +34,6 @@ import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationRegistry;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +48,7 @@ import com.google.common.collect.Lists;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class HybridInstance extends RootPersistentEntity implements IRealization {
+    public static final String REALIZATION_TYPE = "HYBRID";
 
     private final static Logger logger = LoggerFactory.getLogger(HybridInstance.class);
 
@@ -113,13 +113,16 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
             RealizationRegistry registry = RealizationRegistry.getInstance(config);
             List<IRealization> realizationList = Lists.newArrayList();
             for (int i = 0; i < realizationEntries.size(); i++) {
-                IRealization realization = registry.getRealization(realizationEntries.get(i).getType(), realizationEntries.get(i).getRealization());
+                IRealization realization = registry.getRealization(realizationEntries.get(i).getType(),
+                        realizationEntries.get(i).getRealization());
                 if (realization == null) {
-                    logger.error("Realization '" + realizationEntries.get(i) + " is not found, remove from Hybrid '" + this.getName() + "'");
+                    logger.error("Realization '" + realizationEntries.get(i) + " is not found, remove from Hybrid '"
+                            + this.getName() + "'");
                     continue;
                 }
                 if (realization.isReady() == false) {
-                    logger.error("Realization '" + realization.getName() + " is disabled, remove from Hybrid '" + this.getName() + "'");
+                    logger.error("Realization '" + realization.getName() + " is disabled, remove from Hybrid '"
+                            + this.getName() + "'");
                     continue;
                 }
                 realizationList.add(realization);
@@ -214,10 +217,10 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
         }
         return c;
     }
-
+    
     @Override
-    public RealizationType getType() {
-        return RealizationType.HYBRID;
+    public String getType() {
+        return REALIZATION_TYPE;
     }
 
     @Override
@@ -274,6 +277,11 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
         return config;
     }
 
+    @Override
+    public boolean hasPrecalculatedFields() {
+        return true;
+    }
+
     public void setConfig(KylinConfig config) {
         this.config = config;
     }
@@ -327,4 +335,5 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
     public int getStorageType() {
         return ID_HYBRID;
     }
+
 }

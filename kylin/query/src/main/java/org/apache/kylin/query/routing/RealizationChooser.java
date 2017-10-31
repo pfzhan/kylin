@@ -26,9 +26,11 @@ import java.util.TreeMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -120,7 +122,7 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    private static Map<String, String> matches(DataModelDesc model, OLAPContext ctx) {
+    public static Map<String, String> matches(DataModelDesc model, OLAPContext ctx) {
         Map<String, String> result = Maps.newHashMap();
 
         TableRef firstTable = ctx.firstTableScan.getTableRef();
@@ -241,7 +243,21 @@ public class RealizationChooser {
         public RealizationCost(IRealization real) {
             // ref Candidate.PRIORITIES
             this.priority = Candidate.PRIORITIES.get(real.getType());
-            this.cost = real.getCost();
+
+            // ref CubeInstance.getCost()
+            int countedDimensionNum;
+            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
+                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
+            } else {
+                countedDimensionNum = real.getAllDimensions().size();
+            }
+            int c = countedDimensionNum * CubeInstance.COST_WEIGHT_DIMENSION
+                    + real.getMeasures().size() * CubeInstance.COST_WEIGHT_MEASURE;
+            for (JoinTableDesc join : real.getModel().getJoinTables()) {
+                if (join.getJoin().isInnerJoin())
+                    c += CubeInstance.COST_WEIGHT_INNER_JOIN;
+            }
+            this.cost = c;
         }
 
         @Override

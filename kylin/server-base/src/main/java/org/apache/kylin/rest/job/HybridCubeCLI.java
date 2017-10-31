@@ -37,7 +37,6 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.apache.kylin.storage.hybrid.HybridManager;
 import org.slf4j.Logger;
@@ -82,7 +81,7 @@ public class HybridCubeCLI extends AbstractApplication {
         options.addOption(OPTION_CUBES);
 
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        this.store = ResourceStore.getStore(kylinConfig);
+        this.store = ResourceStore.getKylinMetaStore(kylinConfig);
         this.cubeManager = CubeManager.getInstance(kylinConfig);
         this.hybridManager = HybridManager.getInstance(kylinConfig);
         this.metadataManager = DataModelManager.getInstance(kylinConfig);
@@ -126,7 +125,7 @@ public class HybridCubeCLI extends AbstractApplication {
             if (owner == null) {
                 owner = cube.getOwner();
             }
-            realizationEntries.add(RealizationEntry.create(RealizationType.CUBE, cube.getName()));
+            realizationEntries.add(RealizationEntry.create(CubeInstance.REALIZATION_TYPE, cube.getName()));
         }
 
         HybridInstance hybridInstance = hybridManager.getHybridInstance(hybridName);
@@ -156,7 +155,7 @@ public class HybridCubeCLI extends AbstractApplication {
         checkSegmentOffset(realizationEntries);
         HybridInstance hybridInstance = HybridInstance.create(kylinConfig, hybridName, realizationEntries);
         store.putResource(hybridInstance.getResourcePath(), hybridInstance, HybridManager.HYBRID_SERIALIZER);
-        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(RealizationType.HYBRID, hybridInstance.getName(), projectName, owner);
+        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(hybridInstance.getType(), hybridInstance.getName(), projectName, owner);
         hybridManager.reloadHybridInstance(hybridName);
         logger.info("HybridInstance was created at: " + hybridInstance.getResourcePath());
         return hybridInstance;
@@ -166,13 +165,13 @@ public class HybridCubeCLI extends AbstractApplication {
         checkSegmentOffset(realizationEntries);
         hybridInstance.setRealizationEntries(realizationEntries);
         store.putResource(hybridInstance.getResourcePath(), hybridInstance, HybridManager.HYBRID_SERIALIZER);
-        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(RealizationType.HYBRID, hybridInstance.getName(), projectName, owner);
+        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(hybridInstance.getType(), hybridInstance.getName(), projectName, owner);
         hybridManager.reloadHybridInstance(hybridInstance.getName());
         logger.info("HybridInstance was updated at: " + hybridInstance.getResourcePath());
     }
 
     private void delete(HybridInstance hybridInstance) throws IOException {
-        ProjectManager.getInstance(kylinConfig).removeRealizationsFromProjects(RealizationType.HYBRID, hybridInstance.getName());
+        ProjectManager.getInstance(kylinConfig).removeRealizationsFromProjects(hybridInstance.getType(), hybridInstance.getName());
         store.deleteResource(hybridInstance.getResourcePath());
         hybridManager.reloadAllHybridInstance();
         logger.info("HybridInstance was deleted at: " + hybridInstance.getResourcePath());
@@ -185,7 +184,7 @@ public class HybridCubeCLI extends AbstractApplication {
             throw new RuntimeException("Hybrid needs at least 2 cubes");
         long lastOffset = -1;
         for (RealizationEntry entry : realizationEntries) {
-            if (entry.getType() != RealizationType.CUBE) {
+            if (entry.getType() != CubeInstance.REALIZATION_TYPE) {
                 throw new RuntimeException("Wrong realization type: " + entry.getType() + ", only cube supported. ");
             }
 

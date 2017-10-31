@@ -42,7 +42,6 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
@@ -110,7 +109,8 @@ public class CubeSparkRPC implements IGTStorage {
                 .setMaxRecordLength(scanRequest.getInfo().getMaxLength())
                 .addAllParquetColumns(getRequiredParquetColumns(scanRequest))
                 .setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
-                .setRealizationType(RealizationType.CUBE.toString()).setQueryId(QueryContext.current().getQueryId())
+                .setRealizationType(cubeSegment.getCubeInstance().getType())
+                .setQueryId(QueryContext.current().getQueryId())
                 .setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled())
                 .setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes())
                 .setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType());

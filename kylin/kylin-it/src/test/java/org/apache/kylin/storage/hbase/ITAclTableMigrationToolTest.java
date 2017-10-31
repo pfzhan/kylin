@@ -78,7 +78,7 @@ public class ITAclTableMigrationToolTest extends HBaseMetadataTestCase {
     public void setup() throws Exception {
         this.createTestMetadata();
         kylinConfig = KylinConfig.getInstanceFromEnv();
-        if (!(ResourceStore.getStore(kylinConfig) instanceof HBaseResourceStore)) {
+        if (!(ResourceStore.getKylinMetaStore(kylinConfig) instanceof HBaseResourceStore)) {
             logger.info("HBase Enviroment not found. Ignore this test");
             return;
         }
@@ -140,7 +140,7 @@ public class ITAclTableMigrationToolTest extends HBaseMetadataTestCase {
 
     private void cleanUpMetastoreData(String storeName) throws IOException {
         String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig, STORE_WITH_OLD_TABLE + "@hbase");
-        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
         Set<String> allRes1 = store.listResources(KylinUserService.DIR_PREFIX);
         Set<String> allRes2 = store.listResources(AclService.DIR_PREFIX);
         if (allRes1 != null) {

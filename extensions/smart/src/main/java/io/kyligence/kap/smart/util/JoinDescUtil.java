@@ -99,10 +99,10 @@ public class JoinDescUtil {
             return false;
         if (!Arrays.equals(a.getPrimaryKey(), b.getPrimaryKey()))
             return false;
-        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
-            return false;
-        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
-            return false;
+        //        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
+        //            return false;
+        //        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
+        //            return false;
         return true;
     }
 

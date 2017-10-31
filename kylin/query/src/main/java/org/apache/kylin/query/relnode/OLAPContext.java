@@ -32,7 +32,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -48,7 +47,6 @@ import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.storage.hybrid.HybridInstance;
 
 import com.google.common.collect.Lists;
 
@@ -174,7 +172,7 @@ public class OLAPContext {
     }
 
     public boolean hasPrecalculatedFields() {
-        return realization instanceof CubeInstance || realization instanceof HybridInstance;
+        return realization.hasPrecalculatedFields();
     }
 
     public void resetSQLDigest() {

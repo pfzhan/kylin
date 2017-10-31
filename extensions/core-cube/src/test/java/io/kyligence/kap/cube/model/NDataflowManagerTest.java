@@ -1,0 +1,137 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.cube.model;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.ProjectManager;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+
+public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setUp() throws Exception {
+        this.createTestMetadata();
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        this.cleanupTestMetadata();
+    }
+
+    @Test
+    public void testCRUD() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(testConfig);
+        ProjectManager projMgr = ProjectManager.getInstance(testConfig);
+
+        final String name = UUID.randomUUID().toString();
+        final String owner = "test_owner";
+        final ProjectInstance proj = projMgr.getProject("default");
+        final NCubePlan cube = cubeMgr.getCubePlan("ncube_basic");
+
+        // create
+        int cntBeforeCreate = mgr.listAllDataflows().size();
+        NDataflow df = mgr.createDataflow(name, proj.getName(), cube, owner);
+        Assert.assertNotNull(df);
+
+        // list
+        List<NDataflow> cubes = mgr.listAllDataflows();
+        Assert.assertEquals(cntBeforeCreate + 1, cubes.size());
+
+        // get
+        df = mgr.getDataflow(name);
+        Assert.assertNotNull(df);
+
+        // update
+        df.setDescription("new_description");
+        mgr.updateDataflow(new NDataflowUpdate(df));
+        df = mgr.getDataflow(name);
+        Assert.assertEquals("new_description", df.getDescription());
+
+        // remove
+        mgr.dropDataflow(name, false);
+        Assert.assertEquals(cntBeforeCreate, mgr.listAllDataflows().size());
+        Assert.assertNull(mgr.getDataflow(name));
+    }
+
+    @Test
+    public void testUpdateSegment() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        NDataSegment newSeg = mgr.appendSegment(df);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        NDataflowUpdate update = new NDataflowUpdate(df);
+        update.setToRemoveSegs(newSeg);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+    }
+
+    @Test
+    public void testUpdateCuboid() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        // test cuboid remove
+        Assert.assertEquals(4, df.getSegment(0).getCuboidsMap().size());
+        NDataflowUpdate update = new NDataflowUpdate(df);
+        update.setToRemoveCuboids(df.getSegment(0).getCuboid(1001L));
+        mgr.updateDataflow(update);
+
+        // verify after remove
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(3, df.getSegment(0).getCuboidsMap().size());
+
+        // test cuboid add
+        NDataSegment seg = df.getSegment(0);
+        update = new NDataflowUpdate(df);
+        update.setToAddCuboids(//
+                NDataCuboid.newDataCuboid(seg.getSegDetails(), 1001L), // to add
+                NDataCuboid.newDataCuboid(seg.getSegDetails(), 1002L) // existing, will update with warning
+        );
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(4, df.getSegment(0).getCuboidsMap().size());
+    }
+}

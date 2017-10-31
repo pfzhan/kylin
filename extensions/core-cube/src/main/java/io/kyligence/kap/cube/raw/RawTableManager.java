@@ -54,7 +54,6 @@ import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,8 +61,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class RawTableManager implements IRealizationProvider {
-
     private static final Logger logger = LoggerFactory.getLogger(RawTableManager.class);
+    public static final String REALIZATION_TYPE = "INVERTED_INDEX";
 
     public static RawTableManager getInstance(KylinConfig config) {
         return config.getManager(RawTableManager.class);
@@ -134,7 +133,7 @@ public class RawTableManager implements IRealizationProvider {
                     crud.reloadQuietly(rawTableName);
             }
 
-            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX,
+            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(getRealizationType(),
                     rawTableName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
             }
@@ -164,12 +163,12 @@ public class RawTableManager implements IRealizationProvider {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(config);
     }
 
     @Override
-    public RealizationType getRealizationType() {
-        return RealizationType.INVERTED_INDEX;
+    public String getRealizationType() {
+        return REALIZATION_TYPE;
     }
     
     @Override
@@ -242,8 +241,7 @@ public class RawTableManager implements IRealizationProvider {
             raw.setOwner(owner);
             raw.init(desc.getConfig());
             updateRawTable(new RawTableUpdate(raw));
-            ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.INVERTED_INDEX, cubeName,
-                    projectName, owner);
+            ProjectManager.getInstance(config).moveRealizationToProject(REALIZATION_TYPE, cubeName, projectName, owner);
             return raw;
         }
     }
@@ -260,7 +258,7 @@ public class RawTableManager implements IRealizationProvider {
 
             crud.delete(raw);
 
-            ProjectManager.getInstance(config).removeRealizationsFromProjects(RealizationType.INVERTED_INDEX, cubeName);
+            ProjectManager.getInstance(config).removeRealizationsFromProjects(REALIZATION_TYPE, cubeName);
 
             return raw;
         }

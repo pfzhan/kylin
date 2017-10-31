@@ -29,9 +29,10 @@ import java.util
 import org.apache.kylin.cube.CubeSegment
 import org.apache.kylin.cube.cuboid.Cuboid
 import org.apache.kylin.cube.model.CubeDesc
-import org.apache.kylin.cube.model.CubeDesc.DeriveType
 import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.TableMetadataManager
+import org.apache.kylin.metadata.model.DeriveInfo
+import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
 import org.apache.kylin.metadata.model.{FunctionDesc, JoinDesc, TblColRef}
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.kylin.storage.gtrecord.CubeTupleConverter
@@ -59,7 +60,7 @@ class SparderTupleConverter(gtInfoTableName: String,
     ) {
 
   val hostToDerivedInfo: util.Map[org.apache.kylin.common.util.Array[TblColRef],
-                                  util.List[CubeDesc.DeriveInfo]] =
+                                  util.List[DeriveInfo]] =
     cuboid.getCubeDesc.getHostToDerivedInfo(cuboid.getColumns, null)
   var hasDerived = false
   var hostToDeriveds: List[HostToDerived] = List.empty
@@ -77,12 +78,12 @@ class SparderTupleConverter(gtInfoTableName: String,
   }
 
   def findDerivedColumn(hostCols: Array[TblColRef],
-                        deriveInfo: CubeDesc.DeriveInfo): Unit = {
+                        deriveInfo: DeriveInfo): Unit = {
 
     //  for PK_FK derive on composite join keys, hostCols may be incomplete
     //  see CubeDesc.initDimensionColumns()
     var hostFkCols: Array[TblColRef] = null
-    if (deriveInfo.`type` == CubeDesc.DeriveType.PK_FK) {
+    if (deriveInfo.`type` == DeriveType.PK_FK) {
       //  if(false)
       if (deriveInfo.join.getForeignKeyColumns.contains(hostCols.apply(0))) {
         // FK -> PK, most cases
@@ -140,7 +141,7 @@ class SparderTupleConverter(gtInfoTableName: String,
 
   def getLookupTablePathAndPkIndex(
       cubeSegment: CubeSegment,
-      deriveInfo: CubeDesc.DeriveInfo): (String, String, String, Array[Int]) = {
+      deriveInfo: DeriveInfo): (String, String, String, Array[Int]) = {
     val join = deriveInfo.join
     val metaMgr = TableMetadataManager.getInstance(cubeSeg.getCubeInstance.getConfig)
     val derivedTableName = join.getPKSide.getTableIdentity
@@ -235,7 +236,7 @@ class SparderTupleConverter(gtInfoTableName: String,
   }
 
   override protected def newDerivedColumnFiller(hostCols: Array[TblColRef],
-                                                deriveInfo: CubeDesc.DeriveInfo)
+                                                deriveInfo: DeriveInfo)
     : CubeTupleConverter.IDerivedColumnFiller = {
     null
   }

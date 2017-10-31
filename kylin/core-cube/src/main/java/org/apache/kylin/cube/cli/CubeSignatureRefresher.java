@@ -50,7 +50,7 @@ public class CubeSignatureRefresher {
 
     public CubeSignatureRefresher(String[] cubes) {
         config = KylinConfig.getInstanceFromEnv();
-        store = ResourceStore.getStore(config);
+        store = ResourceStore.getKylinMetaStore(config);
         cubeNames = cubes;
     }
 

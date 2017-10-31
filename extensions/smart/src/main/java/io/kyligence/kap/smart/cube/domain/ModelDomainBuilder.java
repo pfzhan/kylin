@@ -41,7 +41,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.KapModel;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import io.kyligence.kap.smart.util.CubeUtils;
 
 public class ModelDomainBuilder implements IDomainBuilder {
     private final DataModelDesc modelDesc;
@@ -85,21 +85,21 @@ public class ModelDomainBuilder implements IDomainBuilder {
         List<FunctionDesc> measureFuncs = Lists.newArrayList();
         for (TblColRef colRef : measureCols) {
             // Distinct Count
-            measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT_DISTINCT,
+            measureFuncs.add(CubeUtils.newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT_DISTINCT,
                     ParameterDesc.newInstance(colRef), "hllc(10)"));
             if (colRef.getType().isNumberFamily()) {
                 // SUM
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
+                measureFuncs.add(CubeUtils.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
                         ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MAX
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MAX,
+                measureFuncs.add(CubeUtils.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MAX,
                         ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 // MIN
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MIN,
+                measureFuncs.add(CubeUtils.newFunctionDesc(modelDesc, FunctionDesc.FUNC_MIN,
                         ParameterDesc.newInstance(colRef), colRef.getDatatype()));
 
                 // PERCENTILE
-                measureFuncs.add(CubeDescUtil.newFunctionDesc(modelDesc, PercentileMeasureType.FUNC_PERCENTILE,
+                measureFuncs.add(CubeUtils.newFunctionDesc(modelDesc, PercentileMeasureType.FUNC_PERCENTILE,
                         ParameterDesc.newInstance(colRef), "percentile(100)"));
             }
         }

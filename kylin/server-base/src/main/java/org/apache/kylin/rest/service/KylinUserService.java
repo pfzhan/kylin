@@ -67,7 +67,7 @@ public class KylinUserService implements UserService {
 
     @PostConstruct
     public void init() throws IOException {
-        aclStore = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        aclStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
     @Override

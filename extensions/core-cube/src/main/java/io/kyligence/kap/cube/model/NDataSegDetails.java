@@ -1,0 +1,182 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.cube.model;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+/**
+ * Holds details of pre-calculated data (like cuboids) of a data segment.
+ * 
+ * Could be persisted together with dataflow, but we made it a separated root entity such that
+ * - The details of a data segment can be updated concurrently during build.
+ * - The update event of data segment is separated from dataflow.
+ */
+@SuppressWarnings("serial")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+public class NDataSegDetails extends RootPersistentEntity {
+
+    private static final Logger logger = LoggerFactory.getLogger(NDataSegDetailsManager.class);
+
+    public static final String DATAFLOW_DETAILS_RESOURCE_ROOT = "/dataflow_details";
+
+    public static NDataSegDetails newSegDetails(NDataflow df, int segId) {
+        NDataSegDetails entity = new NDataSegDetails();
+        entity.setConfig(df.getConfig());
+        entity.setUuid(UUID.randomUUID().toString());
+        entity.setSegmentId(segId);
+        entity.setDataflowName(df.getName());
+
+        List<NDataCuboid> cuboids = new ArrayList<>();
+        entity.setCuboids(cuboids);
+        return entity;
+    }
+
+    // ============================================================================
+
+    @JsonProperty("dataflow")
+    private String dataflowName;
+    @JsonProperty("segment_id")
+    private int segmentId;
+    @JsonManagedReference
+    @JsonProperty("cuboid_instances")
+    private List<NDataCuboid> cuboids = Lists.newArrayList();
+
+    @JsonIgnore
+    private KylinConfigExt config;
+
+    public Map<Long, Long> getCuboidRowsMap() {
+        Map<Long, Long> cuboidRows = Maps.newHashMap();
+        for (NDataCuboid cuboid : cuboids) {
+            cuboidRows.put(cuboid.getCuboidLayoutId(), cuboid.getRows());
+        }
+        return cuboidRows;
+    }
+
+    public String getResourcePath() {
+        return NDataSegDetailsManager.getResourcePathForSegment(dataflowName, segmentId);
+    }
+
+    public void setConfig(KylinConfigExt config) {
+        this.config = config;
+    }
+
+    public String getDataflowName() {
+        return dataflowName;
+    }
+
+    public int getSegmentId() {
+        return segmentId;
+    }
+
+    public List<NDataCuboid> getCuboids() {
+        return cuboids;
+    }
+
+    public void addCuboid(NDataCuboid cuboid) {
+        if (cuboids.contains(cuboid)) {
+            logger.warn("NDataCuboid should be immutable, but {} is being updated", cuboid);
+            cuboids.remove(cuboid); // remove the old cuboid
+        }
+
+        cuboids.add(cuboid);
+    }
+
+    public void removeCuboid(NDataCuboid cuboid) {
+        cuboids.remove(cuboid);
+    }
+
+    public void setDataflowName(String dfName) {
+        this.dataflowName = dfName;
+    }
+
+    public void setSegmentId(int segmentId) {
+        this.segmentId = segmentId;
+    }
+
+    public void setCuboids(List<NDataCuboid> cuboids) {
+        this.cuboids = cuboids;
+    }
+
+    public KylinConfigExt getConfig() {
+        return config;
+    }
+
+    public NDataflow getDataflow() {
+        return NDataflowManager.getInstance(getConfig()).getDataflow(dataflowName);
+    }
+
+    public NDataSegment getDataSegment() {
+        return getDataflow().getSegment(segmentId);
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = super.hashCode();
+        result = prime * result + ((dataflowName == null) ? 0 : dataflowName.hashCode());
+        result = prime * result + segmentId;
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (!super.equals(obj))
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        NDataSegDetails other = (NDataSegDetails) obj;
+        if (dataflowName == null) {
+            if (other.dataflowName != null)
+                return false;
+        } else if (!dataflowName.equals(other.dataflowName))
+            return false;
+        if (segmentId != other.segmentId)
+            return false;
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "NDataSegDetails [" + dataflowName + "." + segmentId + "]";
+    }
+
+}

@@ -68,7 +68,7 @@ public class SchedulerJobManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.kylinConfig);
+        return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
 
     private void loadAllSchedulerJobInstance() throws IOException {

@@ -124,7 +124,7 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
         try {
             String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig,
                     ResourceStoreTest.mockUrl("jdbc", kylinConfig));
-            store = new JDBCResourceStore(KylinConfig.getInstanceFromEnv());
+            store = new JDBCResourceStore(kylinConfig, kylinConfig.getMetadataUrl());
             store.deleteResource(largePath);
             store.putResource(largePath, content, StringEntity.serializer);
             assertTrue(store.exists(largePath));
@@ -156,7 +156,7 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
         try {
             String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig,
                     ResourceStoreTest.mockUrl("jdbc", kylinConfig));
-            store = new JDBCResourceStore(KylinConfig.getInstanceFromEnv());
+            store = new JDBCResourceStore(kylinConfig, kylinConfig.getMetadataUrl());
             store.deleteResource(LARGE_CELL_PATH);
             store.putResource(LARGE_CELL_PATH, content, ByteEntity.serializer);
             assertTrue(store.exists(LARGE_CELL_PATH));

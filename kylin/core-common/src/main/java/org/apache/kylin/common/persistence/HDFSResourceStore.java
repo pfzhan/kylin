@@ -19,6 +19,7 @@
 package org.apache.kylin.common.persistence;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
@@ -39,27 +40,39 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 
 public class HDFSResourceStore extends ResourceStore {
 
     private static final Logger logger = LoggerFactory.getLogger(HDFSResourceStore.class);
 
+    public static final String HDFS_SCHEME = "hdfs";
+
+    // for test
+    public static HDFSResourceStore newLocalStore(KylinConfig config, File localDir) throws Exception {
+        localDir.mkdirs();
+        
+        // normalize path
+        String path = localDir.getCanonicalPath().replace('\\', '/');
+        if (path.startsWith("/") == false)
+            path = "/" + path;
+        
+        StorageURL url = new StorageURL(localDir.getName(), HDFS_SCHEME, ImmutableMap.of("path", "file:" + path));
+        return new HDFSResourceStore(config, url);
+    }
+    
+    // ============================================================================
+    
     private Path hdfsMetaPath;
 
     private FileSystem fs;
 
-    private static final String HDFS_SCHEME = "hdfs";
-
-    public HDFSResourceStore(KylinConfig kylinConfig) throws Exception {
-        this(kylinConfig, kylinConfig.getMetadataUrl());
-    }
-    
-    public HDFSResourceStore(KylinConfig kylinConfig, StorageURL metadataUrl) throws Exception {
-        super(kylinConfig);
-        Preconditions.checkState(HDFS_SCHEME.equals(metadataUrl.getScheme()));
+    public HDFSResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) throws Exception {
+        super(kylinConfig, storageUrl);
+        Preconditions.checkState(HDFS_SCHEME.equals(storageUrl.getScheme()));
         
-        String path = metadataUrl.getParameter("path");
+        String path = storageUrl.getParameter("path");
         if (path == null) {
             // missing path is not expected, but don't fail it
             path = kylinConfig.getHdfsWorkingDirectory() + "tmp_metadata";
@@ -83,8 +96,6 @@ public class HDFSResourceStore extends ResourceStore {
         if (!fs.exists(metaDirName)) {
             fs.mkdirs(metaDirName);
         }
-
-        logger.info("hdfs meta path created: " + metaDirName.toString());
     }
 
     @Override

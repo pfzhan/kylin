@@ -32,9 +32,10 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
+
+import io.kyligence.kap.smart.util.MetaStoreUtil;
 
 class LocalQueryRunner extends AbstractQueryRunner {
     final private Set<String> dumpResources;
@@ -52,7 +53,7 @@ class LocalQueryRunner extends AbstractQueryRunner {
 
     @Override
     public KylinConfig prepareConfig() throws Exception {
-        String metaPath = ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
+        String metaPath = MetaStoreUtil.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
         File metaDir = new File(new URI(metaPath));
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {

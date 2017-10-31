@@ -193,6 +193,18 @@ public class DefaultScheduler implements Scheduler<AbstractExecutable>, Connecti
         }
         return INSTANCE;
     }
+    
+    public synchronized static void destroyInstance() {
+        if (INSTANCE == null)
+            return;
+        
+        try {
+            INSTANCE.shutdown();
+        } catch (SchedulerException ex) {
+            logger.error("Error shutting down", ex);
+        }
+        INSTANCE = null;
+    }
 
     @Override
     public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) throws SchedulerException {

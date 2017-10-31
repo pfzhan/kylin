@@ -44,13 +44,13 @@ public class ResourceStoreTest {
 
     public static void testAStore(String url, KylinConfig kylinConfig) throws Exception {
         String oldUrl = replaceMetadataUrl(kylinConfig, url);
-        testAStore(ResourceStore.getStore(kylinConfig));
+        testAStore(ResourceStore.getKylinMetaStore(kylinConfig));
         replaceMetadataUrl(kylinConfig, oldUrl);
     }
 
     public static void testPerformance(String url, KylinConfig kylinConfig) throws Exception {
         String oldUrl = replaceMetadataUrl(kylinConfig, url);
-        testPerformance(ResourceStore.getStore(kylinConfig));
+        testPerformance(ResourceStore.getKylinMetaStore(kylinConfig));
         replaceMetadataUrl(kylinConfig, oldUrl);
     }
 

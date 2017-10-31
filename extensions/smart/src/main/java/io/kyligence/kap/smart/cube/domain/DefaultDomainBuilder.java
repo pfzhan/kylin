@@ -40,7 +40,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.QueryStats;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import io.kyligence.kap.smart.util.CubeUtils;
 
 public class DefaultDomainBuilder implements IDomainBuilder {
     private final QueryStats queryStats;
@@ -104,7 +104,7 @@ public class DefaultDomainBuilder implements IDomainBuilder {
 
                 if (colRef.getType().isNumberFamily()) {
                     // SUM
-                    measures.add(CubeDescUtil.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
+                    measures.add(CubeUtils.newFunctionDesc(modelDesc, FunctionDesc.FUNC_SUM,
                             ParameterDesc.newInstance(colRef), colRef.getDatatype()));
                 }
             }

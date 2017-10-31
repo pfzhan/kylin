@@ -29,8 +29,9 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
-import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.query.routing.Candidate;
+import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -44,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.raw.RawTableInstance;
+
 @Ignore("Contained by ITKapFailfastTest")
 public class ITKapFailfastTestBase extends KapTestBase {
 
@@ -55,19 +58,19 @@ public class ITKapFailfastTestBase extends KapTestBase {
         if (testRaw) {
             logger.info("configure in ITKapFailfastTestBase");
 
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 1);
-            priorities.put(RealizationType.CUBE, 1);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Map<String, Integer> priorities = Maps.newHashMap();
+            priorities.put(HybridInstance.REALIZATION_TYPE, 1);
+            priorities.put(CubeInstance.REALIZATION_TYPE, 1);
+            priorities.put(RawTableInstance.REALIZATION_TYPE, 0);
             Candidate.setPriorities(priorities);
 
         } else {
             logger.info("setUp in ITKapKylinQueryTest");
 
-            Map<RealizationType, Integer> priorities = Maps.newHashMap();
-            priorities.put(RealizationType.HYBRID, 0);
-            priorities.put(RealizationType.CUBE, 0);
-            priorities.put(RealizationType.INVERTED_INDEX, 0);
+            Map<String, Integer> priorities = Maps.newHashMap();
+            priorities.put(HybridInstance.REALIZATION_TYPE, 0);
+            priorities.put(CubeInstance.REALIZATION_TYPE, 0);
+            priorities.put(RawTableInstance.REALIZATION_TYPE, 0);
             Candidate.setPriorities(priorities);
         }
 
@@ -80,10 +83,10 @@ public class ITKapFailfastTestBase extends KapTestBase {
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapKylinQueryTest");
 
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
-        priorities.put(RealizationType.INVERTED_INDEX, 0);
+        Map<String, Integer> priorities = Maps.newHashMap();
+        priorities.put(HybridInstance.REALIZATION_TYPE, 0);
+        priorities.put(CubeInstance.REALIZATION_TYPE, 0);
+        priorities.put(RawTableInstance.REALIZATION_TYPE, 0);
         Candidate.setPriorities(priorities);
 
         joinType = "left";

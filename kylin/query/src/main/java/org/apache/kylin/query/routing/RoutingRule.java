@@ -22,7 +22,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.routing.rules.RealizationSortRule;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.query.routing.rules.RemoveUncapableRealizationsRule;
@@ -48,7 +47,8 @@ public abstract class RoutingRule {
             String before = getPrintableText(candidates);
             rule.apply(candidates);
             String after = getPrintableText(candidates);
-            logger.info("Applying rule: " + rule + ", realizations before: " + before + ", realizations after: " + after);
+            logger.info(
+                    "Applying rule: " + rule + ", realizations before: " + before + ", realizations after: " + after);
         }
     }
 
@@ -73,7 +73,8 @@ public abstract class RoutingRule {
      */
     public static void registerRule(RoutingRule rule, int applyOrder) {
         if (applyOrder > rules.size()) {
-            logger.warn("apply order " + applyOrder + "  is larger than rules size " + rules.size() + ", will put the new rule at the end");
+            logger.warn("apply order " + applyOrder + "  is larger than rules size " + rules.size()
+                    + ", will put the new rule at the end");
             rules.add(rule);
         }
 
@@ -89,10 +90,10 @@ public abstract class RoutingRule {
         }
     }
 
-    protected List<Integer> findRealizationsOf(List<IRealization> realizations, RealizationType type) {
+    protected List<Integer> findRealizationsOf(List<IRealization> realizations, String type) {
         List<Integer> itemIndexes = Lists.newArrayList();
         for (int i = 0; i < realizations.size(); ++i) {
-            if (realizations.get(i).getType() == type) {
+            if (realizations.get(i).getType().equals(type)) {
                 itemIndexes.add(i);
             }
         }

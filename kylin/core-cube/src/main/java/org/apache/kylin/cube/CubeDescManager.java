@@ -21,9 +21,7 @@ package org.apache.kylin.cube;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
@@ -32,17 +30,12 @@ import org.apache.kylin.cube.cuboid.CuboidManager;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.validation.CubeMetadataValidator;
 import org.apache.kylin.cube.model.validation.ValidateContext;
-import org.apache.kylin.dimension.DictionaryDimEnc;
-import org.apache.kylin.dimension.DimensionEncoding;
-import org.apache.kylin.dimension.DimensionEncodingFactory;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -272,39 +265,7 @@ public class CubeDescManager {
     private void postProcessCubeDesc(CubeDesc cubeDesc) {
         for (MeasureDesc measureDesc : cubeDesc.getMeasures()) {
             if (TopNMeasureType.FUNC_TOP_N.equalsIgnoreCase(measureDesc.getFunction().getExpression())) {
-                // update return type scale with the estimated key length
-                Map<String, String> configuration = measureDesc.getFunction().getConfiguration();
-                ParameterDesc parameter = measureDesc.getFunction().getParameter();
-                parameter = parameter.getNextParameter();
-                int keyLength = 0;
-                while (parameter != null) {
-                    String encoding = configuration.get(TopNMeasureType.CONFIG_ENCODING_PREFIX + parameter.getValue());
-                    String encodingVersionStr = configuration
-                            .get(TopNMeasureType.CONFIG_ENCODING_VERSION_PREFIX + parameter.getValue());
-                    if (StringUtils.isEmpty(encoding) || DictionaryDimEnc.ENCODING_NAME.equals(encoding)) {
-                        keyLength += DictionaryDimEnc.MAX_ENCODING_LENGTH; // estimation for dict encoding
-                    } else {
-                        // non-dict encoding
-                        int encodingVersion = 1;
-                        if (!StringUtils.isEmpty(encodingVersionStr)) {
-                            try {
-                                encodingVersion = Integer.parseInt(encodingVersionStr);
-                            } catch (NumberFormatException e) {
-                                throw new RuntimeException("invalid encoding version: " + encodingVersionStr);
-                            }
-                        }
-                        Object[] encodingConf = DimensionEncoding.parseEncodingConf(encoding);
-                        DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create((String) encodingConf[0],
-                                (String[]) encodingConf[1], encodingVersion);
-                        keyLength += dimensionEncoding.getLengthOfEncoding();
-                    }
-
-                    parameter = parameter.getNextParameter();
-                }
-
-                DataType returnType = DataType.getType(measureDesc.getFunction().getReturnType());
-                DataType newReturnType = new DataType(returnType.getName(), returnType.getPrecision(), keyLength);
-                measureDesc.getFunction().setReturnType(newReturnType.toString());
+                TopNMeasureType.fixMeasureReturnType(measureDesc);
             }
         }
     }
@@ -331,7 +292,7 @@ public class CubeDescManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
 }

@@ -107,6 +107,33 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     // Only used in test cases!!!
+    public static void setKylinConfigForLocalTest(String localMetaDir) {
+        synchronized (KylinConfig.class) {
+            if (new File(localMetaDir, "kylin.properties").exists() == false)
+                throw new IllegalArgumentException(localMetaDir + " is not a valid local meta dir");
+            
+            destroyInstance();
+            logger.info("Setting KylinConfig to " + localMetaDir);
+            
+            System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
+    
+            KylinConfig config = KylinConfig.getInstanceFromEnv();
+            config.setMetadataUrl(localMetaDir);
+    
+            // make sure a local working directory
+            File workingDir = new File(localMetaDir, "working-dir");
+            workingDir.mkdirs();
+            String path = workingDir.getAbsolutePath();
+            if (!path.startsWith("/"))
+                path = "/" + path;
+            if (!path.endsWith("/"))
+                path = path + "/";
+            path = path.replace("\\", "/");
+            config.setProperty("kylin.env.hdfs-working-dir", "file:" + path);
+        }
+    }
+    
+    // Only used in test cases!!!
     public static void destroyInstance() {
         synchronized (KylinConfig.class) {
             logger.info("Destroy KylinConfig");
@@ -140,7 +167,7 @@ public class KylinConfig extends KylinConfigBase {
         PROPERTIES_FILE, REST_ADDR, LOCAL_FOLDER, HDFS_FILE
     }
 
-    private static UriType decideUriType(String metaUri) {
+    public static UriType decideUriType(String metaUri) {
 
         try {
             File file = new File(metaUri);
@@ -386,7 +413,7 @@ public class KylinConfig extends KylinConfigBase {
 
     // ============================================================================
     
-    Map<Class, Object> managersCache = new ConcurrentHashMap<>();
+    transient ConcurrentHashMap<Class, Object> managersCache = null;
 
     private KylinConfig() {
         super();
@@ -401,11 +428,14 @@ public class KylinConfig extends KylinConfigBase {
         if (base != this)
             return base.getManager(clz);
         
-        Object mgr = managersCache.get(clz);
+        Object mgr = managersCache == null ? null : managersCache.get(clz);
         if (mgr != null)
             return (T) mgr;
         
         synchronized (this) {
+            if (managersCache == null)
+                managersCache = new ConcurrentHashMap<>();
+            
             mgr = managersCache.get(clz);
             if (mgr != null)
                 return (T) mgr;
@@ -430,7 +460,8 @@ public class KylinConfig extends KylinConfigBase {
             return;
         }
         
-        managersCache.clear();
+        if (managersCache != null)
+            managersCache.clear();
     }
 
     public Properties exportToProperties() {
@@ -462,13 +493,19 @@ public class KylinConfig extends KylinConfigBase {
 
     }
 
+    public String exportToString() throws IOException {
+        return exportToString(null); // null means to export all
+    }
+    
     public String exportToString(Collection<String> propertyKeys) throws IOException {
         Properties filteredProps = getProperties(propertyKeys);
         OrderedProperties orderedProperties = KylinConfig.buildSiteOrderedProps();
 
-        for (String key : propertyKeys) {
-            if (!filteredProps.containsKey(key)) {
-                filteredProps.put(key, orderedProperties.getProperty(key, ""));
+        if (propertyKeys != null) {
+            for (String key : propertyKeys) {
+                if (!filteredProps.containsKey(key)) {
+                    filteredProps.put(key, orderedProperties.getProperty(key, ""));
+                }
             }
         }
 

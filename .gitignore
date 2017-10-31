@@ -93,6 +93,7 @@ webapp/app/web.xml
 
 #kylin
 extensions/examples/test_metadata/*
+extensions/examples/test_metadata.debug/*
 
 #kybot
 kybot/
@@ -113,3 +114,8 @@ tmp_war
 #exclusion
 !pathfinder*.jar
 VERSION
+
+#hadoop files
+*.crc
+_SUCCESS
+metastore_db

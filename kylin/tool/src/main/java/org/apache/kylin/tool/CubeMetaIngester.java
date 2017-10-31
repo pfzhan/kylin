@@ -42,7 +42,6 @@ import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hybrid.HybridManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,7 +146,7 @@ public class CubeMetaIngester extends AbstractApplication {
         for (CubeInstance cube : srcCubeManager.listAllCubes()) {
             logger.info("add " + cube + " to " + targetProjectName);
             projectManager.addModelToProject(cube.getModel().getName(), targetProjectName);
-            projectManager.moveRealizationToProject(RealizationType.CUBE, cube.getName(), targetProjectName, null);
+            projectManager.moveRealizationToProject(cube.getType(), cube.getName(), targetProjectName, null);
         }
 
     }

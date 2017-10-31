@@ -51,7 +51,6 @@ import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationRegistry;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.streaming.StreamingConfig;
 import org.apache.kylin.metadata.streaming.StreamingManager;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
@@ -278,7 +277,7 @@ public class CubeMetaExtractor extends AbstractInfoExtractor {
                 }
             }
 
-            ResourceStore dstStore = ResourceStore.getStore(dstConfig);
+            ResourceStore dstStore = ResourceStore.getKylinMetaStore(dstConfig);
             for (CubeInstance cube : cubesToTrimAndSave) {
                 CubeInstance trimmedCube = CubeInstance.getCopyOf(cube);
                 trimmedCube.getSegments().clear();
@@ -362,7 +361,7 @@ public class CubeMetaExtractor extends AbstractInfoExtractor {
             HybridInstance hybridInstance = (HybridInstance) realization;
             addRequired(HybridInstance.concatResourcePath(hybridInstance.getName()));
             for (IRealization iRealization : hybridInstance.getRealizations()) {
-                if (iRealization.getType() != RealizationType.CUBE) {
+                if (iRealization.getType().equals(CubeInstance.REALIZATION_TYPE) == false) {
                     throw new RuntimeException("Hybrid " + iRealization.getName() + " contains non cube child "
                             + iRealization.getName() + " with type " + iRealization.getType());
                 }

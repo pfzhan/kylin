@@ -24,14 +24,18 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class BadQueryEntry extends RootPersistentEntity implements Comparable<BadQueryEntry> {
-    
+
     public static final String ADJ_SLOW = "Slow";
     public static final String ADJ_PUSHDOWN = "Pushdown";
+
+    public static final String STATUS_NEW = "NEW";
+    public static final String STATUS_OPTIMIZED = "OPTIMIZED";
 
     @JsonProperty("adj")
     private String adj;
@@ -47,8 +51,12 @@ public class BadQueryEntry extends RootPersistentEntity implements Comparable<Ba
     private String thread;
     @JsonProperty("user")
     private String user;
+    @JsonProperty("status")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String status = STATUS_NEW;
 
-    public BadQueryEntry(String sql, String adj, long startTime, float runningSec, String server, String thread, String user) {
+    public BadQueryEntry(String sql, String adj, long startTime, float runningSec, String server, String thread,
+            String user) {
         this.updateRandomUuid();
         this.adj = adj;
         this.sql = sql;
@@ -133,6 +141,14 @@ public class BadQueryEntry extends RootPersistentEntity implements Comparable<Ba
         return Objects.hash(sql, startTime);
     }
 
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -153,6 +169,7 @@ public class BadQueryEntry extends RootPersistentEntity implements Comparable<Ba
 
     @Override
     public String toString() {
-        return "BadQueryEntry [ adj=" + adj + ", server=" + server + ", startTime=" + DateFormat.formatToTimeStr(startTime) + " ]";
+        return "BadQueryEntry [ adj=" + adj + ", server=" + server + ", startTime="
+                + DateFormat.formatToTimeStr(startTime) + " ]";
     }
 }

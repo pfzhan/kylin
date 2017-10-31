@@ -145,7 +145,7 @@ public class DataModelManager {
     }
 
     public ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     // for test mostly
@@ -270,7 +270,6 @@ public class DataModelManager {
     }
 
     private DataModelDesc saveDataModelDesc(DataModelDesc dataModelDesc) throws IOException {
-
         String prj = ProjectManager.getInstance(config).getProjectOfModel(dataModelDesc.getName()).getName();
 
         if (!dataModelDesc.isDraft())
@@ -279,6 +278,7 @@ public class DataModelManager {
         crud.save(dataModelDesc);
 
         return dataModelDesc;
+
     }
 
     private Map<String, TableDesc> getAllTablesMap(String prj) {

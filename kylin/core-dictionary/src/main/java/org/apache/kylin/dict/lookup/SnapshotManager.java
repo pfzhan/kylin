@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.dict.DictionaryManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.IReadableTable.TableSignature;
@@ -201,7 +202,8 @@ public class SnapshotManager {
         return table;
     }
 
+    // snapshot shares the same store with dictionary
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return DictionaryManager.getInstance(config).getStore();
     }
 }

@@ -67,7 +67,6 @@ import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.SourcePartition;
@@ -162,7 +161,7 @@ public class CubeManager implements IRealizationProvider {
             else
                 reloadCubeQuietly(cubeName);
 
-            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.CUBE,
+            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(getRealizationType(),
                     cubeName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
             }
@@ -223,7 +222,7 @@ public class CubeManager implements IRealizationProvider {
             cube.setOwner(owner);
             updateCubeWithRetry(new CubeUpdate(cube), 0);
 
-            ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.CUBE, cubeName, projectName,
+            ProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), cubeName, projectName,
                     owner);
 
             return cube;
@@ -238,7 +237,7 @@ public class CubeManager implements IRealizationProvider {
             cube.setOwner(owner);
             updateCubeWithRetry(new CubeUpdate(cube), 0);
 
-            ProjectManager.getInstance(config).moveRealizationToProject(RealizationType.CUBE, cube.getName(),
+            ProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), cube.getName(),
                     projectName, owner);
 
             return cube;
@@ -425,7 +424,7 @@ public class CubeManager implements IRealizationProvider {
             }
 
             // delete cube from project
-            ProjectManager.getInstance(config).removeRealizationsFromProjects(RealizationType.CUBE, cubeName);
+            ProjectManager.getInstance(config).removeRealizationsFromProjects(getRealizationType(), cubeName);
 
             return cube;
         }
@@ -468,12 +467,12 @@ public class CubeManager implements IRealizationProvider {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     @Override
-    public RealizationType getRealizationType() {
-        return RealizationType.CUBE;
+    public String getRealizationType() {
+        return CubeInstance.REALIZATION_TYPE;
     }
 
     @Override

@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.kyligence.kap</groupId>
         <artifactId>kap</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
 
@@ -38,7 +38,6 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <shadeBase>io.kyligence.kap.storage.parquet.protocol.shaded</shadeBase>
     </properties>
-
 
     <!--overwrite parent, need to upgrade this when upgrade grpc-->
     <dependencyManagement>
@@ -159,6 +158,5 @@
             </plugin>
         </plugins>
     </build>
-
 
 </project>

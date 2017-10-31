@@ -47,7 +47,7 @@ public class RealizationRegistry {
 
     // ============================================================================
 
-    private Map<RealizationType, IRealizationProvider> providers;
+    private Map<String, IRealizationProvider> providers;
     private KylinConfig config;
 
     private RealizationRegistry(KylinConfig config) throws IOException {
@@ -64,7 +64,8 @@ public class RealizationRegistry {
         for (String clsName : providerNames) {
             try {
                 Class<? extends IRealizationProvider> cls = ClassUtil.forName(clsName, IRealizationProvider.class);
-                IRealizationProvider p = (IRealizationProvider) cls.getMethod("getInstance", KylinConfig.class).invoke(null, config);
+                IRealizationProvider p = (IRealizationProvider) cls.getMethod("getInstance", KylinConfig.class)
+                        .invoke(null, config);
                 providers.put(p.getRealizationType(), p);
 
             } catch (Exception | NoClassDefFoundError e) {
@@ -76,19 +77,20 @@ public class RealizationRegistry {
         }
 
         if (providers.isEmpty())
-            throw new IllegalArgumentException("Failed to find realization provider by url: " + config.getMetadataUrl());
+            throw new IllegalArgumentException(
+                    "Failed to find realization provider by url: " + config.getMetadataUrl());
 
         logger.info("RealizationRegistry is " + providers);
     }
 
-    public Set<RealizationType> getRealizationTypes() {
+    public Set<String> getRealizationTypes() {
         return Collections.unmodifiableSet(providers.keySet());
     }
 
-    public IRealization getRealization(RealizationType type, String name) {
-        IRealizationProvider p = providers.get(type);
+    public IRealization getRealization(String realizationType, String name) {
+        IRealizationProvider p = providers.get(realizationType);
         if (p == null) {
-            logger.warn("No provider for realization type " + type);
+            logger.warn("No provider for realization type " + realizationType);
             return null;
         }
 
@@ -96,7 +98,7 @@ public class RealizationRegistry {
             return p.getRealization(name);
         } catch (Exception ex) {
             // exception is possible if e.g. cube metadata is wrong
-            logger.warn("Failed to load realization " + type + ":" + name, ex);
+            logger.warn("Failed to load realization " + realizationType + ":" + name, ex);
             return null;
         }
     }

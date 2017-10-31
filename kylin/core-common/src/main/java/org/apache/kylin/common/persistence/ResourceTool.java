@@ -129,7 +129,7 @@ public class ResourceTool {
     }
 
     public static String cat(KylinConfig config, String path) throws IOException {
-        ResourceStore store = ResourceStore.getStore(config);
+        ResourceStore store = ResourceStore.getKylinMetaStore(config);
         InputStream is = store.getResource(path).inputStream;
         BufferedReader br = null;
         StringBuffer sb = new StringBuffer();
@@ -148,7 +148,7 @@ public class ResourceTool {
     }
 
     public static NavigableSet<String> list(KylinConfig config, String path) throws IOException {
-        ResourceStore store = ResourceStore.getStore(config);
+        ResourceStore store = ResourceStore.getKylinMetaStore(config);
         NavigableSet<String> result = store.listResources(path);
         System.out.println("" + result);
         return result;
@@ -161,8 +161,8 @@ public class ResourceTool {
     //Do NOT invoke this method directly, unless you want to copy and possibly overwrite immutable resources such as UUID.
     public static void copy(KylinConfig srcConfig, KylinConfig dstConfig, String path, boolean copyImmutableResource)
             throws IOException {
-        ResourceStore src = ResourceStore.getStore(srcConfig);
-        ResourceStore dst = ResourceStore.getStore(dstConfig);
+        ResourceStore src = ResourceStore.getKylinMetaStore(srcConfig);
+        ResourceStore dst = ResourceStore.getKylinMetaStore(dstConfig);
 
         logger.info("Copy from {} to {}", src, dst);
 
@@ -176,8 +176,8 @@ public class ResourceTool {
     //Do NOT invoke this method directly, unless you want to copy and possibly overwrite immutable resources such as UUID.
     public static void copy(KylinConfig srcConfig, KylinConfig dstConfig, List<String> paths,
             boolean copyImmutableResource) throws IOException {
-        ResourceStore src = ResourceStore.getStore(srcConfig);
-        ResourceStore dst = ResourceStore.getStore(dstConfig);
+        ResourceStore src = ResourceStore.getKylinMetaStore(srcConfig);
+        ResourceStore dst = ResourceStore.getKylinMetaStore(dstConfig);
 
         logger.info("Copy from {} to {}", src, dst);
 
@@ -248,7 +248,7 @@ public class ResourceTool {
     }
 
     public static void reset(KylinConfig config) throws IOException {
-        ResourceStore store = ResourceStore.getStore(config);
+        ResourceStore store = ResourceStore.getKylinMetaStore(config);
         resetR(store, "/");
     }
 
@@ -265,7 +265,7 @@ public class ResourceTool {
     }
 
     private static void remove(KylinConfig config, String path) throws IOException {
-        ResourceStore store = ResourceStore.getStore(config);
+        ResourceStore store = ResourceStore.getKylinMetaStore(config);
         resetR(store, path);
     }
 }

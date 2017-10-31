@@ -31,17 +31,16 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.gridtable.StorageSideBehavior;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.apache.spark.Accumulator;
@@ -54,12 +53,15 @@ import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.common.metric.JVMInfoCollector;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
 import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics;
 import scala.Tuple2;
 
 public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult>{
@@ -104,9 +106,11 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
 
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
+        String executorId = (SparkEnv.get() == null) ? Thread.currentThread().getName() : SparkEnv.get().executorId();
+        
         logger.info("Start to record executor's JVM Info");
         System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
-        JVMInfoCollector.init(SparkEnv.get().executorId());
+        JVMInfoCollector.init(executorId);
         logger.info("end to record executor's JVM Info");
         TraceScope scope = null;
         if (kryoTraceInfo != null) {
@@ -132,7 +136,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             StorageSideBehavior behavior = null;
 
             ParquetBytesGTScanner scanner;
-            if (RealizationType.CUBE.toString().equals(realizationType)) {
+            if (CubeInstance.REALIZATION_TYPE.equals(realizationType) || NDataflow.REALIZATION_TYPE.equals(realizationType)) {
                 if (isSplice) {
                     gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
                             .get();
@@ -143,7 +147,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
                 behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
                 scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest,
                         maxScannedBytes, behavior.delayToggledOn());//in
-            } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
+            } else if (RawTableInstance.REALIZATION_TYPE.equals(realizationType)) {
                 gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
                 behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
                 scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest,
@@ -201,7 +205,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
                     System.currentTimeMillis() - localStartTime);
 
             logger.info("Start to record executor's parquet metric");
-            ParquetMetrics.getExecutorMetric().reportToWriter(InetAddress.getLocalHost().getHostName(), SparkEnv.get().executorId());
+            ParquetMetrics.getExecutorMetric().reportToWriter(InetAddress.getLocalHost().getHostName(), executorId);
             return Collections.singleton(o).iterator();
         } finally {
             if (scope != null)

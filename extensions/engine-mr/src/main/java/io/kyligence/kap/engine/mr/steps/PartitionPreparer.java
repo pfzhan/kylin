@@ -37,6 +37,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.engine.mr.common.CubeStatsReader;
+import org.apache.kylin.measure.hllc.HLLCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,7 @@ public class PartitionPreparer {
     protected static final Logger logger = LoggerFactory.getLogger(PartitionPreparer.class);
 
     public static Map<Pair<Long, Short>, Integer> preparePartitionMapping(KylinConfig config, CubeSegment cubeSeg,
-            int reduceNum) throws IOException {
+            int reduceNum, Map<Long, HLLCounter> hllMap) throws IOException {
         logger.info("preparePartitionMapping in KapSpliceInMemCuboidJob");
         Map<Pair<Long, Short>, Integer> partitionMap = Maps.newHashMap();
         PriorityBuffer bucketPriorityQueue = new PriorityBuffer(new Comparator() {
@@ -73,7 +74,12 @@ public class PartitionPreparer {
             bucketPriorityQueue.add(new SizeBucket(reduceId));
         }
 
-        Map<Long, Double> cuboidSizeMapping = new CubeStatsReader(cubeSeg, config).getCuboidSizeMap();
+        Map<Long, Double> cuboidSizeMapping;
+        if (hllMap != null)
+            cuboidSizeMapping = CubeStatsReader.getCuboidSizeMapFromRowCount(cubeSeg,
+                    CubeStatsReader.getCuboidRowCountMapFromSampling(hllMap, 100));
+        else
+            cuboidSizeMapping = new CubeStatsReader(cubeSeg, config).getCuboidSizeMap();
         for (long cuboidId : cuboidSizeMapping.keySet()) {
             short shardNum = cubeSeg.getCuboidShardNum(cuboidId);
             long shardAvgSize = (long) (cuboidSizeMapping.get(cuboidId) / shardNum);
@@ -103,10 +109,15 @@ public class PartitionPreparer {
         return partitionMap;
     }
 
-    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum)
-            throws IOException {
+    public static Map<Pair<Long, Short>, Integer> preparePartitionMapping(KylinConfig config, CubeSegment cubeSeg,
+            int reduceNum) throws IOException {
+        return preparePartitionMapping(config, cubeSeg, reduceNum, null);
+    }
 
-        Map<Pair<Long, Short>, Integer> partitionMap = preparePartitionMapping(config, cubeSeg, reduceNum);
+    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum,
+            Map<Long, HLLCounter> hllMap) throws IOException {
+
+        Map<Pair<Long, Short>, Integer> partitionMap = preparePartitionMapping(config, cubeSeg, reduceNum, hllMap);
         // Serialize mapping
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         ObjectOutputStream oos = new ObjectOutputStream(baos);
@@ -115,6 +126,11 @@ public class PartitionPreparer {
         byte[] serialized = baos.toByteArray();
         job.getConfiguration().set(ByteArrayConfigurationBasedPartitioner.CUBOID_SHARD_REDUCE_MAPPING,
                 new String(Base64.encodeBase64(serialized)));
+    }
+
+    public static void preparePartitionMapping(Job job, KylinConfig config, CubeSegment cubeSeg, int reduceNum)
+            throws IOException {
+        preparePartitionMapping(job, config, cubeSeg, reduceNum, null);
     }
 
     private static class SizeBucket {

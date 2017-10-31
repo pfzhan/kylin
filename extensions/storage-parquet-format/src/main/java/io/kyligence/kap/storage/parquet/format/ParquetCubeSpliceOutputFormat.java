@@ -96,11 +96,15 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
             String jobType = context.getConfiguration().get(BatchConstants.CFG_MR_SPARK_JOB);
 
-            if ("spark".equals(jobType)) {
+            if ("SparkOnYarn".equals(jobType)) {
                 String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
-                this.kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfs(metaUrl);
+                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfsIfNeeded(metaUrl);
+            } else if ("SparkLocal".equalsIgnoreCase(jobType)) {
+                String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
+                kylinConfig = KylinConfig.createInstanceFromUri(metaUrl);
+                KylinConfig.setKylinConfigThreadLocal(kylinConfig);
             } else
-                this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+                kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);

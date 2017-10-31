@@ -23,8 +23,9 @@ import java.util.Map;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
-import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.query.routing.Candidate;
+import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -46,10 +47,10 @@ public class ITFailfastQueryTest extends KylinTestBase {
     @BeforeClass
     public static void setUp() throws Exception {
         logger.info("setUp in ITFailfastQueryTest");
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
-        priorities.put(RealizationType.INVERTED_INDEX, 0);
+        Map<String, Integer> priorities = Maps.newHashMap();
+        priorities.put(HybridInstance.REALIZATION_TYPE, 0);
+        priorities.put(CubeInstance.REALIZATION_TYPE, 0);
+        priorities.put("INVERTED_INDEX", 0);
         Candidate.setPriorities(priorities);
         joinType = "left";
         setupAll();

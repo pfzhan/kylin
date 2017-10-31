@@ -48,21 +48,21 @@ public class ParquetPageIndexWriter implements Closeable {
     private File tempLocalDir;
     private int columnNum;
     private DataOutputStream outputStream;
-    private boolean needSpill;
-
-    private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-    private final double spillThresholdMB = kapConfig.getParquetPageIndexSpillThresholdMB();
+    private double spillThresholdMB = 0;
 
     private long curOffset = 0;
 
-    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex, DataOutputStream outputStream) throws IOException {
-        this(columnNames, columnLength, cardinality, onlyEQIndex, outputStream, true);
+    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex,
+            DataOutputStream outputStream) throws IOException {
+        this(columnNames, columnLength, cardinality, onlyEQIndex, outputStream,
+                KapConfig.getInstanceFromEnv().getParquetPageIndexSpillThresholdMB());
     }
 
-    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex, DataOutputStream outputStream, boolean needSpill) throws IOException {
+    public ParquetPageIndexWriter(String[] columnNames, int[] columnLength, int[] cardinality, boolean[] onlyEQIndex,
+            DataOutputStream outputStream, double spillThresholdMB) throws IOException {
         this.columnNum = columnNames.length;
         this.outputStream = outputStream;
-        this.needSpill = needSpill;
+        this.spillThresholdMB = spillThresholdMB;
         ColumnSpec[] columnSpecs = new ColumnSpec[columnNum];
         for (int i = 0; i < columnSpecs.length; i++) {
             columnSpecs[i] = new ColumnSpec(columnNames[i], columnLength[i], cardinality[i], onlyEQIndex[i], i);
@@ -72,13 +72,14 @@ public class ParquetPageIndexWriter implements Closeable {
     }
 
     public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream) throws IOException {
-        this(columnSpecs, outputStream, true);
+        this(columnSpecs, outputStream, KapConfig.getInstanceFromEnv().getParquetPageIndexSpillThresholdMB());
     }
 
-    public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream, boolean needSpill) throws IOException {
+    public ParquetPageIndexWriter(ColumnSpec[] columnSpecs, DataOutputStream outputStream, double spillThresholdMB)
+            throws IOException {
         this.columnNum = columnSpecs.length;
         this.outputStream = outputStream;
-        this.needSpill = needSpill;
+        this.spillThresholdMB = spillThresholdMB;
         tempLocalDir = Files.createTempDir();
         indexWriter = new ColumnIndexBundleWriter(columnSpecs, tempLocalDir);
     }
@@ -109,11 +110,25 @@ public class ParquetPageIndexWriter implements Closeable {
     }
 
     public void closeWithoutStream() throws IOException {
-        indexWriter.close();
+        stopWrite();
         flush();
     }
 
-    private void flush() throws IOException {
+    public void stopWrite() throws IOException {
+        indexWriter.close();
+    }
+
+    public long getTotalSize() {
+        long size = 0L;
+        size += 4; // column number
+        size += columnNum * 8; // each column index start offset
+        for (int i = 0; i < columnNum; i++) {
+            size += indexWriter.getIndexSizeInBytes(i); // each index body
+        }
+        return size;
+    }
+
+    public void flush() throws IOException {
         try {
             // write offsets of each column
             outputStream.writeInt(columnNum);
@@ -138,7 +153,7 @@ public class ParquetPageIndexWriter implements Closeable {
     }
 
     private void spillIfNeeded() {
-        if (needSpill) {
+        if (spillThresholdMB > 0) {
             long availMemoryMB = MemoryBudgetController.getSystemAvailMB();
             if (availMemoryMB < spillThresholdMB) {
                 logger.info("Available memory mb {}, prepare to spill.", availMemoryMB);

@@ -38,7 +38,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
 import org.apache.kylin.rest.security.AclPermission;
@@ -150,7 +149,7 @@ public class RawTableService extends BasicService {
             return false;
         }
         for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
-            if (projectDataModel.getType() == RealizationType.INVERTED_INDEX) {
+            if (projectDataModel.getType().equals(getRawTableManager().getRealizationType())) {
                 RawTableInstance raw = getRawTableManager().getRawTableInstance(projectDataModel.getRealization());
                 if (raw == null) {
                     logger.error("Project " + projectName + " contains realization " + projectDataModel.getRealization()
@@ -180,7 +179,7 @@ public class RawTableService extends BasicService {
         ProjectManager projectManager = getProjectManager();
         if (!isRawTableInProject(newProjectName, raw)) {
             String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-            ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, raw.getName(),
+            ProjectInstance newProject = projectManager.moveRealizationToProject(CubeInstance.REALIZATION_TYPE, raw.getName(),
                     newProjectName, owner);
             accessService.inherit(raw, newProject);
         }

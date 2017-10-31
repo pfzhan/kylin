@@ -32,6 +32,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,16 +44,16 @@ public class FileResourceStore extends ResourceStore {
 
     File root;
 
-    public FileResourceStore(KylinConfig kylinConfig) {
-        super(kylinConfig);
-        root = new File(getPath(kylinConfig)).getAbsoluteFile();
+    public FileResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) {
+        super(kylinConfig, storageUrl);
+        root = new File(getRootPath(storageUrl)).getAbsoluteFile();
         if (root.exists() == false)
             throw new IllegalArgumentException(
-                    "File not exist by '" + kylinConfig.getMetadataUrl() + "': " + root.getAbsolutePath());
+                    "File not exist by '" + storageUrl + "': " + root.getAbsolutePath());
     }
 
-    protected String getPath(KylinConfig kylinConfig) {
-        return kylinConfig.getMetadataUrl().getIdentifier();
+    protected String getRootPath(StorageURL storageURL) {
+        return storageURL.getIdentifier();
     }
 
     @Override
@@ -193,7 +194,7 @@ public class FileResourceStore extends ResourceStore {
         }
     }
 
-    private File file(String resPath) {
+    public File file(String resPath) {
         if (resPath.equals("/"))
             return root;
         else

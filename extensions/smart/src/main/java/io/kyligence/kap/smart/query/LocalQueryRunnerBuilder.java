@@ -43,7 +43,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -108,7 +107,7 @@ class LocalQueryRunnerBuilder {
                 cubeInstance.getSegments().add(mockSeg);
             }
             cubeInstance.setStatus(RealizationStatusEnum.READY);
-            dumpProj.addRealizationEntry(RealizationType.CUBE, cubeInstance.getName());
+            dumpProj.addRealizationEntry(cubeInstance.getType(), cubeInstance.getName());
             mockupResources.put(cubeInstance.getResourcePath(), cubeInstance);
         }
 

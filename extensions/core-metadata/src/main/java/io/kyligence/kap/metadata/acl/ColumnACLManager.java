@@ -97,7 +97,7 @@ public class ColumnACLManager {
     }
 
     public ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     public ColumnACL getColumnACLByCache(String project) {

@@ -87,7 +87,7 @@ public class MetadataCleanupJob extends AbstractHadoopJob {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(config);
+        return ResourceStore.getKylinMetaStore(config);
     }
 
     private boolean isOlderThanThreshold(long resourceTime) {

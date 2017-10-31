@@ -401,8 +401,8 @@ public class DictionaryManager {
         return info;
     }
 
-    private ResourceStore getStore() {
-        return ResourceStore.getStore(config);
+    public ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(config);
     }
 
 }

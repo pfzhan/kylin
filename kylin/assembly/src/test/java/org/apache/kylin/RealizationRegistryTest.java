@@ -18,17 +18,16 @@
 
 package org.apache.kylin;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
-import org.apache.kylin.metadata.realization.RealizationRegistry;
-import org.apache.kylin.metadata.realization.RealizationType;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.metadata.realization.RealizationRegistry;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
 /**
  */
@@ -46,7 +45,7 @@ public class RealizationRegistryTest extends LocalFileMetadataTestCase {
     @Test
     public void test() throws Exception {
         final RealizationRegistry registry = RealizationRegistry.getInstance(KylinConfig.getInstanceFromEnv());
-        final Set<RealizationType> realizationTypes = registry.getRealizationTypes();
-        assertEquals(RealizationType.values().length - 1, realizationTypes.size());
+        final Set<String> realizationTypes = registry.getRealizationTypes();
+        assertEquals(2, realizationTypes.size());
     }
 }

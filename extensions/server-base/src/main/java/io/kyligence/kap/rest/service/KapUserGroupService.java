@@ -49,7 +49,7 @@ import io.kyligence.kap.metadata.acl.UserGroup;
 import io.kyligence.kap.rest.util.ACLOperationUtil;
 
 public class KapUserGroupService extends UserGroupService {
-    private ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+    private ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     private static final String PATH = "/user_group/";
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
 

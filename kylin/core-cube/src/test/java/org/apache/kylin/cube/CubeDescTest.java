@@ -40,8 +40,7 @@ import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.cube.model.CubeDesc.DeriveInfo;
-import org.apache.kylin.cube.model.CubeDesc.DeriveType;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.cube.model.HBaseColumnDesc;
 import org.apache.kylin.cube.model.SelectRule;
@@ -455,9 +454,9 @@ public class CubeDescTest extends LocalFileMetadataTestCase {
         int lookupCount = 0;
         for (Entry<Array<TblColRef>, List<DeriveInfo>> entry : hostToDerivedInfo.entrySet()) {
             for (DeriveInfo deriveInfo : entry.getValue()) {
-                if (deriveInfo.type == DeriveType.PK_FK)
+                if (deriveInfo.type == DeriveInfo.DeriveType.PK_FK)
                     pkfkCount++;
-                if (deriveInfo.type == DeriveType.LOOKUP)
+                if (deriveInfo.type == DeriveInfo.DeriveType.LOOKUP)
                     lookupCount++;
             }
         }

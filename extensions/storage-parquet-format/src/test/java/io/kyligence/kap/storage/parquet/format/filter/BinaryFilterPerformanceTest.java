@@ -33,7 +33,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
-import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.gridtable.GridTables;
 import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.gridtable.GTInfo;
@@ -64,7 +64,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
         CubeDesc desc = seg.getCubeDesc();
-        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
+        GTInfo gtInfo = GridTables.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 
@@ -74,9 +74,11 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
                 // random generate data
                 byte[] value = null;
                 if (random.nextInt(100) == 1) {
-                    value = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
+                    value = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d,
+                            0x0e, 0x0f };
                 } else {
-                    value = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+                    value = new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00 };
                 }
                 gtRecord.loadColumns(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7), ByteBuffer.wrap(value));
                 return gtRecord.get(0);
@@ -108,12 +110,13 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         cube.getModel().setPartitionDesc(new PartitionDesc());
         CubeSegment seg = mgr.appendSegment(cube);
 
-        GTInfo gtInfo = CubeGridTable.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
+        GTInfo gtInfo = GridTables.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
         final Random random = new Random();
 
         long t = System.currentTimeMillis();
-        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x01, 0x02, 0x03 }), 0, 3);
+        BinaryFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ,
+                Lists.newArrayList(new byte[] { 0x01, 0x02, 0x03 }), 0, 3);
         for (int i = 0; i < 1000 * 10000; i++) {
             if (random.nextInt(100) == 1) {
                 byte[] value = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };

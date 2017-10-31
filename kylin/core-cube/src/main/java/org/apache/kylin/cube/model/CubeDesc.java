@@ -53,6 +53,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.extendedcolumn.ExtendedColumnMeasureType;
@@ -60,6 +61,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -70,7 +72,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -104,31 +105,6 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
 
     public static final int MAX_ROWKEY_SIZE = 64;
 
-    public enum DeriveType implements java.io.Serializable {
-        LOOKUP, PK_FK, EXTENDED_COLUMN
-    }
-
-    public static class DeriveInfo implements java.io.Serializable {
-        public DeriveType type;
-        public JoinDesc join;
-        public TblColRef[] columns;
-        public boolean isOneToOne; // only used when ref from derived to host
-
-        DeriveInfo(DeriveType type, JoinDesc join, TblColRef[] columns, boolean isOneToOne) {
-            this.type = type;
-            this.join = join;
-            this.columns = columns;
-            this.isOneToOne = isOneToOne;
-        }
-
-        @Override
-        public String toString() {
-            return "DeriveInfo [type=" + type + ", join=" + join + ", columns=" + Arrays.toString(columns)
-                    + ", isOneToOne=" + isOneToOne + "]";
-        }
-
-    }
-    
     // ============================================================================
 
     private KylinConfigExt config;
@@ -576,7 +552,8 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
         checkArgument(StringUtils.isNotBlank(modelName), "CubeDesc (%s) has blank model name", name);
 
         // note CubeDesc.name == CubeInstance.name
-        List<ProjectInstance> ownerPrj = ProjectManager.getInstance(config).findProjects(RealizationType.CUBE, name);
+        List<ProjectInstance> ownerPrj = ProjectManager.getInstance(config).findProjects(CubeInstance.REALIZATION_TYPE,
+                name);
 
         // cube inherit the project override props
         if (ownerPrj.size() == 1) {
@@ -619,7 +596,8 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
                 Class<?> hbaseMappingAdapterClass = Class.forName(hbaseMappingAdapterName);
                 Method initMethod = hbaseMappingAdapterClass.getMethod("initHBaseMapping", CubeDesc.class);
                 initMethod.invoke(null, this);
-                Method initMeasureReferenceToColumnFamilyMethod = hbaseMappingAdapterClass.getMethod("initMeasureReferenceToColumnFamilyWithChecking", CubeDesc.class);
+                Method initMeasureReferenceToColumnFamilyMethod = hbaseMappingAdapterClass
+                        .getMethod("initMeasureReferenceToColumnFamilyWithChecking", CubeDesc.class);
                 initMeasureReferenceToColumnFamilyMethod.invoke(null, this);
             } catch (Exception e) {
                 logger.error("Wrong configuration for kylin.metadata.hbasemapping-adapter: class "
@@ -851,7 +829,7 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
                 for (int i = 0; i < derivedNames.length; i++) {
                     derivedCols[i] = initDimensionColRef(dim, derivedNames[i]);
                 }
-                initDerivedMap(dimColArray, DeriveType.LOOKUP, join, derivedCols, derivedExtra);
+                initDerivedMap(dimColArray, DeriveInfo.DeriveType.LOOKUP, join, derivedCols, derivedExtra);
             }
 
             if (join != null) {
@@ -870,10 +848,10 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
                 TblColRef fk = join.getForeignKeyColumns()[i];
                 if (realDimensions.contains(pk) && !realDimensions.contains(fk)) {
                     initDimensionColRef(fk);
-                    initDerivedMap(new TblColRef[] { pk }, DeriveType.PK_FK, join, new TblColRef[] { fk }, null);
+                    initDerivedMap(new TblColRef[] { pk }, DeriveInfo.DeriveType.PK_FK, join, new TblColRef[] { fk }, null);
                 } else if (realDimensions.contains(fk) && !realDimensions.contains(pk)) {
                     initDimensionColRef(pk);
-                    initDerivedMap(new TblColRef[] { fk }, DeriveType.PK_FK, join, new TblColRef[] { pk }, null);
+                    initDerivedMap(new TblColRef[] { fk }, DeriveInfo.DeriveType.PK_FK, join, new TblColRef[] { pk }, null);
                 }
             }
         }
@@ -896,8 +874,8 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
         return new String[][] { cols, extra };
     }
 
-    private void initDerivedMap(TblColRef[] hostCols, DeriveType type, JoinDesc join, TblColRef[] derivedCols,
-            String[] extra) {
+    private void initDerivedMap(TblColRef[] hostCols, DeriveInfo.DeriveType type, JoinDesc join, TblColRef[] derivedCols,
+                                String[] extra) {
         if (hostCols.length == 0 || derivedCols.length == 0)
             throw new IllegalStateException("host/derived columns must not be empty");
 
@@ -918,7 +896,7 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
 
         for (int i = 0; i < derivedCols.length; i++) {
             TblColRef derivedCol = derivedCols[i];
-            boolean isOneToOne = type == DeriveType.PK_FK || ArrayUtils.contains(hostCols, derivedCol)
+            boolean isOneToOne = type == DeriveInfo.DeriveType.PK_FK || ArrayUtils.contains(hostCols, derivedCol)
                     || (extra != null && extra[i].contains("1-1"));
             derivedToHostMap.put(derivedCol, new DeriveInfo(type, join, hostCols, isOneToOne));
         }
@@ -940,7 +918,7 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
                         merged = true;
                         break;
                     }
-                    if (type == DeriveType.LOOKUP) {
+                    if (type == DeriveInfo.DeriveType.LOOKUP) {
                         existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
                         merged = true;
                         break;
@@ -1008,7 +986,7 @@ public class CubeDesc extends RootPersistentEntity implements IEngineAware {
     }
 
     private void initExtendedColumnMap(TblColRef[] hostCols, TblColRef extendedColumn) {
-        extendedColumnToHosts.put(extendedColumn, new DeriveInfo(DeriveType.EXTENDED_COLUMN, null, hostCols, false));
+        extendedColumnToHosts.put(extendedColumn, new DeriveInfo(DeriveInfo.DeriveType.EXTENDED_COLUMN, null, hostCols, false));
     }
 
     public void initMeasureReferenceToColumnFamily() {

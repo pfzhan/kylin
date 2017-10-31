@@ -28,6 +28,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
@@ -87,7 +88,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                     SQLResult result = record.getSqlResult();
                     Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                     queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
-                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext> newArrayList() : olapCtxs);
+                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext>newArrayList() : olapCtxs);
                 } finally {
                     counter.countDown();
                     KylinConfig.removeKylinConfigThreadLocal();
@@ -120,6 +121,10 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     public List<Collection<OLAPContext>> getAllOLAPContexts() {
         return Lists.newArrayList(olapContexts.values());
+    }
+
+    public Map<Integer, Collection<OLAPContext>> getOlapContextsMap() {
+        return olapContexts;
     }
 
     @Override

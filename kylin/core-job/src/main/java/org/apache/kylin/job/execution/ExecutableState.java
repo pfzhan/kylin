@@ -74,6 +74,10 @@ public enum ExecutableState {
 
     }
 
+    public boolean isReadyOrRunning() {
+        return this == READY || this == RUNNING;
+    }
+    
     public boolean isFinalState() {
         return this == SUCCEED || this == DISCARDED;
     }

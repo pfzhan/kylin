@@ -46,7 +46,7 @@ public class KapPasswordResetCLI {
     public static void main(String[] args) throws Exception {
         BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
         String DIR_PREFIX = "/user/";
-        ResourceStore aclStore = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore aclStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         Serializer<ManagedUser> SERIALIZER = new JsonSerializer<>(ManagedUser.class);
 
         ManagedUser user = new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,

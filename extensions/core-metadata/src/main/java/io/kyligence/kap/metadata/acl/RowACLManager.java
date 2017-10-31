@@ -100,7 +100,7 @@ public class RowACLManager {
     }
 
     public ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     public RowACL getRowACLByCache(String project) {

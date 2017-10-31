@@ -47,7 +47,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,6 +66,7 @@ import io.kyligence.kap.metadata.model.IKapStorageAware;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RawTableInstance extends RootPersistentEntity implements IRealization {
+    public static final String REALIZATION_TYPE = "INVERTED_INDEX";
 
     private static final Logger logger = LoggerFactory.getLogger(RawTableInstance.class);
 
@@ -204,8 +204,8 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     }
 
     @Override
-    public RealizationType getType() {
-        return RealizationType.INVERTED_INDEX;
+    public String getType() {
+        return REALIZATION_TYPE;
     }
 
     @Override
@@ -360,11 +360,17 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         return config;
     }
 
+    @Override
+    public boolean hasPrecalculatedFields() {
+        return false;
+    }
+
     public boolean needAutoMerge() {
         if (!this.getRawTableDesc().getModel().getPartitionDesc().isPartitioned())
             return false;
 
-        return this.getRawTableDesc().getAutoMergeTimeRanges() != null && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
+        return this.getRawTableDesc().getAutoMergeTimeRanges() != null
+                && this.getRawTableDesc().getAutoMergeTimeRanges().length > 0;
     }
 
     public SegmentRange autoMergeCubeSegments() throws IOException {

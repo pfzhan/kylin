@@ -107,6 +107,6 @@ public class ModelOptimizeLogManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.kylinConfig);
+        return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
 }

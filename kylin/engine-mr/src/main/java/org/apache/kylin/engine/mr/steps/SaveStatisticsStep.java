@@ -54,7 +54,7 @@ public class SaveStatisticsStep extends AbstractExecutable {
         CubeSegment newSegment = CubingExecutableUtil.findSegment(context, CubingExecutableUtil.getCubeName(this.getParams()), CubingExecutableUtil.getSegmentId(this.getParams()));
         KylinConfig kylinConf = newSegment.getConfig();
 
-        ResourceStore rs = ResourceStore.getStore(kylinConf);
+        ResourceStore rs = ResourceStore.getKylinMetaStore(kylinConf);
         try {
             Path statisticsDir = new Path(CubingExecutableUtil.getStatisticsPath(this.getParams()));
             FileSystem fs = HadoopUtil.getFileSystem(statisticsDir);

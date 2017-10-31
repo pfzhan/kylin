@@ -28,7 +28,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
-import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.gridtable.GridTables;
 import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.junit.After;
 import org.junit.Assert;
@@ -88,11 +88,12 @@ public class GTScanReqSerDerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testGTInfo() {
-        CubeInstance cube = CubeManager.getInstance(KylinConfig.getInstanceFromEnv()).getCube("test_kylin_cube_with_slr_ready");
+        CubeInstance cube = CubeManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getCube("test_kylin_cube_with_slr_ready");
         CubeSegment segment = cube.getFirstSegment();
 
         Cuboid baseCuboid = Cuboid.getBaseCuboid(cube.getDescriptor());
-        GTInfo info = CubeGridTable.newGTInfo(baseCuboid, new CubeDimEncMap(segment));
+        GTInfo info = GridTables.newGTInfo(baseCuboid, new CubeDimEncMap(segment));
         GTInfo.serializer.serialize(info, buffer);
         buffer.flip();
 

@@ -39,14 +39,13 @@ import org.apache.kylin.cube.model.HBaseMappingDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.KapModel;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import io.kyligence.kap.smart.util.CubeUtils;
 
 public class Domain {
     private final DataModelDesc model;
@@ -94,7 +93,7 @@ public class Domain {
 
         fillDimensions(cubeDesc);
         fillMeasures(cubeDesc);
-        CubeDescUtil.fillCubeDefaultAdvSettings(cubeDesc);
+        CubeUtils.fillCubeDefaultAdvSettings(cubeDesc);
 
         return cubeDesc;
     }
@@ -103,7 +102,7 @@ public class Domain {
         // fill dimensions
         List<DimensionDesc> cubeDims = new ArrayList<>();
         for (TblColRef colRef : dimensions) {
-            cubeDims.add(CubeDescUtil.newDimensionDesc(colRef));
+            cubeDims.add(CubeUtils.newDimensionDesc(colRef));
         }
 
         if (model instanceof KapModel) {
@@ -114,7 +113,7 @@ public class Domain {
             for (TblColRef c : mpCols) {
                 if (dimensions.contains(c))
                     continue;
-                cubeDims.add(CubeDescUtil.newDimensionDesc(c));
+                cubeDims.add(CubeUtils.newDimensionDesc(c));
             }
         }
         cubeDesc.setDimensions(cubeDims);
@@ -128,8 +127,7 @@ public class Domain {
         // Count * is a must include measure
         MeasureDesc countAll = new MeasureDesc();
         countAll.setName("_COUNT_");
-        countAll.setFunction(
-                CubeDescUtil.newFunctionDesc(model, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), "bigint"));
+        countAll.setFunction(CubeUtils.newCountStarFuncDesc(model));
         measureDescs.add(countAll);
 
         // Column based measure function

@@ -52,7 +52,7 @@ import io.kyligence.kap.smart.cube.proposer.aggrgroup.HierarchyAggGroupRecorder;
 import io.kyligence.kap.smart.cube.proposer.aggrgroup.RelationJointAggrGroupRecorder;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.Utils;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import io.kyligence.kap.smart.util.CubeUtils;
 import io.kyligence.kap.smart.util.RangeUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 
@@ -70,7 +70,7 @@ public class ModelAggrGroupProposer extends AbstractCubeProposer {
 
         // add one default aggregation group if no group exists
         if (workCubeDesc.getAggregationGroups().isEmpty()) {
-            CubeDescUtil.fillCubeDefaultAggGroups(workCubeDesc);
+            CubeUtils.fillCubeDefaultAggGroups(workCubeDesc);
         }
 
         // dimCap is set at cube level on Web UI, so set all groups' dimCap as min value here.
@@ -114,7 +114,7 @@ public class ModelAggrGroupProposer extends AbstractCubeProposer {
             colCardinalityMap = Maps.newHashMapWithExpectedSize(includes.length);
             if (context.hasTableStats()) {
                 for (String include : includes) {
-                    RowKeyColDesc rowKeyColDesc = CubeDescUtil.getRowKeyColDescByName(workCubeDesc, include);
+                    RowKeyColDesc rowKeyColDesc = CubeUtils.getRowKeyColDescByName(workCubeDesc, include);
                     colCardinalityMap.put(rowKeyColDesc.getColumn(),
                             context.getColumnsCardinality(rowKeyColDesc.getColRef().getIdentity()));
                 }

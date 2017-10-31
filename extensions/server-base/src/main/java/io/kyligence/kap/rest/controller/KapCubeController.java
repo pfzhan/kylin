@@ -212,7 +212,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), projectName));
         }
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
         try {
             if (cubeDesc.getLastModified() == 0) {
@@ -395,7 +395,7 @@ public class KapCubeController extends BasicController implements InitializingBe
 
             String project = projectService.getProjectOfCube(cube.getName());
 
-            ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             ResourceStore.Checkpoint cp = store.checkpoint();
             try {
                 deleteCube(cubeName);
@@ -431,7 +431,7 @@ public class KapCubeController extends BasicController implements InitializingBe
             throw new BadRequestException(String.format(msg.getCUBE_NOT_FOUND(), cubeName));
         }
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
 
         CubeInstance newCube = null;
@@ -469,7 +469,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     public EnvelopeResponse enableCubeV2(@PathVariable String cubeName) throws IOException {
         Message msg = MsgPicker.getMsg();
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
 
         CubeInstance cube = null;
@@ -502,7 +502,7 @@ public class KapCubeController extends BasicController implements InitializingBe
     public EnvelopeResponse disableCubeV2(@PathVariable String cubeName) throws IOException, SchedulerException {
         Message msg = MsgPicker.getMsg();
 
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         ResourceStore.Checkpoint cp = store.checkpoint();
 
         CubeInstance cube = null;

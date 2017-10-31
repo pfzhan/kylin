@@ -27,7 +27,6 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -62,7 +61,7 @@ public class CubeMetaIngesterTest extends LocalFileMetadataTestCase {
         ProjectInstance project = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default");
         Assert.assertEquals(1, Collections.frequency(project.getTables(), "DEFAULT.TEST_KYLIN_FACT"));
         Assert.assertTrue(project.getModels().contains("cloned_model"));
-        Assert.assertTrue(project.getRealizationEntries().contains(RealizationEntry.create(RealizationType.CUBE, "cloned_cube")));
+        Assert.assertTrue(project.getRealizationEntries().contains(RealizationEntry.create(CubeInstance.REALIZATION_TYPE, "cloned_cube")));
 
         getTestConfig().clearManagers();
         CubeInstance instance = CubeManager.getInstance(KylinConfig.getInstanceFromEnv()).getCube("cloned_cube");
@@ -77,7 +76,7 @@ public class CubeMetaIngesterTest extends LocalFileMetadataTestCase {
         ProjectInstance project = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject("default");
         Assert.assertEquals(1, Collections.frequency(project.getTables(), "SSB.CUSTOMER"));
         Assert.assertTrue(project.getModels().contains("benchmark_model"));
-        Assert.assertTrue(project.getRealizationEntries().contains(RealizationEntry.create(RealizationType.CUBE, "benchmark_cube")));
+        Assert.assertTrue(project.getRealizationEntries().contains(RealizationEntry.create(CubeInstance.REALIZATION_TYPE, "benchmark_cube")));
 
         getTestConfig().clearManagers();
         CubeInstance instance = CubeManager.getInstance(KylinConfig.getInstanceFromEnv()).getCube("benchmark_cube");

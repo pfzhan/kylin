@@ -45,8 +45,8 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.gridtable.GTScanRequest;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.spark.Accumulator;
@@ -154,7 +154,7 @@ public class ParquetTask implements Serializable {
             }
 
             long startTime = System.currentTimeMillis();
-            if (RealizationType.CUBE.toString().equals(this.realizationType)) {
+            if (CubeInstance.REALIZATION_TYPE.equals(this.realizationType)) {
                 sc.setLocalProperty("spark.scheduler.pool", "cube");
 
                 if (IKapStorageAware.ID_SPLICE_PARQUET != this.storageType) {

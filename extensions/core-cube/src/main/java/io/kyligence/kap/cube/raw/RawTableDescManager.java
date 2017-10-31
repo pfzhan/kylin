@@ -199,7 +199,7 @@ public class RawTableDescManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
 }

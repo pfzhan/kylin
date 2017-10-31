@@ -160,7 +160,7 @@ public class DeployUtil {
 
     public static void appendFactTableData(String factTableContent, String factTableName) throws IOException {
         // Write to resource store
-        ResourceStore store = ResourceStore.getStore(config());
+        ResourceStore store = ResourceStore.getKylinMetaStore(config());
 
         InputStream in = new ByteArrayInputStream(factTableContent.getBytes("UTF-8"));
         String factTablePath = "/data/" + factTableName + ".csv";

@@ -20,12 +20,9 @@ package org.apache.kylin.cube.gridtable;
 
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.cuboid.Cuboid;
@@ -33,7 +30,6 @@ import org.apache.kylin.cube.model.HBaseColumnDesc;
 import org.apache.kylin.cube.model.HBaseColumnFamilyDesc;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -41,19 +37,9 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class CuboidToGridTableMapping {
+public class CuboidToGridTableMapping extends GridTableMapping {
 
     final private Cuboid cuboid;
-
-    private List<DataType> gtDataTypes;
-    private List<ImmutableBitSet> gtColBlocks;
-
-    private int nDimensions;
-    private Map<TblColRef, Integer> dim2gt;
-    private ImmutableBitSet gtPrimaryKey;
-
-    private int nMetrics;
-    private Map<FunctionDesc, Integer> metrics2gt; // because count distinct may have a holistic version
 
     public CuboidToGridTableMapping(Cuboid cuboid) {
         this.cuboid = cuboid;
@@ -119,50 +105,6 @@ public class CuboidToGridTableMapping {
         assert nMetrics == cuboid.getCubeDesc().getMeasures().size();
     }
 
-    public int getColumnCount() {
-        return nDimensions + nMetrics;
-    }
-
-    public DataType[] getDataTypes() {
-        return gtDataTypes.toArray(new DataType[gtDataTypes.size()]);
-    }
-
-    public ImmutableBitSet getPrimaryKey() {
-        return gtPrimaryKey;
-    }
-
-    public ImmutableBitSet[] getColumnBlocks() {
-        return gtColBlocks.toArray(new ImmutableBitSet[gtColBlocks.size()]);
-    }
-
-    public int getIndexOf(TblColRef dimension) {
-        Integer i = dim2gt.get(dimension);
-        return i == null ? -1 : i.intValue();
-    }
-
-    public int[] getDimIndexes(Collection<TblColRef> dims) {
-        int[] result = new int[dims.size()];
-        int i = 0;
-        for (TblColRef dim : dims) {
-            result[i++] = getIndexOf(dim);
-        }
-        return result;
-    }
-
-    public int getIndexOf(FunctionDesc metric) {
-        Integer r = metrics2gt.get(metric);
-        return r == null ? -1 : r;
-    }
-
-    public int[] getMetricsIndexes(Collection<FunctionDesc> metrics) {
-        int[] result = new int[metrics.size()];
-        int i = 0;
-        for (FunctionDesc metric : metrics) {
-            result[i++] = getIndexOf(metric);
-        }
-        return result;
-    }
-
     public List<TblColRef> getCuboidDimensionsInGTOrder() {
         return cuboid.getColumns();
     }
@@ -198,47 +140,8 @@ public class CuboidToGridTableMapping {
         return result.isEmpty() ? Collections.<Integer, Integer> emptyMap() : result;
     }
 
-    public ImmutableBitSet makeGridTableColumns(Set<TblColRef> dimensions) {
-        BitSet result = new BitSet();
-        for (TblColRef dim : dimensions) {
-            int idx = this.getIndexOf(dim);
-            if (idx >= 0)
-                result.set(idx);
-        }
-        return new ImmutableBitSet(result);
+    @Override
+    public String getTableName() {
+        return "Cuboid " + cuboid.getId();
     }
-
-    public ImmutableBitSet makeGridTableColumns(Collection<FunctionDesc> metrics) {
-        BitSet result = new BitSet();
-        for (FunctionDesc metric : metrics) {
-            int idx = this.getIndexOf(metric);
-            if (idx < 0)
-                throw new IllegalStateException(metric + " not found in " + this);
-            result.set(idx);
-        }
-        return new ImmutableBitSet(result);
-    }
-
-    public String[] makeAggrFuncs(Collection<FunctionDesc> metrics) {
-
-        //metrics are represented in ImmutableBitSet, which loses order information
-        //sort the aggrFuns to align with metrics natural order 
-        List<FunctionDesc> metricList = Lists.newArrayList(metrics);
-        Collections.sort(metricList, new Comparator<FunctionDesc>() {
-            @Override
-            public int compare(FunctionDesc o1, FunctionDesc o2) {
-                int a = CuboidToGridTableMapping.this.getIndexOf(o1);
-                int b = CuboidToGridTableMapping.this.getIndexOf(o2);
-                return a - b;
-            }
-        });
-
-        String[] result = new String[metricList.size()];
-        int i = 0;
-        for (FunctionDesc metric : metricList) {
-            result[i++] = metric.getExpression();
-        }
-        return result;
-    }
-
 }

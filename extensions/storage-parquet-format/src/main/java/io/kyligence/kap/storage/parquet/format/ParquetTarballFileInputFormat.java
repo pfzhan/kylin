@@ -179,7 +179,7 @@ public class ParquetTarballFileInputFormat extends FileInputFormat<Text, Text> {
             }
 
             //for readStrategy
-            readStrategy = ReadStrategy.valueOf(conf.get(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY));
+            readStrategy = ReadStrategy.valueOf(conf.get(ParquetFormatConstants.KYLIN_TARBALL_READ_STRATEGY, "KV"));
             cuboidId = Long.valueOf(shardPath.getParent().getName());
             shardId = Short.valueOf(shardPath.getName().substring(0, shardPath.getName().indexOf(".parquettar")));
 

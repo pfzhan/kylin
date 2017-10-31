@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -35,6 +36,7 @@ import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.lock.DistributedLockFactory;
+import org.apache.kylin.common.persistence.HDFSResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -193,7 +195,7 @@ abstract public class KylinConfigBase implements Serializable {
      * Use with care, properties should be read-only. This is for testing only.
      */
     final public void setProperty(String key, String value) {
-        logger.info("Kylin Config was updated with " + key + " : " + value);
+        logger.info("Kylin Config was updated with " + key + "=" + value);
         properties.setProperty(BCC.check(key), value);
     }
 
@@ -217,8 +219,12 @@ abstract public class KylinConfigBase implements Serializable {
     // ENV
     // ============================================================================
 
+    public boolean isUTEnv() {
+        return "UT".equals(getDeployEnv());
+    }
+    
     public boolean isDevEnv() {
-        return "DEV".equals(getOptional("kylin.env", "DEV"));
+        return "DEV".equals(getDeployEnv());
     }
 
     public String getDeployEnv() {
@@ -246,7 +252,8 @@ abstract public class KylinConfigBase implements Serializable {
         }
 
         // append metadata-url prefix
-        root = new Path(path, StringUtils.replaceChars(getMetadataUrlPrefix(), ':', '-')).toString();
+        String metaId = getMetadataUrlPrefix().replace(':', '-').replace('/', '-');
+        root = new Path(path, metaId).toString();
 
         if (!root.endsWith("/"))
             root += "/";
@@ -283,6 +290,10 @@ abstract public class KylinConfigBase implements Serializable {
     // METADATA
     // ============================================================================
 
+    public String getMetaStoreFactory() {
+        return getOptional("kylin.metadata.store-factory", "");
+    }
+    
     public StorageURL getMetadataUrl() {
         return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hbase"));
     }
@@ -490,6 +501,12 @@ abstract public class KylinConfigBase implements Serializable {
     // ============================================================================
     // JOB
     // ============================================================================
+
+    public StorageURL getJobTmpMetaStoreUrl(String jobId) {
+        Map<String, String> params = new HashMap<>();
+        params.put("path", getHdfsWorkingDirectory() + "job_tmp/" + jobId + "/meta");
+        return new StorageURL(getMetadataUrlPrefix(), HDFSResourceStore.HDFS_SCHEME, params);
+    }
 
     public CliCommandExecutor getCliCommandExecutor() throws IOException {
         CliCommandExecutor exec = new CliCommandExecutor();

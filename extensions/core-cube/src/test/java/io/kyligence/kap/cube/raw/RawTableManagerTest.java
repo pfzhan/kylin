@@ -194,7 +194,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testGetAllRawTables() throws Exception {
-        final ResourceStore store = ResourceStore.getStore(getTestConfig());
+        final ResourceStore store = ResourceStore.getKylinMetaStore(getTestConfig());
         final NavigableSet<String> rawPath = store.listResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
         assertTrue(rawPath.size() > 1);
 

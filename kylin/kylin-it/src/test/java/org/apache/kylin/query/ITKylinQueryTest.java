@@ -30,10 +30,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.gridtable.StorageSideBehavior;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
+import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.dbunit.database.DatabaseConnection;
 import org.dbunit.database.IDatabaseConnection;
 import org.dbunit.dataset.ITable;
@@ -60,10 +61,10 @@ public class ITKylinQueryTest extends KylinTestBase {
     @BeforeClass
     public static void setUp() throws Exception {
         logger.info("setUp in ITKylinQueryTest");
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
-        priorities.put(RealizationType.INVERTED_INDEX, 0);
+        Map<String, Integer> priorities = Maps.newHashMap();
+        priorities.put(HybridInstance.REALIZATION_TYPE, 0);
+        priorities.put(CubeInstance.REALIZATION_TYPE, 0);
+        priorities.put("INVERTED_INDEX", 0);
         Candidate.setPriorities(priorities);
 
         joinType = "left";

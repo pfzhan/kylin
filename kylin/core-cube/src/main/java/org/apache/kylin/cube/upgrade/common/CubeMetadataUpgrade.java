@@ -47,7 +47,7 @@ public abstract class CubeMetadataUpgrade {
     public CubeMetadataUpgrade(String newMetadataUrl) {
         KylinConfig.destroyInstance();
         config = KylinConfig.createInstanceFromUri(newMetadataUrl);
-        store = ResourceStore.getStore(config);
+        store = ResourceStore.getKylinMetaStore(config);
     }
 
     protected List<String> listResourceStore(String pathRoot) {

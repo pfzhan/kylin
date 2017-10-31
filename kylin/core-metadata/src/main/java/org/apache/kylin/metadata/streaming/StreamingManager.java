@@ -92,7 +92,7 @@ public class StreamingManager {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     public StreamingConfig getStreamingConfig(String name) {

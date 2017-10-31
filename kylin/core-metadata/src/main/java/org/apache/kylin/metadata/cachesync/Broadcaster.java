@@ -73,6 +73,10 @@ public class Broadcaster {
     static Broadcaster newInstance(KylinConfig config) {
         return new Broadcaster(config);
     }
+    
+    public interface RemoteServerStub {
+        void notifyEvent(String entity, String event, String cacheKey) throws IOException;
+    }
 
     // ============================================================================
 
@@ -88,15 +92,12 @@ public class Broadcaster {
         final int retryLimitTimes = config.getCacheSyncRetrys();
 
         final String[] nodes = config.getRestServers();
-        if (nodes == null || nodes.length < 1) {
-            logger.warn("There is no available rest server; check the 'kylin.server.cluster-servers' config");
-        }
         logger.debug(nodes.length + " nodes in the cluster: " + Arrays.toString(nodes));
 
         Executors.newSingleThreadExecutor(new DaemonThreadFactory()).execute(new Runnable() {
             @Override
             public void run() {
-                final Map<String, RestClient> restClientMap = Maps.newHashMap();
+                final Map<String, RemoteServerStub> remoteMap = Maps.newHashMap();
                 final ExecutorService wipingCachePool = new ThreadPoolExecutor(1, 10, 60L, TimeUnit.SECONDS,
                         new LinkedBlockingQueue<Runnable>(), new DaemonThreadFactory());
 
@@ -109,22 +110,16 @@ public class Broadcaster {
                             continue;
                         }
 
-                        String[] restServers = config.getRestServers();
-                        logger.debug("Servers in the cluster: " + Arrays.toString(restServers));
-                        for (final String node : restServers) {
-                            if (restClientMap.containsKey(node) == false) {
-                                restClientMap.put(node, new RestClient(node));
-                            }
-                        }
+                        refillRemoteMap(config, remoteMap);
 
                         logger.debug("Announcing new broadcast event: " + broadcastEvent);
-                        for (final String node : restServers) {
+                        for (final RemoteServerStub remote : remoteMap.values()) {
                             wipingCachePool.execute(new Runnable() {
                                 @Override
                                 public void run() {
                                     try {
-                                        restClientMap.get(node).wipeCache(broadcastEvent.getEntity(),
-                                                broadcastEvent.getEvent(), broadcastEvent.getCacheKey());
+                                        remote.notifyEvent(broadcastEvent.getEntity(), broadcastEvent.getEvent(),
+                                                broadcastEvent.getCacheKey());
                                     } catch (IOException e) {
                                         logger.warn("Thread failed during wipe cache at {}, error msg: {}",
                                                 broadcastEvent, e);
@@ -141,7 +136,38 @@ public class Broadcaster {
                             });
                         }
                     } catch (Exception e) {
-                        logger.error("error running wiping", e);
+                        logger.error("error broadcasting event", e);
+                    }
+                }
+            }
+
+            private void refillRemoteMap(KylinConfig config, Map<String, RemoteServerStub> remoteMap) {
+                // in UT, notify local process
+                if (config.isUTEnv()) {
+                    if ((remoteMap.size() == 1 && remoteMap.containsKey("")) == false) {
+                        remoteMap.clear();
+                        remoteMap.put("", new RemoteServerStub() {
+                            @Override
+                            public void notifyEvent(String entity, String event, String cacheKey) throws IOException {
+                                notifyListener(entity, Event.getEvent(event), cacheKey);
+                            }
+                        });
+                    }
+                    return;
+                }
+                
+                // normal case, notify peer KAP servers including self
+                String[] restServers = config.getRestServers();
+                logger.debug("Servers in the cluster: " + Arrays.toString(restServers));
+                remoteMap.keySet().retainAll(Arrays.asList(restServers));
+                for (final String node : restServers) {
+                    if (remoteMap.containsKey(node) == false) {
+                        remoteMap.put(node, new RemoteServerStub() {
+                            @Override
+                            public void notifyEvent(String entity, String event, String cacheKey) throws IOException {
+                                new RestClient(node).wipeCache(entity, event, cacheKey);
+                            }
+                        });
                     }
                 }
             }
@@ -230,31 +256,51 @@ public class Broadcaster {
         switch (entity) {
         case SYNC_ALL:
             for (Listener l : list) {
-                l.onClearAll(this);
+                try {
+                    l.onClearAll(this);
+                } catch (Exception ex) {
+                    logger.warn("Error during broadcasting " + event + ", " + entity + ", " + cacheKey, ex);
+                }
             }
             config.clearManagers(); // clear all registered managers in config
             break;
         case SYNC_PRJ_SCHEMA:
             ProjectManager.getInstance(config).clearL2Cache();
             for (Listener l : list) {
-                l.onProjectSchemaChange(this, cacheKey);
+                try {
+                    l.onProjectSchemaChange(this, cacheKey);
+                } catch (Exception ex) {
+                    logger.warn("Error during broadcasting " + event + ", " + entity + ", " + cacheKey, ex);
+                }
             }
             break;
         case SYNC_PRJ_DATA:
             ProjectManager.getInstance(config).clearL2Cache(); // cube's first becoming ready leads to schema change too
             for (Listener l : list) {
-                l.onProjectDataChange(this, cacheKey);
+                try {
+                    l.onProjectDataChange(this, cacheKey);
+                } catch (Exception ex) {
+                    logger.warn("Error during broadcasting " + event + ", " + entity + ", " + cacheKey, ex);
+                }
             }
             break;
         case SYNC_PRJ_ACL:
             ProjectManager.getInstance(config).clearL2Cache();
             for (Listener l : list) {
-                l.onProjectQueryACLChange(this, cacheKey);
+                try {
+                    l.onProjectQueryACLChange(this, cacheKey);
+                } catch (Exception ex) {
+                    logger.warn("Error during broadcasting " + event + ", " + entity + ", " + cacheKey, ex);
+                }
             }
             break;
         default:
             for (Listener l : list) {
-                l.onEntityChange(this, entity, event, cacheKey);
+                try {
+                    l.onEntityChange(this, entity, event, cacheKey);
+                } catch (Exception ex) {
+                    logger.warn("Error during broadcasting " + event + ", " + entity + ", " + cacheKey, ex);
+                }
             }
             break;
         }

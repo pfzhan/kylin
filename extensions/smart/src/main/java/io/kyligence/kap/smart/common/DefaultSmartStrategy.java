@@ -112,10 +112,6 @@ public class DefaultSmartStrategy implements ISmartStrategy {
         return true;
     }
 
-    public long getAggGroupStrictCombinationMax() {
-        return kylinConfig.getCubeAggrGroupMaxCombination();
-    }
-
     public int getAggGroupStrictRetryMax() {
         return 63;
     }

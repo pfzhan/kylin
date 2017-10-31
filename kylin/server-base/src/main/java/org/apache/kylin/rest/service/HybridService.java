@@ -26,7 +26,6 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.RealizationEntry;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.job.HybridCubeCLI;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.storage.hybrid.HybridInstance;
@@ -43,7 +42,8 @@ public class HybridService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    public HybridInstance createHybridCube(String hybridName, String projectName, String modelName, String[] cubeNames) {
+    public HybridInstance createHybridCube(String hybridName, String projectName, String modelName,
+            String[] cubeNames) {
         aclEvaluate.checkProjectWritePermission(projectName);
         List<String> args = new ArrayList<String>();
         args.add("-name");
@@ -65,7 +65,8 @@ public class HybridService extends BasicService {
         return getHybridInstance(hybridName);
     }
 
-    public HybridInstance updateHybridCube(String hybridName, String projectName, String modelName, String[] cubeNames) {
+    public HybridInstance updateHybridCube(String hybridName, String projectName, String modelName,
+            String[] cubeNames) {
         aclEvaluate.checkProjectWritePermission(projectName);
         List<String> args = new ArrayList<String>();
         args.add("-name");
@@ -121,7 +122,7 @@ public class HybridService extends BasicService {
         } else if (project == null) {
             return new ArrayList<>();
         } else {
-            List<RealizationEntry> realizationEntries = project.getRealizationEntries(RealizationType.HYBRID);
+            List<RealizationEntry> realizationEntries = project.getRealizationEntries(HybridInstance.REALIZATION_TYPE);
             if (realizationEntries != null) {
                 for (RealizationEntry entry : realizationEntries) {
                     HybridInstance instance = getHybridManager().getHybridInstance(entry.getRealization());

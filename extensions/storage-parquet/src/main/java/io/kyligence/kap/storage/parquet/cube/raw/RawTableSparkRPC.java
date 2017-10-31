@@ -36,7 +36,6 @@ import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
@@ -104,7 +103,7 @@ public class RawTableSparkRPC implements IGTStorage {
                 setMaxRecordLength(scanRequest.getInfo().getMaxLength())
                 .addAllParquetColumns(getRequiredParquetColumns(scanRequest)).//
                 setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
-                .setRealizationType(RealizationType.INVERTED_INDEX.toString()).//
+                .setRealizationType(rawTableSegment.getRawTableInstance().getType()).//
                 setQueryId(QueryContext.current().getQueryId())
                 .setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
                 setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes())

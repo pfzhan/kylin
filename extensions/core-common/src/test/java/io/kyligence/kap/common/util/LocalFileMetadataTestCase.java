@@ -29,21 +29,15 @@ import org.apache.kylin.common.KylinConfig;
 public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.LocalFileMetadataTestCase {
 
     @Override
-    public void createTestMetadata(String... overlayMetadataDirs) {
-        staticCreateTestMetadata(overlayMetadataDirs);
+    public void createTestMetadata() {
+        staticCreateTestMetadata();
     }
 
-    public static void staticCreateTestMetadata(String... overlayMetadataDirs) {
-        KylinConfig.destroyInstance();
+    public static void staticCreateTestMetadata() {
 
-        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata(overlayMetadataDirs);
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata();
 
-        if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
-            System.setProperty(KylinConfig.KYLIN_CONF, tempMetadataDir);
-
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setMetadataUrl(tempMetadataDir);
-        config.setProperty("kylin.env.hdfs-working-dir", "file:///tmp/kylin");
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 
 }

@@ -23,7 +23,6 @@ import java.io.IOException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.apache.kylin.storage.hybrid.HybridManager;
 import org.junit.After;
@@ -86,7 +85,7 @@ public class HybridCubeCLITest extends LocalFileMetadataTestCase {
 
         HybridInstance hybridInstance = hybridManager.getHybridInstance("ssb_hybrid");
         Assert.assertNull(hybridInstance);
-        Assert.assertEquals(0, ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).findProjects(RealizationType.HYBRID, "ssb_hybrid").size());
+        Assert.assertEquals(0, ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).findProjects(hybridManager.getRealizationType(), "ssb_hybrid").size());
     }
 
 }

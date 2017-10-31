@@ -61,7 +61,7 @@ public class DraftManager {
     }
 
     public ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 
     public List<Draft> list(String project) throws IOException {

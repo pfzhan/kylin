@@ -29,7 +29,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.cube.CubeContext;
-import io.kyligence.kap.smart.util.CubeDescUtil;
+import io.kyligence.kap.smart.util.CubeUtils;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DimensionDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -60,7 +60,7 @@ public class DerivedDimensionProposer extends AbstractCubeProposer {
             double derivedRatio = smartConfig.getDimDerivedRatio();
             do {
                 buildDerivedDim(workCubeDesc, derivedRatio);
-                CubeDescUtil.fillCubeDefaultAdvSettings(workCubeDesc);
+                CubeUtils.fillCubeDefaultAdvSettings(workCubeDesc);
 
                 derivedRatio = derivedRatio / 2;
             } while (workCubeDesc.getRowkey().getRowKeyColumns().length > 63

@@ -50,7 +50,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.hbase.HBaseConnection;
 import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.apache.kylin.storage.hybrid.HybridManager;
@@ -77,7 +76,7 @@ public class ExtendCubeToHybridCLI {
 
     public ExtendCubeToHybridCLI() {
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        this.store = ResourceStore.getStore(kylinConfig);
+        this.store = ResourceStore.getKylinMetaStore(kylinConfig);
         this.cubeManager = CubeManager.getInstance(kylinConfig);
         this.cubeDescManager = CubeDescManager.getInstance(kylinConfig);
         this.metadataManager = DataModelManager.getInstance(kylinConfig);
@@ -193,11 +192,11 @@ public class ExtendCubeToHybridCLI {
 
         // create hybrid model for these two cubes
         List<RealizationEntry> realizationEntries = Lists.newArrayListWithCapacity(2);
-        realizationEntries.add(RealizationEntry.create(RealizationType.CUBE, cubeInstance.getName()));
-        realizationEntries.add(RealizationEntry.create(RealizationType.CUBE, newCubeInstance.getName()));
+        realizationEntries.add(RealizationEntry.create(cubeInstance.getType(), cubeInstance.getName()));
+        realizationEntries.add(RealizationEntry.create(newCubeInstance.getType(), newCubeInstance.getName()));
         HybridInstance hybridInstance = HybridInstance.create(kylinConfig, renameHybrid(cubeInstance.getName()), realizationEntries);
         store.putResource(hybridInstance.getResourcePath(), hybridInstance, HybridManager.HYBRID_SERIALIZER);
-        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(RealizationType.HYBRID, hybridInstance.getName(), projectName, owner);
+        ProjectManager.getInstance(kylinConfig).moveRealizationToProject(hybridInstance.getType(), hybridInstance.getName(), projectName, owner);
         logger.info("HybridInstance was saved at: " + hybridInstance.getResourcePath());
 
         // copy Acl from old cube to new cube

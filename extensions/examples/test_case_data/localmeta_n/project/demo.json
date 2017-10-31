@@ -1,0 +1,16 @@
+{
+  "uuid": "1aaca32a-a33e-4b69-83dd-0bb8b1f8c93b",
+  "name": "demo",
+  "realizations": [],
+  "tables": [
+    "SSB.CUSTOMER",
+    "SSB.DATES",
+    "SSB.PART",
+    "SSB.SUPPLIER",
+    "SSB.P_LINEORDER"
+  ],
+  "models": [],
+  "override_kylin_properties": {
+    "kylin.storage.hbase.owner-tag": "kylin@kylin.apache.org"
+  }
+}

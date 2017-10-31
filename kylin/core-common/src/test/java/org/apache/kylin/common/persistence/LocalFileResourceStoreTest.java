@@ -49,7 +49,7 @@ public class LocalFileResourceStoreTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testRollback() throws Exception {
-        ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+        ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         byte[] bytes = new byte[] { 0, 1, 2 };
         RawResource raw;
         Checkpoint cp;

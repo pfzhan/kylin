@@ -27,7 +27,6 @@ package io.kyligence.kap.storage.parquet;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.engine.mr.IMROutput2;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
 
@@ -39,11 +38,12 @@ import io.kyligence.kap.storage.parquet.steps.ParquetMROutput2;
 public class ParquetStorage implements IStorage, IKeep {
     @Override
     public IStorageQuery createQuery(IRealization realization) {
-        if (realization.getType() == RealizationType.CUBE) {
+        switch (realization.getType()) {
+        case CubeInstance.REALIZATION_TYPE:
             return new io.kyligence.kap.storage.parquet.cube.CubeStorageQuery((CubeInstance) realization);
-        } else if (realization.getType() == RealizationType.INVERTED_INDEX) {
+        case RawTableInstance.REALIZATION_TYPE:
             return new RawTableStorageQuery((RawTableInstance) realization);
-        } else {
+        default:
             throw new IllegalStateException(
                     "Unsupported realization type for ParquetStorage: " + realization.getType());
         }

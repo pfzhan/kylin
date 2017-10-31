@@ -83,8 +83,8 @@ public class ParquetPageIndexLocalTest extends LocalFileMetadataTestCase {
         ColumnSpec[] specsSub = new ColumnSpec[1];
         specsSub[0] = new ColumnSpec("key", 6, 1, true, 1);
         specsSub[0].setValueEncodingIdentifier('s');
-        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs, new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")), false);
-        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub, new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")), false);
+        ParquetPageIndexWriter indexWriter = new ParquetPageIndexWriter(specs, new FSDataOutputStream(new FileOutputStream("/tmp/new2.parquetindex")), 0);
+        ParquetPageIndexWriter indexWriterSub = new ParquetPageIndexWriter(specsSub, new FSDataOutputStream(new FileOutputStream("/tmp/new3.parquetindex")), 0);
 
         int i = 0;
         while (true) {

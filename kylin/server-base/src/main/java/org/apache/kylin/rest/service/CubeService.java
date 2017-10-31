@@ -52,7 +52,6 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
@@ -223,7 +222,7 @@ public class CubeService extends BasicService implements InitializingBean {
         }
         ArrayList<CubeInstance> result = new ArrayList<CubeInstance>();
         for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
-            if (projectDataModel.getType() == RealizationType.CUBE) {
+            if (projectDataModel.getType().equals(CubeInstance.REALIZATION_TYPE)) {
                 CubeInstance cube = getCubeManager().getCube(projectDataModel.getRealization());
                 if (cube != null)
                     result.add(cube);
@@ -241,7 +240,7 @@ public class CubeService extends BasicService implements InitializingBean {
             return false;
         }
         for (RealizationEntry projectDataModel : project.getRealizationEntries()) {
-            if (projectDataModel.getType() == RealizationType.CUBE) {
+            if (projectDataModel.getType().equals(CubeInstance.REALIZATION_TYPE)) {
                 CubeInstance cube = getCubeManager().getCube(projectDataModel.getRealization());
                 if (cube == null) {
                     logger.error("Project " + projectName + " contains realization " + projectDataModel.getRealization()
@@ -279,8 +278,8 @@ public class CubeService extends BasicService implements InitializingBean {
         ProjectManager projectManager = getProjectManager();
         if (!isCubeInProject(newProjectName, cube)) {
             String owner = SecurityContextHolder.getContext().getAuthentication().getName();
-            ProjectInstance newProject = projectManager.moveRealizationToProject(RealizationType.CUBE, cube.getName(),
-                    newProjectName, owner);
+            ProjectInstance newProject = projectManager.moveRealizationToProject(CubeInstance.REALIZATION_TYPE,
+                    cube.getName(), newProjectName, owner);
 
             accessService.inherit(cube, newProject);
         }

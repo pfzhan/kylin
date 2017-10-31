@@ -28,12 +28,12 @@ import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeDescManager;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
-import org.apache.kylin.metadata.realization.RealizationType;
 
 import com.google.common.collect.Lists;
 
@@ -68,7 +68,7 @@ public final class QueryRunnerFactory {
         CubeDescManager cubeDescManager = CubeDescManager.getInstance(srcKylinConfig);
         List<CubeDesc> cubeDescs = Lists.newArrayList();
         for (RealizationEntry entry : projectManager.getProject(cubeDesc.getProject()).getRealizationEntries()) {
-            if (entry.getType() == RealizationType.CUBE) {
+            if (entry.getType().equals(CubeInstance.REALIZATION_TYPE)) {
                 CubeDesc c = cubeDescManager.getCubeDesc(entry.getRealization());
                 if (c != null)
                     cubeDescs.add(c);

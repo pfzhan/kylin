@@ -50,7 +50,6 @@ import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.CapabilityResult.CapabilityInfluence;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +67,7 @@ import com.google.common.collect.Lists;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class CubeInstance extends RootPersistentEntity implements IRealization, IBuildable {
     private static final Logger logger = LoggerFactory.getLogger(CubeInstance.class);
+    public static final String REALIZATION_TYPE = "CUBE";
 
     public static final int COST_WEIGHT_MEASURE = 1;
     public static final int COST_WEIGHT_DIMENSION = 10;
@@ -228,6 +228,11 @@ public class CubeInstance extends RootPersistentEntity implements IRealization, 
     @Override
     public KylinConfig getConfig() {
         return config;
+    }
+
+    @Override
+    public boolean hasPrecalculatedFields() {
+        return true;
     }
 
     void setConfig(KylinConfigExt config) {
@@ -457,8 +462,8 @@ public class CubeInstance extends RootPersistentEntity implements IRealization, 
     }
 
     @Override
-    public RealizationType getType() {
-        return RealizationType.CUBE;
+    public String getType() {
+        return REALIZATION_TYPE;
     }
 
     @Override

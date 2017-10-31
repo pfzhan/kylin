@@ -28,11 +28,13 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 
 public class SmartConfig {
-    private KapConfig kapConfig;
-    private ISmartStrategy strategy;
+    private final KapConfig kapConfig;
+    private final KylinConfig kylinConfig;
+    private final ISmartStrategy strategy;
 
     private SmartConfig(KapConfig kapConfig) {
         this.kapConfig = kapConfig;
+        this.kylinConfig = kapConfig.getKylinConfig();
 
         String strategyName = this.kapConfig.getSmartModelingStrategy();
         switch (strategyName) {
@@ -156,7 +158,7 @@ public class SmartConfig {
     }
 
     public long getAggGroupStrictCombinationMax() {
-        return getOptional("aggGroup.strict.combination-max", strategy.getAggGroupStrictCombinationMax());
+        return getOptional("aggGroup.strict.combination-max", kylinConfig.getCubeAggrGroupMaxCombination());
     }
 
     public int getAggGroupStrictRetryMax() {

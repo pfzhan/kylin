@@ -118,7 +118,7 @@ public class LicenseInfoService extends BasicService {
 
     private String getMetastoreUUID() throws IOException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
         return store.getMetaStoreUUID();
     }
 

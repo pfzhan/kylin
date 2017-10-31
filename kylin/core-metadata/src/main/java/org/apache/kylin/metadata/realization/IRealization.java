@@ -38,7 +38,9 @@ public interface IRealization extends IStorageAware {
     /**
      * Get whether this specific realization is a cube or InvertedIndex
      */
-    public RealizationType getType();
+    public String getType();
+
+    public KylinConfig getConfig();
 
     public DataModelDesc getModel();
 
@@ -62,7 +64,8 @@ public interface IRealization extends IStorageAware {
 
     public boolean supportsLimitPushDown();
 
-    public KylinConfig getConfig();
-
     public int getCost();
+    
+    public boolean hasPrecalculatedFields();
+
 }

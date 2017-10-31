@@ -26,7 +26,7 @@ import org.apache.kylin.common.KylinConfig;
  */
 public abstract class AbstractKylinTestCase {
 
-    public abstract void createTestMetadata(String... overlayMetadataDirs) throws Exception;
+    public abstract void createTestMetadata() throws Exception;
 
     public abstract void cleanupTestMetadata() throws Exception;
 

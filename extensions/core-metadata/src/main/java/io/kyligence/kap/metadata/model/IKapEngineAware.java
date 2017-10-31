@@ -26,7 +26,7 @@ package io.kyligence.kap.metadata.model;
 
 import org.apache.kylin.metadata.model.IEngineAware;
 
-public interface IKapEngineAware extends IEngineAware{
+public interface IKapEngineAware extends IEngineAware {
 
     /**
      * io.kyligence.kap.engine.mr.KapMRBatchCubingEngine
@@ -37,4 +37,6 @@ public interface IKapEngineAware extends IEngineAware{
      * io.kyligence.kap.engine.mr.KapSpliceMRBatchCubingEngine
      */
     int ID_KAP_MR_V2 = 99;
+
+    int ID_KAP_NSPARK = 80;
 }

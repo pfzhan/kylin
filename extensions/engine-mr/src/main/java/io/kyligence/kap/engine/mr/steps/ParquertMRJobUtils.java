@@ -58,6 +58,6 @@ public class ParquertMRJobUtils {
     }
 
     public static boolean isParquetFile(Path path) {
-        return path.getName().endsWith(".parquet");
+        return path.getName().endsWith(".parquettar");
     }
 }

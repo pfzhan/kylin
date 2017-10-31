@@ -33,7 +33,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.cuboid.Cuboid;
-import org.apache.kylin.cube.gridtable.CubeGridTable;
+import org.apache.kylin.cube.gridtable.GridTables;
 import org.apache.kylin.cube.kv.CubeDimEncMap;
 import org.apache.kylin.cube.kv.RowKeyEncoder;
 import org.apache.kylin.cube.model.RowKeyColDesc;
@@ -57,7 +57,7 @@ public class BinaryFilterConverter {
     //only test
     BinaryFilterConverter(CubeSegment cubeSeg, Cuboid cuboid) {
         RowKeyEncoder encoder = new RowKeyEncoder(cubeSeg, cuboid);
-        GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(cubeSeg));
+        GTInfo gtInfo = GridTables.newGTInfo(cuboid, new CubeDimEncMap(cubeSeg));
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();
 
         offsetMap = Maps.newHashMap();
@@ -123,7 +123,8 @@ public class BinaryFilterConverter {
             case NOTIN:
                 return transferNotin(tupleFilter);
             default:
-                throw new IllegalStateException("operator not supported: " + compareFilter.getOperator() + " in " + tupleFilter);
+                throw new IllegalStateException(
+                        "operator not supported: " + compareFilter.getOperator() + " in " + tupleFilter);
             }
         } else if (tupleFilter instanceof LogicalTupleFilter) {
             List<BinaryFilter> binaryChildren = Lists.newArrayList();
@@ -138,11 +139,14 @@ public class BinaryFilterConverter {
 
             switch (tupleFilter.getOperator()) {
             case AND:
-                return new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND, binaryChildren.toArray(new BinaryFilter[0]));
+                return new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND,
+                        binaryChildren.toArray(new BinaryFilter[0]));
             case OR:
-                return new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, binaryChildren.toArray(new BinaryFilter[0]));
+                return new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR,
+                        binaryChildren.toArray(new BinaryFilter[0]));
             default:
-                throw new IllegalArgumentException("Operator " + tupleFilter.getOperator() + " is not supported in Binary Filter");
+                throw new IllegalArgumentException(
+                        "Operator " + tupleFilter.getOperator() + " is not supported in Binary Filter");
             }
         } else if (tupleFilter instanceof ConstantTupleFilter) {
             if (tupleFilter.evaluate(null, null)) {
@@ -216,7 +220,8 @@ public class BinaryFilterConverter {
         return transferMultiValue(filter, TupleFilter.FilterOperatorEnum.NOTIN);
     }
 
-    private BinaryFilter transferZeroValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op) throws UnsupportedEncodingException {
+    private BinaryFilter transferZeroValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op)
+            throws UnsupportedEncodingException {
         if (filter instanceof CompareTupleFilter) {
             CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
             TblColRef column = compareTupleFilter.getColumn();
@@ -226,18 +231,22 @@ public class BinaryFilterConverter {
         return null;
     }
 
-    private BinaryFilter transferOneValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op) throws UnsupportedEncodingException {
+    private BinaryFilter transferOneValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op)
+            throws UnsupportedEncodingException {
         if (filter instanceof CompareTupleFilter) {
             CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
             TblColRef column = compareTupleFilter.getColumn();
             byte[] valueBytes = decodeOneValue(compareTupleFilter);
-            return valueBytes == null ? null : new BinaryCompareFilter(op, Lists.newArrayList(valueBytes), offsetMap.get(column), lengthMap.get(column));
+            return valueBytes == null ? null
+                    : new BinaryCompareFilter(op, Lists.newArrayList(valueBytes), offsetMap.get(column),
+                            lengthMap.get(column));
         }
         logger.warn("{} is not CompareTupleFilter type", filter);
         return null;
     }
 
-    private BinaryFilter transferMultiValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op) throws UnsupportedEncodingException {
+    private BinaryFilter transferMultiValue(TupleFilter filter, TupleFilter.FilterOperatorEnum op)
+            throws UnsupportedEncodingException {
         if (filter instanceof CompareTupleFilter) {
             CompareTupleFilter compareTupleFilter = (CompareTupleFilter) filter;
             TblColRef column = compareTupleFilter.getColumn();

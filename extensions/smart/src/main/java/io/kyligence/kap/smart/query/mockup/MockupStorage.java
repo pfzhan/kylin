@@ -26,14 +26,13 @@ package io.kyligence.kap.smart.query.mockup;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
 
 public class MockupStorage implements IStorage {
     @Override
     public IStorageQuery createQuery(IRealization realization) {
-        if (realization.getType() == RealizationType.CUBE) {
+        if (realization.getType().equals(CubeInstance.REALIZATION_TYPE)) {
             CubeInstance cubeInstance = (CubeInstance) realization;
 
             IStorageQuery ret;

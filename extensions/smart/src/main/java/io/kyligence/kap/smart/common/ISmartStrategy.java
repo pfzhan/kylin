@@ -63,8 +63,6 @@ interface ISmartStrategy {
 
     boolean getAggGroupStrictEnabled();
 
-    long getAggGroupStrictCombinationMax();
-
     int getAggGroupStrictRetryMax();
 
     String getAggGroupStrategy();

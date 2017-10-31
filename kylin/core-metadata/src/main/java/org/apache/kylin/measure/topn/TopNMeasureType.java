@@ -511,4 +511,41 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
         return new Pair<>(encoding, encodingVersion);
     }
 
+    /**
+     *  update return type scale with the estimated key length
+     */
+    public static void fixMeasureReturnType(MeasureDesc measureDesc) {
+        Map<String, String> configuration = measureDesc.getFunction().getConfiguration();
+        ParameterDesc parameter = measureDesc.getFunction().getParameter();
+        parameter = parameter.getNextParameter();
+        int keyLength = 0;
+        while (parameter != null) {
+            String encoding = configuration.get(TopNMeasureType.CONFIG_ENCODING_PREFIX + parameter.getValue());
+            String encodingVersionStr = configuration
+                    .get(TopNMeasureType.CONFIG_ENCODING_VERSION_PREFIX + parameter.getValue());
+            if (StringUtils.isEmpty(encoding) || DictionaryDimEnc.ENCODING_NAME.equals(encoding)) {
+                keyLength += DictionaryDimEnc.MAX_ENCODING_LENGTH; // estimation for dict encoding
+            } else {
+                // non-dict encoding
+                int encodingVersion = 1;
+                if (!StringUtils.isEmpty(encodingVersionStr)) {
+                    try {
+                        encodingVersion = Integer.parseInt(encodingVersionStr);
+                    } catch (NumberFormatException e) {
+                        throw new RuntimeException("invalid encoding version: " + encodingVersionStr);
+                    }
+                }
+                Object[] encodingConf = DimensionEncoding.parseEncodingConf(encoding);
+                DimensionEncoding dimensionEncoding = DimensionEncodingFactory.create((String) encodingConf[0],
+                        (String[]) encodingConf[1], encodingVersion);
+                keyLength += dimensionEncoding.getLengthOfEncoding();
+            }
+
+            parameter = parameter.getNextParameter();
+        }
+
+        DataType returnType = DataType.getType(measureDesc.getFunction().getReturnType());
+        DataType newReturnType = new DataType(returnType.getName(), returnType.getPrecision(), keyLength);
+        measureDesc.getFunction().setReturnType(newReturnType.toString());
+    }
 }

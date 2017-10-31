@@ -27,6 +27,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
@@ -36,7 +37,6 @@ import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +48,9 @@ public class HybridManager implements IRealizationProvider {
 
     private static final Logger logger = LoggerFactory.getLogger(HybridManager.class);
     
-    public static final Serializer<HybridInstance> HYBRID_SERIALIZER = new JsonSerializer<>(HybridInstance.class);
-
+    public static final Serializer<HybridInstance> HYBRID_SERIALIZER = new JsonSerializer<HybridInstance>(
+            HybridInstance.class);
+    
     public static HybridManager getInstance(KylinConfig config) {
         return config.getManager(HybridManager.class);
     }
@@ -111,14 +112,14 @@ public class HybridManager implements IRealizationProvider {
                         crud.reloadQuietly(hybridName);
                 }
 
-                for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.HYBRID,
+                for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(getRealizationType(),
                         hybridName)) {
                     broadcaster.notifyProjectSchemaUpdate(prj.getName());
                 }
             } else if ("cube".equals(entity)) {
                 String cubeName = cacheKey;
                 try (AutoLock l = lock.lockForWrite()) {
-                    for (HybridInstance hybrid : getHybridInstancesByChild(RealizationType.CUBE, cubeName)) {
+                    for (HybridInstance hybrid : getHybridInstancesByChild(CubeInstance.REALIZATION_TYPE, cubeName)) {
                         crud.reloadQuietly(hybrid.getName());
                     }
                 }
@@ -126,17 +127,16 @@ public class HybridManager implements IRealizationProvider {
         }
     }
 
-    public List<HybridInstance> getHybridInstancesByChild(RealizationType type, String realizationName) {
+    public List<HybridInstance> getHybridInstancesByChild(String type, String realizationName) {
         try (AutoLock l = lock.lockForRead()) {
             List<HybridInstance> result = Lists.newArrayList();
             for (HybridInstance hybridInstance : hybridMap.values()) {
                 for (RealizationEntry realizationEntry : hybridInstance.getRealizationEntries()) {
-                    if (realizationEntry.getType() == type
+                    if (realizationEntry.getType().equals(type)
                             && realizationEntry.getRealization().equalsIgnoreCase(realizationName)) {
                         result.add(hybridInstance);
                     }
                 }
-
             }
 
             return result;
@@ -144,8 +144,8 @@ public class HybridManager implements IRealizationProvider {
     }
 
     @Override
-    public RealizationType getRealizationType() {
-        return RealizationType.HYBRID;
+    public String getRealizationType() {
+        return HybridInstance.REALIZATION_TYPE;
     }
 
     @Override
@@ -178,6 +178,6 @@ public class HybridManager implements IRealizationProvider {
     }
 
     private ResourceStore getStore() {
-        return ResourceStore.getStore(this.config);
+        return ResourceStore.getKylinMetaStore(this.config);
     }
 }

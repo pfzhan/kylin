@@ -17,8 +17,6 @@
 */
 package org.apache.kylin.common.persistence;
 
-import java.io.File;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.slf4j.Logger;
@@ -38,15 +36,13 @@ public class IdentifierFileResourceStore extends FileResourceStore {
 
     private static final String IFILE_SCHEME = "ifile";
 
-    private File root;
-
-    public IdentifierFileResourceStore(KylinConfig kylinConfig) throws Exception {
-        super(kylinConfig);
+    public IdentifierFileResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) {
+        super(kylinConfig, storageUrl);
     }
 
-    protected String getPath(KylinConfig kylinConfig) {
-        StorageURL metadataUrl = kylinConfig.getMetadataUrl();
-        Preconditions.checkState(IFILE_SCHEME.equals(metadataUrl.getScheme()));
-        return metadataUrl.getParameter("path");
+    @Override
+    protected String getRootPath(StorageURL storageURL) {
+        Preconditions.checkState(IFILE_SCHEME.equals(storageURL.getScheme()));
+        return storageURL.getParameter("path");
     }
 }

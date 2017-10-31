@@ -24,9 +24,14 @@
 
 package io.kyligence.kap.storage.parquet.steps;
 
-import java.util.List;
-import java.util.Set;
-
+import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
+import io.kyligence.kap.engine.mr.steps.ByteArrayShardCuboidPartitioner;
+import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
+import io.kyligence.kap.engine.mr.steps.KapMergeRawTableJob;
+import io.kyligence.kap.engine.mr.steps.ShardCuboidPartitioner;
+import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
+import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.mapreduce.Job;
@@ -46,25 +51,19 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.cube.raw.RawTableManager;
-import io.kyligence.kap.engine.mr.steps.ByteArrayShardCuboidPartitioner;
-import io.kyligence.kap.engine.mr.steps.KapMergeCuboidJob;
-import io.kyligence.kap.engine.mr.steps.KapMergeRawTableJob;
-import io.kyligence.kap.engine.mr.steps.ShardCuboidPartitioner;
-import io.kyligence.kap.storage.parquet.format.ParquetCubeInputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetCubeOutputFormat;
-import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
+import java.util.List;
+import java.util.Set;
 
 public class ParquetMROutput2 implements IMROutput2 {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(ParquetMROutput2.class);
 
     @Override
     public IMROutput2.IMRBatchCubingOutputSide2 getBatchCubingOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchCubingOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig())
+                    .getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
             @Override
@@ -74,10 +73,10 @@ public class ParquetMROutput2 implements IMROutput2 {
 
             @Override
             public void addStepPhase3_BuildCube(DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
-                jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
-                jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
-                jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
+                //                jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
+                //                jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
+                //                jobFlow.addTask(steps.createCubeTarballStep(jobFlow.getId()));
+                //                jobFlow.addTask(steps.createCubeTarballCleaupStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubeInfoCollectionStep(jobFlow.getId(), seg));
                 if (isRawTableEnable) {
                     jobFlow.addTask(steps.createRawtableShardSizingStep(jobFlow.getId()));
@@ -107,7 +106,7 @@ public class ParquetMROutput2 implements IMROutput2 {
 
         @Override
         public void configureJobInput(Job job, String input) throws Exception {
-            job.setInputFormatClass(ParquetCubeInputFormat.class);
+            job.setInputFormatClass(ParquetTarballFileInputFormat.class);
         }
 
         @Override
@@ -122,7 +121,8 @@ public class ParquetMROutput2 implements IMROutput2 {
             } else if (mapperClass == NDCuboidMapper.class || mapperClass == HiveToBaseCuboidMapper.class) {
                 // layer
                 job.setPartitionerClass(ShardCuboidPartitioner.class);
-                reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), level);
+                reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment,
+                        AbstractHadoopJob.getTotalMapInputMB(job), level);
                 List<List<Long>> layeredCuboids = segment.getCuboidScheduler().getCuboidsByLayer();
                 for (Long cuboidId : layeredCuboids.get(level)) {
                     reducerNum = Math.max(reducerNum, segment.getCuboidShardNum(cuboidId));
@@ -141,7 +141,8 @@ public class ParquetMROutput2 implements IMROutput2 {
     public IMROutput2.IMRBatchMergeOutputSide2 getBatchMergeOutputSide(final CubeSegment seg) {
         return new IMROutput2.IMRBatchMergeOutputSide2() {
             ParquetMRSteps steps = new ParquetMRSteps(seg);
-            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig()).getAccompanyRawTable(seg.getCubeInstance());
+            RawTableInstance raw = RawTableManager.getInstance(seg.getConfig())
+                    .getAccompanyRawTable(seg.getCubeInstance());
             boolean isRawTableEnable = (null != raw);
 
             @Override
@@ -150,8 +151,10 @@ public class ParquetMROutput2 implements IMROutput2 {
             }
 
             @Override
-            public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments, DefaultChainedExecutable jobFlow) {
-                jobFlow.addTask(steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
+            public void addStepPhase2_BuildCube(CubeSegment seg, List<CubeSegment> mergingSegments,
+                                                DefaultChainedExecutable jobFlow) {
+                jobFlow.addTask(
+                        steps.createCubeMergeStep(seg, mergingSegments, jobFlow.getId(), KapMergeCuboidJob.class));
                 jobFlow.addTask(steps.createCubeMergeCleanupStep(jobFlow.getId(), seg));
                 jobFlow.addTask(steps.createCubePageIndexStep(jobFlow.getId()));
                 jobFlow.addTask(steps.createCubePageIndexCleanupStep(jobFlow.getId()));
@@ -182,8 +185,7 @@ public class ParquetMROutput2 implements IMROutput2 {
         };
     }
 
-
-    public static class ParquetMRMergeOutputFormat implements IMRMergeOutputFormat{
+    public static class ParquetMRMergeOutputFormat implements IMRMergeOutputFormat {
 
         @Override
         public void configureJobInput(Job job, String input) throws Exception {
@@ -193,7 +195,8 @@ public class ParquetMROutput2 implements IMROutput2 {
 
         @Override
         public void configureJobOutput(Job job, String output, CubeSegment segment) throws Exception {
-            int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment, AbstractHadoopJob.getTotalMapInputMB(job), -1);
+            int reducerNum = ReducerNumSizing.getLayeredCubingReduceTaskNum(segment,
+                    AbstractHadoopJob.getTotalMapInputMB(job), -1);
             job.setPartitionerClass(ShardCuboidPartitioner.class);
             Set<Long> allCuboids = segment.getCuboidScheduler().getAllCuboidIds();
             for (Long cuboidId : allCuboids) {

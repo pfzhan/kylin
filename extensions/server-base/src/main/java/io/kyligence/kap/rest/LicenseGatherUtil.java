@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.rest;
 
 import java.io.BufferedReader;
@@ -83,7 +84,7 @@ public class LicenseGatherUtil {
 
     private static void gatherMetastore(UUID prefix) {
         try {
-            ResourceStore store = ResourceStore.getStore(KylinConfig.getInstanceFromEnv());
+            ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
             String metaStoreId = store.getMetaStoreUUID();
             setProperty("kap.metastore", prefix, metaStoreId);
         } catch (Exception e) {

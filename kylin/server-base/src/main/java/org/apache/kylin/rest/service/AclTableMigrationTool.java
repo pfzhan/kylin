@@ -75,7 +75,7 @@ public class AclTableMigrationTool {
                         "Please make sure that you have config kylin.server.mode=all before migrating data");
             }
             logger.info("Start to migrate acl table data");
-            ResourceStore store = ResourceStore.getStore(kylinConfig);
+            ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
             String userTableName = kylinConfig.getMetadataUrlPrefix() + AclConstant.USER_TABLE_NAME;
             //System.out.println("user table name : " + userTableName);
             String aclTableName = kylinConfig.getMetadataUrlPrefix() + AclConstant.ACL_TABLE_NAME;
@@ -91,7 +91,7 @@ public class AclTableMigrationTool {
     }
 
     public boolean checkIfNeedMigrate(KylinConfig kylinConfig) throws IOException {
-        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
         if (!(store instanceof HBaseResourceStore)) {
             logger.info("HBase enviroment not found. Not necessary to migrate data");
             return false;

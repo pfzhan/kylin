@@ -20,10 +20,12 @@ package org.apache.kylin.metadata.model;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.TimeZone;
 
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
@@ -462,5 +464,20 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 return false;
         }
         return true;
+    }
+
+    public static String makeSegmentName(TSRange tsRange, SegmentRange segRange) {
+        if (tsRange == null && segRange == null) {
+            return "FULL_BUILD";
+        }
+
+        if (segRange != null) {
+            return segRange.start.v + "_" + segRange.end.v;
+        }
+
+        // using time
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        return dateFormat.format(tsRange.start.v) + "_" + dateFormat.format(tsRange.end.v);
     }
 }

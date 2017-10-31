@@ -29,13 +29,16 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -43,12 +46,16 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
 public class MetaStoreUtil {
-    public static File prepareLocalMetaStore(String projName, CubeDesc cubeDesc) throws IOException, URISyntaxException {
+    private static final Logger logger = LoggerFactory.getLogger(MetaStoreUtil.class);
+
+    public static File prepareLocalMetaStore(String projName, CubeDesc cubeDesc)
+            throws IOException, URISyntaxException {
         CubeInstance cubeInstance = CubeInstance.create(cubeDesc.getName(), cubeDesc);
         cubeInstance.setStatus(RealizationStatusEnum.READY);
 
@@ -58,7 +65,7 @@ public class MetaStoreUtil {
         projectInstance.init();
 
         projectInstance.addModel(modelDesc.getName());
-        projectInstance.addRealizationEntry(RealizationType.CUBE, cubeInstance.getName());
+        projectInstance.addRealizationEntry(cubeInstance.getType(), cubeInstance.getName());
 
         Set<String> dumpResources = Sets.newHashSet();
         dumpResources.add(modelDesc.getResourcePath());
@@ -67,7 +74,7 @@ public class MetaStoreUtil {
             projectInstance.addTable(tableRef.getTableIdentity());
         }
 
-        String metaPath = ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
+        String metaPath = dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
         File metaDir = new File(new URI(metaPath));
         FileUtils.writeStringToFile(new File(metaDir, cubeInstance.getResourcePath()),
                 JsonUtil.writeValueAsIndentString(cubeInstance), Charset.defaultCharset());
@@ -79,7 +86,8 @@ public class MetaStoreUtil {
         return metaDir;
     }
 
-    public static File prepareLocalMetaStore(String projName, List<TableDesc> tables) throws IOException, URISyntaxException {
+    public static File prepareLocalMetaStore(String projName, List<TableDesc> tables)
+            throws IOException, URISyntaxException {
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName(projName);
         projectInstance.init();
@@ -90,11 +98,44 @@ public class MetaStoreUtil {
             projectInstance.addTable(tableDesc.getIdentity());
         }
 
-        String metaPath = ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
+        String metaPath = dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
         File metaDir = new File(new URI(metaPath));
         FileUtils.writeStringToFile(new File(metaDir, projectInstance.getResourcePath()),
                 JsonUtil.writeValueAsIndentString(projectInstance), Charset.defaultCharset());
 
         return metaDir;
+    }
+    
+    public static String dumpResources(KylinConfig kylinConfig, Collection<String> dumpList) throws IOException {
+        File tmp = File.createTempFile("kylin_job_meta", "");
+        FileUtils.forceDelete(tmp); // we need a directory, so delete the file first
+
+        File metaDir = new File(tmp, "meta");
+        metaDir.mkdirs();
+
+        // write kylin.properties
+        File kylinPropsFile = new File(metaDir, "kylin.properties");
+        kylinConfig.exportToFile(kylinPropsFile);
+
+        ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
+        KylinConfig localConfig = KylinConfig.createInstanceFromUri(metaDir.getAbsolutePath());
+        ResourceStore to = ResourceStore.getKylinMetaStore(localConfig);
+        for (String path : dumpList) {
+            RawResource res = null;
+            res = from.getResource(path);
+            if (res == null)
+                throw new IllegalStateException("No resource found at -- " + path);
+            to.putResource(path, res.inputStream, res.timestamp);
+            res.inputStream.close();
+        }
+
+        String metaDirURI = OptionsHelper.convertToFileURL(metaDir.getAbsolutePath());
+        if (metaDirURI.startsWith("/")) // note Path on windows is like "d:/../..."
+            metaDirURI = "file://" + metaDirURI;
+        else
+            metaDirURI = "file:///" + metaDirURI;
+        logger.info("meta dir is: " + metaDirURI);
+        
+        return metaDirURI;
     }
 }

@@ -31,6 +31,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.cube.raw.RawTableManager;
 
+@SuppressWarnings("serial")
 public class DataModelFlatTableDesc extends CubeJoinedFlatTableDesc {
 
     public DataModelFlatTableDesc(CubeSegment cubeSegment) {

@@ -23,25 +23,21 @@ import java.io.ByteArrayOutputStream;
 import java.io.Closeable;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,50 +75,94 @@ abstract public class ResourceStore {
 
     public static final String METASTORE_UUID_TAG = "/UUID";
 
-    private static final ConcurrentMap<KylinConfig, ResourceStore> CACHE = new ConcurrentHashMap<>();
+    private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
+    
+    public interface IKylinMetaStoreFactory {
+        ResourceStore createMetaStore(KylinConfig config);
+    }
 
-    private static ResourceStore createResourceStore(KylinConfig kylinConfig) {
-        StorageURL metadataUrl = kylinConfig.getMetadataUrl();
-        logger.info("Using metadata url " + metadataUrl + " for resource store");
-        String clsName = kylinConfig.getResourceStoreImpls().get(metadataUrl.getScheme());
+    /**
+     * Get a resource store for Kylin's metadata.
+     */
+    public static ResourceStore getKylinMetaStore(KylinConfig config) {
+        ResourceStore store = META_CACHE.get(config);
+        if (store != null)
+            return store;
+        
+        synchronized (ResourceStore.class) {
+            store = META_CACHE.get(config);
+            if (store == null) {
+                store = createKylinMetaStore(config);
+                META_CACHE.put(config, store);
+                
+                if (META_CACHE.size() > 100) {
+                    logger.warn("Cached " + META_CACHE.size() + " kylin meta stores, memory leak?",
+                            new RuntimeException());
+                }
+            }
+        }
+        return store;
+    }
+    
+    public static void clearCache() {
+        META_CACHE.clear();
+    }
+    
+    private static ResourceStore createKylinMetaStore(KylinConfig config) {
+        ResourceStore store;
+        
+        String factoryClz = config.getMetaStoreFactory();
+        if (factoryClz == null || factoryClz.isEmpty()) {
+            store = createResourceStore(config, config.getMetadataUrl());
+        } else {
+            IKylinMetaStoreFactory factory = (IKylinMetaStoreFactory) ClassUtil.newInstance(factoryClz);
+            store = factory.createMetaStore(config);
+        }
+        
         try {
-            Class<? extends ResourceStore> cls = ClassUtil.forName(clsName, ResourceStore.class);
-            ResourceStore store = cls.getConstructor(KylinConfig.class).newInstance(kylinConfig);
             if (!store.exists(METASTORE_UUID_TAG)) {
                 store.putResource(METASTORE_UUID_TAG, new StringEntity(store.createMetaStoreUUID()), 0, StringEntity.serializer);
             }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to init metadata store", e);
+        }
+        
+        return store;
+    }
+    
+    /**
+     * Create a resource store for general purpose, according specified by given StorageURL.
+     */
+    public static ResourceStore createResourceStore(KylinConfig config, StorageURL url) {
+        logger.info("Creating resource store by " + url);
+        String clsName = config.getResourceStoreImpls().get(url.getScheme());
+        try {
+            Class<? extends ResourceStore> cls = ClassUtil.forName(clsName, ResourceStore.class);
+            ResourceStore store = cls.getConstructor(KylinConfig.class, StorageURL.class).newInstance(config, url);
             return store;
         } catch (Throwable e) {
-            throw new IllegalArgumentException("Failed to find metadata store by url: " + metadataUrl, e);
+            throw new IllegalArgumentException("Failed to create metadata store by url: " + url, e);
         }
-    }
-
-    public static ResourceStore getStore(KylinConfig kylinConfig) {
-        if (CACHE.containsKey(kylinConfig)) {
-            return CACHE.get(kylinConfig);
-        }
-        synchronized (ResourceStore.class) {
-            if (CACHE.containsKey(kylinConfig)) {
-                return CACHE.get(kylinConfig);
-            } else {
-                CACHE.putIfAbsent(kylinConfig, createResourceStore(kylinConfig));
-            }
-        }
-        return CACHE.get(kylinConfig);
     }
 
     // ============================================================================
 
     final protected KylinConfig kylinConfig;
+    final protected StorageURL storageUrl;
 
-    protected ResourceStore(KylinConfig kylinConfig) {
+    protected ResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) {
         this.kylinConfig = kylinConfig;
+        this.storageUrl = storageUrl;
     }
     
     final public KylinConfig getConfig() {
         return kylinConfig;
     }
 
+    final public StorageURL getStorageUrl() {
+        return storageUrl;
+    }
+    
     /**
      * List resources and sub-folders under a given folder, return null if given path is not a folder
      */
@@ -454,37 +494,5 @@ abstract public class ResourceStore {
             }
         });
         return collector;
-    }
-
-    public static String dumpResources(KylinConfig kylinConfig, Collection<String> dumpList) throws IOException {
-        File tmp = File.createTempFile("kylin_job_meta", "");
-        FileUtils.forceDelete(tmp); // we need a directory, so delete the file first
-
-        File metaDir = new File(tmp, "meta");
-        metaDir.mkdirs();
-
-        // write kylin.properties
-        File kylinPropsFile = new File(metaDir, "kylin.properties");
-        kylinConfig.exportToFile(kylinPropsFile);
-
-        ResourceStore from = ResourceStore.getStore(kylinConfig);
-        KylinConfig localConfig = KylinConfig.createInstanceFromUri(metaDir.getAbsolutePath());
-        ResourceStore to = ResourceStore.getStore(localConfig);
-        for (String path : dumpList) {
-            RawResource res = from.getResource(path);
-            if (res == null)
-                throw new IllegalStateException("No resource found at -- " + path);
-            to.putResource(path, res.inputStream, res.timestamp);
-            res.inputStream.close();
-        }
-
-        String metaDirURI = OptionsHelper.convertToFileURL(metaDir.getAbsolutePath());
-        if (metaDirURI.startsWith("/")) // note Path on windows is like "d:/../..."
-            metaDirURI = "file://" + metaDirURI;
-        else
-            metaDirURI = "file:///" + metaDirURI;
-        logger.info("meta dir is: " + metaDirURI);
-
-        return metaDirURI;
     }
 }

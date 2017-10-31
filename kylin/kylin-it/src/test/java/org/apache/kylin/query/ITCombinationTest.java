@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
-import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
@@ -43,9 +43,9 @@ public class ITCombinationTest extends ITKylinQueryTest {
 
     @BeforeClass
     public static void setUp() {
-        Map<RealizationType, Integer> priorities = Maps.newHashMap();
-        priorities.put(RealizationType.HYBRID, 0);
-        priorities.put(RealizationType.CUBE, 0);
+        Map<String, Integer> priorities = Maps.newHashMap();
+        priorities.put("HYBRID", 0);
+        priorities.put(CubeInstance.REALIZATION_TYPE, 0);
         Candidate.setPriorities(priorities);
 
         logger.info("setUp in ITCombinationTest");

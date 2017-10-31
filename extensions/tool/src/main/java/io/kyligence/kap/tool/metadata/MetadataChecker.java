@@ -81,7 +81,7 @@ public class MetadataChecker implements IKeep {
 
     public MetadataChecker() {
         kylinConfig = KylinConfig.getInstanceFromEnv();
-        store = ResourceStore.getStore(kylinConfig);
+        store = ResourceStore.getKylinMetaStore(kylinConfig);
     }
 
     private List<String> getMetaFromResourceStore(String root) {
@@ -354,7 +354,7 @@ public class MetadataChecker implements IKeep {
     }
 
     public void doOpts(String opt) {
-        ResourceStore store = ResourceStore.getStore(kylinConfig);
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
         for (Map.Entry<String, Object> entry : checkResult.entrySet()) {
             List<String> toCleanEntity = (List<String>) entry.getValue();
             System.out.println("--------------- " + entry.getKey() + " ---------------");

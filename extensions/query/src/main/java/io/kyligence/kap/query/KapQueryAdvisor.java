@@ -29,8 +29,8 @@ import java.util.List;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,9 +55,8 @@ public class KapQueryAdvisor implements OLAPContext.IAccessController {
         for (int i = 0; i < OLAPContext.getThreadLocalContexts().size(); i++) {
             OLAPContext ctx = OLAPContext.getThreadLocalContextById(i);
 
-            if (kylinContexts.contains(ctx)) {
+            if (kylinContexts.contains(ctx))
                 continue;
-            }
 
             nJoins += ctx.allOlapJoins.size();
         }

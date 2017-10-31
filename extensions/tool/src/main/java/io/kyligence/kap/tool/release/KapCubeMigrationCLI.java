@@ -225,8 +225,8 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         logger.info("Cube related metadata is dump to: {}", metaDir.getAbsolutePath());
         srcConfig = KylinConfig.getInstanceFromEnv();
         dstConfig = KylinConfig.createInstanceFromUri(metaDir.getAbsolutePath());
-        srcStore = ResourceStore.getStore(srcConfig);
-        dstStore = ResourceStore.getStore(dstConfig);
+        srcStore = ResourceStore.getKylinMetaStore(srcConfig);
+        dstStore = ResourceStore.getKylinMetaStore(dstConfig);
         hdfsFS = HadoopUtil.getWorkingFileSystem();
         operations = new ArrayList<>();
 
@@ -299,8 +299,8 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         dstProject = project;
         srcConfig = KylinConfig.createInstanceFromUri(localMetaDir);
         dstConfig = KylinConfig.getInstanceFromEnv();
-        srcStore = ResourceStore.getStore(srcConfig);
-        dstStore = ResourceStore.getStore(dstConfig);
+        srcStore = ResourceStore.getKylinMetaStore(srcConfig);
+        dstStore = ResourceStore.getKylinMetaStore(dstConfig);
         operations = new ArrayList<>();
 
         addCubeToProject(cubeName);

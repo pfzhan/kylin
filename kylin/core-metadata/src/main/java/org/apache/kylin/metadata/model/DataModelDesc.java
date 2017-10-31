@@ -437,6 +437,11 @@ public class DataModelDesc extends RootPersistentEntity {
     }
 
     private void initDimensionsAndMetrics() {
+        if (dimensions == null)
+            dimensions = new ArrayList<>(0);
+        if (metrics == null)
+            metrics = new String[0];
+
         for (ModelDimensionDesc dim : dimensions) {
             dim.init(this);
         }
@@ -450,7 +455,7 @@ public class DataModelDesc extends RootPersistentEntity {
             this.partitionDesc.init(this);
     }
 
-    //Check if the filter condition is illegal.  
+    //Check if the filter condition is illegal.
     private void initFilterCondition() {
         if (null == this.filterCondition) {
             return;
@@ -458,7 +463,7 @@ public class DataModelDesc extends RootPersistentEntity {
         int quotationType = 0;
         int len = this.filterCondition.length();
         for (int i = 0; i < len; i++) {
-            //If a ';' which is not within a string is found, throw exception. 
+            //If a ';' which is not within a string is found, throw exception.
             if (';' == this.filterCondition.charAt(i) && 0 == quotationType) {
                 throw new IllegalStateException(
                         "Filter Condition is Illegal. Please check it and make sure it's an appropriate expression for WHERE clause");
@@ -773,6 +778,7 @@ public class DataModelDesc extends RootPersistentEntity {
         copy.metrics = orig.metrics;
         copy.filterCondition = orig.filterCondition;
         copy.capacity = orig.capacity;
+        copy.lastModified = orig.lastModified;
         if (orig.getPartitionDesc() != null) {
             copy.partitionDesc = PartitionDesc.getCopyOf(orig.getPartitionDesc());
         }

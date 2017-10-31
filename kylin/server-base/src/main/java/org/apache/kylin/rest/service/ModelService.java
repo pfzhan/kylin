@@ -81,7 +81,7 @@ public class ModelService extends BasicService {
         if (StringUtils.isEmpty(modelName) || !StringUtils.containsOnly(modelName, VALID_MODELNAME)) {
             return false;
         }
-        for (DataModelDesc model : getDataModelManager().getModels()) {
+        for (DataModelDesc model : getDataModelManager().listDataModels()) {
             if (modelName.equalsIgnoreCase(model.getName())) {
                 return false;
             }
@@ -96,7 +96,7 @@ public class ModelService extends BasicService {
 
         if (null == project) {
             aclEvaluate.checkIsGlobalAdmin();
-            models = getDataModelManager().getModels();
+            models = getDataModelManager().listDataModels();
         } else {
             aclEvaluate.hasProjectReadPermission(project);
             models = getDataModelManager().getModels(projectName);

@@ -37,7 +37,7 @@ import org.apache.kylin.cube.CubeManager;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 
-import io.kyligence.kap.common.util.LocalTempMetadata;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 
 public class KAPDeployUtil {
 
@@ -49,7 +49,7 @@ public class KAPDeployUtil {
     public static void deployMetadata() throws IOException {
         // install metadata to hbase
         ResourceTool.reset(config());
-        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadataWithDebugInfo();
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(true);
         ResourceTool.copy(KylinConfig.createInstanceFromUri(tempMetadataDir), config());
         FileUtils.deleteDirectory(new File(tempMetadataDir));
 

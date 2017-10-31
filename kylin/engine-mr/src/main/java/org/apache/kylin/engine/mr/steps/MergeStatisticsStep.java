@@ -71,7 +71,7 @@ public class MergeStatisticsStep extends AbstractExecutable {
         KylinConfig kylinConf = cube.getConfig();
 
         Configuration conf = HadoopUtil.getCurrentConfiguration();
-        ResourceStore rs = ResourceStore.getStore(kylinConf);
+        ResourceStore rs = ResourceStore.getKylinMetaStore(kylinConf);
         try {
 
             int averageSamplingPercentage = 0;

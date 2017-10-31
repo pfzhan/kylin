@@ -63,6 +63,10 @@ public class KapConfig {
         this.config = config;
     }
 
+    public KylinConfig getKylinConfig() {
+        return config;
+    }
+
     public boolean isDevEnv() {
         return config.isDevEnv();
     }
@@ -479,7 +483,7 @@ public class KapConfig {
     public String sparderFiles() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
-                "spark-executor-log4j.properties");
+                    "spark-executor-log4j.properties");
             String path1 = "";
             if (storageFile != null) {
                 path1 = storageFile.getCanonicalPath();
@@ -503,5 +507,16 @@ public class KapConfig {
 
     public Boolean isAsyncResultRepartitionEnabled() {
         return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-asyncresult-repartition-enabled", "false"));
+    }
+
+    /**
+     * Newten
+     */
+    public String getCuboidSpanningTree() {
+        return config.getOptional("kap.cube.cuboid-spanning-tree", "io.kyligence.kap.cube.cuboid.NForestSpanningTree");
+    }
+
+    public float getSampleDatasetSizeRatio() {
+        return Float.parseFloat(config.getOptional("kap.engine.spark-sample-dataset-ratio", "0.1f"));
     }
 }

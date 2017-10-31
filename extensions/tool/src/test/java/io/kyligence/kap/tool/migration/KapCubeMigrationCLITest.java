@@ -29,7 +29,6 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
-import org.apache.kylin.metadata.realization.RealizationType;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -92,7 +91,7 @@ public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
         boolean bRet = projectInstance.containsModel("ssb");
         Assert.assertTrue(bRet);
         Assert.assertEquals(1, projectInstance.getModels().size());
-        bRet = projectInstance.containsRealization(RealizationType.CUBE, toMigrateCube);
+        bRet = projectInstance.containsRealization(cube.getType(), toMigrateCube);
         Assert.assertTrue(bRet);
     }
 }

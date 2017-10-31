@@ -20,7 +20,7 @@ package org.apache.kylin.metadata.realization;
 
 public interface IRealizationProvider {
 
-    RealizationType getRealizationType();
+    String getRealizationType();
 
     IRealization getRealization(String name);
 

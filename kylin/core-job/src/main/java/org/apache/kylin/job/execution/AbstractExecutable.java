@@ -49,6 +49,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected static final String START_TIME = "startTime";
     protected static final String END_TIME = "endTime";
     protected static final String INTERRUPT_TIME = "interruptTime";
+    protected static final String PARENT_ID = "parentId";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
     protected int retry = 0;
@@ -227,6 +228,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getOutput().getLastModified();
     }
 
+    public final void setParent(AbstractExecutable parent) {
+        setParentId(parent.getId());
+    }
+    
+    public final void setParentId(String parentId) {
+        setParam(PARENT_ID, parentId);
+    }
+
     public final void setSubmitter(String submitter) {
         setParam(SUBMITTER, submitter);
     }
@@ -303,6 +312,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
+    public final String getParentId() {
+        return getParam(PARENT_ID);
+    }
+    
+    public final AbstractExecutable getParent() {
+        return getManager().getJob(getParam(PARENT_ID));
+    }
+    
     public final String getSubmitter() {
         return getParam(SUBMITTER);
     }

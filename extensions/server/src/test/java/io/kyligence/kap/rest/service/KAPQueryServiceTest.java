@@ -69,6 +69,7 @@ import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 
@@ -94,7 +95,8 @@ public class KAPQueryServiceTest extends ServiceTestBase {
 
     @Before
     public void setup() throws Exception {
-        this.createTestMetadata("src/test/resources/queryservice/meta");
+        String tempMetadataDir = TempMetadataBuilder.prepareLocalTempMetadata(false, "src/test/resources/queryservice/meta");
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         Broadcaster.getInstance(config).notifyClearAll();

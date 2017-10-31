@@ -52,7 +52,6 @@ public class ITHBaseResourceStoreTest extends HBaseMetadataTestCase {
 
     @Test
     public void testHBaseStore() throws Exception {
-        String storeName = "org.apache.kylin.storage.hbase.HBaseResourceStore";
         ResourceStoreTest.testAStore(ResourceStoreTest.mockUrl("hbase", kylinConfig), kylinConfig);
     }
 
@@ -62,7 +61,8 @@ public class ITHBaseResourceStoreTest extends HBaseMetadataTestCase {
         String largeContent = "THIS_IS_A_LARGE_CELL";
         StringEntity content = new StringEntity(largeContent);
         String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig, ResourceStoreTest.mockUrl("hbase", kylinConfig));
-        HBaseResourceStore store = new HBaseResourceStore(KylinConfig.getInstanceFromEnv());
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        HBaseResourceStore store = new HBaseResourceStore(config, config.getMetadataUrl());
         Configuration hconf = store.getConnection().getConfiguration();
         int origSize = Integer.parseInt(hconf.get("hbase.client.keyvalue.maxsize", "10485760"));
 
