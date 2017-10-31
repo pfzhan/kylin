@@ -7,19 +7,20 @@
       <el-form-item :label="$t('description')" prop="description">
         <el-input type="textarea" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off" :disabled="isEdit"></el-input>
       </el-form-item>
-      <el-form-item :label="$t('projectConfig')" prop="configuration">
-        <el-row :gutter="20" class="ksd-mb-6"  v-for="(property,index) in convertedProperties " :key="index">
+      <div class="line-primary"></div>
+      <el-form-item :label="$t('projectConfig')" prop="configuration" class="project-config">
+        <el-row :gutter="20"  v-for="(property,index) in convertedProperties " :key="index">
           <el-col :span="10">
             <el-form-item prop="key">
-              <el-input v-model="property.key" placeholder="key"></el-input>
+              <el-input v-model="property.key" placeholder="Key"></el-input>
             </el-form-item>
           </el-col>
           <el-col :span="10">
             <el-form-item prop="value">
-              <el-input v-model="property.value" placeholder="value"></el-input>
+              <el-input v-model="property.value" placeholder="Value"></el-input>
             </el-form-item>
           </el-col>
-          <el-col :span="4"><el-button type="danger"  @click.prevent="removeProperty(index)">{{$t('delete')}}</el-button></el-col>
+          <el-col :span="3"><el-button size="small" type="danger" icon="minus" @click.prevent="removeProperty(index)"></el-button></el-col>
       </el-row>
     </el-form-item>
     <el-form-item>
@@ -117,19 +118,83 @@ export default {
 <style lang="less">
   @import url(../../less/config.less);
   .project_edit {
+    .line-primary {
+      margin: 0px -20px 15px -20px;
+    }
+    .el-row {
+      .el-col {
+        height: 32px;
+        margin-bottom: 10px;
+        .el-input {
+          height: 32px;
+          line-height: 32px;
+          .el-input__inner {
+            height: 32px;
+            line-height: 32px;
+          }
+        }
+        .el-button--danger {
+          height: 32px;
+          line-height: 32px;
+          padding: 0px 9px 0px 9px;
+          .el-icon-minus {
+            line-height: 32px;
+          }
+        }
+      }
+    }
+    .el-form-item {
+      margin-bottom: 15px;
+      .el-form-item__label {
+        font-size:12px;
+        color:#ffffff;
+        letter-spacing:0;
+        line-height:14px;
+        text-align:left;
+      }
+      .el-button--default {
+        height: 32px;
+        padding: 8px 15px 8px 15px;
+        font-size:12px;
+        color:#ffffff;
+      }
+      .el-form-item__content::after {
+        display: none;
+      }
+      .el-input__inner {
+        font-size: 12px;
+        color:#cdcfdd;
+      }
+    }
     .project-config {
-      height: 30px;
-      line-height: 30px;
+      margin-bottom: 0px;
     }
     .el-input.is-disabled {
       .el-input__inner {
-        border-color: #7881aa;
+        background:#454b62;
+        border:1px solid #51576f;
+        border-radius:4px;
+        width:348px;
+        height:32px;
+        font-size: 12px;
+        color:#cdcfdd;
+        letter-spacing:0;
       }
     }
     .el-textarea.is-disabled {
+      background:#454b62;
+      border:1px solid #51576f;
+      border-radius:4px;
+      width:348px;
+      color:#cdcfdd;
+      letter-spacing:0;
       .el-textarea__inner {
-        border-color: #7881aa!important;
-      } 
+        border: none;
+      }
+    }
+    .el-textarea__inner {
+      font-size: 12px;
+      color:#cdcfdd;
     }
   }
   .project_edit .el-form-item .el-icon-close {

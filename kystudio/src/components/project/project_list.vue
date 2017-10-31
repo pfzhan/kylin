@@ -69,7 +69,7 @@
     </el-table-column>
     </el-table>
     <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
-    <el-dialog :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
+    <el-dialog  class="add-project" :title="$t('project')" v-model="FormVisible" @close="resetProjectForm">
       <project_edit ref="projectForm" :project="project"  :visible="FormVisible" v-on:validSuccess="validSuccess" v-on:validFailed='validFailed' :isEdit="isEdit"></project_edit>
       <div slot="footer" class="dialog-footer">
         <el-button @click="FormVisible = false">{{$t('cancel')}}</el-button>
@@ -274,6 +274,30 @@ export default {
     }
     .el-tabs__item{
       transition: none;
+    }
+    .add-project {
+      .el-dialog {
+        width: 390px;
+        .el-dialog__header {
+          font-family:Montserrat-Regular;
+          font-size:14px;
+          color:#ffffff;
+          letter-spacing:0;
+          line-height:16px;
+          text-align:left;
+          span {
+            line-height: 29px;
+          }
+          .el-dialog__headerbtn{
+            line-height: 29px;
+            margin-top: 0px;
+          }
+        }
+        .el-dialog__body {
+          padding: 15px 20px 0px 20px;
+          min-height: 90px;
+        }
+      }
     }
   }
 </style>

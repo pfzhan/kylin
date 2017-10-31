@@ -59,7 +59,7 @@
           <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
           <!--</transition>-->
         </el-col>
-        <el-dialog :title="$t('kylinLang.common.project')" v-model="FormVisible" @close="resetProjectForm">
+        <el-dialog :title="$t('kylinLang.common.project')" v-model="FormVisible" @close="resetProjectForm" class="add-project">
           <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible" :isEdit="isEdit">
           </project_edit>
           <span slot="footer" class="dialog-footer">
@@ -487,7 +487,30 @@
 <style lang="less">
   @import '../../less/config.less';
   .fulllayout{
-
+    .add-project {
+      .el-dialog {
+        width: 390px;
+        .el-dialog__header {
+          font-family:Montserrat-Regular;
+          font-size:14px;
+          color:#ffffff;
+          letter-spacing:0;
+          line-height:16px;
+          text-align:left;
+          span {
+            line-height: 29px;
+          }
+          .el-dialog__headerbtn{
+            line-height: 29px;
+            margin-top: 0px;
+          }
+        }
+        .el-dialog__body {
+          padding: 15px 20px 0px 20px;
+          min-height: 90px;
+        }
+      }
+    }
     .linsencebox{
       i{
         font-size: 18px;
@@ -497,33 +520,33 @@
         font-size: 28px;
         color:@base-color;
       }
-    .el-dialog{
-      top:initial!important;
-      bottom:0;
-      right:0;
-      left:initial;
-      height: 240px;
-      width: 400px;
-      margin-bottom: 0;
-      margin-right: 0;
-      transform:initial;
-      .el-dialog__title{
-        font-size: 12px;
-      }
-      .el-dialog__body{
-        font-size: 12px;
-      }
-      .el-dialog__header .el-dialog__headerbtn{
-        margin-top: 0;
-      }
-      .el-dialog__footer{
-          bottom: 0;
-          position: absolute;
-          right: 0;
-          width: 100%;
+      .el-dialog{
+        top:initial!important;
+        bottom:0;
+        right:0;
+        left:initial;
+        height: 240px;
+        width: 400px;
+        margin-bottom: 0;
+        margin-right: 0;
+        transform:initial;
+        .el-dialog__title{
+          font-size: 12px;
+        }
+        .el-dialog__body{
+          font-size: 12px;
+        }
+        .el-dialog__header .el-dialog__headerbtn{
+          margin-top: 0;
+        }
+        .el-dialog__footer{
+            bottom: 0;
+            position: absolute;
+            right: 0;
+            width: 100%;
+        }
       }
     }
-  }
   }
    .brief_menu {
       .logo_text {
