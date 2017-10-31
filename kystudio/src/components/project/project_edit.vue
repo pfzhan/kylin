@@ -120,6 +120,8 @@ export default {
   .project_edit {
     .line-primary {
       margin: 0px 0px 15px 0px;
+      background: #4A5070;
+      height:2px;
     }
     .el-row {
       .el-col {
