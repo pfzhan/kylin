@@ -687,7 +687,7 @@
     	margin-left:2px;
       }
     }
-    .el-button {
+    >.el-button {
       padding: 8px 12px;
       margin-top: 18px;
       margin-left: 8px;
@@ -695,7 +695,7 @@
       color: @fff;
       border: none;
     }
-    .el-input{
+    >.el-input{
       margin-right: 30px;
       .el-input__icon{
         margin-right: 32px;

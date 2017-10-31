@@ -7,7 +7,7 @@
         <a href="https://kybot.io/#/home?src=kap250" target="_blank" class="blue">KyBot</a> {{$t('protocol')}}
       </p>
 	    <el-checkbox v-model="agreeKyBot" @click="agreeKyBot = !agreeKyBot"></el-checkbox>
-      <el-button type="text" style="font-size: 12px; margin-left: -8px;" @click="openAgreement">{{$t('hasAgree')}}</el-button>
+      <el-button type="text" style="font-size: 12px;" @click="openAgreement">{{$t('hasAgree')}}</el-button>
 	  </p>
 	  <el-button id="start-kybot" @click="startService" :loading="startLoading" type="primary" :disabled="!agreeKyBot" class="btn-agree">{{$t('agreeAndOpen')}}</el-button>
 	</div>

@@ -8,7 +8,7 @@
         <el-input v-model="kyBotAccount.password" type="password" :placeholder="$t('kylinLang.common.password')"></el-input>
       </el-form-item>
       <el-form-item>
-        <el-button @click="loginKyBot" :loading="loginLoading" class="btn-loginKybot">{{$t('login')}}</el-button>
+        <el-button @click="loginKyBot" :loading="loginLoading" type="primary" class="btn-loginKybot">{{$t('login')}}</el-button>
       </el-form-item>
     </el-form>
     <p class="no-account"><span style="color: rgba(255,255,255,0.6);">{{$t('noAccount')}}?</span> <a @click="signUp" target="_blank">{{$t('singUp')}}</a></p>
