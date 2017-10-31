@@ -115,7 +115,7 @@ export default {
   },
   locales: {
     'en': {version: 'Version: ', validPeriod: 'Valid Period: ', serviceEnd: 'Service End Time:', enterLicense: 'Select License File Or Enter Your License', upload: 'Upload', license: 'License', statement: 'Service Statement', licenseStatement: 'License Statement: ', sendFile: 'You can apply EVALUATION license from <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>. To request ENTERPRISE license, please contact Kyligence sales support with the License Request file.', noAccount: 'No account is configured in Kylin properties', generateLicense: 'Generate License Request File', updateLicense: 'Update License', logOutConfirm: 'Comfirm quit?', login: 'Login', quit: 'Quit'},
-    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证', logOutConfirm: '确认要退出吗？', login: '登陆', quit: '退出'}
+    'zh-cn': {version: '版本: ', validPeriod: '使用期限: ', serviceEnd: '服务截止日期:', enterLicense: '请选择许可证文件或手动输入许可证', upload: '上传', license: '许可证', statement: '服务申明', licenseStatement: '许可声明: ', sendFile: '申请试用许可证，请访问 <a target="_blank" href="https://account.kyligence.io">Kyligence account</a>。申请企业版许可证，请将许可申请文件发送给销售支持人员。', noAccount: '未在Kylin properties中配置KyAccount账号', generateLicense: '生成许可申请文件', updateLicense: '更新许可证', logOutConfirm: '确认要退出吗？', login: '登录', quit: '退出'}
   }
 }
 </script>
