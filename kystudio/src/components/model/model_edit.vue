@@ -175,7 +175,7 @@
               </div>
               </el-form-item>
               <el-form-item :label="$t('kylinLang.dataSource.returnType')" prop="returnType">
-                <el-select v-model="computedColumn.returnType">
+                <el-select v-model="computedColumn.returnType" :placeholder="$t('kylinLang.common.pleaseSelect')">
                   <el-option
                     v-for="(item, index) in computedDataTypeSelects"
                     :key="item"
