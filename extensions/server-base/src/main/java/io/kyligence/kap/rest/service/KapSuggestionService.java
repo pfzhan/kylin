@@ -27,10 +27,13 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.apache.commons.collections.MapUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.SetThreadName;
@@ -131,13 +134,18 @@ public class KapSuggestionService extends BasicService {
         }
     }
 
-    public Collection<String> getQueryDimensions(String cubeName) throws IOException {
+    public Collection<String> suggestDimensionColumns(String cubeName, String modelName) throws IOException {
+        Set<String> results = Sets.newHashSet();
         CubeOptimizeLog cubeOptLog = getCubeOptLog(cubeName);
-        if (cubeOptLog == null || cubeOptLog.getQueryStats() == null
-                || cubeOptLog.getQueryStats().getAppears() == null) {
-            return Sets.newHashSet();
+        if (cubeOptLog != null && cubeOptLog.getQueryStats() != null
+                && MapUtils.isNotEmpty(cubeOptLog.getQueryStats().getAppears())) {
+            results.addAll(cubeOptLog.getQueryStats().getAppears().keySet());
         }
-        return cubeOptLog.getQueryStats().getAppears().keySet();
+        KapModel kapModel = (KapModel) getDataModelManager().getDataModelDesc(modelName);
+        if (kapModel.getMpColStrs() != null) {
+            Collections.addAll(results, kapModel.getMpColStrs());
+        }
+        return results;
     }
 
     public CubeDesc proposeDimAndMeasures(String cubeName, String modelName) throws IOException {

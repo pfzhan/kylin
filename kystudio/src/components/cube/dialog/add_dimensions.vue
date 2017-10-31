@@ -305,7 +305,7 @@ export default {
     this.getTableColumns()
     this.getCubeColumnInTable(this.cubeDesc.dimensions)
     if (this.getSqlResult) {
-      this.getSqlDimensions(this.cubeDesc.name).then((res) => {
+      this.getSqlDimensions(this.cubeDesc).then((res) => {
         handleSuccess(res, (data) => {
           this.sqlDimensions = data
         })

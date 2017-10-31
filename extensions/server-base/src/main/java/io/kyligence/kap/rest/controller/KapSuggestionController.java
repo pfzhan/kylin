@@ -96,11 +96,13 @@ public class KapSuggestionController extends BasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "{cubeName}/sql_dimension", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "{modelName}/{cubeName}/suggest_dimension", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getQueryDimensions(@PathVariable String cubeName) throws IOException {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, kapSuggestionService.getQueryDimensions(cubeName), "");
+    public EnvelopeResponse suggestDimensionColumns(@PathVariable String modelName, @PathVariable String cubeName)
+            throws IOException {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                kapSuggestionService.suggestDimensionColumns(cubeName, modelName), "");
     }
 
     @RequestMapping(value = "{modelName}/{cubeName}/dimension_measure", method = { RequestMethod.POST }, produces = {
