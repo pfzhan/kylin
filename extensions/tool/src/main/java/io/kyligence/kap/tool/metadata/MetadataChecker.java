@@ -32,6 +32,8 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.cube.CubeDescManager;
+import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.job.dao.ExecutableDao;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
@@ -51,6 +53,7 @@ public class MetadataChecker implements IKeep {
     public static final String TABLEINDEX_CUBE_RULE = "TableIndex inconsistent with Cube";
     public static final String SCHEDULERJOB_CUBE_RULE = "SchedulerJob inconsistent with Cube";
     public static final String EXECUTABLE_OUT_RULE = "Executable inconsistent with ExecutableOutput";
+    public static final String CUBE_MODEL_RULE = "Cube/TableIndex inconsistent with Model";
 
     private KylinConfig kylinConfig;
     private ResourceStore store;
@@ -64,6 +67,66 @@ public class MetadataChecker implements IKeep {
 
     public Map<String, Object> getCheckResult() {
         return this.checkResult;
+    }
+
+    public void checkCubeWithModel() {
+
+        List<String> cubePaths = new ArrayList<>();
+        List<String> cubeDescPaths = new ArrayList<>();
+        List<String> modelPaths = new ArrayList<>();
+        List<String> tableIndexPaths = new ArrayList<>();
+        List<String> tableIndexDescPaths = new ArrayList<>();
+
+        try {
+            cubePaths = store.collectResourceRecursively(ResourceStore.CUBE_RESOURCE_ROOT,
+                    MetadataConstants.FILE_SURFIX);
+            cubeDescPaths = store.collectResourceRecursively(ResourceStore.CUBE_DESC_RESOURCE_ROOT,
+                    MetadataConstants.FILE_SURFIX);
+            modelPaths = store.collectResourceRecursively(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT,
+                    MetadataConstants.FILE_SURFIX);
+            tableIndexPaths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
+                    MetadataConstants.FILE_SURFIX);
+            tableIndexDescPaths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT,
+                    MetadataConstants.FILE_SURFIX);
+        } catch (IOException e) {
+            logger.info("Failed to get cube/cubeDesc/model resource path, details: {}", e);
+        }
+
+        List<String> allAffectedEntities = new ArrayList<>();
+        List<String> toDelDescs = new ArrayList<>();
+
+        for (String descPath : cubeDescPaths) {
+            try {
+                CubeDesc desc = store.getResource(descPath, CubeDesc.class, CubeDescManager.CUBE_DESC_SERIALIZER);
+                if (desc == null) {
+                    logger.info("No cube desc found at: {}, skip it.", descPath);
+                    continue;
+                }
+
+                boolean bFind = false;
+                for (String modelPath : modelPaths) {
+                    if (modelPath.contains(desc.getModelName())) {
+                        bFind = true;
+                        break;
+                    }
+                }
+
+                if (bFind == false) {
+                    toDelDescs.add(descPath);
+                }
+
+            } catch (IOException e) {
+                logger.info("Failed to get cubeDesc from resource path, details: {}, skip it.", e);
+                continue;
+            }
+        }
+
+        allAffectedEntities.addAll(toDelDescs);
+        allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, cubePaths));
+        allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, tableIndexPaths));
+        allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, tableIndexDescPaths));
+
+        checkResult.put(CUBE_MODEL_RULE, allAffectedEntities);
     }
 
     public void checkCubeWithTableIndex() {
@@ -83,45 +146,13 @@ public class MetadataChecker implements IKeep {
             logger.info("Failed to get cube/table-index resource path, details: {}", e);
         }
 
-        List<String> toCleanEntity = new ArrayList<>();
-
-        for (String path : tableIndexPaths) {
-            boolean bFind = false;
-            String name = getEntityName(path);
-            for (String cubePath : cubePaths) {
-                if (cubePath.contains(name)) {
-                    bFind = true;
-                    break;
-                }
-            }
-            if (bFind == false) {
-                toCleanEntity.add(path);
-            }
-        }
-
-        for (String path : tableIndexDescPaths) {
-            boolean bFind = false;
-            String name = getEntityName(path);
-            for (String cubePath : cubePaths) {
-                if (cubePath.contains(name)) {
-                    bFind = true;
-                    break;
-                }
-            }
-            if (bFind == false) {
-                toCleanEntity.add(path);
-            }
-        }
-
-        checkResult.put(TABLEINDEX_CUBE_RULE, toCleanEntity);
+        getIsolatedEntity(TABLEINDEX_CUBE_RULE, tableIndexPaths, cubePaths);
+        getIsolatedEntity(TABLEINDEX_CUBE_RULE, tableIndexDescPaths, cubePaths);
     }
 
     public void checkCubeWithSchedulerJob() {
-
         List<String> cubePaths = new ArrayList<>();
         List<String> schedulerJobPaths = new ArrayList<>();
-
-        List<String> toCleanEntity = new ArrayList<>();
 
         try {
             cubePaths = store.collectResourceRecursively(ResourceStore.CUBE_RESOURCE_ROOT,
@@ -131,22 +162,7 @@ public class MetadataChecker implements IKeep {
         } catch (IOException e) {
             logger.info("Failed to get cube/scheduler-job resource path, details: {}", e);
         }
-
-        for (String path : schedulerJobPaths) {
-            boolean bFind = false;
-            String name = getEntityName(path);
-            for (String cubePath : cubePaths) {
-                if (cubePath.contains(name)) {
-                    bFind = true;
-                    break;
-                }
-            }
-            if (bFind == false) {
-                toCleanEntity.add(path);
-            }
-        }
-
-        checkResult.put(SCHEDULERJOB_CUBE_RULE, toCleanEntity);
+        getIsolatedEntity(SCHEDULERJOB_CUBE_RULE, schedulerJobPaths, cubePaths);
     }
 
     public void checkExecutableOutput() {
@@ -174,6 +190,41 @@ public class MetadataChecker implements IKeep {
             }
         }
         checkResult.put(EXECUTABLE_OUT_RULE, toCleanEntity);
+    }
+
+    private List<String> getEntityWithSameName(List<String> target, List<String> source) {
+        List<String> toRet = new ArrayList<>();
+        for (String path : target) {
+            String name = getEntityName(path);
+            for (String cubePath : source) {
+                if (cubePath.contains(name)) {
+                    toRet.add(cubePath);
+                    break;
+                }
+            }
+        }
+        return toRet;
+    }
+
+    private void getIsolatedEntity(String key, List<String> srcList, List<String> dstList) {
+        List<String> toCleanEntity = new ArrayList<>();
+        for (String src : srcList) {
+            boolean bFind = false;
+            String name = getEntityName(src);
+            for (String dst : dstList) {
+                if (dst.contains(name)) {
+                    bFind = true;
+                    break;
+                }
+            }
+            if (bFind == false) {
+                toCleanEntity.add(src);
+            }
+        }
+        if (checkResult.get(key) == null)
+            checkResult.put(key, toCleanEntity);
+        else
+            ((List<String>) checkResult.get(key)).addAll(toCleanEntity);
     }
 
     private boolean isExecuteOK(ExecutablePO executable, List<ExecutableOutputPO> allOutput) {
@@ -219,10 +270,11 @@ public class MetadataChecker implements IKeep {
             }
             System.out.println("---------------------------------------------------------------------");
         }
-        checkResult.clear();
     }
 
     public void doCheck(String opt) {
+        checkResult.clear();
+        checkCubeWithModel();
         checkCubeWithTableIndex();
         checkCubeWithSchedulerJob();
         checkExecutableOutput();

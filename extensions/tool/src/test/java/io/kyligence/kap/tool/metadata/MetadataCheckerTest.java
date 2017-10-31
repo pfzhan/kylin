@@ -28,8 +28,9 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.job.dao.ExecutableDao;
+import org.apache.kylin.metadata.model.DataModelDesc;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -53,55 +54,61 @@ public class MetadataCheckerTest extends LocalFileMetadataTestCase {
 
     @Test
     public void testBasics() throws IOException {
-
-        SchedulerJobInstance job = new SchedulerJobInstance("ssb_cube1", "default", "Cube", "ssb_cube1", false, 0, 0, 0,
-                0, 0, 0);
-        SchedulerJobManager.getInstance(getTestConfig()).addSchedulerJob(job);
         MetadataChecker checker = new MetadataChecker();
-        checker.checkCubeWithTableIndex();
-        checker.checkCubeWithSchedulerJob();
-        checker.checkExecutableOutput();
-        checker.doOpts("check");
-        Assert.assertEquals(0, checker.getCheckResult().size());
+        checker.doCheck("check");
+        List<String> checkRet1 = (List<String>) checker.getCheckResult().get(MetadataChecker.TABLEINDEX_CUBE_RULE);
+        List<String> checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
+        List<String> checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
+        List<String> checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
+
+        Assert.assertEquals(4, checker.getCheckResult().size());
+        Assert.assertEquals(0, checkRet1.size());
+        Assert.assertEquals(0, checkRet2.size());
+        Assert.assertEquals(0, checkRet3.size());
+        Assert.assertEquals(0, checkRet4.size());
     }
 
     @Test
     public void testMetadataCheck() throws IOException {
+        ResourceStore store = getStore();
         SchedulerJobInstance job = new SchedulerJobInstance("ssb_cube1", "default", "Cube", "ssb_cube1", false, 0, 0, 0,
                 0, 0, 0);
-        SchedulerJobManager.getInstance(getTestConfig()).addSchedulerJob(job);
-        CubeManager.getInstance(getTestConfig()).dropCube("ssb_cube1", true);
-        CubeManager.getInstance(getTestConfig()).dropCube("ci_left_join_cube", true);
-        ResourceStore.getStore(getTestConfig())
-                .deleteResource(ExecutableDao.pathOfJobOutput("f8edd777-8756-40d5-be19-3159120e4f7b"));
+        String path = SchedulerJobInstance.concatResourcePath(job.getName());
+        store.putResource(path, job, SchedulerJobManager.SCHEDULER_JOB_INSTANCE_SERIALIZER);
+        path = CubeInstance.concatResourcePath("ssb_cube1");
+        store.deleteResource(path);
+        path = CubeInstance.concatResourcePath("ci_left_join_cube");
+        store.deleteResource(path);
+        path = DataModelDesc.concatResourcePath("ci_inner_join_model");
+        store.deleteResource(path);
+        store.deleteResource(ExecutableDao.pathOfJobOutput("f8edd777-8756-40d5-be19-3159120e4f7b"));
+
         MetadataChecker checker = new MetadataChecker();
-        checker.checkCubeWithTableIndex();
-        checker.checkCubeWithSchedulerJob();
-        checker.checkExecutableOutput();
+        checker.doCheck("check");
 
         List<String> checkRet1 = (List<String>) checker.getCheckResult().get(MetadataChecker.TABLEINDEX_CUBE_RULE);
         List<String> checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
         List<String> checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
+        List<String> checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
 
-        Assert.assertEquals(3, checker.getCheckResult().size());
+        Assert.assertEquals(4, checker.getCheckResult().size());
         Assert.assertEquals(2, checkRet1.size());
         Assert.assertEquals(1, checkRet2.size());
         Assert.assertEquals(15, checkRet3.size());
+        Assert.assertEquals(5, checkRet4.size());
 
         checker.doOpts("recovery");
 
-        checker.checkCubeWithTableIndex();
-        checker.checkCubeWithSchedulerJob();
-        checker.checkExecutableOutput();
-
+        checker.doCheck("check");
         checkRet1 = (List<String>) checker.getCheckResult().get(MetadataChecker.TABLEINDEX_CUBE_RULE);
         checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
         checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
+        checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
 
-        checker.doOpts("check");
         Assert.assertEquals(0, checkRet1.size());
         Assert.assertEquals(0, checkRet2.size());
         Assert.assertEquals(0, checkRet3.size());
+        Assert.assertEquals(0, checkRet4.size());
     }
 
 }
