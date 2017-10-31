@@ -17,7 +17,7 @@
     </div>
 	  <div v-show="errinfo" class="errorBox">
       <i class="el-icon-circle-cross"></i>
-      <p class = "errorText">{{errinfo}}</p>
+      <p class = "errorText">{{$t(''+errinfo)}}</p>
     </div>
     <el-dialog :title="$t('kylinLang.common.save')" v-model="saveQueryFormVisible">
     <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
@@ -70,12 +70,9 @@ export default {
         })
       }, (res) => {
         handleError(res, (data, code, status, msg) => {
-          this.errinfo = msg
+          this.errinfo = msg || 'kylinLang.common.timeOut'
           this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
         })
-      }).catch((data) => {
-        this.errinfo = data || 'network abort!'
-        this.$emit('changeView', this.extraoption.index, data, 'warning', 'querypanel')
       })
     },
     openSaveQueryDialog () {

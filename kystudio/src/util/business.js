@@ -17,30 +17,28 @@ export function handleSuccess (res, callback, errorcallback) {
 // 失败回调入口
 export function handleError (res, errorcallback) {
   var responseData = res && res.data || null
-  var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
-  if (typeof errorcallback !== 'function') {
-    window.kapVm.$store.state.config.errorMsgBox.isShow = true
-    window.kapVm.$store.state.config.errorMsgBox.msg = msg
-    window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
-  }
-  if (res.status === 504) {
+
+  // 服务器超时和无response的情况
+  if (res.status === 504 || !res.status) {
+    if (typeof errorcallback === 'function') {
+      errorcallback(responseData, -1, res && res.status || -1, '')
+      return
+    }
     window.kapVm.$store.state.config.errorMsgBox.isShow = true
     window.kapVm.$store.state.config.errorMsgBox.msg = window.kapVm.$t('kylinLang.common.notConnectServer')
     window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
-    if (typeof errorcallback === 'function') {
-      errorcallback(responseData.data, responseData.code, res.status, window.kapVm.$t('kylinLang.common.notConnectServer'))
-      return
-    }
-    return
-  }
-  if (responseData && responseData.code) {
-    if (typeof errorcallback === 'function') {
-      errorcallback(responseData.data, responseData.code, res.status, responseData.msg)
-      return
-    }
   } else {
-    if (typeof errorcallback === 'function') {
-      errorcallback(responseData, -1, res && res.status || -1, '')
+    var msg = responseData && responseData.msg || window.kapVm.$t('kylinLang.common.unknownError')
+    if (typeof errorcallback !== 'function') {
+      window.kapVm.$store.state.config.errorMsgBox.isShow = true
+      window.kapVm.$store.state.config.errorMsgBox.msg = msg
+      window.kapVm.$store.state.config.errorMsgBox.detail = responseData && responseData.stacktrace || JSON.stringify(res)
+    } else {
+      if (responseData && responseData.code) {
+        errorcallback(responseData.data, responseData.code, res.status, responseData.msg)
+      } else {
+        errorcallback(responseData, -1, res && res.status || -1, '')
+      }
     }
   }
 }

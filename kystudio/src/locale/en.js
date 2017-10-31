@@ -95,6 +95,7 @@ exports.default = {
     streamingConnectHiveError: 'Join hive table with streaming table is not supported.',
     seeDetail: 'Details >>',
     notConnectServer: 'Cannot connect the KAP server. Please check your network or KAP server status.',
+    timeOut: 'Request timed out!',
     willClose: 'Are you sure to continue closing the window?'
   },
   model: {
