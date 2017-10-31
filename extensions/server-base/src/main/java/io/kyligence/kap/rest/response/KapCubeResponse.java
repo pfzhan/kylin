@@ -72,13 +72,8 @@ public class KapCubeResponse extends CubeInstanceResponse {
 
         // MPMaster expose one fake segment to indicate the build time
         if (mgr.isMPMaster(cube)) {
-            Segments<CubeSegment> cubeSegments = findLatestSegment(segments);
+            Segments<CubeSegment> cubeSegments = findLatestSegment(cube, segments);
 
-            CubeSegment cubeSeg = cubeSegments.getFirstSegment();
-            cubeSeg.setCubeInstance(cube);
-            SegmentRange.TSRange tsRange = new SegmentRange.TSRange(cube.getDescriptor().getPartitionDateStart(),
-                    cube.getDescriptor().getPartitionDateStart());
-            cubeSeg.setTSRange(tsRange);
             ret.setSegments(cubeSegments);
         }
 
@@ -93,7 +88,10 @@ public class KapCubeResponse extends CubeInstanceResponse {
         return result;
     }
 
-    private static Segments<CubeSegment> findLatestSegment(List<CubeSegment> segments) {
+    private static Segments<CubeSegment> findLatestSegment(CubeInstance cube, List<CubeSegment> segments) {
+        if (segments.size() == 0)
+            return new Segments<CubeSegment>();
+
         CubeSegment latest = null;
         for (CubeSegment s : segments) {
             if (latest == null || latest.getLastBuildTime() < s.getLastBuildTime())
@@ -106,6 +104,11 @@ public class KapCubeResponse extends CubeInstanceResponse {
             seg.setLastBuildTime(latest.getLastBuildTime());
         }
         result.add(seg);
+
+        seg.setCubeInstance(cube);
+        SegmentRange.TSRange tsRange = new SegmentRange.TSRange(cube.getDescriptor().getPartitionDateStart(),
+                cube.getDescriptor().getPartitionDateStart());
+        seg.setTSRange(tsRange);
         return result;
     }
 

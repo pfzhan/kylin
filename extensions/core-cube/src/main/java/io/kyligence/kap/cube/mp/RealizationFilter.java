@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.cube.mp;
 
-import io.kyligence.kap.common.obf.IKeep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationFilter;
 
+import io.kyligence.kap.common.obf.IKeepNames;
+
 // exclude MP cube from RealizationChooser
-public class RealizationFilter implements IRealizationFilter, IKeep {
+public class RealizationFilter implements IRealizationFilter, IKeepNames {
 
     final MPCubeManager mgr;
 
