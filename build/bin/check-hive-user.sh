@@ -33,7 +33,7 @@ fi
 
 if [ "${HIVE_CLIENT_TYPE}" = "cli" ]
 then
-    hive ${hive_conf_properties} -e "drop table if exists ${HIVE_TEST_TABLE}; create external table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert into table ${HIVE_TEST_TABLE} values ('"kylin"',1);"
+    hive ${hive_conf_properties} -e "use ${HIVE_TEST_DB}; drop table if exists ${HIVE_TEST_TABLE}; create external table ${HIVE_TEST_TABLE} (name STRING,age INT) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE location '$HIVE_TEST_TABLE_LOCATION'; insert into table ${HIVE_TEST_TABLE} values ('"kylin"',1);"
     [[ $? == 0 ]] || quit "ERROR: Current user has no permission to create Hive table in working directory: ${WORKING_DIR}"
 
     echo "Checking HCat Available"
@@ -44,6 +44,7 @@ then
     HQL_TMP_FILE=hql_tmp__${RANDOM}
     HIVE_BEELINE_PARAM=`$KYLIN_HOME/bin/get-properties.sh kylin.source.hive.beeline-params`
 
+    echo "use ${HIVE_TEST_DB};" > ${HQL_TMP_FILE}
     echo "set;" > ${HQL_TMP_FILE}
     beeline ${hive_conf_properties} ${HIVE_BEELINE_PARAM} -f ${HQL_TMP_FILE} >/dev/null
     [[ $? == 0 ]] || { rm -f ${HQL_TMP_FILE}; quit "ERROR: Beeline cannot connect with parameter \"${HIVE_BEELINE_PARAM}\". Please configure \"kylin.source.hive.beeline-params\" in 'conf/kylin.properties'"; }
