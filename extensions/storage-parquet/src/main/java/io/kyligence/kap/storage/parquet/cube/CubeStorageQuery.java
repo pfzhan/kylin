@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.storage.parquet.cube;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,6 +36,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.metadata.tuple.TupleInfo;
@@ -75,13 +75,11 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
         String[] mpValues = extractMPValues(model, sqlDigest.filter);
 
         MPCubeManager mgr = MPCubeManager.getInstance(cube.getConfig());
-        CubeInstance ret = null;
-        try {
-            ret = mgr.convertToMPCubeIfNeeded(cube.getName(), mpValues);
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Invalid convert cube mpmaster to mpcube. cube name '" + cube.getName() + "'", e);
+        CubeInstance ret = mgr.convertToExistsMPCube(cube.getName(), mpValues);
+        if (null == ret) {
+            throw new NoRealizationFoundException("MPCube is not exists.");
         }
+
         return ret;
     }
 
@@ -98,7 +96,7 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
         Map<TblColRef, String> mpValues = extractMPValues(mpColList, singleValueFilters);
         for (TblColRef col : mpColList) {
             if (null == mpValues.get(col)) {
-                throw new IllegalStateException(
+                throw new NoRealizationFoundException(
                         "Invalid. Missing muti-level partition condition on column: " + col);
             }
             mpValueList.add(mpValues.get(col));
@@ -112,7 +110,7 @@ public class CubeStorageQuery extends GTCubeStorageQueryBase {
         if (querySingleValueCols.containsAll(mpCols) == false) {
             Set<TblColRef> missing = new HashSet<>(mpCols);
             missing.removeAll(querySingleValueCols);
-            throw new IllegalStateException(
+            throw new NoRealizationFoundException(
                     "Invalid query, multi-level partitioned query must provide all partition values as '=' filter condition. "
                             + "Missing filter on " + missing + ".");
         }

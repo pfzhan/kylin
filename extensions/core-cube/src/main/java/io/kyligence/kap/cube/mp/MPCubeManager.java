@@ -90,6 +90,20 @@ public class MPCubeManager {
         return cubeInstance;
     }
 
+    public CubeInstance convertToExistsMPCube(String cubeName, String[] mpValues) {
+        CubeInstance cubeInstance = CubeManager.getInstance(config).getCube(cubeName);
+        KapModel kapModel = (KapModel) cubeInstance.getModel();
+
+        if (!isMPMaster(cubeInstance)) {
+            throw new IllegalStateException("Cube : " + cubeName + " is not a master cube.");
+        }
+
+        checkMPCubeValues(kapModel, mpValues);
+
+        String mpCubeName = buildMPCubeName(cubeInstance.getName(), mpValues);
+        return CubeManager.getInstance(config).getCube(mpCubeName);
+    }
+
     //mpCube ->> mpMaster
     public CubeInstance convertToMPMasterIfNeeded(String cubeName) {
         CubeInstance cubeInstance = CubeManager.getInstance(config).getCube(cubeName);
@@ -290,7 +304,7 @@ public class MPCubeManager {
 
         for (CubeInstance c : list) {
             if (ownerMatch.equals(c.getOwner())) {
-                
+
                 // don't report empty MP cubes and they should be removed
                 if (c.getSegments().isEmpty()) {
                     try {
@@ -300,7 +314,7 @@ public class MPCubeManager {
                     }
                     continue;
                 }
-                
+
                 result.add(c);
             }
         }

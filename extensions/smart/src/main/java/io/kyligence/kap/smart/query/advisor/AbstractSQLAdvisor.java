@@ -36,7 +36,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
-import org.apache.kylin.query.routing.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterables;

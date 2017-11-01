@@ -30,7 +30,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.RoutingIndicatorException;
+import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

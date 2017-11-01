@@ -82,7 +82,7 @@ public class KapModelServiceTest extends ServiceTestBase {
                 "Column name for computed column DEFAULT.TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model ci_inner_join_model, you should apply the same expression ' PRICE * ITEM_COUNT ' here, or use a different column name.");
 
         Serializer<DataModelDesc> serializer = modelService.getDataModelManager().getDataModelSerializer();
-        
+
         List<DataModelDesc> dataModelDescs = modelService.listAllModels("ci_left_join_model", "default", true);
         Assert.assertTrue(dataModelDescs.size() == 1);
 
@@ -105,7 +105,7 @@ public class KapModelServiceTest extends ServiceTestBase {
                 "There is already a column named cal_dt on table DEFAULT.TEST_KYLIN_FACT, please change your computed column name");
 
         Serializer<DataModelDesc> serializer = modelService.getDataModelManager().getDataModelSerializer();
-        
+
         List<DataModelDesc> dataModelDescs = modelService.listAllModels("ci_left_join_model", "default", true);
         Assert.assertTrue(dataModelDescs.size() == 1);
 
@@ -119,6 +119,5 @@ public class KapModelServiceTest extends ServiceTestBase {
         field.set(deserialize.getComputedColumnDescs().get(0), "cal_dt");
         modelService.updateModelAndDesc("default", deserialize);
     }
-
 
 }
