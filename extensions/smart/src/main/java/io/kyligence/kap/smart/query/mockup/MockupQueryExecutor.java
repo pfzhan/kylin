@@ -88,6 +88,7 @@ public class MockupQueryExecutor {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) {
+            logger.trace("failed to run in MockupQueryExecutor", e);
             if (e.getCause() != null
                     && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
                 StackTraceElement[] stackTrace = e.getCause().getStackTrace();
