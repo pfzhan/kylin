@@ -518,10 +518,10 @@ export default {
           this.selectableMeasure.type = returnValue[1]
           if (this.integerType.indexOf(this.selectableMeasure.type) >= 0) {
             this.selectableMeasure.type = 'bigint'
-          } else if (this.floatType.indexOf(this.selectableMeasure.type) >= 0) {
+          } else if (this.selectableMeasure.type === 'decimal') {
             this.selectableMeasure.type = 'decimal'
             this.selectableMeasure.value.firstNumber = 19
-            this.selectableMeasure.value.secondNumber = 4
+            this.selectableMeasure.value.secondNumber = returnValue[3]
           } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
             this.selectableMeasure.value.firstNumber = returnValue[2]
           }
@@ -551,10 +551,10 @@ export default {
         this.selectableMeasure.type = returnValue[1]
         if (this.integerType.indexOf(this.selectableMeasure.type) >= 0) {
           this.selectableMeasure.type = 'bigint'
-        } else if (this.floatType.indexOf(this.selectableMeasure.type) >= 0) {
+        } else if (this.selectableMeasure.type === 'decimal') {
           this.selectableMeasure.type = 'decimal'
           this.selectableMeasure.value.firstNumber = 19
-          this.selectableMeasure.value.secondNumber = 4
+          this.selectableMeasure.value.secondNumber = returnValue[3]
         } else if (this.selectableMeasure.type === 'char' || this.selectableMeasure.type === 'varchar') {
           this.selectableMeasure.value.firstNumber = returnValue[2]
         }
