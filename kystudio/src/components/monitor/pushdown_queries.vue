@@ -100,6 +100,7 @@
       <el-table-column
       :width="165"
       sortable
+      prop="running_seconds"
       :label="$t('running_seconds')">
         <template scope="scope">
           {{scope.row.running_seconds}} (s)
@@ -109,6 +110,7 @@
       sortable
       show-overflow-tooltip
       :width="150"
+      prop="start_time"
       :label="$t('start_time')">
         <template scope="scope">
           {{scope.row.start_time}}
@@ -118,6 +120,7 @@
       sortable
       :width="150"
       show-overflow-tooltip
+      prop="last_modified"
       :label="$t('last_modified')">
         <template scope="scope">
           {{scope.row.last_modified}}

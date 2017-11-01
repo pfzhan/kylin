@@ -11,7 +11,7 @@
       :close-on-press-escape="false"
       size="tiny">
       <div class="el-message-box__status el-icon-circle-cross" style="display: inline-block"></div>
-      <span style="margin-left: 48px;display:inline-block;word-break: break-all;" v-html="$store.state.config.errorMsgBox.msg.replace(/\r\n/g, '<br/><br/>')"></span>
+      <span style="margin-left: 48px;display:inline-block;word-break: break-word;" v-html="$store.state.config.errorMsgBox.msg.replace(/\r\n/g, '<br/><br/>')"></span>
       <span slot="footer" class="dialog-footer">
         <div class="ksd-mb-10">
           <el-button type="primary" @click="handleClose">{{$t('kylinLang.common.ok')}}</el-button>
