@@ -16,7 +16,8 @@ else
 fi
 
 if [ -n ${ENABLE_FS_SEPARATE} ] && [ "${ENABLE_FS_SEPARATE}" == "true" ]; then
-        final_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR#*://}
+        WORKING_DIR=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.setup.KapGetPathWithoutSchemeAndAuthorityCLI ${WORKING_DIR}| grep -v 'Usage'|tail -1)
+        final_working_dir=`$KYLIN_HOME/bin/get-properties.sh kylin.storage.columnar.file-system`${WORKING_DIR}
     else
         final_working_dir=${WORKING_DIR}
 fi
