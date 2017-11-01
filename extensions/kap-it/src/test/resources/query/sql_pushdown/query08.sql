@@ -1,0 +1,1 @@
+select timestampdiff(YEAR, current_date, current_date)

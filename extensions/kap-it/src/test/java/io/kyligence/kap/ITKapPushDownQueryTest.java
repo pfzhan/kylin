@@ -294,4 +294,17 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
         }
 
     }
+
+    @Test
+    public void testPushDownUDF() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+
+        String testSql = getTextFromFile(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query08.sql"));
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownSelectQuery(testSql);
+        Assert.assertNotNull(result.getFirst());
+        Assert.assertTrue(result.getFirst().size() == 1);
+        Assert.assertTrue("0".equals(result.getFirst().get(0).get(0)));
+    }
 }
