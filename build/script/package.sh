@@ -77,6 +77,29 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KAP 2.5.2 release note
+
+**Feature & Enhancement**
+
+- Support multi-partition modeling
+- Enable fine grained segment management
+- Support export pushdown query
+- Enhanced migrating tool-migrate cube metadata and cube segment
+- Metadata check tool, help find and clean isolated metadata
+- Upgrade KyBot Client to 1.1.24: support latest KAP
+- Support login kyligence account
+- Support integrating with Active directory
+
+ **Bugfix**
+
+- Fix union query error
+- Fix filtering non-ascii query error
+- Fix segment auto merge error (count distinct measure including high carnality column)
+- Fix distcp command failed frequently issue on read/write separation deploy
+- Fix HDFS check failed issue on read/write separation deploy
+- JDBC connecting lost issue when using MySQL to store metadata
+- Sampling can tolerant the value exceeding precision
+
 #### KAP 2.5.1 release note
 
 **Bugfix**
