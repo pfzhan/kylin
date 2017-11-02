@@ -143,7 +143,7 @@ public class KapCubeResponse extends CubeInstanceResponse {
     }
 
     private void initMPCols(CubeInstance cube) {
-        if (cube == null)
+        if (cube == null || cube.getModel() == null) // tolerate bad (missing) model
             return;
 
         KapModel model = (KapModel) cube.getModel();

@@ -208,9 +208,11 @@ public class MPCubeManager {
         CubeDesc cubeDesc = cube.getDescriptor();
         KapModel kapModel = (KapModel) cubeDesc.getModel();
 
-        if (kapModel.isMultiLevelPartitioned()) {
+        if (kapModel == null)
+            return true; // tolerate bad model
+
+        if (kapModel.isMultiLevelPartitioned())
             return false;
-        }
 
         return true;
     }
@@ -220,13 +222,14 @@ public class MPCubeManager {
         CubeDesc cubeDesc = cube.getDescriptor();
         KapModel kapModel = (KapModel) cubeDesc.getModel();
 
-        if (!kapModel.isMultiLevelPartitioned()) {
-            return false;
-        }
+        if (kapModel == null)
+            return false; // tolerate bad model
 
-        if (cube.getOwner() != null && cube.getOwner().startsWith(MPMASTER_PRIFIX)) {
+        if (!kapModel.isMultiLevelPartitioned())
             return false;
-        }
+
+        if (cube.getOwner() != null && cube.getOwner().startsWith(MPMASTER_PRIFIX))
+            return false;
 
         return true;
     }
@@ -236,13 +239,14 @@ public class MPCubeManager {
         CubeDesc cubeDesc = cube.getDescriptor();
         KapModel kapModel = (KapModel) cubeDesc.getModel();
 
-        if (!kapModel.isMultiLevelPartitioned()) {
-            return false;
-        }
+        if (kapModel == null)
+            return false; // tolerate bad model
 
-        if (cube.getOwner() != null && cube.getOwner().startsWith(MPMASTER_PRIFIX)) {
+        if (!kapModel.isMultiLevelPartitioned())
+            return false;
+
+        if (cube.getOwner() != null && cube.getOwner().startsWith(MPMASTER_PRIFIX))
             return true;
-        }
 
         return false;
     }
