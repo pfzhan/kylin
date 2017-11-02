@@ -26,6 +26,7 @@ package org.apache.kylin.common;
 
 import java.io.File;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 
 public class KapConfig {
@@ -66,10 +67,12 @@ public class KapConfig {
     }
 
     public String getReadHdfsWorkingDirectory() {
-        if (isParquetSeparateFsEnabled()) {
+        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
             Path workingDir = new Path(getWriteHdfsWorkingDirectory());
-            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString() + "/";
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString()
+                    + "/";
         }
+
         return getWriteHdfsWorkingDirectory();
     }
 
@@ -193,10 +196,12 @@ public class KapConfig {
     }
 
     public String getReadParquetStoragePath() {
-        if (isParquetSeparateFsEnabled()) {
+        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
             Path parquetPath = new Path(getWriteParquetStoragePath());
-            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString() + "/";
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString()
+                    + "/";
         }
+
         return getWriteParquetStoragePath();
     }
 

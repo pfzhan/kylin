@@ -279,7 +279,8 @@ public class SparkParquetVisit implements Serializable {
 
         logger.trace("not hit cube mapping");
         FileSystem fs = HadoopUtil.getFileSystem(cubeInfoPath);
-        if (fs.exists(new Path(cubeInfoPath))) {
+        Path cubeInfoPath2 = new Path(cubeInfoPath);
+        if (fs.exists(cubeInfoPath2) || lazyCheckExists(fs, cubeInfoPath2)) {
             Map<Long, Set<String>> map;
             try (ObjectInputStream inputStream = new ObjectInputStream(fs.open(new Path(cubeInfoPath)))) {
                 map = (Map<Long, Set<String>>) inputStream.readObject();
@@ -289,6 +290,29 @@ public class SparkParquetVisit implements Serializable {
         } else {
             throw new RuntimeException("Cannot find CubeMappingInfo at " + cubeInfoPath);
         }
+    }
+
+    /**
+     * Check whether the file exists after a list operation. This is for Alluxio's case, which won't find new file until do a list.
+     * @param fs
+     * @param path
+     * @return
+     */
+    private boolean lazyCheckExists(FileSystem fs, Path path) {
+        logger.debug("check whether path exists {}", path.toString());
+        while (path.getParent() != null) {
+            lazyCheckExists(fs, path.getParent());
+        }
+        boolean exist = false;
+        try {
+            fs.listStatus(path);
+            exist = fs.exists(path);
+        } catch (Exception e) {
+            logger.error("error to list parent path", e);
+            exist = false;
+        }
+
+        return exist;
     }
 
     Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> executeTask() throws Exception {
