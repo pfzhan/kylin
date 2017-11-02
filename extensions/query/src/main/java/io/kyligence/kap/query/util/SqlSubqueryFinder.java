@@ -31,6 +31,7 @@ import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
+import org.apache.calcite.sql.SqlWith;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -67,7 +68,11 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
 
         if (call instanceof SqlOrderBy) {
             SqlCall sqlCall = sqlSelectsOrOrderbys.get(sqlSelectsOrOrderbys.size() - 1);
-            Preconditions.checkState(((SqlOrderBy) call).query == sqlCall);
+            SqlNode query = ((SqlOrderBy) call).query;
+            if (query instanceof SqlWith) {
+                query = ((SqlWith) query).body;
+            }
+            Preconditions.checkState(query == sqlCall);
             sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
         }
         return null;

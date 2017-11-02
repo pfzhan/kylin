@@ -47,6 +47,53 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 public class ImplicitCCTest {
 
     @Test
+    public void testGetSubqueries() throws SqlParseException {
+        String s1 = "WITH customer_total_return AS\n" +
+                "  (SELECT sr_customer_sk AS ctr_customer_sk,\n" +
+                "          sr_store_sk AS ctr_store_sk,\n" +
+                "          sum(sr_return_amt) AS ctr_total_return\n" +
+                "   FROM store_returns\n" +
+                "   JOIN date_dim ON sr_returned_date_sk = d_date_sk\n" +
+                "   WHERE d_year = 1998\n" +
+                "   GROUP BY sr_customer_sk,\n" +
+                "            sr_store_sk),\n" +
+                "     tmp AS (\n" +
+                "     SELECT avg(ctr_total_return)*1.2 tmp_avg,\n" +
+                "          ctr_store_sk\n" +
+                "   FROM customer_total_return\n" +
+                "   GROUP BY ctr_store_sk)\n" +
+                "\n" +
+                "SELECT c_customer_id\n" +
+                "FROM customer_total_return ctr1\n" +
+                "JOIN tmp ON tmp.ctr_store_sk = ctr1.ctr_store_sk\n" +
+                "JOIN store ON s_store_sk = ctr1.ctr_store_sk\n" +
+                "JOIN customer ON ctr1.ctr_customer_sk = c_customer_sk\n" +
+                "WHERE ctr1.ctr_total_return > tmp_avg\n" +
+                "  AND s_state = 'TN'\n" +
+                "ORDER BY c_customer_id\n" +
+                "LIMIT 100";
+        String s2 = "WITH a1 AS\n" +
+                "  (WITH a1 AS\n" +
+                "     (SELECT *\n" +
+                "      FROM t) SELECT a1\n" +
+                "   FROM t2\n" +
+                "   ORDER BY c_customer_id)\n" +
+                "SELECT a1\n" +
+                "FROM t2\n" +
+                "ORDER BY c_customer_id";
+        String s3 = "WITH a1 AS\n" +
+                "  (SELECT * FROM t)\n" +
+                "SELECT a1\n" +
+                "FROM\n" +
+                "  (WITH a2 AS (SELECT * FROM t) \n" +
+                "    SELECT a2 FROM t2)\n" +
+                "ORDER BY c_customer_id";
+        Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s1).size());
+        Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s2).size());
+        Assert.assertEquals(4, SqlSubqueryFinder.getSubqueries(s3).size());
+    }
+
+    @Test
     public void testErrorCase() throws SqlParseException {
         BiMap<String, String> mockMapping = HashBiMap.create();
         mockMapping.put("t", "t");
