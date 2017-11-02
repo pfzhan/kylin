@@ -232,7 +232,7 @@ export default {
       return ''
     },
     cellClick: function (row, column, cell, event) {
-      if (row.additionalInfo.tmp_op_flag === 'false' && column.label === 'Segments ID') {
+      if (row.additionalInfo.tmp_op_flag === 'false' && column.label === 'Segment ID') {
         this.$router.push({name: 'Monitor'})
       }
     },

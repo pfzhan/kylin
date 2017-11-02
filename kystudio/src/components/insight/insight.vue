@@ -111,7 +111,7 @@ import { mapActions } from 'vuex'
 // import languageTool from 'brace/ext/language_tools'
 import {groupData, indexOfObjWithSomeKey} from '../../util/index'
 import { handleSuccess, kapConfirm, transToGmtTime } from '../../util/business'
-import { pageCount } from '../../config'
+import { pageCount, insightKeyword } from '../../config'
 export default {
   name: 'insight',
   props: ['userDetail'],
@@ -416,7 +416,7 @@ export default {
     // let iHeight = screen.availHeight - 65 - 50 - 103
     let iHeight = document.documentElement.clientHeight - 66 - 48 - 69
     this.$el.querySelector('.filter-tree').style.height = iHeight + 'px'
-    var autoCompeleteData = []
+    var autoCompeleteData = [].concat(insightKeyword)
     // setCompleteData(autoCompeleteData)
     if (!this.project) {
       return
