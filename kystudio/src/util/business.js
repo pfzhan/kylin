@@ -282,7 +282,7 @@ export function toDoubleNumber (n) {
   n = n > 9 ? n : '0' + n
   return n
 }
-export function transToUtcTimeFormat (ms) {
+export function transToUtcTimeFormat (ms, isSlash) {
   var date = new Date(ms)
   var y = date.getUTCFullYear()
   var m = date.getUTCMonth()
@@ -290,15 +290,23 @@ export function transToUtcTimeFormat (ms) {
   var h = date.getUTCHours()
   var M = date.getUTCMinutes()
   var s = date.getUTCSeconds()
-  var result = y + '-' + toDoubleNumber(m + 1) + '-' + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
+  var timeFormat = '-'
+  if (isSlash) {
+    timeFormat = '/'
+  }
+  var result = y + timeFormat + toDoubleNumber(m + 1) + timeFormat + toDoubleNumber(d) + ' ' + toDoubleNumber(h) + ':' + toDoubleNumber(M) + ':' + toDoubleNumber(s)
   return result
 }
-export function transToUtcDateFormat (ms) {
+export function transToUtcDateFormat (ms, isSlash) {
   var date = new Date(ms)
   var y = date.getUTCFullYear()
   var m = date.getUTCMonth()
   var d = date.getUTCDate()
-  var result = y + '-' + toDoubleNumber(m + 1) + '-' + toDoubleNumber(d)
+  var dataFormat = '-'
+  if (isSlash) {
+    dataFormat = '/'
+  }
+  var result = y + dataFormat + toDoubleNumber(m + 1) + dataFormat + toDoubleNumber(d)
   return result
 }
 export function transToUTCMs (date) {

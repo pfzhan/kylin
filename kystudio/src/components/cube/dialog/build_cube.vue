@@ -23,8 +23,7 @@
     </el-form-item>
     <el-form-item :label="$t('startDate')" prop="startDate" class="is-required">
       <el-date-picker :clearable="false" ref="startDateInput"
-                      v-model="timeZone.startDate"
-        type="datetime">
+                      v-model="timeZone.startDate" type="datetime">
       </el-date-picker>
     </el-form-item>
     <el-form-item :label="$t('endDate')" prop="endDate" class="is-required">
@@ -45,7 +44,7 @@ export default {
     return {
       mpValuesList: [],
       timeZone: {
-        startDate: transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart),
+        startDate: transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true),
         endDate: null,
         mpValues: ''
       },
@@ -84,7 +83,7 @@ export default {
       let mpIndex = this.mpValuesList.indexOf(item)
       let segLength = this.mpValuesList[mpIndex].cube.segments.length
       if (segLength > 0) {
-        this.timeZone.startDate = transToUtcTimeFormat(this.mpValuesList[mpIndex].cube.segments[segLength - 1].date_range_end)
+        this.timeZone.startDate = transToUtcTimeFormat(this.mpValuesList[mpIndex].cube.segments[segLength - 1].date_range_end, true)
         console.log(this.timeZone.startDate)
       }
     },
@@ -184,7 +183,7 @@ export default {
   watch: {
     formVisible (formVisible) {
       if (formVisible) {
-        this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart)
+        this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true)
         this.timeZone.endDate = null
         if (this.cubeDesc.multilevel_partition_cols.length > 0) {
           this.getMPValues(this.cubeDesc.name).then((res) => {

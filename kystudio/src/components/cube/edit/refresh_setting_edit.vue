@@ -209,7 +209,7 @@ export default {
           if (schedulerData && schedulerData.enabled) {
             this.initRepeatInterval(schedulerData)
             this.scheduler.desc.scheduled_run_time = schedulerData.scheduled_run_time
-            this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+            this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time, true)
             this.scheduler.desc.partition_interval = schedulerData.partition_interval
           }
         })
@@ -243,12 +243,12 @@ export default {
     this.retentionRange = this.cubeDesc.retention_range / 86400000
     if (this.cubeDesc.auto_merge_time_ranges) {
       this.conversionTime()
-      this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
+      this.partitionStartDate = transToUtcTimeFormat(this.cubeDesc.partition_date_start, true)
       // this.cubeDesc.partition_date_start = transToUtcTimeFormat(this.cubeDesc.partition_date_start)
     }
     if (this.scheduler.desc.scheduled_run_time && this.scheduler.desc.partition_interval) {
       this.initRepeatInterval(this.scheduler.desc)
-      this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time)
+      this.scheduledRunTime = transToUtcTimeFormat(this.scheduler.desc.scheduled_run_time, true)
     } else {
       // this.scheduler.desc.scheduled_run_time = transToUtcTimeFormat((new Date()).getTime())
       this.scheduledRunTime = null
