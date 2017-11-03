@@ -70,7 +70,7 @@
         <el-tooltip class="item" effect="dark" placement="top">
           <div slot="content">
             {{$t('sourceTableSize')}}{{scope.row.input_records_size|dataSize}}<br/>
-            {{$t('expansionRate')}}{{(scope.row.input_records_size>0? scope.row.size_kb*1024/scope.row.input_records_size : 0) * 100 | number(2)}}%
+            {{$t('expansionRate')}}{{(scope.row.input_records_size>0? scope.row.total_storage_size_kb*1024/scope.row.input_records_size : 0) * 100 | number(2)}}%
           </div>
           <span>{{scope.row.total_storage_size_kb * 1024 | dataSize}}</span>
         </el-tooltip>

@@ -61,20 +61,12 @@
       </el-select>
     </el-form-item>
     <el-form-item :label="getReturnTypeLab" >
-      <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || measure.function.expression === 'PERCENTILE' || (measure.function.parameter.type === 'constant' && measure.function.expression !== 'TOP_N')">
+      <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || (measure.function.parameter.type === 'constant' && measure.function.expression !== 'TOP_N')">
         {{getReturnType}}
       </el-tag>
-      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'COUNT_DISTINCT'">
+      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'|| measure.function.expression === 'PERCENTILE' || measure.function.expression === 'COUNT_DISTINCT'">
         <el-option
-          v-for="(item, index) in distinctDataTypes"
-          :key="index"
-          :label="item.name"
-          :value="item.value">
-        </el-option>
-      </el-select>
-      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'">
-        <el-option
-          v-for="(item, index) in topNTypes"
+          v-for="(item, index) in getSelectDataType"
           :key="index"
           :label="item.name"
           :value="item.value">
@@ -236,6 +228,11 @@ export default {
         {name: 'Top 10', value: 'topn(10)'},
         {name: 'Top 100', value: 'topn(100)'},
         {name: 'Top 1000', value: 'topn(1000)'}
+      ],
+      percentileTypes: [
+        {name: 'percentile(100)', value: 'percentile(100)'},
+        {name: 'percentile(1000)', value: 'percentile(1000)'},
+        {name: 'percentile(10000)', value: 'percentile(10000)'}
       ],
       rules: {
         name: [
@@ -505,6 +502,9 @@ export default {
       if (!this.firstChange && this.measure.function.expression === 'COUNT_DISTINCT') {
         this.measure.function.returntype = 'hllc(10)'
       }
+      if (!this.firstChange && this.measure.function.expression === 'PERCENTILE') {
+        this.measure.function.returntype = 'percentile(100)'
+      }
       if (!this.firstChange && this.measure.function.expression === 'EXTENDED_COLUMN') {
         this.measure.function.returntype = '100'
       }
@@ -749,9 +749,6 @@ export default {
           case 'RAW':
             this.measure.function.returntype = 'raw'
             break
-          case 'PERCENTILE':
-            this.measure.function.returntype = 'percentile(100)'
-            break
           default:
             this.measure.function.returntype = ''
             break
@@ -765,6 +762,17 @@ export default {
       }
       if (this.measure.function.expression === 'COUNT_DISTINCT') {
         return this.getAllModelDimMeasureColumns()
+      }
+    },
+    getSelectDataType: function () {
+      if (this.measure.function.expression === 'TOP_N') {
+        return this.topNTypes
+      }
+      if (this.measure.function.expression === 'COUNT_DISTINCT') {
+        return this.distinctDataTypes
+      }
+      if (this.measure.function.expression === 'PERCENTILE') {
+        return this.percentileTypes
       }
     },
     selectableType: function () {
@@ -890,6 +898,7 @@ export default {
     .select-returntype {
       .el-select{
         float:left;
+        width: 30%;
       }
       .decimal{
         float: left;
