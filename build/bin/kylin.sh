@@ -156,10 +156,24 @@ then
     fi
 
     checkBasicKylinProps
-    
-    retrieveDependency
+
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${dir}/setenv.sh" ]; then
+        echo "WARNING: ${dir}/setenv.sh is deprecated and ignored, please remove it and use ${KYLIN_HOME}/conf/setenv.sh instead"
+        source ${dir}/setenv.sh
+    fi
+
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+    fi
+
 
     ${dir}/check-env.sh "if-not-yet" || exit 1
+
+    retrieveDependency
+
+    verbose "java classpath is ${KYLIN_TOMCAT_CLASSPATH}"
+    verbose "java opts is ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS}"
 
     checkRestPort
 
@@ -170,18 +184,7 @@ then
         ${dir}/spark-client.sh start
     fi
 
-    #retrive $KYLIN_EXTRA_START_OPTS
-    if [ -f "${dir}/setenv.sh" ]; then
-        echo "WARNING: ${dir}/setenv.sh is deprecated and ignored, please remove it and use ${KYLIN_HOME}/conf/setenv.sh instead"
-        source ${dir}/setenv.sh
-    fi
-    
-    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
-        source ${KYLIN_HOME}/conf/setenv.sh
-    fi
 
-    verbose "java opts is ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS}"
-    verbose "java classpath is ${KYLIN_TOMCAT_CLASSPATH}"
     classpathDebug ${KYLIN_TOMCAT_CLASSPATH}
 
     $JAVA ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS} -classpath ${KYLIN_TOMCAT_CLASSPATH}  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
