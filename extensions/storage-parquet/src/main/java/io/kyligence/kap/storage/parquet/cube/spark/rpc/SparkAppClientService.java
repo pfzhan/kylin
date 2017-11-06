@@ -39,6 +39,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 
 import io.grpc.Status;
@@ -67,6 +68,14 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.kryo.registrationRequired", "false");
 
+        int coreNum = Strings.isNullOrEmpty(System.getProperty("kap.storage.columnar.spark-conf.spark.executor.cores"))
+                ? 1 : Integer.parseInt(System.getProperty("kap.storage.columnar.spark-conf.spark.executor.cores"));
+        int instanceNum = Strings
+                .isNullOrEmpty(System.getProperty("kap.storage.columnar.spark-conf.spark.executor.instances")) ? 1
+                        : Integer.parseInt(
+                                System.getProperty("kap.storage.columnar.spark-conf.spark.executor.instances"));
+
+        conf.set("spark.sql.shuffle.partitions", String.valueOf(coreNum * instanceNum));
         conf.registerKryoClasses(new Class[] { scala.collection.mutable.WrappedArray.ofRef.class, Object[].class,
                 RDDPartitionResult.class, SparkExecutorPreAggFunction.class });
 
