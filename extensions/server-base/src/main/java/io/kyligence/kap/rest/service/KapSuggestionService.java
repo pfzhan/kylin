@@ -76,9 +76,6 @@ public class KapSuggestionService extends BasicService {
         CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
         CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
 
-        if (!isSampleSqlUpdated(sampleSqls, cubeOptimizeLog.getSampleSqls()) && cubeOptimizeLog.isValid())
-            return;
-
         String[] sqlArray = new String[sampleSqls.size()];
         sampleSqls.toArray(sqlArray);
 
@@ -96,12 +93,6 @@ public class KapSuggestionService extends BasicService {
             throws Exception {
         if (sampleSqls.size() == 0)
             return Lists.newArrayList();
-
-        CubeOptimizeLogManager cubeOptimizeLogManager = CubeOptimizeLogManager.getInstance(getConfig());
-        CubeOptimizeLog cubeOptimizeLog = cubeOptimizeLogManager.getCubeOptimizeLog(cubeName);
-
-        if (!isSampleSqlUpdated(sampleSqls, cubeOptimizeLog.getSampleSqls()) && cubeOptimizeLog.isValid())
-            return cubeOptimizeLog.getSqlResult();
 
         String[] sqlArray = new String[sampleSqls.size()];
         sampleSqls.toArray(sqlArray);
@@ -209,16 +200,7 @@ public class KapSuggestionService extends BasicService {
 
     private ModelOptimizeLog updateModelOptimizeLog(String project, String modelName, String factTable,
             List<String> sqls) throws IOException {
-        boolean isUpdated = true;
         ModelOptimizeLog modelOptimizeLog = getModelOptimizeLog(modelName);
-
-        if (modelOptimizeLog != null) {
-            isUpdated = isSampleSqlUpdated(sqls, modelOptimizeLog.getSampleSqls());
-        }
-
-        if (!isUpdated) {
-            return modelOptimizeLog;
-        }
 
         // Do validation to get updated
         RawModelSQLValidator validator = new RawModelSQLValidator(getConfig(), project, factTable);
@@ -268,11 +250,4 @@ public class KapSuggestionService extends BasicService {
         DataModelDesc dataModelDesc = DataModelManager.getInstance(config).getDataModelDesc(modelName);
         return MasterFactory.createCubeMaster(config, dataModelDesc, queryStats, sqlResults);
     }
-
-    private boolean isSampleSqlUpdated(List<String> newSqls, List<String> oldSqls) {
-        if (newSqls.size() == oldSqls.size() && newSqls.containsAll(oldSqls))
-            return false;
-        return true;
-    }
-
 }
