@@ -148,36 +148,36 @@ public class ColumnACLManager {
     private ColumnACL getColumnACL(String project) throws IOException {
         String path = DIR_PREFIX + project;
         ColumnACL columnACLRecord = getStore().getResource(path, ColumnACL.class, COLUMN_ACL_SERIALIZER);
-        if (columnACLRecord == null || columnACLRecord.getUserColumnBlackList() == null) {
+        if (columnACLRecord == null) {
             return new ColumnACL();
         }
         return columnACLRecord;
     }
 
-    public void addColumnACL(String project, String username, String table, Set<String> columns) throws IOException {
+    public void addColumnACL(String project, String name, String table, Set<String> columns, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL columnACL = getColumnACL(project).add(username, table, columns);
+        ColumnACL columnACL = getColumnACL(project).add(name, table, columns, type);
         getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
         columnACLMap.put(project, columnACL);
     }
 
-    public void updateColumnACL(String project, String username, String table, Set<String> columns) throws IOException {
+    public void updateColumnACL(String project, String name, String table, Set<String> columns, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL columnACL = getColumnACL(project).update(username, table, columns);
+        ColumnACL columnACL = getColumnACL(project).update(name, table, columns, type);
         getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
         columnACLMap.put(project, columnACL);
     }
 
-    public void deleteColumnACL(String project, String username, String table) throws IOException {
+    public void deleteColumnACL(String project, String name, String table, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL columnACL = getColumnACL(project).delete(username, table);
+        ColumnACL columnACL = getColumnACL(project).delete(name, table, type);
         getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
         columnACLMap.put(project, columnACL);
     }
 
-    public void deleteColumnACL(String project, String username) throws IOException {
+    public void deleteColumnACL(String project, String name, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        ColumnACL columnACL = getColumnACL(project).delete(username);
+        ColumnACL columnACL = getColumnACL(project).delete(name, type);
         getStore().putResource(path, columnACL, System.currentTimeMillis(), COLUMN_ACL_SERIALIZER);
         columnACLMap.put(project, columnACL);
     }

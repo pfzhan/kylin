@@ -31,6 +31,7 @@ import java.util.TreeSet;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,12 +54,34 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
     public void testTransform() throws IOException {
         enableQueryPushDown();
         QueryContext.current().setUsername("u1");
+        QueryContext.current().setGroups(Sets.newHashSet("g1"));
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
-        ColumnACLManager.getInstance(KylinConfig.getInstanceFromEnv()).addColumnACL(PROJECT, "u1",
-                "DEFAULT.TEST_KYLIN_FACT", Sets.newHashSet("PRICE", "ITEM_COUNT"));
-        String sql = transformer.transform(
-                "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
-        String expectSQL = "select T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
+        ColumnACLManager columnACLManager = ColumnACLManager.getInstance(KylinConfig.getInstanceFromEnv());
+        columnACLManager.addColumnACL(PROJECT, "u1", "DEFAULT.TEST_KYLIN_FACT", Sets.newHashSet("PRICE", "ITEM_COUNT"), MetadataConstants.TYPE_USER);
+        columnACLManager.addColumnACL(PROJECT, "g1", "DEFAULT.TEST_KYLIN_FACT", Sets.newHashSet("ORDER_ID"), MetadataConstants.TYPE_GROUP);
+
+        String sql = transformer.transform("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
+        String expectSQL = "select " + //
+                "T1.TRANS_ID, " + //
+                "T1.CAL_DT, " + //
+                "T1.LSTG_FORMAT_NAME, " + //
+                "T1.LEAF_CATEG_ID, " + //
+                "T1.LSTG_SITE_ID, " + //
+                "T1.SLR_SEGMENT_CD, " + //
+                "T1.SELLER_ID, " + //
+                "T1.TEST_COUNT_DISTINCT_BITMAP, " + //
+                "T1.DEAL_AMOUNT, " + //
+                "T1.DEAL_YEAR, " + //
+                "T1.BUYER_ID_AND_COUNTRY_NAME, " + //
+                "T1.SELLER_ID_AND_COUNTRY_NAME, " + //
+                "T1.BUYER_COUNTRY_ABBR, " + //
+                "T1.SELLER_COUNTRY_ABBR, " + //
+                "T2.ORDER_ID, " + //
+                "T2.BUYER_ID, " + //
+                "T2.TEST_DATE_ENC, " + //
+                "T2.TEST_TIME_ENC, " + //
+                "T2.TEST_EXTENDED_COLUMN " + //
+                "from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID"; //
         Assert.assertEquals(expectSQL, sql);
     }
 

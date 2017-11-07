@@ -25,26 +25,25 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.annotation.PostConstruct;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
-import org.apache.kylin.rest.service.ProjectService;
-import org.apache.kylin.rest.service.TableACLService;
+import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,8 +71,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.PasswdChangeRequest;
-import io.kyligence.kap.rest.service.ColumnACLService;
-import io.kyligence.kap.rest.service.RowACLService;
+import io.kyligence.kap.rest.service.UserGroupService;
+import io.kyligence.kap.rest.util.ACLOperationUtil;
 
 @Controller
 @Component("kapUserController")
@@ -87,27 +86,20 @@ public class KapUserController extends BasicController implements UserDetailsSer
     private UserService userService;
 
     @Autowired
-    @Qualifier("TableAclService")
-    private TableACLService tableACLService;
+    private AclEvaluate aclEvaluate;
 
     @Autowired
-    @Qualifier("ColumnAclService")
-    private ColumnACLService columnACLService;
+    @Qualifier("accessService")
+    private AccessService accessService;
 
     @Autowired
-    @Qualifier("RowAclService")
-    private RowACLService rowACLService;
-
-    @Autowired
-    @Qualifier("projectService")
-    private ProjectService projectService;
+    @Qualifier("userGroupService")
+    private UserGroupService userGroupService;
 
     private Pattern passwordPattern;
     private Pattern bcryptPattern;
     private BCryptPasswordEncoder pwdEncoder;
-    private static final SimpleGrantedAuthority ADMIN_AUTH = new SimpleGrantedAuthority(Constant.ROLE_ADMIN);
-    private static final SimpleGrantedAuthority ANALYST_AUTH = new SimpleGrantedAuthority(Constant.ROLE_ANALYST);
-    private static final SimpleGrantedAuthority MODELER_AUTH = new SimpleGrantedAuthority(Constant.ROLE_MODELER);
+    private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
     @PostConstruct
     public void init() throws IOException {
@@ -118,10 +110,9 @@ public class KapUserController extends BasicController implements UserDetailsSer
         List<ManagedUser> all = listAllUsers();
         logger.info("All " + all.size() + " users");
         if (all.isEmpty() && "testing".equals(System.getProperty("spring.profiles.active"))) {
-            save("ADMIN", new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.ROLE_ANALYST,
-                    Constant.ROLE_MODELER));
-            save("ANALYST", new ManagedUser("ANALYST", "ANALYST", true, Constant.ROLE_ANALYST));
-            save("MODELER", new ManagedUser("MODELER", "MODELER", true, Constant.ROLE_MODELER, Constant.ROLE_MODELER));
+            save("ADMIN", new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
+            save("ANALYST", new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
+            save("MODELER", new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
         }
 
     }
@@ -135,6 +126,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    //do not use aclEvaluate, if there's no users and will come into init() and will call save.
     public ManagedUser save(@PathVariable("userName") String userName, @RequestBody ManagedUser user) {
         KapMessage msg = KapMsgPicker.getMsg();
 
@@ -177,12 +169,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         completeAuthorities(user);
         userService.updateUser(user);
-
-        if (user.isDisabled()) {
-            //someone is disabled
-            userService.setEvictCacheFlag(true);
-        }
-
         return get(userName);
     }
 
@@ -222,9 +208,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
 
         completeAuthorities(existing);
         userService.updateUser(existing);
-
-        userService.setEvictCacheFlag(true);
-
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(user.getUsername()), "");
     }
 
@@ -273,17 +256,39 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return (ManagedUser) details;
     }
 
-    @RequestMapping(value = "/users", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
+    @RequestMapping(value = "/users", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse listAllUsers(
+            @RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "isCaseInsensitive", required = false) boolean isCaseInsensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
-
-        HashMap<String, Object> data = new HashMap<String, Object>();
+        if (project == null) {
+            aclEvaluate.checkIsGlobalAdmin();
+        } else {
+            aclEvaluate.checkProjectAdminPermission(project);
+        }
+        HashMap<String, Object> data = new HashMap<>();
         List<ManagedUser> result = listAllUsers();
+
+        //for name fuzzy matching
+        if (name != null) {
+            for (Iterator<ManagedUser> it = result.iterator(); it.hasNext(); ) {
+                ManagedUser user = it.next();
+                String username;
+                if (isCaseInsensitive) {
+                    username = user.getUsername();
+                } else {
+                    username = user.getUsername().toUpperCase();
+                }
+                if (!username.contains(name.toUpperCase())) {
+                    it.remove();
+                }
+            }
+        }
 
         int offset = pageOffset * pageSize;
         int limit = pageSize;
@@ -297,7 +302,12 @@ public class KapUserController extends BasicController implements UserDetailsSer
             limit = result.size() - offset;
         }
 
-        data.put("users", result.subList(offset, offset + limit));
+        List<ManagedUser> subList = result.subList(offset, offset + limit);
+        //LDAP users dose not have authorities
+        for (ManagedUser user : subList) {
+            userService.completeUserInfo(user);
+        }
+        data.put("users", subList);
         data.put("size", result.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
@@ -316,65 +326,30 @@ public class KapUserController extends BasicController implements UserDetailsSer
             throw new ForbiddenException(msg.getSELF_DELETE_FORBIDDEN());
         }
 
+        //delete user's project ACL
+        accessService.revokeProjectPermission(userName, MetadataConstants.TYPE_USER);
+
         //delete user's table/row/column ACL
-        delLowLevelACL(userName);
+        ACLOperationUtil.delLowLevelACL(userName, MetadataConstants.TYPE_USER);
 
         checkUserName(userName);
         userService.deleteUser(userName);
-
-        //someone is deleted
-        userService.setEvictCacheFlag(true);
-    }
-
-    private void delLowLevelACL(String userName) throws IOException {
-        List<String> allPrjs = new ArrayList<>();
-        List<ProjectInstance> projectInstances = projectService.listProjects(null, null);
-        for (ProjectInstance pi : projectInstances) {
-            allPrjs.add(pi.getName());
-        }
-
-        for (String prj : allPrjs) {
-            if (tableACLService.exists(prj, userName)) {
-                tableACLService.deleteFromTableBlackList(prj, userName);
-            }
-            if (columnACLService.exists(prj, userName)) {
-                columnACLService.deleteFromTableBlackList(prj, userName);
-
-            }
-            if (rowACLService.exists(prj, userName)) {
-                rowACLService.deleteFromRowCondList(prj, userName);
-            }
-        }
-    }
-
-    @RequestMapping(value = "/userAuhtorities", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse listAllAuthorities() {
-        try {
-            List<String> result = userService.listUserAuthorities();
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
-        } catch (IOException e) {
-            throw new InternalErrorException(e);
-        }
     }
 
     private void completeAuthorities(ManagedUser managedUser) {
         List<SimpleGrantedAuthority> detailRoles = Lists.newArrayList(managedUser.getAuthorities());
-        if (detailRoles.contains(ADMIN_AUTH)) {
-            if (!detailRoles.contains(MODELER_AUTH)) {
-                logger.info("For ADMIN authority, add MODELER authority automatically");
-                detailRoles.add(MODELER_AUTH);
+        for (SimpleGrantedAuthority authority : detailRoles) {
+            try {
+                if (!userGroupService.exists(authority.getAuthority())) {
+                    throw new RuntimeException("user's authority:" + authority.getAuthority() + " is not found in user group");
+                }
+            } catch (IOException e) {
+                logger.error("Get user group error:" + e.getMessage());
             }
         }
-
-        if (detailRoles.contains(MODELER_AUTH)) {
-            if (!detailRoles.contains(ANALYST_AUTH)) {
-                logger.info("For MODELER authority, add ANALYST authority automatically");
-                detailRoles.add(ANALYST_AUTH);
-            }
+        if (!detailRoles.contains(ALL_USERS_AUTH)) {
+            detailRoles.add(ALL_USERS_AUTH);
         }
-
         managedUser.setGrantedAuthorities(detailRoles);
     }
 

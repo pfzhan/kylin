@@ -28,14 +28,13 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.acl.ColumnACL;
 
 public class ColumnACLServiceTest extends ServiceTestBase {
     private final static String PROJECT = "learn_kylin";
@@ -46,18 +45,15 @@ public class ColumnACLServiceTest extends ServiceTestBase {
 
     @Test
     public void testColumnACL() throws IOException {
-        ColumnACL emptyBlackList = columnACLService.getColumnBlackListByProject(PROJECT);
-        Assert.assertEquals(0, emptyBlackList.getUserColumnBlackList().size());
-
         //test add and get
         Set<String> columns = Sets.newHashSet("C1", "C2", "C3", "C4", "C5");
         Set<String> columns2 =Sets.newHashSet("C1") ;
         Set<String> columns3 = Sets.newHashSet("C1");
 
-        columnACLService.addToColumnBlackList(PROJECT, "ADMIN", "DB.TABLE", columns);
-        columnACLService.addToColumnBlackList(PROJECT, "MODELER", "DB.TABLE1", columns2);
-        columnACLService.addToColumnBlackList(PROJECT, "ANALYST", "DB.TABLE", columns3);
-        Map<String, Set<String>> userWithBlackColumn = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE");
+        columnACLService.addToColumnACL(PROJECT, "ADMIN", "DB.TABLE", columns, MetadataConstants.TYPE_USER);
+        columnACLService.addToColumnACL(PROJECT, "MODELER", "DB.TABLE1", columns2, MetadataConstants.TYPE_USER);
+        columnACLService.addToColumnACL(PROJECT, "ANALYST", "DB.TABLE", columns3, MetadataConstants.TYPE_USER);
+        Map<String, Set<String>> userWithBlackColumn = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE", MetadataConstants.TYPE_USER);
         Assert.assertEquals(5, userWithBlackColumn.get("ADMIN").size());
         Assert.assertEquals(1, userWithBlackColumn.get("ANALYST").size());
         Assert.assertNull(userWithBlackColumn.get("MODELER"));
@@ -65,19 +61,18 @@ public class ColumnACLServiceTest extends ServiceTestBase {
         //test update
         Set<String> columns4 = Sets.newHashSet("C6");
 
-        columnACLService.updateColumnBlackList(PROJECT, "ANALYST", "DB.TABLE", columns4);
-        Map<String, Set<String>> userWithBlackColumn1 = columnACLService.getColumnBlackListByTable(PROJECT,
-                "DB.TABLE");
+        columnACLService.updateColumnACL(PROJECT, "ANALYST", "DB.TABLE", columns4, MetadataConstants.TYPE_USER);
+        Map<String, Set<String>> userWithBlackColumn1 = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE", MetadataConstants.TYPE_USER);
         Assert.assertTrue(userWithBlackColumn1.get("ANALYST").equals(columns4));
 
         //test delete
-        columnACLService.deleteFromTableBlackList(PROJECT, "ANALYST", "DB.TABLE");
-        Map<String, Set<String>> userWithBlackColumn2 = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE");
+        columnACLService.deleteFromColumnACL(PROJECT, "ANALYST", "DB.TABLE", MetadataConstants.TYPE_USER);
+        Map<String, Set<String>> userWithBlackColumn2 = columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE", MetadataConstants.TYPE_USER);
         Assert.assertNull(userWithBlackColumn2.get("ANALYST"));
 
         //test delete
-        Assert.assertEquals(1, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1").size());
-        columnACLService.deleteFromTableBlackList(PROJECT, "MODELER");
-        Assert.assertEquals(0, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1").size());
+        Assert.assertEquals(1, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1", MetadataConstants.TYPE_USER).size());
+        columnACLService.deleteFromColumnACL(PROJECT, "MODELER", MetadataConstants.TYPE_USER);
+        Assert.assertEquals(0, columnACLService.getColumnBlackListByTable(PROJECT, "DB.TABLE1", MetadataConstants.TYPE_USER).size());
     }
 }

@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,16 +37,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.LockedException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
@@ -91,7 +86,6 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-
         md.reset();
         byte[] hashKey = md.digest((authentication.getName() + authentication.getCredentials()).getBytes());
         String userKey = Arrays.toString(hashKey);
@@ -100,81 +94,25 @@ public class KapAuthenticationProvider implements AuthenticationProvider {
             userCache.invalidateAll();
             userService.setEvictCacheFlag(false);
         }
-        
-        Authentication authed = userCache.getIfPresent(userKey);
 
-        ManagedUser managedUser = null;
-        String userName = null;
+        Authentication authed = userCache.getIfPresent(userKey);
 
         if (null != authed) {
             SecurityContextHolder.getContext().setAuthentication(authed);
         } else {
             try {
-                if (authentication instanceof UsernamePasswordAuthenticationToken)
-                    userName = (String) authentication.getPrincipal();
-
-                if (userName != null && userService.userExists(userName)) {
-                    managedUser = (ManagedUser) userService.loadUserByUsername(userName);
-                    Preconditions.checkNotNull(managedUser);
-                }
-
-                if (managedUser != null && managedUser.isLocked()) {
-                    long lockedTime = managedUser.getLockedTime();
-                    long timeDiff = System.currentTimeMillis() - lockedTime;
-
-                    if (timeDiff > 30000) {
-                        managedUser.setLocked(false);
-                        userService.updateUser(managedUser);
-                    } else {
-                        int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                        String msg = String.format(KapMsgPicker.getMsg().getUSER_LOCK(), userName, leftSeconds);
-                        throw new LockedException(msg, new Throwable(userName));
-                    }
-                }
-
                 authed = authenticationProvider.authenticate(authentication);
-
-                //update the user because LDAP authed may bring new authorities
-                ManagedUser user;
-
                 if (authed.getDetails() == null) {
-                    //authed.setAuthenticated(false);
                     throw new UsernameNotFoundException(
                             "User not found in LDAP, check whether he/she has been added to the groups.");
                 }
-
-                if (authed.getDetails() instanceof UserDetails) {
-                    UserDetails details = (UserDetails) authed.getDetails();
-                    user = new ManagedUser(details.getUsername(), details.getPassword(), false,
-                            details.getAuthorities());
-                } else {
-                    user = new ManagedUser(authentication.getName(), "skippped-ldap", false, authed.getAuthorities());
-                }
-
-                Assert.notNull(user, "The UserDetail is null.");
-
-                logger.debug("User {} authorities : {}", user.getUsername(), user.getAuthorities());
-
-                if (!userService.userExists(user.getUsername())) {
-                    userService.createUser(user);
-                } else {
-                    userService.updateUser(user);
-                }
-
                 userCache.put(userKey, authed);
             } catch (AuthenticationException e) {
-                if (userName != null && managedUser != null) {
-                    managedUser.increaseWrongTime();
-                    userService.updateUser(managedUser);
-                }
                 logger.error("Failed to auth user: " + authentication.getName(), e);
                 throw new BadCredentialsException(KapMsgPicker.getMsg().getUSER_AUTHFAILED(), e);
             }
-
             logger.debug("Authenticated user " + authed.toString());
-
         }
-
         return authed;
     }
 

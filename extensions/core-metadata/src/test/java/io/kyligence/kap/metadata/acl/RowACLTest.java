@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,6 +38,7 @@ import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.CLOSED;
 import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.LEFT_INCLUSIVE;
 import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.OPEN;
 import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.RIGHT_INCLUSIVE;
+import static io.kyligence.kap.metadata.acl.RowACL.concatConds;
 
 
 public class RowACLTest {
@@ -49,6 +51,25 @@ public class RowACLTest {
         Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'", RowACL.Cond.trim("1505275932000", "datetime"));
         Assert.assertEquals("TIMESTAMP '2017-09-13 04:12:12'", RowACL.Cond.trim("1505275932000", "timestamp"));
         Assert.assertEquals("7", RowACL.Cond.trim("7", "int"));
+    }
+
+    @Test
+    public void testConcatConds() {
+        Map<String, List<RowACL.Cond>> condsWithCol = new HashMap<>();
+        Map<String, String> columnWithType = new HashMap<>();
+        columnWithType.put("COL1", "varchar(256)");
+        columnWithType.put("COL2", "timestamp");
+        columnWithType.put("COL3", "int");
+        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("a'b"));
+        List<RowACL.Cond> cond6 = Lists.newArrayList(new RowACL.Cond(LEFT_INCLUSIVE, "1505275932000", "1506321155000")); //timestamp
+        List<RowACL.Cond> cond7 = Lists.newArrayList(new RowACL.Cond(RIGHT_INCLUSIVE, "7", "100")); //normal type
+        condsWithCol.put("COL1", cond1);
+        condsWithCol.put("COL2", cond6);
+        condsWithCol.put("COL3", cond7);
+        RowACL.ColumnToConds columnToConds = new RowACL.ColumnToConds(condsWithCol);
+        Assert.assertEquals(
+                "((COL1='a') OR (COL1='b') OR (COL1='a''b')) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND (COL3>7 AND COL3<=100)",
+                concatConds(columnToConds, columnWithType));
     }
 
     @Test
@@ -71,24 +92,30 @@ public class RowACLTest {
     public void testDelRowACLByTable() {
         RowACL rowACL = new RowACL();
 
-        Map<String, List<RowACL.Cond>> condsWithColumn = new HashMap<>();
+        Map<String, List<RowACL.Cond>> colToConds = new HashMap<>();
         List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("ab"));
         List<RowACL.Cond> cond11 = Lists.newArrayList(new RowACL.Cond("a"));
-        condsWithColumn.put("COL1", cond1);
-        condsWithColumn.put("COL11", cond11);
-        rowACL.add("u1", "DB.TABLE1", condsWithColumn);
-        rowACL.add("u2", "DB.TABLE1", condsWithColumn);
-        rowACL.add("u2", "DB.TABLE2", condsWithColumn);
-        rowACL.add("u2", "DB.TABLE3", condsWithColumn);
-        rowACL.add("u3", "DB.TABLE3", condsWithColumn);
+        colToConds.put("COL1", cond1);
+        colToConds.put("COL11", cond11);
+        RowACL.ColumnToConds columnToConds = new RowACL.ColumnToConds(colToConds);
+        rowACL.add("u1", "DB.TABLE1", columnToConds, MetadataConstants.TYPE_USER);
+        rowACL.add("u2", "DB.TABLE1", columnToConds, MetadataConstants.TYPE_USER);
+        rowACL.add("u2", "DB.TABLE2", columnToConds, MetadataConstants.TYPE_USER);
+        rowACL.add("u2", "DB.TABLE3", columnToConds, MetadataConstants.TYPE_USER);
+        rowACL.add("u3", "DB.TABLE3", columnToConds, MetadataConstants.TYPE_USER);
+
+        rowACL.add("g1", "DB.TABLE1", columnToConds, MetadataConstants.TYPE_GROUP);
+        rowACL.add("g2", "DB.TABLE1", columnToConds, MetadataConstants.TYPE_GROUP);
+        rowACL.add("g3", "DB.TABLE2", columnToConds, MetadataConstants.TYPE_GROUP);
 
         rowACL.deleteByTbl("DB.TABLE1");
-        Assert.assertEquals(2, rowACL.getTableRowCondsWithUser().size());
-        Assert.assertFalse(rowACL.getTableRowCondsWithUser().containsKey("u1"));
-        Assert.assertNotNull(rowACL.getTableRowCondsWithUser().containsKey("u2"));
-        Assert.assertNotNull(rowACL.getTableRowCondsWithUser().containsKey("u3"));
-        Assert.assertEquals(0, rowACL.getTableRowCondsWithUser().get("u2").getRowCondListByTable("DB.TABLE1").size());
-        Assert.assertEquals(2, rowACL.getTableRowCondsWithUser().get("u2").getRowCondListByTable("DB.TABLE2").size());
+        Assert.assertEquals(2, rowACL.size(MetadataConstants.TYPE_USER));
+        Assert.assertEquals(1, rowACL.size(MetadataConstants.TYPE_GROUP));
+        Assert.assertFalse(rowACL.contains("u1", MetadataConstants.TYPE_USER));
+        Assert.assertNotNull(rowACL.contains("u2", MetadataConstants.TYPE_USER));
+        Assert.assertNotNull(rowACL.contains("u3", MetadataConstants.TYPE_USER));
+        Assert.assertEquals(0, rowACL.getColumnToCondsByTable("DB.TABLE1", MetadataConstants.TYPE_USER).size());
+        Assert.assertEquals(2, rowACL.getColumnToCondsByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("u2").size());
     }
 
     @Test
@@ -103,59 +130,59 @@ public class RowACLTest {
 
         //add
         RowACL rowACL = new RowACL();
-        Map<String, List<RowACL.Cond>> condsWithColumn1 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> colToConds1 = new HashMap<>();
         List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("c"));
         List<RowACL.Cond> cond11 = Lists.newArrayList(new RowACL.Cond("d"), new RowACL.Cond("e"));
-        condsWithColumn1.put("COL1", cond1);
-        condsWithColumn1.put("COL11", cond11);
-        rowACL.add("user1", "DB.TABLE1", condsWithColumn1);
+        colToConds1.put("COL1", cond1);
+        colToConds1.put("COL11", cond11);
+        RowACL.ColumnToConds columnToConds1 = new RowACL.ColumnToConds(colToConds1);
+        rowACL.add("user1", "DB.TABLE1", columnToConds1, MetadataConstants.TYPE_USER);
 
-        Assert.assertEquals(2, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE1").size());
-        Assert.assertEquals(3, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE1").getCondsByColumn("COL1").size());
+        Assert.assertEquals(2, rowACL.getColumnToCondsByTable("DB.TABLE1", MetadataConstants.TYPE_USER).get("user1").size());
+        Assert.assertEquals(3, rowACL.getColumnToCondsByTable("DB.TABLE1", MetadataConstants.TYPE_USER).get("user1").getCondsByColumn("COL1").size());
 
         //add duplicated
         try {
-            Map<String, List<RowACL.Cond>> condsWithColumn2 = new HashMap<>();
-            List<RowACL.Cond> cond2 = Lists.newArrayList(new RowACL.Cond("a"));
-            condsWithColumn1.put("COL2", cond2);
-            rowACL.add("user1", "DB.TABLE1", condsWithColumn2);
+            rowACL.add("user1", "DB.TABLE1", columnToConds1, MetadataConstants.TYPE_USER);
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
-            Assert.assertEquals(e.getMessage(), "Operation fail, user:user1, table:DB.TABLE1 already in row cond list!");
+            Assert.assertEquals("Operation fail, user:user1, table:DB.TABLE1 already has row ACL!", e.getMessage());
         }
 
         //add different table's column cond list
-        Map<String, List<RowACL.Cond>> condsWithColumn3 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> colToConds3 = new HashMap<>();
         List<RowACL.Cond> cond3 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"));
-        condsWithColumn3.put("COL2", cond3);
-        rowACL.add("user1", "DB.TABLE2", condsWithColumn3);
-        Assert.assertEquals(2, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE1").size());
-        Assert.assertEquals(1, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE2").size());
+        colToConds3.put("COL2", cond3);
+        RowACL.ColumnToConds columnToConds3 = new RowACL.ColumnToConds(colToConds3);
+        rowACL.add("user1", "DB.TABLE2", columnToConds3, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(2, rowACL.getColumnToCondsByTable("DB.TABLE1", MetadataConstants.TYPE_USER).get("user1").size());
+        Assert.assertEquals(1, rowACL.getColumnToCondsByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1").size());
 
         //add different user
-        Map<String, List<RowACL.Cond>> condsWithColumn4 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> colToConds4 = new HashMap<>();
         List<RowACL.Cond> cond4 = Lists.newArrayList(new RowACL.Cond("c"));
-        condsWithColumn4.put("COL2", cond4);
-        rowACL.add("user2", "DB2.TABLE2", condsWithColumn4);
-        Assert.assertEquals(2, rowACL.getTableRowCondsWithUser().size());
-        Assert.assertEquals(1, rowACL.getTableRowCondsWithUser().get("user2").size());
-        Assert.assertEquals(cond4, rowACL.getTableRowCondsWithUser().get("user2").getRowCondListByTable("DB2.TABLE2").getCondsByColumn("COL2"));
+        colToConds4.put("COL2", cond4);
+        RowACL.ColumnToConds columnToConds4 = new RowACL.ColumnToConds(colToConds4);
+        rowACL.add("user2", "DB2.TABLE2", columnToConds4, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(2, rowACL.size());
+        Assert.assertEquals(cond4, rowACL.getColumnToCondsByTable("DB2.TABLE2", MetadataConstants.TYPE_USER).get("user2").getCondsByColumn("COL2"));
 
         //update
-        Map<String, List<RowACL.Cond>> condsWithColumn5 = new HashMap<>();
+        Map<String, List<RowACL.Cond>> colToConds5 = new HashMap<>();
         List<RowACL.Cond> cond5 = Lists.newArrayList(new RowACL.Cond("f"), new RowACL.Cond("ff"));
-        condsWithColumn5.put("COL2", cond5);
-        rowACL.update("user1", "DB.TABLE2", condsWithColumn5);
-        Assert.assertEquals(cond5, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE2").getCondsByColumn("COL2"));
+        colToConds5.put("COL2", cond5);
+        RowACL.ColumnToConds columnToConds5 = new RowACL.ColumnToConds(colToConds5);
+        rowACL.update("user1", "DB.TABLE2", columnToConds5, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(cond5, rowACL.getColumnToCondsByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1").getCondsByColumn("COL2"));
 
         //delete
-        rowACL.delete("user1", "DB.TABLE2");
-        Assert.assertNotNull(rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE1"));
-        Assert.assertEquals(0, rowACL.getTableRowCondsWithUser().get("user1").getRowCondListByTable("DB.TABLE2").size());
+        rowACL.delete("user1", "DB.TABLE2", MetadataConstants.TYPE_USER);
+        Assert.assertNotNull(rowACL.getColumnToCondsByTable("DB.TABLE1", MetadataConstants.TYPE_USER).get("user1"));
+        Assert.assertNull(rowACL.getColumnToCondsByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1"));
 
         //delete
-        Assert.assertEquals(1, rowACL.getTableRowCondsWithUser().get("user2").size());
-        rowACL.deleteByUser("user2");
-        Assert.assertNull(rowACL.getTableRowCondsWithUser().get("user2"));
+        Assert.assertTrue(rowACL.contains("user2", MetadataConstants.TYPE_USER));
+        rowACL.delete("user2", MetadataConstants.TYPE_USER);
+        Assert.assertFalse(rowACL.contains("user2", MetadataConstants.TYPE_USER));
     }
 }

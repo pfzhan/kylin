@@ -25,9 +25,13 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -56,80 +60,118 @@ public class RowAclController extends BasicController {
     @Qualifier("validateUtil")
     private ValidateUtil validateUtil;
 
-    @RequestMapping(value = "/row/{project}/{table:.+}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/row/{project}/{table:.+}", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<Map<String, Map<String, List<RowACL.Cond>>>> getUserColumnBlackListByTable(
-            @PathVariable String project, @PathVariable String table) throws IOException {
+    public EnvelopeResponse<Map<Pair<String, String>, RowACL.ColumnToConds>> getUserColumnBlackListByTable(
+            @PathVariable String project,
+            @PathVariable String table) throws IOException {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rowACLService.getRowCondsByTable(project, table),
+        Map<String, RowACL.ColumnToConds> userRowConds = rowACLService.getColumnToCondsByTable(project, table, MetadataConstants.TYPE_USER);
+        Map<String, RowACL.ColumnToConds> groupRowConds = rowACLService.getColumnToCondsByTable(project, table, MetadataConstants.TYPE_GROUP);
+        Map<Pair<String, String>, RowACL.ColumnToConds> results = new TreeMap<>(new Comparator<Pair<String, String>>() {
+            @Override
+            public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+                return o1.getFirst().compareToIgnoreCase(o2.getFirst());
+            }
+        });
+        for (String u : userRowConds.keySet()) {
+            results.put(Pair.newPair(u, "u"), userRowConds.get(u));
+        }
+        for (String g : groupRowConds.keySet()) {
+            results.put(Pair.newPair(g, "g"), groupRowConds.get(g));
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, results, "get column cond list in table");
+    }
+
+    @RequestMapping(value = "/row/{project}/{type}/{table:.+}", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse<Map<String, RowACL.ColumnToConds>> getUserColumnBlackListByTable(
+            @PathVariable String project,
+            @PathVariable String type,
+            @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table);
+        validateUtil.validateTable(project, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rowACLService.getColumnToCondsByTable(project, table, type),
                 "get column cond list in table");
     }
 
-    @RequestMapping(value = "/row/available_user/{project}/{table:.+}", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "/row/white/{project}/{type}/{table:.+}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<List<String>> getUsersCanAddRowACL(@PathVariable String project, @PathVariable String table)
-            throws IOException {
+    public EnvelopeResponse<List<String>> getUsersCanAddRowACL(
+            @PathVariable String project,
+            @PathVariable String type,
+            @PathVariable String table) throws IOException {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                rowACLService.getUsersCanAddRowACL(project, table, validateUtil.getAllUsers(project)),
+                rowACLService.getIdentifiersCanAddRowACL(project, table, validateUtil.getAllIdentifiers(project, type), type),
                 "get row cond list in table");
     }
 
-    @RequestMapping(value = "/row/{project}/{table}/{username}", method = { RequestMethod.POST }, produces = {
+    @RequestMapping(value = "/row/{project}/{type}/{table}/{name}", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<String> addRowConds(@PathVariable String project, @PathVariable String table,
-            @PathVariable String username, @RequestBody Map<String, List<RowACL.Cond>> condsWithColumn)
-            throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+    public EnvelopeResponse<String> addRowConds(
+            @PathVariable String project,
+            @PathVariable String table,
+            @PathVariable String name,
+            @PathVariable String type,
+            @RequestBody RowACL.ColumnToConds condsWithColumn) throws IOException {
+        validateUtil.validateArgs(project, table, name);
+        validateUtil.validateIdentifiers(name, type);
         validateUtil.validateTable(project, table);
         validateUtil.validateColumn(project, table, condsWithColumn.keySet());
-        rowACLService.addToRowCondList(project, username, table, condsWithColumn);
+        rowACLService.addToRowACL(project, name, table, condsWithColumn, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "add user row cond list.");
     }
 
-    @RequestMapping(value = "/row/preview/{project}/{table}/{username}", method = { RequestMethod.POST }, produces = {
+    @RequestMapping(value = "/row/preview/{project}/{table:.+}", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<String> preview(@PathVariable String project, @PathVariable String table,
-            @PathVariable String username, @RequestBody Map<String, List<RowACL.Cond>> condsWithColumn)
-            throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+    public EnvelopeResponse<String> preview(
+            @PathVariable String project,
+            @PathVariable String table,
+            @RequestBody RowACL.ColumnToConds condsWithColumn) throws IOException {
+        validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
         validateUtil.validateColumn(project, table, condsWithColumn.keySet());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rowACLService.preview(project, table, condsWithColumn),
                 "add user row cond list.");
     }
 
-    @RequestMapping(value = "/row/{project}/{table}/{username}", method = { RequestMethod.PUT }, produces = {
+    @RequestMapping(value = "/row/{project}/{type}/{table}/{name}", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<String> updateUserColumnBlackList(@PathVariable String project, @PathVariable String table,
-            @PathVariable String username, @RequestBody Map<String, List<RowACL.Cond>> condsWithColumn)
-            throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+    public EnvelopeResponse<String> updateUserColumnBlackList(
+            @PathVariable String project,
+            @PathVariable String table,
+            @PathVariable String name,
+            @PathVariable String type,
+            @RequestBody RowACL.ColumnToConds condsWithColumn) throws IOException {
+        validateUtil.validateArgs(project, table, name);
+        validateUtil.validateIdentifiers(name, type);
         validateUtil.validateTable(project, table);
         validateUtil.validateColumn(project, table, condsWithColumn.keySet());
-        rowACLService.updateToRowCondList(project, username, table, condsWithColumn);
+        rowACLService.updateRowACL(project, name, table, condsWithColumn, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "update user's row cond list");
     }
 
-    @RequestMapping(value = "/row/{project}/{table}/{username}", method = { RequestMethod.DELETE }, produces = {
+    @RequestMapping(value = "/row/{project}/{type}/{table}/{name}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<String> deleteUserFromColumnBlackList(@PathVariable String project,
-            @PathVariable String username, @PathVariable String table) throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+    public EnvelopeResponse<String> deleteUserFromColumnBlackList(
+            @PathVariable String project,
+            @PathVariable String type,
+            @PathVariable String name,
+            @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table, name);
+        validateUtil.validateIdentifiers(name, type);
         validateUtil.validateTable(project, table);
-        rowACLService.deleteFromRowCondList(project, username, table);
+        rowACLService.deleteFromRowACL(project, name, table, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "delete user's row cond list");
     }
 }

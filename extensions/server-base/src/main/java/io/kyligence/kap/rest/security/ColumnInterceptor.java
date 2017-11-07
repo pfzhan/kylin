@@ -52,6 +52,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 import io.kyligence.kap.metadata.model.KapModel;
+import org.apache.kylin.rest.util.AclPermissionUtil;
 
 public class ColumnInterceptor extends QueryInterceptor implements IKeep {
 
@@ -74,7 +75,7 @@ public class ColumnInterceptor extends QueryInterceptor implements IKeep {
         return ColumnACLManager
                 .getInstance(KylinConfig.getInstanceFromEnv())
                 .getColumnACLByCache(project)
-                .getColumnBlackListByUser(username);
+                .getColumnBlackList(username, AclPermissionUtil.getCurrentUserGroups());
     }
 
     @Override

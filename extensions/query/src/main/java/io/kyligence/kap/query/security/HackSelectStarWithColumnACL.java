@@ -59,8 +59,11 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return sql;
         }
 
-        Set<String> columnBlackList = ColumnACLManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getColumnACLByCache(project).getColumnBlackListByUser(QueryContext.current().getUsername());
+        QueryContext context = QueryContext.current();
+        Set<String> columnBlackList = ColumnACLManager //
+                .getInstance(KylinConfig.getInstanceFromEnv()) //
+                .getColumnACLByCache(project) //
+                .getColumnBlackList(context.getUsername(), context.getGroups()); //
 
         if (columnBlackList.isEmpty()) {
             return sql;

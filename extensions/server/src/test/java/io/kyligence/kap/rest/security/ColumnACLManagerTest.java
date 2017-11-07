@@ -24,30 +24,47 @@
 
 package io.kyligence.kap.rest.security;
 
-import io.kyligence.kap.rest.util.MultiNodeManagerTestBase;
+import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.acl.ColumnACL;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
+import io.kyligence.kap.rest.util.MultiNodeManagerTestBase;
 
 public class ColumnACLManagerTest extends MultiNodeManagerTestBase {
+    @Test
+    public void testCaseInsensitiveFromDeserializer() throws IOException {
+        final ColumnACLManager manager = new ColumnACLManager(configA);
+        manager.addColumnACL(PROJECT, USER, "TABLE1", Sets.newHashSet("c1", "c2"), MetadataConstants.TYPE_USER);
+        ColumnACL columnACL = Preconditions.checkNotNull(getStore().getResource("/column_acl/" + PROJECT, ColumnACL.class, new JsonSerializer<>(ColumnACL.class)));
+        Map<String, Set<String>> columnBlackListByTable = columnACL.getColumnBlackListByTable("table1", MetadataConstants.TYPE_USER);
+        Assert.assertEquals(1, columnBlackListByTable.size());
+        Assert.assertTrue(columnBlackListByTable.get("u1").contains("C1"));
+    }
 
     @Test
     public void test() throws Exception {
         final ColumnACLManager columnACLManagerA = new ColumnACLManager(configA);
         final ColumnACLManager columnACLManagerB = new ColumnACLManager(configB);
 
-        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).isEmpty());
-        columnACLManagerA.addColumnACL(PROJECT, USER, TABLE, Sets.newHashSet("c1", "c2"));
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackList(USER, EMPTY_GROUP_SET).isEmpty());
+        columnACLManagerA.addColumnACL(PROJECT, USER, TABLE, Sets.newHashSet("c1", "c2"), MetadataConstants.TYPE_USER);
         // if not sleep, manager B's get method is faster than notify
         Thread.sleep(1000);
-        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).contains("T1.C1"));
-        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).contains("T1.C2"));
-        columnACLManagerB.deleteColumnACL(PROJECT, USER, TABLE);
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackList(USER, EMPTY_GROUP_SET).contains("T1.C1"));
+        Assert.assertTrue(columnACLManagerB.getColumnACLByCache(PROJECT).getColumnBlackList(USER, EMPTY_GROUP_SET).contains("T1.C2"));
+        columnACLManagerB.deleteColumnACL(PROJECT, USER, TABLE, MetadataConstants.TYPE_USER);
         Thread.sleep(1000);
-        Assert.assertEquals(0, columnACLManagerA.getColumnACLByCache(PROJECT).getColumnBlackListByUser(USER).size());
+        Assert.assertEquals(0, columnACLManagerA.getColumnACLByCache(PROJECT).getColumnBlackList(USER, EMPTY_GROUP_SET).size());
 
     }
 }

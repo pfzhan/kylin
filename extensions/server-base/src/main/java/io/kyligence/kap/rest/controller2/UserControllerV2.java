@@ -24,9 +24,6 @@
 
 package io.kyligence.kap.rest.controller2;
 
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.Message;
@@ -98,13 +95,4 @@ public class UserControllerV2 extends BasicController {
 
         throw new UnauthorizedException(msg.getAUTH_INFO_NOT_FOUND());
     }
-
-    @RequestMapping(value = "/authentication/authorities", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse<List<String>> getAuthoritiesV2() throws IOException {
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, userService.listUserAuthorities(), "");
-    }
-
 }

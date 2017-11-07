@@ -131,6 +131,10 @@ public class KapMessage {
         return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
     }
 
+    public String getGroup_EDIT_NOT_ALLOWED() {
+        return "Group editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+    }
+
     public String getOLD_PASSWORD_WRONG() {
         return "Old password is not correct!";
     }

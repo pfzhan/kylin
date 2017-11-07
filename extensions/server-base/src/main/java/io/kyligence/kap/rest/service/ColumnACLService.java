@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -47,59 +46,49 @@ public class ColumnACLService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    //get user's black column list by table. Like {user:[col1, col2]}.
-    public Map<String, Set<String>> getColumnBlackListByTable(String project, String table) throws IOException {
+    public Map<String, Set<String>> getColumnBlackListByTable(String project, String table, String type) throws IOException {
         aclEvaluate.checkProjectWritePermission(project);
-        return getColumnBlackListByProject(project).getColumnBlackListByTable(table);
+        return getColumnACL(project).getColumnBlackListByTable(table, type);
     }
 
-    //get available users only for frontend to select to add column ACL.
-    public List<String> getUsersCanAddColumnACL(String project, String table, Set<String> allUsers)
-            throws IOException {
+    public List<String> getCanAccessList(String project, String table, Set<String> allIdentifiers, String type) {
         aclEvaluate.checkProjectWritePermission(project);
-        Set<String> blockedUsers = getColumnBlackListByTable(project, table).keySet();
-        List<String> whiteUsers = new ArrayList<>();
-        for (String u : allUsers) {
-            if (!blockedUsers.contains(u)) {
-                whiteUsers.add(u);
-            }
-        }
-        return whiteUsers;
+        return getColumnACL(project).getCanAccessList(table, allIdentifiers, type);
     }
 
-    ColumnACL getColumnBlackListByProject(String project) throws IOException {
-        return ColumnACLManager.getInstance(getConfig()).getColumnACLByCache(project);
-    }
-
-    public boolean exists(String project, String username) throws IOException {
+    public boolean exists(String project, String name, String type) {
         aclEvaluate.checkProjectWritePermission(project);
-        return ColumnACLManager.getInstance(getConfig()).getColumnACLByCache(project).getUserColumnBlackList().containsKey(username);
+        return getColumnACL(project).contains(name, type);
     }
 
-    public void addToColumnBlackList(String project, String username, String table, Set<String> columns)
+    public void addToColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        ColumnACLManager.getInstance(getConfig()).addColumnACL(project, username, table, columns);
+        ColumnACLManager.getInstance(getConfig()).addColumnACL(project, name, table, columns, type);
     }
 
-    public void updateColumnBlackList(String project, String username, String table, Set<String> columns)
+    public void updateColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        ColumnACLManager.getInstance(getConfig()).updateColumnACL(project, username, table, columns);
+        ColumnACLManager.getInstance(getConfig()).updateColumnACL(project, name, table, columns, type);
     }
 
-    public void deleteFromTableBlackList(String project, String username, String table) throws IOException {
+    public void deleteFromColumnACL(String project, String name, String table, String type) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, username, table);
+        ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, name, table, type);
     }
 
-    public void deleteFromTableBlackList(String project, String username) throws IOException {
+    public void deleteFromColumnACL(String project, String name, String type) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
-        ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, username);
+        ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, name, type);
     }
 
-    public void deleteFromTableBlackListByTbl(String project, String table) throws IOException {
+    public void deleteFromColumnACLByTbl(String project, String table) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACLByTbl(project, table);
+    }
+
+    private ColumnACL getColumnACL(String project) {
+        return ColumnACLManager.getInstance(getConfig()).getColumnACLByCache(project);
     }
 }

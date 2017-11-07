@@ -28,6 +28,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.AccessRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -37,7 +38,6 @@ import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.ProjectService;
-import org.apache.kylin.rest.service.TableACLService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.acls.model.Acl;
@@ -50,8 +50,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import io.kyligence.kap.rest.service.ColumnACLService;
-import io.kyligence.kap.rest.service.RowACLService;
+import io.kyligence.kap.rest.util.ACLOperationUtil;
 
 /**
  * @author xduo
@@ -70,20 +69,20 @@ public class AccessControllerV2 extends BasicController {
     private CubeService cubeService;
 
     @Autowired
-    @Qualifier("TableAclService")
-    private TableACLService tableACLService;
-
-    @Autowired
-    @Qualifier("ColumnAclService")
-    private ColumnACLService columnACLService;
-
-    @Autowired
-    @Qualifier("RowAclService")
-    private RowACLService rowACLService;
-
-    @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
+
+    /**
+     * Get current user's permission in the project
+     */
+    @RequestMapping(value = "/user/permission/{project}", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse<String> getUserPermissionInPrj(@PathVariable("project") String project) {
+        String grantedPermission = accessService.getUserPermissionInPrj(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, grantedPermission, "");
+    }
+
 
     /**
      * Get access entry list of a domain object
@@ -167,34 +166,29 @@ public class AccessControllerV2 extends BasicController {
 
     /**
      * Revoke access on a domain object from a user/role
-     * 
+     *
      * @param accessRequest
      */
 
-    @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.DELETE }, produces = {
+    @RequestMapping(value = "/{entityType}/{uuid}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse revokeV2(@PathVariable String type, @PathVariable String uuid,
+    public EnvelopeResponse revokeV2(@PathVariable String entityType, @PathVariable String uuid,
             AccessRequest accessRequest) throws IOException {
-        AclEntity ae = accessService.getAclEntity(type, uuid);
-        revokeLowLevelACL(type, uuid, accessRequest.getSid());
+        AclEntity ae = accessService.getAclEntity(entityType, uuid);
+        if (accessRequest.isPrincipal()) {
+            revokeLowLevelACL(entityType, uuid, accessRequest.getSid(), MetadataConstants.TYPE_USER);
+        } else {
+            revokeLowLevelACL(entityType, uuid, accessRequest.getSid(), MetadataConstants.TYPE_GROUP);
+        }
         Acl acl = accessService.revoke(ae, accessRequest.getAccessEntryId());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAceResponses(acl), "");
     }
 
-    private void revokeLowLevelACL(String type, String uuid, String username) throws IOException {
-        if (AclEntityType.PROJECT_INSTANCE.equals(type)) {
+    private void revokeLowLevelACL(String entityType, String uuid, String name, String type) throws IOException {
+        if (AclEntityType.PROJECT_INSTANCE.equals(entityType)) {
             String prj = projectService.getProjectManager().getPrjByUuid(uuid).getName();
-            if (tableACLService.exists(prj, username)) {
-                tableACLService.deleteFromTableBlackList(prj, username);
-            }
-            if (columnACLService.exists(prj, username)) {
-                columnACLService.deleteFromTableBlackList(prj, username);
-
-            }
-            if (rowACLService.exists(prj, username)) {
-                rowACLService.deleteFromRowCondList(prj, username);
-            }
+            ACLOperationUtil.delLowLevelACLByPrj(prj, name, type);
         }
     }
 

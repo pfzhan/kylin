@@ -24,98 +24,135 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
 import com.google.common.collect.Sets;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class ColumnACLTest {
+    private static Set<String> EMPTY_GROUP_SET = new HashSet<>();
+
     @Test
     public void testCaseInsensitive() {
         ColumnACL columnACL = new ColumnACL();
-        columnACL.add("u1", "t1", Sets.newHashSet("c1", "c2"));
-        Assert.assertEquals(columnACL.getColumnBlackListByTable("T1").size(), columnACL.getColumnBlackListByTable("t1").size());
-        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("T1.C1"));
-        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("t1.c1"));
-        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("T1.C2"));
-        Assert.assertTrue(columnACL.getColumnBlackListByUser("u1").contains("t1.c2"));
+        columnACL.add("u1", "t1", Sets.newHashSet("c1", "c2"), MetadataConstants.TYPE_USER);
+        Assert.assertEquals(columnACL.getColumnBlackListByTable("T1", MetadataConstants.TYPE_USER).size(), columnACL.getColumnBlackListByTable("t1", MetadataConstants.TYPE_USER).size());
+        Assert.assertTrue(columnACL.getColumnBlackList("u1", EMPTY_GROUP_SET).contains("T1.C1"));
+        Assert.assertTrue(columnACL.getColumnBlackList("u1", EMPTY_GROUP_SET).contains("t1.c1"));
+        Assert.assertTrue(columnACL.getColumnBlackList("u1", EMPTY_GROUP_SET).contains("T1.C2"));
+        Assert.assertTrue(columnACL.getColumnBlackList("u1", EMPTY_GROUP_SET).contains("t1.c2"));
     }
 
     @Test
     public void testDelColumnACLByTable() {
         ColumnACL columnACL = new ColumnACL();
         Set<String> c1 = Sets.newHashSet("C2", "C3");
-        columnACL.add("u1", "DB.TABLE1", c1);
-        columnACL.add("u2", "DB.TABLE1", c1);
-        columnACL.add("u2", "DB.TABLE2", c1);
-        columnACL.add("u2", "DB.TABLE3", c1);
-        columnACL.add("u3", "DB.TABLE3", c1);
+        columnACL.add("u1", "DB.TABLE1", c1, MetadataConstants.TYPE_USER);
+        columnACL.add("u2", "DB.TABLE1", c1, MetadataConstants.TYPE_USER);
+        columnACL.add("u2", "DB.TABLE2", c1, MetadataConstants.TYPE_USER);
+        columnACL.add("u2", "DB.TABLE3", c1, MetadataConstants.TYPE_USER);
+        columnACL.add("u3", "DB.TABLE3", c1, MetadataConstants.TYPE_USER);
+
+        columnACL.add("g1", "DB.TABLE1", c1, MetadataConstants.TYPE_GROUP);
+        columnACL.add("g2", "DB.TABLE1", c1, MetadataConstants.TYPE_GROUP);
+        columnACL.add("g3", "DB.TABLE2", c1, MetadataConstants.TYPE_GROUP);
 
         columnACL.deleteByTbl("DB.TABLE1");
 
-        ColumnACL expected = new ColumnACL();
-        expected.add("u2", "DB.TABLE2", c1);
-        expected.add("u2", "DB.TABLE3", c1);
-        expected.add("u3", "DB.TABLE3", c1);
-        Assert.assertEquals(expected, columnACL);
+        Assert.assertEquals(2, columnACL.size(MetadataConstants.TYPE_USER));
+        Assert.assertEquals(1, columnACL.size(MetadataConstants.TYPE_GROUP));
+        Assert.assertTrue(columnACL.contains("u2", MetadataConstants.TYPE_USER));
+        Assert.assertEquals(Sets.newHashSet("DB.TABLE2.C2", "DB.TABLE2.C3", "DB.TABLE3.C2", "DB.TABLE3.C3"), columnACL.getColumnBlackList("u2", EMPTY_GROUP_SET));
+        Assert.assertTrue(columnACL.contains("u3", MetadataConstants.TYPE_USER));
+    }
+
+    @Test
+    public void testDeleteToEmpty() {
+        ColumnACL columnACL = new ColumnACL();
+        columnACL.add("u1", "DB.TABLE1", Sets.newHashSet("c1", "c2"), MetadataConstants.TYPE_USER);
+        columnACL.add("u2", "DB.TABLE2", Sets.newHashSet("c1", "c2"), MetadataConstants.TYPE_USER);
+        columnACL.delete("u1", "DB.TABLE1", MetadataConstants.TYPE_USER);
+        columnACL.deleteByTbl("DB.TABLE2");
+        Assert.assertEquals(0, columnACL.size());
+    }
+
+    @Test
+    public void testGetTableBlackList() {
+        ColumnACL columnACL = new ColumnACL();
+        Set<String> cols = Sets.newHashSet("c1");
+        columnACL.add("u1", "t1", cols, MetadataConstants.TYPE_USER);
+        columnACL.add("u1", "t2", cols, MetadataConstants.TYPE_USER);
+        columnACL.add("u2", "t1", cols, MetadataConstants.TYPE_USER);
+        columnACL.add("g1", "t3", cols, MetadataConstants.TYPE_GROUP);
+        columnACL.add("g1", "t4", cols, MetadataConstants.TYPE_GROUP);
+        columnACL.add("g1", "t5", cols, MetadataConstants.TYPE_GROUP);
+        columnACL.add("g2", "t6", cols, MetadataConstants.TYPE_GROUP);
+        Set<String> columnBlackList = columnACL.getColumnBlackList("u1", Sets.newHashSet("g1", "g2"));
+        Assert.assertEquals(Sets.newHashSet("t1.c1", "t2.c1", "t3.c1", "t4.c1", "t5.c1", "t6.c1"), columnBlackList);
     }
 
     @Test
     public void testColumnACL() {
         ColumnACL empty = new ColumnACL();
         try {
-            empty.delete("a", "DB.TABLE1");
+            empty.delete("a", "DB.TABLE1", MetadataConstants.TYPE_USER);
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
-            Assert.assertEquals("Operation fail, user:a is not found in column black list", e.getMessage());
+            Assert.assertEquals("Operation fail, user:a has no column ACL", e.getMessage());
         }
 
         //add
         ColumnACL columnACL = new ColumnACL();
         Set<String> c1 = Sets.newHashSet("C2", "C3");
-        columnACL.add("user1", "DB.TABLE1", c1);
-        Assert.assertEquals(1, columnACL.getUserColumnBlackList().size());
+        columnACL.add("user1", "DB.TABLE1", c1, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(1, columnACL.size(MetadataConstants.TYPE_USER));
 
         //add duplicated
         try {
-            columnACL.add("user1", "DB.TABLE1", c1);
+            columnACL.add("user1", "DB.TABLE1", c1, MetadataConstants.TYPE_USER);
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (Exception e) {
             Assert.assertEquals("Operation fail, user:user1 already in table's columns blacklist!", e.getMessage());
         }
 
         //add null column list
-        columnACL.add("user1", "DB.TABLE2", new TreeSet<String>());
-        Assert.assertEquals(1, columnACL.getUserColumnBlackList().size());
+        columnACL.add("user1", "DB.TABLE2", new TreeSet<String>(), MetadataConstants.TYPE_USER);
+        Assert.assertEquals(1, columnACL.size(MetadataConstants.TYPE_USER));
 
         //add different table column list
-        columnACL.add("user2", "DB.TABLE2", c1);
-        Assert.assertEquals(2, columnACL.getUserColumnBlackList().size());
+        columnACL.add("user2", "DB.TABLE2", c1, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(2, columnACL.size(MetadataConstants.TYPE_USER));
 
         //add different user column list
         Set<String> c2 = Sets.newHashSet("C2", "C3");
-        columnACL.add("user1", "DB.TABLE2", c2);
-        Assert.assertEquals(2, columnACL.getUserColumnBlackList().get("user1").size());
+        columnACL.add("user1", "DB.TABLE2", c2, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(2, columnACL.size(MetadataConstants.TYPE_USER));
+        Assert.assertEquals(4, columnACL.getColumnBlackList("user1", EMPTY_GROUP_SET).size());
+        Assert.assertEquals(2, columnACL.getColumnBlackList("user2", EMPTY_GROUP_SET).size());
 
         //update
         Set<String> c3 = Sets.newHashSet("C3");
-        columnACL.update("user1", "DB.TABLE2", c3);
-        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2").equals(c3));
+        columnACL.update("user1", "DB.TABLE2", c3, MetadataConstants.TYPE_USER);
+        Assert.assertEquals(c3, columnACL.getColumnBlackListByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1"));
 
         //update
-        columnACL.update("user1", "DB.TABLE2", new TreeSet<String>());
-        Assert.assertTrue(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2").equals(c3));
+        columnACL.update("user1", "DB.TABLE2", new TreeSet<String>(), MetadataConstants.TYPE_USER);
+        Assert.assertEquals(c3, columnACL.getColumnBlackListByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1"));
 
         //delete
-        columnACL.delete("user1", "DB.TABLE2");
-        Assert.assertEquals(1, columnACL.getUserColumnBlackList().get("user1").size());
-        Assert.assertNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE2"));
-        Assert.assertNotNull(columnACL.getUserColumnBlackList().get("user1").getColumnBlackListByTbl("DB.TABLE1"));
+        Assert.assertEquals(3, columnACL.getColumnBlackList("user1", EMPTY_GROUP_SET).size());
+        columnACL.delete("user1", "DB.TABLE2", MetadataConstants.TYPE_USER);
+        Assert.assertEquals(2, columnACL.size(MetadataConstants.TYPE_USER));
+        Assert.assertEquals(2, columnACL.getColumnBlackList("user1", EMPTY_GROUP_SET).size());
+        Assert.assertNull(columnACL.getColumnBlackListByTable("DB.TABLE2", MetadataConstants.TYPE_USER).get("user1"));
+        Assert.assertNotNull(columnACL.getColumnBlackListByTable("DB.TABLE1", MetadataConstants.TYPE_USER).get("user1"));
 
         //delete
-        columnACL.delete("user1");
-        Assert.assertNull(columnACL.getUserColumnBlackList().get("user1"));
+        columnACL.delete("user1", MetadataConstants.TYPE_USER);
+        Assert.assertFalse(columnACL.contains("user1", MetadataConstants.TYPE_USER));
     }
 }

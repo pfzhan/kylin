@@ -41,11 +41,15 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 import org.apache.kylin.rest.broadcaster.BroadcasterReceiveServlet;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class MultiNodeManagerTestBase extends LocalFileMetadataTestCase {
     private static Server server;
     protected static String PROJECT = "default";
     protected static String USER = "u1";
     protected static String TABLE = "t1";
+    protected static Set<String> EMPTY_GROUP_SET = new HashSet<>();
 
     protected static KylinConfig configA;
     protected static KylinConfig configB;

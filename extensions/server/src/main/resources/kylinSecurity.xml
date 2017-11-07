@@ -82,10 +82,27 @@
 	</bean>
 
 	<beans profile="ldap,saml,debug-ldap,debug-saml">
+		<bean id="userService" class="io.kyligence.kap.rest.service.LDAPUserService" />
+
+		<bean id="userGroupService" class="io.kyligence.kap.rest.service.LDAPUserGroupService" />
+
 		<bean id="ldapSource" class="org.springframework.security.ldap.DefaultSpringSecurityContextSource">
 			<constructor-arg value="${kylin.security.ldap.connection-server}" />
 			<property name="userDn" value="${kylin.security.ldap.connection-username}" />
 			<property name="password" value="${kylin.security.ldap.connection-password}" />
+		</bean>
+
+		<bean id="userSearch" class="org.springframework.security.ldap.search.FilterBasedLdapUserSearch">
+			<constructor-arg index="0" value="${kylin.security.ldap.user-search-base}" />
+			<constructor-arg index="1" value="${kylin.security.ldap.user-search-pattern}" />
+			<constructor-arg index="2" ref="ldapSource" />
+		</bean>
+
+		<bean id="ldapUserAuthoritiesPopulator" class="org.apache.kylin.rest.security.LDAPAuthoritiesPopulator">
+			<constructor-arg index="0" ref="ldapSource" />
+			<constructor-arg index="1" value="${kylin.security.ldap.user-group-search-base}" />
+			<constructor-arg index="2" value="${kylin.security.acl.admin-role}" />
+			<property name="groupSearchFilter" value="${kylin.security.ldap.user-group-search-filter}"/>
 		</bean>
 
 		<bean id="kylinUserAuthProvider" class="io.kyligence.kap.rest.security.KapAuthenticationProvider">
@@ -94,23 +111,10 @@
 					<constructor-arg>
 						<bean class="org.springframework.security.ldap.authentication.BindAuthenticator">
 							<constructor-arg ref="ldapSource" />
-							<property name="userSearch">
-								<bean id="userSearch" class="org.springframework.security.ldap.search.FilterBasedLdapUserSearch">
-									<constructor-arg index="0" value="${kylin.security.ldap.user-search-base}" />
-									<constructor-arg index="1" value="${kylin.security.ldap.user-search-pattern}" />
-									<constructor-arg index="2" ref="ldapSource" />
-								</bean>
-							</property>
+							<property name="userSearch" ref="userSearch"/>
 						</bean>
 					</constructor-arg>
-					<constructor-arg>
-						<bean class="org.apache.kylin.rest.security.AuthoritiesPopulator">
-							<constructor-arg index="0" ref="ldapSource" />
-							<constructor-arg index="1" value="${kylin.security.ldap.user-group-search-base}" />
-							<constructor-arg index="2" value="${kylin.security.acl.admin-role}" />
-							<constructor-arg index="3" value="${kylin.security.acl.default-role}" />
-						</bean>
-					</constructor-arg>
+					<constructor-arg ref="ldapUserAuthoritiesPopulator" />
 				</bean>
 			</constructor-arg>
 		</bean>
@@ -121,25 +125,28 @@
 					<constructor-arg>
 						<bean class="org.springframework.security.ldap.authentication.BindAuthenticator">
 							<constructor-arg ref="ldapSource" />
-							<property name="userSearch">
-								<bean id="userSearch" class="org.springframework.security.ldap.search.FilterBasedLdapUserSearch">
-									<constructor-arg index="0" value="${kylin.security.ldap.service-search-base}" />
-									<constructor-arg index="1" value="${kylin.security.ldap.service-search-pattern}" />
-									<constructor-arg index="2" ref="ldapSource" />
-								</bean>
-							</property>
+							<property name="userSearch" ref="userSearch"/>
 						</bean>
 					</constructor-arg>
 					<constructor-arg>
-						<bean class="org.apache.kylin.rest.security.AuthoritiesPopulator">
+						<bean class="org.apache.kylin.rest.security.LDAPAuthoritiesPopulator">
 							<constructor-arg index="0" ref="ldapSource" />
 							<constructor-arg index="1" value="${kylin.security.ldap.service-group-search-base}" />
 							<constructor-arg index="2" value="${kylin.security.acl.admin-role}" />
-							<constructor-arg index="3" value="${kylin.security.acl.default-role}" />
+							<property name="groupSearchFilter" value="${kylin.security.ldap.user-group-search-filter}"/>
 						</bean>
 					</constructor-arg>
 				</bean>
 			</constructor-arg>
+		</bean>
+
+		<bean id="ldapTemplate" class="org.springframework.security.ldap.SpringSecurityLdapTemplate">
+			<constructor-arg index="0" ref="ldapSource"/>
+		</bean>
+
+		<bean id="ldapUserDetailsService" class="org.springframework.security.ldap.userdetails.LdapUserDetailsService">
+			<constructor-arg ref="userSearch" />
+			<constructor-arg ref="ldapUserAuthoritiesPopulator" />
 		</bean>
 
 	</beans>
@@ -166,6 +173,11 @@
 		<scr:authentication-manager alias="testingAuthenticationManager">
 			<scr:authentication-provider ref="authenProvider" />
 		</scr:authentication-manager>
+
+		<bean id="userService" class="org.apache.kylin.rest.service.KylinUserService" />
+
+		<bean id="userGroupService" class="io.kyligence.kap.rest.service.KapUserGroupService" />
+
 	</beans>
 	
 	<beans profile="testing,ldap,debug-testing,debug-ldap">
@@ -365,11 +377,11 @@
 			</constructor-arg>
 		</bean>
 
-		<bean id="ldapUserAuthoritiesPopulator" class="org.apache.kylin.rest.security.AuthoritiesPopulator">
+		<bean id="ldapUserAuthoritiesPopulator" class="org.apache.kylin.rest.security.LDAPAuthoritiesPopulator">
 			<constructor-arg index="0" ref="ldapSource" />
 			<constructor-arg index="1" value="${kylin.security.ldap.user-group-search-base}" />
 			<constructor-arg index="2" value="${kylin.security.acl.admin-role}" />
-			<constructor-arg index="3" value="${kylin.security.acl.default-role}" />
+			<property name="groupSearchFilter" value="${kylin.security.ldap.user-group-search-filter}"/>
 		</bean>
 
 		<bean id="userSearch" class="org.springframework.security.ldap.search.FilterBasedLdapUserSearch">

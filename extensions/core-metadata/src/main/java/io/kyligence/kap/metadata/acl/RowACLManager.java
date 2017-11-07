@@ -24,31 +24,26 @@
 
 package io.kyligence.kap.metadata.acl;
 
+import static io.kyligence.kap.metadata.acl.RowACL.concatConds;
+import static io.kyligence.kap.metadata.acl.RowACL.getColumnWithType;
+
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.commons.lang.text.StrBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-/**
- */
 public class RowACLManager {
 
     private static final Logger logger = LoggerFactory.getLogger(RowACLManager.class);
@@ -154,78 +149,48 @@ public class RowACLManager {
     private RowACL getRowACL(String project) throws IOException {
         String path = DIR_PREFIX + project;
         RowACL rowACLRecord = getStore().getResource(path, RowACL.class, ROW_ACL_SERIALIZER);
-        if (rowACLRecord == null || rowACLRecord.getTableRowCondsWithUser() == null) {
+        if (rowACLRecord == null) {
             return new RowACL();
         }
         return rowACLRecord;
     }
 
-    //user1:{col1:[a, b, c], col2:[d]}
-    public Map<String, Map<String, List<RowACL.Cond>>> getRowCondListByTable(String project, String table) throws IOException {
-        Map<String, RowACL.TableRowCondList> tableRowCondsWithUser = getRowACL(project).getTableRowCondsWithUser();
-        Map<String, Map<String, List<RowACL.Cond>>> results = new HashMap<>();
-        for (String user : tableRowCondsWithUser.keySet()) {
-            RowACL.TableRowCondList tableRowCondList = tableRowCondsWithUser.get(user);
-            RowACL.RowCondList rowCondListByTable = tableRowCondList.getRowCondListByTable(table);
-            if (!rowCondListByTable.isEmpty()) {
-                results.put(user, rowCondListByTable.getCondsWithColumn());
-            }
-        }
-        return results;
+    public Map<String, String> getQueryUsedTblToConds(String project, String name, String type) {
+        return getRowACLByCache(project).getQueryUsedTblToConds(project, name, type);
     }
 
-    public Map<String, String> getQueryUsedCondsByUser(String project, String username) {
-        Map<String, String> result = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        Map<String, RowACL.TableRowCondList> tableRowCondsWithUser = getRowACLByCache(project).getTableRowCondsWithUser();
-        if (tableRowCondsWithUser == null || tableRowCondsWithUser.isEmpty()) {
-            return result;
-        }
-
-        RowACL.TableRowCondList tableRowCondList = tableRowCondsWithUser.get(username);
-        if (tableRowCondList == null || tableRowCondList.isEmpty()) {
-            return result;
-        }
-
-        for (String tbl : tableRowCondList.keySet()) {
-            Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, tbl));
-            Map<String, List<RowACL.Cond>> condsWithColumn = tableRowCondList.getRowCondListByTable(tbl).getCondsWithColumn();
-            result.put(tbl, concatConds(condsWithColumn, columnWithType));
-        }
-        return result;
-    }
-
-    public String preview(String project, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
+    public String preview(String project, String table, RowACL.ColumnToConds condsWithColumn)
             throws IOException {
         Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
         return concatConds(condsWithColumn, columnWithType);
     }
 
-    public void addRowACL(String project, String username, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
+    public void addRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
             throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).add(username, table, condsWithColumn);
+        RowACL rowACL = getRowACL(project).add(name, table, condsWithColumn, type);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
 
-    public void updateRowACL(String project, String username, String table, Map<String, List<RowACL.Cond>> condsWithColumn)
+    public void updateRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
             throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).update(username, table, condsWithColumn);
+        RowACL rowACL = getRowACL(project).update(name, table, condsWithColumn, type);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
 
-    public void deleteRowACL(String project, String username, String table) throws IOException {
+    public void deleteRowACL(String project, String name, String table, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).delete(username, table);
+        RowACL rowACL = getRowACL(project).delete(name, table, type);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
 
-    public void deleteRowACL(String project, String username) throws IOException {
+    public void deleteRowACL(String project, String name, String type) throws IOException {
         String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).deleteByUser(username);
+        RowACL rowACL = getRowACL(project).delete(name, type);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
     }
@@ -235,45 +200,5 @@ public class RowACLManager {
         RowACL rowACL = getRowACL(project).deleteByTbl(table);
         getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
         rowACLMap.put(project, rowACL);
-    }
-
-    private Map<String, String> getColumnWithType(String project, String table) {
-        Map<String, String> columnWithType = new HashMap<>();
-        TableDesc tableDesc = TableMetadataManager.getInstance(config).getTableDesc(table, project);
-        ColumnDesc[] columns = tableDesc.getColumns();
-        for (ColumnDesc column : columns) {
-            columnWithType.put(column.getName(), column.getTypeName());
-        }
-        return columnWithType;
-    }
-
-    public static String concatConds(Map<String, List<RowACL.Cond>> condsWithCol, Map<String, String> columnWithType) {
-        StrBuilder result = new StrBuilder();
-        int j = 0;
-        for (String col : condsWithCol.keySet()) {
-            String type = Preconditions.checkNotNull(columnWithType.get(col), "column:" + col + " type not found");
-            List<RowACL.Cond> conds = condsWithCol.get(col);
-            for (int i = 0; i < conds.size(); i++) {
-                String parsedCond = conds.get(i).toString(col, type);
-                if (conds.size() == 1) {
-                    result.append(parsedCond);
-                    continue;
-                }
-                if (i == 0) {
-                    result.append("(").append(parsedCond).append(" OR ");
-                    continue;
-                }
-                if (i == conds.size() - 1) {
-                    result.append(parsedCond).append(")");
-                    continue;
-                }
-                result.append(parsedCond).append(" OR ");
-            }
-            if (j != condsWithCol.size() - 1) {
-                result.append(" AND ");
-            }
-            j++;
-        }
-        return result.toString();
     }
 }

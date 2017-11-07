@@ -387,4 +387,19 @@ public class KapConfig {
     public boolean isCognosParenthesesEscapeEnabled() {
         return Boolean.valueOf(config.getOptional("kap.query.cognos-parentheses-escape", "false"));
     }
+
+    /**
+     * LDAP filter
+     */
+    public String getLDAPUserSearchFilter() {
+        return config.getOptional("kylin.security.ldap.user-search-filter", "(objectClass=person)");
+    }
+
+    public String getLDAPGroupSearchFilter() {
+        return config.getOptional("kylin.security.ldap.group-search-filter", "(|(objectClass=groupOfNames)(objectClass=group))");
+    }
+
+    public String getLDAPGroupMemberSearchFilter() {
+        return config.getOptional("kylin.security.ldap.group-member-search-filter", "(&(cn={0})(objectClass=groupOfNames))");
+    }
 }

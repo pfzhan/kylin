@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.rest.security;
 
-import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.LEFT_INCLUSIVE;
-import static io.kyligence.kap.metadata.acl.RowACL.Cond.IntervalType.RIGHT_INCLUSIVE;
-import static io.kyligence.kap.metadata.acl.RowACLManager.concatConds;
-
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.persistence.JsonSerializer;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.Assert;
 import org.junit.Test;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.acl.RowACL;
@@ -42,43 +42,40 @@ import io.kyligence.kap.metadata.acl.RowACLManager;
 import io.kyligence.kap.rest.util.MultiNodeManagerTestBase;
 
 public class RowACLManagerTest extends MultiNodeManagerTestBase {
-
     @Test
-    public void testConcatConds() {
-        Map<String, List<RowACL.Cond>> condsWithCol = new HashMap<>();
-        Map<String, String> columnWithType = new HashMap<>();
-        columnWithType.put("COL1", "varchar(256)");
-        columnWithType.put("COL2", "timestamp");
-        columnWithType.put("COL3", "int");
-        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("a'b"));
-        List<RowACL.Cond> cond6 = Lists.newArrayList(new RowACL.Cond(LEFT_INCLUSIVE, "1505275932000", "1506321155000")); //timestamp
-        List<RowACL.Cond> cond7 = Lists.newArrayList(new RowACL.Cond(RIGHT_INCLUSIVE, "7", "100")); //normal type
-        condsWithCol.put("COL1", cond1);
-        condsWithCol.put("COL2", cond6);
-        condsWithCol.put("COL3", cond7);
-        Assert.assertEquals(
-                "(COL3>7 AND COL3<=100) AND (COL2>=TIMESTAMP '2017-09-13 04:12:12' AND COL2<TIMESTAMP '2017-09-25 06:32:35') AND ((COL1='a') OR (COL1='b') OR (COL1='a''b'))",
-                concatConds(condsWithCol, columnWithType));
+    public void testCaseInsensitiveFromDeserializer() throws IOException {
+        final RowACLManager manager = new RowACLManager(configA);
+        RowACL.ColumnToConds columnToConds = getColumnToConds();
+        manager.addRowACL(PROJECT, USER, "DEFAULT.TEST_COUNTRY", columnToConds, MetadataConstants.TYPE_USER);
+        RowACL rowACL = Preconditions.checkNotNull(getStore().getResource("/row_acl/" + PROJECT, RowACL.class, new JsonSerializer<>(RowACL.class)));
+        Map<String, RowACL.ColumnToConds> columnToCondsWithUser = rowACL.getColumnToCondsByTable("default.test_country", MetadataConstants.TYPE_USER);
+        Assert.assertEquals(1, columnToCondsWithUser.size());
+        Assert.assertEquals(2, columnToCondsWithUser.get(USER).getCondsByColumn("name").size());
     }
 
     @Test
     public void test() throws Exception {
         final RowACLManager rowACLManagerA = new RowACLManager(configA);
         final RowACLManager rowACLManagerB = new RowACLManager(configB);
-        Map<String, List<RowACL.Cond>> condsWithColumn = new HashMap<>();
-        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("c"));
-        List<RowACL.Cond> cond2 = Lists.newArrayList(new RowACL.Cond("d"), new RowACL.Cond("e"));
-        condsWithColumn.put("COUNTRY", cond1);
-        condsWithColumn.put("NAME", cond2);
+        RowACL.ColumnToConds columnToConds = getColumnToConds();
 
-        Assert.assertTrue(rowACLManagerB.getRowCondListByTable(PROJECT, TABLE).isEmpty());
-        rowACLManagerA.addRowACL(PROJECT, USER, "DEFAULT.TEST_COUNTRY", condsWithColumn);
+        Assert.assertTrue(rowACLManagerB.getRowACLByCache(PROJECT).getColumnToCondsByTable("DEFAULT.TEST_COUNTRY", MetadataConstants.TYPE_USER).isEmpty());
+        rowACLManagerA.addRowACL(PROJECT, USER, "DEFAULT.TEST_COUNTRY", columnToConds, MetadataConstants.TYPE_USER);
         // if not sleep, manager B's get method is faster than notify
         Thread.sleep(1000);
-        Assert.assertTrue(rowACLManagerB.getRowCondListByTable(PROJECT, "DEFAULT.TEST_COUNTRY").containsKey(USER));
+        Assert.assertTrue(rowACLManagerB.getRowACLByCache(PROJECT).getColumnToCondsByTable("DEFAULT.TEST_COUNTRY", MetadataConstants.TYPE_USER).containsKey(USER));
 
-        rowACLManagerB.deleteRowACL(PROJECT, USER, "DEFAULT.TEST_COUNTRY");
+        rowACLManagerB.deleteRowACL(PROJECT, USER, "DEFAULT.TEST_COUNTRY", MetadataConstants.TYPE_USER);
         Thread.sleep(1000);
-        Assert.assertEquals(0, rowACLManagerA.getRowCondListByTable(PROJECT, "DEFAULT.TEST_COUNTRY").size());
+        Assert.assertTrue(rowACLManagerA.getRowACLByCache(PROJECT).getColumnToCondsByTable("DEFAULT.TEST_COUNTRY", MetadataConstants.TYPE_USER).isEmpty());
+    }
+
+    private RowACL.ColumnToConds getColumnToConds() {
+        Map<String, List<RowACL.Cond>> colToConds = new HashMap<>();
+        List<RowACL.Cond> cond1 = Lists.newArrayList(new RowACL.Cond("a"), new RowACL.Cond("b"), new RowACL.Cond("c"));
+        List<RowACL.Cond> cond2 = Lists.newArrayList(new RowACL.Cond("d"), new RowACL.Cond("e"));
+        colToConds.put("COUNTRY", cond1);
+        colToConds.put("NAME", cond2);
+        return new RowACL.ColumnToConds(colToConds);
     }
 }

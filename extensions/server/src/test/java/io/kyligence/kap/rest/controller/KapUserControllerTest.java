@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
-import java.util.List;
 
 import io.kyligence.kap.rest.request.PasswdChangeRequest;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -55,10 +54,15 @@ public class KapUserControllerTest extends ServiceTestBase {
     @Qualifier("userService")
     private UserService userService;
 
+    @Autowired
+    @Qualifier("kapUserGroupController")
+    KapUserGroupController userGroupController;
+
     BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
 
     @Test
     public void testBasics() throws IOException {
+        addGroup();
         kapUserController.delete("TEST");
 
         // save
@@ -86,11 +90,6 @@ public class KapUserControllerTest extends ServiceTestBase {
             }
         }
 
-        // list authorities
-        List<String> authorities = (List<String>) kapUserController.listAllAuthorities().data;
-        assertTrue(authorities.contains("R4"));
-        assertTrue(authorities.contains("R5"));
-
         kapUserController.delete("TEST");
         assertTrue(userService.isEvictCacheFlag());
 
@@ -105,9 +104,9 @@ public class KapUserControllerTest extends ServiceTestBase {
 
     @Test
     public void testChangePassword() throws Exception {
+        addGroup();
         kapUserController.delete("TEST");
-        ManagedUser u = kapUserController.save("TEST"
-            , new ManagedUser("TEST", "pwd", true, "R1", "R2", "R3"));
+        kapUserController.save("TEST", new ManagedUser("TEST", "pwd", true, "R1", "R2", "R3"));
 
         kapUserController.save(new PasswdChangeRequest("TEST", "pwd", "Kylin@2017"));
 
@@ -117,6 +116,16 @@ public class KapUserControllerTest extends ServiceTestBase {
                 assertEquals(uu, "TEST", "Kylin@2017", false, "R1", "R2", "R3");
             }
         }
+    }
+
+    private void addGroup() throws IOException {
+        //KapUserGroupService will auto add group ALL_USERS when this test init, but when coming into this method, the resource has been cleaned.
+        userGroupController.addUserGroup("ALL_USERS");
+        userGroupController.addUserGroup("R1");
+        userGroupController.addUserGroup("R2");
+        userGroupController.addUserGroup("R3");
+        userGroupController.addUserGroup("R4");
+        userGroupController.addUserGroup("R5");
     }
 
     @After
@@ -129,7 +138,7 @@ public class KapUserControllerTest extends ServiceTestBase {
         Assert.assertEquals(username, u.getUsername());
         assertTrue(pwdEncoder.matches(password, u.getPassword()));
         Assert.assertEquals(disabled, u.isDisabled());
-        Assert.assertEquals(authorities.length, u.getAuthorities().size());
+        Assert.assertEquals(authorities.length + 1, u.getAuthorities().size());
         for (String a : authorities) {
             assertTrue(u.getAuthorities().contains(new SimpleGrantedAuthority(a)));
         }

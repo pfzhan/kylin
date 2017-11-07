@@ -25,9 +25,14 @@
 package io.kyligence.kap.rest.controller2;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -55,48 +60,81 @@ public class TableAclControllerV2 extends BasicController {
 
     @RequestMapping(value = "/table/{project}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<List<String>> getUsersCanQueryTheTbl(@PathVariable String project, @PathVariable String table) throws IOException {
+    public EnvelopeResponse<List<Pair<String, String>>> getAllIdentifiersCanQueryTheTbl(
+            @PathVariable String project,
+            @PathVariable String table
+    ) throws IOException {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        Set<String> allUsers = validateUtil.getAllUsers(project);
-        List<String> whiteList = tableACLService.getUsersCanQueryTheTbl(project, table, allUsers);
+        Set<String> allUsers = validateUtil.getAllIdentifiers(project, MetadataConstants.TYPE_USER);
+        Set<String> allGroups = validateUtil.getAllIdentifiers(project, MetadataConstants.TYPE_GROUP);
+
+        List<String> users = tableACLService.getCanAccessList(project, table, allUsers, MetadataConstants.TYPE_USER);
+        List<String> groups = tableACLService.getCanAccessList(project, table, allGroups, MetadataConstants.TYPE_GROUP);
+
+        List<Pair<String, String>> results = new ArrayList<>();
+        for (String user : users) {
+            results.add(Pair.newPair(user, "u"));
+        }
+        for (String group : groups) {
+            results.add(Pair.newPair(group, "g"));
+        }
+
+        Collections.sort(results, new Comparator<Pair<String, String>>() {
+            @Override
+            public int compare(Pair<String, String> o1, Pair<String, String> o2) {
+                return o1.getFirst().compareToIgnoreCase(o2.getFirst());
+            }
+        });
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, results, "get table acl");
+    }
+
+    @RequestMapping(value = "/table/{project}/{type}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse<List<String>> getIdentifiersCanQueryTheTbl(@PathVariable String project, @PathVariable String type, @PathVariable String table) throws IOException {
+        validateUtil.validateArgs(project, table);
+        validateUtil.validateTable(project, table);
+        Set<String> allIdentifiers = validateUtil.getAllIdentifiers(project, type);
+        List<String> whiteList = tableACLService.getCanAccessList(project, table, allIdentifiers, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, whiteList, "get table acl");
     }
 
-    @RequestMapping(value = "/table/{project}/black/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/table/{project}/{type}/black/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<List<String>> getUsersCannotQueryTheTbl(@PathVariable String project, @PathVariable String table) throws IOException {
+    public EnvelopeResponse<List<String>> getIdentifiersCannotQueryTheTbl(@PathVariable String project, @PathVariable String type, @PathVariable String table) throws IOException {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        List<String> blackList = tableACLService.getUsersCannotQueryTheTbl(project, table);
+        List<String> blackList = tableACLService.getNoAccessList(project, table, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, blackList, "get table acl");
     }
 
     // because the frontend passes user can not visit, so that means put it to the table black list
-    @RequestMapping(value = "/table/{project}/{table}/{username}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/table/{project}/{type}/{table}/{name}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<String> putUserToTableBlackList(
+    public EnvelopeResponse<String> putIdentifiersToTableBlackList(
             @PathVariable String project,
+            @PathVariable String type,
             @PathVariable String table,
-            @PathVariable String username) throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+            @PathVariable String name) throws IOException {
+        validateUtil.validateArgs(project, table, name);
+        validateUtil.validateIdentifiers(name, type);
         validateUtil.validateTable(project, table);
-        tableACLService.addToTableBlackList(project, username, table);
+        tableACLService.addToTableACL(project, name, table, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "revoke user table query permission and add user to table black list.");
     }
 
     // because the frontend passes user can visit, so that means remove the user from the table black list
-    @RequestMapping(value = "/table/{project}/{table}/{username}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/table/{project}/{type}/{table}/{name}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<String> deleteUserFromTableBlackList(
+    public EnvelopeResponse<String> deleteIdentifiersFromTableBlackList(
             @PathVariable String project,
+            @PathVariable String type,
             @PathVariable String table,
-            @PathVariable String username) throws IOException {
-        validateUtil.validateArgs(project, table, username);
-        validateUtil.validateUser(username);
+            @PathVariable String name) throws IOException {
+        validateUtil.validateArgs(project, table, name);
+        validateUtil.validateIdentifiers(name, type);
         validateUtil.validateTable(project, table);
-        tableACLService.deleteFromTableBlackList(project, username, table);
+        tableACLService.deleteFromTableACL(project, name, table, type);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "grant user table query permission and remove user from table black list.");
     }
 }

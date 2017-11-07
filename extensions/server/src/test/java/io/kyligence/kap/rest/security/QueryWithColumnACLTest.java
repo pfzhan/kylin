@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.query.security.QuerACLTestUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -36,6 +37,8 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.google.common.collect.Sets;
 
@@ -55,6 +58,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
     @Before
     public void setUp() {
         this.createTestMetadata();
+        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(false, null));
         KylinConfig.getInstanceFromEnv().setProperty(
                 "kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
@@ -73,7 +77,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
 
         // add column acl, query fail
         QuerACLTestUtil.setUser(ADMIN);
-        getColumnACLManager().addColumnACL(PROJECT, ADMIN, STREAMING_TABLE, Sets.newHashSet("MINUTE_START"));
+        getColumnACLManager().addColumnACL(PROJECT, ADMIN, STREAMING_TABLE, Sets.newHashSet("MINUTE_START"), MetadataConstants.TYPE_USER);
         try {
             QuerACLTestUtil.mockQuery(PROJECT, "select * from STREAMING_TABLE");
             Assert.fail("expecting some AlreadyExistsException here");
@@ -85,7 +89,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
         QuerACLTestUtil.mockQuery(PROJECT, "select HOUR_START from STREAMING_TABLE");
 
         // remove acl, query success
-        getColumnACLManager().deleteColumnACL(PROJECT, ADMIN, STREAMING_TABLE);
+        getColumnACLManager().deleteColumnACL(PROJECT, ADMIN, STREAMING_TABLE, MetadataConstants.TYPE_USER);
         QuerACLTestUtil.mockQuery(PROJECT, "select * from STREAMING_TABLE");
     }
 
@@ -96,7 +100,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
         // ccExp: CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)
 
         QuerACLTestUtil.setUser(ADMIN);
-        getColumnACLManager().addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("NAME"));
+        getColumnACLManager().addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("NAME"), MetadataConstants.TYPE_USER);
         try {
             QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
             Assert.fail("expecting some AlreadyExistsException here");
@@ -116,6 +120,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
     @After
     public void after() throws Exception {
         this.cleanupTestMetadata();
+        SecurityContextHolder.getContext().setAuthentication(null);
     }
 
     private ColumnACLManager getColumnACLManager() {
