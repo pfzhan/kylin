@@ -42,7 +42,55 @@ public class TimestampDiff extends UDF {
         return convertDuration(duration, arg1);
     }
 
+    public Long evaluate(String arg1, Timestamp arg2, Date arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
+    public Long evaluate(String arg1, Timestamp arg2, Time arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
+    public Long evaluate(String arg1, Date arg2, Timestamp arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
     public Long evaluate(String arg1, Date arg2, Date arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
+    public Long evaluate(String arg1, Date arg2, Time arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
+    public Long evaluate(String arg1, Time arg2, Timestamp arg3) {
+        if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
+            return null;
+        }
+        Duration duration = new Duration(arg2.getTime(), arg3.getTime());
+        return convertDuration(duration, arg1);
+    }
+
+    public Long evaluate(String arg1, Time arg2, Date arg3) {
         if (StringUtils.isAnyEmpty(arg1) || arg2 == null || arg3 == null) {
             return null;
         }
