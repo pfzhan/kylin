@@ -93,8 +93,8 @@ public class ColumnIndexWriter implements Closeable {
         long position = 0;
         long headerSize = 0;
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexRaw.getIterable(true)) {
-            Comparable key = indexEntry.getKey();
-            Iterable<? extends Number> value = indexEntry.getValue();
+            Comparable key = indexEntry.getFirst();
+            Iterable<? extends Number> value = indexEntry.getSecond();
 
             if (counter++ % step == 0) {
                 keyEncoding.serialize(key, outputStream);
@@ -112,8 +112,8 @@ public class ColumnIndexWriter implements Closeable {
 
         // write body bytes
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexRaw.getIterable(true)) {
-            Comparable key = indexEntry.getKey();
-            Iterable<? extends Number> value = indexEntry.getValue();
+            Comparable key = indexEntry.getFirst();
+            Iterable<? extends Number> value = indexEntry.getSecond();
             keyEncoding.serialize(key, outputStream);
             valueSetEncoding.serialize(value, outputStream);
         }
@@ -152,8 +152,8 @@ public class ColumnIndexWriter implements Closeable {
         Iterable<? extends Number> lastValue = valueSetEncoding.newValueSet();
         Iterable<? extends Number> currValue = null;
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(true)) {
-            currValue = valueSetEncoding.or(lastValue, indexEntry.getValue());
-            auxiliaryIndexMap.putEncoded(indexEntry.getKey(), currValue);
+            currValue = valueSetEncoding.or(lastValue, indexEntry.getSecond());
+            auxiliaryIndexMap.putEncoded(indexEntry.getFirst(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap, step);
@@ -164,8 +164,8 @@ public class ColumnIndexWriter implements Closeable {
         auxiliaryIndexMap = new IndexMapCache(columnSpec.getColumnName(), false, keyEncoding, valueSetEncoding, true);
         lastValue = valueSetEncoding.newValueSet();
         for (Pair<Comparable, ? extends Iterable<? extends Number>> indexEntry : indexMapCache.getIterable(false)) {
-            currValue = valueSetEncoding.or(lastValue, indexEntry.getValue());
-            auxiliaryIndexMap.putEncoded(indexEntry.getKey(), currValue);
+            currValue = valueSetEncoding.or(lastValue, indexEntry.getSecond());
+            auxiliaryIndexMap.putEncoded(indexEntry.getFirst(), currValue);
             lastValue = currValue;
         }
         writeIndex(auxiliaryIndexMap, step);

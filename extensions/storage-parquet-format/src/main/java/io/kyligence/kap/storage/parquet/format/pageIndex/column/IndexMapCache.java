@@ -321,7 +321,7 @@ public class IndexMapCache implements Closeable {
             return new Comparator<Pair<Comparable, Integer>>() {
                 @Override
                 public int compare(Pair<Comparable, Integer> o1, Pair<Comparable, Integer> o2) {
-                    int compareResult = o1.getKey().compareTo(o2.getKey());
+                    int compareResult = o1.getFirst().compareTo(o2.getFirst());
                     return isAssending ? compareResult : 0 - compareResult;
                 }
             };
@@ -331,8 +331,8 @@ public class IndexMapCache implements Closeable {
             Iterator<Pair<Comparable, ? extends Iterable<? extends Number>>> selected = dumpIterators.get(index);
             if (selected != null && selected.hasNext()) {
                 Pair<Comparable, ? extends Iterable<? extends Number>> pair = selected.next();
-                heap.offer(new Pair<>(pair.getKey(), index));
-                dumpCurrentValues.set(index, pair.getValue());
+                heap.offer(new Pair<>(pair.getFirst(), index));
+                dumpCurrentValues.set(index, pair.getSecond());
             }
         }
 
@@ -346,8 +346,8 @@ public class IndexMapCache implements Closeable {
 
                 private void innerMerge(Iterable<? extends Number> result) {
                     Pair<Comparable, Integer> peekEntry = heap.poll();
-                    valueSetEncoding.addAll(result, dumpCurrentValues.get(peekEntry.getValue()));
-                    enqueueFromDump(peekEntry.getValue());
+                    valueSetEncoding.addAll(result, dumpCurrentValues.get(peekEntry.getSecond()));
+                    enqueueFromDump(peekEntry.getSecond());
                 }
 
                 @Override
@@ -356,10 +356,10 @@ public class IndexMapCache implements Closeable {
                     // also merge the bitmaps with same keys in different dumps
                     Iterable<? extends Number> result = valueSetEncoding.newValueSet();
 
-                    Comparable peekKey = heap.peek().getKey();
+                    Comparable peekKey = heap.peek().getFirst();
                     innerMerge(result);
 
-                    while (!heap.isEmpty() && peekKey.compareTo(heap.peek().getKey()) == 0) {
+                    while (!heap.isEmpty() && peekKey.compareTo(heap.peek().getFirst()) == 0) {
                         innerMerge(result);
                     }
 

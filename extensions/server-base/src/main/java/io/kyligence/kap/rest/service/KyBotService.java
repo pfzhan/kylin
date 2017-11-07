@@ -114,7 +114,7 @@ public class KyBotService extends BasicService {
         CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
         Pair<Integer, String> cmdOutput = executor.execute(diagCmd);
 
-        if (cmdOutput.getKey() != 0) {
+        if (cmdOutput.getFirst() != 0) {
             throw new RuntimeException("Failed to generate KyBot package.");
         }
     }
@@ -336,7 +336,7 @@ public class KyBotService extends BasicService {
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
             Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath());
-            return cmdOutput.getValue().contains("running: true");
+            return cmdOutput.getSecond().contains("running: true");
         } catch (IOException e) {
             logger.error("Failed to execute kybot/agent/bin/status.sh");
             return false;
@@ -366,7 +366,7 @@ public class KyBotService extends BasicService {
         try {
             CliCommandExecutor executor = KylinConfig.getInstanceFromEnv().getCliCommandExecutor();
             Pair<Integer, String> cmdOutput = executor.execute(script.getAbsolutePath());
-            return cmdOutput.getKey() == 0;
+            return cmdOutput.getFirst() == 0;
         } catch (IOException e) {
             logger.error("Failed to execute kybot/agent/bin/disable.sh");
             return false;
