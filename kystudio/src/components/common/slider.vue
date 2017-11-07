@@ -4,13 +4,14 @@
    <slot name="label" v-if="!label"></slot>
   </el-checkbox>
   <div class="ksd-mt-10"><slot name="sliderLabel"></slot></div>
-    <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" ></el-slider> <span>{{staticsRange}}%</span>
+    <el-slider :min="minConfig" :show-stops="showStop" :step="stepConfig" @change="changeBarVal" v-model="staticsRange" :max="maxConfig" :format-tooltip="formatTooltip" ></el-slider> 
+    <span v-show="!noShowRange">{{staticsRange}}%</span>
   </div>
 </template>
 <script>
 export default {
   name: 'pager',
-  props: ['label', 'step', 'showStops', 'max', 'min', 'show', 'hideCheckbox', 'range'],
+  props: ['label', 'step', 'showStops', 'max', 'min', 'show', 'hideCheckbox', 'range', 'noShowRange'],
   data () {
     return {
       stepConfig: this.step || 20,

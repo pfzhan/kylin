@@ -82,6 +82,9 @@ Vue.filter('omit', function (value, len, replaceChar) {
 })
 
 Vue.filter('number', function (value, fix) {
+  if (isNaN(value)) {
+    value = 0
+  }
   return +value.toFixed(fix)
 })
 

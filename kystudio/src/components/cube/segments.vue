@@ -60,10 +60,12 @@
         </el-table-column>
         <el-table-column
           :label="$t('SegmentName')"
-          prop="name">
+          prop="name"
+          show-overflow-tooltip>
         </el-table-column>
         <el-table-column
-          :label="$t('StorageSize')">
+          :label="$t('StorageSize')"
+          width="110">
           <template scope="scope">
             {{+scope.row.additionalInfo.storageSizeBytes + (+scope.row.additionalInfo.tableIndexStorageSizeBytes || 0)|dataSize}}
           </template>

@@ -187,75 +187,81 @@
                   <li>2. {{$t('kylinLang.model.modelCheckTips2')}}</li>
                 </ul>
               </div>
+              <div class="line-primary"></div>
               <div class="ksd-mt-20">
-              <div class="date-picker" v-if="hasPartition">
-                  <h2>{{$t('kylinLang.model.samplingSetting')}}
-                    <common-tip placement="right" :content="$t('kylinLang.model.samplingSettingTips')" >
-                      <icon name="question-circle" class="ksd-question-circle"></icon>
-                    </common-tip>
-
-                      <!--<kap-common-popover>
-                      <div slot="content">
-                        <ul>
-                          <li>{{$t('kylinLang.model.samplingSettingTips')}}</li>
-                        </ul>
-                      </div>
+                <div class="date-picker" v-if="hasPartition">
+                    <h2>{{$t('kylinLang.model.samplingSetting')}}
+                      <common-tip placement="right" :content="$t('kylinLang.model.samplingSettingTips')" >
                         <icon name="question-circle" class="ksd-question-circle"></icon>
-                      </kap-common-popover>-->
-                  </h2>
-                  <br/>
-                  {{$t('kylinLang.model.timeRange')}}
-                <el-form :model="modelCheckTime" :rules="modelCheckDateRule" ref="modelCheckForm">
-                  <el-row :gutter="20">
-                    <el-col :span="11">
-                      <div class="grid-content bg-purple">
-                        <el-form-item prop="startTime">
-                          <el-date-picker
-                            :clearable="false" ref="startTimeInput"
-                            v-model="modelCheckTime.startTime"
-                            type="datetime"
-                            :placeholder="$t('chooseStartDate')"
-                            size="small"
-                            format="yyyy-MM-dd HH:mm"
-                            >
-                          </el-date-picker>
-                        </el-form-item>
-                      </div>
-                    </el-col>
-                    <el-col :span="2"><div class="grid-content bg-purple" style="line-height:60px;text-align:center;">－</div></el-col>
-                    <el-col :span="11">
-                      <div class="grid-content bg-purple">
-                        <el-form-item prop="endTime">
-                          <el-date-picker
-                            :clearable="false" ref="endTimeInput"
-                            v-model="modelCheckTime.endTime"
-                            type="datetime"
-                            :placeholder="$t('chooseEndDate')"
-                            size="small"
-                            format="yyyy-MM-dd HH:mm"
-                            :picker-options="pickerOptionsEnd">
-                          </el-date-picker>
-                        </el-form-item>
-                      </div>
-                    </el-col>
-                  </el-row>
-                </el-form>
-                  <span class="line"></span>
-
-                </div>
-                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" :label="$t('kylinLang.model.checkModel')" :show="scanRatioDialogVisible">
-                    <span slot="sliderLabel">{{$t('kylinLang.dataSource.samplingPercentage')}} <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
-                 <icon name="question-circle" class="ksd-question-circle"></icon>
-              </common-tip></span>
+                      </common-tip>
+                    </h2>
+                    <br/>
+                    {{$t('kylinLang.model.timeRange')}}
+                    <el-form :model="modelCheckTime" :rules="modelCheckDateRule" ref="modelCheckForm">
+                      <el-row :gutter="20">
+                        <el-col :span="11">
+                          <div class="grid-content bg-purple">
+                            <el-form-item prop="startTime">
+                              <el-date-picker
+                                :clearable="false" ref="startTimeInput"
+                                v-model="modelCheckTime.startTime"
+                                type="datetime"
+                                :placeholder="$t('chooseStartDate')"
+                                size="small"
+                                format="yyyy-MM-dd HH:mm"
+                                >
+                              </el-date-picker>
+                            </el-form-item>
+                          </div>
+                        </el-col>
+                        <el-col :span="2"><div class="grid-content bg-purple" style="line-height:60px;text-align:center;">－</div></el-col>
+                        <el-col :span="11">
+                          <div class="grid-content bg-purple">
+                            <el-form-item prop="endTime">
+                              <el-date-picker
+                                :clearable="false" ref="endTimeInput"
+                                v-model="modelCheckTime.endTime"
+                                type="datetime"
+                                :placeholder="$t('chooseEndDate')"
+                                size="small"
+                                format="yyyy-MM-dd HH:mm"
+                                :picker-options="pickerOptionsEnd">
+                              </el-date-picker>
+                            </el-form-item>
+                          </div>
+                        </el-col>
+                      </el-row>
+                    </el-form>
+                  </div>
+                  <slider @changeBar="changeBar" :hideCheckbox="true" :range="100" :label="$t('kylinLang.model.checkModel')" :show="scanRatioDialogVisible" :noShowRange="true">
+                    <span slot="sliderLabel">
+                      {{$t('kylinLang.model.samplingPercentage')}} 
+                      <common-tip placement="right" :content="$t('kylinLang.model.samplingPercentageTips')" >
+                        <icon name="question-circle" class="ksd-question-circle"></icon>
+                      </common-tip>
+                      <span class="ksd-ml-20">{{modelStaticsRange*100}}%</span>
+                    </span>
                   </slider>
-              </div>
+                  <div class="el-col-24 ksd-mb-10">
+                   {{$t('kylinLang.model.checkOption')}}
+                  </div>
+                  <div class="el-col-24">
+                    <el-checkbox v-model="checkModel.modelStatus">{{$t('kylinLang.model.modelStatusCheck')}}</el-checkbox>
+                  </div>
+                  <div class="el-col-24">
+                    <el-checkbox v-model="checkModel.factTable">{{$t('kylinLang.model.factTableSampling')}}</el-checkbox>
+                  </div>
+                  <div class="el-col-24">
+                    <el-checkbox v-model="checkModel.lookupTable">{{$t('kylinLang.model.lookupTableSampling')}}</el-checkbox>
+                  </div>
+                </div>
               </div>
             </div>
           </el-col>
         </el-row>
         <div slot="footer" class="dialog-footer">
           <el-button @click="cancelSetModelStatics">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="stats" :loading="btnLoading">{{$t('kylinLang.common.submit')}}</el-button>
+          <el-button type="primary" @click="stats" :loading="btnLoading" :disabled="!checkModel.lookupTable && !checkModel.factTable && !checkModel.modelStatus">{{$t('kylinLang.common.submit')}}</el-button>
         </div>
       </el-dialog>
 
@@ -337,6 +343,12 @@ export default {
       btnLoading: false,
       stCycleRequest: null,
       modelStaticsRange: 1,
+      checkModel: {
+        modelStatus: true,
+        factTable: true,
+        lookupTable: true,
+        checkList: 0
+      },
       modelCheckTime: {
         startTime: '',
         endTime: ''
@@ -818,7 +830,13 @@ export default {
                         this.modelCheckTime.startTime = ''
                         if (modelData.partition_desc.partition_date_column) {
                           this.hasPartition = true
+                        } else {
+                          this.hasPartition = false
                         }
+                        this.checkModel.factTable = true
+                        this.checkModel.lookupTable = true
+                        this.checkModel.modelStatus = true
+                        this.checkModel.checkList = 0
                         return
                       }
                     }
@@ -902,6 +920,15 @@ export default {
     },
     _statsModel (para) {
       this.btnLoading = true
+      if (this.checkModel.factTable) {
+        this.checkModel.checkList = this.checkModel.checkList + 1
+      }
+      if (this.checkModel.lookupTable) {
+        this.checkModel.checkList = this.checkModel.checkList + 2
+      }
+      if (this.checkModel.modelStatus) {
+        this.checkModel.checkList = this.checkModel.checkList + 4
+      }
       this.statsModel({
         project: this.currentModelData.project,
         modelname: this.currentModelData.name,
@@ -910,7 +937,8 @@ export default {
           // endTime: (new Date(this.modelCheckTime.endTime)).getTime(),
           startTime: para.start,
           endTime: para.end,
-          ratio: this.modelStaticsRange
+          ratio: this.modelStaticsRange,
+          checkList: this.checkModel.checkList
         }
       }).then(() => {
         this.btnLoading = false
@@ -1130,8 +1158,22 @@ export default {
     }
   }
   .modelCheck{
+    .date-picker {
+      .el-col {
+        margin-bottom: 0px;
+        height: 60px;
+      }
+    }
     .el-date-editor.el-input{
       width: 100%;
+    }
+    .el-dialog__body {
+      padding: 20px;
+    }
+    .line-primary {
+      margin: 10px -30px 0px -20px;
+      background-color: #292b38;
+      height:1px;
     }
   }
   .el-table--striped .el-table__body tr.el-table__row--striped td {

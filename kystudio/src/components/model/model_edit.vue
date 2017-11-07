@@ -245,15 +245,28 @@
       </div>
     </el-dialog>
 
-    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small" :close-on-press-escape="false" :close-on-click-modal="false" >
-       <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" :editLock="editLock"></partition-column>
-       <el-checkbox v-show="!hasStreamingTable" v-model="openModelCheck">{{$t('kylinLang.model.checkModel')}}</el-checkbox>
-       <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
-         <icon name="question-circle" class="ksd-question-circle"></icon>
-       </common-tip>
-     <!--    <el-slider v-model="modelStaticsRange" :max="100" :format-tooltip="formatTooltip" :disabled = '!openModelCheck'></el-slider> -->
-        <!-- <slider label="Check Model" @changeBar="changeModelBar" :show="addModelDialogDisable"></slider> -->
-       <div slot="footer" class="dialog-footer">
+    <el-dialog :title="$t('kylinLang.common.save')" v-model="addModelDialogDisable" size="small" :close-on-press-escape="false" :close-on-click-modal="false" class="saveModel">
+      <partition-column :comHeight="450" :modelInfo="modelInfo" :actionMode="actionMode" :columnsForTime="timeColumns" :columnsForDate="dateColumns" :tableList="tableList" :partitionSelect="partitionSelect" :editLock="editLock"></partition-column>
+      <div class="el-row">
+        <div class="el-col el-col-24 ksd-pl-10 ksd-pr-10 ksd-pb-10">
+          <span>{{$t('kylinLang.model.checkModel')}}</span>
+          <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
+            <icon name="question-circle" class="ksd-question-circle"></icon>
+          </common-tip>
+          <el-switch v-show="!hasStreamingTable" v-model="openModelCheck" on-text=""  off-text="" @change="changeCheckModel">
+          </el-switch>
+        </div>
+        <div class="el-col el-col-24 ksd-pl-10 ksd-pr-10">
+          <el-checkbox v-show="!hasStreamingTable && openModelCheck" v-model="checkModel.modelStatus">{{$t('kylinLang.model.modelStatusCheck')}}</el-checkbox>
+        </div>
+        <div class="el-col el-col-24 ksd-pl-10 ksd-pr-10">
+          <el-checkbox v-show="!hasStreamingTable && openModelCheck" v-model="checkModel.factTable">{{$t('kylinLang.model.factTableSampling')}}</el-checkbox>
+        </div>
+        <div class="el-col el-col-24 ksd-pl-10 ksd-pr-10">
+          <el-checkbox v-show="!hasStreamingTable && openModelCheck" v-model="checkModel.lookupTable">{{$t('kylinLang.model.lookupTableSampling')}}</el-checkbox>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
         <el-button @click="addModelDialogDisable = false">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" @click="saveAndCheckModel" :loading="saveBtnLoading">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
@@ -418,6 +431,12 @@ export default {
         'partition_date_format': '',
         'partition_time_format': '',
         'partition_type': 'APPEND'
+      },
+      checkModel: {
+        modelStatus: true,
+        factTable: true,
+        lookupTable: true,
+        checkList: 0
       },
       submenuInfo: {
         menu1: 'first',
@@ -899,9 +918,16 @@ export default {
       }
       tableInfo.columns = objectArraySort(tableInfo.columns, squence, key)
     },
-    changeModelBar (val) {
-      this.modelStaticsRange = val
-      this.openModelCheck = !!val
+    changeCheckModel (val) {
+      if (val) {
+        this.checkModelStrategy.modelStatus = true
+        this.checkModelStrategy.factTable = true
+        this.checkModelStrategy.lookupTable = true
+      } else {
+        this.checkModelStrategy.modelStatus = false
+        this.checkModelStrategy.factTable = false
+        this.checkModelStrategy.lookupTable = false
+      }
     },
     // 保存正式
     saveCurrentModel () {
@@ -955,11 +981,21 @@ export default {
           message: this.$t('kylinLang.common.saveSuccess')
         })
         if (this.openModelCheck && !this.hasStreamingTable) {
+          if (this.checkModel.factTable) {
+            this.checkModel.checkList = this.checkModel.checkList + 1
+          }
+          if (this.checkModel.lookupTable) {
+            this.checkModel.checkList = this.checkModel.checkList + 2
+          }
+          if (this.checkModel.modelStatus) {
+            this.checkModel.checkList = this.checkModel.checkList + 4
+          }
           this.statsModel({
             project: this.project,
             modelname: this.modelInfo.modelName,
             data: {
-              ratio: (this.modelStaticsRange / 100).toFixed(2)
+              ratio: (this.modelStaticsRange / 100).toFixed(2),
+              checkList: this.checkModel.checkList
             }
           })
         }
@@ -2907,6 +2943,11 @@ export default {
          color:green;
        }
      }
+    .saveModel {
+      .el-dialog__body {
+        padding: 20px 20px;
+      }
+    }
     .notable_tip{
       position: absolute;
       top: 50%;
