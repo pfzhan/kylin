@@ -60,8 +60,10 @@ public class ModelMasterTest {
 
     @Test
     public void testE2E_LearnKylin() throws Exception {
-        testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
+        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
                 "src/test/resources/learn_kylin/sql");
+        Assert.assertNull(modelDesc.getPartitionDesc().getPartitionDateFormat());
+        Assert.assertNull(modelDesc.getPartitionDesc().getPartitionTimeFormat());
     }
 
     @Test

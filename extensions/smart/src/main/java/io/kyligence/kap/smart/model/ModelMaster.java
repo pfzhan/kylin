@@ -24,14 +24,15 @@
 
 package io.kyligence.kap.smart.model;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.KapModel;
-import io.kyligence.kap.smart.model.proposer.ProposerProvider;
+import java.util.ArrayList;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
-import java.util.ArrayList;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.KapModel;
+import io.kyligence.kap.smart.model.proposer.ProposerProvider;
 
 public class ModelMaster {
 
@@ -68,8 +69,11 @@ public class ModelMaster {
         modelDesc.setRootFactTableName(context.getRootTable().getIdentity());
         modelDesc.setDescription(StringUtils.EMPTY);
         modelDesc.setFilterCondition(StringUtils.EMPTY);
-        modelDesc.setPartitionDesc(new PartitionDesc());
         modelDesc.setComputedColumnDescs(new ArrayList<ComputedColumnDesc>());
+        PartitionDesc partDesc = new PartitionDesc();
+        partDesc.setPartitionDateFormat(null);
+        partDesc.setPartitionTimeFormat(null);
+        modelDesc.setPartitionDesc(partDesc);
         return modelDesc;
     }
 
