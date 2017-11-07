@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.query.security;
 
 import java.util.ArrayList;
@@ -29,6 +30,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
@@ -46,6 +49,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
@@ -64,8 +68,43 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         if (!KapConfig.getInstanceFromEnv().isRowACLEnabled()) {
             return sql;
         }
-        Map<String, String> whereCondWithTbls = getWhereCondWithTbls(project);
-        return rowFilter(defaultSchema, sql, whereCondWithTbls);
+        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
+        // if origin SQL has where clause, add "()", see KAP#2873
+        sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
+
+        for (Map<String, String> whereCondWithTbls : allWhereCondWithTbls) {
+            sql = rowFilter(defaultSchema, sql, whereCondWithTbls);
+        }
+        return sql;
+    }
+
+    private Set<String> getCandidateTables(List<Map<String, String>> allWhereCondWithTbls) {
+        Set<String> candidateTables = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        for (Map<String, String> allWhereCondWithTbl : allWhereCondWithTbls) {
+            candidateTables.addAll(allWhereCondWithTbl.keySet());
+        }
+        return candidateTables;
+    }
+
+    static String whereClauseBracketsCompletion(String schema, String inputSQL, Set<String> candidateTables) {
+        Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
+        List<Pair<Integer, String>> toBeInsertedPosAndExprs = new ArrayList<>();
+
+        for (SqlSelect select : selectClausesWithTbls.keySet()) {
+            if (!select.hasWhere()) {
+                continue;
+            }
+
+            for (Table table : selectClausesWithTbls.get(select)) {
+                if (candidateTables.contains(table.getName())) {
+                    Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(select.getWhere(), inputSQL);
+                    toBeInsertedPosAndExprs.add(Pair.newPair(replacePos.getFirst(), "("));
+                    toBeInsertedPosAndExprs.add(Pair.newPair(replacePos.getSecond(), ")"));
+                    break;
+                }
+            }
+        }
+        return afterInsertSQL(inputSQL, toBeInsertedPosAndExprs);
     }
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
@@ -79,11 +118,22 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls, selectClausesWithTbls);
 
-        StrBuilder convertedSQL = new StrBuilder(inputSQL);
-
         if (toBeInsertedPosAndExprs.size() > 0) {
             logger.info("\n---Start to transform SQL with row ACL, see transformed sql in the below---");
         }
+        return afterInsertSQL(inputSQL, toBeInsertedPosAndExprs);
+    }
+
+    private static String afterInsertSQL(String inputSQL, List<Pair<Integer, String>> toBeInsertedPosAndExprs) {
+        // latter replace position in the front of the list.
+        Collections.sort(toBeInsertedPosAndExprs, new Comparator<Pair<Integer, String>>() {
+            @Override
+            public int compare(Pair<Integer, String> o1, Pair<Integer, String> o2) {
+                return -(o1.getFirst() - o2.getFirst());
+            }
+        });
+
+        StrBuilder convertedSQL = new StrBuilder(inputSQL);
         for (Pair<Integer, String> toBeInserted : toBeInsertedPosAndExprs) {
             int insertPos = toBeInserted.getFirst();
             convertedSQL.insert(insertPos, toBeInserted.getSecond());
@@ -112,23 +162,37 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
             }
         }
 
-        // latter replace position in the front of the list.
-        reverseOrder(toBeReplacedPosAndExprs);
         return toBeReplacedPosAndExprs;
     }
 
     private static int getInsertPos(String inputSQL, SqlSelect select) {
         SqlNode insertAfter = getInsertAfterNode(select);
-        return CalciteParser.getReplacePos(insertAfter, inputSQL).getSecond();
-    }
-
-    private static void reverseOrder(List<Pair<Integer, String>> toBeReplacedPosAndExprs) {
-        Collections.sort(toBeReplacedPosAndExprs, new Comparator<Pair<Integer, String>>() {
-            @Override
-            public int compare(Pair<Integer, String> o1, Pair<Integer, String> o2) {
-                return -(o1.getFirst() - o2.getFirst());
+        Pair<Integer, Integer> pos = CalciteParser.getReplacePos(insertAfter, inputSQL);
+        int finalPos = pos.getSecond();
+        int bracketNum = 0;
+        //move the pos to the rightest ")", if has.
+        //bracketNum if for the situation like that: "from ( select * from t where t.a > 0 )", the rightest ")" is not belong to where clause
+        for (int j = pos.getFirst() - 1; ; j--) {
+            if (inputSQL.charAt(j) == ' ' || inputSQL.charAt(j) == '\t' || inputSQL.charAt(j) == '\n') {
+                continue;
+            } else if (inputSQL.charAt(j) == '(') {
+                bracketNum++;
+            } else {
+                break;
             }
-        });
+        }
+
+        for (int i = pos.getSecond(); i < inputSQL.length() && bracketNum > 0; i++) {
+            if (inputSQL.charAt(i) == ' ' || inputSQL.charAt(i) == '\t' || inputSQL.charAt(i) == '\n') {
+                continue;
+            } else if (inputSQL.charAt(i) == ')') {
+                finalPos = i + 1;
+                bracketNum--;
+            } else {
+                break;
+            }
+        }
+        return finalPos;
     }
 
     private static String getToBeInsertCond(Map<String, String> whereCondWithTbls, SqlSelect select, List<Table> tables) {
@@ -169,7 +233,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     //{selectClause1:[DB.TABLE1:ALIAS1, DB.TABLE2:ALIAS2]}
-    static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
+    private static Map<SqlSelect, List<Table>> getSelectClausesWithTbls(String inputSQL, String schema) {
         Map<SqlSelect, List<Table>> selectWithTables = new HashMap<>();
 
         for (SqlSelect select : SelectClauseFinder.getSelectClauses(inputSQL)) {
@@ -334,13 +398,24 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         }
     }
 
-    public String getUsername() {
+    private String getUsername() {
         QueryContext context = QueryContext.current();
         return context.getUsername();
     }
 
-    private Map<String, String> getWhereCondWithTbls(String project) {
+    private Set<String> getUserGroups() {
+        QueryContext context = QueryContext.current();
+        return context.getGroups();
+    }
+
+    //get all user/groups's row ACL
+    private List<Map<String, String>> getAllWhereCondWithTbls(String project) {
         RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
-        return rowACLManager.getQueryUsedCondsByUser(project, getUsername());
+        List<Map<String, String>> list = new ArrayList<>();
+        list.add(rowACLManager.getQueryUsedTblToConds(project, getUsername(), MetadataConstants.TYPE_USER));
+        for (String group : getUserGroups()) {
+            list.add(rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP));
+        }
+        return list;
     }
 }

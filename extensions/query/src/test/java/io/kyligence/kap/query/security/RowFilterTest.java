@@ -25,9 +25,13 @@
 
 package io.kyligence.kap.query.security;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
@@ -36,17 +40,47 @@ import org.junit.Test;
 
 public class RowFilterTest {
     @Test
+    public void testBrackets() {
+        String sql = "select * from (select * from t inner join tt on t.a = tt.a inner join ttt on t.a = ttt.a where t.a = 0 and tt.a=1 ) t1 where t1.a = 2";
+        String sql1 = "select * from t where t.a in (select * from tt where tt.b=1)";
+        HashSet<String> tbls = Sets.newHashSet("DB.T", "DB.TT", "DB.TTT");
+        String expectSQL = "select * from (select * from t inner join tt on t.a = tt.a inner join ttt on t.a = ttt.a where (t.a = 0 and tt.a=1) ) t1 where t1.a = 2";
+        String expectSQL1 = "select * from t where (t.a in (select * from tt where (tt.b=1)))";
+        Assert.assertEquals(expectSQL, RowFilter.whereClauseBracketsCompletion("DB", sql, tbls));
+        Assert.assertEquals(expectSQL1, RowFilter.whereClauseBracketsCompletion("DB", sql1, tbls));
+    }
+
+    @Test
+    public void testRowFilterWithMultiWhereConds() {
+        List<Map<String, String>> list = new ArrayList<>();
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, String> whereCond1 = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, String> whereCond2 = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        whereCond.put("DB.T", "( a > 0 OR b < 0 )");
+        whereCond1.put("DB.T", "( a > 0 OR b < 0 )");
+        whereCond2.put("DB.T", "( a > 0 OR b < 0 )");
+        list.add(whereCond);
+        list.add(whereCond1);
+        list.add(whereCond2);
+        String sql = "select * from (select * from t)";
+        for (Map<String, String> whereCondWithTbls : list) {
+            sql = RowFilter.rowFilter("DB", sql, whereCondWithTbls);
+        }
+        String expectedSQL = "select * from (select * from t WHERE ( T.a > 0 OR T.b < 0 ) AND ( T.a > 0 OR T.b < 0 ) AND ( T.a > 0 OR T.b < 0 ))";
+        Assert.assertEquals(expectedSQL, sql);
+    }
+
+    @Test
     public void testSimpleRowFilter() {
         String sql = "select count(*) from t join tt on t.a = tt.a group by c";
         String sql2 = "select count(*) from t join tt on t.a = tt.a where (b1 = 'v1') group by c";
         String sql3 = "select count(*) from t where t.c > 10";
-        Map<String, String> whereCond = new HashMap<>();
-        // all key needs to be uppercase
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         whereCond.put("DB.T", "(a > 0 OR b < 0)");
         whereCond.put("DB.TT", "(aa > 0 OR bb < 0)");
 
         String expectedSQL = "select count(*) from t join tt on t.a = tt.a WHERE (T.a > 0 OR T.b < 0) AND (TT.aa > 0 OR TT.bb < 0) group by c";
-        String expectedSQL2 = "select count(*) from t join tt on t.a = tt.a where (b1 = 'v1' AND (T.a > 0 OR T.b < 0) AND (TT.aa > 0 OR TT.bb < 0)) group by c";
+        String expectedSQL2 = "select count(*) from t join tt on t.a = tt.a where (b1 = 'v1') AND (T.a > 0 OR T.b < 0) AND (TT.aa > 0 OR TT.bb < 0) group by c";
         String expectedSQL3 = "select count(*) from t where t.c > 10 AND (T.a > 0 OR T.b < 0)";
 
         Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB", sql, whereCond));
@@ -59,8 +93,7 @@ public class RowFilterTest {
         String sql = "select a, (select count(*) from DB3.aa a1 order by a)\n"
                 + "from ttt join (select a,b from (select * from DB.t t1), (select * from DB.bb)), tt\n"
                 + "where c in (select * from tt) and d > 10 order by abc";
-        Map<String, String> whereCond = new HashMap<>();
-        // all key needs to be uppercase
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         whereCond.put("DB.T", "(a > 0 OR b < 0)");
         whereCond.put("DB2.TT", "(aa > 0 OR bb < 0)");
         whereCond.put("DB2.TTT", "(aaa > 0 OR bbb < 0)");
@@ -106,7 +139,7 @@ public class RowFilterTest {
                 "    cntrycode\n" +
                 "order by\n" +
                 "    cntrycode";
-        Map<String, String> whereCond = new HashMap<>();
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         String expectedSQL = "with avg_tmp as (\n" +
                 "    select\n" +
                 "        avg(c_acctbal) as avg_acctbal\n" +
@@ -148,7 +181,7 @@ public class RowFilterTest {
     @Test
     public void testRowFilter2() throws SqlParseException {
         String sql = "";
-        Map<String, String> whereCond = new HashMap<>();
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         whereCond.put("DB.T", "(a > 0 OR b < 0)");
         whereCond.put("DB2.TT", "(aa > 0 OR bb < 0)");
         whereCond.put("DB2.TTT", "(aaa > 0 OR bbb < 0)");
@@ -162,7 +195,7 @@ public class RowFilterTest {
                 "select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01'\n" +
                 "union\n" +
                 "select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01'";
-        Map<String, String> whereCond = new HashMap<>();
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         whereCond.put("DB.TEST_KYLIN_FACT", "(a > 0 OR b < 0)");
         String expectedSQL =
                 "select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' AND (TEST_KYLIN_FACT.a > 0 OR TEST_KYLIN_FACT.b < 0)\n" +
@@ -175,11 +208,9 @@ public class RowFilterTest {
     public void testJoinWithOutWhere() {
         String sql = "select * from T1 join (select * from T2) ta on T1.c=ta.c GROUP BY c";
         String exceptedSQL = "select * from T1 join (select * from T2) ta on T1.c=ta.c WHERE T1.OPS_REGION='Shanghai' GROUP BY c";
-        Map<String, String> whereCond = new HashMap<>();
-        // all key needs to be uppercase
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         whereCond.put("DB.T1", "OPS_REGION='Shanghai'");
         whereCond.put("DB.T3", "OPS_REGION='Beijing'");
-        System.out.println(RowFilter.rowFilter("DB", sql, whereCond));
         Assert.assertEquals(exceptedSQL, RowFilter.rowFilter("DB", sql, whereCond));
     }
 
