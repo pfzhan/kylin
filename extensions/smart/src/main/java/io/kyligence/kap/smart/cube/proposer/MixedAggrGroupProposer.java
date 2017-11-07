@@ -41,14 +41,14 @@ import io.kyligence.kap.smart.cube.CubeContext;
 public class MixedAggrGroupProposer extends AbstractCubeProposer {
     private static final Logger logger = LoggerFactory.getLogger(MixedAggrGroupProposer.class);
 
-    private AggrGroupProposer physicalProposer;
-    private WhiteListAggrGroupProposer businessProposer;
+    private ModelAggrGroupProposer physicalProposer;
+    private QueryAggrGroupProposer businessProposer;
 
     public MixedAggrGroupProposer(CubeContext context) {
         super(context);
 
-        physicalProposer = new AggrGroupProposer(context);
-        businessProposer = new WhiteListAggrGroupProposer(context);
+        physicalProposer = new ModelAggrGroupProposer(context);
+        businessProposer = new QueryAggrGroupProposer(context);
     }
 
     @Override

@@ -41,10 +41,10 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.smart.cube.CubeContext;
 import io.kyligence.kap.smart.util.CubeDescUtil;
 
-public class WhiteListAggrGroupProposer extends AbstractCubeProposer {
-    private static final Logger logger = LoggerFactory.getLogger(WhiteListAggrGroupProposer.class);
+public class QueryAggrGroupProposer extends AbstractCubeProposer {
+    private static final Logger logger = LoggerFactory.getLogger(QueryAggrGroupProposer.class);
 
-    public WhiteListAggrGroupProposer(CubeContext context) {
+    public QueryAggrGroupProposer(CubeContext context) {
         super(context);
     }
 

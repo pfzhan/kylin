@@ -56,10 +56,10 @@ import io.kyligence.kap.smart.util.CubeDescUtil;
 import io.kyligence.kap.smart.util.RangeUtil;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 
-public class AggrGroupProposer extends AbstractCubeProposer {
-    private static final Logger logger = LoggerFactory.getLogger(AggrGroupProposer.class);
+public class ModelAggrGroupProposer extends AbstractCubeProposer {
+    private static final Logger logger = LoggerFactory.getLogger(ModelAggrGroupProposer.class);
 
-    public AggrGroupProposer(CubeContext context) {
+    public ModelAggrGroupProposer(CubeContext context) {
         super(context);
     }
 

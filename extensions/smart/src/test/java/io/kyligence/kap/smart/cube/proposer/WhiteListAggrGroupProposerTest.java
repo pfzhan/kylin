@@ -65,7 +65,7 @@ public class WhiteListAggrGroupProposerTest {
                 "select part_dt, seller_id from kylin_sales where lstg_format_name is null group by part_dt, seller_id" };
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, sqls);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        WhiteListAggrGroupProposer proposer = new WhiteListAggrGroupProposer(context);
+        QueryAggrGroupProposer proposer = new QueryAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -85,7 +85,7 @@ public class WhiteListAggrGroupProposerTest {
         String[] sqls = new String[0];
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, sqls);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        WhiteListAggrGroupProposer proposer = new WhiteListAggrGroupProposer(context);
+        QueryAggrGroupProposer proposer = new QueryAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();

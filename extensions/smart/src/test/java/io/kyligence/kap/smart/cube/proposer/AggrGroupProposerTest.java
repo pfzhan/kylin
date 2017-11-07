@@ -65,7 +65,7 @@ public class AggrGroupProposerTest {
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -80,7 +80,7 @@ public class AggrGroupProposerTest {
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -100,7 +100,7 @@ public class AggrGroupProposerTest {
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
                 new String[] { "select count(*) from kylin_sales" });
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -121,7 +121,7 @@ public class AggrGroupProposerTest {
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
         initCubeDesc.setAggregationGroups(new ArrayList<AggregationGroup>(0));
 
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -136,7 +136,7 @@ public class AggrGroupProposerTest {
         CubeContextBuilder contextBuilder = new CubeContextBuilder(kylinConfig);
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc, new String[0]);
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();
@@ -152,7 +152,7 @@ public class AggrGroupProposerTest {
         CubeContext context = contextBuilder.buildFromModelDesc(modelDesc,
                 new String[] { "select count(*) from kylin_sales" });
         CubeDesc initCubeDesc = context.getDomain().buildCubeDesc();
-        AggrGroupProposer proposer = new AggrGroupProposer(context);
+        ModelAggrGroupProposer proposer = new ModelAggrGroupProposer(context);
         CubeDesc newCubeDesc = proposer.propose(initCubeDesc);
         newCubeDesc.init(kylinConfig);
         newCubeDesc.validateAggregationGroups();

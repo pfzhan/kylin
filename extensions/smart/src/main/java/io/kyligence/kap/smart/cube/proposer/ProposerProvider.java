@@ -50,13 +50,27 @@ public class ProposerProvider {
         String strategy = context.getSmartConfig().getAggGroupStrategy();
         switch (strategy) {
         case "whitelist":
-            return new WhiteListAggrGroupProposer(context);
+            return new QueryAggrGroupProposer(context);
         case "mixed":
             return new MixedAggrGroupProposer(context);
+        case "auto":
+            return autoSelectAggrProposer(context);
         default:
-            return new AggrGroupProposer(context);
+            return new ModelAggrGroupProposer(context);
         }
+    }
 
+    private static AbstractCubeProposer autoSelectAggrProposer(CubeContext context) {
+        boolean hasModelStats = context.hasModelStats();
+        boolean hasQueryStats = context.hasQueryStats();
+
+        if (hasModelStats && hasQueryStats) {
+            return new MixedAggrGroupProposer(context);
+        } else if (hasQueryStats) {
+            return new QueryAggrGroupProposer(context);
+        } else {
+            return new ModelAggrGroupProposer(context);
+        }
     }
 
     public AbstractCubeProposer getRowkeyProposer() {
