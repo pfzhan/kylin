@@ -92,8 +92,27 @@
             </el-input>
           </el-form-item>
         </el-form>
+        <div class="el-row" v-if="showModelCheck">
+          <div class="el-col el-col-24 ksd-pb-10">
+            <span>{{$t('kylinLang.model.checkModel')}}</span>
+            <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
+              <icon name="question-circle" class="ksd-question-circle"></icon>
+            </common-tip>
+            <el-switch v-show="!hasStreamingTable" v-model="checkModel.openModelCheck" on-text=""  off-text="" @change="changeCheckModel">
+            </el-switch>
+          </div>
+          <div class="el-col el-col-24">
+            <el-checkbox v-show="!hasStreamingTable && checkModel.openModelCheck" v-model="checkModel.modelStatus">{{$t('kylinLang.model.modelStatusCheck')}}</el-checkbox>
+          </div>
+          <div class="el-col el-col-24">
+            <el-checkbox v-show="!hasStreamingTable && checkModel.openModelCheck" v-model="checkModel.factTable">{{$t('kylinLang.model.factTableSampling')}}</el-checkbox>
+          </div>
+          <div class="el-col el-col-24">
+            <el-checkbox v-show="!hasStreamingTable && checkModel.openModelCheck" v-model="checkModel.lookupTable">{{$t('kylinLang.model.lookupTableSampling')}}</el-checkbox>
+          </div>
+        </div>
       </el-col>
-      <el-col :span="layout.right" v-if="layout.right" style="padding:20px 20px 20px 0 ; margin-top: -30px;">
+      <el-col :span="layout.right" v-if="layout.right" style="padding:30px 20px 20px 0 ; margin-top: -30px;">
        <div class="col-line"></div>
        <p class="ksd-ml-20">{{$t('kylinLang.model.checkData')}} <span @click="closeSample" class="el-icon el-icon-close" style="font-size: 12px;cursor: pointer; float: right;color:grey"></span></p>
        <el-alert class="ksd-mt-20 ksd-ml-20 trans" v-if="modelStatics && modelStatics.length <= 1"
@@ -148,7 +167,7 @@ export default {
       }
     }
   },
-  props: ['modelInfo', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'partitionSelect', 'comHeight'],
+  props: ['modelInfo', 'actionMode', 'editLock', 'columnsForTime', 'columnsForDate', 'partitionSelect', 'comHeight', 'checkModel', 'hasStreamingTable', 'showModelCheck'],
   methods: {
     ...mapActions({
       loadColumnSampleData: 'GET_COLUMN_SAMPLEDATA',
@@ -211,6 +230,17 @@ export default {
         this.loadTableStatics(databaseAndTableName[0], databaseAndTableName[1], this.checkPartition.date_column)
       }
       this.formValid('partition_date_format')
+    },
+    changeCheckModel (val) {
+      if (val) {
+        this.checkModel.modelStatus = true
+        this.checkModel.factTable = true
+        this.checkModel.lookupTable = true
+      } else {
+        this.checkModel.modelStatus = false
+        this.checkModel.factTable = false
+        this.checkModel.lookupTable = false
+      }
     },
     checkLockFormat () {
       // for (var i in this.columnsForDate) {
@@ -319,6 +349,7 @@ export default {
 }
 </script>
 <style lang="less">
+@import '../../less/config.less';
 .partitionBox {
   // overflow-y: auto;
   .el-form-item{
@@ -329,6 +360,9 @@ export default {
     // overflow: hidden;
     .is-disabled .el-input__inner {
       border: 1px solid #bfcbd9
+    }
+    .el-form-item__error {
+      position: relative;
     }
   }
   .col-line{
