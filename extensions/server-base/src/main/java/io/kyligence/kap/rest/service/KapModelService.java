@@ -273,12 +273,14 @@ public class KapModelService extends BasicService {
         }
         model.getPartitionDesc().setPartitionConditionBuilderClz(condBldClz);
 
-        // check fact table is not streaming
-        String rootFactTableName = model.getRootFactTableName();
-        TableDesc factTable = getTableManager().getTableDesc(rootFactTableName, project);
-        if (factTable.getSourceType() == ISourceAware.ID_STREAMING) {
-            KapMessage msg = KapMsgPicker.getMsg();
-            throw new BadRequestException(msg.getMPMODEL_HATES_STREAMING());
+        // (MP cube) check fact table is not streaming
+        if (model.isMultiLevelPartitioned()) {
+            String rootFactTableName = model.getRootFactTableName();
+            TableDesc factTable = getTableManager().getTableDesc(rootFactTableName, project);
+            if (factTable.getSourceType() == ISourceAware.ID_STREAMING) {
+                KapMessage msg = KapMsgPicker.getMsg();
+                throw new BadRequestException(msg.getMPMODEL_HATES_STREAMING());
+            }
         }
 
         // Update CC expression from query transformers
