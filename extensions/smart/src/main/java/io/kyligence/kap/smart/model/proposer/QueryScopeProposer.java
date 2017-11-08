@@ -37,7 +37,6 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.relnode.OLAPTableScan;
 
 import com.google.common.collect.Sets;
 
@@ -107,10 +106,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
             }
             Set<TblColRef> allColumns = ctx.allColumns;
             if (allColumns == null || allColumns.size() == 0) {
-                allColumns = new HashSet<>();
-                for (OLAPTableScan tableScan : ctx.allTableScans) {
-                    allColumns.addAll(tableScan.getTableRef().getColumns());
-                }
+                continue;
             }
             for (TblColRef tblColRef : allColumns) {
                 if (ctx.filterColumns.contains(tblColRef) || ctx.groupByColumns.contains(tblColRef)) {
