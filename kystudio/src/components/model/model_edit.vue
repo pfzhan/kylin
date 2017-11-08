@@ -966,7 +966,8 @@ export default {
             modelname: this.modelInfo.modelName,
             data: {
               ratio: (this.modelStaticsRange / 100).toFixed(2),
-              checkList: this.checkModel.checkList
+              checkList: this.checkModel.checkList,
+              forceUpdate: true
             }
           })
         }

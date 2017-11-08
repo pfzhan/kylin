@@ -938,7 +938,8 @@ export default {
           startTime: para.start,
           endTime: para.end,
           ratio: this.modelStaticsRange,
-          checkList: this.checkModel.checkList
+          checkList: this.checkModel.checkList,
+          forceUpdate: true
         }
       }).then(() => {
         this.btnLoading = false
