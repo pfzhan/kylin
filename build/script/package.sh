@@ -77,6 +77,12 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KAP 2.5.3 release note
+
+**Bugfix**
+
+- Fix the issue cannot save streaming model
+
 #### KAP 2.5.2 release note
 
 **Feature & Enhancement**
