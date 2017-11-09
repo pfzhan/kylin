@@ -19,7 +19,9 @@ full_metadata_dir="${KYLIN_HOME}/meta_backups/${meta_backup_dir}"
 
 if [ $# -eq 0 ]; then
   echo "Usage : cluster-migration.sh backup"
+  echo "Usage : cluster-migration.sh backup-cube cubeName metadataOnly"
   echo "Usage : cluster-migration.sh restore hdfs://namenode/kylin_working_dir"
+  echo "Usage : cluster-migration.sh restore-cube project cubeName hdfs://namenode/kylin_working_dir"
   exit 0
 fi
 
@@ -36,6 +38,16 @@ then
     echo "KAP metadata is dumped to file: ${full_metadata_dir}."
     hadoop ${hadoop_conf_param} fs -put -f ${full_metadata_dir} ${current_working_dir} || quit "Failed to put ${full_metadata_dir} to ${current_working_dir}"
     echo "KAP metadata is put to HDFS and ready to distcp to remote Hadoop Cluster."
+fi
+
+if [ "$1" == "backup-cube" ]
+then
+    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI backup "$2" "$3"
+fi
+
+if [ "$1" == "restore-cube" ]
+then
+    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI restore "$2" "$3" "$4" "$5"
 fi
 
 if [ "$1" == "restore" ]

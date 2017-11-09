@@ -114,12 +114,12 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
 
         switch (args.length) {
-        case 2:
+        case 3:
             if (false == "backup".equalsIgnoreCase(args[0])) {
                 cli.usageForBackup();
                 break;
             }
-            cli.backupCube(args[1]);
+            cli.backupCube(args[1], args[2]);
             break;
         case 5:
             if (false == "restore".equalsIgnoreCase(args[0])) {
@@ -139,7 +139,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         }
     }
 
-    public void backupCube(String cubeName) throws IOException, InterruptedException {
+    public void backupCube(String cubeName, String onlyMeta) throws IOException, InterruptedException {
 
         File tmp = File.createTempFile("kap_migrating_cube", "");
         FileUtils.forceDelete(tmp);
@@ -158,12 +158,12 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         CubeInstance migratingCube = cubeManager.getCube(cubeName);
 
         dumpCubeResourceToLocal(migratingCube);
-        putLocalCubeResourcesToHDFS(migratingCube, metaDir.getAbsolutePath());
+        putLocalCubeResourcesToHDFS(migratingCube, metaDir.getAbsolutePath(), onlyMeta);
 
         FileUtils.deleteDirectory(tmp.getAbsoluteFile());
     }
 
-    private void putLocalCubeResourcesToHDFS(CubeInstance cube, String localDir) throws IOException {
+    private void putLocalCubeResourcesToHDFS(CubeInstance cube, String localDir, String metaOnly) throws IOException {
         String cubeName = cube.getName();
         String cubeStoragePath = KapConfig.wrap(srcConfig).getReadParquetStoragePath() + cube.getUuid();
         Path migrating_cube_path = new Path(getMigratingCubeRootPath(cubeName));
@@ -176,6 +176,11 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
         hdfsFS.copyFromLocalFile(new Path(localDir), migrating_cube_path);
 
+        boolean copyOnlyMeta = "true".equalsIgnoreCase(metaOnly);
+        if (copyOnlyMeta) {
+            logger.info("Only migrate cube metadata.");
+            return;
+        }
         String copyToPath = getMigratingCubeDataPath(cubeName);
         copyCubeOrRaw(cubeName, cubeStoragePath, copyToPath);
 
@@ -189,7 +194,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
     private void copyCubeOrRaw(String cubeName, String copyFrom, String copyTo) throws IOException {
         if (hdfsFS.exists(new Path(copyFrom))) {
             logger.info("Move cube:{} data from: {} to: {}", cubeName, copyFrom, copyTo);
-            FileUtil.copy(hdfsFS, new Path(copyFrom), hdfsFS, new Path(copyTo), true,
+            FileUtil.copy(hdfsFS, new Path(copyFrom), hdfsFS, new Path(copyTo), false,
                     HadoopUtil.getCurrentConfiguration());
         }
     }
@@ -296,8 +301,8 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
     }
 
     public void usageForBackup() {
-        System.out.println("Usage: KapCubeMigrationCLI backup cubeName \n" + "For Example: \n"
-                + "KapCubeMigrationCLI backup exampleCube \n");
+        System.out.println("Usage: KapCubeMigrationCLI backup cubeName onlyMeta \n" + "For Example: \n"
+                + "KapCubeMigrationCLI backup exampleCube true \n");
     }
 
     public void usageForRestore() {

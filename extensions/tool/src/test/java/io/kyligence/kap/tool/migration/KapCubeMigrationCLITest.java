@@ -58,7 +58,7 @@ public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
         String dstProject = "migration";
 
         KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
-        cli.backupCube(toMigrateCube);
+        cli.backupCube(toMigrateCube, "true");
 
         KylinConfig config = getTestConfig();
         CubeInstance cube = CubeManager.getInstance(config).getCube(toMigrateCube);
