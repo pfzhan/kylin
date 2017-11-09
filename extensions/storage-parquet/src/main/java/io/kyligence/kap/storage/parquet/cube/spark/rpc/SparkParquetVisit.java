@@ -300,7 +300,7 @@ public class SparkParquetVisit implements Serializable {
      */
     private boolean lazyCheckExists(FileSystem fs, Path path) {
         logger.debug("check whether path exists {}", path.toString());
-        while (path.getParent() != null) {
+        if (path.getParent() != null && path.getParent().toString().equals(path.toString()) == false) {
             lazyCheckExists(fs, path.getParent());
         }
         boolean exist = false;

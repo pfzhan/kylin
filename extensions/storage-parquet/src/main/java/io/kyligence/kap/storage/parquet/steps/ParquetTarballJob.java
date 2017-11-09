@@ -102,7 +102,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
 
     protected int setJobInputFile(Job job, Path path) throws IOException {
         int ret = 0;
-        FileSystem fs = HadoopUtil.getWorkingFileSystem(job.getConfiguration());
+        FileSystem fs = HadoopUtil.getFileSystem(path, job.getConfiguration());
         if (!fs.exists(path)) {
             logger.warn("Input {} does not exist.", path.toString());
         } else if (fs.isDirectory(path)) {
