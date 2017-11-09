@@ -49,14 +49,14 @@ import io.kyligence.kap.smart.cube.CubeMaster;
 import io.kyligence.kap.smart.model.ModelMaster;
 
 public class SmartSuggestCLI implements IKeep {
-    private static Logger logger = LoggerFactory.getLogger(SmartSuggestCLI.class);;
+    private static final Logger logger = LoggerFactory.getLogger(SmartSuggestCLI.class);
 
     public static void main(String[] args) throws Exception {
-        //        args = new String[] { "TPC_DS_2", "/Users/dong/Projects/bigjohn/kap/tpcds/queries_filtered" };
-        //
+        // args = new String[]{"tpch", "/Users/dong/Desktop/tpch-report-query.txt"};
+
         if (args == null || args.length != 2) {
             System.out.println("Usage: java io.kyligence.kap.tool.smart.SmartSuggestCLI <project> <sql_dir>");
-            System.out.println("eg. java io.kyligence.kap.tool.smart.SmartSuggestCLI learn_kylin /tmp/sql/ true");
+            System.out.println("eg. java io.kyligence.kap.tool.smart.SmartSuggestCLI learn_kylin /tmp/sql/");
             System.exit(1);
         }
 
@@ -99,12 +99,14 @@ public class SmartSuggestCLI implements IKeep {
 
     private static void doSuggest(String projectName, File sqlFile) throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        //        KylinConfig kylinConfig = Utils.newKylinConfig("/Users/dong/Projects/bigjohn/kap/tpcds/meta");
+        // KylinConfig kylinConfig =
+        // Utils.newKylinConfig("/Users/dong/Projects/KAP/KAP/extensions/smart/src/test/resources/tpch/meta");
+        // KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
         kylinConfig.setProperty("kap.smart.conf.aggGroup.strategy", "whitelist");
         kylinConfig.setProperty("kap.smart.conf.domain.query-enabled", "true");
         kylinConfig.setProperty("kap.smart.strategy", "batch");
-        //        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
 
         Preconditions.checkArgument(sqlFile.exists(), "SQL File not exists at " + sqlFile.getAbsolutePath());
         String[] sqls = readSqls(sqlFile);
@@ -124,13 +126,24 @@ public class SmartSuggestCLI implements IKeep {
         List<CubeMaster> cubeMasters = MasterFactory.createCubeMasters(kylinConfig, projectName, sqls);
         CubeManager cubeManager = CubeManager.getInstance(kylinConfig);
         CubeDescManager cubeDescManager = CubeDescManager.getInstance(kylinConfig);
+        List<CubeDesc> failedCubes = Lists.newLinkedList();
         for (int i = 0; i < cubeMasters.size(); i++) {
             logger.info("Generating the {}th cube.", i);
             CubeDesc cube = cubeMasters.get(i).proposeAll();
             cubeDescManager.createCubeDesc(cube);
+            if (!cube.getError().isEmpty()) {
+                failedCubes.add(cube);
+                continue;
+            }
             cubeManager.createCube(cube.getName(), projectName, cube, null);
         }
 
-        logger.info("{} Models and {} cubes are created.", modelMasters.size(), cubeMasters.size());
+        logger.info("=================================================================");
+        logger.info("{} Models and {} cubes are created.", modelMasters.size(),
+                cubeMasters.size() - failedCubes.size());
+
+        for (CubeDesc failed : failedCubes) {
+            logger.error("Cube {} is not suggested correctly, error message: {}", failed.getName(), failed.getError());
+        }
     }
 }

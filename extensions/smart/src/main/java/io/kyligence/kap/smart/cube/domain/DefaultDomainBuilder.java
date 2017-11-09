@@ -87,7 +87,11 @@ public class DefaultDomainBuilder implements IDomainBuilder {
     private List<FunctionDesc> buildMeasures() {
         List<FunctionDesc> measures = Lists.newArrayList();
         if (queryStats != null && queryStats.getMeasures() != null) {
-            measures.addAll(queryStats.getMeasures());
+            for (FunctionDesc queryAggFunc : queryStats.getMeasures()) {
+                if (queryAggFunc.getReturnType() != null) { // pre-defined measures
+                    measures.add(queryAggFunc);
+                }
+            }
         }
 
         boolean queryEnabled = config.getMeasureQueryEnabled();
