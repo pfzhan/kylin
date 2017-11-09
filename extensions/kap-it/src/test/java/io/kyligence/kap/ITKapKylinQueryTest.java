@@ -141,6 +141,11 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             BackdoorToggles.cleanToggles();
         }
     }
+
+    @Test
+    public void testPowerBiQuery() throws Exception {
+        this.execAndCompQuery("src/test/resources/query/sql_powerbi", null, true);
+    }
     
     //only raw can do
     @Test
