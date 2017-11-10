@@ -420,7 +420,7 @@ public class RawTableManager implements IRealizationProvider {
     private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, TSRange tsRange, SegmentRange segRange) {
         RawTableSegment segment = new RawTableSegment(raw);
         segment.setUuid(null == cubeSegUuid ? UUID.randomUUID().toString() : cubeSegUuid);
-        segment.setName(CubeSegment.makeSegmentName(tsRange, segRange));
+        segment.setName(CubeSegment.makeSegmentName(tsRange, segRange, raw.getModel()));
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setRawTableInstance(raw);
 

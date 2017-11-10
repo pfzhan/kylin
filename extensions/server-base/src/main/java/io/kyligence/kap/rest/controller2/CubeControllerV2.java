@@ -83,8 +83,12 @@ import io.kyligence.kap.cube.mp.MPCubeManager;
 import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.KapBuildRequest;
 import io.kyligence.kap.rest.request.KapStreamingBuildRequest;
+import io.kyligence.kap.rest.request.KapSyncRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.KapCubeResponse;
+import io.kyligence.kap.rest.service.BatchSyncAdvisor;
+import io.kyligence.kap.rest.service.BatchSyncAdvisor.KapJobBuildRequest;
+
 import io.kyligence.kap.rest.service.KapCubeService;
 
 /**
@@ -134,10 +138,10 @@ public class CubeControllerV2 extends BasicController {
         for (CubeInstance cube : official) {
             if (mpCubeMgr.isMPCube(cube))
                 continue;
-            
+
             response.add(createCubeResponse(cube));
         }
-        
+
         // draft cubes
         for (Draft d : cubeService.listCubeDrafts(cubeName, modelName, projectName, exactMatch)) {
             CubeDesc c = (CubeDesc) d.getEntity();
@@ -420,7 +424,34 @@ public class CubeControllerV2 extends BasicController {
             throws IOException {
         return rebuildStreaming(cubeName, req);
     }
-    
+
+    @RequestMapping(value = "/{cubeName}/batch_sync", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse batchSync(@PathVariable String cubeName, @RequestBody List<KapSyncRequest> reqList)
+            throws IOException {
+
+        checkCubeExists(cubeName);
+
+        List<KapJobBuildRequest> jobBuildReqs = BatchSyncAdvisor.buildJobBuildRequests(cubeName, reqList);
+
+        List<EnvelopeResponse> responseList = Lists.newArrayList();
+        for (KapJobBuildRequest jobReq : jobBuildReqs) {
+            try {
+                JobInstance job = buildInternal(jobReq.getCubeName(), jobReq.getTsRange(), null, null, null,
+                        jobReq.getBuildType(), true);
+                responseList.add(new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, ""));
+            } catch (Exception e) {
+                responseList.add(new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, e.getMessage()));
+                logger.error(
+                        "Cube name :" + jobReq.getCubeName() + " Segment range " + jobReq.getTsRange() + " sync error.",
+                        e);
+            }
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, responseList, "");
+    }
+
     /** Build/Rebuild a cube segment by source offset */
     @RequestMapping(value = "/{cubeName}/rebuild_streaming", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })

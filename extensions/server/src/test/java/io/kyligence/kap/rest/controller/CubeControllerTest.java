@@ -50,6 +50,7 @@ import io.kyligence.kap.cube.mp.MPCubeManager;
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.rest.controller2.CubeControllerV2;
 import io.kyligence.kap.rest.request.KapBuildRequest;
+import io.kyligence.kap.rest.request.KapSyncRequest;
 import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.KapCubeResponse;
 import io.kyligence.kap.rest.service.ServiceTestBase;
@@ -103,7 +104,7 @@ public class CubeControllerTest extends ServiceTestBase {
 
     private void prepare() throws IOException {
 
-        String[] mps = { "LSTG_FORMAT_NAME" };
+        String[] mps = {"LSTG_FORMAT_NAME"};
 
         KylinConfig config = getTestConfig();
         CubeManager cubeMgr = CubeManager.getInstance(config);
@@ -137,7 +138,7 @@ public class CubeControllerTest extends ServiceTestBase {
         request.setForce(true);
 
         CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
-                new String[] { "ABIN" });
+                new String[]{"ABIN"});
         Segments<CubeSegment> segs = cube.getSegments();
         Assert.assertEquals(segs.size(), 2);
         EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
@@ -164,7 +165,7 @@ public class CubeControllerTest extends ServiceTestBase {
         request.setForce(true);
 
         CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
-                new String[] { "ABIN" });
+                new String[]{"ABIN"});
         Segments<CubeSegment> segs = cube.getSegments();
         Assert.assertEquals(segs.size(), 2);
         EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
@@ -191,7 +192,7 @@ public class CubeControllerTest extends ServiceTestBase {
         request.setForce(true);
 
         CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
-                new String[] { "ABIN" });
+                new String[]{"ABIN"});
         Segments<CubeSegment> segs = cube.getSegments();
         Assert.assertEquals(segs.size(), 2);
         EnvelopeResponse response = cubeControllerV2.manageSegments(G_CUBE_NAME, request);
@@ -218,7 +219,7 @@ public class CubeControllerTest extends ServiceTestBase {
         Assert.assertEquals(response.code, "000");
 
         CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
-                new String[] { "ABIN" });
+                new String[]{"ABIN"});
 
         Segments<CubeSegment> segments = cube.getSegments();
         for (CubeSegment cs : segments) {
@@ -228,13 +229,57 @@ public class CubeControllerTest extends ServiceTestBase {
 
         return segments;
     }
-    
+
+
+    @Test
+    public void testBatchSync() throws IOException, InterruptedException {
+        String cubeName = "ci_left_join_cube";
+        String[] mps = {"ORDER_ID"};
+
+        List<KapSyncRequest> requestList = Lists.newArrayList();
+        cubeControllerV2.batchSync(cubeName, requestList);
+
+        convertCommonToMPMaster(cubeName, mps);
+
+        KapSyncRequest request1 = new KapSyncRequest();
+        request1.setMpValues("12");
+        request1.setPointList(Lists.newArrayList(new Long[]{12L, 16L, 56L, 99L, 121L}));
+        request1.setRangeList(Lists.newArrayList(new Long[][]{new Long[]{14L, 18L}, new Long[]{77L, 110L}}));
+        requestList.add(request1);
+
+        cubeControllerV2.batchSync(cubeName, requestList);
+
+        CubeInstance cube = MPCubeManager.getInstance(getTestConfig()).convertToMPCubeIfNeeded(G_CUBE_NAME,
+                new String[]{"12"});
+
+        Segments<CubeSegment> segments = cube.getSegments();
+        for (CubeSegment cs : segments) {
+            cs.setStatus(SegmentStatusEnum.READY);
+        }
+        Assert.assertEquals(segments.size(), 5);
+        Assert.assertEquals(segments.get(0).getName(), "12_13");
+        Assert.assertEquals(segments.get(1).getName(), "14_19");
+        Assert.assertEquals(segments.get(2).getName(), "56_57");
+        Assert.assertEquals(segments.get(3).getName(), "77_111");
+        Assert.assertEquals(segments.get(4).getName(), "121_122");
+    }
+
+    private void convertCommonToMPMaster(String cubeName, String[] mps) throws IOException {
+        KylinConfig config = getTestConfig();
+        CubeManager cubeMgr = CubeManager.getInstance(config);
+        CubeInstance cubeInstance = cubeMgr.getCube(cubeName);
+        KapModel kapModel = (KapModel) cubeInstance.getDescriptor().getModel();
+        kapModel.setMutiLevelPartitionColStrs(mps);
+        kapModel.getPartitionDesc().setPartitionDateFormat("");
+        DataModelManager.getInstance(config).updateDataModelDesc(kapModel);
+    }
+
     @Test // https://github.com/Kyligence/KAP/issues/3150
     public void testBuildAndRefreshFullBuild() throws IOException {
         CubeManager cubeMgr = CubeManager.getInstance(getTestConfig());
         CubeInstance nonPartCube = cubeMgr.getCube("fifty_dim_full_build_cube");
         Assert.assertEquals(0, nonPartCube.getSegments().size());
-        
+
         // first build
         KapBuildRequest buildReq = new KapBuildRequest();
         buildReq.setBuildType("BUILD");
@@ -242,10 +287,10 @@ public class CubeControllerTest extends ServiceTestBase {
         nonPartCube = cubeMgr.getCube("fifty_dim_full_build_cube"); // load again
         Assert.assertEquals(1, nonPartCube.getSegments().size());
         Assert.assertEquals("FULL_BUILD", nonPartCube.getSegments().get(0).getName());
-        
+
         // hack the READY status
         nonPartCube.getSegments().get(0).setStatus(SegmentStatusEnum.READY);
-        
+
         // refresh build
         SegmentMgmtRequest refreshReq = new SegmentMgmtRequest();
         refreshReq.setBuildType("REFRESH");
