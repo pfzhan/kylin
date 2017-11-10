@@ -1,7 +1,7 @@
 <template>
 <div class="add_dimensions">
   <el-button type="blue" class="dimensions-button" @click="suggestionDimensions"  :loading="suggestLoading" :disabled="!getSqlResult">{{$t('sqlOutput')}}
-    <common-tip :content="$t('outputTipOne') + $t(getStrategy) + $t('outputTipTwo')" ><icon name="question-circle" style="color:gray"></icon></common-tip></el-button>
+    <common-tip :content="$t('outputTipOne')" ><icon name="question-circle" style="color:gray"></icon></common-tip></el-button>
   <el-button type="blue" class="dimensions-button" @click="reset">{{$t('reset')}}</el-button>
   <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;"></div>
   <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>

@@ -377,7 +377,6 @@ export default {
       return true
     },
     checkTableIndex: function () {
-      let _this = this
       if (this.rawTable.tableDetail.columns.length === 0) {
         return true
       }
@@ -387,8 +386,35 @@ export default {
       let fuzzyTypeError = false
       for (let i = 0; i < this.rawTable.tableDetail.columns.length; i++) {
         var curColumn = this.rawTable.tableDetail.columns[i]
+        if (curColumn.encoding.substr(0, 7) === 'integer' && (curColumn.encoding.substr(8) < 1 || curColumn.encoding.substr(8) > 8)) {
+          this.$message({
+            showClose: true,
+            duration: 0,
+            message: this.$t('checkRowkeyInt'),
+            type: 'error'
+          })
+          return false
+        }
+        if (curColumn.encoding.substr(0, 12) === 'fixed_length' && curColumn.encoding.substr(13) === '') {
+          this.$message({
+            showClose: true,
+            duration: 0,
+            message: this.$t('fixedLengthTip'),
+            type: 'error'
+          })
+          return false
+        }
+        if (curColumn.encoding.substr(0, 16) === 'fixed_length_hex' && curColumn.encoding.substr(17) === '') {
+          this.$message({
+            showClose: true,
+            duration: 0,
+            message: this.$t('fixedLengthHexTip'),
+            type: 'error'
+          })
+          return false
+        }
         if (curColumn.is_sortby === true) {
-          let _encoding = _this.getEncoding(curColumn.encoding)
+          let _encoding = this.getEncoding(curColumn.encoding)
           if (['date', 'time', 'integer'].indexOf(_encoding) < 0) {
             if (sortedCount === 0) {
               setTypeError = true
@@ -418,7 +444,7 @@ export default {
         this.$message({
           showClose: true,
           duration: 0,
-          message: _this.$t('rawtableSortedWidthDate'),
+          message: this.$t('rawtableSortedWidthDate'),
           type: 'error'
         })
         return false
@@ -427,7 +453,7 @@ export default {
         this.$message({
           showClose: true,
           duration: 0,
-          message: _this.$t('shardCountError'),
+          message: this.$t('shardCountError'),
           type: 'error'
         })
         return false
@@ -436,7 +462,7 @@ export default {
         this.$message({
           showClose: true,
           duration: 0,
-          message: _this.$t('rawtableSetSorted'),
+          message: this.$t('rawtableSetSorted'),
           type: 'error'
         })
         return false
@@ -961,7 +987,7 @@ export default {
     clearTimeout(this.cubeSaveST)
   },
   locales: {
-    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample SQL', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The Cube name [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Please select at least one dimension.', checkAggGroup: 'Each aggregation group can\'t be empty.', checkMeasuresCount: '[COUNT] measure is required.', checkRowkeyInt: 'Int encoding column length should between 1 and 8.', checkRowkeyShard: 'At most one \'shard by\' column is allowed.', checkColumnFamily: 'All measures need to be assigned to column family.', checkColumnFamilyNull: 'Each column family can\'t not be empty.', checkCOKey: 'Property name is required.', checkCOValue: 'Property value is required.', rawtableSetSorted: 'Please set at least one column with Sort By value of "true".', rawtableSortedWidthDate: 'The first "sorted" column should be a column with encoding "integer", "time" or "date".', rawtableSingleSorted: 'Only one column is allowed to set with an index value of "sorted".', errorMsg: 'Error Message', shardCountError: 'Max Shard By column number is 1.', unsetScheduler: 'Please complete the Scheduler setting.', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type column only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure.', checkCountDistinctPartThree: 'Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartFour: '] from cube dimension list.', returnTypeNullPartOne: 'Measure[', returnTypeNullPartTwo: ']\'s return type is null. Please edit it to fill the blank.', strategyTip1: 'On the "', strategyTip2: '", cube optimizer can barely work for model check/SQL pattens being uncompleted. Are you sure to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', fixedLengthTip: 'The length parameter of Fixed Length encoding is required.', fixedLengthHexTip: 'The length parameter of Fixed Length Hex encoding is required.'},
+    'en': {cubeInfo: 'Cube Info', sampleSql: 'Sample SQL', dimensions: 'Dimensions', measures: 'Measures', refreshSetting: 'Refresh Setting', tableIndex: 'Table Index', AdvancedSetting: 'Advanced Setting', overview: 'Overview', prev: 'Prev', next: 'Next', save: 'Save', checkCubeNamePartOne: 'The Cube name [ ', checkCubeNamePartTwo: ' ] already exists!', checkDimensions: 'Please select at least one dimension.', checkAggGroup: 'Each aggregation group can\'t be empty.', checkMeasuresCount: '[COUNT] measure is required.', checkRowkeyInt: 'Integer encoding column length should between 1 and 8.', checkRowkeyShard: 'At most one \'shard by\' column is allowed.', checkColumnFamily: 'All measures need to be assigned to column family.', checkColumnFamilyNull: 'Each column family can\'t not be empty.', checkCOKey: 'Property name is required.', checkCOValue: 'Property value is required.', rawtableSetSorted: 'Please set at least one column with Sort By value of "true".', rawtableSortedWidthDate: 'The first "sorted" column should be a column with encoding "integer", "time" or "date".', rawtableSingleSorted: 'Only one column is allowed to set with an index value of "sorted".', errorMsg: 'Error Message', shardCountError: 'Max Shard By column number is 1.', unsetScheduler: 'Please complete the Scheduler setting.', fuzzyTip: 'Fuzzy index can be applied to string(varchar) type column only.', checkCountDistinctPartOne: '[', checkCountDistinctPartTwo: '］is currently not supported as both a cube dimension and a count distinct(bitmap) measure.', checkCountDistinctPartThree: 'Please apply count distinct(hllc) instead or remove [', checkCountDistinctPartFour: '] from cube dimension list.', returnTypeNullPartOne: 'Measure[', returnTypeNullPartTwo: ']\'s return type is null. Please edit it to fill the blank.', strategyTip1: 'On the "', strategyTip2: '", cube optimizer can barely work for model check/SQL pattens being uncompleted. Are you sure to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented', fixedLengthTip: 'The length parameter of Fixed Length encoding is required.', fixedLengthHexTip: 'The length parameter of Fixed Length Hex encoding is required.'},
     'zh-cn': {cubeInfo: 'Cube信息', sampleSql: '查询样例', dimensions: '维度', measures: '度量', refreshSetting: '刷新设置', tableIndex: '表索引', AdvancedSetting: '高级设置', overview: '概览', prev: '上一步', next: '下一步', save: '保存', checkCubeNamePartOne: '名为 [ ', checkCubeNamePartTwo: '] 的Cube已经存在。', checkDimensions: '维度不能为空。', checkAggGroup: '任意聚合组不能为空。', checkMeasuresCount: '[COUNT] 度量是必须的。', checkRowkeyInt: '编码为int的列的长度应该在1至8之间。', checkRowkeyShard: '最多只允许一个\'shard by\'的列。', checkColumnFamily: '所有度量都应被分配到列簇中。', checkColumnFamilyNull: '任一列簇不能为空!', checkCOKey: '属性名不能为空。', checkCOValue: '属性值不能为空。', rawtableSetSorted: '至少设置一个列的Sort By值为"true"。', rawtableSortedWidthDate: '第一个sorted列应为编码为integer、date或time的列。', rawtableSingleSorted: '只允许设置一个列的index的值为sorted。', errorMsg: '错误信息', shardCountError: 'Shard By最多可以设置一列。', unsetScheduler: 'Scheduler参数设置不完整。', fuzzyTip: '模糊(fuzzy)索引只支持应用于string（varchar）类型数据。', checkCountDistinctPartOne: '当前版本中，[', checkCountDistinctPartTwo: ']无法既做cube维度也作为count distinct(bitmap) 的度量参数。', checkCountDistinctPartThree: '请使用count distinct(hllc) 替换该度量，或从cube维度列表中删除[', checkCountDistinctPartFour: ']。', returnTypeNullPartOne: '度量[', returnTypeNullPartTwo: ']的返回类型为空，请重新设置该度量。', strategyTip1: '当前优化偏好“', strategyTip2: '”下，模型检测／输入SQL尚未完成，后续优化与推荐可能无法完成。您确定要继续下一步吗？', dataOriented: '模型优先', mix: '综合', businessOriented: '业务优先', fixedLengthTip: 'Fixed Length Hex编码时需要长度参数。', fixedLengthHexTip: 'Fixed Length Hex编码时需要长度参数。'}
   }
 }

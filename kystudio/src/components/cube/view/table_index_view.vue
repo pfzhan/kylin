@@ -2,7 +2,7 @@
  <div>
   <p v-if="!cubeDesc.rawTable" class="noRawTable">{{$t('noRawTable')}}</p>
   <el-table  v-else
-    :data="cubeDesc.rawTable.columns"
+    :data="rawData"
     border stripe
     style="width: 100%">
     <el-table-column
@@ -11,7 +11,7 @@
       align="center"
       width="80">
       <template scope="scope">
-        <el-tag class="index-tag">{{scope.$index}}</el-tag>
+        <el-tag class="index-tag">{{15 * (currentPage -1) +scope.$index + 1}}</el-tag>
       </template>
     </el-table-column>
     <el-table-column
@@ -78,6 +78,7 @@
         align="center">   
     </el-table-column>       
   </el-table> 
+   <pager v-if="totalRawTable > 0" ref="pager" :perPageSize="15"  :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange' ></pager>
   </div>
 </template>
 <script>
@@ -86,10 +87,16 @@ import { handleSuccess, handleError } from '../../../util/business'
 export default {
   name: 'tableIndex',
   props: ['cubeDesc'],
+  data () {
+    return {
+      totalRawTable: 0,
+      currentPage: 1,
+      rawData: []
+    }
+  },
   methods: {
     ...mapActions({
-      loadRawTable: 'GET_RAW_TABLE',
-      loadDataSourceByProject: 'LOAD_DATASOURCE'
+      loadRawTable: 'GET_RAW_TABLE'
     }),
     getEncoding: function (encode) {
       let code = encode.split(':')
@@ -98,21 +105,28 @@ export default {
     getLength: function (encode) {
       let code = encode.split(':')
       return code[1]
+    },
+    currentChange: function (value) {
+      this.currentPage = value
+      var page = value - 1
+      this.rawData = this.cubeDesc.rawTable.columns.slice(15 * page, 15 * (page + 1))
     }
   },
   created () {
-    let _this = this
-    if (!_this.cubeDesc.rawTable) {
-      _this.loadRawTable({cubeName: this.cubeDesc.name, project: this.cubeDesc.project}).then((res) => {
+    if (!this.cubeDesc.rawTable) {
+      this.loadRawTable({cubeName: this.cubeDesc.name, project: this.cubeDesc.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           var rawData = data.rawTable || data.draft
-          _this.$set(_this.cubeDesc, 'rawTable', rawData)
+          if (rawData && rawData.columns && rawData.columns.length) {
+            this.totalRawTable = rawData.columns.length
+            this.rawData = rawData.columns.slice(0, 15)
+            this.$set(this.cubeDesc, 'rawTable', rawData)
+          }
         })
-      }).catch((res) => {
-        handleError(res, () => {})
+      }, (res) => {
+        handleError(res)
       })
     }
-    this.loadDataSourceByProject({project: this.cubeDesc.project, isExt: true})
   },
   locales: {
     'en': {noRawTable: 'No Table Index Configuration Information.', tableIndex: 'Table Index', ID: 'ID', column: 'Column', dataType: 'Data Type', tableAlias: 'Table Alias', Encoding: 'Encoding', Length: 'Length', Index: 'Index'},

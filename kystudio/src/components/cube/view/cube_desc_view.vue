@@ -86,17 +86,16 @@ export default {
             lookup['alias'] = removeNameSpace(lookup.table)
           }
           factTables.push(lookup.alias)
-          this.aliasMap[lookup.alias] = lookup.table
         } else {
           if (!lookup.alias) {
             lookup['alias'] = removeNameSpace(lookup.table)
           }
           lookupTables.push(lookup.alias)
-          this.aliasMap[lookup.alias] = lookup.table
         }
+        this.aliasMap[lookup.alias] = lookup.table
         this.$store.state.datasource.dataSource[this.selected_project].forEach((table) => {
           if (lookup.table === table.database + '.' + table.name) {
-            table.columns.forEach(function (column) {
+            table.columns.forEach((column) => {
               this.$set(this.cube.modelDesc.columnsDetail, lookup.alias + '.' + column.name, {
                 name: column.name,
                 datatype: column.datatype,
