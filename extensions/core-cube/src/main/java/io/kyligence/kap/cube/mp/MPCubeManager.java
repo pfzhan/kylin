@@ -35,6 +35,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
+import org.apache.kylin.cube.CubeUpdate;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -273,21 +274,36 @@ public class MPCubeManager {
 
     CubeInstance createMPCube(CubeInstance mpMaster, String[] mpValues) throws IOException {
         String name = buildMPCubeName(mpMaster.getName(), mpValues);
+        String displayName = buildMPCubeDisplayName(mpMaster.getName(), mpValues);
         String owner = buildMPCubeOwner(mpMaster.getName());
 
         CubeDesc mpMasterDesc = mpMaster.getDescriptor();
 
         CubeInstance mpCube = CubeManager.getInstance(config).createCube(name, mpMaster.getProject(), mpMasterDesc,
                 owner);
+        mpCube.setDisplayName(displayName);
+        CubeManager.getInstance(config).updateCube(new CubeUpdate(mpCube));
 
         return mpCube;
     }
 
     String buildMPCubeName(String name, String[] mpValues) {
+        return buildMPCubeIfNeedEncode(name, mpValues, true);
+    }
+
+    String buildMPCubeDisplayName(String name, String[] mpValues) {
+        return buildMPCubeIfNeedEncode(name, mpValues, false);
+    }
+
+    String buildMPCubeIfNeedEncode(String name, String[] mpValues, boolean isEncode) {
         List partList = Lists.newArrayList();
         partList.add(name);
         for (String pvalue : mpValues) {
-            partList.add(encode(pvalue));
+            if (isEncode) {
+                partList.add(encode(pvalue));
+            } else {
+                partList.add(pvalue);
+            }
         }
 
         return StringUtil.join(partList, V_SPLIT);
