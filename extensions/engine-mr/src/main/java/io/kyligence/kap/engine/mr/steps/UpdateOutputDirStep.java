@@ -134,7 +134,9 @@ public class UpdateOutputDirStep extends AbstractExecutable {
             if (fs.exists(destChild) && fs.isDirectory(status.getPath()) && fs.isDirectory(destChild)) {
                 copyMergeDirs(fs, status.getPath(), destChild);
             } else {
-                fs.rename(status.getPath(), destChild);
+                if (fs.isFile(status.getPath()) && !fs.exists(destChild)) {
+                    fs.rename(status.getPath(), destChild);
+                }
             }
         }
     }
