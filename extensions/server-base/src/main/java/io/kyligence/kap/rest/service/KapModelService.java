@@ -139,6 +139,11 @@ public class KapModelService extends BasicService {
                 break;
             index++;
         }
+
+        if (tableExtDesc.getSampleRows().isEmpty()) {
+            return new String[]{};
+        }
+
         return tableExtDesc.getSampleRows().get(index);
     }
 
