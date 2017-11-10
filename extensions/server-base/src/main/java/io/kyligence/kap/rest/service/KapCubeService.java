@@ -69,7 +69,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
@@ -142,12 +141,11 @@ public class KapCubeService extends BasicService implements InitializingBean {
         columnarResp.setSegmentPath(segStoragePath);
 
         if (raw != null) {
-            List<RawTableSegment> rawSegs = rawTableManager.getRawtableSegmentByTSRange(raw, segment.getTSRange());
-            if (rawSegs.size() != 0) {
-                Preconditions.checkArgument(rawSegs.size() == 1);
-                String rawSegmentDir = ColumnarStorageUtils.getReadSegmentDir(rawSegs.get(0));
+            RawTableSegment rawSeg = raw.getSegmentById(segment.getUuid());
+            if (rawSeg != null) {
+                String rawSegmentDir = ColumnarStorageUtils.getReadSegmentDir(rawSeg);
                 columnarResp.setRawTableSegmentPath(rawSegmentDir);
-
+                
                 if (fs.exists(new Path(rawSegmentDir))) {
                     ContentSummary cs = fs.getContentSummary(new Path(rawSegmentDir));
                     columnarResp.setRawTableFileCount(cs.getFileCount());
@@ -314,7 +312,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
                 ColumnarResponse info;
                 try {
                     info = getColumnarInfo(storagePath, seg);
-                } catch (IOException ex) {
+                } catch (Exception ex) {
                     logger.error("Can't get columnar info, " + cube + ", " + seg + ":", ex);
                     continue;
                 }
@@ -343,7 +341,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
                 HBaseResponse info;
                 try {
                     info = cubeService.getHTableInfo(cube.getName(), seg.getStorageLocationIdentifier());
-                } catch (IOException e) {
+                } catch (Exception e) {
                     logger.error("Failed to calculate size of HTable '" + seg.getStorageLocationIdentifier() + "'.", e);
                     continue;
                 }
@@ -357,7 +355,10 @@ public class KapCubeService extends BasicService implements InitializingBean {
             }
         }
 
-        return totalStorageSize / 1024;
+        if (totalStorageSize == 0)
+            return 0;
+        else
+            return totalStorageSize < 1024 ? 1 : totalStorageSize / 1024;
     }
 
     // HBase API returns table size in MB and that could be 0 for small cube under 1 MB

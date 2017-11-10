@@ -341,7 +341,7 @@ public class RawTableManager implements IRealizationProvider {
         }
         return result;
     }
-
+    
     private boolean isReady(RawTableSegment seg) {
         return seg.getStatus() == SegmentStatusEnum.READY;
     }
