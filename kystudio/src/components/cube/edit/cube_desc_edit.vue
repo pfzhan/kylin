@@ -17,7 +17,7 @@
   <div class="ksd-mt-10 ksd-mb-10" id="cube-main">
   <info ref="infoForm" v-if="activeStep===1" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :healthStatus="healthStatus"></info>
   <!-- <sample_sql v-if="activeStep===2" :cubeDesc="cubeDetail" :isEdit="isEdit" :sampleSql="sampleSQL"></sample_sql> -->
-  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :oldData="oldData"></dimensions>
+  <dimensions v-if="activeStep===2" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql" :oldData="oldData" :healthStatus="healthStatus"></dimensions>
   <measures v-if="activeStep===3" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :modelDesc="modelDetail" :isEdit="isEdit" :sampleSql="sampleSql"  :oldData="oldData"></measures>
   <refresh_setting v-if="activeStep===4" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail" :scheduler="scheduler"></refresh_setting>
   <table_index v-if="activeStep===5" :cubeDesc="cubeDetail" :cubeInstance="extraoption.cubeInstance" :isEdit="isEdit" :modelDesc="modelDetail"  :rawTable="rawTable"></table_index>
@@ -66,8 +66,6 @@ export default {
     return {
       cubeSaveST: null,
       activeStep: 1,
-      skipStep: 1,
-      checkStrategy: true,
       cubeSaving: false,
       cubeDraftSaving: false,
       isEdit: this.extraoption.isEdit,
@@ -168,15 +166,12 @@ export default {
       cacheRawTableBaseData: 'CACHE_RAWTABLE__BASEDATA'
     }),
     step: function (num) {
-      this.skipStep = num
       this.activeStep = this.stepsCheck(num)
     },
     prev: function () {
-      this.skipStep = this.activeStep - 1
       this.activeStep = this.activeStep - 1
     },
     next: function () {
-      this.skipStep = this.activeStep + 1
       this.wizardSteps[this.activeStep - 1].isComplete = this.checkCubeSteps(this.activeStep)
       if (this.wizardSteps[this.activeStep - 1].isComplete) {
         this.activeStep = this.activeStep + 1
@@ -232,15 +227,6 @@ export default {
         })
       }
       if (nameUsed) {
-        return false
-      }
-      if (this.checkStrategy && (((this.healthStatus.status === 'RUNNING' || this.healthStatus.status === 'ERROR' || this.healthStatus.status === 'NONE') && (this.getStrategy === 'dataOriented' || this.getStrategy === 'mix')) || (!this.getSqlResult && (this.getStrategy === 'businessOriented' || this.getStrategy === 'mix')))) {
-        kapConfirm(this.$t('strategyTip1') + this.$t(this.getStrategy) + this.$t('strategyTip2'), {
-          confirmButtonText: this.$t('kylinLang.common.continue')
-        }).then(() => {
-          this.checkStrategy = false
-          this.step(this.skipStep)
-        })
         return false
       }
       return true
@@ -752,7 +738,7 @@ export default {
         engine_type: this.getCubeEng(),
         storage_type: this.getStorageEng(),
         override_kylin_properties: {
-          'kap.smart.conf.aggGroup.strategy': 'default'
+          'kap.smart.conf.aggGroup.strategy': 'auto'
         }
       }
     },
@@ -805,7 +791,10 @@ export default {
             }
           }
           if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy']) {
-            this.$set(this.cubeDetail.override_kylin_properties, 'kap.smart.conf.aggGroup.strategy', this.$store.state.system.strategy || 'default')
+            this.$set(this.cubeDetail.override_kylin_properties, 'kap.smart.conf.aggGroup.strategy', 'auto')
+          }
+          if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
+            this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] = 'auto'
           }
           this.oldData.oldDimensions = objectClone(this.cubeDetail.dimensions)
           this.oldData.oldMeasures = objectClone(this.cubeDetail.measures)
@@ -963,24 +952,6 @@ export default {
   computed: {
     selected_cube: function () {
       return this.$store.state.cube.cubeAdd
-    },
-    getStrategy: function () {
-      if (this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'default') {
-        return 'dataOriented'
-      } else if (this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
-        return 'mix'
-      } else {
-        return 'businessOriented'
-      }
-    },
-    getSqlResult: function () {
-      let sqlResult = false
-      this.sampleSql.result.forEach((row) => {
-        if (row.status !== 'FAILED') {
-          sqlResult = true
-        }
-      })
-      return sqlResult
     }
   },
   mounted () {

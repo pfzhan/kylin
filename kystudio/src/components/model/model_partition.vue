@@ -94,7 +94,7 @@
         </el-form>
         <div class="el-row" v-if="showModelCheck">
           <div class="el-col el-col-24 ksd-pb-10">
-            <span>{{$t('kylinLang.model.checkModel')}}</span>
+            <span v-show="!hasStreamingTable">{{$t('kylinLang.model.checkModel')}}</span>
             <common-tip v-show="!hasStreamingTable" :content="$t('kylinLang.model.modelCheck')" >
               <icon name="question-circle" class="ksd-question-circle"></icon>
             </common-tip>

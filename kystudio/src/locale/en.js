@@ -96,7 +96,8 @@ exports.default = {
     seeDetail: 'Details >>',
     notConnectServer: 'Cannot connect the KAP server. Please check your network or KAP server status.',
     timeOut: 'Request timed out!',
-    willClose: 'Are you sure to continue closing the window?'
+    willClose: 'Are you sure to continue closing the window?',
+    overwriteWarnTip: 'Current action will overwrite existed results, are you sure you want to continue?'
   },
   model: {
     modelName: 'Model Name:',
@@ -121,15 +122,16 @@ exports.default = {
     partitionDateTip: '1. Time Partition Column is not required, leave as default if cube always need full build.<br/> 2. Column should contain time value. (type can be date, timestamp, string, varchar, int, integer, bigint, etc.)',
     partitionSplitTip: 'Add multi-level partition column.',
     mutilPartitionTip: 'Primary partition column includes integer column and string column (long, bigint, int, short, integer, tinyint, string, char, varchar).',
-    modelCheckTips1: 'Model health check is highly recommended to help generate a cube optimize result.',
-    modelCheckTips2: 'Trigger model check will send a job (executing time depends ondataset scale and sampling setting), you can view it on monitor page.',
+    modelCheckTips1: 'Model check is highly recommended, it will check data skew and help cube dimension optimizing.',
+    modelCheckTips2: 'Model check will trigger a check job (executing time depends on data scale and sampling settings), you can view it on monitor page.',
+    modelCheckOptionsTips: 'Model check have three steps to complete: <br/>model status check, fact table sampling and lookup table sampling.<br/>1. Model status check works to check data skew.<br/>2. Table sampling works for cube dimension optimizing.',
     samplingSettingTips: 'Here you can set time range and sampling ratio based on your demand and cluster resource.',
     samplingPercentage: 'Sampling Percentage: ',
     timeRange: 'Time Range: ',
     samplingPercentageTips: 'If sampling ratio is high, check job would return accurate results <br/> with high resource engaged. If sampling ratio is low, check job would <br/>return less accurate results with resource saving.',
     modelHasJob: 'This model has a running job of model check, thus the action is disabled.',
     viewModeLimit: 'This action is disabled in view mode.',
-    modelCheck: 'Model health check is highly recommended to help generate a cube optimize result.',
+    modelCheck: 'Model check is highly recommended, it will check data skew and help cube dimension optimizing.<br/>Model check have three steps to complete: <br/>model status check, fact table sampling and lookup table sampling.<br/>1. Model status check works to check data skew.<br/>2. Table sampling works for cube dimension optimizing.',
     dragTip: 'Try to drag the tables from the left',
     resetCheckDataTip: 'Please note that model check results would be inconsistent with the new editing. So model check results would be dropped after the new editing saved.',
     dimensionLinkLimit: 'Only dimension columns can be linked',
@@ -168,8 +170,14 @@ exports.default = {
     addCube: 'Add Cube',
     cubeHasJob: 'This cube has a running job of cube build, thus the action is disabled.',
     selectModelName: 'Please select a model',
-    optimizerInputTip: 'The model check result is a necessary condition for the cube optimizer to work. Add SQL patterns can help the optimizer output <br/>suggestions that are capable to fill query demand. The cube optimizer could provide suggestions on two steps:  dimension and measure.',
-    rowkeyTip: '<h4>What is Rowkeys?</h4><p>Rowkeys specifies how dimensions are organized. </p><h4>What is Shard By column? </h4><p>If specified as "true", cube data will be sharded according to its value. </p><h4>RowKey Encoding</h4><ol><li>"dict" Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions. </li><li>"boolean" Use 1 byte to encode boolean values, valid value include: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0</li><li>"integer" Use N bytes to encode integer values, where N equals the length parameter and ranges from 1 to 8. [ -2^(8*N-1), 2^(8*N-1)) is supported for integer encoding with length of N. </li><li>"int" Deprecated, use latest integer encoding instead. </li><li>"date" Use 3 bytes to encode date dimension values. </li><li>"time" Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. </li><li>"fix_length" Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potential value truncations. </li><li>"fixed_length_hex" Use a fixed-length("length" parameter) byte array to encode the hex string dimension values, like 1A2BFF or FF00FF, with potential value truncations. Assign one length parameter for every two hex codes. </li></ol>'
+    optimizerInputTip: 'What is optimier? Based on model check result and SQL patterns,<br/> optimizer can help suggest dimensions, measures and dimension optimization.',
+    rowkeyTip: '<h4>What is Rowkeys?</h4><p>Rowkeys specifies how dimensions are organized. </p><h4>What is Shard By column? </h4><p>If specified as "true", cube data will be sharded according to its value. </p><h4>RowKey Encoding</h4><ol><li>"dict" Use dictionary to encode dimension values. dict encoding is very compact but vulnerable for ultra high cardinality dimensions. </li><li>"boolean" Use 1 byte to encode boolean values, valid value include: true, false, TRUE, FALSE, True, False, t, f, T, F, yes, no, YES, NO, Yes, No, y, n, Y, N, 1, 0</li><li>"integer" Use N bytes to encode integer values, where N equals the length parameter and ranges from 1 to 8. [ -2^(8*N-1), 2^(8*N-1)) is supported for integer encoding with length of N. </li><li>"int" Deprecated, use latest integer encoding instead. </li><li>"date" Use 3 bytes to encode date dimension values. </li><li>"time" Use 4 bytes to encode timestamps, supporting from 1970-01-01 00:00:00 to 2038/01/19 03:14:07. Millisecond is ignored. </li><li>"fix_length" Use a fixed-length("length" parameter) byte array to encode integer dimension values, with potential value truncations. </li><li>"fixed_length_hex" Use a fixed-length("length" parameter) byte array to encode the hex string dimension values, like 1A2BFF or FF00FF, with potential value truncations. Assign one length parameter for every two hex codes. </li></ol>',
+    dataOriented: 'Data Oriented',
+    businessOriented: 'Business Oriented',
+    defaultOriented: 'Default',
+    optimizeStrategy: 'Optimize Strategy',
+    businessOrientedTip: 'On the Business Oriented, optimizer can barely work for no SQL pattens. Please switch optimize strategy or input some SQLs.',
+    dataOrientedTip: 'On the Data Oriented, optimizer can barely work for no model check. Please switch optimize strategy or complete model check.'
   },
   project: {
     mustSelectProject: 'Please select a project first',

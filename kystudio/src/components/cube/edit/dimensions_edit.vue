@@ -20,8 +20,8 @@
         </el-row>
         <el-row class="row_padding">
           <el-col :span="24">
-            <el-button type="blue" icon="plus" @click.native="addDimensions" :disabled="isReadyCube" >
-              {{$t('addDimensions')}}
+            <el-button type="blue" icon="edit" @click.native="addDimensions" :disabled="isReadyCube" >
+              {{$t('dimensions')}}
             </el-button>
           </el-col>
         </el-row>
@@ -40,15 +40,32 @@
         </el-row>
         <div class="line" style="margin-bottom: -15px;margin-right: -30px;margin-left: -30px;"></div>
         <div class="line-primary" style="margin-left: -30px;margin-right: -30px;"></div>
-        <div style="font-size: 14px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-          {{$t('dimensionOptimizations')}}
+        <div class="optimize-strategy">
+          <div style="font-size: 14px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+            {{$t('dimensionOptimizations')}}
+          </div>
+          <div class="ksd-mt-10" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+            {{$t('kylinLang.cube.optimizeStrategy')}}
             <common-tip :content="$t('dO')" >
               <icon name="question-circle" class="ksd-question-circle"></icon>
-          </common-tip>
-        </div>
-        <div style="margin-top: 20px;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-          <el-button type="blue" icon="menu" :loading="suggestLoading" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
-          <el-button type="default" icon="setting" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
+            </common-tip>
+          </div>
+          <div class="ksd-mt-10" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
+            <el-select v-model="cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']" @change="changeStrategy" class="ksd-fleft">
+              <el-option
+                v-for="item in strategyOptions"
+                :key="item.value"
+                :label="$t(item.name)"
+                :value="item.value">
+              </el-option>
+            </el-select>
+            <common-tip :content="$t('cubeSuggestTip')" class="ksd-ml-20 ksd-fleft">
+              <el-button  type="blue" :loading="suggestLoading" @click.native="cubeSuggestions" :disabled="isReadyCube">{{$t('cubeSuggestion')}}</el-button>
+            </common-tip>
+            <common-tip :content="$t('resetTip')" class="ksd-fright">
+              <el-button  type="default" @click.native="resetDimensions" :disabled="isReadyCube">{{$t('resetDimensions')}}</el-button>
+            </common-tip>
+          </div>
         </div>
       </el-row>
 
@@ -60,15 +77,7 @@
     <span slot="label">{{$t('aggregationGroups')}} <common-tip :content="$t('AGG')" >
              <icon name="question-circle" class="ksd-question-circle"></icon>
           </common-tip></span>
-       <!-- 维度优化 -->
-     <!--   <el-row class="row_padding border_bottom" style="line-height:36px;border: none;" v-if="cubeDesc.dimensions && cubeDesc.dimensions.length">
-        <el-col :span="24">
-          {{$t('aggregationGroups')}}
-          <common-tip :content="$t('AGG')" >
-             <icon name="question-circle-o"></icon>
-          </common-tip>
-        </el-col>
-      </el-row> -->
+
       <el-row class="row_padding border_bottom borderLeft "  style="line-height:36px;border:none;padding-left:0;color:rgba(255,255,255,0.5);margin-top: 4px;padding-top: 0;">
         <el-col :span="5">Total cuboid number: <i class="cuboid_number">{{totalCuboid}}</i></el-col>
         <el-col :span="12" >
@@ -88,7 +97,7 @@
             <el-row class="row_padding" style="background: #2f3243;padding-left: 30px;" id="dimensions-item">
               <el-col :span="22">
                 <el-row class="row_padding">
-                  <el-col :span="5" class="dimensions-title">{{$t('Includes')}} (<span style="font-size:14px;color:#218fea;">{{group.includes.length}}</span>)</el-col>
+                  <el-col :span="24" class="dimensions-title">{{$t('Includes')}} (<span style="font-size:14px;color:#218fea;">{{group.includes.length}}</span>)</el-col>
                 </el-row>
                 <el-row>
                   <el-col :span="24" class="includes_tag">
@@ -97,7 +106,7 @@
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
-                  <el-col :span="5" class="dimensions-title">{{$t('mandatoryDimensions')}}</el-col>
+                  <el-col :span="24" class="dimensions-title">{{$t('mandatoryDimensions')}}</el-col>
                 </el-row>
                 <el-row>
                   <el-col :span="24" >
@@ -106,13 +115,13 @@
                   </el-col>
                 </el-row>
                 <el-row class="row_padding">
-                  <el-col :span="5" class="dimensions-title">{{$t('hierarchyDimensions')}}</el-col>
+                  <el-col :span="24" class="dimensions-title">{{$t('hierarchyDimensions')}}</el-col>
                 </el-row>
                 <el-row>
                   <el-col :span="24">
                     <el-row class="row_padding" :gutter="10" v-for="(hierarchy_dims, hierarchy_index) in group.select_rule.hierarchy_dims" :key="hierarchy_index">
                       <el-col :span="23" >
-                        <area_label :labels="group.select_range && group.select_range.hierarchyDims"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
+                        <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.select_range && group.select_range.hierarchyDims"  :disabled="isReadyCube" :refreshInfo="{gindex: group_index, hindex: hierarchy_index, key: 'hierarchy_dims'}" @refreshData="refreshHierarchyData"  :selectedlabels="hierarchy_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
                         </area_label>
                       </el-col>
                       <el-col :span="1" style="margin-top: 5px;">
@@ -130,13 +139,13 @@
                 </el-col>
               </el-row>
               <el-row class="row_padding">
-                <el-col :span="5" class="dimensions-title">{{$t('jointDimensions')}}</el-col>
+                <el-col :span="24" class="dimensions-title">{{$t('jointDimensions')}}</el-col>
               </el-row>
               <el-row>
                 <el-col :span="24">
                   <el-row class="row_padding" :gutter="10" v-for="(joint_dims, joint_index) in group.select_rule.joint_dims" :key="joint_index">
                     <el-col :span="23" >
-                      <area_label :labels="group.select_range && group.select_range.jointDims[joint_index]" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
+                      <area_label :placeholder="$t('kylinLang.common.pleaseSelect')" :labels="group.select_range && group.select_range.jointDims[joint_index]" :disabled="isReadyCube"  :refreshInfo="{gindex: group_index, jindex: joint_index, key: 'joint_dims'}" @refreshData="refreshJointData"  :selectedlabels="joint_dims" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail">
                       </area_label>
                     </el-col>
                     <el-col :span="1" style="margin-top:5px;">
@@ -277,8 +286,8 @@
     </el-col>
   </el-row>
   <div class="line" style="margin: 0px -30px 0 -30px;"></div>
-    <el-dialog :title="$t('addDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible" :before-close="dimensionsClose" :close-on-press-escape="false" :close-on-click-modal="false">
-      <span slot="title">{{$t('addDimensions')}}
+    <el-dialog :title="$t('editDimensions')" v-model="addDimensionsFormVisible" top="5%" size="large" v-if="addDimensionsFormVisible" :before-close="dimensionsClose" :close-on-press-escape="false" :close-on-click-modal="false">
+      <span slot="title">{{$t('editDimensions')}}
         <common-tip :content="$t('kylinLang.cube.dimensionTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip>
       </span>
       <add_dimensions  ref="addDimensionsForm" v-on:validSuccess="addDimensionsValidSuccess" :modelDesc="modelDesc" :cubeDesc="cubeDesc" :sampleSql="sampleSql" :oldData="oldData"></add_dimensions>
@@ -297,7 +306,7 @@ import areaLabel from '../../common/area_label'
 import addDimensions from '../dialog/add_dimensions'
 export default {
   name: 'dimensions',
-  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql', 'oldData'],
+  props: ['cubeDesc', 'modelDesc', 'isEdit', 'cubeInstance', 'sampleSql', 'oldData', 'healthStatus'],
   data () {
     return {
       activeName: 'first',
@@ -327,7 +336,13 @@ export default {
       scrollST: null,
       beforeScrollPos: 260,
       selectEncodingCache: {},
-      dimensionRightDom: null
+      dimensionRightDom: null,
+      oldStrategy: 'auto',
+      strategyOptions: [
+        {value: 'auto', name: 'defaultOriented'},
+        {value: 'default', name: 'dataOriented'},
+        {value: 'whitelist', name: 'businessOriented'}
+      ]
     }
   },
   components: {
@@ -346,11 +361,17 @@ export default {
       this.addSQLFormVisible = true
     },
     resetDimensions: function () {
-      this.dim_cap = 0
-      this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
-      this.initRowkeyColumns()
-      this.initAggregationGroup(true)
-      this.calcAllCuboid()
+      kapConfirm(this.$t('resetDimensionsTip'), {
+        confirmButtonText: this.$t('kylinLang.common.continue'),
+        cancelButtonText: this.$t('kylinLang.common.cancel'),
+        type: 'warning'
+      }).then(() => {
+        this.dim_cap = 0
+        this.cubeDesc.aggregation_groups.splice(0, this.cubeDesc.aggregation_groups.length)
+        this.initRowkeyColumns()
+        this.initAggregationGroup(true)
+        this.calcAllCuboid()
+      })
     },
     showDetail: function (text, target) {
       this.dimensionRightDom.style.paddingTop = (document.getElementById('scrollBox').scrollTop - 180) + 'px'
@@ -481,6 +502,31 @@ export default {
           }, 1000)
         }, 1000)
       })
+    },
+    changeStrategy: function (val, strategy) {
+      if (val === 'whitelist' && this.sampleSql.sqlCount <= 0) {
+        this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] = strategy || this.oldStrategy
+        if (!strategy) {
+          kapConfirm(this.$t('kylinLang.cube.businessOrientedTip'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            showCancelButton: false,
+            type: 'warning'
+          })
+        }
+        return
+      }
+      if (val === 'default' && this.healthStatus.status !== 'GOOD') {
+        this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] = strategy || this.oldStrategy
+        if (!strategy) {
+          kapConfirm(this.$t('kylinLang.cube.dataOrientedTip'), {
+            confirmButtonText: this.$t('kylinLang.common.ok'),
+            showCancelButton: false,
+            type: 'warning'
+          })
+        }
+        return
+      }
+      this.oldStrategy = this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']
     },
     initModelLine: function () {
       this.modelDesc.lookups.forEach((lookup) => {
@@ -617,7 +663,7 @@ export default {
     },
     initAggregationGroup: function (isReset) {
       if ((!this.isEdit || this.isEdit && isReset) && this.cubeDesc.aggregation_groups.length <= 0) {
-        let newGroup = {includes: objectClone(this.currentRowkey), select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
+        let newGroup = {includes: objectClone(this.currentRowkey) || [], select_rule: {mandatory_dims: [], hierarchy_dims: [], joint_dims: []}}
         this.cubeDesc.aggregation_groups.push(newGroup)
         this.cuboidList.push(0)
       }
@@ -822,45 +868,47 @@ export default {
       }
     },
     initAggSelectRange: function (group, gindex) {
-      this.$set(group, 'select_range', {
-        mandatoryDims: [],
-        hierarchyDims: [],
-        jointDims: []
-      })
-      let usedInMandatory = []
-      let usedInHierarchy = []
-      let usedInJoint = {allDims: [], eachOtherDims: []}
-      usedInMandatory = group.select_rule.mandatory_dims
-      group.select_rule.hierarchy_dims.forEach((dim) => {
-        usedInHierarchy = usedInHierarchy.concat(dim)
-      })
-      group.select_rule.joint_dims.forEach((dim, index) => {
-        usedInJoint.allDims = usedInJoint.allDims.concat(dim)
-        this.$set(usedInJoint.eachOtherDims, index, [])
-        this.$set(group.select_range.jointDims, index, [])
-      })
-      group.select_rule.joint_dims.forEach((dim, index) => {
-        usedInJoint.eachOtherDims.forEach((eoDim, eoIndex) => {
-          if (index !== eoIndex) {
-            usedInJoint.eachOtherDims[eoIndex] = eoDim.concat(dim)
-          }
+      if (group && group.includes) {
+        this.$set(group, 'select_range', {
+          mandatoryDims: [],
+          hierarchyDims: [],
+          jointDims: []
         })
-      })
-      group.includes.forEach((column) => {
-        if (usedInHierarchy.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
-          group.select_range.mandatoryDims.push(column)
-        }
-        if (usedInMandatory.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
-          group.select_range.hierarchyDims.push(column)
-        }
-        if (usedInMandatory.indexOf(column) === -1 && usedInHierarchy.indexOf(column) === -1) {
-          group.select_rule.joint_dims.forEach((dim, index) => {
-            if (usedInJoint.eachOtherDims[index].indexOf(column) === -1) {
-              group.select_range.jointDims[index].push(column)
+        let usedInMandatory = []
+        let usedInHierarchy = []
+        let usedInJoint = {allDims: [], eachOtherDims: []}
+        usedInMandatory = group.select_rule.mandatory_dims
+        group.select_rule.hierarchy_dims.forEach((dim) => {
+          usedInHierarchy = usedInHierarchy.concat(dim)
+        })
+        group.select_rule.joint_dims.forEach((dim, index) => {
+          usedInJoint.allDims = usedInJoint.allDims.concat(dim)
+          this.$set(usedInJoint.eachOtherDims, index, [])
+          this.$set(group.select_range.jointDims, index, [])
+        })
+        group.select_rule.joint_dims.forEach((dim, index) => {
+          usedInJoint.eachOtherDims.forEach((eoDim, eoIndex) => {
+            if (index !== eoIndex) {
+              usedInJoint.eachOtherDims[eoIndex] = eoDim.concat(dim)
             }
           })
-        }
-      })
+        })
+        group.includes.forEach((column) => {
+          if (usedInHierarchy.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
+            group.select_range.mandatoryDims.push(column)
+          }
+          if (usedInMandatory.indexOf(column) === -1 && usedInJoint.allDims.indexOf(column) === -1) {
+            group.select_range.hierarchyDims.push(column)
+          }
+          if (usedInMandatory.indexOf(column) === -1 && usedInHierarchy.indexOf(column) === -1) {
+            group.select_rule.joint_dims.forEach((dim, index) => {
+              if (usedInJoint.eachOtherDims[index].indexOf(column) === -1) {
+                group.select_range.jointDims[index].push(column)
+              }
+            })
+          }
+        })
+      }
     },
     removeAggGroup: function (index) {
       this.cubeDesc.aggregation_groups.splice(index, 1)
@@ -914,6 +962,7 @@ export default {
     }
   },
   created () {
+    this.changeStrategy(this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'], 'auto')
     this.initModelLine()
     this.initAllAggSelectRange()
     this.initCalCuboid()
@@ -929,6 +978,7 @@ export default {
         this.$set(this.modelDesc, 'suggestionDerived', data.dimensions)
       })
     })
+    this.oldStrategy = this.cubeDesc.override_kylin_properties['kap.smart.conf.aggGroup.strategy']
     this.dim_cap = this.cubeDesc.aggregation_groups && this.cubeDesc.aggregation_groups[0] && this.cubeDesc.aggregation_groups[0].select_rule.dim_cap || 0
     this.$dragging.$on('dragged', ({ value }) => {
       clearTimeout(this.ST)
@@ -947,8 +997,8 @@ export default {
     document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
   },
   locales: {
-    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', addDimensions: 'Add Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Clicking on the optimize will output the suggested dimension type (normal / derived), aggregate group settings, and Rowkey order.<br/>Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionUsed: 'This dimension is used as a mandatory、 a hierarchy and a joint dimension.', sampleData: 'Sample', dragtips: 'you can drag and drop to reorder'},
-    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', addDimensions: '添加维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '点击优化维度将输出优化器推荐的维度类型（正常／衍生）、聚合组设置与Rowkey顺序。<br/>重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionUsed: '该维度被用作必须 、层级以及联合维度。', sampleData: '采样数据', dragtips: '您可以通过拖拽列表对rowkey进行排序'}
+    'en': {dimensions: 'Dimensions', name: 'Name', type: 'Type', tableAlias: 'Table Alias', column: 'Column', datatype: 'Data Type', cardinality: 'Cardinality', comment: 'Comment', action: 'Action', editDimensions: 'Edit Dimensions', editDimension: 'Edit Dimensions', filter: 'Filter...', cancel: 'Cancel', yes: 'Yes', aggregationGroups: 'Aggregation Groups', Includes: 'Includes', mandatoryDimensions: 'Mandatory Dimensions', hierarchyDimensions: 'Hierarchy Dimensions', jointDimensions: 'Joint Dimensions', addAggregationGroups: 'Aggregation Groups', newHierarchy: 'New Hierarchy', newJoint: 'New Joint', ID: 'ID', encoding: 'Encoding', length: 'Length', shardBy: 'Shard By', dataType: 'Data Type', resetDimensions: 'Reset', cubeSuggestion: 'Optimize', collectsqlPatterns: 'Collect SQL Patterns', dimensionOptimizations: 'Dimension Optimizations', dO: 'Optimize strategy contains:<br/>1.  Default: automatically suggest aggregate group settings and Rowkey settings.<br/>2. Data-oriented: digest source data feature to suggest one aggregate group, which optimizes all dimensions for flexible analysis scenarios.<br/> 3. Business-oriented: only digest SQL patterns to suggest multiple aggregate groups. It\'s used to answer some known queries.', cubeSuggestTip: 'Click the optimize to generate following output: <br/>aggregate group settings and Rowkey settings.', resetTip: 'Reset will drop all existing the aggregate group settings and Rowkey order.', AGG: 'Aggregation group is group of cuboids that are constrained by common rules. <br/>Users can apply different settings on cuboids in all aggregation groups to meet the query requirements, and saving storage space.', maxGroup: 'Dimension limitations mean max dimensions may be contained within a group of SQL queries. In a set of queries, if each query required the number of dimensions is not more than five, you can set 5 here.', moreRowkeyTip: 'Current selected normal dimensions are exploding, "Optimize" may suggest unreasonable less cuboid.', dimensionUsed: 'This dimension is used as a mandatory、 a hierarchy and a joint dimension.', sampleData: 'Sample', dragtips: 'you can drag and drop to reorder', dataOriented: 'Data Oriented', businessOriented: 'Business Oriented', defaultOriented: 'Default', resetDimensionsTip: 'Reset will call last saving back and overwrite existing Aggregation groups and Rowkeys. Please confirm to continue?'},
+    'zh-cn': {dimensions: '维度', name: '名称', type: '类型', tableAlias: '表别名', column: '列名', datatype: '数据类型', cardinality: '基数', comment: '注释', action: '操作', editDimensions: '编辑维度', editDimension: 'Edit Dimension', filter: '过滤器', cancel: '取消', yes: '确定', aggregationGroups: '聚合组', Includes: '包含的维度', mandatoryDimensions: '必需维度', hierarchyDimensions: '层级维度', jointDimensions: '联合维度', addAggregationGroups: '添加聚合组', newHierarchy: '新的层级维度', newJoint: '新的联合维度', ID: 'ID', encoding: '编码', length: '长度', shardBy: 'Shard By', dataType: '数据类型', resetDimensions: '重置', cubeSuggestion: '维度优化', collectsqlPatterns: '输入sql', dimensionOptimizations: '维度优化', dO: '优化策略包括：<br/>1. 默认：自动的根据优化器输入，推荐出聚合组优化方式与Rowkey顺序。 <br/>2. 模型优先：参考数据的特征，推荐一个聚合组优化了所有的维度，更适用于灵活度高的查询。<br/>3. 业务优先：参考输入的SQL语句，推荐N个完全由必要维度组成的聚合组，旨在定向回答这些SQL语句。', cubeSuggestTip: '点击维度优化将输出：优化器推荐的聚合组设置与Rowkey顺序。', resetTip: '重置则会清空已有的聚合组设置与当前Rowkey顺序。', AGG: '聚合组是指受到共同规则约束的维度组合。 <br/>使用者可以对所有聚合组里的维度组合进行不同设置以满足查询需求，并最大化节省存储空间。', maxGroup: '查询最大维度数是指一组查询语句中所含维度的最大值。在查询中，每条查询所需的维度数基本都不超过5，则可以在这里设置5。', moreRowkeyTip: '当前选择的普通维度太多，一键优化可能给出过度剪枝的设置。', dimensionUsed: '该维度被用作必须 、层级以及联合维度。', sampleData: '采样数据', dragtips: '您可以通过拖拽列表对rowkey进行排序', dataOriented: '模型优先', businessOriented: '业务优先', defaultOriented: '默认', resetDimensionsTip: '重置操作会返回上一次保存过的聚合组和Rowkeys列表，并覆盖现有的度量，请确认是否继续此操作？'}
   }
 }
 </script>
@@ -1012,6 +1062,20 @@ export default {
         [data-tag=useDimension], .useDimension {
           background-color: rgb(34,122,198)!important;
           color: rgb(255,255,255)!important;
+        }
+      }
+    }
+    .optimize-strategy {
+      .el-button {
+        width: 125px;
+        height: 36px;
+      }
+      .el-select {
+        width: 250px;
+      }
+      .el-tooltip {
+        svg {
+          transform: scale(0.9);
         }
       }
     }

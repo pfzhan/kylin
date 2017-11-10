@@ -252,7 +252,7 @@
   import { mapActions } from 'vuex'
   import jobDialog from './job_dialog'
   import { pageCount } from '../../config'
-  import { transToGmtTime, kapConfirm, handleError } from 'util/business'
+  import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/business'
   import diagnosisXX from '../system/diagnosis'
   export default {
     name: 'jobslist',
@@ -305,8 +305,10 @@
     created () {
       var autoFilter = () => {
         this.stCycle = setTimeout(() => {
-          this.refreshJobs().then(() => {
-            autoFilter()
+          this.refreshJobs().then((res) => {
+            handleSuccess(res, (data) => {
+              autoFilter()
+            })
           }, (res) => {
             handleError(res)
           })

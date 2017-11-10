@@ -516,22 +516,37 @@ color: #000;
   background: @bg-total;
   // message
   .el-message {
-    background: @grey-color;
+    background: #393e53;;
     color: @fff;
   }
   .el-message-box {
     background: @grey-color;
+    width: 390px;
   }
-  .el-message-box__title {
-    color: @fff;
+  .el-message-box__header {
+    padding: 10px 20px 10px 20px;
+    .el-message-box__title {
+      color: @fff;
+    }
+    .el-message-box__headerbtn {
+      top: 11px;
+      .el-message-box__close {
+        width: 15px;
+        height: 15px;
+      }
+    }
   }
   .el-message-box__content {
     color: @content-color;
+    border-top: 1px solid #2b2d3c;
+    box-shadow:0 -1px 0 0 #424860;
   }
   .el-message__group p {
     color: @fff;
   }
   .el-message-box__btns {
+    border-top: 1px solid #2b2d3c;
+    box-shadow:0 -1px 0 0 #424860;
     .el-button--default {
       background: transparent;
       color: @fff;

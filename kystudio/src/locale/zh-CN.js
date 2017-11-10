@@ -95,7 +95,8 @@ exports.default = {
     seeDetail: '详情 >>',
     notConnectServer: '目前无法连接到KAP。请检查您的网络连接状况和KAP服务器运行状态。',
     timeOut: '请求超时！',
-    willClose: '未保存的信息可能丢失，您是否继续关闭?'
+    willClose: '未保存的信息可能丢失，您是否继续关闭?',
+    overwriteWarnTip: '当前操作将覆盖之前的结果，您确认要继续吗？'
   },
   model: {
     modelName: '模型名称：',
@@ -120,15 +121,16 @@ exports.default = {
     partitionSplitTip: '增加多级分区列。',
     secondaryPartitionWarring: '设置一级分区列之前，请先设置时间分区列。',
     mutilPartitionTip: '一级分区列应该是整数或字符串类型（long，bigint，short，int，tinyint，integer，string，char，varchar）。',
-    modelCheckTips1: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及cube优化功能。',
-    modelCheckTips2: '模型检测将会触发一个检查任务（执行时间受数据量大小和采样比例影响），可以在监控界面查看该任务。',
+    modelCheckTips1: '模型检测将会检查数据中可能的问题，比如数据分布不均匀；并服务于后续的cube设计优化功能。',
+    modelCheckTips2: '模型检测将会触发检查任务（执行时长受数据量大小和采样比例影响），您可以在监控界面查看该任务。',
+    modelCheckOptionsTips: '完整的模型检测包括：模型状态检测、事实表采样、纬度表采样。<br/>模型状态检测主要检查数据的分布不均等问题，表采样更多服务于cube的纬度优化等。',
     samplingSettingTips: '采样设置中，根据需求与集群资源情况，您可以分别设置本次模型检测的时间范围与采样比例。',
     samplingPercentage: '采样范围：',
     timeRange: '时间范围：',
     samplingPercentageTips: '采样比例较高时，检测准度较高，会需要较多资源。采样比例较低时，监测准度较低，比较节省资源。',
     modelHasJob: '此模型已有在执行的模型监测任务，因此当前操作不支持。',
     viewModeLimit: '预览模式下不能进行该操作',
-    modelCheck: '模型健康检测将会为您检查数据中可能的问题，服务后续的cube设计和构建，以及一键优化功能。',
+    modelCheck: '模型检测将会检查数据中可能的问题，比如数据分布不均匀；并服务于后续的cube设计优化功能。<br/>完整的模型检测包括：模型状态检测、事实表采样、纬度表采样。<br/>1. 模型状态检测主要检查数据的分布不均等问题。<br/>2. 表采样更多服务于cube的纬度优化等。',
     dragTip: '拖拽左侧的table到该区域',
     resetCheckDataTip: '请注意，模型检测结果将与最新编辑不一致。当您保存了最新编辑，模型检测结果将会被删除。',
     dimensionLinkLimit: '只有维度列可以进行关联',
@@ -167,8 +169,14 @@ exports.default = {
     addCube: '添加Cube',
     cubeHasJob: '此cube已有在执行的cube构建任务，因此当前操作不支持。',
     selectModelName: '请选择一个模型',
-    optimizerInputTip: '模型检测结果是cube优化器工作的必要条件。补充SQL查询记录则可以帮助优化器<br/>输出贴近查询需求的推荐设置。Cube优化器的输出分别为维度设计与度量设计。',
-    rowkeyTip: '<h4>什么是Rowkeys?</h4><p>Rowkeys定义了维度列之间如何组织在一起</p><h4>是否按该列分散存储? </h4><p>若设为"true", Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>"dict" 适用于大部分字段，默认推荐使用。但在超高基情况下，可能引起内存不足的问题。</li><li>"boolean" 适用于内容为：true, false； TRUE, FALSE； True, False； t, f； T, F； yes, no； YES, NO； Yes, No； y, n； Y, N； 1, 0的字段。</li><li>"integer" 适用于字段值为整数字符，支持的整数区间为[ -2^(8*N-1), 2^(8*N-1)]。 </li><li>"int" 已弃用, 请使用最新的integer编码。</li><li>"date" 适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断。</li><li>"time" 适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07], 毫秒部分会被忽略。 time编码适用于time, datetime, timestamp等类型。</li><li>"fix_length" 适用于超高基场景, 将选取字段的前N个字节作为编码值, 当N小于字段长度, 会造成字段截断, 当N较大时, 造成RowKey过长, 查询性能下降。只适用于varchar或nvarchar类型。</li><li>"fixed_length_hex" 适用于内容为十六进制字符的字段，比如1A2BFF或者FF00FF（每两个字符需要一个字节）。</li></ol>'
+    optimizerInputTip: '什么是优化器？优化器可以根据输入内容，自动推荐维度、度量和维度优化的方式。',
+    rowkeyTip: '<h4>什么是Rowkeys?</h4><p>Rowkeys定义了维度列之间如何组织在一起</p><h4>是否按该列分散存储? </h4><p>若设为"true", Cube数据将按该列值分散存储</p><h4>Rowkey编码</h4><ol><li>"dict" 适用于大部分字段，默认推荐使用。但在超高基情况下，可能引起内存不足的问题。</li><li>"boolean" 适用于内容为：true, false； TRUE, FALSE； True, False； t, f； T, F； yes, no； YES, NO； Yes, No； y, n； Y, N； 1, 0的字段。</li><li>"integer" 适用于字段值为整数字符，支持的整数区间为[ -2^(8*N-1), 2^(8*N-1)]。 </li><li>"int" 已弃用, 请使用最新的integer编码。</li><li>"date" 适用于字段值为日期字符, 支持的格式包括yyyyMMdd、yyyy-MM-dd、yyyy-MM-dd HH:mm:ss、yyyy-MM-dd HH:mm:ss.SSS, 其中如果包含时间戳部分会被截断。</li><li>"time" 适用于字段值为时间戳字符, 支持范围为[ 1970-01-01 00:00:00, 2038/01/19 03:14:07], 毫秒部分会被忽略。 time编码适用于time, datetime, timestamp等类型。</li><li>"fix_length" 适用于超高基场景, 将选取字段的前N个字节作为编码值, 当N小于字段长度, 会造成字段截断, 当N较大时, 造成RowKey过长, 查询性能下降。只适用于varchar或nvarchar类型。</li><li>"fixed_length_hex" 适用于内容为十六进制字符的字段，比如1A2BFF或者FF00FF（每两个字符需要一个字节）。</li></ol>',
+    dataOriented: '模型优先',
+    businessOriented: '业务优先',
+    defaultOriented: '默认',
+    optimizeStrategy: '优化策略',
+    businessOrientedTip: '“业务优先”策略下，输入SQL尚未完成，维度优化无法完成。请选择其他策略或输入您的常用SQL。',
+    dataOrientedTip: '“模型优先”策略下，模型检测尚未完成，维度优化可能无法完成。请选择其他策略或等待模型检测完成。'
   },
   project: {
     mustSelectProject: '请先选择一个Project',

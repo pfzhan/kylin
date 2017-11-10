@@ -25,7 +25,7 @@ export default {
   },
   actions: {
     [types.LOAD_JOBS_LIST]: function ({ commit }, params) {
-      api.monitor.getJobsList(params).then((response) => {
+      return api.monitor.getJobsList(params).then((response) => {
         commit(types.SAVE_JOBS_LIST, { list: response.data.data.jobs, total: response.data.data.size })
       })
     },

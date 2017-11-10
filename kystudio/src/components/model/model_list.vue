@@ -244,6 +244,9 @@
                   </slider>
                   <div class="el-col-24 ksd-mb-10">
                    {{$t('kylinLang.model.checkOption')}}
+                     <common-tip placement="right" :content="$t('kylinLang.model.modelCheckOptionsTips')" >
+                        <icon name="question-circle" class="ksd-question-circle"></icon>
+                      </common-tip>
                   </div>
                   <div class="el-col-24">
                     <el-checkbox v-model="checkModel.modelStatus">{{$t('kylinLang.model.modelStatusCheck')}}</el-checkbox>
