@@ -164,9 +164,9 @@ public class DiagnosisControllerV2 extends BasicController {
             List<BadQueryEntry> result = dgService.getQueriesByType(getBadQueryEntries(request.getProject()),
                     BadQueryEntry.ADJ_PUSHDOWN);
 
-            StringBuilder sb = new StringBuilder();
             if (request.getAll()) {
                 for (BadQueryEntry entry : result) {
+                    StringBuilder sb = new StringBuilder();
                     sb.append(entry.getSql()).append(";").append("\r\n");
                     bufferedWriter.write(sb.toString());
                 }
@@ -174,6 +174,7 @@ public class DiagnosisControllerV2 extends BasicController {
                 for (BadQueryEntry entry : result) {
                     if (request.getSelectedQueries().contains(entry.getUuid()) == false)
                         continue;
+                    StringBuilder sb = new StringBuilder();
                     sb.append(entry.getSql()).append(";").append("\r\n");
                     bufferedWriter.write(sb.toString());
                 }
