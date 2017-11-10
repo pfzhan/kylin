@@ -11,10 +11,10 @@
       </span>
       <el-select v-model="measure.function.expression" class="input_width" @change="changeExpression">
         <el-option
-          v-for="(item, index) in expressionsConf"
-          :key="index"
-          :label="item"
-          :value="item">
+          v-for="item in expressionsConf"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value">
         </el-option>
       </el-select>
     </el-form-item>
@@ -185,14 +185,24 @@
 </template>
 <script>
 import { loadBaseEncodings } from '../../../util/business'
-import { objectClone } from '../../../util/index'
+import { objectClone, indexOfObjWithSomeKey } from '../../../util/index'
 export default {
   name: 'add_measure',
   props: ['measureDesc', 'modelDesc', 'cubeDesc', 'measureFormVisible'],
   data () {
     return {
       measure: objectClone(this.measureDesc),
-      expressionsConf: ['SUM', 'MIN', 'MAX', 'COUNT', 'COUNT_DISTINCT', 'TOP_N', 'RAW', 'EXTENDED_COLUMN', 'PERCENTILE'],
+      expressionsConf: [
+        {label: 'SUM', value: 'SUM'},
+        {label: 'MIN', value: 'MIN'},
+        {label: 'MAX', value: 'MAX'},
+        {label: 'COUNT', value: 'COUNT'},
+        {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
+        {label: 'TOP_N', value: 'TOP_N'},
+        {label: 'PERCENTILE_APPROX', value: 'PERCENTILE'},
+        {label: 'RAW', value: 'RAW'},
+        {label: 'EXTENDED_COLUMN', value: 'EXTENDED_COLUMN'}
+      ],
       type: ['constant', 'column'],
       integerType: ['bigint', 'int', 'integer', 'smallint', 'tinyint'],
       floatType: ['decimal', 'double', 'float'],
@@ -561,11 +571,13 @@ export default {
       }
     },
     initHiddenFeature: function () {
-      if (this.$store.state.config.hiddenFeature['raw-measure'] === true && this.expressionsConf.indexOf('RAW') >= 0) {
-        this.expressionsConf.splice(this.expressionsConf.indexOf('RAW'), 1)
+      let rawIndex = indexOfObjWithSomeKey(this.expressionsConf, 'value', 'RAW')
+      let extendedIndex = indexOfObjWithSomeKey(this.expressionsConf, 'value', 'EXTENDED_COLUMN')
+      if (this.$store.state.config.hiddenFeature['raw-measure'] === true && rawIndex >= 0) {
+        this.expressionsConf.splice(rawIndex, 1)
       }
-      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true && this.expressionsConf.indexOf('EXTENDED_COLUMN') >= 0) {
-        this.expressionsConf.splice(this.expressionsConf.indexOf('EXTENDED_COLUMN'), 1)
+      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true && extendedIndex >= 0) {
+        this.expressionsConf.splice(extendedIndex, 1)
       }
     },
     checkMeasures: function () {

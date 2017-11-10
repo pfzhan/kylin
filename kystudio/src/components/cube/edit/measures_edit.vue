@@ -26,6 +26,9 @@
       align="center"
       :label="$t('expression')"
       width="150">
+      <template scope="scope"> 
+        {{filterExpression(scope.row)}}
+      </template>
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
@@ -149,6 +152,12 @@ export default {
       loadHiddenFeature: 'LOAD_HIDDEN_FEATURE',
       getCubeSuggestions: 'GET_CUBE_DIMENSIONS'
     }),
+    filterExpression (row) {
+      if (row.function.expression === 'PERCENTILE') {
+        return 'PERCENTILE_APPROX'
+      }
+      return row.function.expression
+    },
     resetMeasures: function () {
       kapConfirm(this.$t('deleteMeasuresTip'), {
         confirmButtonText: this.$t('kylinLang.common.continue'),
@@ -423,10 +432,6 @@ export default {
     }
   },
   computed: {
-    // isPlusVersion () {
-    //   var kapVersionInfo = this.$store.state.system.serverAboutKap
-    //   return kapVersionInfo && kapVersionInfo['kap.version'] && kapVersionInfo['kap.version'].indexOf('Plus') !== -1
-    // },
     isReadyCube () {
       return this.cubeInstance && this.cubeInstance.segments && this.cubeInstance.segments.length > 0
       // return this.cubeDesc.status === 'READY'
