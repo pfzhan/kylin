@@ -31,6 +31,17 @@ public class PasswdChangeRequest implements Serializable {
     private String password;
     private String newPassword;
 
+    public PasswdChangeRequest() {
+
+    }
+
+    // only for test now
+    public PasswdChangeRequest(String username, String password, String newPassword) {
+        this.username = username;
+        this.password = password;
+        this.newPassword = newPassword;
+    }
+
     public String getUsername() {
         return username;
     }

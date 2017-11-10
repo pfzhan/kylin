@@ -223,6 +223,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
         completeAuthorities(existing);
         userService.updateUser(existing);
 
+        userService.setEvictCacheFlag(true);
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, get(user.getUsername()), "");
     }
 

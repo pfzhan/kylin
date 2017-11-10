@@ -27,7 +27,10 @@ package io.kyligence.kap.rest.controller;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.PasswdChangeRequest;
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.UserService;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +41,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import io.kyligence.kap.rest.service.ServiceTestBase;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  */
 public class KapUserControllerTest extends ServiceTestBase {
@@ -45,6 +50,10 @@ public class KapUserControllerTest extends ServiceTestBase {
     @Autowired
     @Qualifier("kapUserController")
     KapUserController kapUserController;
+
+    @Autowired
+    @Qualifier("userService")
+    private UserService userService;
 
     BCryptPasswordEncoder pwdEncoder = new BCryptPasswordEncoder();
 
@@ -60,6 +69,7 @@ public class KapUserControllerTest extends ServiceTestBase {
         // update
         u = kapUserController.save("TEST", new ManagedUser("TEST", "pwd22", true, "R4", "R5"));
         assertEquals(u, "TEST", "pwd22", false, "R4", "R5");
+        assertTrue(userService.isEvictCacheFlag());
 
         // disable
         ManagedUser disable = new ManagedUser();
@@ -67,6 +77,7 @@ public class KapUserControllerTest extends ServiceTestBase {
         disable.setPassword("abc.1234");
         u = kapUserController.save("TEST", disable);
         assertEquals(u, "TEST", "abc.1234", true, "R4", "R5");
+        assertTrue(userService.isEvictCacheFlag());
 
         // list all
         for (ManagedUser uu : kapUserController.listAllUsers()) {
@@ -77,10 +88,11 @@ public class KapUserControllerTest extends ServiceTestBase {
 
         // list authorities
         List<String> authorities = (List<String>) kapUserController.listAllAuthorities().data;
-        Assert.assertTrue(authorities.contains("R4"));
-        Assert.assertTrue(authorities.contains("R5"));
+        assertTrue(authorities.contains("R4"));
+        assertTrue(authorities.contains("R5"));
 
         kapUserController.delete("TEST");
+        assertTrue(userService.isEvictCacheFlag());
 
         // exception getting non-exist user
         try {
@@ -91,13 +103,35 @@ public class KapUserControllerTest extends ServiceTestBase {
         }
     }
 
+    @Test
+    public void testChangePassword() throws Exception {
+        kapUserController.delete("TEST");
+        ManagedUser u = kapUserController.save("TEST"
+            , new ManagedUser("TEST", "pwd", true, "R1", "R2", "R3"));
+
+        kapUserController.save(new PasswdChangeRequest("TEST", "pwd", "Kylin@2017"));
+
+        assertTrue(userService.isEvictCacheFlag());
+        for (ManagedUser uu : kapUserController.listAllUsers()) {
+            if ("TEST".equals(uu.getUsername())) {
+                assertEquals(uu, "TEST", "Kylin@2017", false, "R1", "R2", "R3");
+            }
+        }
+    }
+
+    @After
+    public void cleanup() throws Exception {
+        kapUserController.delete("TEST");
+
+    }
+
     private void assertEquals(ManagedUser u, String username, String password, boolean disabled, String... authorities) {
         Assert.assertEquals(username, u.getUsername());
-        Assert.assertTrue(pwdEncoder.matches(password, u.getPassword()));
+        assertTrue(pwdEncoder.matches(password, u.getPassword()));
         Assert.assertEquals(disabled, u.isDisabled());
         Assert.assertEquals(authorities.length, u.getAuthorities().size());
         for (String a : authorities) {
-            Assert.assertTrue(u.getAuthorities().contains(new SimpleGrantedAuthority(a)));
+            assertTrue(u.getAuthorities().contains(new SimpleGrantedAuthority(a)));
         }
     }
 }
