@@ -32,9 +32,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
+import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -306,5 +306,29 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
         Assert.assertNotNull(result.getFirst());
         Assert.assertTrue(result.getFirst().size() == 1);
         Assert.assertTrue("0".equals(result.getFirst().get(0).get(0)));
+    }
+
+    @Test
+    public void testPushDownUpdate() throws Exception {
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.update-enabled", "true");
+
+        String createSql = getTextFromFile(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query09.sql"));
+        String dropSql = getTextFromFile(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query10.sql"));
+
+        Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownNonSelectQuery(createSql, true);
+        Assert.assertNotNull(result.getFirst());
+        Assert.assertNotNull(result.getSecond());
+        Assert.assertTrue(result.getFirst().size() == 0);
+        Assert.assertTrue(result.getSecond().size() == 0);
+        result = tryPushDownNonSelectQuery(createSql, false);
+        Assert.assertNotNull(result.getFirst());
+        Assert.assertNotNull(result.getSecond());
+        Assert.assertTrue(result.getFirst().size() == 0);
+        Assert.assertTrue(result.getSecond().size() == 0);
+        tryPushDownNonSelectQuery(dropSql, true);
     }
 }
