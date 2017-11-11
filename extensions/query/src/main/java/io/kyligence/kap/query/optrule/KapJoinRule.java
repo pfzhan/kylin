@@ -27,6 +27,7 @@ package io.kyligence.kap.query.optrule;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.common.obf.IKeep;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-public class KapJoinRule extends ConverterRule {
+public class KapJoinRule extends ConverterRule implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(KapJoinRule.class);
 
     public static final ConverterRule INSTANCE = new KapJoinRule();
