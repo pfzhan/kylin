@@ -57,7 +57,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         //simple query
         {
             String ret = restoreFromComputedColumn.convert("select DEAL_AMOUNT,DEAL_YEAR from test_kylin_fact",
-                    "default", "DEFAULT", false);
+                    "default", "DEFAULT");
             Assert.assertEquals(
                     "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT,year(TEST_KYLIN_FACT.CAL_DT) from test_kylin_fact",
 
@@ -66,7 +66,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         //group by 
         {
             String ret = restoreFromComputedColumn.convert(
-                    "select DEAL_AMOUNT,DEAL_YEAR from test_kylin_fact group by DEAL_YEAR", "default", "DEFAULT", false);
+                    "select DEAL_AMOUNT,DEAL_YEAR from test_kylin_fact group by DEAL_YEAR", "default", "DEFAULT");
             Assert.assertEquals(
                     "select TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT,year(TEST_KYLIN_FACT.CAL_DT) from test_kylin_fact group by year(TEST_KYLIN_FACT.CAL_DT)",
 
@@ -76,7 +76,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         {
             String ret = restoreFromComputedColumn.convert(
                     "select sum(DEAL_AMOUNT) ,cal_dt as x from test_kylin_fact group by cal_dt order by sum(DEAL_AMOUNT)",
-                    "default", "DEFAULT", false);
+                    "default", "DEFAULT");
             Assert.assertEquals(
                     "select sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) ,cal_dt as x from test_kylin_fact group by cal_dt order by sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT)",
                     ret);
@@ -85,7 +85,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         {
             String ret = restoreFromComputedColumn.convert(
                     "select sum(DEAL_AMOUNT) as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact group by cal_dt order by DEAL_AMOUNTx",
-                    "default", "DEFAULT", false);
+                    "default", "DEFAULT");
             Assert.assertEquals(
                     "select sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact group by cal_dt order by DEAL_AMOUNTx",
                     ret);
@@ -94,7 +94,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         {
             String ret = restoreFromComputedColumn.convert(
                     "select sum(\"F\".\"DEAL_AMOUNT\") as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact as \"F\" group by cal_dt order by DEAL_AMOUNTx",
-                    "default", "DEFAULT", false);
+                    "default", "DEFAULT");
             Assert.assertEquals(
                     "select sum(F.PRICE * F.ITEM_COUNT) as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact as \"F\" group by cal_dt order by DEAL_AMOUNTx",
                     ret);
@@ -103,7 +103,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         {
             String ret = restoreFromComputedColumn.convert(
                     "select sum(\"F\".\"DEAL_AMOUNT\") as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact \"F\" group by cal_dt order by DEAL_AMOUNTx",
-                    "default", "DEFAULT", false);
+                    "default", "DEFAULT");
             Assert.assertEquals(
                     "select sum(F.PRICE * F.ITEM_COUNT) as DEAL_AMOUNTx,cal_dt as x from test_kylin_fact \"F\" group by cal_dt order by DEAL_AMOUNTx",
                     ret);
@@ -117,7 +117,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
         //order by alias, which happens to be a cc (this is in theory valid syntax, however not supported)
         String ret = restoreFromComputedColumn.convert(
                 "select sum(DEAL_AMOUNT) as DEAL_AMOUNT,cal_dt as x from test_kylin_fact group by cal_dt order by DEAL_AMOUNT",
-                "default", "DEFAULT", false);
+                "default", "DEFAULT");
         Assert.assertEquals(
                 "select sum(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT) as DEAL_AMOUNT,cal_dt as x from test_kylin_fact group by cal_dt order by DEAL_AMOUNT",
                 ret);
@@ -266,7 +266,7 @@ public class RestoreFromCCOnRealModelTest extends LocalFileMetadataTestCase {
     }
 
     private void check(RestoreFromComputedColumn converter, String originSql, String ccSql) {
-        String transform = converter.convert(ccSql, "default", "DEFAULT", false);
+        String transform = converter.convert(ccSql, "default", "DEFAULT");
         Assert.assertEquals(originSql, transform);
     }
 

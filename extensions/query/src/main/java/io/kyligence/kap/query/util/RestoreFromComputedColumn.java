@@ -116,7 +116,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
     private static final Logger logger = LoggerFactory.getLogger(RestoreFromComputedColumn.class);
 
     @Override
-    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+    public String convert(String originSql, String project, String defaultSchema) {
         try {
 
             String sql = originSql;
