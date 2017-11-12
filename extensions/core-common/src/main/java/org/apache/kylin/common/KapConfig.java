@@ -230,10 +230,6 @@ public class KapConfig {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-expand-factor", "10"));
     }
 
-    public int getParquetDfsReplication() {
-        return Integer.valueOf(config.getOptional("kap.storage.columnar.dfs-replication", "3"));
-    }
-
     /**
      * Rawtable column
      */
