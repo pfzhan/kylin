@@ -1,0 +1,1 @@
+create table new_table(location VARCHAR(255), temperature FLOAT)

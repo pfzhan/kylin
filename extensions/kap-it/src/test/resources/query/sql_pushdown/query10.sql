@@ -1,0 +1,1 @@
+drop table new_table
