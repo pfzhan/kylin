@@ -29,7 +29,9 @@ import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.LicenseRequest;
 import io.kyligence.kap.rest.response.RemoteLicenseResponse;
+import io.kyligence.kap.rest.response.StorageStatisticsResponse;
 import io.kyligence.kap.rest.service.LicenseInfoService;
+import io.kyligence.kap.rest.service.QuotaService;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -67,6 +69,15 @@ public class KapSystemController extends BasicController {
 
     @Autowired
     private LicenseInfoService licenseInfoService;
+
+    @Autowired
+    private QuotaService quotaService;
+
+    @RequestMapping(value = "statistics/storage", produces = {"application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse<StorageStatisticsResponse> getStorageStatistics() {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, quotaService.storageStatistics(), "StorageStatistics");
+    }
 
     @RequestMapping(value = "/license", method = {RequestMethod.GET}, produces = {
             "application/vnd.apache.kylin-v2+json"})
