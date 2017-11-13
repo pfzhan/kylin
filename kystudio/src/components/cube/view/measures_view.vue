@@ -19,9 +19,6 @@
       align="center"
       header-align="center"
       width="180">
-      <template scope="scope">
-        {{filterExpression(scope.row)}}
-      </template>
     </el-table-column>    
     <el-table-column
       show-overflow-tooltip
@@ -97,14 +94,6 @@ export default {
   props: ['cubeDesc'],
   components: {
     'parameter_tree': parameterTree
-  },
-  methods: {
-    filterExpression (row) {
-      if (row.function.expression === 'PERCENTILE') {
-        return 'PERCENTILE_APPROX'
-      }
-      return row.function.expression
-    }
   },
   computed: {
     isPlusVersion () {

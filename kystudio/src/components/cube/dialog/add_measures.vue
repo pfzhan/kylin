@@ -64,7 +64,7 @@
       <el-tag v-if="measure.function.expression === 'MIN' ||measure.function.expression === 'MAX' || measure.function.expression === 'RAW' || (measure.function.parameter.type === 'constant' && measure.function.expression !== 'TOP_N')">
         {{getReturnType}}
       </el-tag>
-      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'|| measure.function.expression === 'PERCENTILE' || measure.function.expression === 'COUNT_DISTINCT'">
+      <el-select v-model="measure.function.returntype" v-if="measure.function.expression === 'TOP_N'|| measure.function.expression === 'PERCENTILE_APPROX' || measure.function.expression === 'COUNT_DISTINCT'">
         <el-option
           v-for="(item, index) in getSelectDataType"
           :key="index"
@@ -199,7 +199,7 @@ export default {
         {label: 'COUNT', value: 'COUNT'},
         {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
         {label: 'TOP_N', value: 'TOP_N'},
-        {label: 'PERCENTILE_APPROX', value: 'PERCENTILE'},
+        {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'},
         {label: 'RAW', value: 'RAW'},
         {label: 'EXTENDED_COLUMN', value: 'EXTENDED_COLUMN'}
       ],
@@ -512,7 +512,7 @@ export default {
       if (!this.firstChange && this.measure.function.expression === 'COUNT_DISTINCT') {
         this.measure.function.returntype = 'hllc(10)'
       }
-      if (!this.firstChange && this.measure.function.expression === 'PERCENTILE') {
+      if (!this.firstChange && this.measure.function.expression === 'PERCENTILE_APPROX') {
         this.measure.function.returntype = 'percentile(100)'
       }
       if (!this.firstChange && this.measure.function.expression === 'EXTENDED_COLUMN') {
@@ -783,7 +783,7 @@ export default {
       if (this.measure.function.expression === 'COUNT_DISTINCT') {
         return this.distinctDataTypes
       }
-      if (this.measure.function.expression === 'PERCENTILE') {
+      if (this.measure.function.expression === 'PERCENTILE_APPROX') {
         return this.percentileTypes
       }
     },

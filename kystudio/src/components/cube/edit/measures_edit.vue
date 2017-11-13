@@ -26,9 +26,6 @@
       align="center"
       :label="$t('expression')"
       width="150">
-      <template scope="scope"> 
-        {{filterExpression(scope.row)}}
-      </template>
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
@@ -152,12 +149,6 @@ export default {
       loadHiddenFeature: 'LOAD_HIDDEN_FEATURE',
       getCubeSuggestions: 'GET_CUBE_DIMENSIONS'
     }),
-    filterExpression (row) {
-      if (row.function.expression === 'PERCENTILE') {
-        return 'PERCENTILE_APPROX'
-      }
-      return row.function.expression
-    },
     resetMeasures: function () {
       kapConfirm(this.$t('deleteMeasuresTip'), {
         confirmButtonText: this.$t('kylinLang.common.continue'),
