@@ -30,21 +30,34 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.cube.CubeDescManager;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.job.dao.ExecutableDao;
 import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Iterables;
+
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.raw.RawTableDesc;
+import io.kyligence.kap.cube.raw.RawTableDescManager;
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.cube.raw.RawTableManager;
 import io.kyligence.kap.metadata.scheduler.SchedulerJobInstance;
 
 public class MetadataChecker implements IKeep {
@@ -54,6 +67,11 @@ public class MetadataChecker implements IKeep {
     public static final String SCHEDULERJOB_CUBE_RULE = "SchedulerJob inconsistent with Cube";
     public static final String EXECUTABLE_OUT_RULE = "Executable inconsistent with ExecutableOutput";
     public static final String CUBE_MODEL_RULE = "Cube/TableIndex inconsistent with Model";
+    public static final String MANAGER_STORE_RULE = "Metadata in Manager inconsistent with ResourceStore";
+
+    enum ManagerType {
+        PROJECT, MODEL, CUBE, CUBEDESC, TABLEINDEX, TABLEINDEXDESC
+    }
 
     private KylinConfig kylinConfig;
     private ResourceStore store;
@@ -65,32 +83,136 @@ public class MetadataChecker implements IKeep {
         store = ResourceStore.getStore(kylinConfig);
     }
 
+    private List<String> getMetaFromResourceStore(String root) {
+        List<String> resources = new ArrayList<>();
+        try {
+            resources = store.collectResourceRecursively(root, MetadataConstants.FILE_SURFIX);
+        } catch (IOException e) {
+            logger.info("Failed to get meta from: {}, details: {}", root, e);
+        }
+        return resources;
+    }
+
+    public void checkManagerWithResourceStore() {
+        List<String> projects = getMetaFromResourceStore(ResourceStore.PROJECT_RESOURCE_ROOT);
+        List<String> models = getMetaFromResourceStore(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT);
+        List<String> cubes = getMetaFromResourceStore(ResourceStore.CUBE_RESOURCE_ROOT);
+        List<String> cubeDescs = getMetaFromResourceStore(ResourceStore.CUBE_DESC_RESOURCE_ROOT);
+        List<String> tableIndexes = getMetaFromResourceStore(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
+        List<String> tableIndexDescs = getMetaFromResourceStore(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT);
+
+        ProjectManager projectMgr = null;
+        DataModelManager modelMgr = null;
+        CubeManager cubeMgr = null;
+        CubeDescManager cubeDescMgr = null;
+        RawTableManager rawMgr = null;
+        RawTableDescManager rawDescMgr = null;
+
+        try {
+            projectMgr = ProjectManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get project manager, detail: {}", e);
+        }
+        try {
+            modelMgr = DataModelManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get model manager, detail: {}", e);
+        }
+        try {
+            cubeMgr = CubeManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get cube manager, detail: {}", e);
+        }
+        try {
+            cubeDescMgr = CubeDescManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get cubeDesc manager, detail: {}", e);
+        }
+        try {
+            rawMgr = RawTableManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get tableIndex manager, detail: {}", e);
+        }
+        try {
+            rawDescMgr = RawTableDescManager.getInstance(kylinConfig);
+        } catch (Exception e) {
+            logger.info("Failed to get tableIndexDesc Manager, detail: {}", e);
+        }
+
+        doFilter(projectMgr, projects, ManagerType.PROJECT);
+        doFilter(modelMgr, models, ManagerType.MODEL);
+        doFilter(cubeMgr, cubes, ManagerType.CUBE);
+        doFilter(cubeDescMgr, cubeDescs, ManagerType.CUBEDESC);
+        doFilter(rawDescMgr, tableIndexDescs, ManagerType.TABLEINDEXDESC);
+        doFilter(rawMgr, tableIndexes, ManagerType.TABLEINDEX);
+
+        List<String> allToDels = new ArrayList<>();
+        allToDels.addAll(projects);
+        allToDels.addAll(models);
+        allToDels.addAll(cubeDescs);
+        allToDels.addAll(cubes);
+        allToDels.addAll(tableIndexDescs);
+        allToDels.addAll(tableIndexes);
+        checkResult.put(MANAGER_STORE_RULE, allToDels);
+    }
+
+    private void doFilter(Object manager, List<String> sourceList, ManagerType type) {
+        if (manager == null) {
+            logger.info("{}Manager is null.", type);
+            return;
+        }
+        List<String> targets = new ArrayList<>();
+        switch (type) {
+        case PROJECT:
+            for (ProjectInstance prj : ((ProjectManager) manager).listAllProjects())
+                targets.add(prj.getName());
+            break;
+        case MODEL:
+            for (DataModelDesc model : ((DataModelManager) manager).listDataModels())
+                targets.add(model.getName());
+            break;
+        case CUBEDESC:
+            for (CubeDesc desc : ((CubeDescManager) manager).listAllDesc())
+                targets.add(desc.getName());
+            break;
+        case CUBE:
+            for (CubeInstance cube : ((CubeManager) manager).listAllCubes())
+                targets.add(cube.getName());
+            break;
+        case TABLEINDEX:
+            for (RawTableInstance raw : ((RawTableManager) manager).listAllRawTables())
+                targets.add(raw.getName());
+            break;
+        case TABLEINDEXDESC:
+            for (RawTableDesc rawDesc : ((RawTableDescManager) manager).listAllDesc())
+                targets.add(rawDesc.getName());
+            break;
+        default:
+            break;
+        }
+        for (final String target : targets) {
+            Iterables.removeIf(sourceList, new Predicate<String>() {
+                @Override
+                public boolean apply(@Nullable String input) {
+                    if (input.contains(target))
+                        return true;
+                    return false;
+                }
+            });
+        }
+    }
+
     public Map<String, Object> getCheckResult() {
         return this.checkResult;
     }
 
     public void checkCubeWithModel() {
 
-        List<String> cubePaths = new ArrayList<>();
-        List<String> cubeDescPaths = new ArrayList<>();
-        List<String> modelPaths = new ArrayList<>();
-        List<String> tableIndexPaths = new ArrayList<>();
-        List<String> tableIndexDescPaths = new ArrayList<>();
-
-        try {
-            cubePaths = store.collectResourceRecursively(ResourceStore.CUBE_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            cubeDescPaths = store.collectResourceRecursively(ResourceStore.CUBE_DESC_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            modelPaths = store.collectResourceRecursively(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            tableIndexPaths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            tableIndexDescPaths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-        } catch (IOException e) {
-            logger.info("Failed to get cube/cubeDesc/model resource path, details: {}", e);
-        }
+        List<String> cubePaths = getMetaFromResourceStore(ResourceStore.CUBE_RESOURCE_ROOT);
+        List<String> cubeDescPaths = getMetaFromResourceStore(ResourceStore.CUBE_DESC_RESOURCE_ROOT);
+        List<String> modelPaths = getMetaFromResourceStore(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT);
+        List<String> tableIndexPaths = getMetaFromResourceStore(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
+        List<String> tableIndexDescPaths = getMetaFromResourceStore(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT);
 
         List<String> allAffectedEntities = new ArrayList<>();
         List<String> toDelDescs = new ArrayList<>();
@@ -125,43 +247,21 @@ public class MetadataChecker implements IKeep {
         allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, cubePaths));
         allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, tableIndexPaths));
         allAffectedEntities.addAll(getEntityWithSameName(toDelDescs, tableIndexDescPaths));
-
         checkResult.put(CUBE_MODEL_RULE, allAffectedEntities);
     }
 
     public void checkCubeWithTableIndex() {
 
-        List<String> cubePaths = new ArrayList<>();
-        List<String> tableIndexPaths = new ArrayList<>();
-        List<String> tableIndexDescPaths = new ArrayList<>();
-
-        try {
-            cubePaths = store.collectResourceRecursively(ResourceStore.CUBE_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            tableIndexPaths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            tableIndexDescPaths = store.collectResourceRecursively(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-        } catch (IOException e) {
-            logger.info("Failed to get cube/table-index resource path, details: {}", e);
-        }
-
+        List<String> cubePaths = getMetaFromResourceStore(ResourceStore.CUBE_RESOURCE_ROOT);
+        List<String> tableIndexPaths = getMetaFromResourceStore(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
+        List<String> tableIndexDescPaths = getMetaFromResourceStore(RawTableDesc.RAW_TABLE_DESC_RESOURCE_ROOT);
         getIsolatedEntity(TABLEINDEX_CUBE_RULE, tableIndexPaths, cubePaths);
         getIsolatedEntity(TABLEINDEX_CUBE_RULE, tableIndexDescPaths, cubePaths);
     }
 
     public void checkCubeWithSchedulerJob() {
-        List<String> cubePaths = new ArrayList<>();
-        List<String> schedulerJobPaths = new ArrayList<>();
-
-        try {
-            cubePaths = store.collectResourceRecursively(ResourceStore.CUBE_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-            schedulerJobPaths = store.collectResourceRecursively(SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT,
-                    MetadataConstants.FILE_SURFIX);
-        } catch (IOException e) {
-            logger.info("Failed to get cube/scheduler-job resource path, details: {}", e);
-        }
+        List<String> cubePaths = getMetaFromResourceStore(ResourceStore.CUBE_RESOURCE_ROOT);
+        List<String> schedulerJobPaths = getMetaFromResourceStore(SchedulerJobInstance.SCHEDULER_RESOURCE_ROOT);
         getIsolatedEntity(SCHEDULERJOB_CUBE_RULE, schedulerJobPaths, cubePaths);
     }
 
@@ -269,11 +369,15 @@ public class MetadataChecker implements IKeep {
                 }
             }
             System.out.println("---------------------------------------------------------------------");
+            System.out.println();
+            System.out.println();
+
         }
     }
 
     public void doCheck(String opt) {
         checkResult.clear();
+        checkManagerWithResourceStore();
         checkCubeWithModel();
         checkCubeWithTableIndex();
         checkCubeWithSchedulerJob();

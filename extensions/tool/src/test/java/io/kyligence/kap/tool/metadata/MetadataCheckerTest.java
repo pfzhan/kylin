@@ -31,9 +31,9 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.job.dao.ExecutableDao;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
@@ -42,13 +42,13 @@ import io.kyligence.kap.metadata.scheduler.SchedulerJobManager;
 
 public class MetadataCheckerTest extends LocalFileMetadataTestCase {
 
-    @AfterClass
-    public static void after() throws Exception {
+    @After
+    public void after() throws Exception {
         cleanAfterClass();
     }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
+    @Before
+    public void setUp() throws Exception {
         staticCreateTestMetadata();
     }
 
@@ -60,12 +60,14 @@ public class MetadataCheckerTest extends LocalFileMetadataTestCase {
         List<String> checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
         List<String> checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
         List<String> checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
+        List<String> checkRet5 = (List<String>) checker.getCheckResult().get(MetadataChecker.MANAGER_STORE_RULE);
 
-        Assert.assertEquals(4, checker.getCheckResult().size());
+        Assert.assertEquals(5, checker.getCheckResult().size());
         Assert.assertEquals(0, checkRet1.size());
         Assert.assertEquals(0, checkRet2.size());
         Assert.assertEquals(0, checkRet3.size());
         Assert.assertEquals(0, checkRet4.size());
+        Assert.assertEquals(0, checkRet5.size());
     }
 
     @Test
@@ -90,12 +92,14 @@ public class MetadataCheckerTest extends LocalFileMetadataTestCase {
         List<String> checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
         List<String> checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
         List<String> checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
+        List<String> checkRet5 = (List<String>) checker.getCheckResult().get(MetadataChecker.MANAGER_STORE_RULE);
 
-        Assert.assertEquals(4, checker.getCheckResult().size());
+        Assert.assertEquals(5, checker.getCheckResult().size());
         Assert.assertEquals(2, checkRet1.size());
         Assert.assertEquals(1, checkRet2.size());
         Assert.assertEquals(15, checkRet3.size());
         Assert.assertEquals(5, checkRet4.size());
+        Assert.assertEquals(3, checkRet5.size());
 
         checker.doOpts("recovery");
 
@@ -104,11 +108,13 @@ public class MetadataCheckerTest extends LocalFileMetadataTestCase {
         checkRet2 = (List<String>) checker.getCheckResult().get(MetadataChecker.SCHEDULERJOB_CUBE_RULE);
         checkRet3 = (List<String>) checker.getCheckResult().get(MetadataChecker.EXECUTABLE_OUT_RULE);
         checkRet4 = (List<String>) checker.getCheckResult().get(MetadataChecker.CUBE_MODEL_RULE);
+        checkRet5 = (List<String>) checker.getCheckResult().get(MetadataChecker.MANAGER_STORE_RULE);
 
         Assert.assertEquals(0, checkRet1.size());
         Assert.assertEquals(0, checkRet2.size());
         Assert.assertEquals(0, checkRet3.size());
         Assert.assertEquals(0, checkRet4.size());
+        Assert.assertEquals(0, checkRet5.size());
     }
 
 }
