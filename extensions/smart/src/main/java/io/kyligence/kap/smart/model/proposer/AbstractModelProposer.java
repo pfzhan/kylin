@@ -51,12 +51,12 @@ public abstract class AbstractModelProposer {
         initModel(modelDesc);
         return modelDesc;
     }
-    
+
     private void initModel(DataModelDesc modelDesc) {
         KylinConfig kylinConfig = modelContext.getKylinConfig();
         String project = modelContext.getProject();
         modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList());
+                Lists.<DataModelDesc> newArrayList(), false);
     }
 
     protected abstract void doPropose(DataModelDesc modelDesc);

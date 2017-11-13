@@ -1,6 +1,6 @@
 {
-  "uuid": "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b",
-  "name": "default",
+  "uuid": "1eaca32a-a33e-4b69-83dd-0bb8b1f8c18a",
+  "name": "testproject2",
   "realizations": [
     {
       "name": "ci_left_join_cube",
@@ -31,6 +31,11 @@
       "name": "ci_inner_join_hybrid",
       "type": "HYBRID",
       "realization": "ci_inner_join_hybrid"
+    },
+    {
+      "name": "test_kylin_cube_with_slr_ready",
+      "type": "CUBE",
+      "realization": "test_kylin_cube_with_slr_ready"
     },
     {
       "name": "ssb",

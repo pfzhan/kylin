@@ -29,14 +29,14 @@ import org.apache.kylin.common.KylinConfig;
 public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.LocalFileMetadataTestCase {
 
     @Override
-    public void createTestMetadata() {
-        staticCreateTestMetadata();
+    public void createTestMetadata(String... overlayMetadataDirs) {
+        staticCreateTestMetadata(overlayMetadataDirs);
     }
 
-    public static void staticCreateTestMetadata() {
+    public static void staticCreateTestMetadata(String... overlayMetadataDirs) {
         KylinConfig.destroyInstance();
 
-        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata();
+        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata(overlayMetadataDirs);
 
         if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
             System.setProperty(KylinConfig.KYLIN_CONF, tempMetadataDir);

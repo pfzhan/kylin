@@ -74,7 +74,7 @@ public class DefaultScopeProposerTest {
         DefaultScopeProposer proposer = new DefaultScopeProposer(context.get(0));
         newModelDesc = proposer.propose(newModelDesc);
         newModelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList());
+                Lists.<DataModelDesc> newArrayList(), false);
 
         Assert.assertEquals(modelDesc.getJoinTables().length + 1, newModelDesc.getDimensions().size());
         Assert.assertTrue(newModelDesc.getDimensions().get(0).getColumns().length > 0);

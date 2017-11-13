@@ -40,7 +40,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 
-
 public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
     private final static String PROJECT = "default";
     private final static String SCHEMA = "DEFAULT";
@@ -57,23 +56,9 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
         HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
         ColumnACLManager.getInstance(KylinConfig.getInstanceFromEnv()).addColumnACL(PROJECT, "u1",
                 "DEFAULT.TEST_KYLIN_FACT", Sets.newHashSet("PRICE", "ITEM_COUNT"));
-        String sql = transformer.transform("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
-        String expectSQL = "select " +
-                "T1.TRANS_ID, " +
-                "T1.ORDER_ID, " +
-                "T1.CAL_DT, " +
-                "T1.LSTG_FORMAT_NAME, " +
-                "T1.LEAF_CATEG_ID, " +
-                "T1.LSTG_SITE_ID, " +
-                "T1.SLR_SEGMENT_CD, " +
-                "T1.SELLER_ID, " +
-                "T1.TEST_COUNT_DISTINCT_BITMAP, " +
-                "T2.ORDER_ID, " +
-                "T2.BUYER_ID, " +
-                "T2.TEST_DATE_ENC, " +
-                "T2.TEST_TIME_ENC, " +
-                "T2.TEST_EXTENDED_COLUMN " +
-                "from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
+        String sql = transformer.transform(
+                "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID", PROJECT, SCHEMA);
+        String expectSQL = "select T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID";
         Assert.assertEquals(expectSQL, sql);
     }
 
@@ -83,44 +68,14 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
         String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ";
         TreeSet<String> mockBlackList = new TreeSet<>();
         String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sql, PROJECT, SCHEMA, mockBlackList);
-        String expect = "" +
-                "T1.TRANS_ID, " +
-                "T1.ORDER_ID, " +
-                "T1.CAL_DT, " +
-                "T1.LSTG_FORMAT_NAME, " +
-                "T1.LEAF_CATEG_ID, " +
-                "T1.LSTG_SITE_ID, " +
-                "T1.SLR_SEGMENT_CD, " +
-                "T1.SELLER_ID, " +
-                "T1.PRICE, " +
-                "T1.ITEM_COUNT, " +
-                "T1.TEST_COUNT_DISTINCT_BITMAP, " +
-                "T2.ORDER_ID, " +
-                "T2.BUYER_ID, " +
-                "T2.TEST_DATE_ENC, " +
-                "T2.TEST_TIME_ENC, " +
-                "T2.TEST_EXTENDED_COLUMN";
+        String expect = "T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.PRICE, T1.ITEM_COUNT, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN";
         Assert.assertEquals(expect, newSelectClause);
 
         mockBlackList.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
         mockBlackList.add("DEFAULT.TEST_ORDER.BUYER_ID");
 
         String newSelectClause1 = HackSelectStarWithColumnACL.getNewSelectClause(sql, PROJECT, SCHEMA, mockBlackList);
-        String expect1 = "" +
-                "T1.TRANS_ID, " +
-                "T1.ORDER_ID, " +
-                "T1.CAL_DT, " +
-                "T1.LSTG_FORMAT_NAME, " +
-                "T1.LEAF_CATEG_ID, " +
-                "T1.LSTG_SITE_ID, " +
-                "T1.SLR_SEGMENT_CD, " +
-                "T1.SELLER_ID, " +
-                "T1.ITEM_COUNT, " +
-                "T1.TEST_COUNT_DISTINCT_BITMAP, " +
-                "T2.ORDER_ID, " +
-                "T2.TEST_DATE_ENC, " +
-                "T2.TEST_TIME_ENC, " +
-                "T2.TEST_EXTENDED_COLUMN";
+        String expect1 ="T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.ITEM_COUNT, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN";
         Assert.assertEquals(expect1, newSelectClause1);
     }
 
@@ -139,12 +94,11 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
                         , PROJECT //
                         , SCHEMA //
                         , new HashSet<String>());
-        Assert.assertEquals(16, colsCanAccess.size());
+        Assert.assertEquals(22, colsCanAccess.size());
     }
 
     private void enableQueryPushDown() {
-        KylinConfig.getInstanceFromEnv().setProperty(
-                "kylin.query.pushdown.runner-class-name",
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
     }
 }

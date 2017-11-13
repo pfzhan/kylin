@@ -26,7 +26,6 @@ package io.kyligence.kap.cube;
 
 import java.io.File;
 
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.HBaseColumnDesc;
@@ -38,17 +37,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.cube.hbasemapping.HBaseMappingAdapter;
 
 public class KapCubeDescTest extends LocalFileMetadataTestCase {
-    
-    public static String LOCALMETA_TEST_DATA = "../../kylin/examples/test_case_data/localmeta";
 
     private static final String CUBE_WITH_SLR_DESC = "test_kylin_cube_with_slr_desc";
-    
-    protected String getLocalMetaTestData() {
-        return LOCALMETA_TEST_DATA;
-    }
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -57,7 +51,7 @@ public class KapCubeDescTest extends LocalFileMetadataTestCase {
     public void setUp() throws Exception {
         File file = new File(".");
         System.out.println(file.getAbsolutePath());
-        
+
         this.createTestMetadata();
     }
 
@@ -65,7 +59,7 @@ public class KapCubeDescTest extends LocalFileMetadataTestCase {
     public void after() throws Exception {
         this.cleanupTestMetadata();
     }
-    
+
     @Test
     public void testBadInit13() throws Exception {
         thrown.expect(IllegalStateException.class);
@@ -113,7 +107,7 @@ public class KapCubeDescTest extends LocalFileMetadataTestCase {
         cubeDesc.getHbaseMapping().getColumnFamily()[0].getColumns()[0] = colDesc;
         HBaseMappingAdapter.initMeasureReferenceToColumnFamilyWithChecking(cubeDesc);
     }
-    
+
     @Test
     public void testMeasureReorder() throws Exception {
         CubeDesc cubeDesc = CubeDescManager.getInstance(getTestConfig()).getCubeDesc(CUBE_WITH_SLR_DESC);
@@ -127,5 +121,5 @@ public class KapCubeDescTest extends LocalFileMetadataTestCase {
         HBaseMappingAdapter.initHBaseMapping(cubeDesc);
         HBaseMappingAdapter.initMeasureReferenceToColumnFamilyWithChecking(cubeDesc);
     }
-    
+
 }

@@ -5,7 +5,6 @@
   "name": "ssb",
   "tables": [
     "SSB.PART",
-    "SSB.LINEORDER",
     "SSB.CUSTOMER",
     "SSB.P_LINEORDER",
     "SSB.SUPPLIER",

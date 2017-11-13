@@ -81,25 +81,35 @@ public class KapModel extends DataModelDesc {
         super();
     }
 
+    /**
+     * @param isOnlineModel will affect the exposed view of project specific tables
+     */
     @Override
-    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<DataModelDesc> otherModels) {
-        
+    public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<DataModelDesc> otherModels,
+            boolean isOnlineModel) {
+
         // A quick fix for Ticket #2338, tolerate bad ConditionBuilderClz "io.kyligence.t"
         // Can be safely removed later, once 2.5.2 is released
         if (isMultiLevelPartitioned()) {
             getPartitionDesc().setPartitionConditionBuilderClz("io.kyligence.kap.cube.mp.MPSqlCondBuilder");
         }
-        
+
         // tweak the tables according to Computed Columns defined in model
+        //if isOnlineModel, use model-specific TableDesc. else use shared project-specific TableDesc
         Map<String, TableDesc> tables = Maps.newHashMap();
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {
             String s = entry.getKey();
             TableDesc tableDesc = entry.getValue();
-            TableDesc extendedTableDesc = tableDesc.appendColumns(createComputedColumns(tableDesc));
+
+            if (tableDesc == null) {
+                continue;
+            }
+            
+            TableDesc extendedTableDesc = tableDesc.appendColumns(createComputedColumns(tableDesc), !isOnlineModel);
             tables.put(s, extendedTableDesc);
         }
 
-        super.init(config, tables, otherModels);
+        super.init(config, tables, otherModels, isOnlineModel);
 
         initComputedColumns(otherModels);
         initMultilevelPartitionCols();
@@ -214,12 +224,14 @@ public class KapModel extends DataModelDesc {
         return FluentIterable.from(this.computedColumnDescs).filter(new Predicate<ComputedColumnDesc>() {
             @Override
             public boolean apply(@Nullable ComputedColumnDesc input) {
+                Preconditions.checkNotNull(input);
                 return tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity());
             }
         }).transform(new Function<ComputedColumnDesc, ColumnDesc>() {
             @Nullable
             @Override
             public ColumnDesc apply(@Nullable ComputedColumnDesc input) {
+                Preconditions.checkNotNull(input);
                 id.increment();
                 ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
                         input.getComment(), null, null, input.getInnerExpression());

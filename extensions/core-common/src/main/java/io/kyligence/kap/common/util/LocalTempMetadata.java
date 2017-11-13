@@ -53,7 +53,7 @@ public class LocalTempMetadata {
         }
     }
 
-    public static String prepareLocalTempMetadata() {
+    public static String prepareLocalTempMetadata(String... overlayMetadataDirs) {
         try {
             if (debug) {
                 logger.info("Preparing local temp metadata");
@@ -68,6 +68,11 @@ public class LocalTempMetadata {
             FileUtils.copyDirectory(new File(KYLIN_META_TEST_DATA), new File(TEMP_TEST_METADATA));
             FileUtils.copyDirectory(new File(KAP_META_TEST_DATA), new File(TEMP_TEST_METADATA));
 
+            //some test cases may require additional metadata entries besides standard test metadata in test_case_data/localmeta
+            for (String overlay : overlayMetadataDirs) {
+                FileUtils.copyDirectory(new File(overlay), new File(TEMP_TEST_METADATA));
+            }
+
             appendKylinProperties(TEMP_TEST_METADATA);
             overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, grabDefaultEngineTypes(TEMP_TEST_METADATA), null);
 
@@ -75,7 +80,7 @@ public class LocalTempMetadata {
             List<String> engine99File = new ArrayList<>();
             engine99File.add("ci_left_join_cube.json");
             overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(98, 99), engine99File);
-            
+
             // Let CI cube be faster
             overrideDimCapOnCiCubes(TEMP_TEST_METADATA, 1);
 
@@ -106,7 +111,8 @@ public class LocalTempMetadata {
         }
     }
 
-    private static void overrideEngineTypeAndStorageType(String tempMetadataDir, Pair<Integer, Integer> typePair, List<String> includeFiles) throws IOException {
+    private static void overrideEngineTypeAndStorageType(String tempMetadataDir, Pair<Integer, Integer> typePair,
+            List<String> includeFiles) throws IOException {
         int engineType = typePair.getFirst();
         int storageType = typePair.getSecond();
 

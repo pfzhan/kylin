@@ -192,7 +192,7 @@ public class KapModelService extends BasicService {
             dataModelDesc.updateRandomUuid();
 
         dataModelDesc.init(getConfig(), getTableManager().getAllTablesMap(project),
-                getDataModelManager().listDataModels());
+                getDataModelManager().listDataModels(), false);
 
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
 

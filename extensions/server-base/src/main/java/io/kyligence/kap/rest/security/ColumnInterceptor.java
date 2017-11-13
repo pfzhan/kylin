@@ -90,7 +90,7 @@ public class ColumnInterceptor extends QueryInterceptor implements IKeep {
             for (TblColRef tblColRef : context.allColumns) {
                 ColumnDesc columnDesc = tblColRef.getColumnDesc();
                 //computed column
-                if (columnDesc.isComputedColumnn()) {
+                if (columnDesc.isComputedColumn()) {
                     allColWithTblAndSchema.addAll(getCCUsedCols(project, columnDesc));
                 }
                 //normal column

@@ -44,6 +44,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectManager;
+import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.query.util.QueryUtil;
 
 import com.google.common.base.Preconditions;
@@ -58,10 +59,8 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return sql;
         }
 
-        Set<String> columnBlackList = ColumnACLManager
-                .getInstance(KylinConfig.getInstanceFromEnv())
-                .getColumnACLByCache(project)
-                .getColumnBlackListByUser(QueryContext.current().getUsername());
+        Set<String> columnBlackList = ColumnACLManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getColumnACLByCache(project).getColumnBlackListByUser(QueryContext.current().getUsername());
 
         if (columnBlackList.isEmpty()) {
             return sql;
@@ -87,12 +86,14 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    static List<String> getColsCanAccess(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
+    static List<String> getColsCanAccess(String sql, String project, String defaultSchema,
+            Set<String> columnBlackList) {
         List<String> cols = new ArrayList<>();
 
         List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sql));
         for (RowFilter.Table table : tblWithAlias) {
-            TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(table.getName(), project);
+            TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv())
+                    .getTableDesc(table.getName(), project);
             List<ColumnDesc> columns = listExposedColumns(project, tableDesc);
             for (ColumnDesc column : columns) {
                 if (!columnBlackList.contains(tableDesc.getIdentity() + "." + column.getName())) {
@@ -138,11 +139,9 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
     }
 
     public static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
-        boolean exposeMore = false;
-        if (KylinConfig.getInstanceFromEnv().isPushDownEnabled()) {
-            exposeMore = true;
-        }
-        List<ColumnDesc> columns = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).listExposedColumns(project, tableDesc, exposeMore);
+        List<ColumnDesc> columns = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .listExposedColumns(project, tableDesc, OLAPSchemaFactory.exposeMore());
+        
         Collections.sort(columns, new Comparator<ColumnDesc>() {
             @Override
             public int compare(ColumnDesc o1, ColumnDesc o2) {

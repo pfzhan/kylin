@@ -144,7 +144,7 @@ public class RawModelSQLValidatorTest {
             throws Exception {
         DataModelDesc modelDesc = master.proposeAll();
         modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList());
+                Lists.<DataModelDesc> newArrayList(), false);
         return modelDesc;
     }
 

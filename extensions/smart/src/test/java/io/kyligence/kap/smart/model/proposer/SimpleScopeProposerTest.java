@@ -73,7 +73,7 @@ public class SimpleScopeProposerTest {
         SimpleScopeProposer proposer = new SimpleScopeProposer(context.get(0));
         newModelDesc = proposer.propose(newModelDesc);
         newModelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList());
+                Lists.<DataModelDesc> newArrayList(), false);
 
         Assert.assertEquals(modelDesc.getJoinTables().length + 1, newModelDesc.getDimensions().size());
         Assert.assertEquals(modelDesc.getRootFactTable().getColumns().size(),
