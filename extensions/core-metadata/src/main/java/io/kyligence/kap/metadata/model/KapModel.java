@@ -111,8 +111,24 @@ public class KapModel extends DataModelDesc {
 
         super.init(config, tables, otherModels, isOnlineModel);
 
+        checkIllegalTypeColumn();
         initComputedColumns(otherModels);
         initMultilevelPartitionCols();
+    }
+
+    // We don't support complex type in model such as Array type.
+    private void checkIllegalTypeColumn() {
+        for (TblColRef dim : this.getAllDimensionColRef()) {
+            if (DataType.isComplexType(dim.getType())) {
+                throw new RuntimeException("Dimension " + dim + " contains illegal type: " + dim.getType());
+            }
+        }
+
+        for (TblColRef metrix : this.getAllMetricColRef()) {
+            if (DataType.isComplexType(metrix.getType())) {
+                throw new RuntimeException("Measure" + metrix + " contains illegal type: " + metrix.getType());
+            }
+        }
     }
 
     private void initMultilevelPartitionCols() {
