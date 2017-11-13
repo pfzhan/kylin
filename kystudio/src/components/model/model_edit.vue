@@ -9,7 +9,7 @@
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">
-      <li><span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
+      <li><icon name="dimension"></icon> <span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
       <li><span class="iconM">M </span><span class="info">{{$t('kylinLang.common.measure')}}</span></li>
       <li><span class="iconDis">－ </span><span class="info">{{$t('kylinLang.common.disable')}}</span></li>
     </ul>
@@ -22,6 +22,7 @@
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
         <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
+        <li style="background:none;font-size:14px;text-align:center;color:#99A9BF;">{{Math.ceil(currentZoom*100)}}%</li>
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -33,17 +34,19 @@
     <div class="model_edit" :style="{left:docker.x +'px'  ,top:docker.y + 'px'}">
       <div class="table_box" v-if="table&&table.kind" @drop='dropColumn' @dragover='allowDrop($event)'  v-for="table in tableList" :key="table.guid" :id="table.guid" v-bind:class="table.kind.toLowerCase()" v-bind:style="{ left: table.pos.x + 'px', top: table.pos.y + 'px' }" >
         <div class="tool_box">
-            <span >
-              <icon name="table" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
+           <el-tooltip :content="$t('openMutil')" placement="top-start">
+            <span @click="toggleMutilSelect(table)" :class="{active:table.openMutilSelected}" v-if="actionMode!=='view'"><icon name="ksd-DM" ></icon></span></el-tooltip>
+            <span>
+              <icon name="ksd-statics" class="el-icon-menu" style="color:#fff" @click.native="openModelSubMenu('hide', table.database, table.name)"></icon>
             </span>
             <span v-show="table.kind !== 'LOOKUP'">
-              <icon name="calculator"   class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
+              <icon name="ksd-computed"   class="el-icon-share" style="color:#fff" v-on:click.native="addComputedColumn(table.guid)"></icon>
             </span>
             <span>
-              <icon name="sort-alpha-asc" v-on:click.native="sortColumns(table)"></icon>
+              <icon name="ksd-order" v-on:click.native="sortColumns(table)"></icon>
             </span>
-             <span v-show="table.kind == 'ROOTFACT'" style="line-height:26px;font-weight:bold;" @click="inputSql">
-              SQL
+             <span v-show="table.kind == 'ROOTFACT'" @click="inputSql">
+              <icon name="ksd-sql" v-on:click.native="sortColumns(table)"></icon>
             </span>
             <i class="fa fa-window-close"></i>
             <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
@@ -62,9 +65,33 @@
         <common-tip :tips="table.database+'.'+table.name" class="drag_bar">{{(table.alias)|omit(16,'...')}}</common-tip></p>
         <el-input v-model="table.alias" v-on:blur="cancelEditAlias(table.guid)" class="alias_input"  size="small" :placeholder="$t('kylinLang.common.enterAlias')" v-visible="aliasEdit&&aliasEditTableId==table.guid"></el-input>
         <p class="filter_box"><el-input v-model="table.filterName" v-on:change="filterColumnByInput1(table.filterName,table.guid)"  size="small" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input></p>
+        <div v-show="table.openMutilSelected" class="sub_tool">
+          <ul>
+            <li><el-tooltip :content="$t('checkAllColumns')" placement="top-start"><el-checkbox class="ksd-mb-2" v-model="table.allChecked" @change="checkAllColumns(table)"></el-checkbox></el-tooltip></li>
+            <el-tooltip :content="$t('unSelectColumnsTip')" trigger="manual" :disabled="table.mutilSelectedList && table.mutilSelectedList.length" v-model="table.showUnSelectTip" placement="top-start">
+            <li class="dm-btn" :class="{'active': table.mutilSelectedList && table.mutilSelectedList.length > 0}">
+              <icon width="22" height="22" name="ksd-dimension" @click.native="changeSelectedColumnKind(table, 'D')"></icon>
+              <icon width="22" height="22" name="ksd-measure" @click.native="changeSelectedColumnKind(table, 'M')"></icon>
+              <icon width="22" height="22" name="ksd-disabled" @click.native="changeSelectedColumnKind(table, '－')"></icon>
+            </li>
+          </el-tooltip>
+            <li :class="{'active': table.mutilSelectedList && table.mutilSelectedList.length > 0}">
+              <el-tooltip :content="$t('autoSuggestTip')">
+                <icon name="ksd-auto" width="22" height="22" @click.native="autoSuggestDM(table)"></icon>
+              </el-tooltip>
+            </li>
+          </ul>
+          <el-tooltip :content="$t('closeMutilTip')" placement="top-start"><i class="el-icon-close close" v-on:click="closeMutiChecked(table)"></i></el-tooltip>
+        </div>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li" v-show="column.isShow!==false"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" ><span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span><span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"><common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip></span><span class="column_type">{{column.datatype}}</span></li>
+            <li draggable v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li" v-show="column.isShow!==false"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed, 'selected': column.isSelected}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" >
+              <span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click.stop="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span>
+              <span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" >
+                <common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip>
+              </span>
+              <span class="column_type">{{column.datatype}}</span>
+            </li>
           </ul>
         </section>
         <div class="more_tool"></div>
@@ -319,6 +346,7 @@ export default {
   props: ['extraoption'],
   data () {
     return {
+      showUnSelectTip: false,
       computedDataTypeSelects: computedDataType,
       firstLoad: false,
       ignoreErrorSql: false,
@@ -530,6 +558,54 @@ export default {
       checkSql: 'VALID_AUTOMODEL_SQL',
       getAutoModelSql: 'GET_AUTOMODEL_SQL'
     }),
+    toggleMutilSelect (tableInfo) {
+      this.$set(tableInfo, 'openMutilSelected', !tableInfo.openMutilSelected)
+      tableInfo.allChecked = false
+      this.checkAllColumns(tableInfo)
+    },
+    closeMutiChecked (tableInfo) {
+      this.$set(tableInfo, 'openMutilSelected', false)
+      tableInfo.allChecked = false
+      this.checkAllColumns(tableInfo)
+    },
+    checkAllColumns (tableInfo) {
+      if (tableInfo) {
+        this.$set(tableInfo, 'mutilSelectedList', [])
+        tableInfo.columns.forEach((co) => {
+          if (tableInfo.allChecked) {
+            tableInfo.mutilSelectedList.push(co.name)
+          }
+          this.editTableColumnInfo(tableInfo.guid, 'name', co.name, 'isSelected', tableInfo.allChecked)
+        })
+      }
+    },
+    changeSelectedColumnKind (tableInfo, bType) {
+      if (tableInfo && tableInfo.mutilSelectedList && tableInfo.mutilSelectedList.length) {
+        tableInfo.mutilSelectedList.forEach((name) => {
+          if (!this.isColumnUsedInConnect(tableInfo.guid, name)) {
+            this.editTableColumnInfo(tableInfo.guid, 'name', name, 'btype', bType)
+          }
+        })
+      } else {
+        this.$set(tableInfo, 'showUnSelectTip', true)
+      }
+    },
+    autoSuggestDM (tableInfo) {
+      if (!tableInfo.mutilSelectedList || tableInfo.mutilSelectedList && tableInfo.mutilSelectedList.length === 0) {
+        return
+      }
+      kapConfirm(this.$t('autoSuggestConfirm')).then(() => {
+        if (tableInfo) {
+          var needAutoSuggestList = tableInfo.mutilSelectedList.filter((name) => {
+            if (this.isColumnUsedInConnect(tableInfo.guid, name)) {
+              return false
+            }
+            return true
+          })
+          this.suggestColumnDtype(tableInfo, needAutoSuggestList)
+        }
+      })
+    },
     resetModelEditArea () {
       this.tableList = []
       this.currentTableComputedColumns = []
@@ -1417,6 +1493,25 @@ export default {
       this.$set(this.currentSelectTable, 'database', tableInfo.database || '')
       this.$set(this.currentSelectTable, 'tablename', tableInfo.name || '')
       this.$set(this.currentSelectTable, 'columnname', columnName)
+
+      // this.editTableColumnsUniqueInfo(id, 'name', columnName, 'isSelected', true, false)
+      if (tableInfo.openMutilSelected) {
+        this.editTableColumnInfo(id, 'name', columnName, 'isSelected')
+        if (!tableInfo.mutilSelectedList) {
+          this.$set(tableInfo, 'mutilSelectedList', [])
+        }
+        var columnIndex = tableInfo.mutilSelectedList.indexOf(columnName)
+        if (columnIndex >= 0) {
+          tableInfo.mutilSelectedList.splice(columnIndex, 1)
+        } else {
+          tableInfo.mutilSelectedList.push(columnName)
+        }
+        if (tableInfo.mutilSelectedList.length === tableInfo.columns.length) {
+          tableInfo.allChecked = true
+        } else {
+          tableInfo.allChecked = false
+        }
+      }
     },
     getColumnDataByLikeFilter: function (guid, filter) {
       var suggest = []
@@ -1476,6 +1571,9 @@ export default {
             return
           }
           obj = objectClone(projectDataSource[i])
+          obj.columns.forEach((co) => {
+            co.btype = '－'
+          })
           obj.guid = sampleGuid()
           obj.pos = {x: 300, y: 400}
           obj.alias = obj.alias || obj.name
@@ -1610,12 +1708,12 @@ export default {
           x: Math.abs(_this.docker.x) + event.pageX - 215,
           y: Math.abs(_this.docker.y) + event.pageY - 170
         }
-        var newTableData = this.createTableData(this.extraoption.project, this.currentDragData.table, this.currentDragData.columnName, {pos: pos})
-        this.suggestColumnDtype(newTableData)
+        this.createTableData(this.extraoption.project, this.currentDragData.table, this.currentDragData.columnName, {pos: pos})
+        // this.suggestColumnDtype(newTableData)
       }
       return false
     },
-    suggestColumnDtype (newTableData) {
+    suggestColumnDtype (newTableData, needSuggestColumns) {
       if (!newTableData) {
         return
       }
@@ -1623,12 +1721,14 @@ export default {
         handleSuccess(response, (data) => {
           for (var i in data) {
             var setColumnBType
-            if (data[i].indexOf('METRIC') === 0) {
-              setColumnBType = 'M'
-            } else if (data[i].indexOf('DIMENSION') === 0) {
-              setColumnBType = 'D'
+            if (!needSuggestColumns || needSuggestColumns && needSuggestColumns.indexOf(i) >= 0) {
+              if (data[i].indexOf('METRIC') === 0) {
+                setColumnBType = 'M'
+              } else if (data[i].indexOf('DIMENSION') === 0) {
+                setColumnBType = 'D'
+              }
+              this.editTableColumnInfo(newTableData.guid, 'name', i, 'btype', setColumnBType)
             }
-            this.editTableColumnInfo(newTableData.guid, 'name', i, 'btype', setColumnBType)
           }
         })
       })
@@ -2204,7 +2304,11 @@ export default {
           for (let i = 0; i < len; i++) {
             var col = table.columns[i]
             if (col[filterColumnKey] === filterColumnVal || filterColumnVal === '*') {
-              _this.$set(col, columnKey, value)
+              if (value !== undefined) {
+                _this.$set(col, columnKey, value)
+              } else {
+                _this.$set(col, columnKey, !col[columnKey])
+              }
             }
           }
         }
@@ -2613,14 +2717,17 @@ export default {
       instance.setZoom(zoom)
     },
     addZoom: function () {
-      this.currentZoom += 0.03
+      this.currentZoom += 0.05
+      if (this.currentZoom > 1) {
+        this.currentZoom = 1
+      }
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
     subZoom: function () {
-      if (this.currentZoom <= 0.03) {
-        return
+      this.currentZoom -= 0.05
+      if (this.currentZoom <= 0) {
+        this.currentZoom = 0.01
       }
-      this.currentZoom -= 0.03
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },
     // 检测数据有没有发生变化
@@ -2853,8 +2960,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'Add join condition', 'hasRootFact': 'There is already a fact table.', 'cannotSetFact': 'This table has a primary key already, so it cannot be a fact table. Please remove or redefine the join condition.', 'cannotSetFTableToFKTable': 'In model, table join condition should start from fact table(foreign key), then pointing it to the lookup table(primary key).', 'tableHasOppositeLinks': 'There is an reverse link between tables.', 'tableHasOtherFKTable': 'There is already a foreign key within this table.', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Great, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1. This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2. Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3. Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.', submitSqlTip: 'KAP is generating a new model and it will overwrite current content, are you sure to continue? ', checkIgnore: 'Please correct entered SQL and check again. If you want to submit SQL queries anyway, please check the "Ignore known SQL error" box first.'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了。', 'cannotSetFact': '本表包含一个主键，因而无法被设置为事实表。请删除或重新定义该连接（join）。', 'cannotSetFTableToFKTable': '模型中，连接（join）条件的建立是从事实表（外键）开始，指向维度表（主键）。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了。', 'tableHasOtherFKTable': '该表已经有一个关联的外键表。', 'delTableTip': '请先删除掉该表和其他表的关联关系。', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑?', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1. 本功能将根据您输入的SQL语句自动补全建模，提交SQL即生成新模型。', autoModelTip2: '2. 输入多条SQL语句时将以“;”作为分隔。', autoModelTip3: '3. 语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。', submitSqlTip: '即将生成新模型，新模型将覆盖原有模型，您确认要继续吗？', checkIgnore: '请修复SQL错误，再重新检测。若希望忽略这些错误，请勾选“忽略已知的SQL错误”后，再提交。'}
+    'en': {'addJoinCondition': 'Add join condition', 'hasRootFact': 'There is already a fact table.', 'cannotSetFact': 'This table has a primary key already, so it cannot be a fact table. Please remove or redefine the join condition.', 'cannotSetFTableToFKTable': 'In model, table join condition should start from fact table(foreign key), then pointing it to the lookup table(primary key).', 'tableHasOppositeLinks': 'There is an reverse link between tables.', 'tableHasOtherFKTable': 'There is already a foreign key within this table.', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Great, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1. This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2. Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3. Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.', submitSqlTip: 'KAP is generating a new model and it will overwrite current content, are you sure to continue? ', checkIgnore: 'Please correct entered SQL and check again. If you want to submit SQL queries anyway, please check the "Ignore known SQL error" box first.', checkAllColumns: 'Choose all columns.', openMutil: 'Click here to set dimensions or measures, click again to exit.', unSelectColumnsTip: 'Click column name to choose it.', closeMutilTip: 'Exit', autoSuggestTip: 'Suggesting dimensions and measures', autoSuggestConfirm: 'Suggesting dimensions and measures will overwrite the current version, are you sure you want to continue?'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了。', 'cannotSetFact': '本表包含一个主键，因而无法被设置为事实表。请删除或重新定义该连接（join）。', 'cannotSetFTableToFKTable': '模型中，连接（join）条件的建立是从事实表（外键）开始，指向维度表（主键）。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了。', 'tableHasOtherFKTable': '该表已经有一个关联的外键表。', 'delTableTip': '请先删除掉该表和其他表的关联关系。', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑?', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1. 本功能将根据您输入的SQL语句自动补全建模，提交SQL即生成新模型。', autoModelTip2: '2. 输入多条SQL语句时将以“;”作为分隔。', autoModelTip3: '3. 语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。', submitSqlTip: '即将生成新模型，新模型将覆盖原有模型，您确认要继续吗？', checkIgnore: '请修复SQL错误，再重新检测。若希望忽略这些错误，请勾选“忽略已知的SQL错误”后，再提交。', checkAllColumns: '选择所有列', openMutil: '点此设置维度和指标，再次点击可退出设置', unSelectColumnsTip: '请先点击下面的列名选中您需要修改的列', closeMutilTip: '点击可退出设置', autoSuggestTip: '系统推荐维度和指标', autoSuggestConfirm: '使用系统推荐维度和度量，将会覆盖您当前的设置，确认要继续吗？'}
   }
 }
 </script>
@@ -3112,7 +3219,7 @@ export default {
        }
        .close_table{
         position: absolute;
-        top: 10px;
+        top: 12px;
         right: 6px;
         color:#fff;
         font-size: 12px;
@@ -3157,9 +3264,12 @@ export default {
        width: 220px;
        left: 440px;
        z-index:1;
-       background-color: #2f3242;
+       background-color: #2f3243;
        position: absolute;
-       height: 420px;
+       height: 446px;
+       background:#2f3243;
+       box-shadow:0 2px 4px 0 rgba(0,0,0,0.12), 0 0 6px 0 rgba(0,0,0,0.04);
+       border-radius:2px;
        .link_box{
          i{
            padding: 5px;
@@ -3186,9 +3296,12 @@ export default {
           font-size: 12px;
           color:#fff;
           cursor: pointer;
-          background-color: #4f5572;
+          background-color: #4f5473;
           span{
             &:hover{
+              background-color: #3ad6e8;
+            }
+            &.active{
               background-color: #3ad6e8;
             }
           }
@@ -3219,6 +3332,66 @@ export default {
             vertical-align: center;
           }
        }
+       .sub_tool {
+        cursor: auto;
+         .close{
+           display: block;
+           position: absolute;
+           right:0;
+           top:0;
+           height: 26px;
+           width: 26px;
+           text-align: center;
+           line-height: 26px;
+           cursor: pointer;
+           background:#383d52;
+           font-size: 12px;
+           &:hover{
+            background:#4f5275
+           }
+         }
+          background:#33384c;
+          box-shadow:inset 0 -1px 0 0 #35394b;
+          width:220px;
+          height:26px;
+          position: relative;
+          ul{
+            margin-top:0;
+            padding: 0;
+            li{
+              height: 26px;
+              display: inline-block;
+              background:#33384d;
+              line-height:26px;
+              overflow:hidden;
+              // box-shadow:inset -1px 0 0 0 #2f3244;
+              min-width: 26px;
+              text-align: center;
+              &.dm-btn{
+                span{
+                  margin-left: 4px;
+                }
+              }
+              &.active{
+                &:hover{
+                  background:#383d52;
+                }
+                >svg{
+                  color:#7881aa;
+                  &:hover{
+                    color:#138ded;
+                  }
+                }
+              }
+              >svg{
+                color:#5f647a;
+                cursor: pointer;
+                vertical-align:middle;
+              }
+              
+            }
+          }
+         }
        .more_tool{
           text-align: center;
           i{
@@ -3245,6 +3418,8 @@ export default {
        .drag_bar{
         span{
           cursor: text;
+          font-size: 14px;
+          font-weight: bolder;
         }
        }
        .columns_box{
@@ -3254,7 +3429,7 @@ export default {
        }
        ul{
         // position: absolute;
-        margin-top: 10px;
+        margin-top: 4px;
         li{
           list-style: none;
           font-size: 12px;
@@ -3263,7 +3438,11 @@ export default {
           color:#fff;
           cursor: move;
           background-color: #2f3242;
-
+          &.selected{
+            background:#393e56;
+            box-shadow:inset 0 -1px 0 0 #333647;
+            color:#138ded;
+          }
           span{
             display: inline-block;
           }
@@ -3283,9 +3462,10 @@ export default {
             text-align: center;
             line-height: 20px;
             vertical-align: sub;
-            border-radius: 10px;
             cursor:pointer;
             font-weight: bold;
+            background:#383d53;
+            border-radius:100%;
             &.dimension{
 
             }

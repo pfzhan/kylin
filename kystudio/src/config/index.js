@@ -104,7 +104,7 @@ export const personalEmail = {
 }
 
 export const computedDataType = [
-  'TINYINT', 'SMALLINT', 'INT/INTEGER', 'BIGINT', 'FLOAT', 'DOUBLE', 'DECIMAL', 'TIMESTAMP', 'DATE', 'STRING', 'VARCHAR', 'CHAR', 'BOOLEAN'
+  'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
 ]
 
 export const insightKeyword = [

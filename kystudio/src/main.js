@@ -33,6 +33,7 @@ import VueClipboard from 'vue-clipboard2'
 import nprogress from 'nprogress'
 
 import Icon from 'vue-awesome/components/Icon.vue'
+import './assets/font-icon/font-icon.js'
 import 'vue-awesome/icons'
 import 'brace/mode/json'
 import 'brace/mode/sql'
