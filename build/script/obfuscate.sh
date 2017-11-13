@@ -19,7 +19,7 @@ keepParam+=$(grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" . | c
 # keep classes in kylin.properties
 keepParam+=$(grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in kylin-defaults*.properties
-keepParam+=$(grep -hro --include="kylin-defaults*.properties" "io\.kyligence\.kap\.[^\"\\]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+keepParam+=$(grep -hro --include="kylin-defaults*.properties" "io\.kyligence\.kap\.[^\"\\#]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 # keep classes in *.sh
 keepParam+=$(grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" . | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
 
