@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.ProjectService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,7 +39,7 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.rest.response.StorageStatisticsResponse;
 
 @Component("quotaService")
-public class QuotaService {
+public class QuotaService extends BasicService {
 
     @Autowired
     @Qualifier("projectService")
