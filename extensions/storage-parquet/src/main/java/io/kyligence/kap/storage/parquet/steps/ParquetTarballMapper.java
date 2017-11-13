@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.steps;
 
 import java.io.IOException;
 
+import io.kyligence.kap.engine.mr.common.KapBatchConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,7 +48,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
     private FSDataOutputStream os;
 
     @Override
-    protected void doSetup(Context context) throws IOException, InterruptedException {
+    public void doSetup(Context context) throws IOException, InterruptedException {
         Configuration conf = context.getConfiguration();
         Path inputPath = ((FileSplit) context.getInputSplit()).getPath();
         super.bindCurrentConfiguration(conf);
@@ -66,7 +67,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
         logger.info("Output path: " + outputPath.toString());
 
         // make tar replicate factor to 3, wish to better query performance
-        os = fs.create(outputPath, (short) 3);
+        os = fs.create(outputPath, Short.valueOf(conf.get(KapBatchConstants.KYLIN_COLUMNAR_DFS_REPLICATION)));
         os.writeLong(Longs.BYTES + invLength);
     }
 
@@ -76,7 +77,7 @@ public class ParquetTarballMapper extends KylinMapper<IntWritable, byte[], Text,
     }
 
     @Override
-    protected void doCleanup(Context context) throws IOException, InterruptedException {
+    public void doCleanup(Context context) throws IOException, InterruptedException {
         os.close();
     }
 }

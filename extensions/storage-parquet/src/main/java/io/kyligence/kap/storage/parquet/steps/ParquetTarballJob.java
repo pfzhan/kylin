@@ -28,6 +28,7 @@ import static io.kyligence.kap.engine.mr.steps.ParquertMRJobUtils.addParquetInpu
 
 import java.io.IOException;
 
+import io.kyligence.kap.engine.mr.common.KapBatchConstants;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -85,6 +86,7 @@ public class ParquetTarballJob extends AbstractHadoopJob {
             }
 
             job.getConfiguration().setInt("dfs.blocksize", KapConfig.getInstanceFromEnv().getParquetStorageBlockSize());
+            job.getConfiguration().setInt(KapBatchConstants.KYLIN_COLUMNAR_DFS_REPLICATION, KapConfig.wrap(cube.getConfig()).getParquetDfsReplication());
             job.setInputFormatClass(ParquetWithIndexFileInputFormat.class);
             job.setOutputFormatClass(EmptyOutputFormat.class);
             job.setMapperClass(getMapperClass());
