@@ -15,7 +15,7 @@
         </template>      
       </el-table-column> -->
     </el-table>
-    <pager class="ksd-center" :perPageSize="pageSize" :totalSize="cubeList.length" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
+    <pager class="ksd-center" :perPageSize="pageSize" :totalSize="renderCubeList.length" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager>
   </div>
 </template>
 
@@ -28,21 +28,22 @@ export default {
       selected_project: localStorage.getItem('selected_project'),
       pageSize: 5,
       currentPage: 1,
-      cubeItem: []
+      cubeItem: [],
+      renderCubeList: []
     }
   },
   created () {
-    this.cubeList = this.cubeList.filter((cu) => {
+    this.renderCubeList = this.cubeList.filter((cu) => {
       return cu.type === 'CUBE'
     })
-    this.cubeItem = this.cubeList.slice(0, this.pageSize)
+    this.cubeItem = this.renderCubeList.slice(0, this.pageSize)
   },
   methods: {
     gottoCube () {
       this.$router.push('/studio/cube')
     },
     pageCurrentChange (currentPage) {
-      this.cubeItem = this.cubeList.slice(this.pageSize * (currentPage - 1), this.pageSize * currentPage)
+      this.cubeItem = this.renderCubeList.slice(this.pageSize * (currentPage - 1), this.pageSize * currentPage)
     }
   },
   locales: {
