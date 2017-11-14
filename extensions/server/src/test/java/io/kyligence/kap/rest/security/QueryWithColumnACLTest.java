@@ -33,7 +33,6 @@ import org.apache.kylin.query.security.QuerACLTestUtil;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,6 +49,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
     private static final String ADMIN = "ADMIN";
     private static final String MODELER = "MODELER";
     private static final String STREAMING_TABLE = "DEFAULT.STREAMING_TABLE";
+    private static final String TEST_COUNTRY_TABLE = "DEFAULT.TEST_COUNTRY";
     private static final String TEST_KYLIN_FACT_TABLE = "DEFAULT.TEST_KYLIN_FACT";
 
     @Rule
@@ -93,28 +93,51 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
         QuerACLTestUtil.mockQuery(PROJECT, "select * from STREAMING_TABLE");
     }
 
-    @Ignore
     @Test
     public void testColumnACLWithCC() throws IOException, SQLException {
         // ccName: BUYER_ID_AND_COUNTRY_NAME
         // ccExp: CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)
 
         QuerACLTestUtil.setUser(ADMIN);
-        getColumnACLManager().addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("NAME"), MetadataConstants.TYPE_USER);
+        ColumnACLManager manager = getColumnACLManager();
+        manager.addColumnACL(PROJECT, ADMIN, TEST_COUNTRY_TABLE, Sets.newHashSet("NAME"), MetadataConstants.TYPE_USER);
         try {
             QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (SQLException e) {
-            Assert.assertEquals("Query failed.Access column:DEFAULT.TEST_KYLIN_FACT.NAME denied",
+            Assert.assertEquals("Query failed.Access column:DEFAULT.TEST_COUNTRY.NAME denied",
                     e.getCause().getMessage());
         }
 
         // query another column, success
-        QuerACLTestUtil.mockQuery(PROJECT, "select ACCOUNT_ID from TEST_KYLIN_FACT");
+        try {
+            QuerACLTestUtil.mockQuery(PROJECT, "select COUNTRY from TEST_COUNTRY");
+            Assert.fail("expecting some AlreadyExistsException here");
+        } catch (SQLException e) {
+            Assert.assertEquals(
+                    "No model found for rel#182:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_COUNTRY],ctx=,fields=[0, 1, 2, 3])",
+                    e.getCause().getMessage());
+        }
 
         // remove acl, query success
-        getColumnACLManager().deleteColumnACL(PROJECT, ADMIN, STREAMING_TABLE);
-        QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
+        try {
+            manager.deleteColumnACL(PROJECT, ADMIN, TEST_COUNTRY_TABLE, MetadataConstants.TYPE_USER);
+            QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
+        } catch (SQLException e) {
+            Assert.assertEquals(
+                    "No model found for rel#211:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_KYLIN_FACT],ctx=,fields=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])",
+                    e.getCause().getMessage());
+        }
+
+        // add cc to column acl
+        manager.addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("SELLER_ID_AND_COUNTRY_NAME"), MetadataConstants.TYPE_USER);
+        try {
+            QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
+            Assert.fail("expecting some AlreadyExistsException here");
+        } catch (SQLException e) {
+            Assert.assertEquals("Query failed.Access column:DEFAULT.TEST_KYLIN_FACT.SELLER_ID_AND_COUNTRY_NAME denied",
+                    e.getCause().getMessage());
+        }
     }
 
     @After
