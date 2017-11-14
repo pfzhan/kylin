@@ -96,7 +96,7 @@ public class CubeDescUtil {
         aggregationGroup.setIncludes(includeCols.toArray(new String[0]));
         SelectRule selectRule = new SelectRule();
         selectRule.hierarchyDims = new String[0][0];
-        selectRule.mandatoryDims = aggregationGroup.getIncludes();
+        selectRule.mandatoryDims = new String[0];//aggregationGroup.getIncludes();
         selectRule.jointDims = new String[0][0];
         aggregationGroup.setSelectRule(selectRule);
 

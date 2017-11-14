@@ -158,17 +158,17 @@ public class CubeContextBuilder {
                 }
             }
         }
-        return internalBuildContexts(modelQueryStats, queryResults);
+        return internalBuildContexts(project, modelQueryStats, queryResults);
     }
 
-    private Map<String, CubeContext> internalBuildContexts(Map<String, QueryStats> modelQueryStats,
+    private Map<String, CubeContext> internalBuildContexts(String project, Map<String, QueryStats> modelQueryStats,
             List<SQLResult> queryResults) {
         Map<String, CubeContext> result = Maps.newHashMapWithExpectedSize(modelQueryStats.size());
-        for (Map.Entry<String, QueryStats> entry : modelQueryStats.entrySet()) {
-            QueryStats qs = entry.getValue();
-            DataModelDesc model = modelManager.getDataModelDesc(entry.getKey());
+        List<DataModelDesc> models = modelManager.getModels(project);
+        for (DataModelDesc model : models) {
+            QueryStats qs = modelQueryStats.get(model.getName());
             CubeContext ctx = internalBuild(model, qs, queryResults);
-            result.put(entry.getKey(), ctx);
+            result.put(model.getName(), ctx);
         }
         return result;
     }

@@ -59,6 +59,7 @@ import io.kyligence.kap.smart.cube.CubeOptimizeLog;
 import io.kyligence.kap.smart.cube.CubeOptimizeLogManager;
 import io.kyligence.kap.smart.cube.ModelOptimizeLog;
 import io.kyligence.kap.smart.cube.ModelOptimizeLogManager;
+import io.kyligence.kap.smart.model.ModelContext;
 import io.kyligence.kap.smart.model.ModelMaster;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
@@ -192,9 +193,14 @@ public class KapSuggestionService extends BasicService {
             String[] sqlArray = optimizeLog.getValidatedSqls().toArray(new String[0]);
             KylinConfig config = getConfig();
             ModelMaster master = MasterFactory.createModelMaster(config, project, sqlArray, factTable);
-            master.getContext().setModelName(modelName);
-            DataModelDesc modelDesc = master.proposeAll();
-            return modelDesc;
+            if (master != null) {
+                ModelContext ctx = master.getContext();
+                ctx.setModelName(modelName);
+                DataModelDesc modelDesc = master.proposeAll();
+                return modelDesc;
+            } else {
+                return null;
+            }
         }
     }
 

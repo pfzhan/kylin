@@ -30,6 +30,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -85,6 +87,21 @@ public class GreedyModelTreesBuilder {
         List<ModelTree> results = Lists.newLinkedList();
         for (Map.Entry<TableDesc, TreeBuilder> entry : builders.entrySet()) {
             results.addAll(entry.getValue().build());
+        }
+
+        // 3. enable current root_fact's model exists
+        if (expectTactTbl != null) {
+            boolean needAdd = true;
+            for (ModelTree tree : results) {
+                if (tree.getRootFactTable() == expectTactTbl) {
+                    needAdd = false;
+                }
+            }
+
+            if (needAdd) {
+                results.add(new ModelTree(expectTactTbl, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
+                        MapUtils.EMPTY_MAP));
+            }
         }
         return results;
     }
