@@ -51,7 +51,7 @@ public class ConfigServiceTest extends LocalFileMetadataTestCase {
         ConfigService configService = new ConfigService();
         Map<String, String> result = configService.getDefaultConfigMap();
         System.out.println(result);
-        Assert.assertEquals(11, result.size());
+        Assert.assertEquals(12, result.size());
         Assert.assertTrue(result.containsKey("kylin.storage.hbase.compression-codec"));
         Assert.assertEquals("snappy", result.get("kylin.storage.hbase.compression-codec"));
     }
@@ -61,10 +61,8 @@ public class ConfigServiceTest extends LocalFileMetadataTestCase {
         System.setProperty("kap.version", "KAP Plus");
         ConfigService configService = new ConfigService();
         Map<String, String> result = configService.getDefaultConfigMap();
-        Assert.assertEquals(10, result.size());
+        Assert.assertEquals(8, result.size());
         Assert.assertFalse(result.containsKey("kylin.storage.hbase.max-region-count"));
-        Assert.assertTrue(result.containsKey("kap.storage.columnar.shard-size-mb"));
-        Assert.assertEquals("256", result.get("kap.storage.columnar.shard-size-mb"));
         System.clearProperty("kap.version");
     }
 }

@@ -58,6 +58,7 @@ public class ConfigService extends BasicService {
             "kylin.engine.mr.reduce-input-mb", //
             "kylin.engine.mr.max-reducer-number", //
             "kylin.engine.mr.mapper-input-rows", //
+            "kylin.query.disable-cube-noagg-sql", //
     };
 
     private static final String[] cubeLevelKAPPlusExposedKeys = new String[] { //
@@ -68,9 +69,7 @@ public class ConfigService extends BasicService {
             "kylin.engine.mr.reduce-input-mb", //
             "kylin.engine.mr.max-reducer-number", //
             "kylin.engine.mr.mapper-input-rows", //
-            "kap.storage.columnar.shard-size-mb", //
-            "kap.storage.columnar.shard-min", //
-            "kap.storage.columnar.shard-max", //
+            "kylin.query.disable-cube-noagg-sql", //
     };
 
     public Map<String, String> getDefaultConfigMap() {
