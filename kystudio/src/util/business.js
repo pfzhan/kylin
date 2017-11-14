@@ -218,7 +218,7 @@ export function hasPermissionOfModel (vue, modelId) {
 export function hasRole (vue, roleName) {
   var haseRole = false
   var curUser = vue.$store.state.user.currentUser
-  if (curUser) {
+  if (curUser && curUser.authorities) {
     curUser.authorities.forEach((auth, index) => {
       if (auth.authority === roleName) {
         haseRole = true
