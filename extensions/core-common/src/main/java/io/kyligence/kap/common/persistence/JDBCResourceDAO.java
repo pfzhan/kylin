@@ -61,6 +61,8 @@ public class JDBCResourceDAO {
 
     private JDBCConnectionManager connectionManager;
 
+    private JDBCSqlQueryFormat jdbcSqlQueryFormat;
+
     private String tableName;
 
     private KapConfig kapConfig;
@@ -72,6 +74,7 @@ public class JDBCResourceDAO {
         this.kylinConfig = kylinConfig;
         this.kapConfig = KapConfig.wrap(kylinConfig);
         this.connectionManager = JDBCConnectionManager.getConnectionManager();
+        this.jdbcSqlQueryFormat = JDBCSqlQueryFormatProvider.createJDBCSqlQueriesFormat(kapConfig.getMetadataDialect());
         createTableIfNeeded(tableName);
     }
 
@@ -81,7 +84,6 @@ public class JDBCResourceDAO {
         executeSql(new SqlOperation() {
             @Override
             public void execute(Connection connection) throws SQLException {
-
                 pstat = connection.prepareStatement(getKeyEqualSqlString(fetchContent, fetchTimestamp));
                 pstat.setString(1, resourcePath);
                 rs = pstat.executeQuery();
@@ -206,17 +208,31 @@ public class JDBCResourceDAO {
                 byte[] content = getResourceDataBytes(resource);
                 if (isContentOverflow(content)) {
                     //System.out.println("overflow put resource to hdfs");
-                    pstat = connection.prepareStatement(getReplaceSqlWithoutContent());
-                    pstat.setString(1, resource.getPath());
-                    pstat.setLong(2, resource.getTimestamp());
+                    if (existResource(resource.getPath())) {
+                        pstat = connection.prepareStatement(getReplaceSqlWithoutContent());
+                        pstat.setLong(1, resource.getTimestamp());
+                        pstat.setString(2, resource.getPath());
+                    } else {
+                        pstat = connection.prepareStatement(getInsertSqlWithoutContent());
+                        pstat.setString(1, resource.getPath());
+                        pstat.setLong(2, resource.getTimestamp());
+                    }
                     pstat.executeUpdate();
                     writeLargeCellToHdfs(resource.getPath(), content);
                 } else {
                     //System.out.println("not overflow.put to mysql");
-                    pstat = connection.prepareStatement(getReplaceSql());
-                    pstat.setString(1, resource.getPath());
-                    pstat.setLong(2, resource.getTimestamp());
-                    pstat.setBlob(3, new BufferedInputStream(new ByteArrayInputStream(content)));
+                    if (existResource(resource.getPath())) {
+                        pstat = connection.prepareStatement(getReplaceSql());
+                        pstat.setLong(1, resource.getTimestamp());
+                        pstat.setBlob(2, new BufferedInputStream(new ByteArrayInputStream(content)));
+                        pstat.setString(3, resource.getPath());
+                    } else {
+                        pstat = connection.prepareStatement(getInsertSql());
+                        pstat.setString(1, resource.getPath());
+                        pstat.setLong(2, resource.getTimestamp());
+                        pstat.setBlob(3, new BufferedInputStream(new ByteArrayInputStream(content)));
+                    }
+
                     pstat.executeUpdate();
                 }
             }
@@ -309,7 +325,7 @@ public class JDBCResourceDAO {
     abstract static class SqlOperation {
         PreparedStatement pstat = null;
         ResultSet rs = null;
-        
+
         abstract public void execute(final Connection connection) throws SQLException;
     }
 
@@ -327,57 +343,60 @@ public class JDBCResourceDAO {
 
     //sql queries
     private String getCreateIfNeededSql(String tableName) {
-        String sql = MessageFormat.format("create table if not exists {0} ( {1} VARCHAR(255) primary key," + "{2} BIGINT, {3} LONGBLOB )", tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_CONTENT);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getCreateIfNeedSql(),
+                tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_CONTENT);
         return sql;
     }
 
     private String getKeyEqualSqlString(boolean fetchContent, boolean fetchTimestamp) {
-        String sql = MessageFormat.format("select {0} from {1} where {2} = ? ", getSelectList(fetchContent, fetchTimestamp), tableName, META_TABLE_KEY);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getKeyEqualsSql(), getSelectList(fetchContent, fetchTimestamp), tableName,
+                META_TABLE_KEY);
         return sql;
     }
 
     private String getDeletePstatSql() {
-        String sql = MessageFormat.format("delete from {0}  where {1} = ?", tableName, META_TABLE_KEY);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getDeletePstatSql(), tableName, META_TABLE_KEY);
         return sql;
     }
 
     private String getListResourceSqlString() {
-        String sql = MessageFormat.format("select {0} from {1} where {2} like ? ", META_TABLE_KEY, tableName, META_TABLE_KEY);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getListResourceSql(), META_TABLE_KEY, tableName, META_TABLE_KEY);
         return sql;
     }
 
     private String getAllResourceSqlString() {
-        String sql = MessageFormat.format("select {0} from {1} where {2} like ? and {3} >= ? and {4} < ?", getSelectList(true, true), tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_TS);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getAllResourceSql(), getSelectList(true, true), tableName, META_TABLE_KEY,
+                META_TABLE_TS, META_TABLE_TS);
         return sql;
     }
 
     private String getReplaceSql() {
-        String sql = MessageFormat.format("replace into {0}({1},{2},{3}) values(?,?,?)", tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_CONTENT);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getReplaceSql(), tableName, META_TABLE_TS, META_TABLE_CONTENT, META_TABLE_KEY);
         return sql;
     }
 
     private String getInsertSql() {
-        String sql = MessageFormat.format("replace into {0}({1},{2},{3}) values(?,?,?)", tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_CONTENT);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getInsertSql(), tableName, META_TABLE_KEY, META_TABLE_TS, META_TABLE_CONTENT);
         return sql;
     }
 
     private String getReplaceSqlWithoutContent() {
-        String sql = MessageFormat.format("replace into {0}({1},{2}) values(?,?)", tableName, META_TABLE_KEY, META_TABLE_TS);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getReplaceSqlWithoutContent(), tableName, META_TABLE_TS, META_TABLE_KEY);
         return sql;
     }
 
     private String getInsertSqlWithoutContent() {
-        String sql = MessageFormat.format("replace into {0}({1},{2}) values(?,?)", tableName, META_TABLE_KEY, META_TABLE_TS);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getInsertSqlWithoutContent(), tableName, META_TABLE_KEY, META_TABLE_TS);
         return sql;
     }
 
     private String getUpdateSqlWithoutContent() {
-        String sql = MessageFormat.format("update {0} set {1}=? where {2}=? and {3}=? ", tableName, META_TABLE_TS, META_TABLE_KEY, META_TABLE_TS);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getUpdateSqlWithoutContent(), tableName, META_TABLE_TS, META_TABLE_KEY, META_TABLE_TS);
         return sql;
     }
 
     private String getUpdateContentSql() {
-        String sql = MessageFormat.format("update {0} set {1}=? where {2}=? ", tableName, META_TABLE_CONTENT, META_TABLE_KEY);
+        String sql = MessageFormat.format(jdbcSqlQueryFormat.getUpdateContentSql(), tableName, META_TABLE_CONTENT, META_TABLE_KEY);
         return sql;
     }
 
@@ -395,7 +414,7 @@ public class JDBCResourceDAO {
         if (rs == null) {
             return null;
         }
-        InputStream inputStream = rs.getBinaryStream(META_TABLE_CONTENT);
+        InputStream inputStream =rs.getBlob(META_TABLE_CONTENT) == null ? null : rs.getBlob(META_TABLE_CONTENT).getBinaryStream();
         if (inputStream != null) {
             return inputStream;
         } else {

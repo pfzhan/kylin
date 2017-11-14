@@ -402,4 +402,11 @@ public class KapConfig {
     public String getLDAPGroupMemberSearchFilter() {
         return config.getOptional("kylin.security.ldap.group-member-search-filter", "(&(cn={0})(objectClass=groupOfNames))");
     }
+
+    /**
+     * Metastore
+     */
+    public String getMetadataDialect() {
+        return config.getOptional("kylin.metadata.jdbc.dialect", "mysql");
+    }
 }
