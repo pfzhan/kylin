@@ -4,8 +4,8 @@
 		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
 		    <el-tab-pane :label="$t('kylinLang.common.overview')" name="first" >
             <el-tabs class="el-tabs--default modelExtraInfoTab" v-model="subMenuActive" >
-                <el-tab-pane :label="$t('modelInfo')" name="first">
-                    <table  cellspacing="0" cellpadding="0">
+                <el-tab-pane :label="$t('modelInfo')" name="first"  class="ksd-pl-30">
+                    <table  cellspacing="0" cellpadding="0" class="normal_table">
                       <tr>
                         <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></th>
                         <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
@@ -42,7 +42,55 @@
                 <el-tab-pane :label="$t('setting')" name="second">
                  <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :editLock="editLock"  :tableList="tableList" :partitionSelect="partitionSelect" :checkModel="checkModel" :hasStreamingTable="hasStreamingTable" :showModelCheck="false"></partition-column>
                 </el-tab-pane>
-                <el-tab-pane :label="$t('dimension')" name="third" >
+                <!-- Data model -->
+                 <el-tab-pane :label="$t('datamodel')" name="third" class="ksd-pl-30">
+                    <span style="font-size:12px;font-weight:bolder" v-if="factTables && factTables.length">{{$t('kylinLang.common.fact')}}</span>
+                    <el-table :data="factTables"  v-if="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
+                      <el-table-column
+                        width="180">
+                         <template scope="scope">
+                            {{$t('kylinLang.common.tableName')}}
+                          </template>
+                      </el-table-column>
+                      <el-table-column
+                        label="tableName"
+                       >
+                         <template scope="scope">
+                            {{scope.row.tableInfo.name}}
+                          </template>
+                      </el-table-column>
+                    </el-table>
+                    <span style="font-size:12px;font-weight:bolder"  v-if="limitLookupTables && limitLookupTables.length">{{$t('kylinLang.common.lookup')}}</span>
+                    <el-table v-if="limitLookupTables && limitLookupTables.length" class="ksd-mt-6 formTable" :data="limitLookupTables"  border style="width: 100%">
+                        <el-table-column
+                          label="ID"
+                          width="180">
+                          <template scope="scope">
+                            {{scope.$index+1}}
+                          </template>
+                        </el-table-column>
+                        <el-table-column
+                          :label="$t('kylinLang.common.alias')"
+                          width="180">
+                           <template scope="scope">
+                            {{scope.row.tableInfo.alias}}
+                          </template>
+                        </el-table-column>
+                        <el-table-column
+                          :label="$t('kylinLang.common.tableName')">
+                          <template scope="scope">
+                            {{scope.row.tableInfo.name}}
+                          </template>
+                        </el-table-column>
+                        <el-table-column
+                          :renderHeader="renderColumn">
+                           <template scope="scope">
+                            <el-checkbox v-model="scope.row.isSnapshot" @change="changeSnapshotStatus(scope.row)"></el-checkbox>
+                          </template>
+                        </el-table-column>
+                      </el-table>
+                </el-tab-pane>
+                <el-tab-pane :label="$t('dimension')" name="fourth"  class="ksd-pl-30">
                   <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
                     <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;" >{{value}}</div>
                     <div class="dimensionBox">
@@ -50,7 +98,7 @@
                     </div>
                   </div>
                 </el-tab-pane>
-                <el-tab-pane :label="$t('measure')" name="fourth">
+                <el-tab-pane :label="$t('measure')" name="fifth"  class="ksd-pl-30">
                   <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
                     <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;">{{value}}</div>
                      <div class="dimensionBox">
@@ -58,7 +106,7 @@
                     </div>
                   </div>
                 </el-tab-pane>
-                <el-tab-pane :label="$t('sql')" name="fifth">
+                <el-tab-pane :label="$t('sql')" name="sixth"  class="ksd-pl-30">
                   <div style="margin-left:30px">
                     <editor v-show="sqlPatterns.length > 0" ref="sqlPatterns" v-model="sqlString"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
                     <el-card v-show="sqlPatterns.length === 0" class="noSqlPatterns">
@@ -109,6 +157,7 @@ import { changeDataAxis } from '../../util/index'
 import { modelHealthStatus } from '../../config'
 import { handleSuccess, filterMutileSqlsToOneLine } from '../../util/business'
 import partitionColumn from 'components/model/model_partition.vue'
+// import commonTip from 'components/common/common_tip'
 export default {
   name: 'modelPanel',
   data () {
@@ -140,6 +189,18 @@ export default {
       getAutoModelSql: 'GET_AUTOMODEL_SQL',
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     }),
+    changeSnapshotStatus (obj) {
+      if (!obj.isSnapshot) {
+        obj.tableInfo.kind = 'FACT'
+      } else {
+        obj.tableInfo.kind = 'LOOKUP'
+      }
+    },
+    renderColumn (h) {
+      return (<span><span>{this.$t('snapshorttip')}</span>&nbsp;<common-tip content={this.$t('snapshortdesc')} >
+        <icon name = "question-circle" class="ksd-question-circle"></icon>
+      </common-tip></span>)
+    },
     setColumnDisable (guid, columnName, isComputed) {
       this.$emit('changeColumnType', guid, columnName, 'M', isComputed)
     },
@@ -341,6 +402,23 @@ export default {
       }
       return this.resultDimensionArr
     },
+    factTables () {
+      for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
+        if (this.tableList[k].kind === 'ROOTFACT') {
+          return [{keyName: 'Tablename', tableInfo: this.tableList[k]}]
+        }
+      }
+      return []
+    },
+    limitLookupTables () {
+      var limitLookupResult = []
+      for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
+        if (this.tableList[k].kind !== 'ROOTFACT') {
+          limitLookupResult.push({isSnapshot: this.tableList[k].kind === 'LOOKUP', tableInfo: this.tableList[k]})
+        }
+      }
+      return limitLookupResult
+    },
     measures () {
       this.resultMeasureArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
@@ -373,8 +451,8 @@ export default {
     clearTimeout(this.ST)
   },
   locales: {
-    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description.', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health', NoSQLInfo: 'No SQL patterns.', sql: 'SQL Patterns'},
-    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述。', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件', health: '模型健康', NoSQLInfo: '没有"SQL查询记录"的相关信息。', sql: 'SQL Patterns'}
+    'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description.', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health', NoSQLInfo: 'No SQL patterns.', sql: 'SQL Patterns', datamodel: 'Model', snapshorttip: 'Snapshort', snapshortdesc: '1.If lookup table >300Mb, then it cannot be a snapshot, and can support query only when joining its fact table;<br/>2.You can overwrite the limit of lookup table size(300Mb in default) on kylin.properties;'},
+    'zh-cn': {modelName: '模型名称', discribe: '模型描述', owner: 'Owner', inputModelDescription: '请输入模型的描述。', modelInfo: '模型信息', 'partition': '分区', setting: '设置', filter: '过滤器', filterCondition: '过滤条件', tableStatistics: '采样数据', dimension: '维度', measure: '度量', filterPlaceHolder: '请输入过滤条件', health: '模型健康', NoSQLInfo: '没有"SQL查询记录"的相关信息。', sql: 'SQL Patterns', datamodel: '模型', snapshorttip: '以snapshort形式存储', snapshortdesc: '1.当维度表大于300Mb时，无法以snapshot存储，不支持独立查询；<br/>2.维度表大小的限制（出厂默认为300Mb）可以在kylin.properties中重写；'}
   }
 }
 </script>
@@ -467,7 +545,7 @@ export default {
     .el-badge__content {
       background-color: #393e53;
     }
-    table{
+    table.normal_table{
       width: 100%;
       border-right:1px solid @grey-color;;
       border-bottom:1px solid @grey-color;;
@@ -475,7 +553,6 @@ export default {
         background: #2b2d3c;
         border-left:1px solid @grey-color;;
         border-top:1px solid @grey-color;;
-        height:44px;
         width: 220px;
         font-weight: normal;
         font-size: 12px;

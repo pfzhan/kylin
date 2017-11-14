@@ -320,6 +320,24 @@ color: #000;
 }
 // 13新样式  蓝黑风格皮肤覆盖样式
 .kapApp {
+  .formTable  {
+    &.el-table{
+      thead{
+       background: #4f5473;
+      }
+      th{
+        background: #4f5473;
+        border-right:1px solid #393E53;
+        .cell{
+          background: #4f5473;
+        }
+      }
+      td{
+        border-right: 1px solid #393e53;
+      }
+    }
+    
+  }
   .el-card.border-content{
     font-size: 12px;
     width: 90%;
@@ -1264,23 +1282,7 @@ color: #000;
 .el-dialog--large .protocol-wrap{
   padding-top: 10px;
 }
-.el-dialog {
-  .formTable {
-    thead{
-      background: #4f5473;
-    }
-    th{
-      background: #4f5473;
-      border-right:1px solid #393E53;
-      .cell{
-        background: #4f5473;
-      }
-    }
-    td{
-      border-right: 1px solid #393e53;
-    }
-  }
-}
+
 .el-tabs--border-card>.el-tabs__header{
   background: #4f5473!important;
 }

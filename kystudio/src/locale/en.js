@@ -36,6 +36,8 @@ exports.default = {
     status: 'Status',
     // 术语
     model: 'Model',
+    alias: 'Alias',
+    tableName: 'Table Name',
     project: 'Project',
     projects: 'Projects',
     cube: 'Cube',

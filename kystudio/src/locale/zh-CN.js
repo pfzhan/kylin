@@ -39,6 +39,8 @@ exports.default = {
     projects: '项目',
     cube: 'Cube',
     models: '模型',
+    alias: '别名',
+    tableName: '表名',
     jobs: '任务',
     cubes: 'Cubes',
     dataSource: '数据源',
