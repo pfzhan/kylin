@@ -18,19 +18,26 @@
       <div class="line-primary"></div>
     </div>
 
-    <el-form-item :label="$t('partitionDateColumn')" >
+    <el-form-item :label="$t('partitionDateColumn')">
       <el-tag>{{cubeDesc.partitionDateColumn}}</el-tag>
     </el-form-item>
-    <el-form-item :label="$t('startDate')" prop="startDate" class="is-required">
+    <el-form-item :label="$t('startDate')" prop="startDate" class="is-required" v-if="cubeDesc.isStandardPartitioned">
       <el-date-picker :clearable="false" ref="startDateInput"
                       v-model="timeZone.startDate" type="datetime">
       </el-date-picker>
     </el-form-item>
-    <el-form-item :label="$t('endDate')" prop="endDate" class="is-required">
+    <el-form-item :label="$t('endDate')" prop="endDate" class="is-required" v-if="cubeDesc.isStandardPartitioned">
       <el-date-picker :clearable="false" ref="endDateInput"
         v-model="timeZone.endDate"
         type="datetime">
       </el-date-picker>
+    </el-form-item>
+
+    <el-form-item :label="$t('startDate')" prop="startInt" class="is-required" v-if="!cubeDesc.isStandardPartitioned">
+      <el-input v-model="timeZone.startInt" :placeholder="$t('kylinLang.common.pleaseInput')"></el-input>
+    </el-form-item>
+    <el-form-item :label="$t('endDate')" prop="endInt" class="is-required" v-if="!cubeDesc.isStandardPartitioned">
+      <el-input v-model="timeZone.endInt" :placeholder="$t('kylinLang.common.pleaseInput')"></el-input>
     </el-form-item>
   </el-form>
 </template>
@@ -46,7 +53,9 @@ export default {
       timeZone: {
         startDate: transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true),
         endDate: null,
-        mpValues: ''
+        mpValues: '',
+        startInt: this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart,
+        endInt: ''
       },
       rules: {
         startDate: [
@@ -57,6 +66,12 @@ export default {
         ],
         mpValues: [
           { required: true, message: this.$t('partitionNull'), trigger: 'blur' }
+        ],
+        startInt: [
+          { validator: this.validateStartInt, trigger: 'blur' }
+        ],
+        endInt: [
+          { validator: this.validateEndInt, trigger: 'blur' }
         ]
       }
     }
@@ -156,6 +171,23 @@ export default {
       } else {
         callback()
       }
+    },
+    validateStartInt: function (rule, value, callback) {
+      if (value === '') {
+        callback(new Error(this.$t('inputDate')))
+      } else {
+        this.$refs['buildCubeForm'].validateField('endInt')
+        callback()
+      }
+    },
+    validateEndInt: function (rule, value, callback) {
+      if (value === '') {
+        callback(new Error(this.$t('inputDate')))
+      } else if (parseInt(this.timeZone.startInt) > parseInt(value)) {
+        callback(new Error(this.$t('timeCompare')))
+      } else {
+        callback()
+      }
     }
   },
   created () {
@@ -171,7 +203,9 @@ export default {
     this.$on('buildCubeFormValid', (t) => {
       this.$refs['buildCubeForm'].validate((valid) => {
         if (valid) {
-          this.$emit('validSuccess', {start: transToUTCMs(this.timeZone.startDate), end: transToUTCMs(this.timeZone.endDate), mpValues: this.timeZone.mpValues})
+          let startTime = this.cubeDesc.isStandardPartitioned ? transToUTCMs(this.timeZone.startDate) : parseInt(this.timeZone.startInt)
+          let endTime = this.cubeDesc.isStandardPartitioned ? transToUTCMs(this.timeZone.endDate) : parseInt(this.timeZone.endInt)
+          this.$emit('validSuccess', {start: startTime, end: endTime, mpValues: this.timeZone.mpValues})
         }
       })
     })
@@ -185,6 +219,8 @@ export default {
       if (formVisible) {
         this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true)
         this.timeZone.endDate = null
+        this.timeZone.startInt = this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart
+        this.timeZone.endInt = ''
         if (this.cubeDesc.multilevel_partition_cols.length > 0) {
           this.getMPValues(this.cubeDesc.name).then((res) => {
             handleSuccess(res, (data) => {
@@ -197,10 +233,9 @@ export default {
       }
     }
   },
-
   locales: {
-    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column'},
-    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列'}
+    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column', inputDate: 'Please input the time.'},
+    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列', inputDate: '请输入时间'}
   }
 }
 </script>

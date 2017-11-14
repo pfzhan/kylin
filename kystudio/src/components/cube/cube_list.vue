@@ -81,6 +81,7 @@
       sortable
       show-overflow-tooltip
       prop="input_records_count">
+      <template scope="scope">{{scope.row.input_records_count | readableNumber}} </template>>
     </el-table-column>
     <el-table-column
       sortable

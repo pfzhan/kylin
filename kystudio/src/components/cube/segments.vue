@@ -73,13 +73,13 @@
         <el-table-column
           :label="$t('startTime')">
           <template scope="scope">
-            {{scope.row.date_range_start | utcTime}}
+            {{scope.row.date_range_start | utcTimeOrInt(isInteger)}}
           </template>
         </el-table-column>
         <el-table-column
           :label="$t('endTime')">
           <template scope="scope">
-            {{scope.row.date_range_end | utcTime}}
+            {{scope.row.date_range_end | utcTimeOrInt(isInteger)}}
           </template>
         </el-table-column>
         <el-table-column
@@ -262,6 +262,7 @@ export default {
         type = 'columnar'
       }
       this.$set(segmentDesc, 'type', type)
+      this.$set(segmentDesc, 'isInteger', this.isInteger)
       this.$emit('addSegTabs', segmentDesc)
     },
     cloneCubeDesc (data) {
@@ -403,6 +404,15 @@ export default {
   computed: {
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
+    },
+    isInteger () {
+      if (!this.cube.partitionDateColumn) {
+        return false
+      } else if (this.cube.isStandardPartitioned) {
+        return false
+      } else {
+        return true
+      }
     }
   },
   locales: {

@@ -1,6 +1,6 @@
 <template>
 <div class="box-card card_margin border_bottom el-row" id="refresh-setting">
-<h2 class="ksd-mt-40 ksd-ml-40"><!-- <el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"> --><span style="font-size:16px;">{{$t('kylinLang.cube.merge')}} <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
+  <h2 class="ksd-mt-40 ksd-ml-40"><!-- <el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"> --><span style="font-size:16px;">{{$t('kylinLang.cube.merge')}} <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
   <el-row>
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('autoMergeThresholds')}}
       <!-- <common-tip :content="$t('kylinLang.cube.refreshSetTip')" ><icon name="question-circle-o"></icon></common-tip> -->
@@ -48,45 +48,47 @@
   <el-row class="row_padding">
     <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('partitionStartDate')}} </el-col>
     <el-col :span="6">
-      <el-date-picker class="input_width" @change="changePartitionDateStart"
+      <el-date-picker v-if="!isInteger" class="input_width" @change="changePartitionDateStart"
         v-model="partitionStartDate"
         type="datetime"
         align="right">
       </el-date-picker>
+      <el-input v-else v-model="cubeDesc.partition_date_start" class="input_width"></el-input>
     </el-col>
   </el-row>
-
- <div class="line" style="margin: 6px -30px 6px -30px;"></div>
- <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
-   <el-row class="row_padding">
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
-    <el-col :span="6">
-      <el-date-picker class="input_width" @change="changeTriggerTime()" :disabled="!$store.state.cube.cubeSchedulerIsSetting"
-        v-model="scheduledRunTime"
-        type="datetime"
-        align="right">
-      </el-date-picker>
-    </el-col>
-  </el-row>
-  <el-row class="row_padding">
-    <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('periddicalInterval')}} </el-col>
-    <el-col :span="8">
-      <el-row :gutter="20" class="row_padding">
-        <el-col :span="9">
-          <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>
-        </el-col>
-        <el-col :span="8">
+  <div v-if="!isInteger">
+    <div class="line" style="margin: 6px -30px 6px -30px;"></div>
+    <h2 class="ksd-mt-40 ksd-ml-40"><el-checkbox v-model="$store.state.cube.cubeSchedulerIsSetting"><span style="font-size:16px;">{{$t('kylinLang.cube.scheduler')}} <common-tip :content="$t('kylinLang.cube.schedulerTip')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span></el-checkbox></h2>
+    <el-row class="row_padding">
+      <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('buildTrigger')}} </el-col>
+      <el-col :span="6">
+        <el-date-picker class="input_width" @change="changeTriggerTime()" :disabled="!$store.state.cube.cubeSchedulerIsSetting"
+          v-model="scheduledRunTime"
+          type="datetime"
+          align="right">
+        </el-date-picker>
+      </el-col>
+    </el-row>
+    <el-row class="row_padding">
+      <el-col :span="4" class="ksd-right ksd-lineheight-40 ksd-mr-10">{{$t('periddicalInterval')}} </el-col>
+      <el-col :span="8">
+        <el-row :gutter="20" class="row_padding">
+          <el-col :span="9">
+            <el-input v-model="intervalRange.range" :disabled="!$store.state.cube.cubeSchedulerIsSetting"  @change="changeInterval()"></el-input>
+          </el-col>
+          <el-col :span="8">
             <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" v-model="intervalRange.type" @change="changeInterval()" :disabled="!$store.state.cube.cubeSchedulerIsSetting">
               <el-option
-                 v-for="(item, range_index) in intervalOptions" :key="range_index"
-                :label="item"
-                :value="item">
+                   v-for="(item, range_index) in intervalOptions" :key="range_index"
+                  :label="item"
+                  :value="item">
               </el-option>
             </el-select>
           </el-col>
         </el-row>
       </el-col>
-  </el-row>
+    </el-row>
+  </div>
 </div>
 </template>
 
@@ -95,7 +97,7 @@ import { mapActions } from 'vuex'
 import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs, msTransDate } from '../../../util/business'
 export default {
   name: 'refreshSetting',
-  props: ['cubeDesc', 'scheduler'],
+  props: ['cubeDesc', 'scheduler', 'cubeInstance'],
   data () {
     return {
       timeRanges: [],
@@ -237,6 +239,17 @@ export default {
     addNewTimeRange: function () {
       this.timeRanges.push({type: 'days', range: 0, mills: 0})
       this.cubeDesc.auto_merge_time_ranges.push(0)
+    }
+  },
+  computed: {
+    isInteger () {
+      if (!this.cubeInstance.partitionDateColumn) {
+        return false
+      } else if (this.cubeInstance.isStandardPartitioned) {
+        return false
+      } else {
+        return true
+      }
     }
   },
   created: function () {

@@ -33,20 +33,20 @@
           </el-form-item>
           <el-form-item :label="$t('dateFormat')" prop="partition_date_format">
             <el-row>
-            <!-- <el-select v-model="checkPartition.partition_date_format" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="!needSetTime || editMode  || actionMode==='view'">
+            <el-select v-model="checkPartition.partition_date_format" style="width: 100%" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="editMode  || actionMode==='view'">
               <el-option
                 v-for="item in dateFormat"
-                :key="item.label"
+                :key="item.value"
                 :label="item.label"
-                :value="item.label">
+                :value="item.value">
               </el-option>
-            </el-select> -->
-               <el-autocomplete :disabled="editMode  || actionMode==='view'" style="width:100%" @select="formValid('partition_date_format')"
+            </el-select>
+<!--                <el-autocomplete :disabled="editMode  || actionMode==='view'" style="width:100%" @select="formValid('partition_date_format')"
                       class="inline-input"
                       v-model="checkPartition.partition_date_format"
                       :fetch-suggestions="querySearchForDate"
                       :placeholder="$t('kylinLang.common.pleaseSelect')"
-                ></el-autocomplete>
+                ></el-autocomplete> -->
              </el-row>
           </el-form-item>
           <el-form-item :label="$t('hasSeparateLabel')" v-show="needSetTime" class="ksd-mt-20">
@@ -142,7 +142,13 @@ export default {
   data () {
     return {
       menuStatus: 'show',
-      dateFormat: [{label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'}, {label: 'yyyyMMdd', value: 'yyyyMMdd'}, {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'}],
+      dateFormat: [
+        {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
+        {label: 'yyyyMMdd', value: 'yyyyMMdd'},
+        {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
+        {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
+        {label: '', value: ''}
+      ],
       timeFormat: [{label: 'HH:mm:ss', value: 'HH:mm:ss'}, {label: 'HH:mm', value: 'HH:mm'}, {label: 'HH', value: 'HH'}],
       checkPartition: this.partitionSelect,
       modelStatics: [],
@@ -162,7 +168,7 @@ export default {
       },
       rule: {
         partition_date_format: [
-          {validator: this.dateFormatCheck, trigger: 'blur'}
+          {validator: this.dateFormatCheck, trigger: 'change'}
         ]
       }
     }

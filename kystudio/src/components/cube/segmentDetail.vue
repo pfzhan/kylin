@@ -39,11 +39,11 @@
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBStartTime')}}</el-col>
-          <el-col :span="20" class="right-part">{{extraoption.date_range_start| utcTime}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.date_range_start| utcTimeOrInt(isInteger)}}</el-col>
        </el-row>
        <el-row class="tableheader">
           <el-col :span="4" class="left-part">{{$t('cubeHBEndTime')}}</el-col>
-          <el-col :span="20" class="right-part">{{extraoption.date_range_end| utcTime}}</el-col>
+          <el-col :span="20" class="right-part">{{extraoption.date_range_end| utcTimeOrInt(isInteger)}}</el-col>
        </el-row>
      </div>
 
@@ -70,11 +70,11 @@
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('RangeStartTime')}}</b></el-col>
-        <el-col :span="20" class="right-part">{{extraoption.date_range_start | utcTime}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.date_range_start | utcTimeOrInt(isInteger)}}</el-col>
       </el-row>
       <el-row class="tableheader">
         <el-col :span="4" class="left-part"><b>{{$t('RangeEndTime')}}</b></el-col>
-        <el-col :span="20" class="right-part">{{extraoption.date_range_end | utcTime}}</el-col>
+        <el-col :span="20" class="right-part">{{extraoption.date_range_end | utcTimeOrInt(isInteger)}}</el-col>
       </el-row>
       <el-row class="tableheader" v-if="extraoption.additionalInfo.tableIndexSegmentPath">
         <el-col :span="4" class="left-part"><b>{{$t('RawTableSegmentPath')}}</b></el-col>
@@ -98,6 +98,11 @@ export default {
   data () {
     return {
       segments: []
+    }
+  },
+  computed: {
+    isInteger () {
+      return this.extraoption.isInteger
     }
   },
   locales: {

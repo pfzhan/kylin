@@ -17,6 +17,23 @@ Vue.filter('utcTime', function (value) {
   return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
 })
 
+Vue.filter('utcTimeOrInt', function (value, isInt) {
+  if (/[^\d]/.test(value) || value === '') {
+    return ''
+  }
+  if (isInt) {
+    return value
+  }
+  var dateObj = new Date(value)
+  var year = dateObj.getUTCFullYear()
+  var month = (dateObj.getUTCMonth() + 1) < 10 ? '0' + (dateObj.getUTCMonth() + 1) : (dateObj.getUTCMonth() + 1)
+  var date = dateObj.getUTCDate() < 10 ? '0' + dateObj.getUTCDate() : dateObj.getUTCDate()
+  var hour = dateObj.getUTCHours() < 10 ? '0' + dateObj.getUTCHours() : dateObj.getUTCHours()
+  var mins = dateObj.getUTCMinutes() < 10 ? '0' + dateObj.getUTCMinutes() : dateObj.getUTCMinutes()
+  var seconds = dateObj.getUTCSeconds() < 10 ? '0' + dateObj.getUTCSeconds() : dateObj.getUTCSeconds()
+  return year + '-' + month + '-' + date + ' ' + hour + ':' + mins + ':' + seconds
+})
+
 Vue.filter('gmtTime', function (value) {
   if (/[^\d]/.test(value) || value === '') {
     return ''
@@ -88,6 +105,15 @@ Vue.filter('number', function (value, fix) {
   return +value.toFixed(fix)
 })
 
+Vue.filter('readableNumber', function (value) {
+  var b = value.toString()
+  var len = b.length
+  if (len <= 3) {
+    return b
+  }
+  var r = len % 3
+  return r > 0 ? b.slice(0, r) + ',' + b.slice(r, len).match(/\d{3}/g).join(',') : b.slice(r, len).match(/\d{3}/g).join(',')
+})
 // the time mins and seconds
 Vue.filter('tofixedTimer', function (value, fix) {
   if (value > 60) {
