@@ -228,4 +228,32 @@ public class CubeControllerTest extends ServiceTestBase {
 
         return segments;
     }
+    
+    @Test // https://github.com/Kyligence/KAP/issues/3150
+    public void testBuildAndRefreshFullBuild() throws IOException {
+        CubeManager cubeMgr = CubeManager.getInstance(getTestConfig());
+        CubeInstance nonPartCube = cubeMgr.getCube("fifty_dim_full_build_cube");
+        Assert.assertEquals(0, nonPartCube.getSegments().size());
+        
+        // first build
+        KapBuildRequest buildReq = new KapBuildRequest();
+        buildReq.setBuildType("BUILD");
+        cubeControllerV2.build(nonPartCube.getName(), buildReq);
+        nonPartCube = cubeMgr.getCube("fifty_dim_full_build_cube"); // load again
+        Assert.assertEquals(1, nonPartCube.getSegments().size());
+        Assert.assertEquals("FULL_BUILD", nonPartCube.getSegments().get(0).getName());
+        
+        // hack the READY status
+        nonPartCube.getSegments().get(0).setStatus(SegmentStatusEnum.READY);
+        
+        // refresh build
+        SegmentMgmtRequest refreshReq = new SegmentMgmtRequest();
+        refreshReq.setBuildType("REFRESH");
+        refreshReq.setSegments(Lists.newArrayList("FULL_BUILD"));
+        cubeControllerV2.manageSegments("fifty_dim_full_build_cube", refreshReq);
+        nonPartCube = cubeMgr.getCube("fifty_dim_full_build_cube"); // load again
+        Assert.assertEquals(2, nonPartCube.getSegments().size());
+        Assert.assertEquals("FULL_BUILD", nonPartCube.getSegments().get(0).getName());
+        Assert.assertEquals("FULL_BUILD", nonPartCube.getSegments().get(1).getName());
+    }
 }
