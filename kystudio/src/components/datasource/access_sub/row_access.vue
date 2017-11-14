@@ -14,9 +14,14 @@
               show-overflow-tooltip
               sortable
               prop="name"
-              :label="$t('userName')"
+              :label="$t('kylinLang.common.userOrGroup')"
               width="180"
               >
+              <template scope="scope">
+                <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.nameType === 'user'"></icon>
+                <icon v-show="scope.row.nameType === 'group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
+                &nbsp;{{ scope.row.name}}
+              </template>
             </el-table-column>
             <el-table-column
               :label="$t('condition')"
@@ -30,8 +35,8 @@
               prop="Action"
               :label="$t('kylinLang.common.action')">
               <template scope="scope">
-              <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfRow(scope.row.name, scope.row.conditions)"></el-button>
-              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfRow(scope.row.name)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfRow(scope.row.name, scope.row.conditions, scope.row.nameType)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfRow(scope.row.name, scope.row.nameType)"></el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -45,11 +50,33 @@
                 type="warning">
               </el-alert>
               <el-form :model="grantObj" ref="aclOfRowForm" :rules="aclTableRules" >
-                <el-form-item :label="$t('userName')" label-width="80px" prop="name">
+                <el-form-item :label="$t('kylinLang.common.userOrGroup')" label-width="80px" prop="name">
                   <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
-                  <el-select filterable v-model="grantObj.name" style="width:100%" :disabled="isEdit"  :placeholder=" $t('kylinLang.common.pleaseSelectUserName')">
-                    <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+                  <el-col :span="11">
+                     <el-select v-model="assignType" style="width:100%" :disabled="isEdit"  :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeAssignType">
+                    <el-option
+                      v-for="item in assignTypes"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
                   </el-select>
+                  </el-col>
+                  <el-col :span="11">
+                   <!--  <el-select filterable v-if="assignType === 'user'" v-model="grantObj.name" style="width:100%" :disabled="isEdit"  :placeholder=" $t('kylinLang.common.pleaseSelectUserName')">
+                      <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+                    </el-select> -->
+
+                    <kap-filter-select v-model="grantObj.name" style="width:100%" :disabled="isEdit"  v-show="assignType === 'user'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
+
+
+                    <!-- <el-select filterable v-if="assignType === 'group'" v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserGroup')" :disabled="isEdit" >
+                    <el-option v-for="b in aclWhiteGroupList" :value="b.value">{{b.value}}</el-option>
+                  </el-select> -->
+
+                  <kap-filter-select v-model="grantObj.name" style="width:100%" :disabled="isEdit"  v-show="assignType === 'group'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteGroupList" placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
+                  </el-col>
+                  
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
                 <el-form-item :label="$t('condition')" label-width="80px" class="ksd-mt-20 is-required" style="position:relative">
@@ -90,17 +117,10 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission, transToUtcTimeFormat, transToUtcDateFormat, transToUTCMs } from '../../../util/business'
-import { permissions } from '../../../config'
-// import {transToUtcTimeFormat, transToUtcDateFormat} from '../../../util/index'
+import { objectClone } from '../../../util/index'
+import { permissions, assignTypes } from '../../../config'
 import arealabel from 'components/common/area_label'
 import datepicker from 'components/common/date_picker'
-// import { permissions } from '../../config'
-// import { changeDataAxis, isFireFox } from '../../util/index'
-// import createKafka from '../kafka/create_kafka'
-// import editKafka from '../kafka/edit_kafka'
-// import viewKafka from '../kafka/view_kafka'
-// import arealabel from 'components/common/area_label'
-// import Scrollbar from 'smooth-scrollbar'
 export default {
   name: 'rowaccess',
   data () {
@@ -118,6 +138,7 @@ export default {
       previewInfo: '',
       saveBtnLoad: false,
       previewDialgVisible: false,
+      assignTypes: assignTypes,
       isEdit: false,
       timeSelect: '',
       rowSetDataList: [],
@@ -125,9 +146,11 @@ export default {
       dateTypeList: ['date'],
       dateTimeTypeList: ['datetime', 'timestamp'],
       timeTypeList: ['time'],
+      assignType: 'user',
+      aclWhiteGroupList: [],
       aclTableRules: {
         name: [{
-          required: true, message: this.$t('kylinLang.common.pleaseSelectUserName'), trigger: 'change'
+          required: true, message: this.$t('kylinLang.common.pleaseInputUserOrGroupName'), trigger: 'change'
         }]
       }
     }
@@ -147,14 +170,36 @@ export default {
       delAclSetOfRow: 'DEL_ACL_SET_ROW',
       getAclWhiteList: 'GET_ACL_WHITELIST_ROW',
       updateAclSetOfRow: 'UPDATE_ACL_SET_ROW',
-      previewSQL: 'PREVIEW_ACL_SET_ROW_SQL'
+      previewSQL: 'PREVIEW_ACL_SET_ROW_SQL',
+      getGroupList: 'GET_GROUP_LIST'
     }),
+    changeAssignType () {
+      if (!this.isEdit) {
+        this.grantObj.name = ''
+      }
+      this.getWhiteListOfTable()
+    },
+    getGroups () {
+      this.getGroupList({
+        project: this.$store.state.project.selected_project
+      }).then((res) => {
+        handleSuccess(res, (data) => {
+          var result = []
+          data.forEach((d) => {
+            result.push({value: d})
+          })
+          this.aclWhiteGroupList = result
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    },
     openPreview () {
       this.previewSQL({
         tableName: this.tableName,
         project: this.$store.state.project.selected_project,
         userName: this.grantObj.name,
-        conditions: this.saveConditionData
+        conditions: {condsWithColumn: this.saveConditionData}
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.previewInfo = data
@@ -246,12 +291,13 @@ export default {
       }
       return result
     },
-    delAclOfRow (userName) {
+    delAclOfRow (userName, assignType) {
       kapConfirm(this.$t('delConfirm'), {cancelButtonText: this.$t('cancelButtonText'), confirmButtonText: this.$t('confirmButtonText')}).then(() => {
         this.delAclSetOfRow({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
-          userName: userName
+          userName: userName,
+          type: assignType
         }).then((res) => {
           handleSuccess(res, (data) => {
             this.getAllAclSetOfTable()
@@ -262,12 +308,13 @@ export default {
         })
       })
     },
-    editAclOfRow (userName, conditions) {
+    editAclOfRow (userName, conditions, userType) {
       this.needInit = false
       this.isEdit = true
       this.addGrantDialog = true
       this.grantObj.name = userName
       this.rowSetDataList = []
+      this.assignType = userType
       var index = 0
       for (var i in conditions) {
         var obj = {
@@ -316,7 +363,8 @@ export default {
             tableName: this.tableName,
             project: this.$store.state.project.selected_project,
             userName: this.grantObj.name,
-            conditions: this.saveConditionData
+            conditions: {condsWithColumn: this.saveConditionData},
+            type: this.assignType
           }).then((res) => {
             this.saveBtnLoad = false
             this.addGrantDialog = false
@@ -337,7 +385,8 @@ export default {
     getAllAclSetOfTable () {
       this.getAclSetOfRow({
         tableName: this.tableName,
-        project: this.$store.state.project.selected_project
+        project: this.$store.state.project.selected_project,
+        type: this.assignType
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclTableRow = data
@@ -350,14 +399,19 @@ export default {
     getWhiteListOfTable (cb) {
       this.getAclWhiteList({
         tableName: this.tableName,
-        project: this.$store.state.project.selected_project
+        project: this.$store.state.project.selected_project,
+        type: this.assignType
       }).then((res) => {
         handleSuccess(res, (data) => {
           var result = []
           data.forEach((d) => {
             result.push({value: d})
           })
-          this.aclWhiteList = result
+          if (this.assignType === 'user') {
+            this.aclWhiteList = result
+          } else {
+            this.aclWhiteGroupList = result
+          }
         })
       }, (res) => {
         handleError(res)
@@ -383,30 +437,35 @@ export default {
     },
     aclRowList () {
       var result = []
-      for (var i in this.aclTableRow) {
-        if (this.serarchChar && i.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
-          for (var c in this.aclTableRow[i]) {
-            var columnType = this.getColumnType(c)
-            this.aclTableRow[i][c] = this.aclTableRow[i][c].map((k) => {
-              if (this.dateTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcDateFormat(+k.leftExpr)
-                return k
-              } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcTimeFormat(+k.leftExpr)
-                return k
-              } else if (this.timeTypeList.indexOf(columnType) >= 0) {
-                k = transToUtcTimeFormat(+k.leftExpr)
-                var result = k.split(/\s+/)
-                if (result.length >= 2) {
-                  return result[1]
+      var aclTableRow = objectClone(this.aclTableRow)
+      for (var i in aclTableRow) {
+        var name = i.replace(/^\{(.*?),.*\}$/, '$1')
+        var nameType = i.replace(/^\{.*?,(.*?)\}$/, '$1') === 'u' ? 'user' : 'group'
+        if (this.serarchChar && name.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
+          if (aclTableRow[i]) {
+            for (var c in aclTableRow[i].condsWithColumn) {
+              var columnType = this.getColumnType(c)
+              aclTableRow[i].condsWithColumn[c] = aclTableRow[i].condsWithColumn[c].map((k) => {
+                if (this.dateTypeList.indexOf(columnType) >= 0) {
+                  k = transToUtcDateFormat(+k.leftExpr)
+                  return k
+                } else if (this.dateTimeTypeList.indexOf(columnType) >= 0) {
+                  k = transToUtcTimeFormat(+k.leftExpr)
+                  return k
+                } else if (this.timeTypeList.indexOf(columnType) >= 0) {
+                  k = transToUtcTimeFormat(+k.leftExpr)
+                  var result = k.split(/\s+/)
+                  if (result.length >= 2) {
+                    return result[1]
+                  }
+                  return k
+                } else {
+                  return k.leftExpr
                 }
-                return k
-              } else {
-                return k.leftExpr
-              }
-            })
+              })
+            }
+            result.push({name: name, nameType: nameType, conditions: aclTableRow[i].condsWithColumn})
           }
-          result.push({name: i, conditions: this.aclTableRow[i]})
         }
       }
       return result
@@ -482,8 +541,8 @@ export default {
     this.getAllAclSetOfTable()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configuring this setting, the user will only be able to view data for the column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value,Click on calendar icon on the right side to input date or time.', preview: 'Preview'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值，或点击最右日历图标选择时间', preview: '预览'}
+    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', condition: 'Condition', rowAclDesc: 'By configuring this setting, the user/group will only be able to view data for the column that qualify the filtering criteria.', valueValidateFail: 'The input value does not match the column type.', 'pressEnter': 'Mutiple value can be entered. Hit enter to confirm each value,Click on calendar icon on the right side to input date or time.', preview: 'Preview'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '行约束删除成功！', saveSuccess: '行约束保存成功！', userName: '用户名', access: '权限', restrict: '约束', condition: '条件', rowAclDesc: '通过以下设置，用户/组将仅能查看到表中列的值符合筛选条件的数据。', valueValidateFail: '输入值和列类型不匹配。', 'pressEnter': '每次输入列值后，按回车确认，可输入多个值，或点击最右日历图标选择时间', preview: '预览'}
   }
 }
 </script>

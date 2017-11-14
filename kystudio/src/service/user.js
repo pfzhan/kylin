@@ -32,6 +32,30 @@ export default {
   },
   authentication: () => {
     return Vue.resource(apiUrl + 'user/authentication').get()
+  },
+  userAccess: (para) => {
+    return Vue.resource(apiUrl + 'access/user/permission' + '/' + para.project).get()
+  },
+  // user goup
+  addGroupsToUser: (para) => {
+    return Vue.resource(apiUrl + 'kap/user/' + para.username).update(para)
+  },
+  addUsersToGroup: (para) => {
+    return Vue.resource(apiUrl + 'user_group/users/' + para.groupName).save(para.data)
+  },
+  getUserGroupList: (para) => {
+    return Vue.resource(apiUrl + 'user_group/usersWithGroup').get(para)
+  },
+  getGroupList: (para) => {
+    return Vue.resource(apiUrl + 'user_group/groups?project=' + para.project).get()
+  },
+  addGroup: (para) => {
+    return Vue.resource(apiUrl + 'user_group/' + para.groupName).save()
+  },
+  delGroup: (para) => {
+    return Vue.resource(apiUrl + 'user_group/' + para.groupName).remove()
+  },
+  getUsersByGroupName: (para) => {
+    return Vue.resource(apiUrl + 'user_group/groupMembers/' + para.groupName).get(para)
   }
-
 }

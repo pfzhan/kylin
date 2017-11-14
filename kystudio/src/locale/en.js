@@ -60,6 +60,11 @@ exports.default = {
     qa: 'FAQ',
     errorDetail: 'Error Message:',
     suggest: 'Suggestion:',
+    group: 'Group',
+    groupName: 'Group Name',
+    user: 'User',
+    userName: 'User Name',
+    userOrGroup: 'User/Group',
     // 通用提示
     unknownError: 'Unknown Error.',
     submitSuccess: 'Submitted successfully.',
@@ -80,6 +85,11 @@ exports.default = {
     enterAlias: 'Enter Alias',
     pleaseSelect: 'Please select',
     pleaseSelectUserName: 'Please select user name',
+    pleaseSelectUserGroup: 'Please select group',
+    pleaseSelectUserOrGroupName: 'Please select user/group name',
+    pleaseInputUserName: 'Please input user name',
+    pleaseInputUserGroup: 'Please input group name',
+    pleaseInputUserOrGroupName: 'Please input user/group name',
     pleaseSelectColumnName: 'Please select column name',
     pleaseSelectSampleRange: 'Please select sampling percentage',
     noData: 'No data',
@@ -87,6 +97,7 @@ exports.default = {
     // 格式提示
     nameFormatValidTip: 'Invalid name. Only letters, numbers and underscore characters are supported in a valid name.',
     // 其他
+    name: 'Name',
     users: 'Users',
     tip: 'Notice',
     action: 'Actions',

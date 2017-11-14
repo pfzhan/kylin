@@ -230,8 +230,8 @@ export function getNextValInArray (arr, current) {
 }
 // 时间转换工具
 import moment from 'moment'
-// test console.log(utcToConfigTimeZome(1494399187389, 'GMT+8'))
-export function utcToConfigTimeZome (item, zone, formatSet) {
+// test console.log(utcToConfigTimeZone(1494399187389, 'GMT+8'))
+export function utcToConfigTimeZone (item, zone, formatSet) {
   var timezone = zone || 'PST'
   var gmttimezone = ''
   if (item === '' || item === null || item === undefined) {

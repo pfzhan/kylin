@@ -66,6 +66,12 @@ export const permissions = {
   OPERATION: {name: 'CUBE OPERATION', value: 'OPERATION', mask: 64},
   ADMINISTRATION: {name: 'CUBE ADMIN', value: 'ADMINISTRATION', mask: 16}
 }
+export const permissionsMaps = {
+  1: 'READ',
+  32: 'MANAGEMENT',
+  64: 'OPERATION',
+  16: 'ADMINISTRATION'
+}
 export const engineTypeKylin = [
   {name: 'MapReduce', value: 2},
   {name: 'Spark (Beta)', value: 4}
@@ -540,4 +546,6 @@ export const insightKeyword = [
   {meta: 'keyword', caption: 'years', value: 'years', scope: 1},
   {meta: 'keyword', caption: 'zone', value: 'zone', scope: 1}
 ]
+
+export const assignTypes = [{value: 'user', label: 'user'}, {value: 'group', label: 'group'}]
 

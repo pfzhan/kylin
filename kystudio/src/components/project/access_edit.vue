@@ -29,29 +29,29 @@
       <div v-show="editAccessVisible">
       <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline">
        <el-form-item :label="$t('type')">
-          <el-select  placeholder="Type" v-model="accessMeta.principal">
+          <el-select  placeholder="Type" v-model="accessMeta.principal" :disabled="isEdit" @change="changeUserType">
             <el-option label="user" :value="true"></el-option>
-            <!-- <el-option label="role" :value="false"></el-option> -->
+            <el-option label="group" :value="false"></el-option>
           </el-select>
         </el-form-item>
-         <el-form-item :label="$t('name')" prop="sid">
+         <el-form-item :label="$t('name')" prop="sid" v-show="accessMeta.principal" >
 <!--           <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input> -->
-          <el-select filterable :disabled="isEdit" v-model="accessMeta.sid" :placeholder="$t('nameAccount')">
+         <kap-filter-select v-model="accessMeta.sid" :disabled="isEdit" :dataMap="{label: 'username', value: 'username'}" :list="userList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
+         <!--  <el-select filterable :disabled="isEdit" v-model="accessMeta.sid" :placeholder="$t('nameAccount')">
             <el-option
               v-for="item in userList"
               :key="item.username"
               :label="item.username"
               :value="item.username">
             </el-option>
-          </el-select>
+          </el-select> -->
         </el-form-item>
-        <!--  <el-form-item label="Role" v-if="!accessMeta.principal">
-          <el-select  placeholder="Role" v-model="accessMeta.sid">
-            <el-option label="ROLE_ADMIN" value="ROLE_ADMIN"></el-option>
-            <el-option label="ROLE_MODELER" value="ROLE_MODELER"></el-option>
-            <el-option label="ROLE_ANALYST" value="ROLE_ANALYST"></el-option>
-          </el-select>
-        </el-form-item> -->
+         <el-form-item :label="$t('kylinLang.common.group')" prop="sid" v-show="!accessMeta.principal">
+         <!--  <el-select  placeholder="group" :disabled="isEdit" v-model="accessMeta.sid">
+            <el-option :label="item" :value="item" v-for="item in groupLists"></el-option>
+          </el-select> -->
+          <kap-filter-select v-model="accessMeta.sid" :disabled="isEdit"  :list="groupLists" :dataMap="{label: 'label', value:'value'}" placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
+        </el-form-item>
         <el-form-item :label="$t('access')" prop="permission">
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
 
@@ -115,7 +115,7 @@ import { objectClone } from '../../util/index'
 import { handleSuccess, handleError, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'access',
-  props: ['accessId', 'own'],
+  props: ['accessId', 'own', 'projectName'],
   data () {
     return {
       isEdit: false,
@@ -125,7 +125,7 @@ export default {
       accessMeta: {
         permission: 1,
         principal: true,
-        id: ''
+        sid: ''
       },
       rules: {
         sid: [{
@@ -150,7 +150,8 @@ export default {
         { key: 'Operation', value: 64 },
         { key: 'Management', value: 32 },
         { key: 'Admin', value: 16 }
-      ]
+      ],
+      groupList: []
     }
   },
   methods: {
@@ -163,8 +164,22 @@ export default {
       editCubeAccess: 'EDIT_CUBE_ACCESS',
       getCubeAccess: 'GET_CUBE_ACCESS',
       delCubeAccess: 'DEL_CUBE_ACCESS',
-      getProjectEndAccess: 'GET_PROJECT_END_ACCESS'
+      getProjectEndAccess: 'GET_PROJECT_END_ACCESS',
+      loadUsersList: 'LOAD_USERS_LIST',
+      getGroupList: 'GET_GROUP_LIST'
     }),
+    loadAllGroups (data) {
+      this.getGroupList({project: localStorage.getItem('selected_project')}).then((res) => {
+        handleSuccess(res, (groups) => {
+          this.groupList = groups
+        })
+      })
+    },
+    changeUserType () {
+      if (this.accessMeta.sid !== '' && !this.isEdit) {
+        this.accessMeta.sid = ''
+      }
+    },
     initMeta () {
       this.accessMeta = {
         permission: 1,
@@ -174,13 +189,13 @@ export default {
     },
     addAccess () {
       this.isEdit = false
-      this.$refs.accessForm.resetFields()
+      // this.$refs.accessForm.resetFields()
       this.editAccessVisible = true
       this.initMeta()
     },
     resetAccessEdit () {
       this.initMeta()
-      this.$refs.accessForm.resetFields()
+      // this.$refs.accessForm.resetFields()
       this.editAccessVisible = false
     },
     saveAccess () {
@@ -224,7 +239,7 @@ export default {
     },
     beginEdit (data) {
       this.isEdit = true
-      this.$refs.accessForm.resetFields()
+      // this.$refs.accessForm.resetFields()
       this.editAccessVisible = true
       this.initMeta()
       this.accessMeta.accessEntryId = data.id
@@ -234,9 +249,10 @@ export default {
       // this.$set(this.permission)
     },
     updateAccess () {
-      var actionType = this.own === 'cube' ? 'editCubeAccess' : 'editProjectAccess'
-      this.accessMeta.permission = this.mask[this.accessMeta.permission]
-      this[actionType]({accessData: this.accessMeta, id: this.accessId}).then((res) => {
+      var actionType = 'editProjectAccess'
+      var accessMeta = objectClone(this.accessMeta)
+      accessMeta.permission = this.mask[this.accessMeta.permission]
+      this[actionType]({accessData: accessMeta, id: this.accessId}).then((res) => {
         this.editAccessVisible = false
         this.loadAccess()
         // 需要重新刷新projectlist下的权限
@@ -256,7 +272,7 @@ export default {
           this.accessList = data
           this.settleAccessList = data && data.map((access) => {
             access.roleOrName = access.sid.grantedAuthority || access.sid.principal
-            access.type = access.sid.principal ? 'User' : 'Role'
+            access.type = access.sid.principal ? 'User' : 'Group'
             access.promission = this.showMask[access.permission.mask]
             return access
           }) || []
@@ -272,24 +288,44 @@ export default {
       return hasRole(this, 'ROLE_ADMIN')
     },
     accessUserList () {
-      let userList = []
+      let userList = {
+        users: [],
+        groups: []
+      }
       this.settleAccessList.forEach((user) => {
-        userList.push(user.roleOrName)
+        if (user.type === 'User') {
+          userList.users.push(user.roleOrName)
+        } else {
+          userList.groups.push(user.roleOrName)
+        }
       })
       return userList
     },
     userList () {
       let userList = []
       this.$store.state.user.usersList.forEach((user) => {
-        if (this.accessUserList.indexOf(user.username) < 0) {
+        if (this.accessUserList && this.accessUserList.users.indexOf(user.username) < 0) {
           userList.push(user)
         }
       })
       return userList
+    },
+    groupLists () {
+      let groupList = []
+      this.groupList.forEach((group) => {
+        if (this.accessUserList && this.accessUserList.groups.indexOf(group) < 0) {
+          groupList.push({label: group, value: group})
+        }
+      })
+      return groupList
     }
   },
   created () {
-    this.loadAccess()
+    if (this.hasProjectAdminPermission() || this.isAdmin) {
+      this.loadAccess()
+      this.loadAllGroups()
+      this.loadUsersList({pageSize: 10000, pageOffset: 0, project: this.projectName})
+    }
     if (!this.$store.state.project.projectEndAccess[this.accessId]) {
       this.getProjectEndAccess(this.accessId)
     }

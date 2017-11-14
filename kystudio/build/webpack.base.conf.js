@@ -29,7 +29,8 @@ module.exports = {
       'src': resolve('src'),
       'assets': resolve('src/assets'),
       'components': resolve('src/components'),
-      'util': resolve('src/util')
+      'util': resolve('src/util'),
+      'config': resolve('src/config')
     }
   },
   module: {

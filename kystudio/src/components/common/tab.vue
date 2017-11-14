@@ -1,6 +1,7 @@
 <template>
 <div >
   <el-tabs v-model="active" :type="type||'card'" :editable="editable" @tab-click="handleClick" @edit="handleTabsEdit">
+    <slot name="defaultPane"></slot>
     <el-tab-pane
       v-for="(item, index) in tabs" :key="index"
       :label="item.i18n? item.title.replace(item.i18n,$t('kylinLang.common.'+item.i18n)): item.title"

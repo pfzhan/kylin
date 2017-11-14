@@ -179,7 +179,8 @@
         loadAllProjects: 'LOAD_ALL_PROJECT',
         resetPassword: 'RESET_PASSWORD',
         getAboutKap: 'GET_ABOUTKAP',
-        getProjectEndAccess: 'GET_PROJECT_END_ACCESS'
+        getProjectEndAccess: 'GET_PROJECT_END_ACCESS',
+        getUserAccess: 'USER_ACCESS'
       }),
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -293,7 +294,8 @@
         // 当前project的权限没拿过才需要发请求,project list 空的话，uuid也就不存在，就直接跳
         if (uuid && !curProjectId[uuid]) {
           let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
-          curProjectEndAccessPromise.then(() => {
+          let curProjectUserAccess = this.getUserAccess({project: curProjectName})
+          Promise.All([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
             this._replaceRouter(currentPath)
           })
         } else {

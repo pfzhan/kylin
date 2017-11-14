@@ -27,6 +27,7 @@ import nodata from 'components/common/nodata'
 import progressbar from 'components/common/progress'
 import commonPopover from 'components/common/common_popover'
 import fakeProgress from 'components/common/fake_progress'
+import pagerSelect from 'components/common/pager_filter_select'
 import editor from 'vue2-ace-editor'
 import VueClipboard from 'vue-clipboard2'
 // import draggable from 'vuedraggable'
@@ -56,6 +57,7 @@ Vue.component('kap-progress', progressbar)
 Vue.component('editor', editor)
 Vue.component('kap-common-popover', commonPopover)
 Vue.component('fake_progress', fakeProgress)
+Vue.component('kap-filter-select', pagerSelect)
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''

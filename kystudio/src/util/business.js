@@ -1,4 +1,5 @@
-import { utcToConfigTimeZome, removeNameSpace, getNameSpaceTopName } from './index'
+import { utcToConfigTimeZone, removeNameSpace, getNameSpaceTopName } from './index'
+import { permissionsMaps } from 'config/index'
 import { MessageBox } from 'element-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
@@ -46,7 +47,7 @@ export function handleError (res, errorcallback) {
 // 确认弹窗
 
 export function kapConfirm (content, para) {
-  var dialogPara = para || {}
+  var dialogPara = para || {type: 'warning'}
   // console.log(Message, 32323)
   return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
 }
@@ -126,7 +127,7 @@ export function getProperty (name, kylinConfig) {
 export function transToGmtTime (t, _vue) {
   var v = _vue || window.kapVm
   if (v) {
-    return utcToConfigTimeZome(t, v.$store.state.system.timeZone)
+    return utcToConfigTimeZone(t, v.$store.state.system.timeZone)
   }
 }
 
@@ -134,36 +135,29 @@ export function transToGmtTime (t, _vue) {
 export function transToGmtTimeAfterAjax (t, timeZone, _vue) {
   var v = _vue || window.kapVm
   if (v) {
-    return utcToConfigTimeZome(t, timeZone)
+    return utcToConfigTimeZone(t, timeZone)
   }
 }
 
 // 检测是否有project的某种权限
 export function hasPermission (vue, projectId) {
-  var entity = vue.$store.state.project.projectEndAccess[projectId]
   var curUser = vue.$store.state.user.currentUser
-  if (!curUser) {
-    return curUser
+  var curUserAccess = vue.$store.state.user.currentUserAccess
+  if (!curUser || !curUserAccess) {
+    return null
   }
-  var hasPermission1 = false
   var masks = []
   for (var i = 2; i < arguments.length; i++) {
     if (arguments[i]) {
-      masks.push(arguments[i])
+      masks.push(permissionsMaps[arguments[i]])
     }
   }
-  if (entity) {
-    entity.forEach((acessEntity, index) => {
-      if (masks.indexOf(acessEntity.permission.mask) !== -1) {
-        if ((curUser.username === acessEntity.sid.principal)) {
-          hasPermission1 = true
-        }
-      }
-    })
+  if (masks.indexOf(curUserAccess) >= 0) {
+    return true
   }
   // 为了测试先全部true
   // return hasPermission || true
-  return hasPermission1
+  return false
 }
 // 检测是否有cube的某种权限
 export function hasPermissionOfCube (vue, cubeId) {

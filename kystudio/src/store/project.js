@@ -92,7 +92,8 @@ export default {
               }
             }
             let curProjectAccessPromise = dispatch(types.GET_PROJECT_END_ACCESS, uuid)
-            curProjectAccessPromise.then(() => {
+            let curProjectUserAccessPromise = dispatch(types.USER_ACCESS, {project: state.selected_project})
+            Promise.all([curProjectAccessPromise, curProjectUserAccessPromise]).then(() => {
               resolve(response.data.data.projects)
             }, () => {
               resolve(response.data.data.projects)

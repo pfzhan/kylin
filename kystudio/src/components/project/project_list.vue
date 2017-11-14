@@ -16,7 +16,7 @@
             <cube_list :cubeList="props.row.realizations"></cube_list>
           </el-tab-pane>
           <el-tab-pane :label="$t('access')" name="third">
-            <access_edit :accessId="props.row.uuid" own='project'></access_edit>
+            <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
           </el-tab-pane>
           <el-tab-pane :label="$t('projectConfig')" name="fourth">
             <project_config :override="props.row.override_kylin_properties"></project_config>
@@ -101,8 +101,7 @@ export default {
       editAccess: 'EDIT_PROJECT_ACCESS',
       getAccess: 'GET_PROJECT_ACCESS',
       delAccess: 'DEL_PROJECT_ACCESS',
-      backupProject: 'BACKUP_PROJECT',
-      loadUsersList: 'LOAD_USERS_LIST'
+      backupProject: 'BACKUP_PROJECT'
     }),
     editProject (project) {
       this.isEdit = true
@@ -256,7 +255,6 @@ export default {
   },
   created () {
     this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
-    this.loadUsersList({pageSize: 10000, pageOffset: 0})
   },
   locales: {
     'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'Project backup successful: ', projectConfig: 'Configuration'},

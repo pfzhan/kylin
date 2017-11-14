@@ -68,7 +68,9 @@ export default {
     return {
       activeName: 'system',
       setConfigFormVisible: false,
-      diagnosisVisible: false
+      diagnosisVisible: false,
+      getServerEnvironment: '',
+      getServerConfig: ''
     }
   },
   components: {
@@ -81,7 +83,7 @@ export default {
   mounted () {
     var editor1 = this.$refs.envConfig.editor
     var editor2 = this.$refs.sysConfig.editor
-    editor1.setOption('gutters', 'huuuu')
+    // editor1.setOption('gutters', 'huuuu')
     editor1.setOption('wrap', 'free')
     editor2.setOption('wrap', 'free')
     editor1.setReadOnly(true)
@@ -183,6 +185,7 @@ export default {
         //     duration: 3000
         //   })
         // })
+        this.getServerEnvironment = JSON.stringify(this.$store.state.system.serverEnvironment).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
       }, (res) => {
         handleError(res)
       })
@@ -196,18 +199,13 @@ export default {
         //   type: 'success',
         //   duration: 3000
         // })
+        this.getServerConfig = JSON.stringify(this.$store.state.system.serverConfig).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
       }).catch((res) => {
         handleError(res)
       })
     }
   },
   computed: {
-    getServerConfig () {
-      return JSON.stringify(this.$store.state.system.serverConfig).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
-    },
-    getServerEnvironment () {
-      return JSON.stringify(this.$store.state.system.serverEnvironment).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
-    }
   },
   created () {
     this.refreshEnv()

@@ -59,6 +59,11 @@ exports.default = {
     qa: '常见问题',
     errorDetail: '错误详情：',
     suggest: '修改建议：',
+    group: '组',
+    groupName: '组名',
+    user: '用户',
+    userName: '用户名',
+    userOrGroup: '用户／组',
     // 通用提示
     unknownError: '未知错误。',
     submitSuccess: '提交成功。',
@@ -79,6 +84,11 @@ exports.default = {
     enterAlias: '输入别名',
     pleaseSelect: '请选择',
     pleaseSelectUserName: '请选择用户',
+    pleaseSelectUserGroup: '请选择组',
+    pleaseSelectUserOrGroupName: '请选择用户名或组名',
+    pleaseInputUserName: '请输入用户名',
+    pleaseInputUserGroup: '请输入组名',
+    pleaseInputUserOrGroupName: '请输入用户名或组名',
     pleaseSelectColumnName: '请选择列',
     pleaseSelectSampleRange: '请选择采样范围',
     noData: '没有数据',
@@ -86,6 +96,7 @@ exports.default = {
     // 格式提示
     nameFormatValidTip: '名称格式有误，命名支持数字、字母和下划线的组合。',
     // 其他
+    name: '名称',
     users: '用户',
     tip: '提示',
     action: '操作',

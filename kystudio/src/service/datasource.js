@@ -52,51 +52,51 @@ export default {
     return Vue.resource(apiUrl + 'table_ext/' + project + '/' + tableName + '/job').get()
   },
   // acl
-  getAclOfTable: (tableName, project) => {
+  getAclOfTable: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName).get()
   },
-  getAclBlackListOfTable: (tableName, project) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/black/' + tableName).get()
+  getAclBlackListOfTable: (tableName, project, type) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/black/' + tableName).get()
   },
-  saveAclSetOfTable: (tableName, project, userName) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName + '/' + userName).save()
+  saveAclSetOfTable: (tableName, project, userName, type) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/' + tableName + '/' + userName).save()
   },
-  cancelAclSetOfTable: (tableName, project, userName) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName + '/' + userName).delete()
+  cancelAclSetOfTable: (tableName, project, userName, type) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
   },
-  getAclOfColumn: (tableName, project) => {
+  getAclOfColumn: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName).get()
   },
-  getAclWhiteListOfColumn: (tableName, project) => {
-    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + tableName).get()
+  getAclWhiteListOfColumn: (tableName, project, type) => {
+    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + type + '/' + tableName).get()
   },
-  saveAclSetOfColumn: (tableName, project, userName, columnList) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).save(columnList)
+  saveAclSetOfColumn: (tableName, project, userName, columnList, type) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).save(columnList)
   },
-  updateAclSetOfColumn: (tableName, project, userName, columnList) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).update(columnList)
+  updateAclSetOfColumn: (tableName, project, userName, columnList, type) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).update(columnList)
   },
-  cancelAclSetOfColumn: (tableName, project, userName) => {
-    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName + '/' + userName).delete()
+  cancelAclSetOfColumn: (tableName, project, userName, type) => {
+    return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
   },
   // row
-  getAclOfRow: (tableName, project) => {
+  getAclOfRow: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName).get()
   },
-  getAclWhiteListOfRow: (tableName, project) => {
-    return Vue.resource(apiUrl + 'acl/row/available_user/' + project + '/' + tableName).get()
+  getAclWhiteListOfRow: (tableName, project, type) => {
+    return Vue.resource(apiUrl + 'acl/row/white/' + project + '/' + type + '/' + tableName).get()
   },
-  saveAclSetOfRow: (tableName, project, userName, conditions) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName + '/' + userName).save(conditions)
+  saveAclSetOfRow: (tableName, project, userName, conditions, type) => {
+    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).save(conditions)
   },
-  updateAclSetOfRow: (tableName, project, userName, conditions) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName + '/' + userName).update(conditions)
+  updateAclSetOfRow: (tableName, project, userName, conditions, type) => {
+    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).update(conditions)
   },
-  cancelAclSetOfRow: (tableName, project, userName) => {
-    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName + '/' + userName).delete()
+  cancelAclSetOfRow: (tableName, project, userName, type) => {
+    return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).delete()
   },
   previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
-    return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName + '/' + userName).save(conditions)
+    return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName).save(conditions)
   }
 
 }

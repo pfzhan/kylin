@@ -4,7 +4,10 @@ export default {
   state: {
     usersList: [],
     usersSize: 0,
+    usersGroupList: [],
+    usersGroupSize: 0,
     currentUser: null,
+    currentUserAccess: null,
     userDetail: null
   },
   mutations: {
@@ -12,14 +15,24 @@ export default {
       state.usersList = result.list
       state.usersSize = result.size
     },
+    [types.SAVE_GROUP_USERS_LIST]: function (state, result) {
+      state.usersGroupList = result.list
+      state.usersGroupSize = result.size
+    },
     [types.SAVE_CURRENT_LOGIN_USER]: function (state, result) {
       state.currentUser = result.user
+    },
+    [types.SAVE_CURRENT_USER_ACCESS]: function (state, result) {
+      state.currentUserAccess = result.access
     }
   },
   actions: {
-    [types.LOAD_USERS_LIST]: function ({ commit }, para) {
+    [types.LOAD_USERS_LIST]: function ({ commit, state }, para) {
       api.user.getUsersList(para).then((response) => {
         commit(types.SAVE_USERS_LIST, { list: response.data.data.users, size: response.data.data.size })
+      }, () => {
+        state.usersList = []
+        state.usersSize = 0
       })
     },
     [types.UPDATE_STATUS]: function ({ commit }, user) {
@@ -45,6 +58,44 @@ export default {
     },
     [types.USER_AUTHENTICATION]: function ({ commit }) {
       return api.user.authentication()
+    },
+    [types.ADD_USERS_TO_GROUP]: function ({ commit }, para) {
+      return api.user.addUsersToGroup(para)
+    },
+    [types.ADD_GROUPS_TO_USER]: function ({ commit }, para) {
+      return api.user.addGroupsToUser(para)
+    },
+    [types.ADD_GROUP]: function ({ commit }, para) {
+      return api.user.addGroup(para)
+    },
+    [types.DEL_GROUP]: function ({ commit }, para) {
+      return api.user.delGroup(para)
+    },
+    [types.GET_GROUP_LIST]: function ({ commit }, para) {
+      return api.user.getGroupList(para)
+    },
+    [types.GET_USERS_BY_GROUPNAME]: function ({ commit, state }, para) {
+      return api.user.getUsersByGroupName(para).then((response) => {
+        commit(types.SAVE_USERS_LIST, { list: response.data.data.groupMembers, size: response.data.data.size })
+      }, () => {
+        state.usersList = []
+        state.usersSize = 0
+      })
+    },
+    [types.GET_GROUP_USERS_LIST]: function ({ commit }, para) {
+      return api.user.getUserGroupList(para).then((response) => {
+        commit(types.SAVE_GROUP_USERS_LIST, { list: response.data.data.usersWithGroup, size: response.data.data.size })
+      })
+    },
+    [types.USER_ACCESS]: function ({ commit }, para) {
+      return new Promise((resolve, reject) => {
+        api.user.userAccess({project: para.project}).then((res) => {
+          commit(types.SAVE_CURRENT_USER_ACCESS, {access: res.data.data})
+          resolve(res)
+        }, () => {
+          reject()
+        })
+      })
     }
   },
   getters: {}

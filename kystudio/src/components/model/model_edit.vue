@@ -194,7 +194,7 @@
                  {{checkExpressResult.msg}}
                </p>
                <div v-show="computedColumn.expression">
-                <el-button size="small" @click="checkExpression" :loading="checkExpressionBtnLoad">Expression Check</el-button>
+                <el-button size="small" @click="checkExpression" :loading="checkExpressionBtnLoad">{{$t('expresscheck')}}</el-button>
                 <common-tip :content="$t('longTimeTip')" >
                   <icon name="question-circle" class="ksd-question-circle"></icon>
                 </common-tip>
@@ -1204,7 +1204,7 @@ export default {
       this.refreshComputed()
       this.$nextTick(() => {
         var editor = this.$refs.expressionBox.editor
-        editor.insert(' ')
+        editor.setValue('')
         var autoCompeleteData = []
         var setCompleteData = function (data, tableName) {
           editor.completers.splice(0, editor.completers.length - 3)
@@ -1281,8 +1281,8 @@ export default {
     pushComputedColumnToMeta () {
       this.addComputedColumnToDatabase((columnName) => {
         this.$message({message: this.$t('addComputedColumnSuccess'), type: 'success'})
-        this.$refs.computedColumnForm.resetFields()
-        this.openAddComputedColumnForm = false
+        // this.isEditComputedColumn = false
+        this.cancelComputedEditForm()
         this.refreshComputed()
       })
     },
@@ -1294,9 +1294,11 @@ export default {
               confirmButtonText: this.$t('continueSave'),
               cancelButtonText: this.$t('continueCheck')
             }).then(() => {
+              this.isEditComputedColumn = false
               this.pushComputedColumnToMeta()
             })
           } else {
+            this.isEditComputedColumn = false
             this.pushComputedColumnToMeta()
           }
         }
@@ -1304,9 +1306,12 @@ export default {
     },
     cancelComputedEditForm: function (argument) {
       var editor = this.$refs.expressionBox.editor
-      editor.insert(' ')
-      this.openAddComputedColumnForm = false
-      this.$refs.computedColumnForm.resetFields()
+      editor.setValue('')
+      this.isEditComputedColumn = false
+      setTimeout(() => {
+        this.$refs.computedColumnForm.resetFields()
+        this.openAddComputedColumnForm = false
+      }, 0)
     },
     getPartitionDateColumns: function () {
       var dateColumns = {}
@@ -2960,8 +2965,8 @@ export default {
     this.resizeWindow(this.briefMenu)
   },
   locales: {
-    'en': {'addJoinCondition': 'Add join condition', 'hasRootFact': 'There is already a fact table.', 'cannotSetFact': 'This table has a primary key already, so it cannot be a fact table. Please remove or redefine the join condition.', 'cannotSetFTableToFKTable': 'In model, table join condition should start from fact table(foreign key), then pointing it to the lookup table(primary key).', 'tableHasOppositeLinks': 'There is an reverse link between tables.', 'tableHasOtherFKTable': 'There is already a foreign key within this table.', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Great, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1. This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2. Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3. Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.', submitSqlTip: 'KAP is generating a new model and it will overwrite current content, are you sure to continue? ', checkIgnore: 'Please correct entered SQL and check again. If you want to submit SQL queries anyway, please check the "Ignore known SQL error" box first.', checkAllColumns: 'Choose all columns.', openMutil: 'Click here to set dimensions or measures, click again to exit.', unSelectColumnsTip: 'Click column name to choose it.', closeMutilTip: 'Exit', autoSuggestTip: 'Suggesting dimensions and measures', autoSuggestConfirm: 'Suggesting dimensions and measures will overwrite the current version, are you sure you want to continue?'},
-    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了。', 'cannotSetFact': '本表包含一个主键，因而无法被设置为事实表。请删除或重新定义该连接（join）。', 'cannotSetFTableToFKTable': '模型中，连接（join）条件的建立是从事实表（外键）开始，指向维度表（主键）。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了。', 'tableHasOtherFKTable': '该表已经有一个关联的外键表。', 'delTableTip': '请先删除掉该表和其他表的关联关系。', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑?', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1. 本功能将根据您输入的SQL语句自动补全建模，提交SQL即生成新模型。', autoModelTip2: '2. 输入多条SQL语句时将以“;”作为分隔。', autoModelTip3: '3. 语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。', submitSqlTip: '即将生成新模型，新模型将覆盖原有模型，您确认要继续吗？', checkIgnore: '请修复SQL错误，再重新检测。若希望忽略这些错误，请勾选“忽略已知的SQL错误”后，再提交。', checkAllColumns: '选择所有列', openMutil: '点此设置维度和指标，再次点击可退出设置', unSelectColumnsTip: '请先点击下面的列名选中您需要修改的列', closeMutilTip: '点击可退出设置', autoSuggestTip: '系统推荐维度和指标', autoSuggestConfirm: '使用系统推荐维度和度量，将会覆盖您当前的设置，确认要继续吗？'}
+    'en': {'addJoinCondition': 'Add join condition', 'hasRootFact': 'There is already a fact table.', 'cannotSetFact': 'This table has a primary key already, so it cannot be a fact table. Please remove or redefine the join condition.', 'cannotSetFTableToFKTable': 'In model, table join condition should start from fact table(foreign key), then pointing it to the lookup table(primary key).', 'tableHasOppositeLinks': 'There is an reverse link between tables.', 'tableHasOtherFKTable': 'There is already a foreign key within this table.', 'delTableTip': 'you should delete the links of other tables before delete this table', 'sameNameComputedColumn': 'There is already a column with the same name', 'addComputedColumnSuccess': 'Computed column added successfuly!', 'checkCompleteLink': 'Connect info is incomplete', hasNoFact: 'Fact Table is mandatory for model', 'checkDraft': 'Detected the unsaved content, are you going to continue the last edit?', filterPlaceHolder: 'Please input filter condition', filterCondition: 'Filter Condition', 'conditionExpress': 'Note that select one column should contain its table name(or alias table name).', changeUsedForConnectColumnTypeWarn: 'Table join key should be a dimension. Exchanging the column(join key) type from dimension to measure is not feasible.', needOneDimension: 'You must select at least one dimension column', needOneMeasure: 'You must select at least one measure column', 'longTimeTip': 'Expression check may take several seconds.', checkingTip: 'The expression check is about to complete, are you sure to break it and save?', checkSuccess: 'Great, the expression is valid.', continueCheck: 'Cancle', continueSave: 'Save', plsCheckReturnType: 'Please select a data type first!', 'autoModelTip1': '1. This function will help you generate a complete model according to entered SQL statements.', 'autoModelTip2': '2. Multiple SQL statements will be separated by ";".', 'autoModelTip3': '3. Please click "x" to check detailed error message after SQL checking.', sqlPatterns: 'SQL Patterns', validFail: 'Uh oh, some SQL went wrong. Click the failed SQL to learn why it didn\'t work and how to refine it.', validSuccess: 'Great! All SQL can perfectly work on this model.', ignoreErrorSqls: 'Ignore Error SQL(s)', ignoreTip: 'Ignored error SQL will have no impact on auto-modeling.', submitSqlTip: 'KAP is generating a new model and it will overwrite current content, are you sure to continue? ', checkIgnore: 'Please correct entered SQL and check again. If you want to submit SQL queries anyway, please check the "Ignore known SQL error" box first.', checkAllColumns: 'Choose all columns.', openMutil: 'Click here to set dimensions or measures, click again to exit.', unSelectColumnsTip: 'Click column name to choose it.', closeMutilTip: 'Exit', autoSuggestTip: 'Suggesting dimensions and measures', autoSuggestConfirm: 'Suggesting dimensions and measures will overwrite the current version, are you sure you want to continue?', expresscheck: 'Expression Check'},
+    'zh-cn': {'addJoinCondition': '添加连接条件', 'hasRootFact': '已经有一个事实表了。', 'cannotSetFact': '本表包含一个主键，因而无法被设置为事实表。请删除或重新定义该连接（join）。', 'cannotSetFTableToFKTable': '模型中，连接（join）条件的建立是从事实表（外键）开始，指向维度表（主键）。', 'tableHasOppositeLinks': '两表之间已经存在一个反向的连接了。', 'tableHasOtherFKTable': '该表已经有一个关联的外键表。', 'delTableTip': '请先删除掉该表和其他表的关联关系。', 'sameNameComputedColumn': '已经有一个同名的列', 'addComputedColumnSuccess': '计算列添加成功！', 'checkCompleteLink': '连接信息不完整', hasNoFact: '模型需要有一个事实表', 'checkDraft': '检测到上次有未保存的内容，是否继续上次进行编辑?', filterPlaceHolder: '请输入过滤条件', filterCondition: '过滤条件', 'conditionExpress': '请注意，表达式中选用某列时，格式为“表名.列名”。', changeUsedForConnectColumnTypeWarn: '表连接关系中的键只能是维度列，请勿在建立连接关系后更改该列类型。', needOneDimension: '至少选择一个维度列', needOneMeasure: '至少选择一个度量列', 'longTimeTip': '表达式校验需要进行十几秒，请稍候。', checkingTip: '表达式校验即将完成，您确定要现在保存？', checkSuccess: '表达式校验结果正确。', continueCheck: '继续校验', continueSave: '直接保存', plsCheckReturnType: '请先选择数据类型！', autoModelTip1: '1. 本功能将根据您输入的SQL语句自动补全建模，提交SQL即生成新模型。', autoModelTip2: '2. 输入多条SQL语句时将以“;”作为分隔。', autoModelTip3: '3. 语法检验后，点击“x”可以查看每条SQL语句的错误信息。', sqlPatterns: 'SQL', validFail: '有无法运行的SQL查询。请点击未验证成功的SQL，获得具体原因与修改建议。', validSuccess: '所有SQL都能被本模型验证。', ignoreErrorSqls: '忽略错误SQL', ignoreTip: '忽略错误的SQL将不会对后续建模产生影响。', submitSqlTip: '即将生成新模型，新模型将覆盖原有模型，您确认要继续吗？', checkIgnore: '请修复SQL错误，再重新检测。若希望忽略这些错误，请勾选“忽略已知的SQL错误”后，再提交。', checkAllColumns: '选择所有列', openMutil: '点此设置维度和指标，再次点击可退出设置', unSelectColumnsTip: '请先点击下面的列名选中您需要修改的列', closeMutilTip: '点击可退出设置', autoSuggestTip: '系统推荐维度和指标', autoSuggestConfirm: '使用系统推荐维度和度量，将会覆盖您当前的设置，确认要继续吗？', expresscheck: '表达式校验'}
   }
 }
 </script>

@@ -20,16 +20,21 @@
               show-overflow-tooltip
               sortable
               prop="name"
-              :label="$t('userName')"
+              :label="$t('kylinLang.common.userOrGroup')"
               width="180"
               >
+              <template scope="scope">
+                <icon name="user-o"  scale="0.8" style="color: #d4d7e3;" v-show="scope.row.nameType === 'user'"></icon>
+                <icon v-show="scope.row.nameType === 'group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
+                &nbsp;{{ scope.row.name}}
+              </template>
             </el-table-column>
             <el-table-column
               show-overflow-tooltip
               :label="$t('columns')"
               >
               <template scope="scope">
-                {{ scope.row.columns.join(',')}}
+                {{ scope.row.columns && scope.row.columns.join(',') || ''}}
               </template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"
@@ -37,8 +42,8 @@
               prop="Action"
               :label="$t('kylinLang.common.action')">
               <template scope="scope">
-              <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfColumn(scope.row.name, scope.row.columns)"></el-button>
-              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfColumn(scope.row.name)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfColumn(scope.row.name, scope.row.columns, scope.row.nameType)"></el-button>
+              <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfColumn(scope.row.name, scope.row.nameType)"></el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -51,15 +56,33 @@
                 :closable="false"
                 type="warning">
               </el-alert>
-              <el-form :model="grantObj" ref="aclOfColumnForm" :rules="aclTableRules">
-                <el-form-item  :label="$t('userName')" label-width="80px" prop="name">
-                  <el-select filterable v-model="grantObj.name" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectUserName')" :disabled="isEdit" >
-                    <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+              <el-form :model="grantObj" ref="aclOfColumnForm"  :rules="aclTableRules">
+                <el-form-item  :label="$t('kylinLang.common.userOrGroup')" label-width="80px" prop="name" style="width:100%">
+                  <el-col :span="11">
+                   <el-select v-model="assignType" :disabled="isEdit"   style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeAssignType">
+                    <el-option
+                      v-for="item in assignTypes"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value">
+                    </el-option>
                   </el-select>
+                </el-col>
+                <el-col :span="11">
+                 <!--   <el-select v-if="assignType === 'user'"  style="width:100%" filterable v-model="grantObj.name"   :placeholder="$t('kylinLang.common.pleaseSelectUserName')" :disabled="isEdit" >
+                    <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
+                  </el-select> -->
+
+                  <kap-filter-select v-model="grantObj.name" :disabled="isEdit" style="width:100%" v-show="assignType === 'user'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
+
+                   <!--  <el-select v-if="assignType === 'group'"  style="width:100%" filterable  v-model="grantObj.name" :placeholder="$t('kylinLang.common.pleaseSelectUserGroup')" :disabled="isEdit" >
+                    <el-option v-for="b in aclWhiteGroupList" :value="b.value">{{b.value}}</el-option>
+                  </el-select> -->
+                   <kap-filter-select v-model="grantObj.name" :disabled="isEdit" style="width:100%" v-show="assignType === 'group'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteGroupList" placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
+                </el-col>
                   <!-- <el-autocomplete  v-model="grantObj.name" style="width:100%" :fetch-suggestions="querySearchAsync"></el-autocomplete> -->
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
-
               </el-form>
               <el-form>
                 <el-form-item >
@@ -79,7 +102,7 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, kapConfirm, hasRole, hasPermission } from '../../../util/business'
-import { permissions } from '../../../config'
+import { permissions, assignTypes } from '../../../config'
 // import { permissions } from '../../config'
 // import { changeDataAxis, isFireFox } from '../../util/index'
 // import createKafka from '../kafka/create_kafka'
@@ -102,11 +125,14 @@ export default {
       aclColumnData: [],
       columnList: [],
       aclWhiteList: [],
+      aclWhiteGroupList: [],
       needSetColumns: [],
+      assignTypes: assignTypes,
+      assignType: 'user',
       saveBtnLoad: false,
       aclTableRules: {
         name: [{
-          required: true, message: this.$t('kylinLang.common.pleaseSelectUserName'), trigger: 'change'
+          required: true, message: this.$t('kylinLang.common.pleaseInputUserOrGroupName'), trigger: 'change'
         }]
       }
     }
@@ -121,22 +147,31 @@ export default {
       saveAclSetOfColumn: 'SAVE_ACL_SET_COLUMN',
       delAclSetOfColumn: 'DEL_ACL_SET_COLUMN',
       updateAclSetOfColumn: 'UPDATE_ACL_SET_COLUMN',
-      getAclWhiteList: 'GET_ACL_WHITELIST_COLUMN'
+      getAclWhiteList: 'GET_ACL_WHITELIST_COLUMN',
+      getGroupList: 'GET_GROUP_LIST'
     }),
-    editAclOfColumn (userName, columns) {
+    changeAssignType () {
+      if (!this.isEdit) {
+        this.grantObj.name = ''
+      }
+      this.getWhiteListOfColumn()
+    },
+    editAclOfColumn (userName, columns, nameType) {
       this.isEdit = true
       this.addGrantDialog = true
+      this.assignType = nameType
+      this.grantObj.name = userName
       this.$nextTick(() => {
-        this.grantObj.name = userName
         this.needSetColumns = columns
       })
     },
-    delAclOfColumn (userName) {
+    delAclOfColumn (userName, assignType) {
       kapConfirm(this.$t('delConfirm'), {cancelButtonText: this.$t('cancelButtonText'), confirmButtonText: this.$t('confirmButtonText')}).then(() => {
         this.delAclSetOfColumn({
           tableName: this.tableName,
           project: this.$store.state.project.selected_project,
-          userName: userName
+          userName: userName,
+          type: assignType
         }).then((res) => {
           handleSuccess(res, (data) => {
             this.getAllAclSetOfColumn()
@@ -155,6 +190,7 @@ export default {
     addGrant () {
       this.addGrantDialog = true
       this.isEdit = false
+      this.assignType = 'user'
       this.resetAclTableObj()
       this.needSetColumns = []
     },
@@ -170,7 +206,8 @@ export default {
             tableName: this.tableName,
             project: this.$store.state.project.selected_project,
             userName: this.grantObj.name,
-            columns: this.needSetColumns
+            columns: this.needSetColumns,
+            type: this.assignType
           }).then((res) => {
             this.saveBtnLoad = false
             this.addGrantDialog = false
@@ -194,7 +231,8 @@ export default {
     getAllAclSetOfColumn () {
       this.getAclSetOfColumn({
         tableName: this.tableName,
-        project: this.$store.state.project.selected_project
+        project: this.$store.state.project.selected_project,
+        type: this.assignType
       }).then((res) => {
         handleSuccess(res, (data) => {
           this.aclColumnData = data
@@ -204,17 +242,22 @@ export default {
         handleError(res)
       })
     },
-    getWhiteListOfColumn (cb) {
+    getWhiteListOfColumn () {
       this.getAclWhiteList({
         tableName: this.tableName,
-        project: this.$store.state.project.selected_project
+        project: this.$store.state.project.selected_project,
+        type: this.assignType
       }).then((res) => {
         handleSuccess(res, (data) => {
           var result = []
           data.forEach((d) => {
             result.push({value: d})
           })
-          this.aclWhiteList = result
+          if (this.assignType === 'user') {
+            this.aclWhiteList = result
+          } else {
+            this.aclWhiteGroupList = result
+          }
         })
       }, (res) => {
         handleError(res)
@@ -241,8 +284,10 @@ export default {
     aclColumnList () {
       var result = []
       for (var i in this.aclColumnData) {
-        if (this.serarchChar && i.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
-          result.push({name: i, columns: this.aclColumnData[i]})
+        var name = i.replace(/^\{(.*?),.*\}$/, '$1')
+        var nameType = i.replace(/^\{.*?,(.*?)\}$/, '$1') === 'u' ? 'user' : 'group'
+        if (this.serarchChar && name.toUpperCase().indexOf(this.serarchChar.toUpperCase()) >= 0 || !this.serarchChar) {
+          result.push({name: name, nameType: nameType, columns: this.aclColumnData[i]})
         }
       }
       return result
@@ -267,8 +312,8 @@ export default {
     this.getAllAclSetOfColumn()
   },
   locales: {
-    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configuring this setting, the user will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
-    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功提示：权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
+    'en': {delConfirm: 'The action will delete this restriction, still continue?', cancelButtonText: 'No', confirmButtonText: 'Yes', delSuccess: 'Access deleted successfully.', saveSuccess: 'Access saved successfully.', userName: 'User name', access: 'Access', restrict: 'Restrict', columnAclDesc: 'By configuring this setting, the user/group will not be able to view and query the selected column.', columns: 'Columns', willcheck: 'Column to be selected', haschecked: 'Restricted columns'},
+    'zh-cn': {delConfirm: '此操作将删除该授权，是否继续?', cancelButtonText: '否', confirmButtonText: '是', delSuccess: '权限删除成功！', saveSuccess: '权限添加成功！', userName: '用户名', access: '权限', restrict: '约束', columnAclDesc: '通过以下设置，用户/组将无法查看及查询选中的列。', columns: '列', willcheck: '待选择列', haschecked: '已约束列'}
   }
 }
 </script>
