@@ -65,7 +65,8 @@
     <el-table-column
       sortable
       width="100"
-      :label="$t('cubeSize')">
+      :label="$t('cubeSize')"
+      prop="total_storage_size_kb">
       <template scope="scope">
         <el-tooltip class="item" effect="dark" placement="top">
           <div slot="content">
@@ -84,7 +85,6 @@
       <template scope="scope">{{scope.row.input_records_count | readableNumber}} </template>>
     </el-table-column>
     <el-table-column
-      sortable
       show-overflow-tooltip
       :label="$t('lastBuildTime')">
       <template scope="scope">

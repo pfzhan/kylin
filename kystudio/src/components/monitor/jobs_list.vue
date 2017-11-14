@@ -312,7 +312,7 @@
           }, (res) => {
             handleError(res)
           })
-        }, 5000)
+        }, 30000)
       }
       this.loadJobsList(this.filter).then(() => {
         autoFilter()

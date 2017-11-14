@@ -56,10 +56,8 @@
   			    <el-table-column
   			      width="160"
               sortable
+              prop="cardinality"
   			      :label="$t('kylinLang.dataSource.cardinality')">
-               <template scope="scope">
-                {{ tableData.cardinality[scope.row.name] }}
-              </template>
   			    </el-table-column>
   			    <el-table-column
   			      prop="comment"
@@ -833,7 +831,8 @@ export default {
         handleSuccess(res, (data) => {
           _this.extendData = data
           for (var s = 0, len = _this.extendData.columns_stats && _this.extendData.columns_stats.length || 0; s < len; s++) {
-            _this.extendData.columns_stats[s].column = this.tableData.columns[s].name
+            _this.extendData.columns_stats[s].column = _this.tableData.columns[s].name
+            _this.$set(_this.tableData.columns[s], 'cardinality', _this.extendData.columns_stats[s].cardinality)
           }
           _this.extendData.last_modified = _this.extendData.last_modified ? transToGmtTime(_this.extendData.last_modified, _this) : null
           _this.statistics = _this.extendData.columns_stats

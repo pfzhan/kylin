@@ -182,7 +182,7 @@ export default {
         if (data && data.length) {
           if (data[row].status === 'FAILED') {
             if (data[row].message) {
-              this.errorMsg = data[row].message.replace(/^.*?:/, '')
+              this.errorMsg = data[row].message
             }
           } else {
             this.errorMsg = ''
