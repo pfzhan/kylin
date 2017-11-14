@@ -298,7 +298,7 @@ export default {
           username: data.username,
           password: data.password,
           disabled: data.disabled,
-          authorities: []
+          authorities: ['ALL_USERS']
         }
       }
       if (data.admin) {
@@ -334,26 +334,29 @@ export default {
           username: data.username,
           password: data.password,
           disabled: data.disabled,
-          authorities: []
+          authorities: data.authorities.map((au) => {
+            return au.authority
+          })
         }
       }
+      var indexOfAdmin = user.detail.authorities.indexOf('ROLE_ADMIN')
       if (data.admin) {
-        user.detail.authorities.push('ROLE_ADMIN')
+        if (indexOfAdmin < 0) {
+          user.detail.authorities.push('ROLE_ADMIN')
+        }
       } else {
-        user.detail.authorities.splice(user.detail.authorities.indexOf('ROLE_ADMIN'), 1)
+        if (indexOfAdmin >= 0) {
+          user.detail.authorities.splice(indexOfAdmin, 1)
+        }
       }
       this.editRole(user).then((result) => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.saveSuccess')
         })
-      }).catch((result) => {
-        this.$message({
-          duration: 0,  // 不自动关掉提示
-          showClose: true,    // 给提示框增加一个关闭按钮
-          type: 'error',
-          message: result.statusText
-        })
+        this.loadUsers()
+      }, (result) => {
+        handleError(result)
       })
       this.editRoleFormVisible = false
     },
@@ -414,7 +417,8 @@ export default {
           admin: false,
           modeler: false,
           analyst: false,
-          defaultPassword: user.defaultPassword
+          defaultPassword: user.defaultPassword,
+          authorities: user.authorities
         }
         var group = []
         user.authorities.forEach((role) => {
@@ -428,8 +432,8 @@ export default {
           //   newUser.analyst = true
           // }
           group.push(role.authority)
-          newUser.groups = group
         })
+        newUser.groups = group
         userData.push(newUser)
       })
       return userData
