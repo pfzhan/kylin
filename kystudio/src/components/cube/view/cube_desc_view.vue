@@ -31,8 +31,9 @@ import refreshSetting from './refresh_setting_view'
 import tableIndex from './table_index_view'
 import configurationOverwrites from './configuration_overwrites_view'
 import overview from './overview_view'
-import { handleSuccess, handleError } from '../../../util/business'
+import { handleSuccess, handleError, hasRole, hasPermission } from '../../../util/business'
 import { removeNameSpace } from '../../../util/index'
+import { permissions } from 'config/index'
 export default {
   name: 'cubedesc',
   props: ['cube', 'index'],
@@ -121,6 +122,26 @@ export default {
           })
         })
       }
+    },
+    getProjectIdByName (pname) {
+      var projectList = this.$store.state.project.allProject
+      var len = projectList && projectList.length || 0
+      var projectId = ''
+      for (var s = 0; s < len; s++) {
+        if (projectList[s].name === pname) {
+          projectId = projectList[s].uuid
+        }
+      }
+      return projectId
+    },
+    hasSomePermissionOfProject () {
+      var projectId = this.getProjectIdByName(this.$store.state.project.selected_project)
+      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    }
+  },
+  computed: {
+    isAdmin () {
+      return hasRole(this, 'ROLE_ADMIN')
     }
   },
   created () {
@@ -133,8 +154,12 @@ export default {
         handleError(res, () => {})
       })
     }
+    var isExt = false
+    if (this.isAdmin || this.hasSomePermissionOfProject()) {
+      isExt = true
+    }
     if (!this.cube.modelDesc) {
-      this.loadDataSourceByProject({project: this.selected_project, isExt: true}).then(() => {
+      this.loadDataSourceByProject({project: this.selected_project, isExt: isExt}).then(() => {
         this.loadModelInfo({modelName: this.cube.model, project: this.selected_project}).then((res) => {
           handleSuccess(res, (data, code, status, msg) => {
             this.$set(this.cube, 'modelDesc', data.model)
