@@ -3324,7 +3324,6 @@ export default {
             height: 26px;
             margin-top: 0px;
             padding-top: 4px;
-            font-weight: blod;
             // line-height: 30px;
             width: 28px;
             text-align:center;
@@ -3378,18 +3377,24 @@ export default {
                 }
               }
               &.active{
-                &:hover{
-                  background:#383d52;
-                }
+                // &:hover{
+                //   background:#383d52;
+                // }
                 >svg{
-                  color:#7881aa;
-                  &:hover{
-                    color:#138ded;
+                  circle,text{
+                    stroke:#7881aa;
+                    &:hover{
+                      stroke:#138ded;
+                    }
                   }
+                  
                 }
               }
               >svg{
-                color:#5f647a;
+                circle,text{
+                  stroke:#5f647a;
+                  stroke-width:0.5px;
+                }
                 cursor: pointer;
                 vertical-align:middle;
               }
