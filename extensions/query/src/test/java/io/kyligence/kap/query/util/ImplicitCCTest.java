@@ -48,46 +48,22 @@ public class ImplicitCCTest {
 
     @Test
     public void testGetSubqueries() throws SqlParseException {
-        String s1 = "WITH customer_total_return AS\n" +
-                "  (SELECT sr_customer_sk AS ctr_customer_sk,\n" +
-                "          sr_store_sk AS ctr_store_sk,\n" +
-                "          sum(sr_return_amt) AS ctr_total_return\n" +
-                "   FROM store_returns\n" +
-                "   JOIN date_dim ON sr_returned_date_sk = d_date_sk\n" +
-                "   WHERE d_year = 1998\n" +
-                "   GROUP BY sr_customer_sk,\n" +
-                "            sr_store_sk),\n" +
-                "     tmp AS (\n" +
-                "     SELECT avg(ctr_total_return)*1.2 tmp_avg,\n" +
-                "          ctr_store_sk\n" +
-                "   FROM customer_total_return\n" +
-                "   GROUP BY ctr_store_sk)\n" +
-                "\n" +
-                "SELECT c_customer_id\n" +
-                "FROM customer_total_return ctr1\n" +
-                "JOIN tmp ON tmp.ctr_store_sk = ctr1.ctr_store_sk\n" +
-                "JOIN store ON s_store_sk = ctr1.ctr_store_sk\n" +
-                "JOIN customer ON ctr1.ctr_customer_sk = c_customer_sk\n" +
-                "WHERE ctr1.ctr_total_return > tmp_avg\n" +
-                "  AND s_state = 'TN'\n" +
-                "ORDER BY c_customer_id\n" +
-                "LIMIT 100";
-        String s2 = "WITH a1 AS\n" +
-                "  (WITH a1 AS\n" +
-                "     (SELECT *\n" +
-                "      FROM t) SELECT a1\n" +
-                "   FROM t2\n" +
-                "   ORDER BY c_customer_id)\n" +
-                "SELECT a1\n" +
-                "FROM t2\n" +
-                "ORDER BY c_customer_id";
-        String s3 = "WITH a1 AS\n" +
-                "  (SELECT * FROM t)\n" +
-                "SELECT a1\n" +
-                "FROM\n" +
-                "  (WITH a2 AS (SELECT * FROM t) \n" +
-                "    SELECT a2 FROM t2)\n" +
-                "ORDER BY c_customer_id";
+        String s1 = "WITH customer_total_return AS\n" + "  (SELECT sr_customer_sk AS ctr_customer_sk,\n"
+                + "          sr_store_sk AS ctr_store_sk,\n" + "          sum(sr_return_amt) AS ctr_total_return\n"
+                + "   FROM store_returns\n" + "   JOIN date_dim ON sr_returned_date_sk = d_date_sk\n"
+                + "   WHERE d_year = 1998\n" + "   GROUP BY sr_customer_sk,\n" + "            sr_store_sk),\n"
+                + "     tmp AS (\n" + "     SELECT avg(ctr_total_return)*1.2 tmp_avg,\n" + "          ctr_store_sk\n"
+                + "   FROM customer_total_return\n" + "   GROUP BY ctr_store_sk)\n" + "\n" + "SELECT c_customer_id\n"
+                + "FROM customer_total_return ctr1\n" + "JOIN tmp ON tmp.ctr_store_sk = ctr1.ctr_store_sk\n"
+                + "JOIN store ON s_store_sk = ctr1.ctr_store_sk\n"
+                + "JOIN customer ON ctr1.ctr_customer_sk = c_customer_sk\n" + "WHERE ctr1.ctr_total_return > tmp_avg\n"
+                + "  AND s_state = 'TN'\n" + "ORDER BY c_customer_id\n" + "LIMIT 100";
+        String s2 = "WITH a1 AS\n" + "  (WITH a1 AS\n" + "     (SELECT *\n" + "      FROM t) SELECT a1\n"
+                + "   FROM t2\n" + "   ORDER BY c_customer_id)\n" + "SELECT a1\n" + "FROM t2\n"
+                + "ORDER BY c_customer_id";
+        String s3 = "WITH a1 AS\n" + "  (SELECT * FROM t)\n" + "SELECT a1\n" + "FROM\n"
+                + "  (WITH a2 AS (SELECT * FROM t) \n" + "    SELECT a2 FROM t2)\n" + "ORDER BY c_customer_id";
+
         Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s1).size());
         Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s2).size());
         Assert.assertEquals(4, SqlSubqueryFinder.getSubqueries(s3).size());
@@ -160,7 +136,9 @@ public class ImplicitCCTest {
                 mockComputedColumnDesc("cc2", "table1.a + table1.b", "TABLE1"),
                 mockComputedColumnDesc("cc3", "table2.c + table2.d", "TABLE2"),
                 mockComputedColumnDesc("cc", "substring(substring(table1.d,1,3),1,3)", "TABLE1"),
-                mockComputedColumnDesc("cc4", "(table1.a + table1.b) + (table1.c + table1.d)", "TABLE1"));
+                mockComputedColumnDesc("cc4", "(table1.a + table1.b) + (table1.c + table1.d)", "TABLE1"),
+                mockComputedColumnDesc("cc5", "CAST(table1.a AS double)", "TABLE1"),
+                mockComputedColumnDesc("cc6", "{fn convert(table1.a, double)}", "TABLE1"));
         mockCCs = ConvertToComputedColumn.getCCListSortByLength(mockCCs);
         for (ComputedColumnDesc cc : mockCCs) {
             System.out.println(cc.getColumnName());
@@ -186,14 +164,28 @@ public class ImplicitCCTest {
                 ConvertToComputedColumn.replaceComputedColumn(sql0, SqlSubqueryFinder.getSubqueries(sql0).get(0),
                         mockCCs, queryAliasMatchInfo).getFirst());
 
-        Assert.assertEquals("select sum(T1.cc1) from table1 as t1", ConvertToComputedColumn.replaceComputedColumn(sql1,
-                SqlSubqueryFinder.getSubqueries(sql1).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+        Assert.assertEquals("select sum(T1.cc1) from table1 as t1", ConvertToComputedColumn
+                .replaceComputedColumn(sql1, SqlSubqueryFinder.getSubqueries(sql1).get(0), mockCCs, queryAliasMatchInfo)
+                .getFirst());
 
-        Assert.assertEquals("select T1.cc from table1 as t1", ConvertToComputedColumn.replaceComputedColumn(sql2,
-                SqlSubqueryFinder.getSubqueries(sql2).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+        Assert.assertEquals("select T1.cc from table1 as t1", ConvertToComputedColumn
+                .replaceComputedColumn(sql2, SqlSubqueryFinder.getSubqueries(sql2).get(0), mockCCs, queryAliasMatchInfo)
+                .getFirst());
 
-        Assert.assertEquals("select T1.cc4 from table1", ConvertToComputedColumn.replaceComputedColumn(sql3,
-                SqlSubqueryFinder.getSubqueries(sql3).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+        Assert.assertEquals("select T1.cc4 from table1", ConvertToComputedColumn
+                .replaceComputedColumn(sql3, SqlSubqueryFinder.getSubqueries(sql3).get(0), mockCCs, queryAliasMatchInfo)
+                .getFirst());
+
+        //Case SUM(CAST(...)) and sum({fn convert(...)})
+        String sqlWithSum = "select sum(CAST(T1.a AS double)) from table1";
+        Assert.assertEquals("select sum(T1.cc5) from table1", ConvertToComputedColumn.replaceComputedColumn(sqlWithSum,
+                SqlSubqueryFinder.getSubqueries(sqlWithSum).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+        String sqlWithfnconvert = "select sum({fn convert(T1.a, double)}) from table1";
+        Assert.assertEquals("select sum(T1.cc6) from table1",
+                ConvertToComputedColumn
+                        .replaceComputedColumn(sqlWithfnconvert,
+                                SqlSubqueryFinder.getSubqueries(sqlWithfnconvert).get(0), mockCCs, queryAliasMatchInfo)
+                        .getFirst());
 
         //more tables
         String sql2tables = "select t1.a + t1.b as aa, t2.c + t2.d as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where t1.a + t1.b > t2.c + t2.d order by t1.a + t1.b";
@@ -216,7 +208,8 @@ public class ImplicitCCTest {
         Assert.assertEquals(
                 "\r\n select T1.cc2 as aa, T2.cc3 as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tableswithquote,
-                        SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+                        SqlSubqueryFinder.getSubqueries(sql2tableswithquote).get(0), mockCCs, queryAliasMatchInfo)
+                        .getFirst());
 
         //        //sub query cannot be mocked here
         //        String sqlwithsubquery = "select count(*), sum(t1.a + t1.b), sum(t22.w) from table1 t1 inner join (select t11.a + t11.b as aa, t22.c + t22.d as bb from table1 t11 inner join table2 t22 on t11.x = t22.y where t11.a + t11.b > t22.c + t22.d order by t11.a + t11.b) as t2 on t1.x = t2.aa group by substring(substring(t1.d,1,3),1,3) order by sum(t1.a) ";

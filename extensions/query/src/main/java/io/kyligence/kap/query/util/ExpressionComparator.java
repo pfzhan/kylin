@@ -27,10 +27,12 @@ import java.util.List;
 import java.util.Objects;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
@@ -109,6 +111,15 @@ public class ExpressionComparator {
                 return isSqlIdentifierEqual(thisNode, thatNode, queryAliasMatchInfo);
             }
 
+            if (queryNode instanceof SqlDataTypeSpec) {
+                if (!(exprNode instanceof SqlDataTypeSpec))
+                    return false;
+
+                SqlDataTypeSpec thisNode = (SqlDataTypeSpec) queryNode;
+                SqlDataTypeSpec thatNode = (SqlDataTypeSpec) exprNode;
+                return isSqlDataTypeSpecEqual(thisNode, thatNode);
+            }
+
             return false;
         } catch (Exception e) {
             logger.error("Exception while running isNodeEqual, return false", e);
@@ -136,6 +147,25 @@ public class ExpressionComparator {
 
         return StringUtils.equals(modelAlias, exprSqlIdentifier.names.get(0))
                 && StringUtils.equals(queryCol, exprSqlIdentifier.names.get(1));
+    }
+
+    private static boolean isSqlDataTypeSpecEqual(SqlDataTypeSpec querySqlDataTypeSpec,
+            SqlDataTypeSpec exprSqlDataTypeSpec) {
+        if (querySqlDataTypeSpec.getTypeName() == null
+                || CollectionUtils.isEmpty(querySqlDataTypeSpec.getTypeName().names))
+            return false;
+        if (querySqlDataTypeSpec.getTypeName().names.size() != exprSqlDataTypeSpec.getTypeName().names.size())
+            return false;
+
+        for (int i = 0; i < querySqlDataTypeSpec.getTypeName().names.size(); i++) {
+            String queryName = querySqlDataTypeSpec.getTypeName().names.get(i);
+            if (!exprSqlDataTypeSpec.getTypeName().names.contains(queryName)) {
+                return false;
+            }
+        }
+
+        return querySqlDataTypeSpec.getScale() == exprSqlDataTypeSpec.getScale()
+                && querySqlDataTypeSpec.getPrecision() == exprSqlDataTypeSpec.getPrecision();
     }
 
     private static boolean isNodeListEqual(List<SqlNode> queryNodeList, List<SqlNode> exprNodeList,
