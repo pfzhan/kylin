@@ -108,6 +108,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.pages-per-group", String.valueOf(4)));
     }
 
+    public int getParquetRawWriterThresholdMB() {
+        return Integer.parseInt(config.getOptional("kap.storage.columnar.writer-threshold-mb", String.valueOf(128)));
+    }
+
     public int getParquetPageIndexStepMax() {
         return Integer.parseInt(config.getOptional("kap.storage.columnar.ii-max-step", String.valueOf(10000)));
     }
@@ -180,13 +184,14 @@ public class KapConfig {
         return Long.valueOf(config.getOptional("kap.storage.columnar.spark-visit-timeout-ms", "300000"));
     }
 
-    public int getAutoRepartitionRatio(){
+    public int getAutoRepartitionRatio() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.auto-repartition-ratio", "3"));
     }
 
-    public int getAutoRepartionThreshold(){
+    public int getAutoRepartionThreshold() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.auto-repartition-threshold", "3"));
     }
+
     /**
      * where is parquet fles stored in hdfs , end with /
      */

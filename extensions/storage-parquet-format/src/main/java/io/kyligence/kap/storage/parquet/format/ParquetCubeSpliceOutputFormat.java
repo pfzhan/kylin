@@ -229,6 +229,7 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
             ParquetSpliceWriter writer = new ParquetSpliceWriter.Builder()
                     .setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
+                    .setThresholdMemory(KapConfig.getInstanceFromEnv().getParquetRawWriterThresholdMB())//
                     .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression())//
                     .setConf(config).setType(schema).setPath(getOutputPath()).build();
             return writer;

@@ -168,7 +168,9 @@ public class ParquetCubeOutputFormat extends FileOutputFormat<Text, Text> {
                     .setRowsPerPage(KapConfig.wrap(cubeSegment.getConfig()).getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.wrap(cubeSegment.getConfig()).getParquetPagesPerGroup())
                     .setCodecName(KapConfig.wrap(cubeSegment.getConfig()).getParquetPageCompression()).setConf(config)
-                    .setType(schema).setPath(getOutputPath()).build();
+                    .setType(schema).setPath(getOutputPath())
+                    .setThresholdMemory(KapConfig.wrap(cubeSegment.getConfig()).getParquetRawWriterThresholdMB())
+                    .build();
             return rawWriter;
         }
 

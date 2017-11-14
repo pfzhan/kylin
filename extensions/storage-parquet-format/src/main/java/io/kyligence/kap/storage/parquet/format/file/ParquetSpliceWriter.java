@@ -57,13 +57,16 @@ public class ParquetSpliceWriter {
             List<Encoding> dataEncodings, // data encoding
             CompressionCodecName codecName, // compression algorithm
             int rowsPerPage, // the number of rows in one page
-            int pagesPerGroup // the number of pages in one row group
+            int pagesPerGroup, // the number of pages in one row group
+            int thresholdMemory // the threshold for system avail MB
     ) throws IOException {
-        writer = new ParquetRawWriter(conf, schema, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup, true);
+        writer = new ParquetRawWriter(conf, schema, path, rlEncodings, dlEncodings, dataEncodings, codecName,
+                rowsPerPage, pagesPerGroup, thresholdMemory, 0.3f, true);
         divCache = Maps.newHashMap();
     }
 
-    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] cfValue, int[] cfValueLengths) throws Exception {
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] cfValue, int[] cfValueLengths)
+            throws Exception {
         writer.writeRow(key, keyOffset, keyLength, cfValue, cfValueLengths);
     }
 
@@ -104,6 +107,7 @@ public class ParquetSpliceWriter {
         private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
         private int rowsPerPage = ParquetConfig.RowsPerPage;
         private int pagesPerGroup = ParquetConfig.PagesPerGroup;
+        private int thresholdMemory = ParquetConfig.ThresholdMemory;
 
         public Builder setConf(Configuration conf) {
             this.conf = conf;
@@ -162,6 +166,11 @@ public class ParquetSpliceWriter {
             return this;
         }
 
+        public Builder setThresholdMemory(int thresholdMemory) {
+            this.thresholdMemory = thresholdMemory;
+            return this;
+        }
+
         public Builder() {
         }
 
@@ -204,7 +213,8 @@ public class ParquetSpliceWriter {
 
             logger.info("Builder: rowsPerPage={}", rowsPerPage);
             logger.info("write file: {}", path.toString());
-            return new ParquetSpliceWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup);
+            return new ParquetSpliceWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName,
+                    rowsPerPage, pagesPerGroup, thresholdMemory);
         }
     }
 }

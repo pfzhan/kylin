@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.format.file;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -37,7 +38,8 @@ public class ParquetRawWriterTest extends AbstractParquetFormatTest {
 
     @Test
     public void testWriteAndReadPage() throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
+                .setType(type).build();
         for (int i = 0; i < ParquetConfig.RowsPerPage * ParquetConfig.PagesPerGroup * 2; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
             if ((i % ParquetConfig.RowsPerPage) == 0) {
@@ -49,13 +51,30 @@ public class ParquetRawWriterTest extends AbstractParquetFormatTest {
 
     @Test
     public void testFlushAndReadPage() throws Exception {
-        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
+                .setType(type).build();
         for (int i = 0; i < 100; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
             writer.flush();
             Assert.assertEquals(i + 1, writer.getPageCntSoFar());
         }
 
+        writer.close();
+    }
+
+    @Test
+    public void testBelowThresholdMemory() throws Exception {
+        int currentMB = MemoryBudgetController.getSystemAvailMB();
+        float ratio = 1.0f / currentMB;
+
+        ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path)
+                .setType(type).setPagesPerGroup(200).setThresholdMemory(currentMB * 2).setMemoryCheckRatio(ratio)
+                .build();
+        for (int i = 0; i < MemoryBudgetController.ONE_MB; ++i) {
+            writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
+        }
+
+        Assert.assertTrue(writer.getGroupCntSoFar() > 0);
         writer.close();
     }
 }

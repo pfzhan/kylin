@@ -82,7 +82,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
         private BufferedRawColumnCodec rawColumnsCodec;
         private Path outputDir = null;
         private RawTableColumnFamilyDesc[] cfDescs;
-        
+
         public ParquetRawTableFileWriter(FileOutputCommitter committer, TaskAttemptContext context, Class<?> keyClass,
                 Class<?> valueClass) throws IOException, InterruptedException {
             this.config = context.getConfiguration();
@@ -154,13 +154,14 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
                     .setRowsPerPage(KapConfig.getInstanceFromEnv().getParquetRowsPerPage())//
                     .setPagesPerGroup(KapConfig.getInstanceFromEnv().getParquetPagesPerGroup())//
                     .setCodecName(KapConfig.getInstanceFromEnv().getParquetPageCompression()).setConf(config)
-                    .setType(schema).setPath(getOutputPath()).build();
+                    .setType(schema).setPath(getOutputPath())
+                    .setThresholdMemory(KapConfig.getInstanceFromEnv().getParquetRawWriterThresholdMB()).build();
             return rawWriter;
         }
 
         @Override
         protected void writeData(ByteArrayListWritable key, ByteArrayListWritable value) throws IOException {
-            
+
             // Step 1: transform text object to byte array. 
             List<byte[]> sortby = key.get().subList(0, key.get().size() - 1);
             List<byte[]> nonSortby = value.get();
@@ -181,10 +182,10 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
                 System.arraycopy(objInNonSortby, 0, valueBytes, idx, objInNonSortby.length);
                 idx += objInNonSortby.length;
             }
-            
+
             // Step 2: calculate value offsets in result byte array to which measures will be copied.
             int[] valueLength = rawColumnsCodec.peekLengths(ByteBuffer.wrap(valueBytes),
-                    new ImmutableBitSet(0, sortby.size() + nonSortby.size()));            
+                    new ImmutableBitSet(0, sortby.size() + nonSortby.size()));
             int[] valueOffsets = new int[valueLength.length];
             for (int i = 0, valueOffset = 0; i < valueOffsets.length; i++) {
                 valueOffsets[i] = valueOffset;
@@ -194,12 +195,13 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
             // Step 3: copy array bytes as column family order. 
             byte[] cfValueBytes = new byte[valueBytes.length];
             int[] cfValueLength = new int[cfDescs.length];
-            int cfIndex = 0, cfValueOffset = 0;            
+            int cfIndex = 0, cfValueOffset = 0;
             for (RawTableColumnFamilyDesc cfDesc : cfDescs) {
                 int cfLength = 0;
                 int[] columnIndexes = cfDesc.getColumnIndex();
                 for (int columnIndex : columnIndexes) {
-                    System.arraycopy(valueBytes, valueOffsets[columnIndex], cfValueBytes, cfValueOffset, valueLength[columnIndex]);
+                    System.arraycopy(valueBytes, valueOffsets[columnIndex], cfValueBytes, cfValueOffset,
+                            valueLength[columnIndex]);
                     cfValueOffset += valueLength[columnIndex];
                     cfLength += valueLength[columnIndex];
                 }

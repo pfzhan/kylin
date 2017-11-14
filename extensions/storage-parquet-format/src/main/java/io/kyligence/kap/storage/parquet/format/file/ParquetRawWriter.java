@@ -37,6 +37,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionOutputStream;
 import org.apache.hadoop.io.compress.Compressor;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.Encoding;
@@ -74,6 +75,8 @@ public class ParquetRawWriter {
     private ParquetFileWriter writer;
     private MessageType schema;
     private int columnCnt;
+    private int thresholdMemory;
+    private float memoryCheckRatio;
 
     private int currentRowCntInPage = 0; // Current row number in buffered page
     private int currentPageCntInGroup = 0; // Current page number in buffered group
@@ -81,6 +84,8 @@ public class ParquetRawWriter {
     private int currentRowGroup = 0; // Current total group number
     private int totalPageCnt = 0; // Total page count by now (consider data written by callee)
     private int totalPageCntToFile = 0; // Total page count by now (consider data written to file), may < totalPageCnt due to local cache
+    private long currentBufferedBytes = 0; // Bytes of buffered date in current group
+    private long systemAvailBytes = 0; // Avail bytes of VM, periodically updated
 
     private Object[][] rowBuffer; // Buffered rows in current page
     private PageBuffer[][] pageBuffer; // Buffered pages in current group
@@ -106,6 +111,8 @@ public class ParquetRawWriter {
             CompressionCodecName codecName, // compression algorithm
             int rowsPerPage, // the number of rows in one page
             int pagesPerGroup, // the number of pages in one row group
+            int thresholdMemory, // flush will be done if less than the threshold for system avail MB
+            float memoryCheckRatio, // memory ratio for system available memory update
             boolean onIndexV2 // if turn on index version 2
     ) throws IOException {
         writer = new ParquetFileWriter(conf, schema, path);
@@ -117,6 +124,8 @@ public class ParquetRawWriter {
         this.dataEncodings = dataEncodings;
         this.rowsPerPage = rowsPerPage;
         this.pagesPerGroup = pagesPerGroup;
+        this.thresholdMemory = thresholdMemory;
+        this.memoryCheckRatio = memoryCheckRatio;
         this.onIndexV2 = onIndexV2;
         this.columnCnt = schema.getColumns().size();
         this.indexMap = new HashMap<>();
@@ -131,6 +140,7 @@ public class ParquetRawWriter {
         if (codec != null && !compressorMap.get().containsKey(codecName)) {
             compressorMap.get().put(codecName, codec.createCompressor());
         }
+        this.systemAvailBytes = MemoryBudgetController.getSystemAvailBytes();
 
         writer.start();
         initRowBuffer();
@@ -146,6 +156,10 @@ public class ParquetRawWriter {
 
     public int getPageCntSoFar() {
         return totalPageCnt;
+    }
+
+    public int getGroupCntSoFar() {
+        return currentRowGroup;
     }
 
     private void initPageBuffer() {
@@ -168,7 +182,8 @@ public class ParquetRawWriter {
     }
 
     // TODO: this writeRow is not pure, should be refactored
-    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths) throws IOException {
+    public void writeRow(byte[] key, int keyOffset, int keyLength, byte[] value, int[] valueLengths)
+            throws IOException {
         List<Object> row = new ArrayList<Object>();
         row.add(Binary.fromConstantByteArray(key, keyOffset, keyLength));
 
@@ -176,17 +191,19 @@ public class ParquetRawWriter {
         for (int i = 0; i < valueLengths.length; ++i) {
             row.add(Binary.fromConstantByteArray(value, valueOffset, valueLengths[i]));
             valueOffset += valueLengths[i];
+            this.currentBufferedBytes += valueLengths[i];
         }
 
         writeRow(row);
     }
-    
+
     public void writeRow(byte[] value, int[] valueLengths) throws IOException {
         List<Object> row = new ArrayList<Object>();
         int valueOffset = 0;
         for (int i = 0; i < valueLengths.length; ++i) {
             row.add(Binary.fromConstantByteArray(value, valueOffset, valueLengths[i]));
             valueOffset += valueLengths[i];
+            this.currentBufferedBytes += valueLengths[i];
         }
 
         writeRow(row);
@@ -197,6 +214,7 @@ public class ParquetRawWriter {
         for (List<byte[]> list : byteArrayLists) {
             for (byte[] array : list) {
                 row.add(Binary.fromConstantByteArray(array, 0, array.length));
+                this.currentBufferedBytes += array.length;
             }
         }
         writeRow(row);
@@ -206,6 +224,17 @@ public class ParquetRawWriter {
         // Insert row into buffer
         for (int i = 0; i < row.size(); ++i) {
             rowBuffer[i][currentRowCntInPage] = row.get(i);
+        }
+
+        // Used  memoryCheckRatio * systemAvailBytes, systemAvailBytes should be updated
+        if (this.currentBufferedBytes > (this.systemAvailBytes * this.memoryCheckRatio)) {
+            this.systemAvailBytes = MemoryBudgetController.getSystemAvailBytes();
+
+            if ((this.systemAvailBytes / MemoryBudgetController.ONE_MB) < this.thresholdMemory) {
+                logger.info("Current available memory is lower than threshold, do flush.");
+                flush();
+                return;
+            }
         }
 
         currentRowCntInPage++;
@@ -238,19 +267,28 @@ public class ParquetRawWriter {
     private TypeValuesWriter getValuesWriter(ColumnDescriptor descriptor) {
         switch (descriptor.getType()) {
         case BOOLEAN:
-            return new BooleanValueWriter(new RunLengthBitPackingHybridValuesWriter(1, parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BooleanValueWriter(
+                    new RunLengthBitPackingHybridValuesWriter(1, parquetProperties.getInitialSlabSize(),
+                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT32:
-            return new IntegerValueWriter(new DeltaBinaryPackingValuesWriterForInteger(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new IntegerValueWriter(
+                    new DeltaBinaryPackingValuesWriterForInteger(parquetProperties.getInitialSlabSize(),
+                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT64:
-            return new LongValueWriter(new DeltaBinaryPackingValuesWriterForLong(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new LongValueWriter(new DeltaBinaryPackingValuesWriterForLong(parquetProperties.getInitialSlabSize(),
+                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case INT96:
-            return new BytesValueWriter(new FixedLenByteArrayPlainValuesWriter(12, parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BytesValueWriter(
+                    new FixedLenByteArrayPlainValuesWriter(12, parquetProperties.getInitialSlabSize(),
+                            parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case FLOAT:
         case DOUBLE:
-            return new DoubleValueWriter(new PlainValuesWriter(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new DoubleValueWriter(new PlainValuesWriter(parquetProperties.getInitialSlabSize(),
+                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         case FIXED_LEN_BYTE_ARRAY:
         case BINARY:
-            return new BytesValueWriter(new DeltaByteArrayWriter(parquetProperties.getInitialSlabSize(), parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
+            return new BytesValueWriter(new DeltaByteArrayWriter(parquetProperties.getInitialSlabSize(),
+                    parquetProperties.getPageSizeThreshold(), parquetProperties.getAllocator()));
         default:
             throw new IllegalArgumentException("Unknown type " + descriptor.getType());
         }
@@ -300,7 +338,9 @@ public class ParquetRawWriter {
                     compressor.reset();
                 }
 
-                writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()), Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings, dataEncodings.get(i));
+                writer.writeDataPage(pageBuffer[i][j].getCount(), (int) bi.size(), BytesInput.from(baos.toByteArray()),
+                        Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings,
+                        dataEncodings.get(i));
             }
             writer.endColumn();
         }
@@ -310,6 +350,8 @@ public class ParquetRawWriter {
         currentRowGroup++;
         currentPageCntInGroup = 0;
         currentRowCntInGroup = 0;
+        currentBufferedBytes = 0;
+        systemAvailBytes = MemoryBudgetController.getSystemAvailBytes();
     }
 
     /**
@@ -365,6 +407,8 @@ public class ParquetRawWriter {
         private CompressionCodecName codecName = CompressionCodecName.UNCOMPRESSED;
         private int rowsPerPage = ParquetConfig.RowsPerPage;
         private int pagesPerGroup = ParquetConfig.PagesPerGroup;
+        private int thresholdMemory = ParquetConfig.ThresholdMemory;
+        private float memoryCheckRatio = 0.3f;
         private boolean onIndexV2 = true;
 
         public Builder setConf(Configuration conf) {
@@ -429,6 +473,18 @@ public class ParquetRawWriter {
             return this;
         }
 
+        public Builder setThresholdMemory(int thresholdMemory) {
+            this.thresholdMemory = thresholdMemory;
+            return this;
+        }
+
+        public Builder setMemoryCheckRatio(float ratio) {
+            if (Float.compare(0.0f, ratio) == -1 && Float.compare(1.0f, ratio) == 1) {
+                this.memoryCheckRatio = ratio;
+            }
+            return this;
+        }
+
         public Builder() {
         }
 
@@ -471,7 +527,8 @@ public class ParquetRawWriter {
 
             logger.info("Builder: rowsPerPage={}", rowsPerPage);
             logger.info("write file: {}", path.toString());
-            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName, rowsPerPage, pagesPerGroup, onIndexV2);
+            return new ParquetRawWriter(conf, type, path, rlEncodings, dlEncodings, dataEncodings, codecName,
+                    rowsPerPage, pagesPerGroup, thresholdMemory, memoryCheckRatio, onIndexV2);
         }
     }
 }
