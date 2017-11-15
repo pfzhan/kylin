@@ -57,6 +57,7 @@ done
 for PARAM in $@; do
     if [ "$PARAM" == "cdh5.7" ]; then
         export MVN_PROFILE="cdh5.7"
+        shift 2
         break
     fi
 done
