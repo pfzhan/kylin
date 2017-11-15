@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -51,7 +52,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 
-public class LDAPUserService implements UserService {
+public class LDAPUserService extends BasicService implements UserService {
     private final static com.google.common.cache.Cache<String, List<ManagedUser>> ldapUsersCache = CacheBuilder.newBuilder()
             .maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
             .expireAfterWrite(KylinConfig.getInstanceFromEnv().getServerUserCacheExpireSeconds(), TimeUnit.SECONDS)
@@ -135,7 +136,7 @@ public class LDAPUserService implements UserService {
     }
 
     @Override
-    public List<String> listAdminUsers() throws IOException{
+    public List<String> listAdminUsers() throws IOException {
         List<String> adminUsers = new ArrayList<>();
         for (ManagedUser user : userGroupService.getGroupMembersByName(KylinConfig.getInstanceFromEnv().getLDAPAdminRole())) {
             adminUsers.add(user.getUsername());
@@ -144,7 +145,7 @@ public class LDAPUserService implements UserService {
     }
 
     @Override
-    public void completeUserInfo(ManagedUser user){
+    public void completeUserInfo(ManagedUser user) {
         if (user.getAuthorities().isEmpty()) {
             Collection<? extends GrantedAuthority> fullAuthorities = loadUserByUsername(user.getUsername()).getAuthorities();
             user.setGrantedAuthorities(fullAuthorities);
