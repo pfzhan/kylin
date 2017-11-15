@@ -91,7 +91,8 @@ public class QueryControllerV2 extends BasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse queryV2(@RequestBody PrepareSqlRequest sqlRequest) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest), "");
+        SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData

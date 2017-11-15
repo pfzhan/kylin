@@ -346,7 +346,9 @@
                         <systemProperties>
                             <property>
                                 <name>log4j.configuration</name>
-                                <value>file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties</value>
+                                <value>
+                                    file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
+                                </value>
                             </property>
                         </systemProperties>
                         <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M</argLine>
@@ -378,7 +380,8 @@
                                     </argument>
                                     <argument>-classpath</argument>
                                     <classpath/>
-                                    <argument>io.kyligence.kap.provision.BuildCubeWithEngine</argument>
+                                    <argument>io.kyligence.kap.provision.BuildCubeWithEngine
+                                    </argument>
                                     <argument>-P</argument>
                                     <argument>${profile.id}</argument>
                                 </arguments>
@@ -405,7 +408,9 @@
                                     </argument>
                                     <argument>-classpath</argument>
                                     <classpath/>
-                                    <argument>io.kyligence.kap.provision.BuildCubeWithStream</argument>
+                                    <argument>
+                                        io.kyligence.kap.provision.BuildCubeWithStream
+                                    </argument>
                                     <argument>-P</argument>
                                     <argument>${profile.id}</argument>
                                 </arguments>

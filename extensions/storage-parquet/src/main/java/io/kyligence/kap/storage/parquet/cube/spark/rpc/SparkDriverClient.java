@@ -40,6 +40,7 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.mutable.MutableInt;
+import org.apache.htrace.Trace;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -111,6 +112,8 @@ public class SparkDriverClient {
         final AtomicBoolean serverSideCompleted = new AtomicBoolean(false);
         final AtomicReference<Throwable> serverSideError = new AtomicReference<>();
         final Semaphore semaphore = new Semaphore(0);
+
+        Trace.addTimelineAnnotation("before spark driver submit");
 
         final StreamObserver<SparkJobRequest> requestObserver = asyncStub
                 .submitJob(new StreamObserver<SparkJobResponse>() {

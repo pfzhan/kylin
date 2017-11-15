@@ -31,6 +31,7 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
+import org.apache.htrace.TraceInfo;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkConf;
@@ -77,7 +78,7 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
 
         conf.set("spark.sql.shuffle.partitions", String.valueOf(coreNum * instanceNum));
         conf.registerKryoClasses(new Class[] { scala.collection.mutable.WrappedArray.ofRef.class, Object[].class,
-                RDDPartitionResult.class, SparkExecutorPreAggFunction.class });
+                RDDPartitionResult.class, SparkExecutorPreAggFunction.class, TraceInfo.class });
 
         //for spark sql
         //https://mail-archives.apache.org/mod_mbox/spark-user/201603.mbox/%3CCAHCfvsSyUpx78ZFS_A9ycxvtO1=Jp7DfCCAeJKHyHZ1sugqHEQ@mail.gmail.com%3E

@@ -35,6 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceInfo;
+import org.apache.htrace.TraceScope;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
@@ -116,7 +119,16 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
             onFail(responseObserver, streamIdentifier,
                     "StorageVisitState for stream " + streamIdentifier + " is missing!");
         } else {
+
+            TraceScope scope = null;
+            if (state.getTraceInfo() != null) {
+                scope = Trace.startSpan("subsequent grpc call", state.getTraceInfo());
+            }
+
             getRDDPartitionData(state);
+
+            if (scope != null)
+                scope.close();
         }
     }
 
@@ -127,21 +139,37 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         }
 
         final StorageVisitState state = new StorageVisitState();
+        if (sparkJobRequest.getPayload().hasTraceInfo()) {
+            SparkJobProtos.TraceInfo traceInfo = sparkJobRequest.getPayload().getTraceInfo();
+            long traceId = traceInfo.getTraceId();
+            long spanId = traceInfo.getSpanId();
+            TraceInfo tinfo = new TraceInfo(traceId, spanId);
+            state.setTraceInfo(tinfo);
+        }
+
+        TraceScope scope = null;
+        if (state.getTraceInfo() != null) {
+            scope = Trace.startSpan("first grpc call", state.getTraceInfo());
+        }
+
         storageVisitStates.put(streamIdentifier, state);
+
         logger.info("StorageVisitState for queryID {} scanReqId {} : streamIdentifier {}",
                 sparkJobRequest.getPayload().getQueryId(), sparkJobRequest.getPayload().getGtScanRequestId(),
                 streamIdentifier);
 
-        asyncWorkers.submit(new Runnable() {
+        asyncWorkers.submit(Trace.wrap("async spark thread", new Runnable() {
             @Override
             public void run() {
                 logger.info("Current stream identifier is {} ", streamIdentifier);
                 doStorageVisit(sparkJobRequest.getPayload());
             }
-        });
+        }));
 
         getRDDPartitionData(state);
 
+        if (scope != null)
+            scope.close();
     }
 
     private void doStorageVisit(SparkJobProtos.SparkJobRequestPayload request) {
@@ -193,8 +221,10 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
                     TransferPack transferPack = (moreRDDStillExists || resultPartitions.hasNext())
                             ? TransferPack.createNormalPack(current) : TransferPack.createLastPack(current);
 
+                    Trace.addTimelineAnnotation("one result pack pending transfer");
                     boolean success = synchronousQueue.offer(transferPack, 1, TimeUnit.MINUTES);
                     if (success) {
+                        Trace.addTimelineAnnotation("one result pack transferred");
                         current = null;
                     } else {
                         logger.info("storage visit producer for streamIdentifier {} continue to try...",

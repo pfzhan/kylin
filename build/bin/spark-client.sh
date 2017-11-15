@@ -47,6 +47,14 @@ source ${dir}/find-hadoop-conf-dir.sh
 export KAP_SPARK_IDENTIFIER=$RANDOM
 export KAP_HDFS_APPENDER_JAR=`basename ${KYLIN_SPARK_JAR_PATH}`
 
+# get local ip for htrace-zipkin use
+if [ -z "$ZIPKIN_HOSTNAME" ]
+then
+    export ZIPKIN_HOSTNAME=`hostname`
+fi
+echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
+echo "ZIPKIN_PORT is set to ${ZIPKIN_PORT}"
+
 verbose "KYLIN_HOME is set to ${KYLIN_HOME}"
 verbose "CONF_DIR is set to ${CONF_DIR}"
 verbose "SPARK_DIR is set to ${SPARK_DIR}"

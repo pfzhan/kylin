@@ -171,6 +171,7 @@
                                             <include>org.apache.commons:commons-lang3</include>
                                             <include>org.apache.parquet:parquet-hadoop-bundle </include>
                                             <include>com.google.guava:guava</include>
+                                            <include>org.apache.htrace:*</include>
                                         </includes>
                                     </artifactSet>
                                     <relocations>

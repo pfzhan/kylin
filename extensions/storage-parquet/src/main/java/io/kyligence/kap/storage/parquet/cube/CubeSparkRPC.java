@@ -31,6 +31,7 @@ import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.htrace.Trace;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -89,7 +90,7 @@ public class CubeSparkRPC implements IGTStorage {
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
         List<Integer> columnFamilies = Lists.newArrayList();
-        
+
         for (int i = 0; i < request.getSelectedColBlocks().trueBitCount(); i++) {
             columnFamilies.add(request.getSelectedColBlocks().trueBitAt(i));
         }
@@ -107,8 +108,8 @@ public class CubeSparkRPC implements IGTStorage {
 
         String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
 
-        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
-                .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).setGtScanRequestId(scanReqId)
+        SparkJobProtos.SparkJobRequestPayload.Builder builder = SparkJobProtos.SparkJobRequestPayload.newBuilder();
+        builder.setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).setGtScanRequestId(scanReqId)
                 .setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
                 .setRealizationId(cubeSegment.getCubeInstance().getUuid()).setSegmentId(cubeSegment.getUuid())
                 .setDataFolderName(String.valueOf(cuboid.getId()))
@@ -118,7 +119,15 @@ public class CubeSparkRPC implements IGTStorage {
                 .setRealizationType(RealizationType.CUBE.toString()).setQueryId(QueryContext.current().getQueryId())
                 .setSpillEnabled(cubeSegment.getConfig().getQueryCoprocessorSpillEnabled())
                 .setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes())
-                .setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType()).build();
+                .setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType());
+
+        if (Trace.isTracing()) {
+            long spanId = Trace.currentSpan().getSpanId();
+            long traceId = Trace.currentSpan().getTraceId();
+            builder.setTraceInfo(SparkJobProtos.TraceInfo.newBuilder().setSpanId(spanId).setTraceId(traceId).build());
+        }
+        
+        SparkJobProtos.SparkJobRequestPayload payload = builder.build();
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {
             logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage",

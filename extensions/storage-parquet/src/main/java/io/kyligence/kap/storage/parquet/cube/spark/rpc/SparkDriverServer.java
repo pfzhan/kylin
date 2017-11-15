@@ -27,6 +27,7 @@ package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.htrace.HtraceInit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,6 +51,7 @@ public class SparkDriverServer {
     }
 
     public void start() throws IOException {
+        HtraceInit.init();
         server = NettyServerBuilder.forPort(port).maxMessageSize(64 * 1024 * 1024).addService(new SparkAppClientService()).addService(new SparkConfService()).build().start();
         logger.info("Server started, listening on " + port + " with spark instance identifier: " + System.getProperty("kap.spark.identifier"));
 

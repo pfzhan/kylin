@@ -41,6 +41,8 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceInfo;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -325,14 +327,19 @@ public class SparkParquetVisit implements Serializable {
         JavaPairRDD<Text, Text> seed = batchRdd;
         batchRdd = null;
 
+        Trace.addTimelineAnnotation("creating result rdd");
         final Iterator<RDDPartitionResult> partitionResults;
         JavaRDD<RDDPartitionResult> baseRDD = seed
-                .mapPartitions(new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType,
-                        isSplice, hasPreFiltered(), //
-                        streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime()))
+                .mapPartitions(
+                        new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice,
+                                hasPreFiltered(), //
+                                streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(),
+                                request.getStartTime(), Trace.isTracing()
+                                        ? KryoTraceInfo.fromTraceInfo(TraceInfo.fromSpan(Trace.currentSpan())) : null))
                 .cache();
 
         baseRDD.count();//trigger lazy materialization
+        Trace.addTimelineAnnotation("result rdd materialized");
         long scanCount = collectedRecords.value();
         long threshold = (long) kylinConfig.getLargeQueryThreshold();
         logger.info("The threshold for large result set is {}, current count is {}", threshold, scanCount);

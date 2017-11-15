@@ -50,6 +50,12 @@ message SparkJobRequestPayload {
     required int64 startTime = 13;
     required int32 storageType = 14; // -1 if realizationType is not cube
     required string gtScanRequestId = 15;
+    optional TraceInfo traceInfo = 16; //for htrace
+}
+
+message TraceInfo {
+    required int64 spanId = 1; 
+    required int64 traceId = 2; 
 }
 
 message SparkJobResponse {

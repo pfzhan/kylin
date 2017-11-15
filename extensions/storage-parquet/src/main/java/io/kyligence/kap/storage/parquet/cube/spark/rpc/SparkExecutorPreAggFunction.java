@@ -33,6 +33,9 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
+import org.apache.htrace.Trace;
+import org.apache.htrace.TraceScope;
+import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -71,17 +74,19 @@ public class SparkExecutorPreAggFunction
     private final boolean spillEnabled;
     private final long startTime;
 
+    private final KryoTraceInfo kryoTraceInfo;
+
     public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
             String realizationType, String streamIdentifier) {
         this(scannedRecords, collectedRecords, realizationType, false, false, streamIdentifier, true, Long.MAX_VALUE,
-                System.currentTimeMillis());
+                System.currentTimeMillis(), null);
     }
 
     //TODO: too long parameter
     public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
             String realizationType, //
             boolean isSplice, boolean hasPreFiltered, String streamIdentifier, boolean spillEnabled,
-            long maxScannedBytes, long startTime) {
+            long maxScannedBytes, long startTime, KryoTraceInfo kryoTraceInfo) {
         this.streamIdentifier = streamIdentifier;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
@@ -91,90 +96,105 @@ public class SparkExecutorPreAggFunction
         this.spillEnabled = spillEnabled;
         this.maxScannedBytes = maxScannedBytes;
         this.startTime = startTime;
+        this.kryoTraceInfo = kryoTraceInfo;
     }
 
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
-        long localStartTime = System.currentTimeMillis();
-        logger.info("Current stream identifier is {}", streamIdentifier);
+        HtraceInit.init();
 
-        Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator,
-                new Function<Tuple2<Text, Text>, ByteBuffer>() {
-                    @Nullable
-                    @Override
-                    public ByteBuffer apply(@Nullable Tuple2<Text, Text> input) {
-                        return ByteBuffer.wrap(input._2.getBytes(), 0, input._2.getLength());
-                    }
-                });
-
-        GTScanRequest gtScanRequest = null;
-        StorageSideBehavior behavior = null;
-
-        ParquetBytesGTScanner scanner;
-        if (RealizationType.CUBE.toString().equals(realizationType)) {
-            if (isSplice) {
-                gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
-                        .get();
-            } else {
-                gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal.get();
-            }
-            behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes,
-                    behavior.delayToggledOn());//in
-        } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
-            gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
-            behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-            scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest, maxScannedBytes,
-                    behavior.delayToggledOn());//in
-        } else {
-            throw new IllegalArgumentException("Unsupported realization type " + realizationType);
+        TraceScope scope = null;
+        if (kryoTraceInfo != null) {
+            scope = Trace.startSpan("per-partition executor task", kryoTraceInfo.toTraceInfo());
         }
 
-        logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
+        try {
 
-        IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(),
-                behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
+            long localStartTime = System.currentTimeMillis();
+            logger.info("Current stream identifier is {}", streamIdentifier);
 
-        SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest,
-                gtScanRequest.getColumns());
+            Iterator<ByteBuffer> iterator = Iterators.transform(tuple2Iterator,
+                    new Function<Tuple2<Text, Text>, ByteBuffer>() {
+                        @Nullable
+                        @Override
+                        public ByteBuffer apply(@Nullable Tuple2<Text, Text> input) {
+                            return ByteBuffer.wrap(input._2.getBytes(), 0, input._2.getLength());
+                        }
+                    });
 
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Iterator<GTRecord> gtIterator = preAggred.iterator();
-        long resultCounter = 0;
-        while (gtIterator.hasNext()) {
+            GTScanRequest gtScanRequest = null;
+            StorageSideBehavior behavior = null;
 
-            GTRecord row = gtIterator.next();
-            ByteArray byteArray = function.apply(row);
-            baos.write(byteArray.array(), 0, byteArray.length());
+            ParquetBytesGTScanner scanner;
+            if (RealizationType.CUBE.toString().equals(realizationType)) {
+                if (isSplice) {
+                    gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
+                            .get();
+                } else {
+                    gtScanRequest = ParquetTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
+                            .get();
+                }
+                behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
+                scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest,
+                        maxScannedBytes, behavior.delayToggledOn());//in
+            } else if (RealizationType.INVERTED_INDEX.toString().equals(realizationType)) {
+                gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
+                behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
+                scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest,
+                        maxScannedBytes, behavior.delayToggledOn());//in
+            } else {
+                throw new IllegalArgumentException("Unsupported realization type " + realizationType);
+            }
 
-            resultCounter++;
+            logger.info("Start latency is: {}", System.currentTimeMillis() - gtScanRequest.getStartTime());
 
-            if (!gtScanRequest.isDoingStorageAggregation()) {
-                //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
-                if (gtScanRequest.getStorageLimitLevel() != StorageLimitLevel.NO_LIMIT
-                        && resultCounter >= gtScanRequest.getStoragePushDownLimit()) {
-                    //read one more record than limit
-                    logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
-                    break;
+            IGTScanner preAggred = gtScanRequest.decorateScanner(scanner, behavior.filterToggledOn(),
+                    behavior.aggrToggledOn(), hasPreFiltered, spillEnabled);
+
+            SparkExecutorGTRecordSerializer function = new SparkExecutorGTRecordSerializer(gtScanRequest,
+                    gtScanRequest.getColumns());
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Iterator<GTRecord> gtIterator = preAggred.iterator();
+            long resultCounter = 0;
+            while (gtIterator.hasNext()) {
+
+                GTRecord row = gtIterator.next();
+                ByteArray byteArray = function.apply(row);
+                baos.write(byteArray.array(), 0, byteArray.length());
+
+                resultCounter++;
+
+                if (!gtScanRequest.isDoingStorageAggregation()) {
+                    //if it's doing storage aggr, then should rely on GTAggregateScanner's limit check
+                    if (gtScanRequest.getStorageLimitLevel() != StorageLimitLevel.NO_LIMIT
+                            && resultCounter >= gtScanRequest.getStoragePushDownLimit()) {
+                        //read one more record than limit
+                        logger.info("The finalScanner aborted because storagePushDownLimit is satisfied");
+                        break;
+                    }
                 }
             }
+
+            baos.close();
+            preAggred.close();
+
+            logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows",
+                    scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
+
+            if (scannedRecords != null)
+                scannedRecords.add(scanner.getTotalScannedRowCount());
+            if (collectedRecords != null)
+                collectedRecords.add(resultCounter);
+
+            return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(),
+                    scanner.getTotalScannedRowBytes(), resultCounter, //
+                    InetAddress.getLocalHost().getHostName(), localStartTime - startTime,
+                    System.currentTimeMillis() - localStartTime)).iterator();
+        } finally {
+            if (scope != null)
+                scope.close();
         }
-
-        baos.close();
-        preAggred.close();
-
-        logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows",
-                scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
-
-        if (scannedRecords != null)
-            scannedRecords.add(scanner.getTotalScannedRowCount());
-        if (collectedRecords != null)
-            collectedRecords.add(resultCounter);
-
-        return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(),
-                scanner.getTotalScannedRowBytes(), resultCounter, //
-                InetAddress.getLocalHost().getHostName(), localStartTime - startTime,
-                System.currentTimeMillis() - localStartTime)).iterator();
     }
 }
