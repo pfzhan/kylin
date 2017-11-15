@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.collections.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.SetThreadName;
@@ -61,8 +62,10 @@ import io.kyligence.kap.smart.cube.ModelOptimizeLog;
 import io.kyligence.kap.smart.cube.ModelOptimizeLogManager;
 import io.kyligence.kap.smart.model.ModelContext;
 import io.kyligence.kap.smart.model.ModelMaster;
+import io.kyligence.kap.smart.model.cc.ComputedColumnAdvisor;
 import io.kyligence.kap.smart.query.QueryStats;
 import io.kyligence.kap.smart.query.SQLResult;
+import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.validator.RawModelSQLValidator;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
 
@@ -81,15 +84,15 @@ public class KapSuggestionService extends BasicService {
         sampleSqls.toArray(sqlArray);
 
         DataModelDesc dataModelDesc = DataModelManager.getInstance(getConfig()).getDataModelDesc(modelName);
-        CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
+        CubeMaster cubeMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
-        CubeContext modelingContext = modelingMaster.getContext();
+        CubeContext cubeContext = cubeMaster.getContext();
         cubeOptimizeLog.setSampleSqls(sampleSqls);
-        cubeOptimizeLog.setQueryStats(modelingContext.getQueryStats());
+        cubeOptimizeLog.setQueryStats(cubeContext.getQueryStats());
 
         List<SQLResult> sqlResults = Lists.newArrayList();
-        if (modelingContext.getSqlResults() != null)
-            sqlResults.addAll(modelingContext.getSqlResults());
+        if (cubeContext.getSqlResults() != null)
+            sqlResults.addAll(cubeContext.getSqlResults());
 
         cubeOptimizeLog.setSqlResult(sqlResults);
         cubeOptimizeLogManager.saveCubeOptimizeLog(cubeOptimizeLog);
@@ -104,10 +107,28 @@ public class KapSuggestionService extends BasicService {
         sampleSqls.toArray(sqlArray);
 
         DataModelDesc dataModelDesc = DataModelManager.getInstance(getConfig()).getDataModelDesc(modelName);
-        CubeMaster modelingMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
+        CubeMaster cubeMaster = MasterFactory.createCubeMaster(getConfig(), dataModelDesc, sqlArray);
 
-        CubeContext modelingContext = modelingMaster.getContext();
-        return modelingContext.getSqlResults();
+        CubeContext cubeContext = cubeMaster.getContext();
+        List<SQLResult> results = cubeContext.getSqlResults();
+        
+        for (int i = 0; i < sampleSqls.size(); i++) {
+            String sql = sampleSqls.get(i);
+            SQLResult result = results.get(i);
+            if (result.getStatus() == Status.SUCCESS) {
+                continue;
+            }
+            
+            // Try add CC suggestion
+            List<String> ccSuggestion = new ComputedColumnAdvisor().suggestCandidate(sql);
+            if (ccSuggestion.isEmpty()) {
+                continue;
+            }
+            String suggestions = StringUtils.join(ccSuggestion);
+            result.setMessage("Suggest to add computed columns " + suggestions + ". \n" + result.getMessage());
+        }
+        
+        return results;
     }
 
     public CubeOptimizeLog getCubeOptLog(String cubeName) throws IOException {
