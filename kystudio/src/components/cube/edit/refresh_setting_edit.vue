@@ -19,7 +19,7 @@
           </el-select>
         </el-col>
         <el-col :span="6">
-            <el-select  v-model="timeRange.type" @change="changeTimeRange(timeRange, index)">
+            <el-select  v-model="timeRange.type" @change="changeTimeRange(timeRange, index)" placeholder="">
               <el-option
                  v-for="(item, range_index) in rangesOptions"
                 :key="range_index"
@@ -95,15 +95,16 @@
 <script>
 import { mapActions } from 'vuex'
 import { handleSuccess, handleError, transToUtcTimeFormat, transToUTCMs, msTransDate } from '../../../util/business'
+import { IntegerType } from '../../../config'
 export default {
   name: 'refreshSetting',
-  props: ['cubeDesc', 'scheduler', 'cubeInstance'],
+  props: ['cubeDesc', 'scheduler', 'modelDesc'],
   data () {
     return {
       timeRanges: [],
       intervalRange: {range: '', type: ''},
       timeOptions: [0.5, 1, 2, 4, 8],
-      rangesOptions: ['days', 'hours', 'minutes'],
+      rangesOptions: ['days', 'hours', 'minutes', ''],
       intervalOptions: ['weeks', 'days', 'hours', 'minutes'],
       selected_project: localStorage.getItem('selected_project'),
       partitionStartDate: 0,
@@ -193,8 +194,10 @@ export default {
         time = timeRange.range * 60000
       } else if (timeRange.type === 'hours') {
         time = timeRange.range * 3600000
-      } else {
+      } else if (timeRange.type === 'days') {
         time = timeRange.range * 86400000
+      } else {
+        time = timeRange.range * 1
       }
       this.cubeDesc.auto_merge_time_ranges[index] = time
     },
@@ -243,9 +246,8 @@ export default {
   },
   computed: {
     isInteger () {
-      if (!this.cubeInstance.partitionDateColumn) {
-        return false
-      } else if (this.cubeInstance.isStandardPartitioned) {
+      let datatype = this.modelDesc.partition_desc.partition_date_column && this.modelDesc.columnsDetail[this.modelDesc.partition_desc.partition_date_column].datatype
+      if (this.modelDesc.partition_desc.partition_date_format || IntegerType.indexOf(datatype) < 0) {
         return false
       } else {
         return true
