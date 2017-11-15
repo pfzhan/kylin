@@ -95,7 +95,9 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
             if (rootFolders != null) {
                 for (FileStatus statsFolder : rootFolders) {
                     String name = statsFolder.getPath().getName();
-                    if (name.startsWith("migrating_cube_"))
+                    if (name == null)
+                        continue;
+                    if (name.startsWith("restore_cube_") || name.startsWith("backup_cube_"))
                         deleteList.add(rootPath + File.separator + name);
                 }
             }
@@ -132,7 +134,6 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
         allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, modelStatsStoragePath));
         allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, tableStatsStoragePath));
         allHDFSPathsNeedToBeDeleted.addAll(getNeedToDeletePath(conf, "/tmp"));
-
 
         if (delete) {
             FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);

@@ -30,6 +30,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.OptionBuilder;
+import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -43,6 +46,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -62,9 +66,32 @@ import io.kyligence.kap.cube.raw.RawTableManager;
 public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
     private static final Logger logger = LoggerFactory.getLogger(KapCubeMigrationCLI.class);
-    private static final String MIGRATING_CUBE_ROOT = "migrating_cube_";
+    private static final String BACKUP_CUBE_ROOT = "backup_cube_";
+    private static final String RESTORE_CUBE_ROOT = "restore_cube_";
     private static final String MIGRATING_CUBE_META = "meta";
     private static final String MIGRATING_CUBE_DATA = "data";
+    private String type;
+
+    protected static final Option OPTION_CUBE = OptionBuilder.withArgName("cubeName").hasArg().isRequired(false)
+            .withDescription("Migration CubeName").create("cubeName");
+    protected static final Option OPTION_METADATA = OptionBuilder.withArgName("onlyMetadata").hasArg().isRequired(false)
+            .withDescription("Only migrate cube's metadata").create("onlyMetadata");
+    protected static final Option OPTION_PROJECT = OptionBuilder.withArgName("project").hasArg().isRequired(false)
+            .withDescription("The dest project that cube is migrating to").create("project");
+    protected static final Option OPTION_HDFS_URL = OptionBuilder.withArgName("namenode").hasArg().isRequired(false)
+            .withDescription("The HDFS url of source Hadoop cluster").create("namenode");
+    protected static final Option OPTION_OVERWRITE = OptionBuilder.withArgName("overwrite").hasArg().isRequired(false)
+            .withDescription("Decide If overwriting already exist cube in the dest project").create("overwrite");
+    protected static final Option OPTION_SOURCE_URI = OptionBuilder.withArgName("srcUri").hasArg().isRequired(false)
+            .withDescription("The source KYLIN config uri").create("srcUri");
+    protected static final Option OPTION_DEST_URI = OptionBuilder.withArgName("dstUri").hasArg().isRequired(false)
+            .withDescription("The dest KYLIN config uri").create("dstUri");
+    protected static final Option OPTION_COPY_ACL = OptionBuilder.withArgName("copyACL").hasArg().isRequired(false)
+            .withDescription("If needing to copy ACL").create("copyACL");
+    protected static final Option OPTION_PURGE = OptionBuilder.withArgName("purge").hasArg().isRequired(false)
+            .withDescription("If purging the cube").create("purge");
+    protected static final Option OPTION_EXECUTE = OptionBuilder.withArgName("execute").hasArg().isRequired(false)
+            .withDescription("If executing the migration").create("execute");
 
     @Override
     protected void renameFoldersInHdfs(CubeInstance cube) throws IOException {
@@ -109,39 +136,83 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         return rawInstance;
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException {
+    @Override
+    protected Options getOptions() {
+        Options options = new Options();
+        options.addOption(OPTION_CUBE);
+        options.addOption(OPTION_METADATA);
+        options.addOption(OPTION_PROJECT);
+        options.addOption(OPTION_HDFS_URL);
+        options.addOption(OPTION_OVERWRITE);
+        options.addOption(OPTION_SOURCE_URI);
+        options.addOption(OPTION_DEST_URI);
+        options.addOption(OPTION_COPY_ACL);
+        options.addOption(OPTION_PURGE);
+        options.addOption(OPTION_EXECUTE);
+        return options;
+    }
+
+    @Override
+    protected void execute(OptionsHelper optionsHelper) throws Exception {
+        logger.info("options: '" + optionsHelper.getOptionsAsString() + "'");
+        logger.info("CubeName option value: '" + optionsHelper.getOptionValue(OPTION_CUBE) + "'");
+        logger.info("onlyMetadata option value: '" + optionsHelper.getOptionValue(OPTION_METADATA) + "'");
+        logger.info("Project option value: '" + optionsHelper.getOptionValue(OPTION_PROJECT) + "'");
+        logger.info("HDFS URL option value: '" + optionsHelper.getOptionValue(OPTION_HDFS_URL) + "'");
+        logger.info("Overwrite option value: '" + optionsHelper.getOptionValue(OPTION_OVERWRITE) + "'");
+        logger.info("Source KYLIN config uri option value: '" + optionsHelper.getOptionValue(OPTION_SOURCE_URI) + "'");
+        logger.info("Dest KYLIN config uri option value: '" + optionsHelper.getOptionValue(OPTION_DEST_URI) + "'");
+        logger.info("Copy ACL option value: '" + optionsHelper.getOptionValue(OPTION_COPY_ACL) + "'");
+        logger.info("Purge option value: '" + optionsHelper.getOptionValue(OPTION_PURGE) + "'");
+        logger.info("Execute option value: '" + optionsHelper.getOptionValue(OPTION_EXECUTE) + "'");
+
+        String cubeName = optionsHelper.getOptionValue(OPTION_CUBE);
+        String onlyMeta = optionsHelper.getOptionValue(OPTION_METADATA);
+        String project = optionsHelper.getOptionValue(OPTION_PROJECT);
+        String url = optionsHelper.getOptionValue(OPTION_HDFS_URL);
+        String overwrite = optionsHelper.getOptionValue(OPTION_OVERWRITE);
+        String sourceUri = optionsHelper.getOptionValue(OPTION_SOURCE_URI);
+        String destUri = optionsHelper.getOptionValue(OPTION_DEST_URI);
+        String copyACL = optionsHelper.getOptionValue(OPTION_COPY_ACL);
+        String purge = optionsHelper.getOptionValue(OPTION_PURGE);
+        String execute = optionsHelper.getOptionValue(OPTION_EXECUTE);
+
+        if ("backup".equalsIgnoreCase(type))
+            backupCube(cubeName, onlyMeta);
+        if ("restore".equalsIgnoreCase(type))
+            restoreCube(cubeName, project, url, overwrite);
+        if ("copy".equalsIgnoreCase(type))
+            moveCube(sourceUri, destUri, cubeName, project, copyACL, purge, overwrite, execute);
+
+    }
+
+    public void doOpts(String[] args) throws Exception {
+        this.type = args[0];
+        String[] optArgs = new String[args.length - 1];
+        for (int i = 0; i < optArgs.length; i++)
+            optArgs[i] = args[i + 1];
+        execute(optArgs);
+    }
+
+    public static void main(String[] args) {
 
         KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
 
-        switch (args.length) {
-        case 3:
-            if (false == "backup".equalsIgnoreCase(args[0])) {
-                cli.usageForBackup();
-                break;
-            }
-            cli.backupCube(args[1], args[2]);
-            break;
-        case 5:
-            if (false == "restore".equalsIgnoreCase(args[0])) {
-                cli.usageForRestore();
-                break;
-            }
-            cli.restoreCube(args[1], args[2], args[3], args[4]);
-            break;
-        case 8:
-            cli.moveCube(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7]);
-            break;
-        default:
-            cli.usage();
-            cli.usageForBackup();
-            cli.usageForRestore();
+        if (args.length == 0) {
+            cli.usageOptions();
             System.exit(1);
+        }
+
+        try {
+            cli.doOpts(args);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to run KapCubeMigrationCLI", e);
         }
     }
 
     public void backupCube(String cubeName, String onlyMeta) throws IOException, InterruptedException {
 
-        File tmp = File.createTempFile("kap_migrating_cube", "");
+        File tmp = File.createTempFile("kap_backup_cube", "");
         FileUtils.forceDelete(tmp);
         File metaDir = new File(tmp, MIGRATING_CUBE_META);
         metaDir.mkdirs();
@@ -166,13 +237,13 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
     private void putLocalCubeResourcesToHDFS(CubeInstance cube, String localDir, String metaOnly) throws IOException {
         String cubeName = cube.getName();
         String cubeStoragePath = KapConfig.wrap(srcConfig).getReadParquetStoragePath() + cube.getUuid();
-        Path migrating_cube_path = new Path(getMigratingCubeRootPath(cubeName));
+        Path migrating_cube_path = new Path(getMigratingCubeRootPath(BACKUP_CUBE_ROOT, cubeName));
 
         if (hdfsFS.exists(migrating_cube_path))
             hdfsFS.delete(migrating_cube_path, true);
 
         hdfsFS.mkdirs(migrating_cube_path);
-        hdfsFS.mkdirs(new Path(getMigratingCubeDataPath(cubeName)));
+        hdfsFS.mkdirs(new Path(getMigratingCubeDataPath(BACKUP_CUBE_ROOT, cubeName)));
 
         hdfsFS.copyFromLocalFile(new Path(localDir), migrating_cube_path);
 
@@ -181,7 +252,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
             logger.info("Only migrate cube metadata.");
             return;
         }
-        String copyToPath = getMigratingCubeDataPath(cubeName);
+        String copyToPath = getMigratingCubeDataPath(BACKUP_CUBE_ROOT, cubeName);
         copyCubeOrRaw(cubeName, cubeStoragePath, copyToPath);
 
         RawTableInstance raw = detectRawTable(cube);
@@ -207,7 +278,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
 
     public void restoreCube(String cubeName, String project, String srcNameNode, String overwrite)
             throws IOException, InterruptedException {
-        File tmp = File.createTempFile("kap_migrating_cube", "");
+        File tmp = File.createTempFile("kap_restore_cube", "");
         FileUtils.forceDelete(tmp);
         String localMetaDir = tmp.getAbsolutePath();
         logger.info("Dump cube data to local dir: {}", tmp.getAbsolutePath());
@@ -225,7 +296,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         addCubeToProject(cubeName, overwrite);
 
         FileUtils.deleteDirectory(tmp.getAbsoluteFile());
-        hdfsFS.delete(new Path(getMigratingCubeRootPath(cubeName)), true);
+        hdfsFS.delete(new Path(getMigratingCubeRootPath(RESTORE_CUBE_ROOT, cubeName)), true);
     }
 
     private void dumpRemoteCubeResourceToLocal(String srcNameNode, String cubeName, String localDir)
@@ -234,17 +305,20 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
             throw new IllegalArgumentException("srcNameNode can't be null, it should point to hdfs://src-cluster");
         }
 
-        if (false == "test".equals(srcNameNode)) {
-            srcNameNode = srcNameNode.endsWith("/") ? srcNameNode.substring(0, srcNameNode.length() - 1) : srcNameNode;
-            String srcPath = srcNameNode + getMigratingCubeRootPath(cubeName);
-            Path dstRootCubePath = new Path(getMigratingCubeRootPath(cubeName));
+        srcNameNode = srcNameNode.endsWith("/") ? srcNameNode.substring(0, srcNameNode.length() - 1) : srcNameNode;
+        String srcMetaPath = srcNameNode + getMigratingCubeMetaPath(BACKUP_CUBE_ROOT, cubeName);
+        String srcDataPath = srcNameNode + getMigratingCubeDataPath(BACKUP_CUBE_ROOT, cubeName);
+        Path dstRootCubePath = new Path(getMigratingCubeRootPath(RESTORE_CUBE_ROOT, cubeName));
 
-            if (hdfsFS.exists(dstRootCubePath))
-                hdfsFS.delete(dstRootCubePath, true);
-
-            distCopyFile(new Path(srcPath), new Path("/tmp"));
+        if (hdfsFS.exists(dstRootCubePath)) {
+            hdfsFS.delete(dstRootCubePath, true);
+            hdfsFS.mkdirs(dstRootCubePath);
         }
-        hdfsFS.copyToLocalFile(false, new Path(getMigratingCubeMetaPath(cubeName)), new Path(localDir));
+
+        distCopyFile(new Path(srcMetaPath), dstRootCubePath);
+        distCopyFile(new Path(srcDataPath), dstRootCubePath);
+        hdfsFS.copyToLocalFile(false, new Path(getMigratingCubeMetaPath(RESTORE_CUBE_ROOT, cubeName)),
+                new Path(localDir));
     }
 
     private void addCubeToProject(String cubeName, String overwrite) throws IOException, InterruptedException {
@@ -259,7 +333,7 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         if (!hdfsFS.exists(copyTo))
             hdfsFS.mkdirs(copyTo);
 
-        Path copyFrom = new Path(getMigratingCubeDataPath(cubeName));
+        Path copyFrom = new Path(getMigratingCubeDataPath(RESTORE_CUBE_ROOT, cubeName));
         FileStatus[] status = hdfsFS.listStatus(copyFrom);
         for (FileStatus s : status) {
             logger.info("Copy from: {} to: {}", s.getPath(), copyTo);
@@ -274,39 +348,38 @@ public class KapCubeMigrationCLI extends CubeMigrationCLI {
         dstStore.putResource(project.getResourcePath(), project, projectSerializer);
     }
 
-    private String getMigratingCubeRootPath(String cubeName) {
-        String path = "/tmp" + File.separator + MIGRATING_CUBE_ROOT + cubeName;
+    private String getMigratingCubeRootPath(String root, String cubeName) {
+        String path = "/tmp" + File.separator + root + cubeName;
         return path;
     }
 
-    private String getMigratingCubeMetaPath(String cubeName) {
-        String path = "/tmp" + File.separator + MIGRATING_CUBE_ROOT + cubeName + File.separator + MIGRATING_CUBE_META;
+    private String getMigratingCubeMetaPath(String root, String cubeName) {
+        String path = "/tmp" + File.separator + root + cubeName + File.separator + MIGRATING_CUBE_META;
         return path;
     }
 
-    private String getMigratingCubeDataPath(String cubeName) {
-        String path = "/tmp" + File.separator + MIGRATING_CUBE_ROOT + cubeName + File.separator + MIGRATING_CUBE_DATA;
+    private String getMigratingCubeDataPath(String root, String cubeName) {
+        String path = "/tmp" + File.separator + root + cubeName + File.separator + MIGRATING_CUBE_DATA;
         return path;
     }
 
-    private void distCopyFile(Path localPath, Path remotePath) {
+    private void distCopyFile(Path sourcePath, Path remotePath) {
         try {
-            logger.info("copy cube files: from {} to {}", localPath, remotePath);
+            logger.info("copy cube files: from {} to {}", sourcePath, remotePath);
             DistCp distCp = new DistCp(HadoopUtil.getCurrentConfiguration(),
-                    new DistCpOptions(Lists.newArrayList(localPath), remotePath));
+                    new DistCpOptions(Lists.newArrayList(sourcePath), remotePath));
             distCp.execute();
         } catch (Exception e) {
-            logger.info("DistCp Cube from: {} to {} failed", localPath, remotePath);
+            logger.info("DistCp Cube from: {} to {} failed", sourcePath, remotePath);
         }
     }
 
-    public void usageForBackup() {
-        System.out.println("Usage: KapCubeMigrationCLI backup cubeName onlyMeta \n" + "For Example: \n"
-                + "KapCubeMigrationCLI backup exampleCube true \n");
-    }
-
-    public void usageForRestore() {
-        System.out.println("Usage: KapCubeMigrationCLI restore cubeName dstProject srcHDFSUrl \n" + "For Example: \n"
-                + "KapCubeMigrationCLI restore exampleCube targetProject hdfs://example.com overwrite \n");
+    public void usageOptions() {
+        System.out.println("Usages:");
+        System.out.println("KapCubeMigrationCLI backup --cubeName someCube --onlyMetadata true");
+        System.out.println(
+                "KapCubeMigrationCLI restore --cubeName someCube --project someProject --namenode hdfs://someip --overwrite true");
+        System.out.println(
+                "KapCubeMigrationCLI move --srcUri someKylinUri --dstUri someDestKylinUri --cubeName someCube --project someProject --copyAcl false --purge true --overwrite true --execute true");
     }
 }

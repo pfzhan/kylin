@@ -18,11 +18,17 @@ meta_backup_dir="meta_for_migrate"
 full_metadata_dir="${KYLIN_HOME}/meta_backups/${meta_backup_dir}"
 
 if [ $# -eq 0 ]; then
-  echo "Usage : cluster-migration.sh backup"
-  echo "Usage : cluster-migration.sh backup-cube cubeName metadataOnly"
-  echo "Usage : cluster-migration.sh restore hdfs://namenode/kylin_working_dir"
-  echo "Usage : cluster-migration.sh restore-cube project cubeName hdfs://namenode/kylin_working_dir"
-  exit 0
+    echo "--------------------------Migrate Whole Instance-------------------------"
+    echo "Usage : cluster-migration.sh backup"
+    echo "Usage : cluster-migration.sh restore hdfs://namenode/kylin_working_dir"
+    echo ""
+    echo "-------------------------Migrate Cube in Cluster-------------------------"
+    echo "Usage : cluster-migration.sh copy-cube --srcUri someKylinUri --dstUri someDestKylinUri --cubeName someCube --project someProject --copyAcl false --purge true --overwrite true --execute true"
+    echo ""
+    echo "---------------------Migrate Cube across Clusters------------------------"
+    echo "Usage : cluster-migration.sh backup-cube --cubeName someCube --onlyMetadata true"
+    echo "Usage : cluster-migration.sh restore-cube --cubeName someCube --project someProject --namenode hdfs://someip --overwrite true"
+    exit 0
 fi
 
 if [ "$1" == "backup" ]
@@ -42,12 +48,20 @@ fi
 
 if [ "$1" == "backup-cube" ]
 then
-    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI backup "$2" "$3"
+    shift
+    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI backup "$@"
 fi
 
 if [ "$1" == "restore-cube" ]
 then
-    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI restore "$2" "$3" "$4" "$5"
+    shift
+    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI restore "$@"
+fi
+
+if [ "$1" == "copy-cube" ]
+then
+    shift
+    ${dir}/kylin.sh io.kyligence.kap.tool.release.KapCubeMigrationCLI copy "$@"
 fi
 
 if [ "$1" == "restore" ]

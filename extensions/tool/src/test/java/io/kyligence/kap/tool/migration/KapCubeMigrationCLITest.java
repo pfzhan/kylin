@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.tool.migration;
 
-import java.io.IOException;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -41,6 +39,7 @@ import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.tool.release.KapCubeMigrationCLI;
 
 public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
+
     @AfterClass
     public static void after() throws Exception {
         cleanAfterClass();
@@ -52,15 +51,19 @@ public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMigration() throws IOException, InterruptedException {
+    public void testMigration() throws Exception {
 
         String toMigrateCube = "ssb_cube1";
         String dstProject = "migration";
 
-        KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
-        cli.backupCube(toMigrateCube, "true");
-
         KylinConfig config = getTestConfig();
+        KylinConfig.setKylinConfigThreadLocal(config);
+        KapCubeMigrationCLI cli = new KapCubeMigrationCLI();
+        String[] backupArgs = { "backup", "--cubeName", toMigrateCube, "--onlyMetadata", "true" };
+        cli.doOpts(backupArgs);
+
+        config.setProperty("kylin.env.hdfs-working-dir", "/tmp/dst");
+
         CubeInstance cube = CubeManager.getInstance(config).getCube(toMigrateCube);
         Assert.assertNotNull(cube);
 
@@ -71,16 +74,18 @@ public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
         Assert.assertNotNull(projectInstance);
 
         try {
-            cli.restoreCube(toMigrateCube, dstProject, "test", "false");
-        } catch (IllegalStateException e) {
-            Assert.assertTrue(e.getMessage()
+            String[] restoreArgs = { "restore", "--project", dstProject, "--namenode", "file:///", "--cubeName",
+                    toMigrateCube, "--overwrite", "false" };
+            cli.doOpts(restoreArgs);
+        } catch (RuntimeException e) {
+            Assert.assertTrue(e.getCause().getMessage()
                     .contains("already exists on target metadata store. Use overwriteIfExists to overwrite it"));
         }
 
-        cli.restoreCube(toMigrateCube, dstProject, "test", "true");
-
+        String[] restoreArgs = { "restore", "--cubeName", toMigrateCube, "--project", dstProject, "--namenode",
+                "file:///", "--overwrite", "true" };
+        cli.doOpts(restoreArgs);
         projectInstance = projectManager.reloadProjectLocal(dstProject);
-
         boolean bRet = projectInstance.containsModel("ssb");
         Assert.assertTrue(bRet);
         bRet = projectInstance.containsRealization(RealizationType.CUBE, toMigrateCube);
