@@ -4,7 +4,8 @@
     <el-row class="tableheader" v-for="(timeRange, index) in cubeDesc.desc && cubeDesc.desc.auto_merge_time_ranges || []" :key="timeRange">
       <el-col :span="6" class="left-part"> <b>{{index === 0 ? $t('autoMergeThresholds') : '&nbsp;'}}</b></el-col>
       <el-col :span="18">
-        {{timeRange|timeSize}}
+        <span v-if="!isInteger">{{timeRange|timeSize}}</span>
+        <span v-else>{{timeRange}}</span>
       </el-col>
     </el-row>
   </div>
@@ -61,6 +62,17 @@ export default {
       }).catch((res) => {
         handleError(res, () => {})
       })
+    }
+  },
+  computed: {
+    isInteger () {
+      if (!this.cubeDesc.partitionDateColumn) {
+        return false
+      } else if (this.cubeDesc.isStandardPartitioned) {
+        return false
+      } else {
+        return true
+      }
     }
   },
   locales: {

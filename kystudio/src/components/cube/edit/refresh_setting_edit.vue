@@ -127,7 +127,15 @@ export default {
     conversionTime: function () {
       let _this = this
       _this.cubeDesc.auto_merge_time_ranges.forEach(function (item) {
-        var transDate = msTransDate(item, true)
+        var transDate = {
+          value: '',
+          type: ''
+        }
+        if (_this.isInteger) {
+          transDate.value = item
+        } else {
+          transDate = msTransDate(item, true)
+        }
         // let _day = Math.floor(item / 86400000)
         // let _hour = Math.floor(item / 3600000)
         // let _minute = item / 60000

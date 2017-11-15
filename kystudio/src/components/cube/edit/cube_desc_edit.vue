@@ -56,7 +56,7 @@ import tableIndex from './table_index_edit'
 import configurationOverwrites from './configuration_overwrites_edit'
 import overview from './overview_edit'
 import json from '../json'
-import { modelHealthStatus } from '../../../config/index'
+import { modelHealthStatus, IntegerType } from '../../../config/index'
 import { removeNameSpace, getNameSpace, objectClone } from '../../../util/index'
 import { handleSuccess, handleError, kapConfirm, loadBaseEncodings } from '../../../util/business'
 export default {
@@ -788,7 +788,6 @@ export default {
     },
     loadCubeDetail: function () {
       var _this = this
-      this.createNewCube()
       this.loadCubeDesc({cubeName: this.extraoption.cubeName, project: this.extraoption.project}).then((res) => {
         handleSuccess(res, (data, code, status, msg) => {
           this.cubeDetail = data.cube || data.draft
@@ -967,6 +966,12 @@ export default {
           this.getTables()
           var rawtableBaseData = this.getModelColumnsDataForRawtable()
           this.cacheRawTableBaseData({project: this.selected_project, modelName: this.extraoption.modelName, data: rawtableBaseData})
+          if (!this.isEdit) {
+            let datatype = this.modelDetail.partition_desc.partition_date_column && this.modelDetail.columnsDetail[this.modelDetail.partition_desc.partition_date_column].datatype
+            if (!this.modelDetail.partition_desc.partition_date_format && IntegerType.indexOf(datatype) >= 0) {
+              this.cubeDetail.auto_merge_time_ranges.splice(0, this.cubeDetail.auto_merge_time_ranges.length)
+            }
+          }
         })
       }, (res) => {
         handleError(res)
