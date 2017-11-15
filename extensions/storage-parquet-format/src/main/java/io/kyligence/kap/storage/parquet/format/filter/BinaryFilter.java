@@ -26,10 +26,11 @@ package io.kyligence.kap.storage.parquet.format.filter;
 
 import java.nio.ByteBuffer;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.metadata.filter.TupleFilter;
 
 public interface BinaryFilter {
-    boolean isMatch(byte[] value);
+    boolean isMatch(ByteArray value);
 
     TupleFilter.FilterOperatorEnum getOperator();
 

@@ -42,7 +42,16 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>sparder</artifactId>
+        </dependency>
 
+
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-metadata</artifactId>
+        </dependency>
         <!--spark relocated guava, so we have to shade it into, otherwise driver server cannot run-->
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -71,7 +80,7 @@
             <groupId>commons-cli</groupId>
             <artifactId>commons-cli</artifactId>
         </dependency>
-        
+
 
         <!-- Spark dependency -->
         <dependency>
@@ -80,12 +89,12 @@
             <scope>provided</scope>
         </dependency>
 
-        <!--<dependency>-->
-        <!--<groupId>org.apache.spark</groupId>-->
-        <!--<artifactId>spark-sql_2.10</artifactId>-->
-        <!--<version>${spark.version}</version>-->
-        <!--<scope>provided</scope>-->
-        <!--</dependency>-->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.11</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -131,8 +140,62 @@
             <artifactId>junit</artifactId>
             <scope>test</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.scalatest</groupId>
+            <artifactId>scalatest_2.11</artifactId>
+            <version>3.0.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>sparder</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+            <type>test-jar</type>
+        </dependency>
     </dependencies>
+
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.2.2</version>
+                <executions>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 
     <profiles>
@@ -143,6 +206,7 @@
             </activation>
             <build>
                 <plugins>
+
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
@@ -159,14 +223,21 @@
                                                 implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer"/>
                                     </transformers>
                                     <minimizeJar>false</minimizeJar>
-                                    <shadedArtifactAttached>true</shadedArtifactAttached>
-                                    <shadedClassifierName>spark</shadedClassifierName>
+                                    <shadedArtifactAttached>true
+                                    </shadedArtifactAttached>
+                                    <shadedClassifierName>spark
+                                    </shadedClassifierName>
                                     <artifactSet>
                                         <includes>
-                                            <include>io.kyligence.kap:*</include>
-                                            <include>org.apache.kylin:*</include>
-                                            <include>org.roaringbitmap:RoaringBitmap</include>
-                                            <include>com.tdunning:t-digest</include>
+                                            <include>io.kyligence.kap:*
+                                            </include>
+                                            <include>org.apache.kylin:*
+                                            </include>
+                                            <include>
+                                                org.roaringbitmap:RoaringBitmap
+                                            </include>
+                                            <include>com.tdunning:t-digest
+                                            </include>
                                             <!--commons lang is provided by hadoop, but lang3 is not-->
                                             <include>org.apache.commons:commons-lang3</include>
                                             <include>org.apache.parquet:parquet-hadoop-bundle </include>
@@ -175,33 +246,43 @@
                                         </includes>
                                     </artifactSet>
                                     <relocations>
-                                        <relocation>
-                                            <pattern>com.tdunning</pattern>
-                                            <shadedPattern>${shadeBase}.com.tdunning</shadedPattern>
-                                        </relocation>
+                                        <!--<relocation>-->
+                                        <!--<pattern>com.tdunning</pattern>-->
+                                        <!--<shadedPattern>-->
+                                        <!--${shadeBase}.com.tdunning-->
+                                        <!--</shadedPattern>-->
+                                        <!--</relocation>-->
                                         <relocation>
                                             <pattern>org.roaringbitmap</pattern>
-                                            <shadedPattern>${shadeBase}.org.roaringbitmap
+                                            <shadedPattern>
+                                                ${shadeBase}.org.roaringbitmap
                                             </shadedPattern>
                                         </relocation>
                                         <relocation>
                                             <pattern>com.google.common</pattern>
-                                            <shadedPattern>${shadeBase}.com.google.common
+                                            <shadedPattern>
+                                                ${shadeBase}.com.google.common
                                             </shadedPattern>
                                         </relocation>
                                         <relocation>
-                                            <pattern>org.apache.commons.lang3</pattern>
-                                            <shadedPattern>${shadeBase}.org.apache.commons.lang3
+                                            <pattern>org.apache.commons.lang3
+                                            </pattern>
+                                            <shadedPattern>
+                                                ${shadeBase}.org.apache.commons.lang3
                                             </shadedPattern>
                                         </relocation>
                                         <relocation>
-                                            <pattern>org.apache.parquet</pattern>
-                                            <shadedPattern>${shadeBase}.org.apache.parquet
+                                            <pattern>org.apache.parquet
+                                            </pattern>
+                                            <shadedPattern>
+                                                ${shadeBase}.org.apache.parquet
                                             </shadedPattern>
                                         </relocation>
                                         <relocation>
-                                            <pattern>shaded.parquet.org</pattern>
-                                            <shadedPattern>${shadeBase}.shaded.parquet.org
+                                            <pattern>shaded.parquet.org
+                                            </pattern>
+                                            <shadedPattern>
+                                                ${shadeBase}.shaded.parquet.org
                                             </shadedPattern>
                                         </relocation>
                                     </relocations>
@@ -210,8 +291,10 @@
                                             <artifact>*:*</artifact>
                                             <excludes>
                                                 <exclude>META-INF/*.SF</exclude>
-                                                <exclude>META-INF/*.DSA</exclude>
-                                                <exclude>META-INF/*.RSA</exclude>
+                                                <exclude>META-INF/*.DSA
+                                                </exclude>
+                                                <exclude>META-INF/*.RSA
+                                                </exclude>
                                             </excludes>
                                         </filter>
                                     </filters>

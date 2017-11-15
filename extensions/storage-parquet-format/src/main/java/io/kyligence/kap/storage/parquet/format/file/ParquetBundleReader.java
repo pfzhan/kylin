@@ -32,32 +32,79 @@ import java.util.Queue;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.parquet.format.converter.ParquetMetadataConverter;
-import org.apache.parquet.hadoop.ParquetFileReader;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.ExpandableBytesVector;
+
 public class ParquetBundleReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetBundleReader.class);
 
+    private ParquetRawReader rawReader;
+    private ParquetMetrics metrics;
+    
     private List<ParquetReaderState> readerStates;
+    private int rowId = 0;
+    private int rowCnt = 0;
+    private ExpandableBytesVector[] pageBuffer;
+    private ByteArray[] row;
 
-    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns, ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
-        readerStates = new ArrayList<>(columns.getCardinality());
+    public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns,
+            ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
 
-        if (metadata == null) {
-            metadata = ParquetFileReader.readFooter(configuration, path, ParquetMetadataConverter.NO_FILTER);
+        metrics = new ParquetMetrics();
+        rawReader = new ParquetRawReader(configuration, path, metadata, metrics, fileOffset);
+        
+        int columnCnt = columns.getCardinality();
+        readerStates = new ArrayList<>(columnCnt);
+        pageBuffer = new ExpandableBytesVector[columnCnt];
+        row = new ByteArray[columnCnt];
+        for (int i = 0; i < columnCnt; i++) {
+            row[i] = new ByteArray();
         }
+
         for (int column : columns) {
-            readerStates.add(new ParquetReaderState(new ParquetColumnReader.Builder().setFileOffset(fileOffset).setConf(configuration).setPath(path).setColumn(column).setPageBitset(pageBitset).setMetadata(metadata).build()));
-            logger.info("Read Column: " + column);
+            ParquetColumnReader colReader = new ParquetColumnReader(rawReader, column, pageBitset);
+            readerStates.add(new ParquetReaderState(colReader));
+            logger.trace("Read Column: " + column);
         }
+    }
+
+    /**
+     * Read next row, if no data left, return null
+     */
+    public ByteArray[] readByteArray() throws IOException {
+        if (rowId >= rowCnt) {
+            // read next page
+            int cid = 0;
+            for (ParquetReaderState state : readerStates) {
+                pageBuffer[cid++] = state.reader.readNextPage();
+            }
+            if (pageBuffer[0] == null) { // whole file read is done
+                return null;
+            }
+            rowId = 0;
+            rowCnt = pageBuffer[0].getRowCount(); // all page's row count is the same
+        }
+
+        int cid = 0;
+        for (ExpandableBytesVector b : pageBuffer) {
+            row[cid++].reset(b.getData(), b.getOffset(rowId), b.getLength(rowId));
+        }
+        rowId++;
+        return row;
     }
 
     public List<Object> read() throws IOException {
         List<Object> result = new ArrayList<Object>();
+        return read(result);
+    }
+    
+    public List<Object> read(List<Object> result) throws IOException {
+        result.clear();
         for (ParquetReaderState state : readerStates) {
             Object value = state.cache.poll();
             if (value == null) {
@@ -88,9 +135,12 @@ public class ParquetBundleReader {
     }
 
     public void close() throws IOException {
-        for (ParquetReaderState state : readerStates) {
-            state.reader.close();
-        }
+        rawReader.close();
+        metrics.print(System.err);
+    }
+    
+    public ParquetMetrics getMetrics() {
+        return metrics;
     }
 
     private class ParquetReaderState {
@@ -104,10 +154,6 @@ public class ParquetBundleReader {
 
         public GeneralValuesReader getNextValuesReader() throws IOException {
             return reader.getNextValuesReader();
-        }
-
-        public void setReader(ParquetColumnReader reader) {
-            this.reader = reader;
         }
     }
 
@@ -181,6 +227,7 @@ public class ParquetBundleReader {
                 while (reader.read() != null) {
                     i++;
                 }
+                System.out.println(i);
             } catch (IOException e) {
                 e.printStackTrace();
             }

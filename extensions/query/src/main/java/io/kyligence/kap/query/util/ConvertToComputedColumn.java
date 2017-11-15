@@ -287,6 +287,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return ordering.immutableSortedCopy(computedColumns);
     }
 
+
     static class SqlTreeVisitor implements SqlVisitor<SqlNode> {
         private List<SqlNode> sqlNodes;
 

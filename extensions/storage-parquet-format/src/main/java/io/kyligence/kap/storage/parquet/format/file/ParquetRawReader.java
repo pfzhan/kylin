@@ -30,6 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.input.BoundedInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -52,27 +53,42 @@ import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import org.apache.parquet.io.ParquetDecodingException;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.storage.parquet.format.file.pagereader.DeltaByteArrayPageReader;
+import io.kyligence.kap.storage.parquet.format.file.pagereader.DeltaLengthByteArrayPageValuesReader;
+import io.kyligence.kap.storage.parquet.format.file.pagereader.PageValuesReader;
 
 public class ParquetRawReader {
     public static final Logger logger = LoggerFactory.getLogger(ParquetRawReader.class);
 
-    private static final String INDEX_PREFIX = "IndexV2-";
-    private ParquetMetadata parquetMetadata;
-    private FSDataInputStream inputStream;
-    private Configuration config;
-    private long fileOffset;
-    private static ThreadLocal<Map<CompressionCodecName, Decompressor>> decompressorMap = new ThreadLocal<>();
+    protected static final String INDEX_PREFIX = "IndexV2-";
+    public ParquetMetadata parquetMetadata;
+    protected FSDataInputStream inputStream;
+    protected Configuration config;
+    protected long fileOffset;
+    protected static ThreadLocal<Map<CompressionCodecName, Decompressor>> decompressorMap = new ThreadLocal<>();
+
+    ParquetMetrics metrics;
+    protected GeneralValuesReaderGenerator generalValuesReaderGenerator = new GeneralValuesReaderGenerator();
+    protected PageValuesReaderGenerator pageValuesReaderGenerator = new PageValuesReaderGenerator();
 
     protected int pagesPerGroup = 0;
     protected Map<String, String> indexMap;
 
-    public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, long fileOffset) throws IOException {
+    public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, ParquetMetrics metrics,
+            long fileOffset) throws IOException {
         this.config = configuration;
+        this.metrics = (metrics != null) ? metrics : new ParquetMetrics();
+
         if (metadata == null) {
+            this.metrics.footerReadStart();
             this.parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);
+            this.metrics.footerReadEnd();
         } else {
             this.parquetMetadata = metadata;
         }
@@ -101,7 +117,18 @@ public class ParquetRawReader {
 
     public void close() throws IOException {
         inputStream.close();
-//        indexReader.close();
+    }
+
+    public int getColumnCount() {
+        return parquetMetadata.getFileMetaData().getSchema().getColumns().size();
+    }
+
+    public PageValuesReader getPageValuesReader(int globalPageIndex, int column) throws IOException {
+        return getValuesReaderFromGenerator(globalPageIndex, column, this.pageValuesReaderGenerator);
+    }
+
+    public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
+        return getValuesReaderFromGenerator(globalPageIndex, column, this.generalValuesReaderGenerator);
     }
 
     /**
@@ -110,15 +137,21 @@ public class ParquetRawReader {
      * @param column the column to be read
      * @return values reader, if returns null, there's no such page
      */
-    public GeneralValuesReader getValuesReader(int globalPageIndex, int column) throws IOException {
+    private <T> T getValuesReaderFromGenerator(int globalPageIndex, int column, ValuesReaderGenerator<T> generator)
+            throws IOException {
         long offset = 0L;
         int group = 0;
 
-        if(indexMap.containsKey(INDEX_PREFIX + globalPageIndex + "," + column)) {
+        String key = INDEX_PREFIX + globalPageIndex + "," + column;
+        if (indexMap.containsKey(key)) {
             // index version 2
-            String[] index = indexMap.get(INDEX_PREFIX + globalPageIndex + "," + column).split(",");
-            group = Integer.valueOf(index[0]);
-            offset = Long.valueOf(index[1]);
+            String indexStr = indexMap.get(key);
+            if (indexStr == null) {
+                return null;
+            }
+            int cut = indexStr.indexOf(',');
+            group = Integer.valueOf(indexStr.substring(0, cut));
+            offset = Long.valueOf(indexStr.substring(cut + 1));
         } else {
             // index version 1
             group = globalPageIndex / pagesPerGroup;
@@ -128,19 +161,29 @@ public class ParquetRawReader {
             }
             offset = Long.parseLong(indexMap.get(group + "," + column + "," + page));
         }
-        return getValuesReaderFromOffset(group, column, offset + fileOffset);
+
+        return getValuesReaderFromOffsetFromGenerator(group, column, offset + fileOffset, generator);
     }
 
     public GeneralValuesReader getValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
+        return getValuesReaderFromGenerator(rowGroup, column, pageIndex, generalValuesReaderGenerator);
+    }
+
+    public PageValuesReader getPageValuesReader(int rowGroup, int column, int pageIndex) throws IOException {
+        return getValuesReaderFromGenerator(rowGroup, column, pageIndex, pageValuesReaderGenerator);
+    }
+
+    private <T> T getValuesReaderFromGenerator(int rowGroup, int column, int pageIndex,
+            ValuesReaderGenerator<T> generator) throws IOException {
         long pageOffset = Long.parseLong(indexMap.get(rowGroup + "," + column + "," + pageIndex));
-        return getValuesReaderFromOffset(rowGroup, column, pageOffset + fileOffset);
+        return getValuesReaderFromOffsetFromGenerator(rowGroup, column, pageOffset + fileOffset, generator);
     }
 
-    public int getColumnCount() {
-        return parquetMetadata.getFileMetaData().getSchema().getColumns().size();
+    public GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
+        return getValuesReaderFromOffsetFromGenerator(rowGroup, column, offset, generalValuesReaderGenerator);
     }
 
-    private Decompressor getDecompressorByName(CompressionCodecName codecName) {
+    public Decompressor getDecompressorByName(CompressionCodecName codecName) {
         Map<CompressionCodecName, Decompressor> localDecompressorMap = decompressorMap.get();
         Decompressor decompressor = null;
         if (localDecompressorMap.containsKey(codecName)) {
@@ -155,33 +198,45 @@ public class ParquetRawReader {
         return decompressor;
     }
 
-    protected GeneralValuesReader getValuesReaderFromOffset(int rowGroup, int column, long offset) throws IOException {
+    private <T> T getValuesReaderFromOffsetFromGenerator(int rowGroup, int column, long offset,
+            ValuesReaderGenerator<T> generator) throws IOException {
+
+        metrics.pageReadHeaderStart();
+
         BlockMetaData blockMetaData = parquetMetadata.getBlocks().get(rowGroup);
         ColumnChunkMetaData columnChunkMetaData = blockMetaData.getColumns().get(column);
 
         ColumnDescriptor columnDescriptor = getSchema().getColumns().get(column);
         CompressionCodecName codecName = columnChunkMetaData.getCodec();
         Decompressor decompressor = getDecompressorByName(codecName);
-
+        metrics.pageReadHeaderSeekStart();
         inputStream.seek(offset);
+        metrics.pageReadHeaderSeekEnd();
+        metrics.pageReadHeaderStreamStart();
         PageHeader pageHeader = Util.readPageHeader(inputStream);
+        metrics.pageReadHeaderStreamEnd();
+
+        metrics.pageReadHeaderEnd();
+
         if (pageHeader.getType() == PageType.DATA_PAGE) {
             DataPageHeader dataPageHeader = pageHeader.getData_page_header();
             int numValues = dataPageHeader.getNum_values();
             byte[] decompressedDataBytes = readAndDecompress(codecName, decompressor,
                     pageHeader.getCompressed_page_size(), pageHeader.getUncompressed_page_size());
 
-            offset = skipLevels(numValues, columnDescriptor, dataPageHeader.getRepetition_level_encoding(), dataPageHeader.getDefinition_level_encoding(), decompressedDataBytes, 0);
+            offset = skipLevels(numValues, columnDescriptor, dataPageHeader.getRepetition_level_encoding(),
+                    dataPageHeader.getDefinition_level_encoding(), decompressedDataBytes, 0);
 
-            ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), (int) offset);
-            return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
+            return generator.generate(dataPageHeader.getEncoding(), columnChunkMetaData.getType(), columnDescriptor,
+                    numValues, decompressedDataBytes, (int) offset);
+
         } else if (pageHeader.getType() == PageType.DATA_PAGE_V2) {
             DataPageHeaderV2 dataPageHeader = pageHeader.getData_page_header_v2();
             int numValues = dataPageHeader.getNum_values();
 
             // Skip levels
-            inputStream.seek(inputStream.getPos() + dataPageHeader.repetition_levels_byte_length + dataPageHeader.definition_levels_byte_length);
+            inputStream.seek(inputStream.getPos() + dataPageHeader.repetition_levels_byte_length
+                    + dataPageHeader.definition_levels_byte_length);
 
             byte[] decompressedDataBytes;
             if (dataPageHeader.is_compressed) {
@@ -191,34 +246,86 @@ public class ParquetRawReader {
                 assert (pageHeader.getCompressed_page_size() == pageHeader.getUncompressed_page_size());
                 decompressedDataBytes = readAsBytesInput(pageHeader.getCompressed_page_size());
             }
-            ValuesReader dataReader = getValuesReader(dataPageHeader.getEncoding(), columnDescriptor, ValuesType.VALUES);
-            dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), 0);
-            return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(columnChunkMetaData.getType()).build();
+
+            return generator.generate(dataPageHeader.getEncoding(), columnChunkMetaData.getType(), columnDescriptor,
+                    numValues, decompressedDataBytes, 0);
         }
         return null;
     }
 
-    private int skipLevels(int numValues, ColumnDescriptor descriptor, Encoding rEncoding, Encoding dEncoding, byte[] in, int offset) throws IOException {
+    private interface ValuesReaderGenerator<T> {
+        public T generate(Encoding encoding, PrimitiveType.PrimitiveTypeName type, ColumnDescriptor descriptor,
+                int numValues, byte[] decompressedDataBytes, int offset) throws IOException;
+    }
+
+    private class GeneralValuesReaderGenerator implements ValuesReaderGenerator<GeneralValuesReader> {
+        @Override
+        public GeneralValuesReader generate(Encoding encoding, PrimitiveType.PrimitiveTypeName type,
+                ColumnDescriptor descriptor, int numValues, byte[] decompressedDataBytes, int offset)
+                throws IOException {
+            ValuesReader dataReader = getValuesReader(encoding, descriptor, ValuesType.VALUES);
+            dataReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), offset);
+            return new GeneralValuesReader.Builder().setLength(numValues).setReader(dataReader).setType(type).build();
+        }
+    }
+
+    private class PageValuesReaderGenerator implements ValuesReaderGenerator<PageValuesReader> {
+        @Override
+        public PageValuesReader generate(Encoding encoding, PrimitiveType.PrimitiveTypeName type,
+                ColumnDescriptor descriptor, int numValues, byte[] decompressedDataBytes, int offset)
+                throws IOException {
+            metrics.pageReadDecodeStart();
+            PageValuesReader pageReader = getPageValuesReader(encoding, descriptor, ValuesType.VALUES);
+            pageReader.initFromPage(numValues, ByteBuffer.wrap(decompressedDataBytes), offset);
+            metrics.pageReadDecodeEnd(0);
+            return pageReader;
+        }
+    }
+
+    private int skipLevels(int numValues, ColumnDescriptor descriptor, Encoding rEncoding, Encoding dEncoding,
+            byte[] in, int offset) throws IOException {
         offset = skipRepetitionLevel(numValues, descriptor, rEncoding, in, offset).getNextOffset();
         offset = skipDefinitionLevel(numValues, descriptor, dEncoding, in, offset).getNextOffset();
         return offset;
     }
 
-    private ValuesReader skipRepetitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in, int offset) throws IOException {
+    private ValuesReader skipRepetitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in,
+            int offset) throws IOException {
         return skipLevel(numValues, descriptor, encoding, ValuesType.REPETITION_LEVEL, in, offset);
     }
 
-    private ValuesReader skipDefinitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in, int offset) throws IOException {
+    private ValuesReader skipDefinitionLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, byte[] in,
+            int offset) throws IOException {
         return skipLevel(numValues, descriptor, encoding, ValuesType.DEFINITION_LEVEL, in, offset);
     }
 
-    private ValuesReader skipLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, ValuesType type, byte[] in, int offset) throws IOException {
+    private ValuesReader skipLevel(int numValues, ColumnDescriptor descriptor, Encoding encoding, ValuesType type,
+            byte[] in, int offset) throws IOException {
         ValuesReader reader = getValuesReader(encoding, descriptor, type);
         reader.initFromPage(numValues, ByteBuffer.wrap(in), offset);
         return reader;
     }
 
-    private ValuesReader getValuesReader(Encoding encoding, ColumnDescriptor descriptor, ValuesType type) {
+    public static PageValuesReader getPageValuesReader(Encoding encoding, ColumnDescriptor descriptor,
+            ValuesType type) {
+        switch (encoding) {
+        case DELTA_BYTE_ARRAY:
+        case DELTA_LENGTH_BYTE_ARRAY:
+            if (descriptor.getType() != PrimitiveType.PrimitiveTypeName.BINARY
+                    && descriptor.getType() != PrimitiveType.PrimitiveTypeName.FIXED_LEN_BYTE_ARRAY) {
+                throw new ParquetDecodingException(
+                        "Encoding DELTA_BYTE_ARRAY is only supported for type BINARY and FIXED_LEN_BYTE_ARRAY");
+            }
+            if (encoding == Encoding.DELTA_LENGTH_BYTE_ARRAY)
+                return new DeltaLengthByteArrayPageValuesReader();
+            else
+                return new DeltaByteArrayPageReader();
+        default:
+            throw new UnsupportedOperationException("Only DELTA_BYTE_ARRAY encoding support read page");
+        }
+    }
+
+    public static ValuesReader getValuesReader(Encoding encoding, ColumnDescriptor descriptor, ValuesType type) {
         switch (encoding) {
         case BIT_PACKED:
             return org.apache.parquet.column.Encoding.BIT_PACKED.getValuesReader(descriptor, type);
@@ -237,25 +344,30 @@ public class ParquetRawReader {
         case RLE_DICTIONARY:
             return org.apache.parquet.column.Encoding.RLE_DICTIONARY.getValuesReader(descriptor, type);
         default:
-            return null;
+            throw new UnsupportedOperationException(encoding + " encoding doesn't support values reader");
         }
     }
 
     // TODO: refactor these wrapper to improve performance
     private byte[] readAndDecompress(CompressionCodecName codec, Decompressor decompressor, int compressedSize,
             int uncompressedSize) throws IOException {
+        byte[] ret;
+        metrics.pageReadIOAndDecompressStart();
+
         if (decompressor == null) {
             byte[] buffer = new byte[compressedSize];
             inputStream.readFully(buffer, 0, compressedSize);
             return buffer;
         } else {
+            ret = new byte[uncompressedSize];
             CompressionCodec compressionCodec = CodecFactory.getCodec(codec, config);
-            byte[] buffer = new byte[uncompressedSize];
             InputStream is = compressionCodec.createInputStream(new BoundedInputStream(inputStream, compressedSize),
                     decompressor);
-            is.read(buffer, 0, uncompressedSize);
-            return buffer;
+            IOUtils.readFully(is, ret, 0, uncompressedSize);
         }
+
+        metrics.pageReadIOAndDecompressEnd(compressedSize, uncompressedSize);
+        return ret;
     }
 
     private byte[] readAsBytesInput(int size) throws IOException {
@@ -321,7 +433,7 @@ public class ParquetRawReader {
                 throw new IllegalStateException("File offset is " + fileOffset);
             }
 
-            return new ParquetRawReader(conf, path, metadata, fileOffset);
+            return new ParquetRawReader(conf, path, metadata, null, fileOffset);
         }
     }
 }

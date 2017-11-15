@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.format.filter;
 
 import java.nio.ByteBuffer;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.slf4j.Logger;
@@ -66,7 +67,7 @@ public class BinaryLogicalFilter implements BinaryFilter {
     }
 
     @Override
-    public boolean isMatch(byte[] value) {
+    public boolean isMatch(ByteArray value) {
         if (children.length == 0) {
             return true;
         }

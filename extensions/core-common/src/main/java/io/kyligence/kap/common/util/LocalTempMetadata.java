@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 
 public class LocalTempMetadata {
     public static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
+    public static final String KAP_SPARDER_META_TEST_DATA = "../examples/test_case_data/sparder_localmeta";
     public static final String KYLIN_META_TEST_DATA = "../../kylin/examples/test_case_data/localmeta";
     public static final String TEMP_TEST_METADATA = "../examples/test_metadata";
 
@@ -60,13 +61,18 @@ public class LocalTempMetadata {
                 logger.info("KYLIN_META_TEST_DATA=" + new File(KYLIN_META_TEST_DATA).getCanonicalPath());
                 logger.info("KAP_META_TEST_DATA=" + new File(KAP_META_TEST_DATA).getCanonicalPath());
                 logger.info("TEMP_TEST_METADATA=" + new File(TEMP_TEST_METADATA).getCanonicalPath());
+                logger.info("KAP_SPARDER_META_TEST_DATA=" + new File(KAP_SPARDER_META_TEST_DATA).getCanonicalPath());
             }
 
             FileUtils.deleteDirectory(new File(TEMP_TEST_METADATA));
-
             // KAP files will overwrite Kylin files
             FileUtils.copyDirectory(new File(KYLIN_META_TEST_DATA), new File(TEMP_TEST_METADATA));
             FileUtils.copyDirectory(new File(KAP_META_TEST_DATA), new File(TEMP_TEST_METADATA));
+            String property = System.getProperty("sparder.enabled");
+            logger.info("sparder.enabled : " + property);
+            if (property != null && property.equalsIgnoreCase("true")) {
+                FileUtils.copyDirectory(new File(KAP_SPARDER_META_TEST_DATA), new File(TEMP_TEST_METADATA));
+            }
 
             //some test cases may require additional metadata entries besides standard test metadata in test_case_data/localmeta
             for (String overlay : overlayMetadataDirs) {

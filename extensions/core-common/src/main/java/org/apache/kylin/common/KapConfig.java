@@ -25,6 +25,7 @@
 package org.apache.kylin.common;
 
 import java.io.File;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
@@ -336,6 +337,10 @@ public class KapConfig {
         return config.getPropertiesByPrefix("kap.storage.columnar.spark-conf.").get(conf);
     }
 
+    public Map<String, String> getSparkConf() {
+        return config.getPropertiesByPrefix("kap.storage.columnar.spark-conf.");
+    }
+
     /**
      *  Advanced Flat Table
      */
@@ -401,11 +406,13 @@ public class KapConfig {
     }
 
     public String getLDAPGroupSearchFilter() {
-        return config.getOptional("kylin.security.ldap.group-search-filter", "(|(objectClass=groupOfNames)(objectClass=group))");
+        return config.getOptional("kylin.security.ldap.group-search-filter",
+                "(|(objectClass=groupOfNames)(objectClass=group))");
     }
 
     public String getLDAPGroupMemberSearchFilter() {
-        return config.getOptional("kylin.security.ldap.group-member-search-filter", "(&(cn={0})(objectClass=groupOfNames))");
+        return config.getOptional("kylin.security.ldap.group-member-search-filter",
+                "(&(cn={0})(objectClass=groupOfNames))");
     }
 
     /**
@@ -413,5 +420,19 @@ public class KapConfig {
      */
     public String getMetadataDialect() {
         return config.getOptional("kylin.metadata.jdbc.dialect", "mysql");
+    }
+
+    public boolean isSparderEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-enabled", "false"));
+    }
+
+    public String sparderFileFormat() {
+        return config.getOptional("kap.query.engine.sparder-fileformat",
+                "org.apache.spark.sql.execution.datasources.sparder.v3.SparderFileFormatV3");
+    }
+
+    public String sparderJars() {
+        return config.getOptional("kap.query.engine.sparder-additional-jars",
+                KylinConfigBase.getKylinHome() + "/lib/kap-storage-parquet.jar");
     }
 }

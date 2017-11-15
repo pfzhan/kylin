@@ -56,6 +56,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.stub.StreamObserver;
+import io.kyligence.kap.storage.parquet.cube.spark.refactor.SparkSubmitter;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.ConfServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
@@ -162,9 +163,7 @@ public class SparkDriverClient {
 
         SparkJobProtos.PushDownRequest request = SparkJobProtos.PushDownRequest.newBuilder().setSql(sql).build();
 
-        final JobServiceGrpc.JobServiceBlockingStub asyncStub = JobServiceGrpc.newBlockingStub(channel);
-
-        return asyncStub.doPushDownQuery(request);
+        return SparkSubmitter.submitPushDownTask(request);
     }
 
     private static class KyStorageVisitResponseStreamer implements IStorageVisitResponseStreamer {

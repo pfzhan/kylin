@@ -60,59 +60,6 @@ import io.kyligence.kap.metadata.model.KapModel;
 //very similar to ConvertToComputedColumn in structure, maybe we should extract a common base class?
 public class RestoreFromComputedColumn implements IPushDownConverter {
 
-    //find child inner select first
-    static class ColumnUsagesFinder extends SqlBasicVisitor<SqlNode> {
-        private List<SqlIdentifier> usages;
-        private Set<String> columnNames;
-
-        ColumnUsagesFinder(Set<String> columnNames) {
-            this.columnNames = columnNames;
-            this.usages = Lists.newArrayList();
-        }
-
-        public List<SqlIdentifier> getUsages() {
-            return usages;
-        }
-
-        @Override
-        public SqlNode visit(SqlIdentifier id) {
-            if (columnNames.contains(id.names.get(id.names.size() - 1))) {
-                this.usages.add(id);
-            }
-            return null;
-        }
-
-        @Override
-        public SqlNode visit(SqlCall call) {
-
-            //skip the part after AS
-            if (call instanceof SqlBasicCall && call.getOperator() instanceof SqlAsOperator) {
-                SqlNode[] operands = ((SqlBasicCall) call).getOperands();
-                if (operands != null && operands.length == 2) {
-                    operands[0].accept(this);
-                }
-
-                return null;
-            }
-
-            for (SqlNode operand : call.getOperandList()) {
-                if (operand != null) {
-                    operand.accept(this);
-                }
-            }
-
-            return null;
-        }
-
-        public static List<SqlIdentifier> getColumnUsages(SqlCall selectOrOrderby, Set<String> columnNames)
-                throws SqlParseException {
-            ColumnUsagesFinder sqlSubqueryFinder = new ColumnUsagesFinder(columnNames);
-            selectOrOrderby.accept(sqlSubqueryFinder);
-            return sqlSubqueryFinder.getUsages();
-        }
-
-    }
-
     private static final Logger logger = LoggerFactory.getLogger(RestoreFromComputedColumn.class);
 
     @Override
@@ -187,7 +134,6 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         }
 
     }
-
     /**
      * return the replaced sql, and the count of changes in the replaced sql
      */
@@ -290,6 +236,60 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         }
 
         return sql.substring(prefix.length(), sql.length() - suffix.length());
+    }
+
+
+    //find child inner select first
+    static class ColumnUsagesFinder extends SqlBasicVisitor<SqlNode> {
+        private List<SqlIdentifier> usages;
+        private Set<String> columnNames;
+
+        ColumnUsagesFinder(Set<String> columnNames) {
+            this.columnNames = columnNames;
+            this.usages = Lists.newArrayList();
+        }
+
+        public static List<SqlIdentifier> getColumnUsages(SqlCall selectOrOrderby, Set<String> columnNames)
+                throws SqlParseException {
+            ColumnUsagesFinder sqlSubqueryFinder = new ColumnUsagesFinder(columnNames);
+            selectOrOrderby.accept(sqlSubqueryFinder);
+            return sqlSubqueryFinder.getUsages();
+        }
+
+        public List<SqlIdentifier> getUsages() {
+            return usages;
+        }
+
+        @Override
+        public SqlNode visit(SqlIdentifier id) {
+            if (columnNames.contains(id.names.get(id.names.size() - 1))) {
+                this.usages.add(id);
+            }
+            return null;
+        }
+
+        @Override
+        public SqlNode visit(SqlCall call) {
+
+            //skip the part after AS
+            if (call instanceof SqlBasicCall && call.getOperator() instanceof SqlAsOperator) {
+                SqlNode[] operands = ((SqlBasicCall) call).getOperands();
+                if (operands != null && operands.length == 2) {
+                    operands[0].accept(this);
+                }
+
+                return null;
+            }
+
+            for (SqlNode operand : call.getOperandList()) {
+                if (operand != null) {
+                    operand.accept(this);
+                }
+            }
+
+            return null;
+        }
+
     }
 
 }

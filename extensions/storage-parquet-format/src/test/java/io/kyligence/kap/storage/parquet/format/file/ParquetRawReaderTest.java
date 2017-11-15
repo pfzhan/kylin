@@ -30,6 +30,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.common.util.ExpandableBytesVector;
+import io.kyligence.kap.storage.parquet.format.file.pagereader.PageValuesReader;
+
 public class ParquetRawReaderTest extends AbstractParquetFormatTest {
 
     public ParquetRawReaderTest() throws IOException {
@@ -84,4 +87,23 @@ public class ParquetRawReaderTest extends AbstractParquetFormatTest {
         reader.close();
     }
 
+    @Test
+    public void testReadPageAtOneTime() throws Exception {
+        writeRows(groupSize);
+        ParquetRawReader reader = new ParquetRawReader.Builder().setPath(path).setConf(new Configuration()).build();
+        PageValuesReader pageReader = reader.getPageValuesReader(ParquetConfig.PagesPerGroup - 1, 0);
+        ExpandableBytesVector buffer = new ExpandableBytesVector(1000);
+        pageReader.readPage(buffer);
+
+        int baseOffset = buffer.getOffset(0);
+        
+        Assert.assertEquals(ParquetConfig.RowsPerPage, buffer.getRowCount());
+        Assert.assertEquals(ParquetConfig.RowsPerPage * 2 + baseOffset, buffer.getTotalLength());
+        for (int i = 0; i < ParquetConfig.RowsPerPage; i++) {
+            Assert.assertEquals(baseOffset + i * 2, buffer.getOffset(i));
+            Assert.assertTrue(((byte) 2) == buffer.getData()[baseOffset + i * 2]);
+            Assert.assertTrue(((byte) 3) == buffer.getData()[baseOffset + i * 2 + 1]);
+        }
+        reader.close();
+    }
 }

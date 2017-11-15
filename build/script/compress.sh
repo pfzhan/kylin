@@ -67,6 +67,19 @@ mv kylin-kafka-consumer.xml ${package_name}/conf/
 
 rm -rf ext lib tomcat commit_SHA1 VERSION # keep the spark folder on purpose
 
+#add sparder jars
+cp spark/jars/jackson-annotations-2.6.5.jar  ${package_name}/ext/jackson-annotations-2.6.5.jar
+cp spark/jars/jackson-core-2.6.5.jar ${package_name}/ext/jackson-core-2.6.5.jar
+cp spark/jars/jackson-core-asl-1.9.13.jar ${package_name}/ext/jackson-core-asl-1.9.13.jar
+cp spark/jars/jackson-databind-2.6.5.jar ${package_name}/ext/jackson-databind-2.6.5.jar
+cp spark/jars/jackson-jaxrs-1.9.13.jar ${package_name}/ext/jackson-jaxrs-1.9.13.jar
+cp spark/jars/jackson-mapper-asl-1.9.13.jar ${package_name}/ext/jackson-mapper-asl-1.9.13.jar
+cp spark/jars/jackson-module-paranamer-2.6.5.jar ${package_name}/ext/jackson-module-paranamer-2.6.5.jar
+cp spark/jars/jackson-module-scala_2.11-2.6.5.jar ${package_name}/ext/jackson-module-scala_2.11-2.6.5.jar
+cp spark/jars/spark-unsafe*  ${package_name}/ext/spark-unsafe.jar
+cp ../extensions/storage-parquet/target/kap-storage-parquet-*-spark.jar ${package_name}/lib/kap-storage-parquet.jar
+
+
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them
 sed '1,21d' ../extensions/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_min/kylin.properties
@@ -89,7 +102,6 @@ if [ "$SKIP_OBF" != "1" ]; then
 
     mv ../tmp/kylin.war ${package_name}/tomcat/webapps/kylin.war
     mv ../tmp/kylin-coprocessor-kap-${release_version}-obf.jar ${package_name}/lib/kylin-coprocessor-kap-${release_version}.jar
-    mv ../tmp/kylin-storage-parquet-kap-${release_version}-obf.jar ${package_name}/lib/kylin-storage-parquet-kap-${release_version}.jar
     mv ../tmp/kylin-job-kap-${release_version}-obf.jar ${package_name}/lib/kylin-job-kap-${release_version}.jar
     mv ../tmp/kylin-tool-kap-${release_version}-obf.jar ${package_name}/tool/kylin-tool-kap-${release_version}.jar
     tar -cvzf ${package_name}.tar.gz ${package_name}

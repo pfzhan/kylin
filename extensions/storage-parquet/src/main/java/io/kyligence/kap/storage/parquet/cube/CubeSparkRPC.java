@@ -46,6 +46,7 @@ import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
+import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
 import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,8 +55,7 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.UnmodifiableIterator;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.refactor.SparkSubmitter;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.protocol.shaded.com.google.protobuf.ByteString;
 
@@ -68,7 +68,7 @@ public class CubeSparkRPC implements IGTStorage {
     protected GTInfo info;
     protected StorageContext context;
 
-    private SparkDriverClient client;
+    private SparkSubmitter client;
 
     public CubeSparkRPC(ISegment segment, Cuboid cuboid, GTInfo info, StorageContext context) {
         this.cubeSegment = (CubeSegment) segment;
@@ -80,12 +80,7 @@ public class CubeSparkRPC implements IGTStorage {
     }
 
     protected void init() {
-        try {
-            client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
-        } catch (Exception e) {
-            logger.error("error is " + e.getLocalizedMessage());
-            throw e;
-        }
+            client = new SparkSubmitter();
     }
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
@@ -138,7 +133,7 @@ public class CubeSparkRPC implements IGTStorage {
         }
 
         logger.info("The scan {} for segment {} is ready to be submitted to spark client", scanReqId, cubeSegment);
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload,
+        final IPartitionStreamer storageVisitResponseStreamer = client.submitParquetTask(scanRequest, payload,
                 cubeSegment.getConfig().getQueryMaxScanBytes());
         return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
 

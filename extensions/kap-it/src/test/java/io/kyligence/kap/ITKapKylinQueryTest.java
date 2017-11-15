@@ -24,27 +24,35 @@
 
 package io.kyligence.kap;
 
+import static io.kyligence.kap.KapTestBase.initQueryEngine;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.apache.kylin.gridtable.StorageSideBehavior;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.query.CompareQueryBySuffix;
+import org.apache.kylin.query.H2Database;
 import org.apache.kylin.query.ITKylinQueryTest;
 import org.apache.kylin.query.KylinTestBase;
+import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +60,9 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.junit.SparkTestRunner;
 
+@RunWith(SparkTestRunner.class)
 @Ignore("KAPITKylinQueryTest is contained by KAPITCombinationTest")
 public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
@@ -60,9 +70,26 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
 
     protected static boolean rawTableFirst = false;
 
+    protected static void setupAll() throws Exception {
+        initQueryEngine();
+        //setup env
+        HBaseMetadataTestCase.staticCreateTestMetadata();
+        config = KylinConfig.getInstanceFromEnv();
+
+        //setup cube conn
+        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
+        cubeConnection = QueryConnection.getConnection(project);
+
+        //setup h2
+        h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++) + ";CACHE_SIZE=32072", "sa",
+                "");
+        // Load H2 Tables (inner join)
+        H2Database h2DB = new H2Database(h2Connection, config, project);
+        h2DB.loadAllTables();
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
-
         logger.info("setUp in ITKapKylinQueryTest");
         configure("left", false);
         setupAll();
@@ -74,6 +101,12 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         logger.info("tearDown in ITKapKylinQueryTest");
         Candidate.restorePriorities();
         clean();
+    }
+
+    @Before
+    public void initConn() throws SQLException {
+        String project = ProjectInstance.DEFAULT_PROJECT_NAME;
+        cubeConnection = QueryConnection.getConnection(project);
     }
 
     protected static void configure(String joinType, Boolean rawTableFirst) {
@@ -98,18 +131,57 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         logger.info("Into combination joinType=" + joinType + ", rawTableFirst=" + rawTableFirst);
     }
 
-    protected static void setupAll() throws Exception {
-        KylinTestBase.setupAll();
-
-        //uncomment this to use MockedCubeSparkRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark-cube-gtstorage", "io.kyligence.kap.storage.parquet.cube.MockedCubeSparkRPC");
-
-        //uncomment this to use MockedRawTableTableRPC instead of real spark
-        //config.setProperty("kap.storage.columnar.spark-rawtable-gtstorage", "io.kyligence.kap.storage.parquet.rawtable.MockedRawTableTableRPC");
-    }
-
     protected static void clean() {
         KylinTestBase.clean();
+    }
+
+    //h2 cannot run these queries
+    @Test
+    public void testH2Uncapable() throws Exception {
+        batchExecuteQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_h2_uncapable");
+    }
+
+    @Test
+    public void testSubQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_subquery", null, true);
+    }
+
+    @Test
+    public void testLookupQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_lookup", null, true);
+    }
+
+    @Test
+    public void testDateTimeQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_datetime", null, true);
+    }
+
+    @Test
+    public void testDynamicQuery() throws Exception {
+        execAndCompDynamicQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_dynamic", null, true);
+    }
+
+    @Test
+    public void testDimDistinctCountQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_dim", null, true);
+    }
+
+    @Test
+    public void testLikeQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_like", null, true);
+    }
+
+    @Test
+    public void testPreciselyDistinctCountQuery() throws Exception {
+        if ("left".equalsIgnoreCase(joinType)) {
+            execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_distinct_precisely", null, true);
+        }
+    }
+
+    @Test
+    public void testDerivedColumnQuery() throws Exception {
+
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_derived", null, true);
     }
 
     //inherit query tests from ITKylinQueryTest
@@ -134,9 +206,9 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             Map<String, String> toggles = Maps.newHashMap();
             toggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
             BackdoorToggles.setToggles(toggles);
-            
+
             verifyResultRowColCount("src/test/resources/query/sql_verifyCount");
-            
+
         } finally {
             BackdoorToggles.cleanToggles();
         }
@@ -146,7 +218,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     public void testPowerBiQuery() throws Exception {
         this.execAndCompQuery("src/test/resources/query/sql_powerbi", null, true);
     }
-    
+
     //only raw can do
     @Test
     public void testRawTableQuery() throws Exception {
@@ -192,7 +264,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
             assertTrue(context.realization instanceof RawTableInstance);
         }
     }
-    
+
     @Test
     public void testComputedColumnsQuery() throws Exception {
         execAndCompQuery("src/test/resources/query/sql_computedcolumn", null, true, CompareQueryBySuffix.INSTANCE);
@@ -223,8 +295,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     }
 
     protected void runNoAggQuery() throws Exception {
-        List<File> sqlFiles = getFilesFromFolder(
-                new File("src/test/resources/query/sql_noagg"), ".sql");
+        List<File> sqlFiles = getFilesFromFolder(new File("src/test/resources/query/sql_noagg"), ".sql");
         for (File sqlFile : sqlFiles) {
             try {
                 runSQL(sqlFile, false, false);
@@ -242,11 +313,14 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     @Override
     public void testTimeoutQuery() throws Exception {
-        try {
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
-            super.testTimeoutQuery();
-        } finally {
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
+        if (!System.getProperty("sparder.enabled").equalsIgnoreCase("true")) {
+
+            try {
+                KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
+                super.testTimeoutQuery();
+            } finally {
+                KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
+            }
         }
     }
 
@@ -254,26 +328,28 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     //as compensation we additionally test timeout for raw query against cube
     @Test
     public void testTimeoutQuery2() throws Exception {
-        try {
+        if (!System.getProperty("sparder.enabled").equalsIgnoreCase("true")) {
+            try {
 
-            Map<String, String> toggles = Maps.newHashMap();
-            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
-                    StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
-            BackdoorToggles.setToggles(toggles);
+                Map<String, String> toggles = Maps.newHashMap();
+                toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
+                        StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
+                BackdoorToggles.setToggles(toggles);
 
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
+                KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
 
-            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
-            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
+                RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
+                RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
 
-            runTimeoutQueries();
+                runTimeoutQueries();
 
-        } finally {
-            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
-            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
+            } finally {
+                RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
+                RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
 
-            KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
-            BackdoorToggles.cleanToggles();
+                KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "300000");//set timeout to default
+                BackdoorToggles.cleanToggles();
+            }
         }
     }
     /////////////////test less
@@ -323,8 +399,10 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     public void testKAPSinglePublicQuery() throws Exception {
         System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
 
-        //String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_raw/query03.sql";
-        String queryFileName = "src/test/resources/query/temp/query01.sql";
+        String queryFileName = getQueryFolderPrefix() + "src/test/resources/query/sql_derived/query10.sql";
+
+        //String queryFileName = "src/test/resources/query/sparder/tmp/query60.sql";
+        //String queryFileName = "src/test/resources/query/sql/query60.sql";
 
         File sqlFile = new File(queryFileName);
         System.out.println(sqlFile.getAbsolutePath());
@@ -352,6 +430,11 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         if (!rawTableFirst) {
             super.testSnowflakeQuery();
         }
+    }
+
+    @Test
+    public void testUnionQuery() throws Exception {
+        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_union", null, true);
     }
 
 }

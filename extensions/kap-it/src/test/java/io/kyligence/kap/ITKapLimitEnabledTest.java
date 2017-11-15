@@ -29,17 +29,20 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ITKapLimitEnabledTest extends KylinTestBase {
+import io.kyligence.kap.junit.SparkTestRunner;
+
+@RunWith(SparkTestRunner.class)
+public class ITKapLimitEnabledTest extends KapTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(ITKapLimitEnabledTest.class);
 
@@ -50,8 +53,9 @@ public class ITKapLimitEnabledTest extends KylinTestBase {
     public static void setUp() throws Exception {
         logger.info("setUp in ITLimitEnabledTest");
         joinType = "inner";
-        config.setProperty("kylin.query.pushdown.runner-class-name", "");
+        System.setProperty("sparder.enabled", "false");
         setupAll();
+        config.setProperty("kylin.query.pushdown.runner-class-name", "");
     }
 
     @AfterClass

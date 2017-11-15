@@ -277,7 +277,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
                 }
             }
 
-            if (conditionVals.size() > KapConfig.getInstanceFromEnv().getParquetPageIndexMaxSeeks()) {
+            if (conditionVals.size() > 1024) {
                 logger.info("lookupChildFilter returning full bitmap because too many seeks {}", conditionVals.size());
                 return getFullBitmap().toMutableRoaringBitmap();
             }
@@ -293,8 +293,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
 
             pattern = pattern.replaceAll("%", "");
-            if (pattern.length() < KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength()) {
-                logger.info("The like pattern: " + pattern + " is too short, minimal length: " + KapConfig.getInstanceFromEnv().getParquetFuzzyIndexLength());
+            if (pattern.length() < 6) {
+                logger.info("The like pattern: " + pattern + " is too short, minimal length: " + 6);
                 return getFullBitmap().toMutableRoaringBitmap();
             }
 

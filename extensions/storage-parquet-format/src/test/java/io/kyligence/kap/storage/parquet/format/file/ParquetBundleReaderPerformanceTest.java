@@ -104,7 +104,8 @@ public class ParquetBundleReaderPerformanceTest extends AbstractParquetFormatTes
         Path p = new Path("/Users/roger/0.parquet");
         Configuration c = new Configuration();
         for (int i = 0; i < 300; i++) {
-            ParquetColumnReader columnReader = new ParquetColumnReader.Builder().setColumn(i).setConf(c).setPath(p).build();
+            ParquetRawReader rawReader = new ParquetRawReader(c, p, null, null, 0);
+            ParquetColumnReader columnReader = new ParquetColumnReader(rawReader, i, null);
             readerList.add(columnReader);
         }
 

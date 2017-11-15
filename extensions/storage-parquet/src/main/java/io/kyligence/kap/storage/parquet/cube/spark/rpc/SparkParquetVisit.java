@@ -78,6 +78,7 @@ import io.kyligence.kap.storage.parquet.format.filter.BinaryFilterSerializer;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.steps.ParquetCubeInfoCollectionStep;
 
+@SuppressWarnings("Duplicates")
 public class SparkParquetVisit implements Serializable {
     public static final Logger logger = LoggerFactory.getLogger(SparkParquetVisit.class);
 

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap;
 
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -36,15 +35,23 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.junit.SparkTestRunnerWithParametersFactory;
+
 /**
  */
 @RunWith(Parameterized.class)
+@Parameterized.UseParametersRunnerFactory(SparkTestRunnerWithParametersFactory.class)
 public class ITKapCombinationTest extends ITKapKylinQueryTest {
 
     private static final Logger logger = LoggerFactory.getLogger(ITKapCombinationTest.class);
 
+    public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
+        ITKapKylinQueryTest.configure(joinType, rawTableFirst);
+        setupAll();
+    }
+
     @BeforeClass
-    public static void setUp() throws SQLException {
+    public static void setUp() {
 
         logger.info("setUp in ITCombinationTest");
     }
@@ -64,11 +71,5 @@ public class ITKapCombinationTest extends ITKapKylinQueryTest {
     @Parameterized.Parameters
     public static Collection<Object[]> configs() {
         return Arrays.asList(new Object[][] { { "inner", false }, { "left", false }, { "left", true } });
-    }
-
-    public ITKapCombinationTest(String joinType, Boolean rawTableFirst) throws Exception {
-
-        ITKapKylinQueryTest.configure(joinType, rawTableFirst);
-        ITKapKylinQueryTest.setupAll();
     }
 }

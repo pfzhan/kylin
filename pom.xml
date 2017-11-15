@@ -36,13 +36,13 @@
         <parquet.version>kylin-1.9.0-r1</parquet.version>
         <tomcat.version>7.0.82</tomcat.version>
         <spark.version>2.1.1</spark.version>
-        <jackson.version>2.6.3</jackson.version>
+        <jackson.version>2.6.5</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <curator.version>2.7.1</curator.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
         <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
-        
+        <calcite.version>1.13.0-kylin-r3-SNAPSHOT</calcite.version>
         <!-- REST Service, keep same with Kylin -->
         <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
         <spring.framework.version>4.3.10.RELEASE</spring.framework.version>
@@ -54,6 +54,7 @@
         <sonar.jacoco.reportPath>${project.basedir}/../../target/jacoco.exec
         </sonar.jacoco.reportPath>
         <sonar.language>java</sonar.language>
+        <scala.version>2.11.8</scala.version>
 
         <!-- JVM Args for Testing -->
         <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
@@ -69,6 +70,7 @@
         <module>extensions/engine-mr</module>
         <module>extensions/engine-spark</module>
         <module>extensions/storage-hbase</module>
+        <module>extensions/sparder</module>
         <module>extensions/storage-parquet</module>
         <module>extensions/storage-parquet-format</module>
         <module>extensions/source-hive</module>
@@ -171,6 +173,11 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
+                <artifactId>sparder</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-storage-parquet-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -203,6 +210,12 @@
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-tool-assembly</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-tomcat-ext</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
             </dependency>
 
             <!--KAP test scope-->
@@ -242,8 +255,14 @@
                 <version>${mssql-jdbc.version}</version>
                 <scope>test</scope>
             </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>sparder</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
 
-          
+
             <!-- Sorted by groupId, artifactId; kylin and KAP dependencies first. -->
             <dependency>
                 <groupId>com.101tec</groupId>
@@ -284,8 +303,18 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
+                <artifactId>spark-yarn_2.11</artifactId>
+                <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
                 <artifactId>spark-core_2.11</artifactId>
                 <version>${spark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scala-lang</groupId>
+                <artifactId>scala-compiler</artifactId>
+                <version>${scala.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.tomcat</groupId>
@@ -317,6 +346,11 @@
                 <artifactId>curator-test</artifactId>
                 <version>${curator.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.calcite</groupId>
+                <artifactId>calcite-linq4j</artifactId>
+                <version>${calcite.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -366,11 +400,6 @@
             <id>conjars</id>
             <url>http://conjars.org/repo/</url>
         </repository>
-
-        <repository>
-            <id>cloudera</id>
-            <url>https://repository.cloudera.com/artifactory/cloudera-repos/</url>
-        </repository>
         <repository>
             <id>nexus</id>
             <name>Kyligence Repository</name>
@@ -383,11 +412,44 @@
                 <enabled>true</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>cloudera</id>
+            <url>https://repository.cloudera.com/artifactory/cloudera-repos/
+            </url>
+        </repository>
+        <repository>
+            <id>Sonatype</id>
+            <url>
+                https://oss.sonatype.org/content/repositories/releases/org/scalastyle/scalastyle-maven-plugin/
+            </url>
+        </repository>
     </repositories>
 
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>net.alchim31.maven</groupId>
+                    <artifactId>scala-maven-plugin</artifactId>
+                    <version>3.2.2</version>
+                    <executions>
+                        <execution>
+                            <id>scala-compile-first</id>
+                            <phase>process-resources</phase>
+                            <goals>
+                                <goal>add-source</goal>
+                                <goal>compile</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>scala-test-compile</id>
+                            <phase>process-test-resources</phase>
+                            <goals>
+                                <goal>testCompile</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
@@ -439,7 +501,10 @@
                     <configuration>
                         <packagingExcludes>
                             WEB-INF/lib/servlet-api-*.jar,
-                            WEB-INF/lib/zookeeper-*.jar
+                            WEB-INF/lib/zookeeper-*.jar,
+                            WEB-INF/lib/commons-compiler-*.jar,
+                            WEB-INF/lib/janino-*.jar
+                            META-INF/context.xml
                         </packagingExcludes>
                     </configuration>
                 </plugin>
@@ -478,6 +543,29 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring.boot.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.scalastyle</groupId>
+                    <artifactId>scalastyle-maven-plugin</artifactId>
+                    <version>0.8.0</version>
+                    <configuration>
+                        <verbose>false</verbose>
+                        <failOnViolation>false</failOnViolation>
+                        <includeTestSourceDirectory>false</includeTestSourceDirectory>
+                        <failOnWarning>false</failOnWarning>
+                        <sourceDirectory>${basedir}/src/main/scala</sourceDirectory>
+                        <configLocation>scalastyle-config.xml</configLocation>
+                        <outputFile>${basedir}/target/scalastyle-output.xml</outputFile>
+                        <inputEncoding>${project.build.sourceEncoding}</inputEncoding>
+                        <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -530,6 +618,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.scalastyle</groupId>
+                <artifactId>scalastyle-maven-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -837,7 +929,6 @@
                             <maxmem>2048m</maxmem>
                         </configuration>
                     </plugin>
-
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>

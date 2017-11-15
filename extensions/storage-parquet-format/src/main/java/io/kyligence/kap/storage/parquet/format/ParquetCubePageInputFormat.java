@@ -40,6 +40,7 @@ import org.apache.parquet.io.api.Binary;
 
 import io.kyligence.kap.storage.parquet.format.file.GeneralValuesReader;
 import io.kyligence.kap.storage.parquet.format.file.ParquetColumnReader;
+import io.kyligence.kap.storage.parquet.format.file.ParquetRawReader;
 
 /**
  * Used to build parquet inverted index
@@ -60,6 +61,7 @@ public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
         protected Configuration conf;
 
         private Path shardPath;
+        private ParquetRawReader rawReader = null;
         private ParquetColumnReader reader = null;
         private GeneralValuesReader valuesReader = null;
 
@@ -73,7 +75,8 @@ public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
             shardPath = fileSplit.getPath();
 
             // init with first shard file
-            reader = new ParquetColumnReader.Builder().setConf(conf).setPath(shardPath).build();
+            rawReader = new ParquetRawReader(conf, shardPath, null, null, 0);
+            reader = new ParquetColumnReader(rawReader, 0, null);
             valuesReader = reader.getNextValuesReader();
         }
 
@@ -113,7 +116,7 @@ public class ParquetCubePageInputFormat<K, V> extends FileInputFormat<K, V> {
 
         @Override
         public void close() throws IOException {
-            reader.close();
+            rawReader.close();
         }
     }
 }

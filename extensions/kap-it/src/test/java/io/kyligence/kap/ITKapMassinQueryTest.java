@@ -24,6 +24,7 @@
 
 package io.kyligence.kap;
 
+import static io.kyligence.kap.KapTestBase.initQueryEngine;
 import static org.apache.kylin.common.util.AbstractKylinTestCase.staticCleanupTestMetadata;
 import static org.apache.kylin.common.util.HBaseMetadataTestCase.staticCreateTestMetadata;
 
@@ -34,7 +35,9 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.filter.function.Functions;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.ITMassInQueryTest;
+import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.dbunit.database.DatabaseConnection;
@@ -43,22 +46,23 @@ import org.dbunit.dataset.ITable;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.junit.SparkTestRunner;
 import io.kyligence.kap.rest.service.MassInService;
 
+@RunWith(SparkTestRunner.class)
 public class ITKapMassinQueryTest extends ITMassInQueryTest {
     private static final Logger logger = LoggerFactory.getLogger(ITKapMassinQueryTest.class);
-
+    public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";
     private static String filterName1;
     private static String filterName2;
     private static List<List<String>> testData1;
     private static List<List<String>> testData2;
-
-    public static String SANDBOX_TEST_DATA = "../examples/test_case_data/sandbox";
 
     static {
         try {
@@ -70,6 +74,8 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
 
     @BeforeClass
     public static void setupAll() throws Exception {
+        System.setProperty("sparder.enabled", "false");
+        initQueryEngine();
         staticCreateTestMetadata();
         SQLResponse fakeResponse = new SQLResponse();
         MassInService service = new MassInService();
@@ -95,10 +101,12 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
     @Test
     public void massinTest() throws Exception {
         try {
-            RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList
+                    .add("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
             compare("src/test/resources/query/massin/", null, true);
         } finally {
-            RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
+            RemoveBlackoutRealizationsRule.blackList
+                    .remove("INVERTED_INDEX[name=test_kylin_cube_with_slr_left_join_empty]");
         }
     }
 
@@ -118,6 +126,8 @@ public class ITKapMassinQueryTest extends ITMassInQueryTest {
             sqls[0] = sqls[0].replace("%filter1%", filterName1);
             sqls[0] = sqls[0].replace("%filter2%", filterName2);
             logger.info("Query Result from Kylin - " + queryName + "  (" + queryFolder + ")");
+            String project = ProjectInstance.DEFAULT_PROJECT_NAME;
+            cubeConnection = QueryConnection.getConnection(project);
             IDatabaseConnection kylinConn = new DatabaseConnection(cubeConnection);
             ITable kylinTable = executeQuery(kylinConn, queryName, sqls[0], needSort);
 

@@ -54,7 +54,8 @@ public class BinaryFilterConverter {
     private Map<TblColRef, Integer> offsetMap;
     private Map<TblColRef, Integer> lengthMap;
 
-    public BinaryFilterConverter(CubeSegment cubeSeg, Cuboid cuboid) {
+    //only test
+    BinaryFilterConverter(CubeSegment cubeSeg, Cuboid cuboid) {
         RowKeyEncoder encoder = new RowKeyEncoder(cubeSeg, cuboid);
         GTInfo gtInfo = CubeGridTable.newGTInfo(cuboid, new CubeDimEncMap(cubeSeg));
         List<TblColRef> mapping = cuboid.getCuboidToGridTableMapping().getCuboidDimensionsInGTOrder();

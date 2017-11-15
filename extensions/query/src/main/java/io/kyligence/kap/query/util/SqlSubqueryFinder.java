@@ -46,7 +46,14 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
         this.sqlSelectsOrOrderbys = new ArrayList<>();
     }
 
-    //subquery will precede 
+    public static List<SqlCall> getSubqueries(String sql) throws SqlParseException {
+        SqlNode parsed = CalciteParser.parse(sql);
+        SqlSubqueryFinder sqlSubqueryFinder = new SqlSubqueryFinder();
+        parsed.accept(sqlSubqueryFinder);
+        return sqlSubqueryFinder.getSqlSelectsOrOrderbys();
+    }
+
+    //subquery will precede
     List<SqlCall> getSqlSelectsOrOrderbys() {
         return sqlSelectsOrOrderbys;
     }
@@ -76,12 +83,5 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
             sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
         }
         return null;
-    }
-
-    public static List<SqlCall> getSubqueries(String sql) throws SqlParseException {
-        SqlNode parsed = CalciteParser.parse(sql);
-        SqlSubqueryFinder sqlSubqueryFinder = new SqlSubqueryFinder();
-        parsed.accept(sqlSubqueryFinder);
-        return sqlSubqueryFinder.getSqlSelectsOrOrderbys();
     }
 }

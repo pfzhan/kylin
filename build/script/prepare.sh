@@ -3,6 +3,7 @@
 dir=$(dirname ${0})
 cd ${dir}/../..
 
+
 source build/script/functions.sh
 exportProjectVersions
 
@@ -24,6 +25,9 @@ fi
 if [ "$SKIP_OBF" != "1" ]; then
     build/script/obfuscate.sh       || { exit 1; }
 fi
+
+#create ext dir
+mkdir -p build/ext
 
 cp extensions/server/target/kap-server-${kap_version}.war build/tomcat/webapps/kylin.war
 chmod 644 build/tomcat/webapps/kylin.war

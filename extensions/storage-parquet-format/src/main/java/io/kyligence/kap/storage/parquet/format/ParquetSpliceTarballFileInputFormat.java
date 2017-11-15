@@ -41,6 +41,7 @@ import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.gridtable.GTScanRequest;
@@ -99,6 +100,7 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
 
         private long totalScanCnt = 0;
         private long totalSkipCnt = 0;
+        private ByteArray byteArray = new ByteArray();
 
         @Override
         public void initialize(InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
@@ -236,7 +238,9 @@ public class ParquetSpliceTarballFileInputFormat extends FileInputFormat<Text, T
                     return false;
                 }
                 totalScanCnt++;
-                if (binaryFilter != null && !binaryFilter.isMatch(((Binary) data.get(0)).getBytes())) {
+                byte[] firstCol = ((Binary) data.get(0)).getBytes();
+                byteArray.reset(firstCol, 0, firstCol.length);
+                if (binaryFilter != null && !binaryFilter.isMatch(byteArray)) {
                     totalSkipCnt++;
                     data = null;
                 }

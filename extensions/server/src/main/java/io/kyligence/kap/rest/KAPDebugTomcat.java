@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
@@ -87,6 +88,13 @@ public class KAPDebugTomcat {
     private static void overrideDevJobJarLocations() {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         File devJobJar = findFile("../assembly/target", "kap-assembly-.*-SNAPSHOT-job.jar");
+        File sparkJar = findFile("../storage-parquet/target", "kap-storage-parquet-.*-SNAPSHOT-spark.jar");
+        try {
+            String sparkJarCanonicalPath = sparkJar.getCanonicalPath();
+            System.setProperty("kap.query.engine.sparder-additional-jars", sparkJarCanonicalPath);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if (devJobJar != null) {
             conf.overrideMRJobJarPath(devJobJar.getAbsolutePath());
         }
@@ -117,8 +125,11 @@ public class KAPDebugTomcat {
 
         File webBase = new File("../../webapp/app");
         File webInfDir = new File(webBase, "WEB-INF");
+        File metaInfDir = new File(webBase, "META-INF");
         FileUtils.deleteDirectory(webInfDir);
+        FileUtils.deleteDirectory(metaInfDir);
         FileUtils.copyDirectoryToDirectory(new File("../server/src/main/webapp/WEB-INF"), webBase);
+        FileUtils.copyDirectoryToDirectory(new File("../examples/test_case_data/webapps/META-INF"), webBase);
 
         Tomcat tomcat = new Tomcat();
         tomcat.setPort(port);

@@ -34,18 +34,20 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.grpc.StatusRuntimeException;
+import io.kyligence.kap.junit.SparkTestRunner;
 
-public class ITKapPushDownQueryTest extends KylinTestBase {
+@RunWith(SparkTestRunner.class)
+public class ITKapPushDownQueryTest extends KapTestBase {
     private static final String PUSHDOWN_RUNNER_KEY = "kylin.query.pushdown.runner-class-name";
     private static final Logger logger = LoggerFactory.getLogger(ITKapPushDownQueryTest.class);
 
@@ -53,7 +55,7 @@ public class ITKapPushDownQueryTest extends KylinTestBase {
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapPushDownQueryTest");
         System.setProperty("needCheckCC", "true");
-        KylinTestBase.setupAll();
+        setupAll();
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
     }

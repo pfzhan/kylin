@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.filter;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -44,19 +45,19 @@ public class BinaryLogicalFilterTest {
     @Test
     public void isAndMatch() throws Exception {
         BinaryFilter filter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.AND, children);
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x30, 0x44 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x33, 0x40 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x30, 0x40 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x33, 0x40 }));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x44 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x40 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x40 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x40 })));
     }
 
     @Test
     public void isOrMatch() throws Exception {
         BinaryFilter filter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, children);
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x30, 0x44 }));
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x30, 0x40 }));
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x33, 0x44 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x33, 0x40 }));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x44 })));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x40 })));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x44 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x40 })));
     }
 
     @Test
@@ -65,9 +66,9 @@ public class BinaryLogicalFilterTest {
         BinaryFilter equalFilter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x50 }), 3, 1);
         BinaryFilter orFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, andFilter, equalFilter);
 
-        Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x30, 0x44, 0x50 }));
-        Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x33, 0x44, 0x50 }));
-        Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x30, 0x44, 0x00 }));
-        Assert.assertFalse(orFilter.isMatch(new byte[] { 0x00, 0x33, 0x44, 0x00 }));
+        Assert.assertTrue(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x44, 0x50 })));
+        Assert.assertTrue(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x44, 0x50 })));
+        Assert.assertTrue(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x30, 0x44, 0x00 })));
+        Assert.assertFalse(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x33, 0x44, 0x00 })));
     }
 }

@@ -31,6 +31,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.parquet.io.api.Binary;
 import org.junit.Assert;
 import org.junit.Test;
@@ -58,6 +59,24 @@ public class ParquetBundleReaderTest extends AbstractParquetFormatTest {
         }
 
         Assert.assertNull(bundleReader.read());
+        bundleReader.close();
+    }
+
+    @Test
+    public void testReadByteArrayInBundle() throws Exception {
+        writeRows(groupSize, true);
+
+        ImmutableRoaringBitmap bitset = Utils.createBitset(3);
+        bitset = deserialize(serialize(bitset));
+
+        ParquetBundleReader bundleReader = new ParquetBundleReader.Builder().setPath(path).setConf(new Configuration()).setPageBitset(bitset).build();
+        ByteArray[] row;
+        for (int i = 0; i < 3 * ParquetConfig.RowsPerPage; ++i) {
+            row = bundleReader.readByteArray();
+            Assert.assertArrayEquals(new Integer(i).toString().getBytes(), row[0].toBytes());
+        }
+
+        Assert.assertNull(bundleReader.readByteArray());
         bundleReader.close();
     }
 

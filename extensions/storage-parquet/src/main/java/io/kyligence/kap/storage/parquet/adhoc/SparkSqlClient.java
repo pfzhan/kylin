@@ -88,6 +88,10 @@ public class SparkSqlClient implements Serializable {
         //Get result data
         Dataset<Row> df = hiveContext.sql(request.getSql());
 
+        return DFToList(uuid, df);
+    }
+
+    private Pair<List<List<String>>, List<SparkJobProtos.StructField>> DFToList(UUID uuid, Dataset<Row> df) throws InterruptedException {
         JavaRDD<List<String>> rowRdd = df.javaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
 
             @Override

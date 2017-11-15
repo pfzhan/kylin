@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 /**
- * test against real models 
+ * test against real models
  */
 public class ImplicitCCOnRealModelTest extends LocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ImplicitCCOnRealModelTest.class);

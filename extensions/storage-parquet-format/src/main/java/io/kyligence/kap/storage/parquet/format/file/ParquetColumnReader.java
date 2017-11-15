@@ -26,17 +26,19 @@ package io.kyligence.kap.storage.parquet.format.file;
 
 import java.io.IOException;
 
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.Path;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.roaringbitmap.PeekableIntIterator;
 import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
+import io.kyligence.kap.common.util.ExpandableBytesVector;
+import io.kyligence.kap.storage.parquet.format.file.pagereader.PageValuesReader;
+
 public class ParquetColumnReader {
+    public final int INIT_BUFFER_SIZE = 10000;
     private ParquetRawReader reader;
-    private int column;
+    public int column;
     private int curPage = -1;
     private PeekableIntIterator iter = null;
+    private ExpandableBytesVector buffer = null;
 
     public ParquetColumnReader(ParquetRawReader reader, int column, ImmutableRoaringBitmap pageBitset) {
         this.reader = reader;
@@ -48,6 +50,43 @@ public class ParquetColumnReader {
 
     public int getPageIndex() {
         return curPage;
+    }
+
+    /**
+     * Return next page's buffer, it there's no next page, return null
+     */
+    public ExpandableBytesVector readNextPage() throws IOException {
+        reader.metrics.pageReadOverallStart();
+
+        // read one page
+        PageValuesReader pageReader = null;
+        {
+            if (iter != null) { // has page bitmap
+                if (iter.hasNext()) {
+                    curPage = iter.next();
+                    pageReader = reader.getPageValuesReader(curPage, column);
+                }
+            } else { // no page bitmap, read all pages
+                pageReader = reader.getPageValuesReader(++curPage, column);
+            }
+            if (pageReader == null)
+                return null; // don't call metrics.pageReadOverallEnd(), no page is read
+        }
+        
+        // decode the page into BytesVector
+        reader.metrics.pageReadDecodeStart();
+        {
+            if (buffer == null)
+                buffer = new ExpandableBytesVector(INIT_BUFFER_SIZE);
+            buffer.setTotalLength(0);
+            buffer.setRowCount(0);
+
+            pageReader.readPage(buffer);
+        }
+        reader.metrics.pageReadDecodeEnd(buffer.getTotalLength());
+        
+        reader.metrics.pageReadOverallEnd(buffer.getRowCount());
+        return buffer;
     }
 
     /**
@@ -63,60 +102,5 @@ public class ParquetColumnReader {
             return null;
         }
         return reader.getValuesReader(++curPage, column);
-    }
-
-    public void close() throws IOException {
-        reader.close();
-    }
-
-    public static class Builder {
-        private Configuration conf = null;
-        private ParquetMetadata metadata = null;
-        private Path path = null;
-        private int column = 0;
-        private ImmutableRoaringBitmap pageBitset = null;
-        private long fileOffset;
-
-        public Builder setConf(Configuration conf) {
-            this.conf = conf;
-            return this;
-        }
-
-        public Builder setMetadata(ParquetMetadata metadata) {
-            this.metadata = metadata;
-            return this;
-        }
-
-        public Builder setPath(Path path) {
-            this.path = path;
-            return this;
-        }
-
-        public Builder setColumn(int column) {
-            this.column = column;
-            return this;
-        }
-
-        public Builder setPageBitset(ImmutableRoaringBitmap bitset) {
-            this.pageBitset = bitset;
-            return this;
-        }
-
-        public Builder setFileOffset(long fileOffset) {
-            this.fileOffset = fileOffset;
-            return this;
-        }
-
-        public ParquetColumnReader build() throws IOException {
-            if (conf == null) {
-                throw new IllegalStateException("Configuration should be set");
-            }
-
-            if (path == null) {
-                throw new IllegalStateException("Output file path should be set");
-            }
-
-            return new ParquetColumnReader(new ParquetRawReader(conf, path, metadata, fileOffset), column, pageBitset);
-        }
     }
 }

@@ -32,6 +32,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.io.api.Binary;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -80,6 +81,11 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         for (int i = 0; i < rowCnt; ++i) {
             writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
         }
+        
+        // test save any bytes in parquet file
+        writer.flush();
+        writer.writeBytesAsDictionaryPage(mockupDictionaryPage());
+
         writer.close();
     }
 
@@ -92,7 +98,21 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
             row.add(Binary.fromConstantByteArray(new byte[] { 2 }));
             writer.writeRow(row);
         }
+        
+        // test save any bytes in parquet file
+        writer.flush();
+        writer.writeBytesAsDictionaryPage(mockupDictionaryPage());
+
         writer.close();
+    }
+
+    private BytesInput[] mockupDictionaryPage() {
+        int colCnt = type.getColumns().size();
+        BytesInput[] ret = new BytesInput[colCnt];
+        for (int i = 0; i < colCnt; i++) {
+            ret[i] = BytesInput.from(new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 });
+        }
+        return ret;
     }
 
     protected void cleanTestFile(Path path) throws IOException {

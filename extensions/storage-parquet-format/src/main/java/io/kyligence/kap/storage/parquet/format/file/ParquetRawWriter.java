@@ -42,6 +42,7 @@ import org.apache.parquet.bytes.BytesInput;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.column.Encoding;
 import org.apache.parquet.column.ParquetProperties;
+import org.apache.parquet.column.page.DictionaryPage;
 import org.apache.parquet.column.statistics.Statistics;
 import org.apache.parquet.column.values.delta.DeltaBinaryPackingValuesWriterForInteger;
 import org.apache.parquet.column.values.delta.DeltaBinaryPackingValuesWriterForLong;
@@ -64,6 +65,7 @@ import io.kyligence.kap.storage.parquet.format.file.typedwriter.LongValueWriter;
 import io.kyligence.kap.storage.parquet.format.file.typedwriter.TypeValuesWriter;
 
 public class ParquetRawWriter {
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(ParquetRawWriter.class);
 
     private static final String INDEX_PREFIX = "IndexV2-";
@@ -71,6 +73,7 @@ public class ParquetRawWriter {
     private int rowsPerPage = ParquetConfig.RowsPerPage;
     private int pagesPerGroup = ParquetConfig.PagesPerGroup;
 
+    @SuppressWarnings("unused")
     private Configuration conf;
     private ParquetFileWriter writer;
     private MessageType schema;
@@ -264,6 +267,22 @@ public class ParquetRawWriter {
         }
     }
 
+    public void writeBytesAsDictionaryPage(BytesInput[] bytes) throws IOException {
+        if (currentRowCntInPage != 0 || currentPageCntInGroup != 0)
+            throw new IllegalStateException();
+
+        writer.startBlock(0);
+        for (int i = 0; i < columnCnt; ++i) {
+            writer.startColumn(schema.getColumns().get(i), 0, codecName);
+
+            DictionaryPage dictPage = new DictionaryPage(bytes[i], (int) bytes[i].size(), Encoding.PLAIN);
+            writer.writeDictionaryPage(dictPage);
+
+            writer.endColumn();
+        }
+        writer.endBlock();
+    }
+
     private TypeValuesWriter getValuesWriter(ColumnDescriptor descriptor) {
         switch (descriptor.getType()) {
         case BOOLEAN:
@@ -342,6 +361,7 @@ public class ParquetRawWriter {
                         Statistics.getStatsBasedOnType(schema.getColumns().get(i).getType()), rlEncodings, dlEncodings,
                         dataEncodings.get(i));
             }
+
             writer.endColumn();
         }
         writer.endBlock();

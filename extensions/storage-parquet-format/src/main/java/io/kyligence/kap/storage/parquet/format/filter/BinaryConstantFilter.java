@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.format.filter;
 
 import java.nio.ByteBuffer;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.metadata.filter.TupleFilter;
 
@@ -39,7 +40,7 @@ public class BinaryConstantFilter implements BinaryFilter{
     public BinaryConstantFilter() {}
 
     @Override
-    public boolean isMatch(byte[] value) {
+    public boolean isMatch(ByteArray value) {
         return this.value;
     }
 

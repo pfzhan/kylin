@@ -159,8 +159,8 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
         BinaryFilter binaryFilter = converter.toBinaryFilter(filter);
 
         Assert.assertEquals(TupleFilter.FilterOperatorEnum.IN, binaryFilter.getOperator());
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue2));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue2)));
     }
 
     @Test
@@ -177,7 +177,7 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
         BinaryFilter binaryFilter = converter.toBinaryFilter(filter);
 
         Assert.assertEquals(TupleFilter.FilterOperatorEnum.NOTIN, binaryFilter.getOperator());
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
     }
 
     @Test
@@ -202,11 +202,11 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
 
         BinaryFilter binaryFilter = converter.toBinaryFilter(logicalFilter);
         Assert.assertEquals(TupleFilter.FilterOperatorEnum.AND, binaryFilter.getOperator());
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         evaluateValue = new byte[] { 0x01, 0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-        Assert.assertFalse(binaryFilter.isMatch(evaluateValue));
+        Assert.assertFalse(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         evaluateValue = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-        Assert.assertFalse(binaryFilter.isMatch(evaluateValue));
+        Assert.assertFalse(binaryFilter.isMatch(new ByteArray(evaluateValue)));
     }
 
     @Test
@@ -232,13 +232,13 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
 
         BinaryFilter binaryFilter = converter.toBinaryFilter(logicalFilter);
         Assert.assertEquals(TupleFilter.FilterOperatorEnum.OR, binaryFilter.getOperator());
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         evaluateValue = new byte[] { 0x01, 0x01, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         evaluateValue = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         evaluateValue = new byte[] { 0x01, 0x01, 0x03, 0x04, 0x04, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10 };
-        Assert.assertFalse(binaryFilter.isMatch(evaluateValue));
+        Assert.assertFalse(binaryFilter.isMatch(new ByteArray(evaluateValue)));
     }
 
     private void binaryAssert(byte[] evaluateValue, byte[] failEvaluateValue, TupleFilter.FilterOperatorEnum filterOp) throws UnsupportedEncodingException {
@@ -252,9 +252,9 @@ public class BinaryFilterConverterTest extends LocalFileMetadataTestCase {
         BinaryFilter binaryFilter = converter.toBinaryFilter(filter);
 
         Assert.assertEquals(filterOp, binaryFilter.getOperator());
-        Assert.assertTrue(binaryFilter.isMatch(evaluateValue));
+        Assert.assertTrue(binaryFilter.isMatch(new ByteArray(evaluateValue)));
         if (failEvaluateValue != null) {
-            Assert.assertFalse(binaryFilter.isMatch(failEvaluateValue));
+            Assert.assertFalse(binaryFilter.isMatch(new ByteArray(failEvaluateValue)));
         }
     }
 }

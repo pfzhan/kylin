@@ -41,25 +41,15 @@ class QueryAliasMatchInfo {
     // each alias's ColumnRowType
     private LinkedHashMap<String, ColumnRowType> queryAlias;
 
-    QueryAliasMatchInfo(BiMap<String, String> aliasMapping,
-        LinkedHashMap<String, ColumnRowType> queryAlias) {
+    QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> queryAlias) {
         this.aliasMapping = aliasMapping;
         this.queryAlias = queryAlias;
-    }
-
-    BiMap<String, String> getAliasMapping() {
-        return aliasMapping;
-    }
-
-    LinkedHashMap<String, ColumnRowType> getQueryAlias() {
-        return queryAlias;
     }
 
     /**
      * only return null if it's a column on subquery
      */
-    static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier,
-        LinkedHashMap<String, ColumnRowType> queryAlias) {
+    static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier, LinkedHashMap<String, ColumnRowType> queryAlias) {
         TblColRef ret = null;
         if (sqlIdentifier.names.size() == 2) {
             //alias.col
@@ -105,6 +95,14 @@ class QueryAliasMatchInfo {
         } else {
             throw new IllegalStateException("The column " + col + " can't be found");
         }
+    }
+
+    BiMap<String, String> getAliasMapping() {
+        return aliasMapping;
+    }
+
+    LinkedHashMap<String, ColumnRowType> getQueryAlias() {
+        return queryAlias;
     }
 
 }

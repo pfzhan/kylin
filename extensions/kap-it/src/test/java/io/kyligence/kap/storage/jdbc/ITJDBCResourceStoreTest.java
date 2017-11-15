@@ -52,13 +52,10 @@ import io.kyligence.kap.common.persistence.JDBCResourceStore;
 @Ignore
 public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
 
-    private KylinConfig kylinConfig;
-
-    private JDBCConnectionManager connectionManager;
-
     private static final String LARGE_CELL_PATH = "/cube/_test_large_cell.json";
-
     private static final String Large_Content = "THIS_IS_A_LARGE_CELL";
+    private KylinConfig kylinConfig;
+    private JDBCConnectionManager connectionManager;
 
     @Before
     public void setup() throws Exception {
@@ -125,7 +122,8 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
         StringEntity content = new StringEntity(Large_Content);
         String largePath = "/large/large.json";
         try {
-            String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig, ResourceStoreTest.mockUrl("jdbc", kylinConfig));
+            String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig,
+                    ResourceStoreTest.mockUrl("jdbc", kylinConfig));
             store = new JDBCResourceStore(KylinConfig.getInstanceFromEnv());
             store.deleteResource(largePath);
             store.putResource(largePath, content, StringEntity.serializer);
@@ -156,7 +154,8 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
         JDBCResourceStore store = null;
         ByteEntity content = new ByteEntity(data);
         try {
-            String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig, ResourceStoreTest.mockUrl("jdbc", kylinConfig));
+            String oldUrl = ResourceStoreTest.replaceMetadataUrl(kylinConfig,
+                    ResourceStoreTest.mockUrl("jdbc", kylinConfig));
             store = new JDBCResourceStore(KylinConfig.getInstanceFromEnv());
             store.deleteResource(LARGE_CELL_PATH);
             store.putResource(LARGE_CELL_PATH, content, ByteEntity.serializer);
@@ -173,28 +172,6 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
 
     @SuppressWarnings("serial")
     public static class ByteEntity extends RootPersistentEntity {
-
-        byte[] data;
-
-        public ByteEntity() {
-
-        }
-
-        public ByteEntity(byte[] data) {
-            this.data = data;
-        }
-
-        public byte[] getData() {
-            return data;
-        }
-
-        public void setData(byte[] data) {
-            this.data = data;
-        }
-
-        public static Serializer<ByteEntity> getSerializer() {
-            return serializer;
-        }
 
         public static final Serializer<ByteEntity> serializer = new Serializer<ByteEntity>() {
 
@@ -213,5 +190,26 @@ public class ITJDBCResourceStoreTest extends HBaseMetadataTestCase {
                 return new ByteEntity(bytes);
             }
         };
+        byte[] data;
+
+        public ByteEntity() {
+
+        }
+
+        public ByteEntity(byte[] data) {
+            this.data = data;
+        }
+
+        public static Serializer<ByteEntity> getSerializer() {
+            return serializer;
+        }
+
+        public byte[] getData() {
+            return data;
+        }
+
+        public void setData(byte[] data) {
+            this.data = data;
+        }
     }
 }

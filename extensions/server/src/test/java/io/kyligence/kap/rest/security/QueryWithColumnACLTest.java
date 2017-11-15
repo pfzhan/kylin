@@ -59,8 +59,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
     public void setUp() {
         this.createTestMetadata();
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken(false, null));
-        KylinConfig.getInstanceFromEnv().setProperty(
-                "kylin.query.pushdown.runner-class-name",
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
     }
 
@@ -77,12 +76,14 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
 
         // add column acl, query fail
         QuerACLTestUtil.setUser(ADMIN);
-        getColumnACLManager().addColumnACL(PROJECT, ADMIN, STREAMING_TABLE, Sets.newHashSet("MINUTE_START"), MetadataConstants.TYPE_USER);
+        getColumnACLManager().addColumnACL(PROJECT, ADMIN, STREAMING_TABLE, Sets.newHashSet("MINUTE_START"),
+                MetadataConstants.TYPE_USER);
         try {
             QuerACLTestUtil.mockQuery(PROJECT, "select * from STREAMING_TABLE");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (SQLException e) {
-            Assert.assertEquals("Query failed.Access column:DEFAULT.STREAMING_TABLE.MINUTE_START denied", e.getCause().getMessage());
+            Assert.assertEquals("Query failed.Access column:DEFAULT.STREAMING_TABLE.MINUTE_START denied",
+                    e.getCause().getMessage());
         }
 
         // query another column, success
@@ -130,7 +131,8 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
         }
 
         // add cc to column acl
-        manager.addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("SELLER_ID_AND_COUNTRY_NAME"), MetadataConstants.TYPE_USER);
+        manager.addColumnACL(PROJECT, ADMIN, TEST_KYLIN_FACT_TABLE, Sets.newHashSet("SELLER_ID_AND_COUNTRY_NAME"),
+                MetadataConstants.TYPE_USER);
         try {
             QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
             Assert.fail("expecting some AlreadyExistsException here");

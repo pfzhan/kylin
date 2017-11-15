@@ -26,6 +26,7 @@ package io.kyligence.kap.storage.parquet.format.filter;
 
 import java.nio.ByteBuffer;
 
+import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.junit.Assert;
 import org.junit.Test;
@@ -46,29 +47,29 @@ public class BinaryFilterSerializerTest {
     @Test
     public void eqFilterSerialize() throws Exception {
         BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x02, 0x03 }), 1, 2);
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x02, 0x02 }));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x02 })));
 
         byte[] serialized = BinaryFilterSerializer.serialize(filter);
 
         BinaryFilter deserializedFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(serialized));
-        Assert.assertTrue(deserializedFilter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
-        Assert.assertFalse(deserializedFilter.isMatch(new byte[] { 0x00, 0x02, 0x02 }));
+        Assert.assertTrue(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03 })));
+        Assert.assertFalse(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x02 })));
     }
 
     @Test
     public void inFilterSerialize() throws Exception {
         BinaryCompareFilter filter = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.IN, Lists.newArrayList(new byte[] { 0x02, 0x03 }, new byte[] { 0x04, 0x05 }), 1, 2);
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
-        Assert.assertTrue(filter.isMatch(new byte[] { 0x00, 0x04, 0x05 }));
-        Assert.assertFalse(filter.isMatch(new byte[] { 0x00, 0x06, 0x07 }));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03 })));
+        Assert.assertTrue(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x04, 0x05 })));
+        Assert.assertFalse(filter.isMatch(new ByteArray(new byte[] { 0x00, 0x06, 0x07 })));
 
         byte[] serialized = BinaryFilterSerializer.serialize(filter);
 
         BinaryFilter deserializedFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(serialized));
-        Assert.assertTrue(deserializedFilter.isMatch(new byte[] { 0x00, 0x02, 0x03 }));
-        Assert.assertTrue(deserializedFilter.isMatch(new byte[] { 0x00, 0x04, 0x05 }));
-        Assert.assertFalse(deserializedFilter.isMatch(new byte[] { 0x00, 0x06, 0x07 }));
+        Assert.assertTrue(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03 })));
+        Assert.assertTrue(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x04, 0x05 })));
+        Assert.assertFalse(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x06, 0x07 })));
     }
 
     @Test
@@ -79,16 +80,16 @@ public class BinaryFilterSerializerTest {
         BinaryCompareFilter equalFilter3 = new BinaryCompareFilter(TupleFilter.FilterOperatorEnum.EQ, Lists.newArrayList(new byte[] { 0x06, 0x07 }), 5, 2);
         BinaryLogicalFilter orFilter = new BinaryLogicalFilter(TupleFilter.FilterOperatorEnum.OR, andFilter, equalFilter3);
 
-        Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00 }));
-        Assert.assertTrue(orFilter.isMatch(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x07 }));
-        Assert.assertFalse(orFilter.isMatch(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }));
+        Assert.assertTrue(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00 })));
+        Assert.assertTrue(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x07 })));
+        Assert.assertFalse(orFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })));
 
         byte[] serialized = BinaryFilterSerializer.serialize(orFilter);
 
         BinaryFilter deserializedFilter = BinaryFilterSerializer.deserialize(ByteBuffer.wrap(serialized));
 
-        Assert.assertTrue(deserializedFilter.isMatch(new byte[] { 0x00, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00 }));
-        Assert.assertTrue(deserializedFilter.isMatch(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x07 }));
-        Assert.assertFalse(deserializedFilter.isMatch(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }));
+        Assert.assertTrue(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x02, 0x03, 0x04, 0x05, 0x00, 0x00 })));
+        Assert.assertTrue(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x07 })));
+        Assert.assertFalse(deserializedFilter.isMatch(new ByteArray(new byte[] { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 })));
     }
 }

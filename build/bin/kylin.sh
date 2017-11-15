@@ -16,9 +16,7 @@ function retrieveDependency() {
     fi
 
     # get spark_dependency
-    if [ -z "${spark_dependency}" ]; then
-            source ${dir}/find-spark-dependency.sh
-    fi
+#    export KYLIN_TOMCAT_CLASSPATH=`$JAVA -cp ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar io.kyligence.kap.tool.mr.ClassPathFilter ${KYLIN_TOMCAT_CLASSPATH} jersey  spark-unsafe`
 
     # get hbase_dependency
     if [ -z "${hbase_dependency}" ]; then
@@ -67,14 +65,32 @@ function retrieveDependency() {
     if [ -n "${spark_dependency}" ]; then
         hadoop_dependencies=${hadoop_dependencies}:${spark_dependency}
     fi
-    
+
+
     # compose KYLIN_TOMCAT_CLASSPATH
     tomcat_classpath=${tomcat_root}/bin/bootstrap.jar:${tomcat_root}/bin/tomcat-juli.jar:${tomcat_root}/lib/*
     export KYLIN_TOMCAT_CLASSPATH=${tomcat_classpath}:${KYLIN_HOME}/conf:${KYLIN_HOME}/lib/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
     
     # compose KYLIN_TOOL_CLASSPATH
     export KYLIN_TOOL_CLASSPATH=${KYLIN_HOME}/conf:${KYLIN_HOME}/tool/*:${KYLIN_HOME}/ext/*:${hadoop_dependencies}
-    
+    #export env
+    export CONF_DIR=${KYLIN_HOME}/conf
+    export LOG4J_DIR=${KYLIN_HOME}/conf
+    export SPARK_DIR=${KYLIN_HOME}/spark/
+    export KYLIN_SPARK_TEST_JAR_PATH=`ls $KYLIN_HOME/tool/kylin-tool-kap-*.jar`
+    export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
+    export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
+    export KAP_METADATA_URL=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
+    if [ -z "$ZIPKIN_HOSTNAME" ]
+    then
+        export ZIPKIN_HOSTNAME=`hostname`
+    fi
+    if [ -z "$ZIPKIN_PORT" ]
+    then
+        export ZIPKIN_PORT="9410"
+    fi
+    echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
+    echo "ZIPKIN_PORT is set to ${ZIPKIN_PORT}"
     # compose kylin_common_opts
     kylin_common_opts="${kylin_hadoop_opts} \
     -Dkylin.hive.dependency=${hive_dependency} \
@@ -142,7 +158,48 @@ function runTool() {
 
 mkdir -p ${KYLIN_HOME}/logs
 mkdir -p ${KYLIN_HOME}/ext
+    if [ ! -e "${KYLIN_HOME}/conf/fairscheduler.xml" ]
+     then
+        cat > ${KYLIN_HOME}/conf/fairscheduler.xml <<EOL
+<?xml version="1.0"?>
 
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<allocations>
+  <pool name="table_index">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>1</weight>
+    <minShare>1</minShare>
+  </pool>
+  <pool name="cube">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>10</weight>
+    <minShare>1</minShare>
+  </pool>
+    <pool name="query_pushdown">
+    <schedulingMode>FAIR</schedulingMode>
+    <weight>1</weight>
+    <minShare>1</minShare>
+  </pool>
+</allocations>
+
+EOL
+fi
 # start command
 if [ "$1" == "start" ]
 then
@@ -177,16 +234,38 @@ then
 
     checkRestPort
 
-    # kickoff spark-client
-    columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
-    if [ "${columnarEnabled}" == "true" ]
-    then
-        ${dir}/spark-client.sh start
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${dir}/setenv.sh" ]; then
+        echo "WARNING: ${dir}/setenv.sh is deprecated and ignored, please remove it and use ${KYLIN_HOME}/conf/setenv.sh instead"
+        source ${dir}/setenv.sh
     fi
-
-
+    
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+    fi
+    export SPARK_DIR=${KYLIN_HOME}/spark/
+    #auto detect SPARK_HOME
+    if [ -z "$SPARK_HOME" ]
+    then
+        if [ -d ${SPARK_DIR} ]
+        then
+            export SPARK_HOME=${SPARK_DIR}
+        else
+            quit 'Please make sure SPARK_HOME has been set (export as environment variable first)'
+        fi
+    fi
+    echo "SPARK_HOME is set to ${SPARK_HOME}"
+    if [[ -z $HIVE_METASTORE_URI ]]
+    then
+     source ${dir}/find-hive-dependency.sh
+    HIVE_METASTORE_URI=$(${KYLIN_HOME}/bin/kylin.sh io.kyligence.kap.tool.mr.HadoopConfPropertyRetriever ${hive_conf_path}/hive-site.xml hive.metastore.uris | grep -v Retrieving | tail -1)
+    fi
+    if [[ -z "$HIVE_METASTORE_URI" ]]
+    then
+        quit "Couldn't find hive.metastore.uris in hive-site.xml. hive.metastore.uris specifies Thrift URI of hive metastore . Please export HIVE_METASTORE_URI with hive.metastore.uris before starting kylin , for example: export HIVE_METASTORE_URI=thrift://sandbox.hortonworks.com:9083"
+    fi
     classpathDebug ${KYLIN_TOMCAT_CLASSPATH}
-
+    export KYLIN_TOMCAT_CLASSPATH=`$JAVA -cp ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar io.kyligence.kap.tool.mr.ClassPathFilter ${KYLIN_TOMCAT_CLASSPATH} jersey  spark-unsafe`
     $JAVA ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS} -classpath ${KYLIN_TOMCAT_CLASSPATH}  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
 
     echo ""
@@ -200,10 +279,10 @@ elif [ "$1" == "stop" ]
 then
 
     columnarEnabled=`${dir}/get-properties.sh kap.storage.columnar.start-own-spark`
-    if [ "${columnarEnabled}" == "true" ]
-    then
-        ${dir}/spark-client.sh stop
-    fi
+#    if [ "${columnarEnabled}" == "true" ]
+#    then
+#        ${dir}/spark-client.sh stop
+#    fi
 
     if [ -f "${KYLIN_HOME}/pid" ]
     then

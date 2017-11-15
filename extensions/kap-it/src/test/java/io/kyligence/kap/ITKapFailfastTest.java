@@ -34,15 +34,25 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.junit.SparkTestRunnerWithParametersFactory;
+
 @RunWith(Parameterized.class)
+@Parameterized.UseParametersRunnerFactory(SparkTestRunnerWithParametersFactory.class)
+
 public class ITKapFailfastTest extends ITKapFailfastTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(ITKapFailfastTest.class);
 
+    public ITKapFailfastTest(boolean testRaw) throws Exception {
+        System.setProperty("sparder.enabled", "false");
+        ITKapFailfastTestBase.configure(testRaw);
+        setupAll();
+
+    }
+
     @BeforeClass
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapFailfastTest");
-        ITKapFailfastTestBase.setupAll();
 
     }
 
@@ -56,9 +66,5 @@ public class ITKapFailfastTest extends ITKapFailfastTestBase {
     @Parameterized.Parameters
     public static Collection<Object[]> configs() {
         return Arrays.asList(new Object[][] { { true }, { false } });
-    }
-
-    public ITKapFailfastTest(boolean testRaw) throws Exception {
-        ITKapFailfastTestBase.configure(testRaw);
     }
 }

@@ -45,8 +45,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.filter.MassinFilterManager;
 
 public class ITMassinFilterManagerTest extends KylinTestBase {
-    private MassinFilterManager manager;
     private static final String[] testStrings = new String[] { "Apple", "Banana", "Kylin" };
+    private MassinFilterManager manager;
 
     @BeforeClass
     public static void setupAll() throws Exception {

@@ -46,20 +46,22 @@ public class KapQueryAdvisor implements OLAPContext.IAccessController {
     // Check cost within calcite context, route to pushdown if cost is too high
     private void checkCalciteCost(List<OLAPContext> kylinContexts, KylinConfig config) {
         int calciteJoinThreshold = getCalciteJoinThreshold(config);
-        if (calciteJoinThreshold < 0)
+        if (calciteJoinThreshold < 0) {
             return;
+        }
 
         int nJoins = 0;
-        
+
         for (int i = 0; i < OLAPContext.getThreadLocalContexts().size(); i++) {
             OLAPContext ctx = OLAPContext.getThreadLocalContextById(i);
-            
-            if (kylinContexts.contains(ctx))
+
+            if (kylinContexts.contains(ctx)) {
                 continue;
-            
+            }
+
             nJoins += ctx.allOlapJoins.size();
         }
-        
+
         if (nJoins > calciteJoinThreshold) {
             throw new RoutingIndicatorException("Detect high calcite cost, " + nJoins + " joins exceeding threshold "
                     + calciteJoinThreshold + ", route to pushdown");
@@ -68,14 +70,14 @@ public class KapQueryAdvisor implements OLAPContext.IAccessController {
 
     private int getCalciteJoinThreshold(KylinConfig config) {
         KapConfig cfg = KapConfig.wrap(config);
-        
+
         int calciteJoinThreshold = cfg.getCalciteJoinThreshold();
-        
+
         if (BackdoorToggles.getToggle("markCastProjectRemoved") != null) {
             calciteJoinThreshold = 0;
             logger.debug("Backdoor toggle 'markCastProjectRemoved' detected, set calciteJoinThreshold=0");
         }
-        
+
         return calciteJoinThreshold;
     }
 }

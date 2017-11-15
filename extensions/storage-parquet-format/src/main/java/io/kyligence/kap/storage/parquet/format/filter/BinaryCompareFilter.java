@@ -93,7 +93,7 @@ public class BinaryCompareFilter implements BinaryFilter {
     }
 
     @Override
-    public boolean isMatch(byte[] value) {
+    public boolean isMatch(ByteArray value) {
         if (bytesIsNull(value, operandOff, operandLen)) {
             if (type == FilterOperatorEnum.ISNULL) {
                 return true;
@@ -176,12 +176,13 @@ public class BinaryCompareFilter implements BinaryFilter {
     }
 
     // Duplicate code for performance
-    private boolean bytesEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesEqual(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset,
+            int rightLength) {
         if (leftLength != rightLength) {
             return false;
         }
         for (int i = 0; i < leftLength; i++) {
-            if (left[leftOffset + i] != right[rightOffset + i]) {
+            if (left.get(leftOffset + i) != right[rightOffset + i]) {
                 return false;
             }
         }
@@ -190,22 +191,22 @@ public class BinaryCompareFilter implements BinaryFilter {
         return true;
     }
 
-    private boolean bytesLessThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesLessThan(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
         return bytesLessConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, false);
     }
 
-    private boolean bytesLessThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesLessThanEqual(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
         return bytesLessConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, true);
     }
 
-    private boolean bytesLessConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
+    private boolean bytesLessConsiderEqual(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
         if (leftLength != rightLength) {
             return false;
         }
 
         for (int i = 0; i < leftLength; i++) {
-            if (left[leftOffset + i] != right[rightOffset + i]) {
-                if (toUnsignedInt(left[leftOffset + i]) < toUnsignedInt(right[rightOffset + i])) {
+            if (left.get(leftOffset + i) != right[rightOffset + i]) {
+                if (toUnsignedInt(left.get(leftOffset + i)) < toUnsignedInt(right[rightOffset + i])) {
                     return true;
                 } else {
                     return false;
@@ -216,22 +217,22 @@ public class BinaryCompareFilter implements BinaryFilter {
         return equalRetVal;
     }
 
-    private boolean bytesGreaterThan(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesGreaterThan(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
         return byteGreaterConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, false);
     }
 
-    private boolean bytesGreaterThanEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
+    private boolean bytesGreaterThanEqual(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength) {
         return byteGreaterConsiderEqual(left, leftOffset, leftLength, right, rightOffset, rightLength, true);
     }
 
-    private boolean byteGreaterConsiderEqual(byte[] left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
+    private boolean byteGreaterConsiderEqual(ByteArray left, int leftOffset, int leftLength, byte[] right, int rightOffset, int rightLength, boolean equalRetVal) {
         if (leftLength != rightLength) {
             return false;
         }
 
         for (int i = 0; i < leftLength; i++) {
-            if (left[leftOffset + i] != right[rightOffset + i]) {
-                if (toUnsignedInt(left[leftOffset + i]) > toUnsignedInt(right[rightOffset + i])) {
+            if (left.get(leftOffset + i) != right[rightOffset + i]) {
+                if (toUnsignedInt(left.get(leftOffset + i)) > toUnsignedInt(right[rightOffset + i])) {
                     return true;
                 } else {
                     return false;
@@ -242,7 +243,7 @@ public class BinaryCompareFilter implements BinaryFilter {
         return equalRetVal;
     }
 
-    private boolean bytesIn(byte[] left, int leftOffset, int leftLength, List<byte[]> right, int rightOffset, int rightLength) {
+    private boolean bytesIn(ByteArray left, int leftOffset, int leftLength, List<byte[]> right, int rightOffset, int rightLength) {
         if (candidate == null) {
             candidate = Sets.newHashSet();
             for (byte[] r : right) {
@@ -250,12 +251,12 @@ public class BinaryCompareFilter implements BinaryFilter {
             }
         }
 
-        return candidate.contains(new ByteArray(left, leftOffset, leftLength));
+        return candidate.contains(new ByteArray(left.array(), left.offset() + leftOffset, leftLength));
     }
 
-    private boolean bytesIsNull(byte[] left, int leftOffset, int leftLength) {
+    private boolean bytesIsNull(ByteArray left, int leftOffset, int leftLength) {
         for (int i = 0; i < leftLength; i++) {
-            if (left[leftOffset + i] != (byte) 0xff) {
+            if (left.get(leftOffset + i) != (byte) 0xff) {
                 return false;
             }
         }

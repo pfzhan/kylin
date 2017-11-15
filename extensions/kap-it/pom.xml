@@ -21,6 +21,7 @@
         <fastBuildMode/>
         <kylin.engine/>
         <kylin.storage/>
+        <sparder.enabled/>
     </properties>
 
     <!-- Dependencies. -->
@@ -57,7 +58,15 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-tool</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
@@ -135,11 +144,11 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-storage-parquet</artifactId>
-            <type>test-jar</type>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>io.kyligence.kap</groupId>-->
+            <!--<artifactId>kap-storage-parquet</artifactId>-->
+            <!--<type>test-jar</type>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-it</artifactId>
@@ -301,13 +310,27 @@
             <artifactId>kafka_2.11</artifactId>
             <scope>provided</scope>
         </dependency>
-
+        <!--<dependency>-->
+            <!--<groupId>org.apache.spark</groupId>-->
+            <!--<artifactId>spark-core_2.11</artifactId>-->
+            <!--<scope>provided</scope>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>org.apache.spark</groupId>-->
+            <!--<artifactId>spark-yarn_2.11</artifactId>-->
+            <!--<version>2.1.1</version>-->
+            <!--<scope>provided</scope>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>org.apache.spark</groupId>-->
+            <!--<artifactId>spark-sql_2.11</artifactId>-->
+            <!--<scope>provided</scope>-->
+        <!--</dependency>-->
         <dependency>
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-core_2.11</artifactId>
-            <scope>provided</scope>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <scope>compile</scope>
         </dependency>
-
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
@@ -315,7 +338,6 @@
             <!--MRUnit relies on older version of mockito, so cannot manage it globally-->
             <version>${mockito.version}</version>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -340,9 +362,13 @@
                         </execution>
                     </executions>
                     <configuration>
+                        <environmentVariables>
+                            <hdp.version>current</hdp.version>
+                        </environmentVariables>
                         <excludes>
                             <exclude>**/*$*</exclude>
                         </excludes>
+                        <reuseForks>false</reuseForks>
                         <systemProperties>
                             <property>
                                 <name>log4j.configuration</name>
@@ -351,7 +377,7 @@
                                 </value>
                             </property>
                         </systemProperties>
-                        <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M</argLine>
+                        <argLine>-Xms1G -Xmx2G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current</argLine>
                     </configuration>
                 </plugin>
 
@@ -367,6 +393,9 @@
                             </goals>
                             <phase>pre-integration-test</phase>
                             <configuration>
+                                <environmentVariables>
+                                    <hdp.version>current</hdp.version>
+                                </environmentVariables>
                                 <skip>${skipTests}</skip>
                                 <classpathScope>test</classpathScope>
                                 <executable>java</executable>
@@ -375,6 +404,7 @@
                                     <argument>-DfastBuildMode=${fastBuildMode}</argument>
                                     <argument>-Dkylin.engine=${kylin.engine}</argument>
                                     <argument>-Dkylin.storage=${kylin.storage}</argument>
+                                    <argument>-Dsparder.enabled=${sparder.enabled}</argument>
                                     <argument>
                                         -Dlog4j.configuration=file:${project.basedir}/../../build/conf/kylin-tools-log4j.properties
                                     </argument>
@@ -415,40 +445,6 @@
                                     <argument>${profile.id}</argument>
                                 </arguments>
                                 <workingDirectory>${project.basedir}</workingDirectory>
-                            </configuration>
-                        </execution>
-
-                        <execution>
-                            <id>start_spark</id>
-                            <goals>
-                                <goal>exec</goal>
-                            </goals>
-                            <phase>pre-integration-test</phase>
-                            <configuration>
-                                <skip>${skipTests}</skip>
-                                <executable>build/bin/spark-client.sh</executable>
-                                <commandlineArgs>start</commandlineArgs>
-                                <environmentVariables>
-                                    <CI_MODE>true</CI_MODE>
-                                </environmentVariables>
-                                <workingDirectory>${project.basedir}/../../</workingDirectory>
-                            </configuration>
-                        </execution>
-
-                        <execution>
-                            <id>stop_spark</id>
-                            <goals>
-                                <goal>exec</goal>
-                            </goals>
-                            <phase>post-integration-test</phase>
-                            <configuration>
-                                <skip>${skipTests}</skip>
-                                <executable>build/bin/spark-client.sh</executable>
-                                <commandlineArgs>stop</commandlineArgs>
-                                <environmentVariables>
-                                    <CI_MODE>true</CI_MODE>
-                                </environmentVariables>
-                                <workingDirectory>${project.basedir}/../../</workingDirectory>
                             </configuration>
                         </execution>
                     </executions>

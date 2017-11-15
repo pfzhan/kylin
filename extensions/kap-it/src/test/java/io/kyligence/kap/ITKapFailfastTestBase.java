@@ -30,7 +30,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.metadata.realization.RealizationType;
-import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.routing.Candidate;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -46,15 +45,9 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 @Ignore("Contained by ITKapFailfastTest")
-public class ITKapFailfastTestBase extends KylinTestBase {
+public class ITKapFailfastTestBase extends KapTestBase {
 
     private static final Logger logger = LoggerFactory.getLogger(ITKapFailfastTestBase.class);
-
-    //inherit query tests from ITKylinQueryTest
-    protected String getQueryFolderPrefix() {
-        return "../../kylin/kylin-it/";
-    }
-
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -98,16 +91,21 @@ public class ITKapFailfastTestBase extends KylinTestBase {
         setupAll();
     }
 
-    @After
-    public void cleanUp() {
-        QueryContext.reset();
-    }
-
     @AfterClass
     public static void tearDown() throws Exception {
         logger.info("tearDown in ITKapKylinQueryTest");
         Candidate.restorePriorities();
         clean();
+    }
+
+    //inherit query tests from ITKylinQueryTest
+    protected String getQueryFolderPrefix() {
+        return "../../kylin/kylin-it/";
+    }
+
+    @After
+    public void cleanUp() {
+        QueryContext.reset();
     }
 
     @Test

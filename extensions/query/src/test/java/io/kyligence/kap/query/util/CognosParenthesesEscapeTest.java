@@ -84,7 +84,7 @@ public class CognosParenthesesEscapeTest {
     public void proguardTest() throws IOException {
         CognosParenthesesEscape escape = new CognosParenthesesEscape();
         Collection<File> files = FileUtils.listFiles(new File("../../kylin/kylin-it/src/test/resources"),
-                new String[] { "sql" }, true);
+                new String[] {"sql"}, true);
         for (File f : files) {
             System.out.println("checking " + f.getAbsolutePath());
             String query = FileUtils.readFileToString(f, Charset.defaultCharset());

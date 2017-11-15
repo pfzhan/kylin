@@ -33,6 +33,6 @@
     <Valve className="org.apache.catalina.valves.CometConnectionManagerValve" />
     -->
 
-    <Loader loaderClass="io.kyligence.kap.ext.CustomizedWebappClassloader"/>
+    <Loader loaderClass="io.kyligence.kap.ext.classloader.TomcatClassLoader"/>
 
 </Context>

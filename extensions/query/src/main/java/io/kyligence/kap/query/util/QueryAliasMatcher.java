@@ -74,6 +74,20 @@ public class QueryAliasMatcher {
 
     public final static ColumnRowType SUBQUERY_TAG = new ColumnRowType(null);
 
+
+    //    public String translateImplicitComputedColumns(DataModelDesc model, String sql) throws SqlParseException {
+    //        SqlNode parsed = CalciteParser.parse(sql);
+    //        SqlSelectFinder sqlSelectFinder = new SqlSelectFinder();
+    //        parsed.accept(sqlSelectFinder);
+    //        List<SqlSelect> selects = sqlSelectFinder.getSubqueries();
+    //        for (SqlSelect sqlSelect : selects) {
+    //            QueryAliasInfo queryAliasInfo = getAliasInfo(sqlSelect, model);
+    //        }
+    //
+    //        return null;
+    //    }
+
+
     //capture all the join within a SqlSelect's from clause, won't go into any subquery
     class SqlJoinCapturer extends SqlBasicVisitor<SqlNode> {
         private List<JoinDesc> joinDescs;
@@ -143,7 +157,7 @@ public class QueryAliasMatcher {
 
             List<SqlNode> operandList = call.getOperandList();
             // if it's a join, the last element is "condition".
-            // skip its part as it may also contain SqlIdentifier(representing condition column), 
+            // skip its part as it may also contain SqlIdentifier(representing condition column),
             // which is hard to tell from SqlIdentifier representing join tables (without AS)
             List<SqlNode> operands = call instanceof SqlJoin ? operandList.subList(0, operandList.size() - 1)
                     : operandList;
@@ -169,8 +183,9 @@ public class QueryAliasMatcher {
                             join.getJoinType().toString());
                     join.getCondition().accept(joinConditionCapturer);
                     JoinDesc joinDesc = joinConditionCapturer.getJoinDescs();
-                    if (joinDesc.getForeignKey().length != 0)
+                    if (joinDesc.getForeignKey().length != 0) {
                         joinDescs.add(joinDesc);
+                    }
                 } else {
                     throw new IllegalArgumentException("join condition should be SqlBasicCall");
                 }

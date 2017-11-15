@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.query.relnode.KapFilterRel;
+import io.kyligence.kap.query.relnode.KapJoinRel;
+import io.kyligence.kap.query.relnode.KapRel;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -43,9 +46,6 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.util.ImmutableIntList;
-import org.apache.kylin.query.relnode.OLAPFilterRel;
-import org.apache.kylin.query.relnode.OLAPJoinRel;
-import org.apache.kylin.query.relnode.OLAPRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,7 +58,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
     public static final ConverterRule INSTANCE = new KapJoinRule();
 
     public KapJoinRule() {
-        super(LogicalJoin.class, Convention.NONE, OLAPRel.CONVENTION, "KapJoinRule");
+        super(LogicalJoin.class, Convention.NONE, KapRel.CONVENTION, "KapJoinRule");
     }
 
     @Override
@@ -67,7 +67,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         RelNode left = join.getInput(0);
         RelNode right = join.getInput(1);
 
-        RelTraitSet traitSet = join.getTraitSet().replace(OLAPRel.CONVENTION);
+        RelTraitSet traitSet = join.getTraitSet().replace(KapRel.CONVENTION);
         left = convert(left, traitSet);
         right = convert(right, traitSet);
 
@@ -75,7 +75,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         // handle powerbi inner join, see https://github.com/Kyligence/KAP/issues/1823
         Join tmpJoin = transformJoinCondition(join, info, traitSet, left, right);
-        if (tmpJoin instanceof OLAPJoinRel) {
+        if (tmpJoin instanceof KapJoinRel) {
             return tmpJoin;
         }
 
@@ -88,7 +88,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         RelNode newRel;
         RelOptCluster cluster = join.getCluster();
         try {
-            newRel = new OLAPJoinRel(cluster, traitSet, left, right, //
+            newRel = new KapJoinRel(cluster, traitSet, left, right, //
                     info.getEquiCondition(left, right, cluster.getRexBuilder()), //
                     info.leftKeys, info.rightKeys, join.getVariablesSet(), join.getJoinType());
         } catch (InvalidRelException e) {
@@ -98,14 +98,14 @@ public class KapJoinRule extends ConverterRule implements IKeep {
             // return null;
         }
         if (!info.isEqui()) {
-            newRel = new OLAPFilterRel(cluster, newRel.getTraitSet(), newRel,
+            newRel = new KapFilterRel(cluster, newRel.getTraitSet(), newRel,
                     info.getRemaining(cluster.getRexBuilder()));
         }
         return newRel;
     }
 
     private Join transformJoinCondition(LogicalJoin join, JoinInfo info, RelTraitSet traitSet, RelNode left,
-            RelNode right) {
+                                        RelNode right) {
         List<RexInputRef> refs = isPowerBiInnerJoin(info);
         if (refs == null) {
             return join;
@@ -121,7 +121,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         JoinInfo newInfo = JoinInfo.of(ImmutableIntList.of(leftIndex), ImmutableIntList.of(rightIndex));
         try {
-            return new OLAPJoinRel(cluster, traitSet, left, right,
+            return new KapJoinRel(cluster, traitSet, left, right,
                     newInfo.getEquiCondition(left, right, cluster.getRexBuilder()), newInfo.leftKeys, newInfo.rightKeys,
                     join.getVariablesSet(), join.getJoinType());
         } catch (InvalidRelException e) {

@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.provision;
 
+import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentRange.TSRange;
@@ -43,7 +48,17 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
     public static void main(String[] args) throws Exception {
         try {
             beforeClass();
+            File spark_home = new File(System.getenv("SPARK_HOME") + "/jars");
 
+            ClassUtil.addClasspath(spark_home.getAbsolutePath());
+            File[] files = spark_home.listFiles();
+            for (File file : files) {
+                URLClassLoader urlClassLoader = (URLClassLoader) ClassLoader.getSystemClassLoader();
+                Class<URLClassLoader> urlClass = URLClassLoader.class;
+                Method method = urlClass.getDeclaredMethod("addURL", new Class[] { URL.class });
+                method.setAccessible(true);
+                method.invoke(urlClassLoader, new Object[] { file.toURI().toURL() });
+            }
             BuildCubeWithEngine buildCubeWithEngine = new BuildCubeWithEngine();
             buildCubeWithEngine.before();
             buildCubeWithEngine.build();

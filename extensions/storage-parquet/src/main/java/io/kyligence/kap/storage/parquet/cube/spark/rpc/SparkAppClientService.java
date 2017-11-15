@@ -125,9 +125,9 @@ public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase imp
                     logger.warn(
                             "Current JavaSparkContext(started at {} GMT) is found to be stopped, creating a new one",
                             DateFormat.formatToTimeStr(sc.startTime()));
-                    sc = new JavaSparkContext(conf);
                     semaphore = new Semaphore(
                             (int) KapPushDownUtil.memoryStringToMegas(this.conf.get("spark.driver.memory")) / 2);
+                    sc = new JavaSparkContext(conf);
                     sqlClient = new SparkSqlClient(sc, semaphore);
                 }
             }
