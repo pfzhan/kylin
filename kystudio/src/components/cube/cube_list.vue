@@ -79,10 +79,13 @@
     </el-table-column>
     <el-table-column
       :label="$t('sourceRecords')"
-      sortable
+      sortable align="right"
       show-overflow-tooltip
-      prop="input_records_count">
-      <template scope="scope">{{scope.row.input_records_count | readableNumber}} </template>>
+      prop="input_records_count"
+      >
+      <template scope="scope">
+        <span class="ksd-mr-20">{{scope.row.input_records_count | readableNumber}} </span>
+      </template> 
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
