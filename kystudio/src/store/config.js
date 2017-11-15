@@ -13,7 +13,10 @@ export default {
       boolean: 'booleanTip',
       orderedbytes: 'orderedbytesTip'
     },
-    defaultConfig: {},
+    defaultConfig: {
+      cube: {},
+      project: {}
+    },
     layoutConfig: {
       briefMenu: localStorage.getItem('menu_type'),
       gloalProjectSelectShow: true
@@ -34,17 +37,17 @@ export default {
     loginKyaccountDialog: false
   },
   mutations: {
-    [types.SAVE_DEFAULT_CONFIG]: function (state, { list }) {
-      state.defaultConfig = list
+    [types.SAVE_DEFAULT_CONFIG]: function (state, { list, type }) {
+      state.defaultConfig[type] = list
     },
     [types.SAVE_HIDDEN_FEATURE]: function (state, {value, name}) {
       state.hiddenFeature[name] = value
     }
   },
   actions: {
-    [types.LOAD_DEFAULT_CONFIG]: function ({ commit }) {
-      return api.config.getDefaults().then((response) => {
-        commit(types.SAVE_DEFAULT_CONFIG, { list: response.data.data })
+    [types.LOAD_DEFAULT_CONFIG]: function ({ commit }, type) {
+      return api.config.getDefaults(type).then((response) => {
+        commit(types.SAVE_DEFAULT_CONFIG, { type: type, list: response.data.data })
       })
     },
     [types.LOAD_HIDDEN_FEATURE]: function ({ commit }, feature) {

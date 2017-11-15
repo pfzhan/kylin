@@ -46,23 +46,32 @@ public class ConfigServiceTest extends LocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetKylinDefaultConfigs() {
+    public void testGetKylinDefaultScopeConfigs() {
         System.clearProperty("kap.version");
         ConfigService configService = new ConfigService();
-        Map<String, String> result = configService.getDefaultConfigMap();
+        Map<String, String> result = configService.getDefaultConfigMap("cube");
         System.out.println(result);
         Assert.assertEquals(12, result.size());
         Assert.assertTrue(result.containsKey("kylin.storage.hbase.compression-codec"));
         Assert.assertEquals("snappy", result.get("kylin.storage.hbase.compression-codec"));
+
+        result = configService.getDefaultConfigMap("project");
+        System.out.println(result);
+        Assert.assertEquals(1, result.size());
     }
 
     @Test
-    public void testGetKAPPlusDefaultConfigs() {
+    public void testGetKAPPlusDefaultScopeConfigs() {
         System.setProperty("kap.version", "KAP Plus");
         ConfigService configService = new ConfigService();
-        Map<String, String> result = configService.getDefaultConfigMap();
+        Map<String, String> result = configService.getDefaultConfigMap("cube");
+        System.out.println(result);
         Assert.assertEquals(8, result.size());
         Assert.assertFalse(result.containsKey("kylin.storage.hbase.max-region-count"));
+
+        result = configService.getDefaultConfigMap("project");
+        System.out.println(result);
+        Assert.assertEquals(1, result.size());
         System.clearProperty("kap.version");
     }
 }

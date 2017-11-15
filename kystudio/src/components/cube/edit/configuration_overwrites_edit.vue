@@ -161,7 +161,7 @@ export default {
       this.hiveConvertedProperties.splice(index, 1)
     },
     initProperty: function () {
-      let defaultConfigs = fromObjToArr(this.$store.state.config.defaultConfig)
+      let defaultConfigs = fromObjToArr(this.$store.state.config.defaultConfig.cube)
       defaultConfigs.forEach((config) => {
         this.convertedProperties.push({checked: false, key: config.key, value: config.value, isDefault: true})
       })
@@ -192,7 +192,7 @@ export default {
     }
   },
   created: function () {
-    this.loadConfig().then(() => {
+    this.loadConfig('cube').then(() => {
       this.initProperty()
     })
   },

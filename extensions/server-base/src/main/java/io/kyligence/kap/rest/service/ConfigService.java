@@ -72,32 +72,54 @@ public class ConfigService extends BasicService {
             "kylin.query.disable-cube-noagg-sql", //
     };
 
-    public Map<String, String> getDefaultConfigMap() {
-        if (System.getProperty("kap.version") != null && System.getProperty("kap.version").contains("Plus")) {
-            return getDefaultKAPPlusConfigMap();
+    private static final String[] projectLevelKylinExposedKeys = new String[] { //
+            "kylin.query.force-limit", //
+    };
+
+    private static final String[] projectLevelKAPPlusExposedKeys = new String[] { //
+            "kylin.query.force-limit", //
+    };
+
+    public Map<String, String> getDefaultConfigMap(String scopeType) {
+        if (isKAPPlusVersion()) {
+            return getDefaultKAPPlusConfigMap(scopeType);
         } else {
-            return getDefaultKylinConfigMap();
+            return getDefaultKylinConfigMap(scopeType);
         }
     }
 
-    private Map<String, String> getDefaultKylinConfigMap() {
+    private Map<String, String> getDefaultKAPPlusConfigMap(String scopeType) {
         Properties allKylinProps = getAllKylinProperties();
 
-        // Keep same order with key
-        Map<String, String> result = Maps.newLinkedHashMap();
-        for (String key : cubeLevelKylinExposedKeys) {
+        Map<String, String> result = Maps.newHashMap();
+
+        String[] keys = cubeLevelKAPPlusExposedKeys;
+        if (scopeType.equalsIgnoreCase("cube")) {
+            keys = cubeLevelKAPPlusExposedKeys;
+        } else if (scopeType.equalsIgnoreCase("project")) {
+            keys = projectLevelKAPPlusExposedKeys;
+        }
+
+        for (String key : keys) {
             result.put(key, allKylinProps.getProperty(key));
         }
 
         return result;
     }
 
-    private Map<String, String> getDefaultKAPPlusConfigMap() {
+    private Map<String, String> getDefaultKylinConfigMap(String scopeType) {
         Properties allKylinProps = getAllKylinProperties();
 
-        // Keep same order with key
-        Map<String, String> result = Maps.newLinkedHashMap();
-        for (String key : cubeLevelKAPPlusExposedKeys) {
+        Map<String, String> result = Maps.newHashMap();
+
+        String[] keys = cubeLevelKylinExposedKeys;
+        if (scopeType.equalsIgnoreCase("cube")) {
+            keys = cubeLevelKylinExposedKeys;
+        } else if (scopeType.equalsIgnoreCase("project")) {
+            keys = projectLevelKylinExposedKeys;
+        }
+
+        for (String key : keys) {
             result.put(key, allKylinProps.getProperty(key));
         }
 
@@ -122,5 +144,9 @@ public class ConfigService extends BasicService {
         KapConfig kapConfig = KapConfig.getInstanceFromEnv();
         SparkDriverClient driverClient = new SparkDriverClient(kapConfig);
         return driverClient.getSparkConf(confName);
+    }
+
+    private boolean isKAPPlusVersion() {
+        return System.getProperty("kap.version") != null && System.getProperty("kap.version").contains("Plus");
     }
 }

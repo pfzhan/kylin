@@ -39,6 +39,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -62,20 +63,12 @@ public class ConfigController extends BasicController {
     @Qualifier("configService")
     private ConfigService configService;
 
-    @RequestMapping(value = "default", method = { RequestMethod.GET }, produces = {
+    @RequestMapping(value = "defaults/{scopeType}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getDefaultValue(@RequestParam("key") String key) {
+    public EnvelopeResponse getDefaultConfigs(@PathVariable String scopeType) {
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap().get(key), "");
-    }
-
-    @RequestMapping(value = "defaults", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getDefaultConfigs() {
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap(), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, configService.getDefaultConfigMap(scopeType), "");
     }
 
     /**

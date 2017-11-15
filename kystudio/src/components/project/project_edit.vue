@@ -30,6 +30,7 @@
 </div>
 </template>
 <script>
+import { mapActions } from 'vuex'
 import { fromObjToArr, fromArrToObj } from '../../util/index'
 export default {
   name: 'project_edit',
@@ -46,6 +47,9 @@ export default {
     }
   },
   methods: {
+    ...mapActions({
+      loadConfig: 'LOAD_DEFAULT_CONFIG'
+    }),
     validateProjectName (rule, value, callback) {
       if (value === '') {
         callback(new Error(this.$t('noProject')))
@@ -86,15 +90,31 @@ export default {
         }
       }
       return alertMessage
+    },
+    initProperty: function () {
+      let defaultConfigs = fromObjToArr(this.$store.state.config.defaultConfig.project)
+      defaultConfigs.forEach((config) => {
+        this.convertedProperties.push({key: config.key, value: config.value})
+      })
     }
   },
   watch: {
     visible (visible) {
       this.projectDesc = Object.assign({}, this.project)
       this.convertedProperties = fromObjToArr(this.projectDesc.override_kylin_properties)
+      if (!this.isEdit) {
+        this.loadConfig('project').then(() => {
+          this.initProperty()
+        })
+      }
     }
   },
   created () {
+    if (!this.isEdit) {
+      this.loadConfig('project').then(() => {
+        this.initProperty()
+      })
+    }
     this.$on('projectFormValid', (t) => {
       this.$refs['projectForm'].validate((valid) => {
         if (valid) {

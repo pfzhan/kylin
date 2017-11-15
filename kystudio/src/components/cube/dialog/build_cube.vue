@@ -99,7 +99,6 @@ export default {
       let segLength = this.mpValuesList[mpIndex].cube.segments.length
       if (segLength > 0) {
         this.timeZone.startDate = transToUtcTimeFormat(this.mpValuesList[mpIndex].cube.segments[segLength - 1].date_range_end, true)
-        console.log(this.timeZone.startDate)
       }
     },
     validateStartDate: function (rule, value, callback) {
