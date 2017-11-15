@@ -9,7 +9,7 @@
 <!--     </draggable> -->
     </div>
     <ul class="sample_info">
-      <li><icon name="dimension"></icon> <span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
+      <li><span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
       <li><span class="iconM">M </span><span class="info">{{$t('kylinLang.common.measure')}}</span></li>
       <li><span class="iconDis">－ </span><span class="info">{{$t('kylinLang.common.disable')}}</span></li>
     </ul>
