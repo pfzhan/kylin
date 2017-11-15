@@ -132,7 +132,7 @@ export default {
       })
     },
     loadUsers (filterName) {
-      var para = {pageSize: 200, pageOffset: 0, project: localStorage.getItem('selected_project')}
+      var para = {pageSize: 100000, pageOffset: 0, project: localStorage.getItem('selected_project')}
       this.loadUsersList(para)
     },
     assignUsers (group) {

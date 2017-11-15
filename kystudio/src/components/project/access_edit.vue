@@ -321,8 +321,8 @@ export default {
     }
   },
   created () {
+    this.loadAccess()
     if (this.hasProjectAdminPermission() || this.isAdmin) {
-      this.loadAccess()
       this.loadAllGroups()
       this.loadUsersList({pageSize: 10000, pageOffset: 0, project: this.projectName})
     }
