@@ -166,7 +166,7 @@ export default {
       return this.cubeDesc.desc.aggregation_groups && this.cubeDesc.desc.aggregation_groups[0].select_rule.dim_cap || 0
     },
     strategy () {
-      if (this.cubeDesc.desc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'auto') {
+      if (this.cubeDesc.desc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'auto' || this.cubeDesc.desc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
         return 'defaultOriented'
       } else if (this.cubeDesc.desc.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'default') {
         return 'dataOriented'

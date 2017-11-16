@@ -818,7 +818,7 @@ export default {
           if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy']) {
             this.$set(this.cubeDetail.override_kylin_properties, 'kap.smart.conf.aggGroup.strategy', 'auto')
           }
-          if (!this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
+          if (this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] === 'mixed') {
             this.cubeDetail.override_kylin_properties['kap.smart.conf.aggGroup.strategy'] = 'auto'
           }
           this.oldData.oldDimensions = objectClone(this.cubeDetail.dimensions)

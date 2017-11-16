@@ -121,7 +121,7 @@
         :closable="false"
         type="warning">
       </el-alert>
-       <el-table class="ksd-ml-20" v-if="modelStatics && modelStatics.length>1"
+       <el-table class="ksd-ml-20 ksd-mt-10" v-if="modelStatics && modelStatics.length>1"
           :data="modelStatics.slice(1)"
           border>
           <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
@@ -377,11 +377,14 @@ export default {
     background-color: rgb(41, 43, 56);
     position: absolute;
     bottom:-51px;
-    top:-82px;
+    top:-73px;
     margin-top: 52px;
   }
   .el-input{
     padding: 0;
+  }
+  .el-table--border {
+    border: 1px solid #292b38;
   }
 }
 </style>
