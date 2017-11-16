@@ -295,7 +295,7 @@
         if (uuid && !curProjectId[uuid]) {
           let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
           let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-          Promise.All([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
+          Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
             this._replaceRouter(currentPath)
           })
         } else {
