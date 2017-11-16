@@ -128,7 +128,7 @@ public class RawTableManager implements IRealizationProvider {
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
             for (IRealization real : ProjectManager.getInstance(config).listAllRealizations(project)) {
                 if (real instanceof RawTableInstance) {
-                    reloadRawTableInstanceLocal(real.getName());
+                    reloadRawTableInstanceLocalSilently(real.getName());
                 }
             }
         }
@@ -142,7 +142,7 @@ public class RawTableManager implements IRealizationProvider {
 
             String rawTableName = cacheKey;
 
-            reloadRawTableInstanceLocal(rawTableName);
+            reloadRawTableInstanceLocalSilently(rawTableName);
 
             for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(RealizationType.INVERTED_INDEX,
                     rawTableName)) {
@@ -160,9 +160,9 @@ public class RawTableManager implements IRealizationProvider {
             if (event == Event.DROP)
                 return;
 
-            //By design. Make rawtable be consistence with cube, but only in cache. In merge step, rawtable' segment info in hbase is still useful.
+            //By design. Make rawtable be consistent with cube, but only in cache. In merge step, rawtable segment info in hbase is still useful.
             if (rawTableInstanceMap.containsKey(cubeName)) {
-                reloadRawTableInstanceLocal(cubeName);
+                reloadRawTableInstanceLocalSilently(cubeName);
             }
         }
     }
@@ -183,17 +183,33 @@ public class RawTableManager implements IRealizationProvider {
      * Reload RawTableInstance from resource store. Triggered by an instance update event.
      */
     public RawTableInstance reloadRawTableInstanceLocal(String name) throws IOException {
+        return reloadRawTableInstanceLocalAt(RawTableInstance.concatResourcePath(name));
+    }
 
-        // Save Source
-        String path = RawTableInstance.concatResourcePath(name);
+    public void reloadRawTableInstanceLocalSilently(String name) throws IOException {
+        try {
+            reloadRawTableInstanceLocalAt(RawTableInstance.concatResourcePath(name));
+        } catch (Exception ex) {
+            logger.error("Error loading RawTableInstance " + name, ex);
+        }
+    }
+
+    private RawTableInstance reloadRawTableInstanceLocalAt(String path) throws IOException {
 
         // Reload the RawTableInstance
         RawTableInstance instance = loadRawTableInstance(path);
 
-        // Keep consistence with cube
+        // Keep consistent with cube
         instance.validateSegments();
 
-        // Here replace the old one
+        if (path.equals(instance.getResourcePath()) == false) {
+            throw new RuntimeException("Skip suspicious instance at " + path + ", " + instance + " should be at "
+                    + instance.getResourcePath());
+        }
+        if (rawTableInstanceMap.containsKey(instance.getName())) {
+            throw new RuntimeException("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
+        }
+        
         rawTableInstanceMap.putLocal(instance.getName(), instance);
         return instance;
     }
@@ -261,29 +277,16 @@ public class RawTableManager implements IRealizationProvider {
         List<String> paths = store.collectResourceRecursively(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT,
                 MetadataConstants.FILE_SURFIX);
         for (String path : paths) {
-            RawTableInstance instance;
             try {
-                instance = loadRawTableInstance(path);
+                reloadRawTableInstanceLocalAt(path);
             } catch (Exception e) {
                 logger.error("Error loading RawTableInstance " + path, e);
-                continue;
             }
-            if (path.equals(instance.getResourcePath()) == false) {
-                logger.error("Skip suspicious instance at " + path + ", " + instance + " should be at "
-                        + instance.getResourcePath());
-                continue;
-            }
-            if (rawTableInstanceMap.containsKey(instance.getName())) {
-                logger.error("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
-                continue;
-            }
-            instance.validateSegments();
-            rawTableInstanceMap.putLocal(instance.getName(), instance);
         }
 
         logger.debug("Loaded " + rawTableInstanceMap.size() + " RawTableInstance(s)");
     }
-
+    
     public RawTableSegment appendSegment(RawTableInstance instance, CubeSegment seg) throws IOException {
         RawTableSegment segment = new RawTableSegment(instance);
         // TODO: segment.setUuid(UUID.randomUUID().toString());
