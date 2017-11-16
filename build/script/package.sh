@@ -45,10 +45,17 @@ else
 fi
 
 export PACKAGE_SPARK=1
+export SKIP_FRONT=0
 for PARAM in $@; do
     if [ "$PARAM" == "-noSpark" ]; then
         echo "Skip packaging Spark..."
         export PACKAGE_SPARK=0
+        shift
+    fi
+
+    if [[ "$PARAM" == "-skipFront" ]]; then
+        echo 'Skip install front-end dependencies...'
+        export SKIP_FRONT=1
         shift
     fi
 done
@@ -57,7 +64,6 @@ done
 for PARAM in $@; do
     if [ "$PARAM" == "cdh5.7" ]; then
         export MVN_PROFILE="cdh5.7"
-        shift 2
         break
     fi
 done
