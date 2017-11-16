@@ -471,7 +471,7 @@ export default {
         label: 'Cube',
         children: []
       }],
-      currentZoom: 0.7,
+      currentZoom: 0.8,
       currentDragDom: null,
       dateColumns: {},
       timeColumns: {},

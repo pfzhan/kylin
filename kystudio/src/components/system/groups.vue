@@ -18,7 +18,7 @@
       prop="first">
       <template scope="scope">
         <icon name="group" style="color: #d4d7e3;position: absolute;top:15px;" scale="0.8"></icon>
-        <span @click="addTab(scope.row.first, scope.row.second)" style="cursor:pointer" class="ksd-ml-20">{{scope.row.first}}</span>
+        <span @click="addTab(scope.row.first, scope.row.second)"  style="cursor:pointer;" class="ksd-ml-20 underline">{{scope.row.first}}</span>
       </template>
     </el-table-column>
     <el-table-column
@@ -249,6 +249,11 @@ export default {
 <style lang="less">
 @import '../../less/config.less';
 .group-list{
+  .underline{
+    &:hover{
+      text-decoration: underline;
+    }
+  }
   margin: 0 30px 0 30px;
   .table_margin {
     margin-top: 20px;
