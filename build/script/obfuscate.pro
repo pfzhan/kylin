@@ -49,6 +49,17 @@
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient {*;}
 -keep class io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl {*;}
 -keep class * extends org.apache.kylin.common.util.AbstractApplication {*;}
+-keep class io.kyligence.kap.storage.parquet.ParquetSpliceStorage {*;}
+-keep class io.kyligence.kap.storage.parquet.ParquetStorage {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner  {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube  {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw  {*;}
+-keep class io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat  {*;}
+-keep class io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat {*;}
+-keep class io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat  {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.LongAccumulableParam  {*;}
+-keep class org.apache.spark.** {*;}
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;
 	public *;

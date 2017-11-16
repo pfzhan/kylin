@@ -46,7 +46,6 @@ import com.google.common.collect.Iterables;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import io.kyligence.kap.common.obf.IKeepClassMembers;
 import io.kyligence.kap.storage.parquet.adhoc.SparkSqlClient;
 import io.kyligence.kap.storage.parquet.adhoc.util.KapPushDownUtil;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.JobServiceGrpc;
@@ -54,7 +53,7 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobRequest;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos.SparkJobResponse;
 
-public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase implements IKeepClassMembers {
+public class SparkAppClientService extends JobServiceGrpc.JobServiceImplBase {
 
     public static final Logger logger = LoggerFactory.getLogger(SparkAppClientService.class);
 

@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
-import io.kyligence.kap.common.obf.IKeepClassMembers;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
@@ -60,8 +59,7 @@ import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputForm
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import scala.Tuple2;
 
-public class SparkExecutorPreAggFunction
-        implements IKeepClassMembers, FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
+public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
     private static final Logger logger = LoggerFactory.getLogger(SparkExecutorPreAggFunction.class);
 
     private final Accumulator<Long> scannedRecords;
