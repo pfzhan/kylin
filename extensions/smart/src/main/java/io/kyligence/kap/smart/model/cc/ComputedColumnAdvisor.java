@@ -25,31 +25,37 @@
 package io.kyligence.kap.smart.model.cc;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.util.Litmus;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class ComputedColumnAdvisor extends SqlBasicVisitor {
-    
-    private static Logger logger = LoggerFactory.getLogger(ComputedColumnAdvisor.class);
-    
-    private final static IAdviceRule[] registeredRules = new IAdviceRule[]{
-            new SumAvgRule(),
-            new ArrayItemRule()
-    };
-    
-    List<String> ccSuggestions = new ArrayList<>();
 
-    public List<String> suggestCandidate(String sql) {
+    private static Logger logger = LoggerFactory.getLogger(ComputedColumnAdvisor.class);
+
+    private final static IAdviceRule[] registeredRules = new IAdviceRule[] { 
+            new SumAvgRule(), 
+            new ArrayItemRule() 
+            };
+
+    Set<String> ccSuggestions = new HashSet<>();
+
+    public List<String> suggestCandidate(String sql, List<ComputedColumnDesc> existedCCs) {
         ccSuggestions.clear();
 
         SqlNode sqlNode;
@@ -57,12 +63,29 @@ public class ComputedColumnAdvisor extends SqlBasicVisitor {
             sqlNode = CalciteParser.parse(sql);
             sqlNode.accept(this);
         } catch (SqlParseException e) {
-            logger.error("Error in suggest Computed Column");
+            logger.error("Error in suggesting Computed Column", e);
         }
-        
-        return ccSuggestions;
+
+        if (existedCCs != null && !existedCCs.isEmpty()) {
+            // remove duplicated CC expression
+            for (ComputedColumnDesc cc : existedCCs) {
+                String ccExpr = cc.getInnerExpression();
+                SqlNode ccNode = CalciteParser.getExpNode(ccExpr);
+
+                Iterator<String> iterator = ccSuggestions.iterator();
+                while (iterator.hasNext()) {
+                    String ccSuggestion = iterator.next();
+                    SqlNode suggestedNode = CalciteParser.getExpNode(ccSuggestion);
+                    if (ccNode.equalsDeep(suggestedNode, Litmus.IGNORE)) {
+                        iterator.remove();
+                    }
+                }
+            }
+        }
+
+        return new ArrayList(ccSuggestions);
     }
-    
+
     @Override
     public Object visit(SqlIdentifier id) {
         return null;
@@ -77,7 +100,7 @@ public class ComputedColumnAdvisor extends SqlBasicVisitor {
                 return null;
             }
         }
-        
+
         return call.getOperator().acceptCall(this, call);
     }
 }

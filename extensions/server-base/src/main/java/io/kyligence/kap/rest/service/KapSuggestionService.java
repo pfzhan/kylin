@@ -52,6 +52,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.cube.CubeContext;
@@ -112,6 +113,11 @@ public class KapSuggestionService extends BasicService {
         CubeContext cubeContext = cubeMaster.getContext();
         List<SQLResult> results = cubeContext.getSqlResults();
         
+        List<ComputedColumnDesc> computedColumnDescs = null;
+        if (dataModelDesc instanceof KapModel) {
+            computedColumnDescs = ((KapModel) dataModelDesc).getComputedColumnDescs();
+        }
+        
         for (int i = 0; i < sampleSqls.size(); i++) {
             String sql = sampleSqls.get(i);
             SQLResult result = results.get(i);
@@ -119,8 +125,12 @@ public class KapSuggestionService extends BasicService {
                 continue;
             }
             
+            // Only CUBE_UNMATCHED_AGGREGATION error should provide CC suggestion
+            if (!result.getMessage().contains("CUBE_UNMATCHED_AGGREGATION")) {
+                continue;
+            }
             // Try add CC suggestion
-            List<String> ccSuggestion = new ComputedColumnAdvisor().suggestCandidate(sql);
+            List<String> ccSuggestion = new ComputedColumnAdvisor().suggestCandidate(sql, computedColumnDescs);
             if (ccSuggestion.isEmpty()) {
                 continue;
             }

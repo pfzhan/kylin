@@ -26,7 +26,7 @@ package io.kyligence.kap.smart.model.cc;
 
 import org.apache.calcite.sql.SqlCall;
 
-public interface IAdviceRule {
+interface IAdviceRule {
 
     abstract String matches(SqlCall call);
 

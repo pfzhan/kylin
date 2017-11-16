@@ -115,7 +115,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (SQLException e) {
             Assert.assertEquals(
-                    "No model found for rel#182:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_COUNTRY],ctx=,fields=[0, 1, 2, 3])",
+                    "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#182:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_COUNTRY],ctx=,fields=[0, 1, 2, 3])",
                     e.getCause().getMessage());
         }
 
@@ -125,7 +125,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
             QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
         } catch (SQLException e) {
             Assert.assertEquals(
-                    "No model found for rel#211:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_KYLIN_FACT],ctx=,fields=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])",
+                    "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#211:OLAPTableScan.OLAP.[](table=[DEFAULT, TEST_KYLIN_FACT],ctx=,fields=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])",
                     e.getCause().getMessage());
         }
 
