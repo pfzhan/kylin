@@ -168,8 +168,9 @@
               </el-table-column>
               <el-table-column style="border:none" :label="$t('kylinLang.common.action')" width="80" v-if="actionMode!=='view'">
                 <template scope="scope" >
-                  <confirm-btn  v-on:okFunc='delConnect(scope.row)' :tips="$t('kylinLang.common.confirmDel')"><el-button size="small"
-          type="danger">{{$t('kylinLang.common.drop')}}</el-button></confirm-btn>
+                  <el-button size="small" type="danger" @click="delConnect(scope.row)">
+                    {{$t('kylinLang.common.drop')}}
+                  </el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -3195,6 +3196,10 @@ export default {
     }
     .el-input.is-disabled .el-input__inner {
       background-color: #20222e;
+    }
+    .el-button--danger:hover {
+      background: #f44236;
+      border-color: #f44236;
     }
     .linksTable.el-table::after {
       background-color: #393e53;
