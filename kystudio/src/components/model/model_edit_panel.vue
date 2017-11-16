@@ -177,7 +177,9 @@ export default {
       needSetTime: true,
       hasSeparate: false,
       statistics: [],
-      ST: null
+      ST: null,
+      subMenuActive: this.activeNameSub
+      // menuActive: this.activeName
     }
   },
   components: {
@@ -346,9 +348,9 @@ export default {
     menuActive () {
       return this.activeName
     },
-    subMenuActive () {
-      return this.activeNameSub
-    },
+    // subMenuActive () {
+    //   return this.activeNameSub
+    // },
     currentModelInfo () {
       return this.modelInfo
     },
@@ -423,7 +425,7 @@ export default {
       this.resultMeasureArr = {}
       for (var k = 0, len = this.tableList && this.tableList.length || 0; k < len; k++) {
         this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].alias] || []
-        var mlen = this.tableList[k] && this.tableList[k].length || 0
+        var mlen = this.tableList[k].columns && this.tableList[k].columns.length || 0
         for (var m = 0; m < mlen; m++) {
           if (this.tableList[k].columns[m].btype === 'M') {
             // this.resultMeasureArr[this.tableList[k].alias] = this.resultMeasureArr[this.tableList[k].name] || []
