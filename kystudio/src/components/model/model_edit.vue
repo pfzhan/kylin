@@ -20,9 +20,10 @@
     <ul class="model_tool">
         <li class="toolbtn tool_add" @click="addZoom" v-unselect :title="$t('kylinLang.common.zoomIn')" style="line-height:38px;"><img src="../../assets/img/fd.png"></li>
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
+        <li style="background:none;font-size:14px;text-align:center;color:#99A9BF;">{{Math.ceil(currentZoom*100)}}%</li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
         <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
-        <li style="background:none;font-size:14px;text-align:center;color:#99A9BF;">{{Math.ceil(currentZoom*100)}}%</li>
+        
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -45,8 +46,8 @@
             <span>
               <icon name="ksd-order" v-on:click.native="sortColumns(table)"></icon>
             </span>
-             <span v-show="table.kind == 'ROOTFACT'" @click="inputSql">
-              <icon name="ksd-sql" v-on:click.native="sortColumns(table)"></icon>
+             <span v-show="table.kind == 'ROOTFACT'" @click="inputSql" style="padding-top:0;height:29px;">
+              SQL
             </span>
             <i class="fa fa-window-close"></i>
             <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
@@ -586,6 +587,7 @@ export default {
             this.editTableColumnInfo(tableInfo.guid, 'name', name, 'btype', bType)
           }
         })
+        this.closeMutiChecked(tableInfo)
       } else {
         this.$set(tableInfo, 'showUnSelectTip', true)
       }
@@ -603,6 +605,7 @@ export default {
             return true
           })
           this.suggestColumnDtype(tableInfo, needAutoSuggestList)
+          this.closeMutiChecked(tableInfo)
         }
       })
     },
