@@ -112,7 +112,7 @@
   <el-dialog :title="$t('kylinLang.common.group')" :visible.sync="addGroupDialog"  size="small" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form>
         <el-form-item >
-          <el-transfer filterable :titles="titles" v-model="selectedGroupList" :data="groupList"></el-transfer>
+          <el-transfer filterable :titles="[$t('willcheck'), $t('haschecked')]" v-model="selectedGroupList" :data="groupList"></el-transfer>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -140,7 +140,6 @@ export default {
       editRoleFormVisible: false,
       resetPasswordFormVisible: false,
       currentPage: 1,
-      titles: [this.$t('willcheck'), this.$t('haschecked')],
       adminSetting: {
         username: 'ADMIN',
         password: '',
