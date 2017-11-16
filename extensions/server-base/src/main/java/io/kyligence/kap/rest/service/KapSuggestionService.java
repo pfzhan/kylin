@@ -86,7 +86,12 @@ public class KapSuggestionService extends BasicService {
         CubeContext modelingContext = modelingMaster.getContext();
         cubeOptimizeLog.setSampleSqls(sampleSqls);
         cubeOptimizeLog.setQueryStats(modelingContext.getQueryStats());
-        cubeOptimizeLog.setSqlResult(Lists.newArrayList(modelingContext.getSqlResults()));
+
+        List<SQLResult> sqlResults = Lists.newArrayList();
+        if (modelingContext.getSqlResults() != null)
+            sqlResults.addAll(modelingContext.getSqlResults());
+
+        cubeOptimizeLog.setSqlResult(sqlResults);
         cubeOptimizeLogManager.saveCubeOptimizeLog(cubeOptimizeLog);
     }
 
