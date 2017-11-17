@@ -30,14 +30,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.retry.ExponentialBackoffRetry;
-import org.apache.curator.test.TestingServer;
-import org.apache.curator.utils.CloseableUtils;
-import org.apache.curator.x.discovery.ServiceDiscovery;
-import org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
-import org.apache.curator.x.discovery.ServiceInstance;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.junit.After;
@@ -51,6 +43,14 @@ import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFrameworkFactory;
+import io.kyligence.kap.shaded.curator.org.apache.curator.retry.ExponentialBackoffRetry;
+import io.kyligence.kap.shaded.curator.org.apache.curator.test.TestingServer;
+import io.kyligence.kap.shaded.curator.org.apache.curator.utils.CloseableUtils;
+import io.kyligence.kap.shaded.curator.org.apache.curator.x.discovery.ServiceDiscovery;
+import io.kyligence.kap.shaded.curator.org.apache.curator.x.discovery.ServiceDiscoveryBuilder;
+import io.kyligence.kap.shaded.curator.org.apache.curator.x.discovery.ServiceInstance;
 
 /**
  */
@@ -87,11 +87,14 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
         CuratorFramework curatorClient = null;
         try {
 
-            final CuratorScheduler.JsonInstanceSerializer<LinkedHashMap> serializer = new CuratorScheduler.JsonInstanceSerializer<>(LinkedHashMap.class);
-            String servicePath = String.format(CuratorScheduler.KYLIN_SERVICE_PATH, CuratorScheduler.slickMetadataPrefix(kylinConfig.getMetadataUrlPrefix()));
+            final CuratorScheduler.JsonInstanceSerializer<LinkedHashMap> serializer = new CuratorScheduler.JsonInstanceSerializer<>(
+                    LinkedHashMap.class);
+            String servicePath = String.format(CuratorScheduler.KYLIN_SERVICE_PATH,
+                    CuratorScheduler.slickMetadataPrefix(kylinConfig.getMetadataUrlPrefix()));
             curatorClient = CuratorFrameworkFactory.newClient(zkString, new ExponentialBackoffRetry(3000, 3));
             curatorClient.start();
-            serviceDiscovery = ServiceDiscoveryBuilder.builder(LinkedHashMap.class).client(curatorClient).basePath(servicePath).serializer(serializer).build();
+            serviceDiscovery = ServiceDiscoveryBuilder.builder(LinkedHashMap.class).client(curatorClient)
+                    .basePath(servicePath).serializer(serializer).build();
             serviceDiscovery.start();
 
             final ExampleServer server1 = new ExampleServer("localhost:1111");
@@ -100,18 +103,21 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
             Collection<String> serviceNames = serviceDiscovery.queryForNames();
             Assert.assertTrue(serviceNames.size() == 1);
             Assert.assertTrue(CuratorScheduler.SERVICE_NAME.equals(serviceNames.iterator().next()));
-            Collection<ServiceInstance<LinkedHashMap>> instances = serviceDiscovery.queryForInstances(CuratorScheduler.SERVICE_NAME);
+            Collection<ServiceInstance<LinkedHashMap>> instances = serviceDiscovery
+                    .queryForInstances(CuratorScheduler.SERVICE_NAME);
             Assert.assertTrue(instances.size() == 2);
             List<ServiceInstance<LinkedHashMap>> instancesList = Lists.newArrayList(instances);
 
-            final List<String> instanceNodes = Lists.transform(instancesList, new Function<ServiceInstance<LinkedHashMap>, String>() {
+            final List<String> instanceNodes = Lists.transform(instancesList,
+                    new Function<ServiceInstance<LinkedHashMap>, String>() {
 
-                @Nullable
-                @Override
-                public String apply(@Nullable ServiceInstance<LinkedHashMap> stringServiceInstance) {
-                    return (String) stringServiceInstance.getPayload().get(CuratorScheduler.SERVICE_PAYLOAD_DESCRIPTION);
-                }
-            });
+                        @Nullable
+                        @Override
+                        public String apply(@Nullable ServiceInstance<LinkedHashMap> stringServiceInstance) {
+                            return (String) stringServiceInstance.getPayload()
+                                    .get(CuratorScheduler.SERVICE_PAYLOAD_DESCRIPTION);
+                        }
+                    });
 
             Assert.assertTrue(instanceNodes.contains(server1.getAddress()));
             Assert.assertTrue(instanceNodes.contains(server2.getAddress()));
@@ -120,7 +126,8 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
             server1.close();
             instances = serviceDiscovery.queryForInstances(CuratorScheduler.SERVICE_NAME);
             Assert.assertTrue(instances.size() == 1);
-            Assert.assertEquals(server2.getAddress(), instances.iterator().next().getPayload().get(CuratorScheduler.SERVICE_PAYLOAD_DESCRIPTION));
+            Assert.assertEquals(server2.getAddress(),
+                    instances.iterator().next().getPayload().get(CuratorScheduler.SERVICE_PAYLOAD_DESCRIPTION));
 
             // all stop
             server2.close();

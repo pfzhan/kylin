@@ -33,6 +33,14 @@
             <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-external-curator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-external-curator-test</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <scope>provided</scope>
@@ -42,24 +50,6 @@
                     <artifactId>junit</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-recipes</artifactId>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.zookeeper</groupId>
-                    <artifactId>zookeeper</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-x-discovery</artifactId>
-            <!-- this jar was absent from hbase lib, we have to ship it.
-            Instead of using compile scope, we choose to copy the jar into ext due to #1251 -->
-            <scope>provided</scope>
         </dependency>
 
         <!--Env & Test-->
@@ -78,11 +68,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.curator</groupId>
-            <artifactId>curator-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

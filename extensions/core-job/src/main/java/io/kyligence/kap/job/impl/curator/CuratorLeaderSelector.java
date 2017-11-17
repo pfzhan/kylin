@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.job.impl.curator;
 
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.leader.LeaderSelector;
-import org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.CuratorFramework;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.recipes.leader.LeaderSelector;
+import io.kyligence.kap.shaded.curator.org.apache.curator.framework.recipes.leader.LeaderSelectorListenerAdapter;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;

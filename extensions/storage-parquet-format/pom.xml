@@ -98,44 +98,4 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
-
-    <profiles>
-        <profile>
-            <id>sandbox</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <version>1.5.0</version>
-                        <executions>
-                            <execution>
-                                <id>compileprotocol</id>
-                                <phase>compile</phase>
-                                <goals>
-                                    <goal>exec</goal>
-                                </goals>
-                                <configuration>
-                                    <executable>mvn</executable>
-                                    <arguments>
-                                        <argument>-f</argument>
-                                        <argument>extensions/storage-parquet-protocol/pom.xml</argument>
-                                        <argument>clean</argument>
-                                        <argument>install</argument>
-                                        <argument>-DskipTests</argument>
-                                    </arguments>
-                                    <workingDirectory>${project.basedir}/../../</workingDirectory>
-                                </configuration>
-                            </execution>
-                        </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
-
-
 </project>

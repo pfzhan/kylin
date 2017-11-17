@@ -62,6 +62,7 @@
 
     <modules>
         <module>kylin</module>
+        <module>extensions/external</module>
         <module>extensions/core-common</module>
         <module>extensions/core-metadata</module>
         <module>extensions/core-cube</module>
@@ -210,6 +211,17 @@
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-tool-assembly</artifactId>
                 <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-external-curator</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-external-curator-test</artifactId>
+                <version>${project.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
