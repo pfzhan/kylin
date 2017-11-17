@@ -61,7 +61,7 @@ import scala.Tuple2;
 
 public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
     private static final Logger logger = LoggerFactory.getLogger(SparkExecutorPreAggFunction.class);
-
+    static final long serialVersionUID = 1L;
     private final Accumulator<Long> scannedRecords;
     private final Accumulator<Long> collectedRecords;
     private final String realizationType;

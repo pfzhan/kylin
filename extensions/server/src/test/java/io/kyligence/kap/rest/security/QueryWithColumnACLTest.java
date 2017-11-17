@@ -29,6 +29,7 @@ import java.sql.SQLException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.security.QuerACLTestUtil;
 import org.junit.After;
 import org.junit.Assert;
@@ -115,16 +116,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
             QuerACLTestUtil.mockQuery(PROJECT, "select COUNTRY from TEST_COUNTRY");
             Assert.fail("expecting some AlreadyExistsException here");
         } catch (SQLException e) {
-            if (KylinConfig.getInstanceFromEnv().getSchemaFactory()
-                    .equalsIgnoreCase("io.kyligence.kap.query.schema.KapSchemaFactory")) {
-                Assert.assertEquals(
-                        "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#182:KapTableScan.OLAP.[](table=[DEFAULT, TEST_COUNTRY],ctx=,fields=[0, 1, 2, 3])",
-                        e.getCause().getMessage());
-            } else {
-                Assert.assertEquals(
-                        "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#182:OLAPTableScan.Kap.[](table=[DEFAULT, TEST_COUNTRY],ctx=,fields=[0, 1, 2, 3])",
-                        e.getCause().getMessage());
-            }
+            Assert.assertTrue(e.getCause() instanceof NoRealizationFoundException);
         }
 
         // remove acl, query success
@@ -132,16 +124,7 @@ public class QueryWithColumnACLTest extends LocalFileMetadataTestCase {
             manager.deleteColumnACL(PROJECT, ADMIN, TEST_COUNTRY_TABLE, MetadataConstants.TYPE_USER);
             QuerACLTestUtil.mockQuery(PROJECT, "select SELLER_ID_AND_COUNTRY_NAME from TEST_KYLIN_FACT");
         } catch (SQLException e) {
-            if (KylinConfig.getInstanceFromEnv().getSchemaFactory()
-                    .equalsIgnoreCase("io.kyligence.kap.query.schema.KapSchemaFactory")) {
-                Assert.assertEquals(
-                        "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#211:KapTableScan.OLAP.[](table=[DEFAULT, TEST_KYLIN_FACT],ctx=,fields=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])",
-                        e.getCause().getMessage());
-            } else {
-                Assert.assertEquals(
-                        "No model found for OLAPContext, CUBE_NOT_READY, CUBE_NOT_READY, rel#211:OLAPTableScan.Kap.[](table=[DEFAULT, TEST_KYLIN_FACT],ctx=,fields=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16])",
-                        e.getCause().getMessage());
-            }
+            Assert.assertTrue(e.getCause() instanceof NoRealizationFoundException);
         }
 
         // add cc to column acl

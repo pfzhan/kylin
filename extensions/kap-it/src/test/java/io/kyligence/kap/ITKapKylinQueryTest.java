@@ -313,8 +313,7 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     @Test
     @Override
     public void testTimeoutQuery() throws Exception {
-        if (!System.getProperty("sparder.enabled").equalsIgnoreCase("true")) {
-
+        if (!"true".equalsIgnoreCase(System.getProperty("sparder.enabled"))) {
             try {
                 KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.spark-visit-timeout-ms", "3000");//set timeout to 3s
                 super.testTimeoutQuery();
@@ -328,9 +327,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
     //as compensation we additionally test timeout for raw query against cube
     @Test
     public void testTimeoutQuery2() throws Exception {
-        if (!System.getProperty("sparder.enabled").equalsIgnoreCase("true")) {
+        if (!"true".equalsIgnoreCase(System.getProperty("sparder.enabled"))) {
             try {
-
                 Map<String, String> toggles = Maps.newHashMap();
                 toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
                         StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
