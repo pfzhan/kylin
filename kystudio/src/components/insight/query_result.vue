@@ -8,6 +8,7 @@
         <div class="resultText projectText"><p>{{$t('kylinLang.query.project')}}<span class="blue"> {{queryInfo.project}}</span></p></div>
         <div v-if="!extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">{{queryInfo.cube.replace(/\[name=/g, ' [')}}</span></p></div>
         <div v-if="extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">Push down</span></p></div>
+        <div v-show="showHtrace && !queryInfo.traceUrl" class="resultText">{{$t('traceUrl')}}<a :href="queryInfo.traceUrl" target="_blank">{{queryInfo.traceUrl}}</a></div>
       </div>
       <div class="resultOperator">
         <div class="grid-content bg-purple" style="text-align:right" >
@@ -421,6 +422,9 @@ export default {
     modelsTotal () {
       return this.extraoption.data.results.length
     },
+    showHtrace () {
+      return this.$store.state.system.showHtrace
+    },
     dimensionsAndMeasures () {
       var resultDimension = []
       var resultMeasures = []
@@ -457,8 +461,8 @@ export default {
     }
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：'}
   }
 }
 </script>

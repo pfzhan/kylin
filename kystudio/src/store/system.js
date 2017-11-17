@@ -11,7 +11,9 @@ export default {
     timeZone: '',
     securityProfile: 'testing',
     limitlookup: 'true',
-    strategy: 'default'
+    strategy: 'default',
+    showHtrace: false,
+    filterUserName: ''// group页面 选择用户组件使用
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -83,6 +85,7 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.htrace.show-gui-trace-toggle', key: 'showHtrace'})
           resolve(response.data.data)
         }, () => {
           reject()

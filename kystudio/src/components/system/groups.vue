@@ -61,7 +61,7 @@
      <el-dialog :title="$t('kylinLang.common.user')" :visible.sync="addUserToGroupDialog"  size="small" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form>
         <el-form-item >
-          <el-transfer filterable :titles="[$t('willcheck'), $t('haschecked')]" v-model="selectedUserList" :data="userList"></el-transfer>
+          <el-transfer filterable :titles="[this.$t('willcheck'), this.$t('haschecked')]" ref="transfer" v-model="selectedUserList" :data="userList"></el-transfer>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -78,6 +78,7 @@ import { handleSuccess, handleError, hasPermission, hasRole, kapConfirm } from '
 import addUser from './add_user'
 import editRole from './edit_role'
 import resetPassword from './reset_password'
+import $ from 'jquery'
 import { pageCount, permissions, NamedRegex } from 'config'
 export default {
   name: 'grouplist',
@@ -98,7 +99,8 @@ export default {
       defaultGroup: 'All Users',
       selectedUserList: [],
       userList: [],
-      currentSelectedGroup: ''
+      currentSelectedGroup: '',
+      transMaxSize: 500
     }
   },
   components: {
@@ -131,20 +133,52 @@ export default {
       })
     },
     loadUsers (filterName) {
-      var para = {pageSize: 100000, pageOffset: 0, project: localStorage.getItem('selected_project')}
-      this.loadUsersList(para)
+      var para = {pageSize: 1111200, pageOffset: 0, project: localStorage.getItem('selected_project')}
+      if (filterName) {
+        para.name = filterName
+      }
+      return this.loadUsersList(para)
+    },
+    filterUser (val) {
+      val = val || ''
+      var userList = []
+      var count = 0
+      for (var k = 0; k < this.userListData.length; k++) {
+        var curUser = this.userListData[k]
+        if ((!val || curUser.username.toUpperCase().indexOf(val.toUpperCase()) >= 0) && count <= this.transMaxSize) {
+          if (this.selectedUserList.indexOf(curUser.username) >= 0) {
+            continue
+          }
+          userList.push({
+            key: curUser.username,
+            label: curUser.username
+          })
+          count++
+        }
+        if (count >= this.transMaxSize) {
+          break
+        }
+      }
+      this.selectedUserList.forEach((user) => {
+        userList.push({
+          key: user,
+          label: user
+        })
+      })
+      this.userList = userList
     },
     assignUsers (group) {
       this.addUserToGroupDialog = true
-      this.userList = []
-      this.userListData.forEach((user) => {
-        this.userList.push({
-          key: user.username,
-          label: user.username
-        })
-      })
       this.selectedUserList = group.second
       this.currentSelectedGroup = group.first
+      this.filterUser()
+      this.$nextTick(() => {
+        var filterInputDom = $(this.$refs['transfer'].$el.querySelectorAll('.el-transfer-panel__filter input')[0])
+        filterInputDom.unbind('input propertychange').bind('input propertychange', () => {
+          var val = filterInputDom.val()
+          this.filterUser(val)
+        })
+      })
     },
     dropGroup (groupName) {
       kapConfirm(this.$t('confirmDelGroup')).then(() => {
@@ -217,6 +251,12 @@ export default {
       return this.$store.state.user.usersGroupSize
     },
     userListData () {
+      // 大量用户测试用例
+      // var list = []
+      // for (var i = 0; i < 100000; i++) {
+      //   list.push({username: 'user_' + i})
+      // }
+      // return list
       return this.$store.state.user.usersList
     },
     isAdmin () {

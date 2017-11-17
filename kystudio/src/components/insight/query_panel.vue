@@ -62,7 +62,8 @@ export default {
         limit: this.extraoption.limit,
         offset: this.extraoption.offset,
         project: this.extraoption.project,
-        sql: this.extraoption.sql
+        sql: this.extraoption.sql,
+        backdoorToggles: this.extraoption.backdoorToggles
       }).then((res) => {
         clearInterval(this.ST)
         handleSuccess(res, (data) => {

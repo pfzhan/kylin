@@ -11,6 +11,9 @@
          <p class="tips_box">{{$t('tips')}}</p>
          <p class="operator">
            <el-form :inline="true" class="demo-form-inline">
+            <el-form-item v-show="showHtrace">
+               <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
+             </el-form-item>
              <el-form-item>
                <el-checkbox v-model="hasLimit" @change="changeLimit"></el-checkbox>
              </el-form-item>
@@ -186,7 +189,8 @@ export default {
       cookieQueries: [],
       cookieQuerySize: 0,
       cookieQueryCurrentPage: 1,
-      queryCurrentPage: 1
+      queryCurrentPage: 1,
+      isHtrace: false
     }
   },
   computed: {
@@ -195,6 +199,9 @@ export default {
     },
     savedList () {
       return this.$store.state.datasource.savedQueries
+    },
+    showHtrace () {
+      return this.$store.state.system.showHtrace
     }
   },
   methods: {
@@ -257,6 +264,11 @@ export default {
         })
         this.activeSubMenu = tabName
         this.addQueryInCache(extraData.sql)
+      }
+    },
+    changeTrace () {
+      if (this.isHtrace) {
+        kapConfirm(this.$t('htraceTips'))
       }
     },
     // filterTab (state) {
@@ -370,7 +382,10 @@ export default {
         limit: this.listRows,
         offset: 0,
         project: this.project,
-        sql: this.sourceSchema
+        sql: this.sourceSchema,
+        backdoorToggles: {
+          DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
+        }
       }
       this.addTab('query', 'querypanel', queryObj)
       this.pageCurrentChangeForCookie(this.cookieQueryCurrentPage || 1)
@@ -480,8 +495,8 @@ export default {
     tab
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result', 'willGo': 'You have unfinished request detected, Do you want to continue?', 'go': 'Continue go', 'treeNoData': 'No data'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果', 'willGo': '检测到有执行的请求，是否继续跳转？', 'go': '继续跳转', 'treeNoData': '暂无数据'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', newQuery: 'New Query', saveQueries: 'Save Queries', queryHistory: 'Query History', tips: 'Tips: Click left tree to add table or columns in query box or press space key to show auto complete menu.', result: 'Result', 'willGo': 'You have unfinished request detected, Do you want to continue?', 'go': 'Continue go', 'treeNoData': 'No data', trace: 'Trace', htraceTips: 'Please make sure Zipkin server is properly deployed according to the manual of performance diagnose package.'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', newQuery: '新查询', saveQueries: '保存的查询', queryHistory: '查询历史', tips: '技巧: 点击左侧树结构选中表名或者列名或按空格键触发提示。', result: '查询结果', 'willGo': '检测到有执行的请求，是否继续跳转？', 'go': '继续跳转', 'treeNoData': '暂无数据', trace: '追踪', htraceTips: '请确保已经按照性能诊断工具包使用说明部署完毕Zipkin服务器。'}
   }
 }
 </script>
