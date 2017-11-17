@@ -24,25 +24,18 @@
 
 package io.kyligence.kap.tool.mr;
 
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileVisitOption;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Objects;
 
 public class ClassPathFilter {
 
     public static void main(String[] args) throws IOException {
-        ArrayList<String> classPath = new ArrayList<>();
         String classpath = args[0];
         ArrayList<String> filters = new ArrayList<>(Arrays.asList(args));
         filters.remove(0);
@@ -51,17 +44,31 @@ public class ClassPathFilter {
             System.out.println("no class path found!");
             System.exit(1);
         }
+        List<File> fileList = new ArrayList<>();
         for (String path : split) {
             if (path.endsWith("*")) {
                 path = path.substring(0, path.length() - 1);
             }
-            Files.walkFileTree(Paths.get(path), EnumSet.noneOf(FileVisitOption.class), 1,
-                    new findJavaVisitor(classPath, filters));
+            Path filePath = Paths.get(path);
+            File file = filePath.toFile();
+            if (file.isDirectory()) {
+                if (filePath.getFileName().toString().endsWith("conf")) {
+                    fileList.add(filePath.toFile());
+                } else {
+                    File[] childrenFiles = file.listFiles();
+                    for (File childrenFile : childrenFiles) {
+                        filterFile(filters, fileList, childrenFile);
+
+                    }
+                }
+            } else {
+                filterFile(filters, fileList, file);
+            }
         }
-        Iterator<String> iter = classPath.iterator();
+        Iterator<File> iter = fileList.iterator();
         StringBuilder sb = new StringBuilder();
         while (iter.hasNext()) {
-            sb.append(iter.next());
+            sb.append(iter.next().getCanonicalPath());
             if (iter.hasNext()) {
                 sb.append(":");
             }
@@ -69,58 +76,17 @@ public class ClassPathFilter {
         System.out.println(sb);
     }
 
-    private static class findJavaVisitor extends SimpleFileVisitor<Path> {
-        private List<String> filters;
-        private ArrayList<String> classPath;
-
-        public findJavaVisitor(ArrayList<String> classPath, List<String> filters) {
-            this.classPath = classPath;
-            this.filters = filters;
-        }
-
-        @Override
-        public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-            Objects.requireNonNull(dir);
-            Objects.requireNonNull(attrs);
-            if (dir.getFileName().toString().endsWith("conf")) {
-                classPath.add(dir.toString());
-                return FileVisitResult.SKIP_SUBTREE;
-            }
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-            if (file.getFileName().toString().endsWith("conf")) {
-                classPath.add(file.toString());
-                return FileVisitResult.CONTINUE;
-            }
-            if (Files.isSymbolicLink(file)) {
-                try {
-                    Files.walkFileTree(Files.readSymbolicLink(file), new findJavaVisitor(classPath, filters));
-                } catch (IOException e) {
-                    e.printStackTrace();
+    private static void filterFile(ArrayList<String> filters, List<File> fileList, File childrenFile) {
+        if (childrenFile.getName().endsWith("jar")) {
+            boolean needFilter = false;
+            for (String filter : filters) {
+                if (childrenFile.getName().contains(filter)) {
+                    needFilter = true;
                 }
-
-            } else {
-                if (!(file.getFileName().toString().endsWith(".jar")
-                        || file.getFileName().toString().endsWith(".xml"))) {
-                    return FileVisitResult.CONTINUE;
+                if (!needFilter) {
+                    fileList.add(childrenFile);
                 }
-                for (String filter : filters) {
-                    if (file.getFileName().toString().contains(filter)) {
-                        return FileVisitResult.CONTINUE;
-                    }
-                }
-                classPath.add(file.toAbsolutePath().toString());
-                // TODO Auto-generated method stub
             }
-            return FileVisitResult.CONTINUE;
-        }
-
-        @Override
-        public FileVisitResult visitFileFailed(Path file, IOException exc) {
-            return FileVisitResult.CONTINUE;
         }
     }
 }

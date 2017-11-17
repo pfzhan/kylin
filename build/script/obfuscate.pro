@@ -60,6 +60,7 @@
 -keep class io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat  {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.LongAccumulableParam  {*;}
 -keep class org.apache.spark.** {*;}
+-keep class io.kyligence.kap.storage.parquet.cube.spark.refactor.** {*;}
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;
 	public *;
