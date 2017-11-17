@@ -83,4 +83,12 @@ public class JDBCSqlQueryFormat {
     public String getUpdateContentSql() {
         return getSqlFromProperties("format.sql.update-content");
     }
+
+    public String getTestCreateSql() {
+        return getSqlFromProperties("format.sql.test.create");
+    }
+
+    public String getTestDropSql() {
+        return getSqlFromProperties("format.sql.test.drop");
+    }
 }

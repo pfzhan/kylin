@@ -30,6 +30,8 @@ import java.sql.SQLException;
 import java.text.MessageFormat;
 import java.util.UUID;
 
+import io.kyligence.kap.common.persistence.JDBCSqlQueryFormat;
+import io.kyligence.kap.common.persistence.JDBCSqlQueryFormatProvider;
 import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,11 +43,11 @@ public class KapTestJdbcCLI {
     protected static final Logger logger = LoggerFactory.getLogger(KapTestJdbcCLI.class);
     private String tableName;
     private JDBCConnectionManager connectionManager = null;
-    private String dialect;
+    private JDBCSqlQueryFormat sqlQueryFormat;
 
     public KapTestJdbcCLI() {
         this.tableName = UUID.randomUUID().toString().replace('-', '_');
-        this.dialect = KapConfig.getInstanceFromEnv().getMetadataDialect();
+        this.sqlQueryFormat = JDBCSqlQueryFormatProvider.createJDBCSqlQueriesFormat(KapConfig.getInstanceFromEnv().getMetadataDialect());
     }
 
     public void testConnection() {
@@ -61,11 +63,7 @@ public class KapTestJdbcCLI {
 
     public void testCreateTable() {
         logger.info("Test JDBC create table...");
-        String sqlCreateFormat = "CREATE TABLE IF NOT EXISTS {0} ( name VARCHAR(255) primary key," + "id BIGINT );";
-        if ("sqlserver".equals(dialect.toLowerCase())) {
-            sqlCreateFormat = "IF NOT exists(select * from sysobjects where name = ''{0}'') CREATE TABLE [{0}] ( name VARCHAR(255) " + "primary key," + "id BIGINT );";
-        }
-        String sql = MessageFormat.format(sqlCreateFormat, tableName);
+        String sql = MessageFormat.format(sqlQueryFormat.getTestCreateSql(), tableName);
         try {
             execute(sql);
         } catch (RuntimeException e) {
@@ -77,11 +75,7 @@ public class KapTestJdbcCLI {
 
     public void cleanUp() {
         logger.info("Clean up...");
-        String sqlDropFormat = "DROP TABLE IF EXISTS {0};";
-        if ("sqlserver".equals(dialect.toLowerCase())) {
-            sqlDropFormat = "IF exists(select * from sysobjects where name = ''{0}'') DROP TABLE [{0}];";
-        }
-        String sql = MessageFormat.format(sqlDropFormat, tableName);
+        String sql = MessageFormat.format(sqlQueryFormat.getTestDropSql(), tableName);
         try {
             execute(sql);
         } catch (RuntimeException e) {
