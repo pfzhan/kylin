@@ -86,7 +86,7 @@
         </div>
         <section data-scrollbar class="columns_box">
           <ul>
-            <li draggable v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li" v-show="column.isShow!==false"  v-bind:class="{'active_filter':column.isActive, 'is_computed': column.isComputed, 'selected': column.isSelected}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" >
+            <li draggable v-on:click="selectFilterColumn(table.guid,column.name,column.datatype)"  @dragstart="dragColumns" @dragend="dragColumnsEnd"  v-for="column in table.columns" :key="column.guid"  class="column_li" v-show="column.isShow!==false"  v-bind:class="{'active_filter':column.isActive && !table.openMutilSelected, 'is_computed': column.isComputed, 'selected': column.isSelected, 'pointer': table.openMutilSelected}" :data-guid="table.guid" :data-btype="column.btype" :data-isComputed="column.isComputed" :data-column="column.name" >
               <span class="kind" :class="{dimension:column.btype=='D',measure:column.btype=='M'}" v-on:click.stop="changeColumnBType(table.guid,column.name,column.btype, column.isComputed)">{{column.btype}}</span>
               <span class="column" @dragleave="dragColumnsLeave" @dragenter="dragColumnsEnter" >
                 <common-tip trigger="click" :tips="column.name" placement="right-start" style="font-size:10px;">{{column.name|omit(14,'...')}}</common-tip>
@@ -569,6 +569,7 @@ export default {
       this.$set(tableInfo, 'openMutilSelected', false)
       tableInfo.allChecked = false
       this.checkAllColumns(tableInfo)
+      this.editTableColumnInfo(tableInfo.guid, 'name', '*', 'isActive', false)
     },
     checkAllColumns (tableInfo) {
       if (tableInfo) {
@@ -588,7 +589,6 @@ export default {
             this.editTableColumnInfo(tableInfo.guid, 'name', name, 'btype', bType)
           }
         })
-        this.closeMutiChecked(tableInfo)
       } else {
         this.$set(tableInfo, 'showUnSelectTip', true)
       }
@@ -606,7 +606,6 @@ export default {
             return true
           })
           this.suggestColumnDtype(tableInfo, needAutoSuggestList)
-          this.closeMutiChecked(tableInfo)
         }
       })
     },
@@ -3455,6 +3454,9 @@ export default {
           line-height: 30px;
           color:#fff;
           cursor: move;
+          &.pointer{
+            cursor:pointer;
+          }
           background-color: #2f3242;
           &.selected{
             background:#393e56;
@@ -3466,7 +3468,7 @@ export default {
           }
           &.active_filter{
             font-weight: bold;
-            color:#2eb3fc;
+            color:#218fea;
           }
           &:hover{
             .column{

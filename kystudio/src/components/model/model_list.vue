@@ -28,7 +28,7 @@
 		      <div style="padding: 20px;">
 		        <h2>
             <el-tooltip class="item" effect="dark" :content="o.name" placement="top">
-              <span @click="viewModel(o)">{{o.name|omit(24, '...')}}</span>
+              <span @click="viewModel(o)" class="card_model_title" >{{o.name}}</span>
             </el-tooltip>
            <common-tip :content="o.diagnose&&o.diagnose.messages.join('<br/>')" v-if="!o.is_draft && o.diagnose &&o.diagnose.heathStatus!=='RUNNING' &&o.diagnose.heathStatus!=='ERROR'" >
              <icon  :style="{color:modelHealthStatus[o.diagnose.heathStatus].color}" :name="modelHealthStatus[o.diagnose.heathStatus].icon"></icon></common-tip>
@@ -1129,7 +1129,13 @@ export default {
   margin-left: 30px;
   /* min-height:600px; */
   margin-right: 30px;
-
+  .card_model_title{
+    max-width: 80%;
+    display: inline-block;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    vertical-align:middle;
+  }
   .null_pic_box{
     text-align:center;
     padding-top:100px;

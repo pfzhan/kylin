@@ -135,27 +135,23 @@ Icon.register({
     width: 14,
     height: 14,
     raw: `<g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-        <g transform="translate(-116.000000, -211.000000)">
-            <g transform="translate(30.000000, 176.000000)">
-                <g>
-                    <g transform="translate(0.250000, 0.000000)">
-                        <g transform="translate(1.000000, 27.000000)">
-                            <g transform="translate(0.000000, 1.000000)">
-                                <g transform="translate(85.000000, 6.000000)">
-                                    <text font-family=".PingFangSC-Semibold, .PingFang SC" font-size="6" font-weight="500" fill="#FFFFFF">
-                                        <tspan x="5" y="5.99998784"> A</tspan>
-                                    </text>
-                                    <text font-family=".PingFangSC-Semibold, .PingFang SC" font-size="6" font-weight="500" fill="#FFFFFF">
-                                        <tspan x="5.05479452" y="12.3703587"> Z</tspan>
-                                    </text>
-                                    <path d="M3.0456621,2.18518519 L3.0456621,10.8518519" id="Stroke-6" stroke="#FFFFFF" stroke-linecap="round"></path>
-                                    <polyline stroke="#FFFFFF" stroke-linecap="round" points="5.37236804 9.3250683 2.78058721 11.8865498 0.188806393 9.3250683"></polyline>
-                                </g>
-                            </g>
-                        </g>
-                    </g>
+        <g transform="translate(0.000000, -1.000000)">
+            <g  transform="translate(7.250000, 0.000000)" font-size="6.5" font-family="Montserrat-Regular, Montserrat" fill="#FFFFFF" font-weight="normal">
+                <g >
+                    <text style="font-weight:bolder">
+                        <tspan x="0.149999619" y="6">A</tspan>
+                    </text>
                 </g>
             </g>
+            <g transform="translate(7.250000, 7.000000)" font-size="6.5" font-family="Montserrat-Regular, Montserrat" fill="#FFFFFF" font-weight="normal">
+                <g>
+                    <text style="font-weight:bolder">
+                        <tspan x="0.149999619" y="6">Z</tspan>
+                    </text>
+                </g>
+            </g>
+            <path d="M3.5299438,2.35327635 L3.5299438,11.6866097"  stroke="#FFFFFF" stroke-linecap="round"></path>
+            <polyline  stroke="#FFFFFF" stroke-linecap="round" points="6.03562712 10.0423812 3.24447854 12.8008998 0.453329961 10.0423812"></polyline>
         </g>
     </g>`
   }

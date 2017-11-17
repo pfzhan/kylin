@@ -74,7 +74,7 @@
 	    style="width: 100%">
 	    <el-table-column
 	      prop="roleOrName"
-	      :label="$t('name')"
+	      :label="$t('kylinLang.common.userOrGroup')"
 	     >
        <template scope="scope">
                 <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.type === 'User'"></icon>
