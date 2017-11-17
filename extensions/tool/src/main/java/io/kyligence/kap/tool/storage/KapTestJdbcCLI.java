@@ -63,11 +63,9 @@ public class KapTestJdbcCLI {
         logger.info("Test JDBC create table...");
         String sqlCreateFormat = "CREATE TABLE IF NOT EXISTS {0} ( name VARCHAR(255) primary key," + "id BIGINT );";
         if ("sqlserver".equals(dialect.toLowerCase())) {
-            sqlCreateFormat = "IF NOT exists(select * from sysobjects where name = ''{0}'') CREATE TABLE {0} ( name VARCHAR(255) primary key,"
-                    + "id BIGINT );";
+            sqlCreateFormat = "IF NOT exists(select * from sysobjects where name = ''{0}'') CREATE TABLE [{0}] ( name VARCHAR(255) " + "primary key," + "id BIGINT );";
         }
-        String sql = MessageFormat
-                .format(sqlCreateFormat, tableName);
+        String sql = MessageFormat.format(sqlCreateFormat, tableName);
         try {
             execute(sql);
         } catch (RuntimeException e) {
@@ -81,7 +79,7 @@ public class KapTestJdbcCLI {
         logger.info("Clean up...");
         String sqlDropFormat = "DROP TABLE IF EXISTS {0};";
         if ("sqlserver".equals(dialect.toLowerCase())) {
-            sqlDropFormat = "IF exists(select * from sysobjects where name = ''{0}'') DROP TABLE {0};";
+            sqlDropFormat = "IF exists(select * from sysobjects where name = ''{0}'') DROP TABLE [{0}];";
         }
         String sql = MessageFormat.format(sqlDropFormat, tableName);
         try {
