@@ -76,6 +76,11 @@
 	      prop="roleOrName"
 	      :label="$t('name')"
 	     >
+       <template scope="scope">
+                <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.type === 'User'"></icon>
+                <icon v-show="scope.row.type === 'Group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
+                &nbsp;{{ scope.row.roleOrName}}
+              </template>
 	    </el-table-column>
 	    <el-table-column
 	      prop="type"
