@@ -112,19 +112,19 @@ public class KapSuggestionService extends BasicService {
 
         CubeContext cubeContext = cubeMaster.getContext();
         List<SQLResult> results = cubeContext.getSqlResults();
-        
+
         List<ComputedColumnDesc> computedColumnDescs = null;
         if (dataModelDesc instanceof KapModel) {
             computedColumnDescs = ((KapModel) dataModelDesc).getComputedColumnDescs();
         }
-        
+
         for (int i = 0; i < sampleSqls.size(); i++) {
             String sql = sampleSqls.get(i);
             SQLResult result = results.get(i);
             if (result.getStatus() == Status.SUCCESS) {
                 continue;
             }
-            
+
             // Only CUBE_UNMATCHED_AGGREGATION error should provide CC suggestion
             if (!result.getMessage().contains("CUBE_UNMATCHED_AGGREGATION")) {
                 continue;
@@ -137,7 +137,7 @@ public class KapSuggestionService extends BasicService {
             String suggestions = StringUtils.join(ccSuggestion);
             result.setMessage("Suggest to add computed columns " + suggestions + ". \n" + result.getMessage());
         }
-        
+
         return results;
     }
 
