@@ -27,11 +27,9 @@ package io.kyligence.kap.storage.parquet.format.pageIndex;
 import java.io.Closeable;
 import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.commons.compress.utils.IOUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.MemoryBudgetController;
@@ -132,7 +130,7 @@ public class ParquetPageIndexWriter implements Closeable {
             // write index to output
             for (int i = 0; i < columnNum; i++) {
                 File indexFile = indexWriter.getColumnIndexFile(i);
-                curOffset += IOUtils.copy(new FileInputStream(indexFile), outputStream);
+                curOffset += FileUtils.copyFile(indexFile, outputStream);
             }
         } finally {
             FileUtils.forceDelete(tempLocalDir);
