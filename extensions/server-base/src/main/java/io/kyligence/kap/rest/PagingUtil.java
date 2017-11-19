@@ -24,8 +24,11 @@
 
 package io.kyligence.kap.rest;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 
 public class PagingUtil {
     
@@ -43,5 +46,21 @@ public class PagingUtil {
             end = full.size();
         
         return full.subList(begin, end);
+    }
+
+    public static List<String> getUsersByFuzzyMatching(String nameSeg, boolean isCaseSensitive, List<String> noAccessList) {
+        List<String> users = new ArrayList<>();
+        if (nameSeg != null) {
+            for (String u : noAccessList) {
+                if (!isCaseSensitive && StringUtils.containsIgnoreCase(u, nameSeg)) {
+                    users.add(u);
+                }
+                if (isCaseSensitive && StringUtils.contains(u, nameSeg)) {
+                    users.add(u);
+                }
+            }
+            return users;
+        }
+        return noAccessList;
     }
 }

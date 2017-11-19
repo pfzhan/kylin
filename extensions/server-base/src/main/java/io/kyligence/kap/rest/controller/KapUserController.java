@@ -25,8 +25,8 @@
 package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -68,6 +68,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
 import io.kyligence.kap.rest.request.PasswdChangeRequest;
@@ -261,8 +262,8 @@ public class KapUserController extends BasicController implements UserDetailsSer
     @ResponseBody
     public EnvelopeResponse listAllUsers(
             @RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "name", required = false) String name,
-            @RequestParam(value = "isCaseInsensitive", required = false) boolean isCaseInsensitive,
+            @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
@@ -272,44 +273,34 @@ public class KapUserController extends BasicController implements UserDetailsSer
             aclEvaluate.checkProjectAdminPermission(project);
         }
         HashMap<String, Object> data = new HashMap<>();
-        List<ManagedUser> result = listAllUsers();
+        List<ManagedUser> userList = listAllUsers();
 
-        //for name fuzzy matching
-        if (name != null) {
-            for (Iterator<ManagedUser> it = result.iterator(); it.hasNext(); ) {
-                ManagedUser user = it.next();
-                String username;
-                if (isCaseInsensitive) {
-                    username = user.getUsername();
-                } else {
-                    username = user.getUsername().toUpperCase();
-                }
-                if (!username.contains(name.toUpperCase())) {
-                    it.remove();
-                }
-            }
-        }
-
-        int offset = pageOffset * pageSize;
-        int limit = pageSize;
-
-        if (result.size() <= offset) {
-            offset = result.size();
-            limit = 0;
-        }
-
-        if ((result.size() - offset) < limit) {
-            limit = result.size() - offset;
-        }
-
-        List<ManagedUser> subList = result.subList(offset, offset + limit);
+        List<ManagedUser> usersByFuzzyMatching = getManagedUsersByFuzzMatching(nameSeg, isCaseSensitive, userList);
+        List<ManagedUser> subList = PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize);
         //LDAP users dose not have authorities
-        for (ManagedUser user : subList) {
-            userService.completeUserInfo(user);
+        for (ManagedUser u : subList) {
+            userService.completeUserInfo(u);
         }
         data.put("users", subList);
-        data.put("size", result.size());
+        data.put("size", usersByFuzzyMatching.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    private List<ManagedUser> getManagedUsersByFuzzMatching(@RequestParam(value = "name", required = false) String nameSeg, @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive, List<ManagedUser> userList) {
+        List<ManagedUser> usersByFuzzyMatching = new ArrayList<>();
+        //for name fuzzy matching
+        if (nameSeg != null) {
+            for (ManagedUser u : userList) {
+                if (!isCaseSensitive && StringUtils.containsIgnoreCase(u.getUsername(), nameSeg)) {
+                    usersByFuzzyMatching.add(u);
+                }
+                if (isCaseSensitive && StringUtils.contains(u.getUsername(), nameSeg)) {
+                    usersByFuzzyMatching.add(u);
+                }
+            }
+            return usersByFuzzyMatching;
+        }
+        return usersByFuzzyMatching;
     }
 
     @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = {

@@ -26,8 +26,10 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.kylin.common.util.Pair;
@@ -43,9 +45,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.acl.RowACL;
+import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.service.RowACLService;
 
 @Controller
@@ -101,15 +105,24 @@ public class RowAclController extends BasicController {
     @RequestMapping(value = "/row/white/{project}/{type}/{table:.+}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse<List<String>> getUsersCanAddRowACL(
+    public EnvelopeResponse<HashMap<String, Object>> getUsersCanAddRowACL(
             @PathVariable String project,
             @PathVariable String type,
-            @PathVariable String table) throws IOException {
+            @PathVariable String table,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
-                rowACLService.getIdentifiersCanAddRowACL(project, table, validateUtil.getAllIdentifiers(project, type), type),
-                "get row cond list in table");
+        Set<String> allIdentifiers = validateUtil.getAllIdentifiers(project, type);
+        //for name fuzzy matching
+        List<String> usersByFuzzyMatching = PagingUtil.getUsersByFuzzyMatching(name, isCaseSensitive, rowACLService.getIdentifiersCanAddRowACL(project, table, allIdentifiers, type));
+
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("users", PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize));
+        data.put("size", usersByFuzzyMatching.size());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "get users can add row ACL");
     }
 
     @RequestMapping(value = "/row/{project}/{type}/{table}/{name}", method = { RequestMethod.POST }, produces = {

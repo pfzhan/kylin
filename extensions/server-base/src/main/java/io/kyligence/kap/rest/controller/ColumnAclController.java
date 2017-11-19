@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,8 +45,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.service.ColumnACLService;
 
 @Controller
@@ -97,13 +100,23 @@ public class ColumnAclController extends BasicController {
 
     @RequestMapping(value = "/column/white/{project}/{type}/{table:.+}", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse<List<String>> getIdentifiersCanAddColumnACL(
+    public EnvelopeResponse<HashMap<String, Object>> getIdentifiersCanAddColumnACL(
             @PathVariable String project,
             @PathVariable String type,
-            @PathVariable String table) throws IOException {
+            @PathVariable String table,
+            @RequestParam(value = "name", required = false) String name,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) throws IOException {
         validateUtil.validateTable(project, table);
         Set<String> allIdentifiers = validateUtil.getAllIdentifiers(project, type);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, columnACLService.getCanAccessList(project, table, allIdentifiers, type), "get available user");
+        //for name fuzzy matching
+        List<String> usersByFuzzyMatching = PagingUtil.getUsersByFuzzyMatching(name, isCaseSensitive, columnACLService.getCanAccessList(project, table, allIdentifiers, type));
+
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("users", PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize));
+        data.put("size", usersByFuzzyMatching.size());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "get users can add column ACL");
     }
 
     @RequestMapping(value = "/column/{project}/{type}/{table}/{username}", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
