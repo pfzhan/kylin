@@ -13,3 +13,6 @@ kylin.metadata.hbasemapping-adapter=io.kyligence.kap.cube.hbasemapping.HBaseMapp
 kap.storage.columnar.shard-size-mb=256
 kap.storage.columnar.shard-min=1
 kap.storage.columnar.shard-max=1000
+
+kap.storage.columnar.spark-conf.spark.executor.cores=1
+kap.storage.columnar.spark-conf.spark.executor.instances=1
