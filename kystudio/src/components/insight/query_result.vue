@@ -8,7 +8,7 @@
         <div class="resultText projectText"><p>{{$t('kylinLang.query.project')}}<span class="blue"> {{queryInfo.project}}</span></p></div>
         <div v-if="!extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">{{queryInfo.cube.replace(/\[name=/g, ' [')}}</span></p></div>
         <div v-if="extraoption.data.pushDown" class="resultText"><p>{{$t('kylinLang.query.queryEngine')}}<span class="blue">Push down</span></p></div>
-        <div v-show="showHtrace && !queryInfo.traceUrl" class="resultText">{{$t('traceUrl')}}<a :href="queryInfo.traceUrl" target="_blank">{{queryInfo.traceUrl}}</a></div>
+        <div v-show="showHtrace && queryInfo.traceUrl" class="resultText">{{$t('traceUrl')}}<a :href="queryInfo.traceUrl" target="_blank">{{queryInfo.traceUrl}}</a></div>
       </div>
       <div class="resultOperator">
         <div class="grid-content bg-purple" style="text-align:right" >
@@ -402,6 +402,7 @@ export default {
     // })
     this.queryInfo.duration = this.extraoption.data.duration
     this.queryInfo.cube = this.extraoption.data.cube
+    this.queryInfo.traceUrl = this.extraoption.data.traceUrl
     this.transDataForGrid()
   },
   // watch: {
