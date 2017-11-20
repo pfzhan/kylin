@@ -45,7 +45,7 @@
                 <!-- Data model -->
                  <el-tab-pane :label="$t('datamodel')" name="third" class="ksd-pl-30">
                     <span style="font-size:12px;font-weight:bolder" v-if="factTables && factTables.length">{{$t('kylinLang.common.fact')}}</span>
-                    <el-table :data="factTables"  v-if="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
+                    <el-table :data="factTables"  v-show="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
                       <el-table-column
                         width="180">
                          <template scope="scope">
@@ -61,7 +61,7 @@
                       </el-table-column>
                     </el-table>
                     <span style="font-size:12px;font-weight:bolder"  v-if="limitLookupTables && limitLookupTables.length">{{$t('kylinLang.common.lookup')}}</span>
-                    <el-table v-if="limitLookupTables && limitLookupTables.length" class="ksd-mt-6 formTable" :data="limitLookupTables"  border style="width: 100%">
+                    <el-table v-show="limitLookupTables && limitLookupTables.length" class="ksd-mt-6 formTable" :data="limitLookupTables"  border style="width: 100%">
                         <el-table-column
                           label="ID"
                           width="180">
