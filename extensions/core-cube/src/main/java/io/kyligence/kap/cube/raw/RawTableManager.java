@@ -206,9 +206,6 @@ public class RawTableManager implements IRealizationProvider {
             throw new RuntimeException("Skip suspicious instance at " + path + ", " + instance + " should be at "
                     + instance.getResourcePath());
         }
-        if (rawTableInstanceMap.containsKey(instance.getName())) {
-            throw new RuntimeException("Dup RawTableInstance name '" + instance.getName() + "' on path " + path);
-        }
         
         rawTableInstanceMap.putLocal(instance.getName(), instance);
         return instance;
