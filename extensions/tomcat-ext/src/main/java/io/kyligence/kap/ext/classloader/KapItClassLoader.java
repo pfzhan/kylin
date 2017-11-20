@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.ext.classloader;
 
-import static io.kyligence.kap.ext.classloader.ClassUtils.findFile;
+import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,13 +41,13 @@ public class KapItClassLoader extends URLClassLoader {
             "com.sun.", "launcher.", "javax.", "org.ietf", "java", "org.omg", "org.w3c", "org.xml", "sunw.",
             // logging
             "org.slf4j", "org.apache.commons.logging", "org.apache.log4j", "sun", "org.apache.catalina",
-            "org.apache.tomcat" };
+            "org.apache.tomcat", };
     private static final String[] CLASS_PREFIX_INCLUDE = new String[] { "io.kyligence", "org.apache.kylin",
             "org.apache.calcite" };
     private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object" };
     public static KapItClassLoader defaultClassLoad = null;
     private static Logger logger = LoggerFactory.getLogger(KapItClassLoader.class);
-    public KapItSparkClassLoader sparkClassLoad;
+    public KapItSparkClassLoader sparkClassLoader;
     ClassLoader parent;
 
     /**
@@ -59,7 +59,14 @@ public class KapItClassLoader extends URLClassLoader {
     public KapItClassLoader(ClassLoader parent) throws IOException {
         super(((URLClassLoader) getSystemClassLoader()).getURLs());
         this.parent = parent;
-        sparkClassLoad = KapItSparkClassLoader.getClassLoader(this);
+        if (ClassLoaderUtils.getSparkClassLoader() instanceof KapItSparkClassLoader) {
+            sparkClassLoader = (KapItSparkClassLoader) ClassLoaderUtils.getSparkClassLoader();
+        } else {
+            sparkClassLoader = new KapItSparkClassLoader(this);
+            ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
+        }
+        ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
+        ClassLoaderUtils.setOriginClassLoader(this);
         defaultClassLoad = this;
         init();
     }
@@ -87,6 +94,7 @@ public class KapItClassLoader extends URLClassLoader {
         try {
             File sparkJar = findFile(spark_home + "/jars", "spark-yarn_.*.jar");
             addURL(sparkJar.toURI().toURL());
+            addURL(new File("../examples/test_case_data/sandbox").toURI().toURL());
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -97,6 +105,9 @@ public class KapItClassLoader extends URLClassLoader {
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         if (isCodeGen(name)) {
             throw new ClassNotFoundException();
+        }
+        if (name.startsWith("io.kyligence.kap.ext")) {
+            return parent.loadClass(name);
         }
         if (isInclude(name)) {
             synchronized (getClassLoadingLock(name)) {
@@ -130,8 +141,8 @@ public class KapItClassLoader extends URLClassLoader {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             return parent.loadClass(name);
         }
-        if (sparkClassLoad.needLoad(name)) {
-            return sparkClassLoad.loadClass(name);
+        if (sparkClassLoader.needLoad(name)) {
+            return sparkClassLoader.loadClass(name);
         }
         return super.loadClass(name, resolve);
     }
@@ -152,8 +163,8 @@ public class KapItClassLoader extends URLClassLoader {
 
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoad.hasResource(name)) {
-            return sparkClassLoad.getResourceAsStream(name);
+        if (sparkClassLoader.hasResource(name)) {
+            return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);
 
@@ -185,4 +196,5 @@ public class KapItClassLoader extends URLClassLoader {
         }
         return false;
     }
+
 }

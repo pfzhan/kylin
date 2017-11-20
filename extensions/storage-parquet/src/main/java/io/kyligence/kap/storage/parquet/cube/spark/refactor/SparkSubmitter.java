@@ -30,6 +30,7 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
@@ -47,8 +48,8 @@ public class SparkSubmitter {
 
     public static IPartitionStreamer submitParquetTask(GTScanRequest scanRequest,
             SparkJobProtos.SparkJobRequestPayload payload, long queryMaxScanBytes) {
+        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         final String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
-
         final String streamIdentifier = UUID.randomUUID().toString();// it will stay during the stream session
         ParquetTask parquetTask = new ParquetTask(payload, streamIdentifier);
         return new KyStorageVisitStreamer(Iterators.concat(new ParquetResultIterator(parquetTask)), scanReqId,
@@ -56,6 +57,7 @@ public class SparkSubmitter {
     }
 
     public static SparkJobProtos.PushDownResponse submitPushDownTask(SparkJobProtos.PushDownRequest request) {
+        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         if (sqlClient == null) {
             sqlClient = new SparkSqlClient(new Semaphore((int) (Runtime.getRuntime().totalMemory() / (1024 * 1024))));
         }

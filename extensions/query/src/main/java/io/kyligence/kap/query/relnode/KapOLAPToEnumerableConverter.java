@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.query.runtime.SparderMethod;
 
@@ -84,7 +85,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
-
+        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor");
 
         // post-order travel children
@@ -145,7 +146,11 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     private boolean isSparderAppliable(List<OLAPContext> contexts) {
         boolean sparderEnabled = true;
+        boolean hasAgg = false;
         for (OLAPContext olapContext : contexts) {
+            if (olapContext.aggregations.size() > 0) {
+                hasAgg = true;
+            }
             CubeInstance cube = null;
             if (olapContext.realization instanceof RawTableInstance) {
                 sparderEnabled = false;
@@ -202,6 +207,9 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
                     break;
                 }
             }
+        }
+        if (!hasAgg) {
+            sparderEnabled = false;
         }
         return sparderEnabled;
     }

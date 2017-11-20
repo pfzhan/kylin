@@ -33,7 +33,8 @@ import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 
 public class ParquetBytesGTScanner4Raw extends ParquetBytesGTScanner {
-    public ParquetBytesGTScanner4Raw(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest, long bytesLimit, boolean withDelay) {
+    public ParquetBytesGTScanner4Raw(GTInfo info, Iterator<ByteBuffer> iterator, GTScanRequest scanRequest,
+            long bytesLimit, boolean withDelay) {
         super(info, iterator, scanRequest, bytesLimit, scanRequest.getTimeout(), withDelay);
     }
 
@@ -48,18 +49,18 @@ public class ParquetBytesGTScanner4Raw extends ParquetBytesGTScanner {
     }
 
     protected ImmutableBitSet[] getParquetCoveredColumnBlocks(GTScanRequest scanRequest) {
-                
+
         ImmutableBitSet selectedColBlocksBitSet = scanRequest.getSelectedColBlocks();
-        
+
         ImmutableBitSet[] selectedColBlocks = new ImmutableBitSet[selectedColBlocksBitSet.trueBitCount()];
-        
-        for(int i = 0; i < selectedColBlocksBitSet.trueBitCount(); i++) {
-            
+
+        for (int i = 0; i < selectedColBlocksBitSet.trueBitCount(); i++) {
+
             selectedColBlocks[i] = scanRequest.getInfo().getColumnBlock(selectedColBlocksBitSet.trueBitAt(i));
-            
+
         }
 
         return selectedColBlocks;
     }
-    
+
 }

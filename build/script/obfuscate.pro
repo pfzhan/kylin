@@ -45,7 +45,6 @@
 -keep class !io.kyligence.** {*;}
 -keep class io.kyligence.kap.tool.** {*;}
 -keep class io.kyligence.kap.query.util.** {*;}
--keep class io.kyligence.kap.storage.parquet.adhoc.udf.** {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient {*;}
 -keep class io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl {*;}
 -keep class * extends org.apache.kylin.common.util.AbstractApplication {*;}

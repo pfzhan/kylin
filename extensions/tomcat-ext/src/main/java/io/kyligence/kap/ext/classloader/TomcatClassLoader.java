@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.ext.classloader;
 
-import static io.kyligence.kap.ext.classloader.ClassUtils.findFile;
+import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,7 +57,13 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
      */
     public TomcatClassLoader(ClassLoader parent) throws IOException {
         super(parent);
-        sparkClassLoader = SparkClassLoader.getClassLoader(this);
+        if (ClassLoaderUtils.getSparkClassLoader() instanceof SparkClassLoader) {
+            sparkClassLoader = (SparkClassLoader) ClassLoaderUtils.getSparkClassLoader();
+        } else {
+            sparkClassLoader = new SparkClassLoader(this);
+            ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
+        }
+        ClassLoaderUtils.setOriginClassLoader(this);
         defaultClassLoad = this;
         init();
     }
@@ -82,6 +88,9 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (name.startsWith("io.kyligence.kap.ext")) {
+            return parent.loadClass(name);
+        }
         // spark codegen classload parent is Thread.currentThread().getContextClassLoader()
         // and calcite baz classloader is EnumerableInterpretable.class's classloader
         if (isCodeGen(name)) {

@@ -27,6 +27,7 @@ package io.kyligence.kap.cube.raw.gridtable;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.raw.RawTableColumnDesc;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.BytesSerializer;
@@ -51,7 +52,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.datatype.OrderedBytesSerializer;
 
-public class RawTableCodeSystem implements IGTCodeSystem {
+public class RawTableCodeSystem implements IGTCodeSystem , IKeep {
 
     protected static final Logger logger = LoggerFactory.getLogger(RawTableCodeSystem.class);
 

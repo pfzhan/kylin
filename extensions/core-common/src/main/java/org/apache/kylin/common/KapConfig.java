@@ -25,10 +25,13 @@
 package org.apache.kylin.common;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
+
+import io.kyligence.kap.common.util.FileUtils;
 
 public class KapConfig {
 
@@ -432,7 +435,15 @@ public class KapConfig {
     }
 
     public String sparderJars() {
-        return config.getOptional("kap.query.engine.sparder-additional-jars",
-                KylinConfigBase.getKylinHome() + "/lib/kap-storage-parquet.jar");
+        try {
+            File file = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib", "kylin-storage-parquet-kap-.*.jar");
+            String path = "";
+            if (file != null) {
+                path = file.getCanonicalPath();
+            }
+            return config.getOptional("kap.query.engine.sparder-additional-jars", path);
+        } catch (IOException e) {
+            return "";
+        }
     }
 }

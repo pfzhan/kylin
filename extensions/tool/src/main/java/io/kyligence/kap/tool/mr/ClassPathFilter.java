@@ -50,6 +50,9 @@ public class ClassPathFilter {
                 path = path.substring(0, path.length() - 1);
             }
             Path filePath = Paths.get(path);
+            if(filePath == null){
+                continue;
+            }
             File file = filePath.toFile();
             if (file.isDirectory()) {
                 if (filePath.getFileName().toString().endsWith("conf")) {

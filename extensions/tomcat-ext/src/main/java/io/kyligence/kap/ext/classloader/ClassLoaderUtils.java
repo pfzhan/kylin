@@ -25,8 +25,16 @@
 package io.kyligence.kap.ext.classloader;
 
 import java.io.File;
+import java.net.URLClassLoader;
 
-public final class ClassUtils {
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public final class ClassLoaderUtils {
+    static URLClassLoader sparkClassLoader = null;
+    static URLClassLoader originClassLoader = null;
+    private static Logger logger = LoggerFactory.getLogger(ClassLoaderUtils.class);
+
     public static File findFile(String dir, String ptn) {
         File[] files = new File(dir).listFiles();
         if (files != null) {
@@ -36,5 +44,31 @@ public final class ClassUtils {
             }
         }
         return null;
+    }
+
+    public static ClassLoader getSparkClassLoader() {
+        if (sparkClassLoader == null) {
+            logger.error("sparkClassLoader not init");
+            return Thread.currentThread().getContextClassLoader();
+        } else {
+            return sparkClassLoader;
+        }
+    }
+
+    public static void setSparkClassLoader(URLClassLoader classLoader) {
+        sparkClassLoader = classLoader;
+    }
+
+    public static ClassLoader getOriginClassLoader() {
+        if (originClassLoader == null) {
+            logger.error("sparkClassLoader not init");
+            return Thread.currentThread().getContextClassLoader();
+        } else {
+            return originClassLoader;
+        }
+    }
+
+    public static void setOriginClassLoader(URLClassLoader classLoader) {
+        originClassLoader = classLoader;
     }
 }

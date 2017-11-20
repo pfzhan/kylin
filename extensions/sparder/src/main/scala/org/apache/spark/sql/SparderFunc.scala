@@ -65,7 +65,7 @@ object SparderFunc {
           .master("local")
           .appName("sparder-test-sql-context")
           .config(conf)
-          //  .enableHiveSupport()
+            .enableHiveSupport()
           .getOrCreate()
       } else {
         conf.set("spark.jars", KapConfig.getInstanceFromEnv.sparderJars)

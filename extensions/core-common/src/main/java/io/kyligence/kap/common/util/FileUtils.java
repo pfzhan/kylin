@@ -22,21 +22,19 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet;
+package io.kyligence.kap.common.util;
 
-import org.apache.kylin.engine.mr.IMROutput2;
+import java.io.File;
 
-import io.kyligence.kap.storage.parquet.steps.ParquetSpliceMROutput2;
-
-public class ParquetSpliceStorage extends ParquetStorage {
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public <I> I adaptToBuildEngine(Class<I> engineInterface) {
-        if (engineInterface == IMROutput2.class) {
-            return (I) new ParquetSpliceMROutput2();
-        } else {
-            throw new RuntimeException("Cannot adapt to " + engineInterface);
+public final class FileUtils {
+    public static File findFile(String dir, String ptn) {
+        File[] files = new File(dir).listFiles();
+        if (files != null) {
+            for (File f : files) {
+                if (f.getName().matches(ptn))
+                    return f;
+            }
         }
+        return null;
     }
 }

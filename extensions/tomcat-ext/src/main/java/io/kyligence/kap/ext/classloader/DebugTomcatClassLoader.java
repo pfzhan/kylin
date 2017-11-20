@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.ext.classloader;
 
-import static io.kyligence.kap.ext.classloader.ClassUtils.findFile;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +56,8 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
     public DebugTomcatClassLoader(ClassLoader parent) throws IOException {
         super(parent);
         sparkClassLoader = new SparkClassLoader(this);
+        ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
+        ClassLoaderUtils.setOriginClassLoader(this);
         init();
     }
 
@@ -77,24 +77,27 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
                 e.printStackTrace();
             }
         }
-        String spark_home = System.getenv("SPARK_HOME");
-        try {
-            //SparkContext use spi to match deploy mode
-            //otherwise SparkContext init fail ,can not find yarn deploy mode
-            File yarnJar = findFile(spark_home + "/jars", "spark-yarn.*.jar");
-            addURL(yarnJar.toURI().toURL());
-            //jersey in spark will attempt find @Path class file in current classloader. Not possible to delegate to spark loader
-            // otherwise spark web ui executors tab can not render
-            File coreJar = findFile(spark_home + "/jars", "spark-core.*.jar");
-            addURL(coreJar.toURI().toURL());
-        } catch (MalformedURLException e) {
-            e.printStackTrace();
-        }
+        //        String spark_home = System.getenv("SPARK_HOME");
+        //        try {
+        //            //SparkContext use spi to match deploy mode
+        //            //otherwise SparkContext init fail ,can not find yarn deploy mode
+        //            File yarnJar = findFile(spark_home + "/jars", "spark-yarn.*.jar");
+        //            addURL(yarnJar.toURI().toURL());
+        //            //jersey in spark will attempt find @Path class file in current classloader. Not possible to delegate to spark loader
+        //            // otherwise spark web ui executors tab can not render
+        //            File coreJar = findFile(spark_home + "/jars", "spark-core.*.jar");
+        //            addURL(coreJar.toURI().toURL());
+        //        } catch (MalformedURLException e) {
+        //            e.printStackTrace();
+        //        }
 
     }
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (name.startsWith("io.kyligence.kap.ext")) {
+            return parent.loadClass(name);
+        }
         if (isCodeGen(name)) {
             throw new ClassNotFoundException();
         }

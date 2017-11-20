@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.format;
 
+import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -60,14 +62,14 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
 import io.kyligence.kap.storage.parquet.format.serialize.TupleFilterLiteralHasher;
 
-import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
-
 /**
  * spark rdd input
  */
 public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> {
 
-    public org.apache.hadoop.mapreduce.RecordReader<Text, Text> createRecordReader(org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context) throws IOException, InterruptedException {
+    public org.apache.hadoop.mapreduce.RecordReader<Text, Text> createRecordReader(
+            org.apache.hadoop.mapreduce.InputSplit split, TaskAttemptContext context)
+            throws IOException, InterruptedException {
         return new ParquetRawTableFileReader();
     }
 
@@ -95,7 +97,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             FileSplit fileSplit = (FileSplit) split;
             conf = context.getConfiguration();
             Path indexPath = fileSplit.getPath();
-            Path parquetPath = new Path(indexPath.getParent(), indexPath.getName().substring(0, indexPath.getName().length() - 4));
+            Path parquetPath = new Path(indexPath.getParent(),
+                    indexPath.getName().substring(0, indexPath.getName().length() - 4));
 
             logger.info("data file: {}, index file: {}", parquetPath, indexPath);
 
@@ -110,7 +113,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             // read index file
             FileSystem fileSystem = HadoopUtil.getFileSystem(parquetPath, conf);
             FSDataInputStream inputStream = fileSystem.open(indexPath);
-            indexTable = new ParquetOrderedPageIndexTable(fileSystem, indexPath, inputStream, 0, Collections.singleton(0));
+            indexTable = new ParquetOrderedPageIndexTable(fileSystem, indexPath, inputStream, 0,
+                    Collections.singleton(0));
 
             // page bitmap
             String scanReqStr = conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUEST_BYTES);
@@ -118,7 +122,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             if (scanReqStr != null) {
                 TupleFilterSerializerRawTableExt.getExtendedTupleFilters();//touch static initialization
 
-                GTScanRequest gtScanRequest = GTScanRequest.serializer.deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
+                GTScanRequest gtScanRequest = GTScanRequest.serializer
+                        .deserialize(ByteBuffer.wrap(scanReqStr.getBytes("ISO-8859-1")));
                 gtScanRequestThreadLocal.set(gtScanRequest);//for later use convenience
 
                 if (Boolean.valueOf(conf.get(ParquetFormatConstants.KYLIN_USE_INVERTED_INDEX))) {
@@ -126,7 +131,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
 
                     //for Rawtable filters, replace all the literals with hash value first
                     TupleFilterLiteralHasher decorator = new TupleFilterLiteralHasher();
-                    IFilterCodeSystem<ByteArray> wrap = GTUtil.wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
+                    IFilterCodeSystem<ByteArray> wrap = GTUtil
+                            .wrap(gtScanRequest.getInfo().getCodeSystem().getComparator());
                     byte[] serialize = TupleFilterSerializerRawTableExt.serialize(filter, decorator, wrap);
                     TupleFilter hashedFilter = TupleFilterSerializerRawTableExt.deserialize(serialize, wrap);
 
@@ -142,7 +148,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
             }
 
             // column bitmap
-            ImmutableRoaringBitmap columnBitmap = RoaringBitmaps.readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
+            ImmutableRoaringBitmap columnBitmap = RoaringBitmaps
+                    .readFromString(conf.get(ParquetFormatConstants.KYLIN_SCAN_REQUIRED_PARQUET_COLUMNS));
             if (columnBitmap != null) {
                 logger.info("All columns read by parquet: " + StringUtils.join(columnBitmap, ","));
             } else {
@@ -159,7 +166,8 @@ public class ParquetRawTableFileInputFormat extends FileInputFormat<Text, Text> 
                 reader = null;
             } else {
                 // init with first shard file
-                reader = new ParquetBundleReader.Builder().setFileOffset(0).setConf(conf).setPath(parquetPath).setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
+                reader = new ParquetBundleReader.Builder().setFileOffset(0).setConf(conf).setPath(parquetPath)
+                        .setPageBitset(pageBitmap).setColumnsBitmap(columnBitmap).build();
             }
 
             // finish initialization

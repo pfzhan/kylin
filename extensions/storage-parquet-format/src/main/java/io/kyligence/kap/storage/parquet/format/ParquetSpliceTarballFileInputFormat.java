@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.format;
 
+import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -62,8 +64,6 @@ import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexSpliceReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.ParquetPageIndexTable;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;
-
-import static io.kyligence.kap.storage.parquet.format.ParquetFormatConstants.KYLIN_DEFAULT_GT_MAX_LENGTH;
 
 /**
  * spark rdd input 

@@ -31,11 +31,12 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
 
+import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.storage.parquet.cube.raw.RawTableStorageQuery;
 import io.kyligence.kap.storage.parquet.steps.ParquetMROutput2;
 
-public class ParquetStorage implements IStorage {
+public class ParquetStorage implements IStorage, IKeep {
     @Override
     public IStorageQuery createQuery(IRealization realization) {
         if (realization.getType() == RealizationType.CUBE) {
@@ -43,7 +44,8 @@ public class ParquetStorage implements IStorage {
         } else if (realization.getType() == RealizationType.INVERTED_INDEX) {
             return new RawTableStorageQuery((RawTableInstance) realization);
         } else {
-            throw new IllegalStateException("Unsupported realization type for ParquetStorage: " + realization.getType());
+            throw new IllegalStateException(
+                    "Unsupported realization type for ParquetStorage: " + realization.getType());
         }
     }
 

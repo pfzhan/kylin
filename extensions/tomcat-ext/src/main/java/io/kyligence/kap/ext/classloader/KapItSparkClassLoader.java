@@ -36,9 +36,10 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
+import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
+
 public class KapItSparkClassLoader extends URLClassLoader {
-    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "com.esotericsoftware",
-            "org.codehaus", "scala.", "org.spark_project", "org.glassfish", "javax.ws.rs"
+    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "scala.", "org.spark_project"
             //            "javax.ws.rs.core.Application",
             //            "javax.ws.rs.core.UriBuilder", "org.glassfish.jersey", "javax.ws.rs.ext"
             //user javax.ws.rs.api 2.01  not jersey-core-1.9.jar
@@ -67,36 +68,14 @@ public class KapItSparkClassLoader extends URLClassLoader {
         init();
     }
 
-    public static KapItSparkClassLoader getClassLoader(ClassLoader parent) throws IOException {
-        if (classloader == null) {
-            synchronized (KapItSparkClassLoader.class) {
-                if (classloader == null) {
-                    classloader = new KapItSparkClassLoader(parent);
-                    return classloader;
-                } else {
-                    return classloader;
-                }
-            }
-        } else {
-            return classloader;
-        }
-    }
-
-    private static File findFile(String dir, String ptn) {
-        File[] files = new File(dir).listFiles();
-        if (files != null) {
-            for (File f : files) {
-                if (f.getName().matches(ptn))
-                    return f;
-            }
-        }
-        return null;
-    }
 
     public void init() throws MalformedURLException {
         String spark_home = System.getenv("SPARK_HOME");
         if (spark_home == null) {
-            throw new RuntimeException("");
+            spark_home = System.getProperty("SPARK_HOME");
+            if (spark_home == null) {
+                throw new RuntimeException("Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
+            }
         }
         File file = new File(spark_home + "/jars");
         File[] jars = file.listFiles();
@@ -113,6 +92,7 @@ public class KapItSparkClassLoader extends URLClassLoader {
             // DebugTomcatClassLoader and TomcatClassLoader  find class api will be find itself first
             // so, parent classloader can load it , spark class will be found
             addURL(new File("../sparder/target/classes").toURI().toURL());
+            addURL(new File("../storage-parquet/target/classes").toURI().toURL());
             addURL(new File("../query/target/classes").toURI().toURL());
             String sparkJarCanonicalPath = sparkJar.getCanonicalPath();
             System.setProperty("kap.query.engine.sparder-additional-jars", sparkJarCanonicalPath);
@@ -123,7 +103,8 @@ public class KapItSparkClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (isClassExempt(name) && !needLoad(name)) {
+        if (!name.startsWith("org.apache.hadoop.hive") && !name.startsWith("javax.ws.rs") && isClassExempt(name)
+                && !needLoad(name)) {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             try {
                 return getParent().loadClass(name);

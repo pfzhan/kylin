@@ -29,16 +29,17 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class SparkClassLoader extends URLClassLoader {
-    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "com.esotericsoftware",
-            "org.codehaus", "scala.", "org.spark_project", "org.glassfish", "javax.ws.rs"
+    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "scala.", "org.spark_project"
             //            "javax.ws.rs.core.Application",
             //            "javax.ws.rs.core.UriBuilder", "org.glassfish.jersey", "javax.ws.rs.ext"
             //user javax.ws.rs.api 2.01  not jersey-core-1.9.jar
@@ -48,13 +49,13 @@ public class SparkClassLoader extends URLClassLoader {
             //            // Java standard library:
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
-            "org.apache.commons.logging", "org.apache.log4j", "com.hadoop", "org.slf4j",
+            "org.apache.commons.logging", "org.apache.log4j", "org.slf4j", "org.apache.hadoop",
             // Hadoop/HBase/ZK:
-            "org.apache.hadoop", "org.apache.zookeeper", "io.kyligence", "org.apache.kylin", "com.intellij",
-            "org.apache.calcite" };
+            "io.kyligence", "org.apache.kylin", "com.intellij", "org.apache.calcite" };
     private static final Set<String> classNotFoundCache = Sets.newHashSet();
+    private static final List<String> RESOURCE = Lists.newArrayList("hdfs-site.xml", "core-site.xml", "yarn-site.xml",
+            "hbase-site.xml", "hive-site.xml");
     private static Logger logger = LoggerFactory.getLogger(SparkClassLoader.class);
-    private static SparkClassLoader classloader;
 
     /**
      * Creates a DynamicClassLoader that can load classes dynamically
@@ -67,25 +68,21 @@ public class SparkClassLoader extends URLClassLoader {
         init();
     }
 
-    public static SparkClassLoader getClassLoader(ClassLoader parent) throws IOException {
-        if (classloader == null) {
-            synchronized (SparkClassLoader.class) {
-                if (classloader == null) {
-                    classloader = new SparkClassLoader(parent);
-                    return classloader;
-                } else {
-                    return classloader;
-                }
-            }
-        } else {
-            return classloader;
-        }
-    }
+    //    @Override
+    //    public InputStream getResourceAsStream(String name) {
+    //        if (RESOURCE.contains(name)) {
+    //            return getParent().getResourceAsStream(name);
+    //        }
+    //        return super.getResourceAsStream(name);
+    //    }
 
     public void init() throws MalformedURLException {
         String spark_home = System.getenv("SPARK_HOME");
         if (spark_home == null) {
-            throw new RuntimeException("");
+            spark_home = System.getProperty("SPARK_HOME");
+            if (spark_home == null) {
+                throw new RuntimeException("Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
+            }
         }
         File file = new File(spark_home + "/jars");
         File[] jars = file.listFiles();
@@ -96,7 +93,8 @@ public class SparkClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (isClassExempt(name) && !needLoad(name)) {
+        if (!name.startsWith("org.apache.hadoop.hive") && !name.startsWith("javax.ws.rs") && isClassExempt(name)
+                && !needLoad(name)) {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             try {
                 return getParent().loadClass(name);

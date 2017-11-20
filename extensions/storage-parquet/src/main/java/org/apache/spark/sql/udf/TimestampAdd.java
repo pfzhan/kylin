@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.storage.parquet.adhoc.udf;
+package org.apache.spark.sql.udf;
 
 import java.sql.Date;
 import java.sql.Timestamp;
