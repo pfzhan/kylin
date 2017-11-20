@@ -33,7 +33,7 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
         System.out.println(parseResult);
     }
 
-    @ Override 
+    @Override
     public String transform(String sql, String project, String defaultSchema) {
         if (!KapConfig.getInstanceFromEnv().isJdbcEscapeEnabled()) {
             return sql;
@@ -43,14 +43,13 @@ public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     public String transform(String sql) {
-        try
-        {
+        try {
             EscapeTransformer parser = new EscapeTransformer(new StringReader(sql));
             return parser.Input();
-        }
-        catch (ParseException ex)
-        {
-            throw new RuntimeException(ex);
+        } catch (Exception ex) {
+            logger.error("Something unexpected while EscapeTransformer transforming the query, return original query",
+                    ex);
+            return sql;
         }
     }
 }

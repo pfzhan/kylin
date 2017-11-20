@@ -162,7 +162,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             //            Preconditions.checkState(tblColRef.getTableRef().getTableIdentity()
             //                    .equals(dataModelDesc.getRootFactTable().getTableIdentity()));
             ComputedColumnDesc computedColumnDesc = dataModelDesc.findCCByCCColumnName(columnName);
-            String replaced = replaceAliasInExpr(computedColumnDesc.getExpression(), queryAliasMatchInfo);
+            String replaced = replaceAliasInExpr(computedColumnDesc.getInnerExpression(), queryAliasMatchInfo);
 
             Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(columnUsage, inputSql);
             int start = startEndPos.getFirst();
