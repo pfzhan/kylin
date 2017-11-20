@@ -28,11 +28,13 @@ export default {
   },
   actions: {
     [types.LOAD_USERS_LIST]: function ({ commit, state }, para) {
-      api.user.getUsersList(para).then((response) => {
+      return api.user.getUsersList(para).then((response) => {
         commit(types.SAVE_USERS_LIST, { list: response.data.data.users, size: response.data.data.size })
-      }, () => {
+        return response
+      }, (res) => {
         state.usersList = []
         state.usersSize = 0
+        return res
       })
     },
     [types.UPDATE_STATUS]: function ({ commit }, user) {
@@ -77,9 +79,11 @@ export default {
     [types.GET_USERS_BY_GROUPNAME]: function ({ commit, state }, para) {
       return api.user.getUsersByGroupName(para).then((response) => {
         commit(types.SAVE_USERS_LIST, { list: response.data.data.groupMembers, size: response.data.data.size })
-      }, () => {
+        return response
+      }, (res) => {
         state.usersList = []
         state.usersSize = 0
+        return res
       })
     },
     [types.GET_GROUP_USERS_LIST]: function ({ commit }, para) {

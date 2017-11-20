@@ -155,7 +155,9 @@ export default {
       defaultGroup: 'ALL_USERS',
       saveBtnLoad: false,
       serarchChar: '',
-      ST: null
+      ST: null,
+      userData: [],
+      totalSize: 0
     }
   },
   components: {
@@ -225,7 +227,14 @@ export default {
       if (this.serarchChar) {
         parameter.name = this.serarchChar
       }
-      this[action](parameter)
+      this[action](parameter).then((res) => {
+        handleSuccess(res, (data) => {
+          this.userData = data.users || data.groupMembers || []
+          this.totalSize = data.size
+        })
+      }, (res) => {
+        handleError(res)
+      })
     },
     filterUserList () {
       clearTimeout(this.ST)
@@ -302,6 +311,9 @@ export default {
       }
       if (data.admin) {
         user.detail.authorities.push('ROLE_ADMIN')
+      }
+      if (this.extraoption.groupName) {
+        user.detail.authorities.push(this.extraoption.groupName)
       }
       this.saveUser(user).then((result) => {
         this.$message({
@@ -399,7 +411,7 @@ export default {
       return false
     },
     usersListSize () {
-      return this.$store.state.user.usersSize
+      return this.totalSize
     },
     securityProfile () {
       return this.$store.state.system.securityProfile
@@ -408,8 +420,8 @@ export default {
       return hasRole(this, 'ROLE_ADMIN')
     },
     usersList () {
-      let userData = []
-      this.$store.state.user.usersList.forEach((user) => {
+      let userDataRender = []
+      this.userData.forEach((user) => {
         let newUser = {
           username: user.username,
           disabled: user.disabled,
@@ -433,9 +445,9 @@ export default {
           group.push(role.authority)
         })
         newUser.groups = group
-        userData.push(newUser)
+        userDataRender.push(newUser)
       })
-      return userData
+      return userDataRender
     }
   },
   created () {
