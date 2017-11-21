@@ -1,6 +1,6 @@
 <template>
   <el-select
-    v-model="value"
+    v-model="filterVal"
     filterable
     remote
     :placeholder="$t(placeholder)"
@@ -26,6 +26,7 @@ export default {
       loading: false,
       datamap: this.dataMap ? this.dataMap : {label: 'label', value: 'value'},
       filterList: [],
+      filterVal: this.value,
       filter: '',
       ST: null
     }
@@ -52,6 +53,11 @@ export default {
     },
     changeSelect (event) {
       this.$emit('input', this.value)
+    }
+  },
+  watch: {
+    value (val) {
+      this.filterVal = val
     }
   },
   created () {
