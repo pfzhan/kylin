@@ -273,9 +273,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             aclEvaluate.checkProjectAdminPermission(project);
         }
         HashMap<String, Object> data = new HashMap<>();
-        List<ManagedUser> userList = listAllUsers();
-
-        List<ManagedUser> usersByFuzzyMatching = getManagedUsersByFuzzMatching(nameSeg, isCaseSensitive, userList);
+        List<ManagedUser> usersByFuzzyMatching = getManagedUsersByFuzzMatching(nameSeg, isCaseSensitive, listAllUsers());
         List<ManagedUser> subList = PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize);
         //LDAP users dose not have authorities
         for (ManagedUser u : subList) {
@@ -286,7 +284,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    private List<ManagedUser> getManagedUsersByFuzzMatching(@RequestParam(value = "name", required = false) String nameSeg, @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive, List<ManagedUser> userList) {
+    private List<ManagedUser> getManagedUsersByFuzzMatching(String nameSeg, boolean isCaseSensitive, List<ManagedUser> userList) {
         List<ManagedUser> usersByFuzzyMatching = new ArrayList<>();
         //for name fuzzy matching
         if (nameSeg != null) {
@@ -300,7 +298,7 @@ public class KapUserController extends BasicController implements UserDetailsSer
             }
             return usersByFuzzyMatching;
         }
-        return usersByFuzzyMatching;
+        return userList;
     }
 
     @RequestMapping(value = "/{userName}", method = { RequestMethod.DELETE }, produces = {
