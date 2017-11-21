@@ -22,7 +22,7 @@
         <li class="toolbtn tool_jian" @click="subZoom" v-unselect :title="$t('kylinLang.common.zoomOut')" style="line-height:26px;"><img src="../../assets/img/sx.png"></li>
         <li style="background:none;font-size:14px;text-align:center;color:#99A9BF;">{{Math.ceil(currentZoom*100)}}%</li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
-        <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
+        <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.fullscreen')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
         
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
@@ -2734,7 +2734,7 @@ export default {
     subZoom: function () {
       this.currentZoom -= 0.05
       if (this.currentZoom <= 0) {
-        this.currentZoom = 0.01
+        this.currentZoom = 0.05
       }
       this.jsplumbZoom(this.currentZoom, this.plumbInstance)
     },

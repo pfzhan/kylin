@@ -2,7 +2,7 @@
     <div class="accesscolumn">
        <el-button type="blue" icon="plus" @click="addGrant" v-show="hasSomeProjectPermission || isAdmin">{{$t('restrict')}}</el-button>
        <div style="width:200px;" class="ksd-mb-10 ksd-fright">
-          <el-input :placeholder="$t('userName')" icon="search" v-model="serarchChar" class="show-search-btn" >
+          <el-input :placeholder="$t('kylinLang.common.userOrGroup')" icon="search" v-model="serarchChar" class="show-search-btn" >
           </el-input>
         </div>
         <p v-if="pagerAclColumnList.length > 0"
@@ -73,7 +73,7 @@
                     <el-option v-for="b in aclWhiteList" :value="b.value">{{b.value}}</el-option>
                   </el-select> -->
 
-                  <kap-filter-select v-model="grantObj.name" :disabled="isEdit" style="width:100%" v-show="assignType === 'user'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
+                  <kap-filter-select :asyn="true" @req="getWhiteListOfColumn" v-model="grantObj.name" :disabled="isEdit" style="width:100%" v-show="assignType === 'user'" :dataMap="{label: 'value', value: 'value'}" :list="aclWhiteList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
 
                    <!--  <el-select v-if="assignType === 'group'"  style="width:100%" filterable  v-model="grantObj.name" :placeholder="$t('kylinLang.common.pleaseSelectUserGroup')" :disabled="isEdit" >
                     <el-option v-for="b in aclWhiteGroupList" :value="b.value">{{b.value}}</el-option>
@@ -242,15 +242,15 @@ export default {
         handleError(res)
       })
     },
-    getWhiteListOfColumn () {
-      this.getAclWhiteList({
-        tableName: this.tableName,
-        project: this.$store.state.project.selected_project,
-        type: this.assignType
-      }).then((res) => {
+    getWhiteListOfColumn (filterUserName) {
+      var para = {otherPara: {pageSize: 100, pageOffset: 0}, project: this.$store.state.project.selected_project, type: this.assignType, tableName: this.tableName}
+      if (filterUserName) {
+        para.otherPara.name = filterUserName
+      }
+      this.getAclWhiteList(para).then((res) => {
         handleSuccess(res, (data) => {
           var result = []
-          data.forEach((d) => {
+          data.users.forEach((d) => {
             result.push({value: d})
           })
           if (this.assignType === 'user') {

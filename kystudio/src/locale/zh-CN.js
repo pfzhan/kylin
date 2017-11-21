@@ -28,6 +28,7 @@ exports.default = {
     zoomOut: '缩小视图',
     automaticlayout: '自动布局',
     search: '搜索',
+    fullscreen: '全屏',
     // 常规状态
     success: '成功',
     fail: '失败',

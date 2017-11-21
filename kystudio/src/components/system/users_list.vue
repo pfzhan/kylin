@@ -229,8 +229,10 @@ export default {
       }
       this[action](parameter).then((res) => {
         handleSuccess(res, (data) => {
-          this.userData = data.users || data.groupMembers || []
-          this.totalSize = data.size
+          if (data) {
+            this.userData = data.users || data.groupMembers || []
+            this.totalSize = data.size
+          }
         })
       }, (res) => {
         handleError(res)
@@ -312,7 +314,7 @@ export default {
       if (data.admin) {
         user.detail.authorities.push('ROLE_ADMIN')
       }
-      if (this.extraoption.groupName) {
+      if (this.extraoption && this.extraoption.groupName) {
         user.detail.authorities.push(this.extraoption.groupName)
       }
       this.saveUser(user).then((result) => {

@@ -100,7 +100,7 @@ export default {
       selectedUserList: [],
       userList: [],
       currentSelectedGroup: '',
-      transMaxSize: 500
+      ST: null
     }
   },
   components: {
@@ -133,39 +133,37 @@ export default {
       })
     },
     loadUsers (filterName) {
-      var para = {pageSize: 1111200, pageOffset: 0, project: localStorage.getItem('selected_project')}
+      var para = {pageSize: 1000, pageOffset: 0, project: localStorage.getItem('selected_project')}
       if (filterName) {
         para.name = filterName
       }
       return this.loadUsersList(para)
     },
     filterUser (val) {
-      val = val || ''
-      var userList = []
-      var count = 0
-      for (var k = 0; k < this.userListData.length; k++) {
-        var curUser = this.userListData[k]
-        if ((!val || curUser.username.toUpperCase().indexOf(val.toUpperCase()) >= 0) && count <= this.transMaxSize) {
-          if (this.selectedUserList.indexOf(curUser.username) >= 0) {
-            continue
+      clearTimeout(this.ST)
+      this.ST = setTimeout(() => {
+        val = val || ''
+        this.loadUsers(val).then(() => {
+          var userList = []
+          for (var k = 0; k < this.userListData.length; k++) {
+            var curUser = this.userListData[k]
+            if (this.selectedUserList.indexOf(curUser.username) >= 0) {
+              continue
+            }
+            userList.push({
+              key: curUser.username,
+              label: curUser.username
+            })
           }
-          userList.push({
-            key: curUser.username,
-            label: curUser.username
+          this.selectedUserList.forEach((user) => {
+            userList.push({
+              key: user,
+              label: user
+            })
           })
-          count++
-        }
-        if (count >= this.transMaxSize) {
-          break
-        }
-      }
-      this.selectedUserList.forEach((user) => {
-        userList.push({
-          key: user,
-          label: user
+          this.userList = userList
         })
-      })
-      this.userList = userList
+      }, 500)
     },
     assignUsers (group) {
       this.addUserToGroupDialog = true
@@ -174,8 +172,10 @@ export default {
       this.filterUser()
       this.$nextTick(() => {
         var filterInputDom = $(this.$refs['transfer'].$el.querySelectorAll('.el-transfer-panel__filter input')[0])
+        filterInputDom.val('')
         filterInputDom.unbind('input propertychange').bind('input propertychange', () => {
           var val = filterInputDom.val()
+          console.log(val)
           this.filterUser(val)
         })
       })

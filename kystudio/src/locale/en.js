@@ -29,6 +29,7 @@ exports.default = {
     zoomOut: 'Zoom Out',
     automaticlayout: 'Automatic Layout',
     search: 'Search',
+    fullscreen: 'Full Screen',
     // 常规状态
     success: 'Success',
     fail: 'Fail',

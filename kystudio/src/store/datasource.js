@@ -94,7 +94,7 @@ export default {
       return api.datasource.cancelAclSetOfTable(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_BLACKLIST_TABLE]: function ({commit}, para) {
-      return api.datasource.getAclBlackListOfTable(para.tableName, para.project, para.type)
+      return api.datasource.getAclBlackListOfTable(para.tableName, para.project, para.type, para.otherPara)
     },
     // acl column
     [types.GET_ACL_SET_COLUMN]: function ({commit}, para) {
@@ -110,7 +110,7 @@ export default {
       return api.datasource.cancelAclSetOfColumn(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_WHITELIST_COLUMN]: function ({commit}, para) {
-      return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project, para.type)
+      return api.datasource.getAclWhiteListOfColumn(para.tableName, para.project, para.type, para.otherPara)
     },
     // acl row
     [types.GET_ACL_SET_ROW]: function ({commit}, para) {
@@ -126,7 +126,7 @@ export default {
       return api.datasource.cancelAclSetOfRow(para.tableName, para.project, para.userName, para.type)
     },
     [types.GET_ACL_WHITELIST_ROW]: function ({commit}, para) {
-      return api.datasource.getAclWhiteListOfRow(para.tableName, para.project, para.type)
+      return api.datasource.getAclWhiteListOfRow(para.tableName, para.project, para.type, para.otherPara)
     },
     [types.PREVIEW_ACL_SET_ROW_SQL]: function ({commit}, para) {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)

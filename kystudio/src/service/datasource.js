@@ -55,8 +55,8 @@ export default {
   getAclOfTable: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/table/' + project + '/' + tableName).get()
   },
-  getAclBlackListOfTable: (tableName, project, type) => {
-    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/black/' + tableName).get()
+  getAclBlackListOfTable: (tableName, project, type, otherPara) => {
+    return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/black/' + tableName).get(otherPara)
   },
   saveAclSetOfTable: (tableName, project, userName, type) => {
     return Vue.resource(apiUrl + 'acl/table/' + project + '/' + type + '/' + tableName + '/' + userName).save()
@@ -67,8 +67,8 @@ export default {
   getAclOfColumn: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/column/' + project + '/' + tableName).get()
   },
-  getAclWhiteListOfColumn: (tableName, project, type) => {
-    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + type + '/' + tableName).get()
+  getAclWhiteListOfColumn: (tableName, project, type, otherPara) => {
+    return Vue.resource(apiUrl + 'acl/column/white/' + project + '/' + type + '/' + tableName).get(otherPara)
   },
   saveAclSetOfColumn: (tableName, project, userName, columnList, type) => {
     return Vue.resource(apiUrl + 'acl/column/' + project + '/' + type + '/' + tableName + '/' + userName).save(columnList)
@@ -83,8 +83,8 @@ export default {
   getAclOfRow: (tableName, project, type) => {
     return Vue.resource(apiUrl + 'acl/row/' + project + '/' + tableName).get()
   },
-  getAclWhiteListOfRow: (tableName, project, type) => {
-    return Vue.resource(apiUrl + 'acl/row/white/' + project + '/' + type + '/' + tableName).get()
+  getAclWhiteListOfRow: (tableName, project, type, otherPara) => {
+    return Vue.resource(apiUrl + 'acl/row/white/' + project + '/' + type + '/' + tableName).get(otherPara)
   },
   saveAclSetOfRow: (tableName, project, userName, conditions, type) => {
     return Vue.resource(apiUrl + 'acl/row/' + project + '/' + type + '/' + tableName + '/' + userName).save(conditions)

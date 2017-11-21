@@ -36,7 +36,7 @@
         </el-form-item>
          <el-form-item :label="$t('name')" prop="sid" v-show="accessMeta.principal" >
 <!--           <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input> -->
-         <kap-filter-select v-model="accessMeta.sid" :disabled="isEdit" :dataMap="{label: 'username', value: 'username'}" :list="userList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
+         <kap-filter-select :asyn="true" @req="getFilterList" v-model="accessMeta.sid" :disabled="isEdit" :dataMap="{label: 'username', value: 'username'}" :list="userList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
          <!--  <el-select filterable :disabled="isEdit" v-model="accessMeta.sid" :placeholder="$t('nameAccount')">
             <el-option
               v-for="item in userList"
@@ -64,7 +64,7 @@
         </el-form-item>
         <el-form-item>
           <el-button  @click="resetAccessEdit">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="saveAccess">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" :loading="btnLoad" @click="saveAccess">{{$t('kylinLang.common.save')}}</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -156,7 +156,8 @@ export default {
         { key: 'Management', value: 32 },
         { key: 'Admin', value: 16 }
       ],
-      groupList: []
+      groupList: [],
+      btnLoad: false
     }
   },
   methods: {
@@ -173,6 +174,16 @@ export default {
       loadUsersList: 'LOAD_USERS_LIST',
       getGroupList: 'GET_GROUP_LIST'
     }),
+    getFilterList (query) {
+      this.loadUser(query)
+    },
+    loadUser (filterUserName) {
+      var para = {pageSize: 100, pageOffset: 0, project: this.projectName}
+      if (filterUserName) {
+        para.name = filterUserName
+      }
+      this.loadUsersList(para)
+    },
     loadAllGroups (data) {
       this.getGroupList({project: localStorage.getItem('selected_project')}).then((res) => {
         handleSuccess(res, (groups) => {
@@ -199,6 +210,7 @@ export default {
       this.initMeta()
     },
     resetAccessEdit () {
+      this.btnLoad = false
       this.initMeta()
       // this.$refs.accessForm.resetFields()
       this.editAccessVisible = false
@@ -212,16 +224,19 @@ export default {
           this.updateAccess()
           return
         }
+        this.btnLoad = true
         var accessMeta = objectClone(this.accessMeta)
         accessMeta.permission = this.mask[this.accessMeta.permission]
         var actionType = this.own === 'cube' ? 'saveCubeAccess' : 'saveProjectAccess'
         this[actionType]({accessData: accessMeta, id: this.accessId}).then((res) => {
+          this.btnLoad = false
           this.editAccessVisible = false
           this.loadAccess()
           // 需要重新刷新projectlist下的权限
           this.getProjectEndAccess(this.accessId)
           this.$message(this.$t('kylinLang.common.saveSuccess'))
         }, (res) => {
+          this.btnLoad = false
           handleError(res)
         })
       })
@@ -256,13 +271,16 @@ export default {
     updateAccess () {
       var actionType = 'editProjectAccess'
       var accessMeta = objectClone(this.accessMeta)
+      this.btnLoad = true
       accessMeta.permission = this.mask[this.accessMeta.permission]
       this[actionType]({accessData: accessMeta, id: this.accessId}).then((res) => {
+        this.btnLoad = false
         this.editAccessVisible = false
         this.loadAccess()
         // 需要重新刷新projectlist下的权限
         this.getProjectEndAccess(this.accessId)
       }, (res) => {
+        this.btnLoad = false
         handleError(res)
       })
     },
@@ -329,7 +347,7 @@ export default {
     this.loadAccess()
     if (this.hasProjectAdminPermission() || this.isAdmin) {
       this.loadAllGroups()
-      this.loadUsersList({pageSize: 10000, pageOffset: 0, project: this.projectName})
+      this.loadUser()
     }
     if (!this.$store.state.project.projectEndAccess[this.accessId]) {
       this.getProjectEndAccess(this.accessId)

@@ -20,21 +20,29 @@
 <script>
 export default {
   name: 'filterSelect',
-  props: ['list', 'size', 'placeholder', 'dataMap', 'value', 'disabled'],
+  props: ['list', 'size', 'placeholder', 'dataMap', 'value', 'disabled', 'asyn', 'delay'],
   data () {
     return {
       loading: false,
       datamap: this.dataMap ? this.dataMap : {label: 'label', value: 'value'},
       filterList: [],
-      filter: ''
+      filter: '',
+      ST: null
     }
   },
   methods: {
     remoteMethod (query) {
       this.filter = query
+      this.$emit('input', query)
+      this.loading = true
+      if (this.asyn) {
+        clearTimeout(this.ST)
+        this.ST = setTimeout(() => {
+          this.$emit('req', query)
+          return
+        }, this.delay || 1000)
+      }
       if (query) {
-        this.filter = query
-        this.loading = true
         this.filterList = this.list.filter(item => {
           return item[this.datamap['label']].toLowerCase()
           .indexOf(query.toLowerCase()) > -1
@@ -42,7 +50,6 @@ export default {
       } else {
         this.filterList = []
       }
-      this.$emit('input', query)
     },
     changeSelect (event) {
       this.$emit('input', this.value)
@@ -53,6 +60,9 @@ export default {
   computed: {
     drawData () {
       this.loading = false
+      if (this.asyn) {
+        return this.list
+      }
       return this.filter ? this.filterList.slice(0, this.size) ? this.filterList.slice(0, this.size) : this.list.slice(0, this.size) : this.list.slice(0, this.size)
     }
   }

@@ -15,9 +15,9 @@
                <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
              </el-form-item>
              <el-form-item>
-               <el-checkbox v-model="hasLimit" @change="changeLimit"></el-checkbox>
+               <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
              </el-form-item>
-             <el-form-item label="Limit">
+             <el-form-item >
                <el-input  placeholder="" size="small" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
              </el-form-item>
              <el-form-item>
