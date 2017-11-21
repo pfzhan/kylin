@@ -42,6 +42,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Bytes;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
@@ -164,8 +165,15 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
             freshWriter(key);
 
+            // Log for large size row
+            if (value.getBytes().length > MemoryBudgetController.ONE_MB * 50) {
+                logger.info("Writing row with size " + (value.getBytes().length / MemoryBudgetController.ONE_MB)
+                        + "MB to cuboid with ID " + curCuboidId
+                        + ", please increase the setting memory of \"mapreduce.reduce.memory.mb\" and \"mapreduce.reduce.java.opts\" in \"kylin_job_conf.xml\" if out of memory error occurs.");
+            }
+
             // Step 1: transform text object to byte array. 
-            byte[] valueBytes = value.getBytes().clone(); //on purpose, because Parquet writer will cache
+            byte[] valueBytes = Arrays.copyOf(value.getBytes(), value.getLength()); //on purpose, because Parquet writer will cache
             byte[] keyBody = Arrays.copyOfRange(key.getBytes(), RowConstants.ROWKEY_SHARD_AND_CUBOID_LEN,
                     key.getLength());
             int[] valueLength = measureCodec.getPeekLength(ByteBuffer.wrap(valueBytes));
