@@ -39,7 +39,6 @@ export default {
         clearTimeout(this.ST)
         this.ST = setTimeout(() => {
           this.$emit('req', query)
-          return
         }, this.delay || 1000)
       }
       if (query) {

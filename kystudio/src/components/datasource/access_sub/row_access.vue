@@ -401,11 +401,7 @@ export default {
       if (filterUserName) {
         para.otherPara.name = filterUserName
       }
-      this.getAclWhiteList({
-        tableName: this.tableName,
-        project: this.$store.state.project.selected_project,
-        type: this.assignType
-      }).then((res) => {
+      this.getAclWhiteList(para).then((res) => {
         handleSuccess(res, (data) => {
           var result = []
           data.users.forEach((d) => {
