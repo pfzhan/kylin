@@ -139,7 +139,7 @@ public class ParquetTask implements Serializable {
             this.storageType = request.getStorageType();
             this.dataFolderName = request.getDataFolderName();
             this.kylinConfig = KylinConfig.getInstanceFromEnv();
-            this.conf = new Configuration();
+            this.conf = HadoopUtil.getCurrentConfiguration();
             this.kapConfig = KapConfig.wrap(kylinConfig);
 
             TupleFilterSerializerRawTableExt.getExtendedTupleFilters();//touch static initialization
