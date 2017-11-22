@@ -41,6 +41,7 @@ export default {
         this.ST = setTimeout(() => {
           this.$emit('req', query)
         }, this.delay || 1000)
+        return
       }
       if (query) {
         this.filterList = this.list.filter(item => {
