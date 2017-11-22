@@ -25,7 +25,12 @@
 package org.apache.spark.sql
 
 import scala.collection.JavaConverters._
-import io.kyligence.kap.query.runtime.{AggArgc, CreateDictPushdownTableArgc, OrderArgc, SelectArgc}
+import io.kyligence.kap.query.runtime.{
+  AggArgc,
+  CreateDictPushdownTableArgc,
+  OrderArgc,
+  SelectArgc
+}
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.execution.datasources.sparder.SparderConstants
@@ -40,6 +45,10 @@ object SparderFunc {
       spark = initSpark()
     }
     spark
+  }
+
+  def getSparkConf(key: String): String = {
+    getSparkSession().sparkContext.conf.get(key)
   }
 
   def initSpark(): SparkSession = {
@@ -65,7 +74,7 @@ object SparderFunc {
           .master("local")
           .appName("sparder-test-sql-context")
           .config(conf)
-            .enableHiveSupport()
+          .enableHiveSupport()
           .getOrCreate()
       } else {
         conf.set("spark.jars", KapConfig.getInstanceFromEnv.sparderJars)

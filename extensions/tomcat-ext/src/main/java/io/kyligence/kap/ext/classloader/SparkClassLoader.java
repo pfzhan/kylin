@@ -26,17 +26,17 @@ package io.kyligence.kap.ext.classloader;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.List;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 public class SparkClassLoader extends URLClassLoader {
     private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "scala.", "org.spark_project"
@@ -52,10 +52,26 @@ public class SparkClassLoader extends URLClassLoader {
             "org.apache.commons.logging", "org.apache.log4j", "org.slf4j", "org.apache.hadoop",
             // Hadoop/HBase/ZK:
             "io.kyligence", "org.apache.kylin", "com.intellij", "org.apache.calcite" };
-    private static final Set<String> classNotFoundCache = Sets.newHashSet();
-    private static final List<String> RESOURCE = Lists.newArrayList("hdfs-site.xml", "core-site.xml", "yarn-site.xml",
-            "hbase-site.xml", "hive-site.xml");
+    private static final Set<String> classNotFoundCache = new HashSet<>();
     private static Logger logger = LoggerFactory.getLogger(SparkClassLoader.class);
+
+    static {
+        try {
+            final Method registerParallel = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
+            AccessController.doPrivileged(new PrivilegedAction<Object>() {
+                public Object run() {
+                    registerParallel.setAccessible(true);
+                    return null;
+                }
+            });
+            Boolean result = (Boolean) registerParallel.invoke(null);
+            if (!result) {
+                logger.warn("registrationFailed");
+            }
+        } catch (Exception ignore) {
+
+        }
+    }
 
     /**
      * Creates a DynamicClassLoader that can load classes dynamically
@@ -81,7 +97,8 @@ public class SparkClassLoader extends URLClassLoader {
         if (spark_home == null) {
             spark_home = System.getProperty("SPARK_HOME");
             if (spark_home == null) {
-                throw new RuntimeException("Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
+                throw new RuntimeException(
+                        "Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
             }
         }
         File file = new File(spark_home + "/jars");

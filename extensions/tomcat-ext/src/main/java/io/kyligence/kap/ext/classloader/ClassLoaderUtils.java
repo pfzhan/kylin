@@ -56,12 +56,16 @@ public final class ClassLoaderUtils {
     }
 
     public static void setSparkClassLoader(URLClassLoader classLoader) {
+        if (sparkClassLoader != null) {
+            logger.error("sparkClassLoader already initialized");
+        }
+        logger.info("set sparkClassLoader :" + classLoader);
         sparkClassLoader = classLoader;
     }
 
     public static ClassLoader getOriginClassLoader() {
         if (originClassLoader == null) {
-            logger.error("sparkClassLoader not init");
+            logger.error("originClassLoader not init");
             return Thread.currentThread().getContextClassLoader();
         } else {
             return originClassLoader;
@@ -69,6 +73,10 @@ public final class ClassLoaderUtils {
     }
 
     public static void setOriginClassLoader(URLClassLoader classLoader) {
+        if (originClassLoader != null) {
+            logger.error("originClassLoader already initialized");
+        }
+        logger.info("set originClassLoader :" + classLoader);
         originClassLoader = classLoader;
     }
 }

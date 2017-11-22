@@ -24,22 +24,15 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.refactor;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparderFunc;
-import org.apache.spark.sql.hive.HiveContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SparkSqlClient extends io.kyligence.kap.storage.parquet.adhoc.SparkSqlClient {
     public static final Logger logger = LoggerFactory.getLogger(SparkSqlClient.class);
-
-    private Map<UUID, Integer> uuidSizeMap = new HashMap<>();
-    private HiveContext hiveContext;
 
     public SparkSqlClient(Semaphore semaphore) {
         super(new JavaSparkContext(SparderFunc.getSparkSession().sparkContext()), semaphore);

@@ -30,7 +30,7 @@
 }
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
--keepclassmembers class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
+-keep class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
 -keepclassmembers class io.kyligence.kap.job.SampleCubeJoinedFlatTable {*;}
 
 -keep class io.kyligence.kap.modeling.smart.shaded.** {*;}
@@ -60,11 +60,11 @@
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.LongAccumulableParam  {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.refactor.** {*;}
 -keep class io.kyligence.kap.shaded.** {*;}
--keep class org.apache.spark.** {*;}
+-keep class io.kyligence.kap.ext.** {*;}
 -keep enum io.kyligence.kap.**,io.kyligence.kap.**$** {
     **[] $VALUES;
 	public *;
-} 
+}
 
 -keepattributes Exceptions,Signature,Deprecated,SourceFile,LineNumberTable,*Annotation*,EnclosingMethod,InnerClasses
 -keepdirectories

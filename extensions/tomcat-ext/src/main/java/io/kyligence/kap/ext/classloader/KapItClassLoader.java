@@ -59,12 +59,7 @@ public class KapItClassLoader extends URLClassLoader {
     public KapItClassLoader(ClassLoader parent) throws IOException {
         super(((URLClassLoader) getSystemClassLoader()).getURLs());
         this.parent = parent;
-        if (ClassLoaderUtils.getSparkClassLoader() instanceof KapItSparkClassLoader) {
-            sparkClassLoader = (KapItSparkClassLoader) ClassLoaderUtils.getSparkClassLoader();
-        } else {
-            sparkClassLoader = new KapItSparkClassLoader(this);
-            ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
-        }
+        sparkClassLoader = new KapItSparkClassLoader(this);
         ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
         ClassLoaderUtils.setOriginClassLoader(this);
         defaultClassLoad = this;

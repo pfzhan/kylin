@@ -28,17 +28,15 @@ import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigBase;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.spark.sql.SparderFunc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Maps;
-
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
 
 @Component("configService")
 public class ConfigService extends BasicService {
@@ -141,9 +139,7 @@ public class ConfigService extends BasicService {
     }
 
     public String getSparkDriverConf(String confName) {
-        KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-        SparkDriverClient driverClient = new SparkDriverClient(kapConfig);
-        return driverClient.getSparkConf(confName);
+        return SparderFunc.getSparkConf(confName);
     }
 
     private boolean isKAPPlusVersion() {

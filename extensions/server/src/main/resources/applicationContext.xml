@@ -53,7 +53,7 @@
     <mvc:interceptors>
         <mvc:interceptor>
             <mvc:mapping path="/**"/>
-            <bean class="io.kyligence.kap.rest.msg.MsgInterceptor"/>
+            <bean class="io.kyligence.kap.rest.interceptor.KAPInterceptor"/>
         </mvc:interceptor>
     </mvc:interceptors>
 

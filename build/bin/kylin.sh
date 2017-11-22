@@ -85,12 +85,12 @@ function retrieveDependency() {
     then
         export ZIPKIN_HOSTNAME=`hostname`
     fi
-    if [ -z "$ZIPKIN_PORT" ]
+    if [ -z "$ZIPKIN_SCRIBE_PORT" ]
     then
-        export ZIPKIN_PORT="9410"
+        export ZIPKIN_SCRIBE_PORT="9410"
     fi
     echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
-    echo "ZIPKIN_PORT is set to ${ZIPKIN_PORT}"
+    echo "ZIPKIN_SCRIBE_PORT is set to ${ZIPKIN_SCRIBE_PORT}"
     # compose kylin_common_opts
     kylin_common_opts="${kylin_hadoop_opts} \
     -Dkylin.hive.dependency=${hive_dependency} \

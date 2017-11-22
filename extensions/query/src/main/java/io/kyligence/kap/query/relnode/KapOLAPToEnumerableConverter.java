@@ -116,7 +116,8 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
         if (sparderEnabled) {
             sparderEnabled = isSparderAppliable(contexts);
-            logger.info("sparder is enabled");
+            logger.info("sparder is enabled : " + sparderEnabled);
+
         }
 
         if (!sparderEnabled) {
@@ -147,13 +148,10 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     private boolean isSparderAppliable(List<OLAPContext> contexts) {
         boolean sparderEnabled = true;
-        boolean hasAgg = false;
         for (OLAPContext olapContext : contexts) {
-            if (olapContext.aggregations.size() > 0) {
-                hasAgg = true;
-            }
             CubeInstance cube = null;
             if (olapContext.realization instanceof RawTableInstance) {
+                logger.debug("Current query cannot use Sparder due to rawtable");
                 sparderEnabled = false;
                 break;
             }
@@ -170,6 +168,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
                 for (IRealization realization : realizations) {
                     if (realization instanceof RawTableInstance) {
                         sparderEnabled = false;
+                        logger.debug("Current query cannot use Sparder due to rawtable");
                         break;
                     }
                     if (olapContext.realization instanceof CubeInstance) {
@@ -209,11 +208,10 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
                 }
             }
         }
-        if (!hasAgg) {
-            sparderEnabled = false;
-        }
         return sparderEnabled;
     }
+
+    
 
     private boolean isCFAndStorageType(boolean sparderEnabled, OLAPContext olapContext) {
         CubeInstance cube;

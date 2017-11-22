@@ -27,35 +27,28 @@ package io.kyligence.kap.storage.parquet.adhoc;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
+import io.kyligence.kap.storage.parquet.cube.spark.refactor.SparkSubmitter;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 public class PushDownRunnerSparkImpl implements IPushDownRunner {
     public static final Logger logger = LoggerFactory.getLogger(PushDownRunnerSparkImpl.class);
 
-    private SparkDriverClient client;
-
     @Override
     public void init(KylinConfig config) {
-        try {
-            client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
-        } catch (Exception e) {
-            logger.error("error is " + e.getLocalizedMessage());
-            throw e;
-        }
     }
 
     @Override
     public void executeQuery(String query, List<List<String>> results, List<SelectedColumnMeta> columnMetas)
             throws Exception {
-        SparkJobProtos.PushDownResponse response = client.queryWithPushDown(query);
+
+        SparkJobProtos.PushDownResponse response = queryWithPushDown(query);
+
         int columnCount = response.getColumnsCount();
         List<SparkJobProtos.StructField> fieldList = response.getColumnsList();
 
@@ -84,6 +77,11 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
 
     @Override
     public void executeUpdate(String sql) throws Exception {
-        client.queryWithPushDown(sql);
+        queryWithPushDown(sql);
+    }
+
+    private SparkJobProtos.PushDownResponse queryWithPushDown(String sql) throws RuntimeException {
+        SparkJobProtos.PushDownRequest request = SparkJobProtos.PushDownRequest.newBuilder().setSql(sql).build();
+        return SparkSubmitter.submitPushDownTask(request);
     }
 }

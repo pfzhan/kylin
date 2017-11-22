@@ -22,22 +22,30 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.msg;
+package io.kyligence.kap.rest.interceptor;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.rest.msg.KapMsgPicker;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
 /**
  * Created by luwei on 17-5-26.
  */
-public class MsgInterceptor extends HandlerInterceptorAdapter {
+public class KAPInterceptor extends HandlerInterceptorAdapter {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws Exception {
         String lang = request.getHeader("Accept-Language");
         KapMsgPicker.setMsg(lang);
         return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getOriginClassLoader());
     }
 }

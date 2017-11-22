@@ -99,7 +99,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
 
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
-
+        
         TraceScope scope = null;
         if (kryoTraceInfo != null) {
             HtraceInit.init();

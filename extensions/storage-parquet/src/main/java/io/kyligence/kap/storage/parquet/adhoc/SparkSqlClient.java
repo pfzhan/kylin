@@ -74,6 +74,7 @@ public class SparkSqlClient implements Serializable {
                 .isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout")) ? 60
                         : Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
         hiveContext = new HiveContext(sc);
+        
         hiveContext.sql("CREATE TEMPORARY FUNCTION timestampadd AS 'org.apache.spark.sql.udf.TimestampAdd'");
         hiveContext.sql("CREATE TEMPORARY FUNCTION timestampdiff AS 'org.apache.spark.sql.udf.TimestampDiff'");
         hiveContext.sql("CREATE TEMPORARY FUNCTION truncate AS 'org.apache.spark.sql.udf.Truncate'");

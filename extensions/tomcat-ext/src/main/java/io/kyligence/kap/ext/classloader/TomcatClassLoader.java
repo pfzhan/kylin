@@ -30,6 +30,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.catalina.loader.ParallelWebappClassLoader;
 import org.slf4j.Logger;
@@ -44,7 +46,30 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
     private static final String[] CLASS_PREFIX_INCLUDE = new String[] { "io.kyligence", "org.apache.kylin",
             "org.apache.calcite" };
     private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object",
-            "Baz" };
+            "Baz"
+            //        , 
+            //        "Class", "Object", "org", "java.lang.org", "java.lang$org", "java$lang$org", "org.apache",
+            //            "org.apache.calcite", "org.apache.calcite.runtime", "org.apache.calcite.linq4j", "Long", "String"
+
+    };
+
+    private static final Set<String> wontFindClasses = new HashSet<>();
+
+    static {
+        wontFindClasses.add("Class");
+        wontFindClasses.add("Object");
+        wontFindClasses.add("org");
+        wontFindClasses.add("java.lang.org");
+        wontFindClasses.add("java.lang$org");
+        wontFindClasses.add("java$lang$org");
+        wontFindClasses.add("org.apache");
+        wontFindClasses.add("org.apache.calcite");
+        wontFindClasses.add("org.apache.calcite.runtime");
+        wontFindClasses.add("org.apache.calcite.linq4j");
+        wontFindClasses.add("Long");
+        wontFindClasses.add("String");
+    }
+
     public static TomcatClassLoader defaultClassLoad = null;
     private static Logger logger = LoggerFactory.getLogger(TomcatClassLoader.class);
     public SparkClassLoader sparkClassLoader;
@@ -57,12 +82,8 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
      */
     public TomcatClassLoader(ClassLoader parent) throws IOException {
         super(parent);
-        if (ClassLoaderUtils.getSparkClassLoader() instanceof SparkClassLoader) {
-            sparkClassLoader = (SparkClassLoader) ClassLoaderUtils.getSparkClassLoader();
-        } else {
-            sparkClassLoader = new SparkClassLoader(this);
-            ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
-        }
+        sparkClassLoader = new SparkClassLoader(this);
+        ClassLoaderUtils.setSparkClassLoader(sparkClassLoader);
         ClassLoaderUtils.setOriginClassLoader(this);
         defaultClassLoad = this;
         init();
@@ -88,14 +109,17 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        if (isWontFind(name)) {
+            throw new ClassNotFoundException();
+        }
+        if (isCodeGen(name)) {
+            throw new ClassNotFoundException();
+        }
         if (name.startsWith("io.kyligence.kap.ext")) {
             return parent.loadClass(name);
         }
         // spark codegen classload parent is Thread.currentThread().getContextClassLoader()
         // and calcite baz classloader is EnumerableInterpretable.class's classloader
-        if (isCodeGen(name)) {
-            throw new ClassNotFoundException();
-        }
         if (sparkClassLoader.needLoad(name)) {
             return sparkClassLoader.loadClass(name);
         }
@@ -132,6 +156,10 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
             }
         }
         return false;
+    }
+
+    boolean isWontFind(String name) {
+        return wontFindClasses.contains(name);
     }
 
     boolean isCodeGen(String name) {

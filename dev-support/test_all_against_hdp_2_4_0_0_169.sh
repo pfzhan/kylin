@@ -25,7 +25,7 @@ rm testall*.log
 
 export SPARK_HOME=${SPARK_HOME:-"/root/spark-2.1.1-bin-hadoop2.6"}
 export ZIPKIN_HOSTNAME=${ZIPKIN_HOSTNAME:-"localhost"}
-export ZIPKIN_PORT=${ZIPKIN_PORT:-"9410"}
+export ZIPKIN_SCRIBE_PORT=${ZIPKIN_SCRIBE_PORT:-"9410"}
 export CI_MODE=true
 export hdpv=${HDP_VERSION:-"2.4.0.0-169"}
 
