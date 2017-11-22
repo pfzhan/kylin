@@ -31,8 +31,7 @@
     <packaging>pom</packaging>
     <name>KAP - External</name>
     <url>http://kyligence.io</url>
-    <description>Protobuf protocol for Kyligence Storage Engine on Parquet
-    </description>
+    <description>Tailored Dependencies for KAP</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -43,7 +42,6 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <shadeBase>io.kyligence.kap.curator.shaded</shadeBase>
     </properties>
 
     <!--overwrite parent, need to upgrade this when upgrade grpc-->
@@ -55,7 +53,7 @@
                 <version>1.5.0</version>
                 <executions>
                     <execution>
-                        <id>compileprotocol</id>
+                        <id>install_protocolbuf</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>
@@ -76,7 +74,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>packagecurator</id>
+                        <id>install_curator</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>
@@ -98,7 +96,7 @@
                         </configuration>
                     </execution>
                     <execution>
-                        <id>packagecuratortest</id>
+                        <id>install_curatortest</id>
                         <phase>compile</phase>
                         <goals>
                             <goal>exec</goal>

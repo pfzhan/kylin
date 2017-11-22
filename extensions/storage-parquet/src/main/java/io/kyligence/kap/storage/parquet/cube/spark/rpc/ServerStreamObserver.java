@@ -35,12 +35,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceInfo;
-import org.apache.htrace.TraceScope;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;
@@ -121,9 +120,6 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         } else {
 
             TraceScope scope = null;
-            if (state.getTraceInfo() != null) {
-                scope = Trace.startSpan("subsequent grpc call", state.getTraceInfo());
-            }
 
             getRDDPartitionData(state);
 
@@ -139,18 +135,6 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
         }
 
         final StorageVisitState state = new StorageVisitState();
-        if (sparkJobRequest.getPayload().hasTraceInfo()) {
-            SparkJobProtos.TraceInfo traceInfo = sparkJobRequest.getPayload().getTraceInfo();
-            long traceId = traceInfo.getTraceId();
-            long spanId = traceInfo.getSpanId();
-            TraceInfo tinfo = new TraceInfo(traceId, spanId);
-            state.setTraceInfo(tinfo);
-        }
-
-        TraceScope scope = null;
-        if (state.getTraceInfo() != null) {
-            scope = Trace.startSpan("first grpc call", state.getTraceInfo());
-        }
 
         storageVisitStates.put(streamIdentifier, state);
 
@@ -168,8 +152,6 @@ public class ServerStreamObserver implements StreamObserver<SparkJobProtos.Spark
 
         getRDDPartitionData(state);
 
-        if (scope != null)
-            scope.close();
     }
 
     private void doStorageVisit(SparkJobProtos.SparkJobRequestPayload request) {

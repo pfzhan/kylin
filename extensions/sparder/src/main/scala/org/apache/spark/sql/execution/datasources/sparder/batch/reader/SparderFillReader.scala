@@ -25,6 +25,7 @@ package org.apache.spark.sql.execution.datasources.sparder.batch.reader
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics
 import org.apache.kylin.metadata.datatype.DataTypeSerializer
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
 import org.apache.spark.sql.execution.utils.RowTearer
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch
 
@@ -114,7 +115,12 @@ class SparderFillReader(
       vectorizedSparderRecordReader.close()
     }
     columnReaders.foreach(_.printStatistics())
-    ParquetMetrics.get.print(System.err)
+    
+    // scalastyle:off
+    val summary = ParquetMetrics.get.summary
+    System.err.println(summary)
+    ParquetMetrics.get.reset()
+    // scalastyle:on
 
   }
 }

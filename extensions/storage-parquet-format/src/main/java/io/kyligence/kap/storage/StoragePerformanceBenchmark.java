@@ -376,7 +376,8 @@ public class StoragePerformanceBenchmark {
 
         bundleReader.close();
         
-        bundleReader.getMetrics().print(System.out);
+        System.out.println(bundleReader.getMetrics().summary());
+        bundleReader.getMetrics().reset();
         return Pair.newPair(System.currentTimeMillis() - t, cnt);
     }
 

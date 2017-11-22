@@ -79,7 +79,7 @@ public class RawTableSparkRPC implements IGTStorage {
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
         List<Integer> columnFamilies = Lists.newArrayList();
-        
+
         for (int i = 0; i < request.getSelectedColBlocks().trueBitCount(); i++) {
             columnFamilies.add(request.getSelectedColBlocks().trueBitAt(i));
         }
@@ -96,7 +96,7 @@ public class RawTableSparkRPC implements IGTStorage {
 
         String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
 
-        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
+        SparkJobProtos.SparkJobRequestPayload.Builder builder = SparkJobProtos.SparkJobRequestPayload.newBuilder()
                 .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).//
                 setGtScanRequestId(scanReqId).setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
                 .setRealizationId(rawTableSegment.getRawTableInstance().getUuid()).//
@@ -108,12 +108,14 @@ public class RawTableSparkRPC implements IGTStorage {
                 setQueryId(QueryContext.current().getQueryId())
                 .setSpillEnabled(rawTableSegment.getConfig().getQueryCoprocessorSpillEnabled()).//
                 setMaxScanBytes(rawTableSegment.getConfig().getPartitionMaxScanBytes())
-                .setStartTime(scanRequest.getStartTime()).setStorageType(-1).//
-                build();
+                .setStartTime(scanRequest.getStartTime());
+
+        SparkJobProtos.SparkJobRequestPayload payload = builder.setStorageType(-1).build();
 
         logger.info("The scan {} for segment {} is ready to be submitted to spark client", scanReqId, rawTableSegment);
 
-        final IPartitionStreamer storageVisitResponseStreamer = client.submitParquetTask(scanRequest, payload, rawTableSegment.getConfig().getQueryMaxScanBytes());
+        final IPartitionStreamer storageVisitResponseStreamer = client.submitParquetTask(scanRequest, payload,
+                rawTableSegment.getConfig().getQueryMaxScanBytes());
         return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
     }
 }

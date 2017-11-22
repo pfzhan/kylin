@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.PrintStream;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,29 +152,35 @@ public class ParquetMetrics {
         pageReadDecodeTime += System.nanoTime() - pageReadDecodeTmp;
     }
 
-    public void print(PrintStream out) {
-        logger.info("...footerReadCnt\t" + footerReadCnt);
-        logger.info("...footerReadTime\t" + footerReadTime / 1000000);
-
-        logger.info("...pageReadOverallPageCnt\t" + pageReadOverallPageCnt);
-        logger.info("...pageReadOverallCellCnt\t" + pageReadOverallCellCnt);
-        logger.info("...pageReadOverallTime\t" + pageReadOverallTime / 1000000);
-
-        logger.info("...pageReadHeaderCnt\t" + pageReadHeaderCnt);
-        logger.info("...pageReadHeaderTime\t" + pageReadHeaderTime / 1000000);
-        logger.info("...pageReadHeaderSeekTime\t" + pageReadHeaderSeekTime / 1000000);
-        logger.info("...pageReadHeaderStreamTime\t" + pageReadHeaderStreamTime / 1000000);
-
-        logger.info("...pageReadIOAndDecompressRawIOBytes\t" + pageReadIOAndDecompressRawIOBytes);
-        logger.info("...pageReadIOAndDecompressBytes\t" + pageReadIOAndDecompressBytes);
-        logger.info("...pageReadIOAndDecompressTime\t" + pageReadIOAndDecompressTime / 1000000);
-
-        logger.info("...pageReadDecodeBytes\t" + pageReadDecodeBytes);
-        logger.info("...pageReadDecodeTime\t" + pageReadDecodeTime / 1000000);
-        logger.info("...groupReadTime\t" + groupReadTime / 1000000);
-        logger.info("...bufferReadTime\t" + bufferReadTime / 1000000);
-        logger.info("...totalTime\t"
-                + (groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000);
+    public void reset() {
         metric.set(null);
+    }
+
+    public String summary() {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("...footerReadCnt\t" + footerReadCnt + "\n");
+        sb.append("...footerReadTime\t" + footerReadTime / 1000000 + "\n");
+
+        sb.append("...pageReadOverallPageCnt\t" + pageReadOverallPageCnt + "\n");
+        sb.append("...pageReadOverallCellCnt\t" + pageReadOverallCellCnt + "\n");
+        sb.append("...pageReadOverallTime\t" + pageReadOverallTime / 1000000 + "\n");
+
+        sb.append("...pageReadHeaderCnt\t" + pageReadHeaderCnt + "\n");
+        sb.append("...pageReadHeaderTime\t" + pageReadHeaderTime / 1000000 + "\n");
+        sb.append("...pageReadHeaderSeekTime\t" + pageReadHeaderSeekTime / 1000000 + "\n");
+        sb.append("...pageReadHeaderStreamTime\t" + pageReadHeaderStreamTime / 1000000 + "\n");
+
+        sb.append("...pageReadIOAndDecompressRawIOBytes\t" + pageReadIOAndDecompressRawIOBytes + "\n");
+        sb.append("...pageReadIOAndDecompressBytes\t" + pageReadIOAndDecompressBytes + "\n");
+        sb.append("...pageReadIOAndDecompressTime\t" + pageReadIOAndDecompressTime / 1000000 + "\n");
+
+        sb.append("...pageReadDecodeBytes\t" + pageReadDecodeBytes + "\n");
+        sb.append("...pageReadDecodeTime\t" + pageReadDecodeTime / 1000000 + "\n");
+        sb.append("...groupReadTime\t" + groupReadTime / 1000000 + "\n");
+        sb.append("...bufferReadTime\t" + bufferReadTime / 1000000 + "\n");
+        sb.append("...totalTime\t"
+                + (groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000 + "\n");
+        return sb.toString();
     }
 }

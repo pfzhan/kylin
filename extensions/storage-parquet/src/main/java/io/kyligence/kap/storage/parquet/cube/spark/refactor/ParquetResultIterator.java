@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.storage.parquet.cube.spark.refactor;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Iterator;
 
 import javax.annotation.Nullable;
@@ -38,8 +40,10 @@ import io.kyligence.kap.storage.parquet.cube.spark.rpc.RDDPartitionResult;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 import io.kyligence.kap.storage.parquet.protocol.shaded.com.google.protobuf.ByteString;
 
-public class ParquetResultIterator implements Iterator<Iterator<SparkJobProtos.SparkJobResponse.PartitionResponse>> {
+public class ParquetResultIterator
+        implements Closeable, Iterator<Iterator<SparkJobProtos.SparkJobResponse.PartitionResponse>> {
     private ParquetTask parquetTask;
+    private JavaRDD<RDDPartitionResult> rddHandle = null;
 
     public ParquetResultIterator(ParquetTask parquetTask) {
         this.parquetTask = parquetTask;
@@ -58,7 +62,8 @@ public class ParquetResultIterator implements Iterator<Iterator<SparkJobProtos.S
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        iteratorJavaRDDPair.getSecond().unpersist();
+        rddHandle = iteratorJavaRDDPair.getSecond();
+
         Iterator<SparkJobProtos.SparkJobResponse.PartitionResponse> sparkJobResponseIterator = Iterators.transform(
                 iteratorJavaRDDPair.getFirst(),
                 new Function<RDDPartitionResult, SparkJobProtos.SparkJobResponse.PartitionResponse>() {
@@ -87,4 +92,10 @@ public class ParquetResultIterator implements Iterator<Iterator<SparkJobProtos.S
 
     }
 
+    @Override
+    public void close() throws IOException {
+        if (rddHandle != null) {
+            rddHandle.unpersist();
+        }
+    }
 }

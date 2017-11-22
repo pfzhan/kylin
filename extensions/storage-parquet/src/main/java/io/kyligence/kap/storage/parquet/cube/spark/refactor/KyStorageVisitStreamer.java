@@ -35,6 +35,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,33 +62,61 @@ public class KyStorageVisitStreamer implements IPartitionStreamer {
     @Override
     public Iterator<byte[]> asByteArrayIterator() {
 
-        return Iterators.transform(iterator, new Function<SparkJobProtos.SparkJobResponse.PartitionResponse, byte[]>() {
+        final Iterator<byte[]> itr = Iterators.transform(iterator,
+                new Function<SparkJobProtos.SparkJobResponse.PartitionResponse, byte[]>() {
+                    @Override
+                    public byte[] apply(@Nullable SparkJobProtos.SparkJobResponse.PartitionResponse partitionResponse) {
+
+                        byte[] bytes = partitionResponse.getBlob().toByteArray();
+                        logger.info(
+                                "[Partition Response Metrics] scan-request %s, result bytes: %s, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}",
+                                //
+                                scanRequestId, bytes.length, partitionResponse.getScannedRows(),
+                                partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(),
+                                partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(),
+                                partitionResponse.getHostname());
+
+                        QueryContext.current().addAndGetScannedRows(partitionResponse.getScannedRows());
+                        QueryContext.current().addAndGetScannedBytes(partitionResponse.getScannedBytes());
+
+                        if (QueryContext.current().getScannedBytes() > queryMaxScanBytes) {
+                            throw new ResourceLimitExceededException(
+                                    "Query scanned " + QueryContext.current().getScannedBytes()
+                                            + " bytes exceeds threshold " + queryMaxScanBytes);
+                        }
+                        //only for debug/profile purpose
+                        if (BackdoorToggles.getPartitionDumpDir() != null) {
+                            logger.info("debugging: Dumping partitions");
+                            dumpPartitions(bytes);
+                        }
+
+                        return bytes;
+                    }
+                });
+
+        //for tracing
+        return new Iterator<byte[]>() {
+            int hasNextTimes = 0;
+            int nextTimes = 0;
+
             @Override
-            public byte[] apply(@Nullable SparkJobProtos.SparkJobResponse.PartitionResponse partitionResponse) {
-                byte[] bytes = partitionResponse.getBlob().toByteArray();
-                logger.info(
-                        "[Partition Response Metrics] scan-request {}, result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}", //
-                        scanRequestId, bytes.length, partitionResponse.getScannedRows(),
-                        partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(),
-                        partitionResponse.getStartLatency(), partitionResponse.getTotalDuration(),
-                        partitionResponse.getHostname());
-
-                QueryContext.current().addAndGetScannedRows(partitionResponse.getScannedRows());
-                QueryContext.current().addAndGetScannedBytes(partitionResponse.getScannedBytes());
-
-                if (QueryContext.current().getScannedBytes() > queryMaxScanBytes) {
-                    throw new ResourceLimitExceededException("Query scanned " + QueryContext.current().getScannedBytes()
-                            + " bytes exceeds threshold " + queryMaxScanBytes);
-                }
-                //only for debug/profile purpose
-                if (BackdoorToggles.getPartitionDumpDir() != null) {
-                    logger.info("debugging: Dumping partitions");
-                    dumpPartitions(bytes);
-                }
-
-                return bytes;
+            public boolean hasNext() {
+                Trace.addTimelineAnnotation("calcite asking for one more partition result, cardinal within seg: " + (hasNextTimes++));
+                return itr.hasNext();
             }
-        });
+
+            @Override
+            public byte[] next() {
+                byte[] next = itr.next();
+                Trace.addTimelineAnnotation("one more partition result to calcite, cardinal within seg: " + (nextTimes++));
+                return next;
+            }
+
+            @Override
+            public void remove() {
+                itr.remove();
+            }
+        };
     }
 
     private void dumpPartitions(byte[] bytes) {

@@ -31,7 +31,7 @@
     <packaging>jar</packaging>
     <name>KAP - External Curator Test</name>
     <url>http://kyligence.io</url>
-    <description>Protobuf protocol for Kyligence Storage Engine on Parquet</description>
+    <description>Curator Test for KAP</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>

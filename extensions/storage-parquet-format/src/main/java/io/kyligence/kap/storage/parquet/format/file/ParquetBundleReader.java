@@ -45,7 +45,7 @@ public class ParquetBundleReader {
 
     private ParquetRawReader rawReader;
     private ParquetMetrics metrics;
-    
+
     private List<ParquetReaderState> readerStates;
     private int rowId = 0;
     private int rowCnt = 0;
@@ -57,7 +57,7 @@ public class ParquetBundleReader {
 
         metrics = new ParquetMetrics();
         rawReader = new ParquetRawReader(configuration, path, metadata, metrics, fileOffset);
-        
+
         int columnCnt = columns.getCardinality();
         readerStates = new ArrayList<>(columnCnt);
         pageBuffer = new ExpandableBytesVector[columnCnt];
@@ -102,7 +102,7 @@ public class ParquetBundleReader {
         List<Object> result = new ArrayList<Object>();
         return read(result);
     }
-    
+
     public List<Object> read(List<Object> result) throws IOException {
         result.clear();
         for (ParquetReaderState state : readerStates) {
@@ -136,9 +136,11 @@ public class ParquetBundleReader {
 
     public void close() throws IOException {
         rawReader.close();
-        metrics.print(System.err);
+
+        System.err.println(metrics.summary());
+        metrics.reset();
     }
-    
+
     public ParquetMetrics getMetrics() {
         return metrics;
     }
@@ -204,7 +206,8 @@ public class ParquetBundleReader {
                 build.close();
             }
 
-            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset, null);
+            ParquetBundleReader result = new ParquetBundleReader(conf, path, columnBitset, pageBitset, fileOffset,
+                    null);
 
             return result;
         }
@@ -221,7 +224,8 @@ public class ParquetBundleReader {
             long t = System.currentTimeMillis();
             try {
                 int i = 0;
-                ParquetBundleReader reader = new Builder().setPath(new Path(args[0])).setConf(new Configuration()).build();
+                ParquetBundleReader reader = new Builder().setPath(new Path(args[0])).setConf(new Configuration())
+                        .build();
                 long t2 = System.currentTimeMillis() - t;
                 System.out.println("Create reader takes " + t2 + " ms");
                 while (reader.read() != null) {

@@ -33,8 +33,6 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceScope;
 import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.gridtable.GTRecord;
@@ -43,6 +41,8 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.gridtable.StorageSideBehavior;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.slf4j.Logger;
@@ -100,10 +100,9 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
 
-        HtraceInit.init();
-
         TraceScope scope = null;
         if (kryoTraceInfo != null) {
+            HtraceInit.init();
             scope = Trace.startSpan("per-partition executor task", kryoTraceInfo.toTraceInfo());
         }
 
@@ -178,18 +177,23 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             baos.close();
             preAggred.close();
 
-            logger.info("Current task scanned {} raw rows and {} raw bytes, contributing {} result rows",
-                    scanner.getTotalScannedRowCount(), scanner.getTotalScannedRowBytes(), resultCounter);
+            String s = "Current task scanned " + scanner.getTotalScannedRowCount() + " raw rows and "
+                    + scanner.getTotalScannedRowBytes() + " raw bytes, contributing " + resultCounter + " result rows";
+            logger.info(s);
+            Trace.addTimelineAnnotation(s);
 
             if (scannedRecords != null)
                 scannedRecords.add(scanner.getTotalScannedRowCount());
             if (collectedRecords != null)
                 collectedRecords.add(resultCounter);
 
-            return Collections.singleton(new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(),
+            RDDPartitionResult o = new RDDPartitionResult(baos.toByteArray(), scanner.getTotalScannedRowCount(),
                     scanner.getTotalScannedRowBytes(), resultCounter, //
                     InetAddress.getLocalHost().getHostName(), localStartTime - startTime,
-                    System.currentTimeMillis() - localStartTime)).iterator();
+                    System.currentTimeMillis() - localStartTime);
+
+
+            return Collections.singleton(o).iterator();
         } finally {
             if (scope != null)
                 scope.close();

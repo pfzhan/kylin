@@ -116,6 +116,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
         if (sparderEnabled) {
             sparderEnabled = isSparderAppliable(contexts);
+            logger.info("sparder is enabled");
         }
 
         if (!sparderEnabled) {

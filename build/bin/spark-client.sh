@@ -53,7 +53,7 @@ then
     export ZIPKIN_HOSTNAME=`hostname`
 fi
 echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
-echo "ZIPKIN_PORT is set to ${ZIPKIN_PORT}"
+echo "ZIPKIN_SCRIBE_PORT is set to ${ZIPKIN_SCRIBE_PORT}"
 
 verbose "KYLIN_HOME is set to ${KYLIN_HOME}"
 verbose "CONF_DIR is set to ${CONF_DIR}"

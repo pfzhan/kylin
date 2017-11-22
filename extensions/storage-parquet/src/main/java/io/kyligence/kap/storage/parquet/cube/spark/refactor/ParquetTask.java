@@ -35,21 +35,19 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.KryoTraceInfo;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceInfo;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -69,6 +67,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.filter.TupleFilterSerializerRawTableExt;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.KryoTraceInfo;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.LongAccumulableParam;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.RDDPartitionResult;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
@@ -109,6 +108,7 @@ public class ParquetTask implements Serializable {
                     })
             .build();
     final transient String streamIdentifier;
+    final transient KryoTraceInfo traceInfo;
     private final transient JavaSparkContext sc;
     private final transient SparkJobProtos.SparkJobRequestPayload request;
     private final transient KylinConfig kylinConfig;
@@ -128,8 +128,10 @@ public class ParquetTask implements Serializable {
     private transient long accumulateCnt = 0;
     private transient JavaPairRDD batchRdd = null;
 
-    public ParquetTask(SparkJobProtos.SparkJobRequestPayload request, String streamIdentifier) {
+    public ParquetTask(SparkJobProtos.SparkJobRequestPayload request, String streamIdentifier,
+            KryoTraceInfo traceInfo) {
         try {
+            this.traceInfo = traceInfo;
             this.streamIdentifier = streamIdentifier;
             this.sc = JavaSparkContext.fromSparkContext(SparderFunc$.MODULE$.getSparkSession().sparkContext());
             this.request = request;
@@ -331,16 +333,12 @@ public class ParquetTask implements Serializable {
         JavaPairRDD<Text, Text> seed = batchRdd;
         batchRdd = null;
 
-        Trace.addTimelineAnnotation("creating result rdd");
+        Trace.addTimelineAnnotation("creating result rdd for one segment");
         final Iterator<RDDPartitionResult> partitionResults;
-        JavaRDD<RDDPartitionResult> baseRDD = seed
-                .mapPartitions(
-                        new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice,
-                                hasPreFiltered(), //
-                                streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(),
-                                request.getStartTime(), Trace.isTracing()
-                                ? KryoTraceInfo.fromTraceInfo(TraceInfo.fromSpan(Trace.currentSpan())) : null))
-                .cache();
+        JavaRDD<RDDPartitionResult> baseRDD = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords,
+                collectedRecords, realizationType, isSplice, hasPreFiltered(), //
+                streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime(),
+                traceInfo)).cache();
 
         baseRDD.count();//trigger lazy materialization
         Trace.addTimelineAnnotation("result rdd materialized");

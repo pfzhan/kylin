@@ -30,9 +30,10 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
 import org.apache.kylin.storage.gtrecord.IPartitionStreamer;
 
 import com.google.common.base.Function;
@@ -41,6 +42,8 @@ import com.google.common.collect.Iterators;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.storage.parquet.cube.spark.rpc.KryoTraceInfo;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
 
 public class SparkSubmitter {
@@ -48,10 +51,13 @@ public class SparkSubmitter {
 
     public static IPartitionStreamer submitParquetTask(GTScanRequest scanRequest,
             SparkJobProtos.SparkJobRequestPayload payload, long queryMaxScanBytes) {
+
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
+
         final String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
         final String streamIdentifier = UUID.randomUUID().toString();// it will stay during the stream session
-        ParquetTask parquetTask = new ParquetTask(payload, streamIdentifier);
+        ParquetTask parquetTask = new ParquetTask(payload, streamIdentifier,
+                Trace.isTracing() ? KryoTraceInfo.fromTraceInfo(TraceInfo.fromSpan(Trace.currentSpan())) : null);
         return new KyStorageVisitStreamer(Iterators.concat(new ParquetResultIterator(parquetTask)), scanReqId,
                 queryMaxScanBytes);
     }

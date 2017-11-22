@@ -94,7 +94,7 @@ public class AsyncQueryController extends BasicController {
                         SQLResponse response = queryService.doQueryWithCache(sqlRequest);
                         asyncQueryService.flushResultToHdfs(response, queryContext.getQueryId());
                     } catch (Exception ie) {
-                        SQLResponse error = new SQLResponse(null, null, 0, true, ie.getMessage());
+                        SQLResponse error = new SQLResponse(null, null, null, 0, true, ie.getMessage(), false, false);
                         asyncQueryService.flushResultToHdfs(error, queryContext.getQueryId());
                     }
                 } catch (IOException e) {

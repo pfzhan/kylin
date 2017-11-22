@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
+
 import java.io.Serializable;
 
-import org.apache.htrace.TraceInfo;
 
 public class KryoTraceInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
     public final long traceId;
     public final long spanId;
 

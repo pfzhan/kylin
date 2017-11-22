@@ -31,7 +31,6 @@ import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.htrace.Trace;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -80,7 +79,7 @@ public class CubeSparkRPC implements IGTStorage {
     }
 
     protected void init() {
-            client = new SparkSubmitter();
+        client = new SparkSubmitter();
     }
 
     protected List<Integer> getRequiredParquetColumns(GTScanRequest request) {
@@ -116,12 +115,6 @@ public class CubeSparkRPC implements IGTStorage {
                 .setMaxScanBytes(cubeSegment.getConfig().getPartitionMaxScanBytes())
                 .setStartTime(scanRequest.getStartTime()).setStorageType(cubeSegment.getStorageType());
 
-        if (Trace.isTracing()) {
-            long spanId = Trace.currentSpan().getSpanId();
-            long traceId = Trace.currentSpan().getTraceId();
-            builder.setTraceInfo(SparkJobProtos.TraceInfo.newBuilder().setSpanId(spanId).setTraceId(traceId).build());
-        }
-        
         SparkJobProtos.SparkJobRequestPayload payload = builder.build();
 
         if (BackdoorToggles.getDumpedPartitionDir() != null) {

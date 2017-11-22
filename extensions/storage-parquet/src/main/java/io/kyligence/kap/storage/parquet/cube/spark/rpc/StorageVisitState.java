@@ -23,8 +23,6 @@
  */
 package io.kyligence.kap.storage.parquet.cube.spark.rpc;
 
-import org.apache.htrace.TraceInfo;
-
 import java.util.concurrent.SynchronousQueue;
 
 public class StorageVisitState {
@@ -68,18 +66,9 @@ public class StorageVisitState {
     private volatile long createTime = System.currentTimeMillis();
     private volatile int messageNum = -1;//a complete storage visit may contain multiple streams
     private volatile boolean userCanceled = false;
-    private volatile TraceInfo traceInfo = null;
 
     public SynchronousQueue<TransferPack> getSynchronousQueue() {
         return synchronousQueue;
-    }
-
-    public TraceInfo getTraceInfo() {
-        return traceInfo;
-    }
-
-    public void setTraceInfo(TraceInfo traceInfo) {
-        this.traceInfo = traceInfo;
     }
 
     public boolean isUserCanceled() {

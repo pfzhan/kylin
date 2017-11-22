@@ -31,9 +31,9 @@ import java.util.concurrent.Semaphore;
 
 import javax.annotation.Nullable;
 
-import org.apache.htrace.TraceInfo;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.slf4j.Logger;

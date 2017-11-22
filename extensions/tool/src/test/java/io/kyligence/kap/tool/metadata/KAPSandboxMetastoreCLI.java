@@ -42,6 +42,7 @@ import org.apache.kylin.common.util.HBaseMetadataTestCase;
 public class KAPSandboxMetastoreCLI {
 
     public static void main(String[] args) throws Exception {
+        System.setProperty("HADOOP_USER_NAME", "root");
         System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
         System.out.println("Adding to classpath: " + new File(HBaseMetadataTestCase.SANDBOX_TEST_DATA).getAbsolutePath());
         ClassUtil.addClasspath(new File(HBaseMetadataTestCase.SANDBOX_TEST_DATA).getAbsolutePath());

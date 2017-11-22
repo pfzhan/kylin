@@ -41,14 +41,14 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.htrace.Trace;
-import org.apache.htrace.TraceInfo;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.metadata.realization.RealizationType;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
 import org.apache.kylin.storage.StorageContext;
 import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -328,7 +328,7 @@ public class SparkParquetVisit implements Serializable {
         JavaPairRDD<Text, Text> seed = batchRdd;
         batchRdd = null;
 
-        Trace.addTimelineAnnotation("creating result rdd");
+        Trace.addTimelineAnnotation("creating result rdd for one segment");
         final Iterator<RDDPartitionResult> partitionResults;
         JavaRDD<RDDPartitionResult> baseRDD = seed
                 .mapPartitions(

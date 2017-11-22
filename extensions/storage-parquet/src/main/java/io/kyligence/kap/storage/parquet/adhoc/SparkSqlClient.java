@@ -38,6 +38,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -73,25 +74,29 @@ public class SparkSqlClient implements Serializable {
                 .isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout")) ? 60
                         : Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
         hiveContext = new HiveContext(sc);
-        hiveContext.sql(
-                "CREATE TEMPORARY FUNCTION timestampadd AS 'org.apache.spark.sql.udf.TimestampAdd'");
-        hiveContext.sql(
-                "CREATE TEMPORARY FUNCTION timestampdiff AS 'org.apache.spark.sql.udf.TimestampDiff'");
-        hiveContext.sql(
-                "CREATE TEMPORARY FUNCTION truncate AS 'org.apache.spark.sql.udf.Truncate'");
+        hiveContext.sql("CREATE TEMPORARY FUNCTION timestampadd AS 'org.apache.spark.sql.udf.TimestampAdd'");
+        hiveContext.sql("CREATE TEMPORARY FUNCTION timestampdiff AS 'org.apache.spark.sql.udf.TimestampDiff'");
+        hiveContext.sql("CREATE TEMPORARY FUNCTION truncate AS 'org.apache.spark.sql.udf.Truncate'");
     }
 
     public Pair<List<List<String>>, List<SparkJobProtos.StructField>> executeSql(SparkJobProtos.PushDownRequest request,
             UUID uuid) throws Exception {
-        logger.info("Start to run sql with Spark <<<<<<");
+        String s = "Start to run sql with SparkSQL...";
+        logger.info(s);
+        Trace.addTimelineAnnotation(s);
 
         //Get result data
         Dataset<Row> df = hiveContext.sql(request.getSql());
 
+        String msg = "SparkSQL returned result DataFrame";
+        logger.info(msg);
+        Trace.addTimelineAnnotation(msg);
+
         return DFToList(uuid, df);
     }
 
-    private Pair<List<List<String>>, List<SparkJobProtos.StructField>> DFToList(UUID uuid, Dataset<Row> df) throws InterruptedException {
+    private Pair<List<List<String>>, List<SparkJobProtos.StructField>> DFToList(UUID uuid, Dataset<Row> df)
+            throws InterruptedException {
         JavaRDD<List<String>> rowRdd = df.javaRDD().mapPartitions(new FlatMapFunction<Iterator<Row>, List<String>>() {
 
             @Override

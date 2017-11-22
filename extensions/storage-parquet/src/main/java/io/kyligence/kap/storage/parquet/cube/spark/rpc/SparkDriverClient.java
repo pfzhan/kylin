@@ -40,12 +40,12 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.apache.htrace.Trace;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,7 +99,6 @@ public class SparkDriverClient {
                 logger.info("Finish creating channel");
             }
         }
-
     }
 
     public IStorageVisitResponseStreamer submit(GTScanRequest scanRequest,
