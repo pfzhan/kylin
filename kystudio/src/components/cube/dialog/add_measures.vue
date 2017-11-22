@@ -184,6 +184,7 @@
   </el-form>
 </template>
 <script>
+import { measuresDataType } from '../../../config'
 import { loadBaseEncodings } from '../../../util/business'
 import { objectClone, indexOfObjWithSomeKey } from '../../../util/index'
 export default {
@@ -293,13 +294,16 @@ export default {
     },
     getExtendedHostColumn: function () {
       let columns = []
-      let _this = this
-      _this.cubeDesc.dimensions.forEach(function (dimension, index) {
-        if (_this.modelDesc.factTables.indexOf(dimension.table) === -1) {
+      this.cubeDesc.dimensions.forEach((dimension, index) => {
+        if (this.modelDesc.factTables.indexOf(dimension.table) === -1) {
           return
         }
-        if (dimension.column && dimension.derived == null) {
-          columns.push(dimension.table + '.' + dimension.column)
+        if (this.modelDesc && this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[dimension.table + '.' + dimension.column] && this.modelDesc.columnsDetail[dimension.table + '.' + dimension.column].datatype) {
+          let returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+          let returnValue = returnRegex.exec(this.modelDesc.columnsDetail[dimension.table + '.' + dimension.column].datatype)
+          if (dimension.column && dimension.derived == null && measuresDataType.indexOf(returnValue[1]) >= 0) {
+            columns.push(dimension.table + '.' + dimension.column)
+          }
         }
       })
       return columns
@@ -307,34 +311,58 @@ export default {
     getCommonMetricColumns: function () {
       let columns = []
       if (this.modelDesc.metrics) {
-        this.modelDesc.metrics.forEach(function (metric, index) {
-          columns.push(metric)
+        this.modelDesc.metrics.forEach((metric, index) => {
+          if (this.modelDesc && this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[metric] && this.modelDesc.columnsDetail[metric].datatype) {
+            let returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+            let returnValue = returnRegex.exec(this.modelDesc.columnsDetail[metric].datatype)
+            if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+              columns.push(metric)
+            }
+          }
         })
       }
       return columns
     },
     getAllModelDimMeasureColumns: function () {
       let columns = []
-      this.modelDesc.dimensions.forEach(function (dimension, index) {
+      this.modelDesc.dimensions.forEach((dimension, index) => {
         if (dimension.columns) {
-          dimension.columns.forEach(function (column) {
-            columns = columns.concat(dimension.table + '.' + column)
+          dimension.columns.forEach((column) => {
+            if (this.modelDesc && this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[dimension.table + '.' + column] && this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype) {
+              let returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+              let returnValue = returnRegex.exec(this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype)
+              if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+                columns = columns.concat(dimension.table + '.' + column)
+              }
+            }
           })
         }
       })
       if (this.modelDesc.metrics) {
-        this.modelDesc.metrics.forEach(function (metric, index) {
-          columns.push(metric)
+        this.modelDesc.metrics.forEach((metric, index) => {
+          if (this.modelDesc && this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[metric] && this.modelDesc.columnsDetail[metric].datatype) {
+            let returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+            let returnValue = returnRegex.exec(this.modelDesc.columnsDetail[metric].datatype)
+            if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+              columns.push(metric)
+            }
+          }
         })
       }
       return columns
     },
     getAllModelDimColumns: function () {
       let columns = []
-      this.modelDesc.dimensions.forEach(function (dimension, index) {
+      this.modelDesc.dimensions.forEach((dimension, index) => {
         if (dimension.columns) {
-          dimension.columns.forEach(function (column) {
-            columns.push(dimension.table + '.' + column)
+          dimension.columns.forEach((column) => {
+            if (this.modelDesc && this.modelDesc.columnsDetail && this.modelDesc.columnsDetail[dimension.table + '.' + column] && this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype) {
+              let returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+              let returnValue = returnRegex.exec(this.modelDesc.columnsDetail[dimension.table + '.' + column].datatype)
+              if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+                columns.push(dimension.table + '.' + column)
+              }
+            }
           })
         }
       })
@@ -390,7 +418,7 @@ export default {
     getCountDistinctBitMapColumn: function () {
       let columns = []
       if (this.cubeDesc.measures) {
-        this.cubeDesc.measures.forEach(function (metric, index) {
+        this.cubeDesc.measures.forEach((metric, index) => {
           if (metric.function.expression === 'COUNT_DISTINCT' && metric.function.returntype === 'bitmap') {
             columns.push(metric.function.parameter.value)
           }

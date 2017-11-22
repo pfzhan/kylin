@@ -113,6 +113,10 @@ export const computedDataType = [
   'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
 ]
 
+export const measuresDataType = [
+  'tinyint', 'smallint', 'integer', 'int', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
+]
+
 export const timeDataType = [
   'timestamp', 'date', 'time', 'datetime'
 ]
