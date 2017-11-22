@@ -49,11 +49,9 @@ export default {
           datasourceTreeData.children.push(obj)
         }
         _this.modelAssets = [datasourceTreeData]
+        this.$emit('okFunc')
       })
     })
-  },
-  mounted () {
-    this.$emit('okFunc')
   }
 }
 </script>

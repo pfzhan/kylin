@@ -175,7 +175,6 @@ export default {
         filterInputDom.val('')
         filterInputDom.unbind('input propertychange').bind('input propertychange', () => {
           var val = filterInputDom.val()
-          console.log(val)
           this.filterUser(val)
         })
       })
