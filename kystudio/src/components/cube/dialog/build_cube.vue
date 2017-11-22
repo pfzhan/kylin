@@ -175,17 +175,31 @@ export default {
       if (value === '') {
         callback(new Error(this.$t('inputDate')))
       } else {
-        this.$refs['buildCubeForm'].validateField('endInt')
-        callback()
+        let reg = /^\d+$/
+        let regExp = new RegExp(reg)
+        let isLegalInt = regExp.test(value)
+        if (!isLegalInt) {
+          callback(new Error(this.$t('inputAnInt')))
+        } else {
+          this.$refs['buildCubeForm'].validateField('endInt')
+          callback()
+        }
       }
     },
     validateEndInt: function (rule, value, callback) {
       if (value === '') {
         callback(new Error(this.$t('inputDate')))
-      } else if (parseInt(this.timeZone.startInt) > parseInt(value)) {
-        callback(new Error(this.$t('timeCompare')))
       } else {
-        callback()
+        let reg = /^\d+$/
+        let regExp = new RegExp(reg)
+        let isLegalInt = regExp.test(value)
+        if (!isLegalInt) {
+          callback(new Error(this.$t('inputAnInt')))
+        } else if (parseInt(this.timeZone.startInt) > parseInt(value)) {
+          callback(new Error(this.$t('timeCompare')))
+        } else {
+          callback()
+        }
       }
     }
   },
@@ -233,8 +247,8 @@ export default {
     }
   },
   locales: {
-    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column', inputDate: 'Please input the time.'},
-    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列', inputDate: '请输入时间'}
+    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column', inputDate: 'Please input the time.', inputAnInt: 'Please input an integer.'},
+    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列', inputDate: '请输入时间', inputAnInt: '请输入一个整数。'}
   }
 }
 </script>

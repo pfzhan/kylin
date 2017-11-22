@@ -61,7 +61,7 @@
      <el-dialog :title="$t('kylinLang.common.user')" :visible.sync="addUserToGroupDialog"  size="small" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form>
         <el-form-item >
-          <el-transfer filterable :titles="[this.$t('willcheck'), this.$t('haschecked')]" ref="transfer" v-model="selectedUserList" :data="userList"></el-transfer>
+          <el-transfer filterable :titles="[$t('willcheck'), $t('haschecked')]" ref="transfer" v-model="selectedUserList" :data="userList"></el-transfer>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
