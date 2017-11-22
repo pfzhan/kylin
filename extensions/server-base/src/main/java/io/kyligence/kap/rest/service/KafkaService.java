@@ -25,19 +25,29 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.Map;
+import java.util.Arrays;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import org.apache.kylin.common.util.StreamingMessageRow;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.source.kafka.StreamingParser;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import io.kyligence.kap.source.kafka.CollectKafkaStats;
+
+import javax.annotation.Nullable;
 
 @Component("kafkaClusterService")
 public class KafkaService extends BasicService {
@@ -57,7 +67,7 @@ public class KafkaService extends BasicService {
 
     public String saveSamplesToStreamingTable(String identity, List<String> messages, String prj) throws IOException {
         aclEvaluate.checkProjectWritePermission(prj);
-        List<String[]> samples = convertMessagesToSamples(messages);
+        List<String[]> samples = convertMessagesToSamples(identity, prj, messages);
         TableExtDesc tableExtDesc = getTableManager().getTableExt(identity, prj);
         tableExtDesc.setSampleRows(samples);
         getTableManager().saveTableExt(tableExtDesc, prj);
@@ -72,29 +82,38 @@ public class KafkaService extends BasicService {
         return messages;
     }
 
-    private List<String[]> convertMessagesToSamples(List<String> messages) throws IOException {
+    List<String[]> convertMessagesToSamples(String identity, String project, List<String> messages) throws IOException {
         if (0 == messages.size())
             return null;
-        Map<String, List<String>> messageTable = new LinkedHashMap<>();
-        for (int i = 0; i < messages.size(); i++) {
-            String row = messages.get(i);
-            String[] values = row.replace('{', ' ').replace('}', ' ').trim().split(",");
-            for (int j = 0; j < values.length; j++) {
-                String[] value = values[j].split(":");
-                String columnName = value[0].replace("\"", " ").trim();
-                String columnValue = value[1].replace("\"", " ").trim();
-                if (messageTable.get(columnName) == null) {
-                    List<String> columnValues = new ArrayList<>();
-                    columnValues.add(columnValue);
-                    messageTable.put(columnName, columnValues);
-                } else {
-                    messageTable.get(columnName).add(columnValue);
-                }
+        KafkaConfig kafkaConfig = getKafkaManager().getKafkaConfig(identity);
+        TableDesc tableDesc = getTableManager().getTableDesc(identity, project);
+        List<TblColRef> columns = Lists.transform(Arrays.asList(tableDesc.getColumns()), new Function<ColumnDesc, TblColRef>() {
+            @Nullable
+            @Override
+            public TblColRef apply(ColumnDesc input) {
+                return input.getRef();
             }
+        });
+        StreamingParser streamingParser;
+        try {
+            streamingParser = StreamingParser.getStreamingParser(kafkaConfig.getParserName(), kafkaConfig.getParserProperties(), columns);
+        } catch (ReflectiveOperationException e) {
+            throw new IllegalArgumentException(e);
+        }
+        List<StreamingMessageRow>  streamingMessageRowLists = new ArrayList<>();
+        for (String message: messages) {
+            ByteBuffer buffer = ByteBuffer.wrap(message.getBytes());
+            streamingMessageRowLists.add(streamingParser.parse(buffer).get(0));
         }
         List<String[]> samples = new ArrayList<>();
-        for (List<String> values : messageTable.values()) {
-            samples.add(values.toArray(new String[values.size()]));
+        int numOfRows = streamingMessageRowLists.size();
+        int numOfColumns = streamingMessageRowLists.get(0).getData().size();
+        for (int j = 0; j < numOfColumns; j++) {
+            String[] columnContent = new String[numOfRows];
+            for (int i = 0; i < numOfRows; i++) {
+                columnContent[i] = streamingMessageRowLists.get(i).getData().get(j);
+            }
+            samples.add(columnContent);
         }
         return samples;
     }
