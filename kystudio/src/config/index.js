@@ -113,6 +113,10 @@ export const computedDataType = [
   'tinyint', 'smallint', 'integer', 'bigint', 'float', 'double', 'decimal', 'timestamp', 'date', 'varchar', 'boolean'
 ]
 
+export const timeDataType = [
+  'timestamp', 'date', 'time', 'datetime'
+]
+
 export const insightKeyword = [
   {meta: 'keyword', caption: 'abort', value: 'abort', scope: 1},
   {meta: 'keyword', caption: 'abs', value: 'abs', scope: 1},

@@ -50,8 +50,8 @@
               SQL
             </span>
             <i class="fa fa-window-close"></i>
-            <el-dropdown @command="selectTableKind" class="ksd-fright" v-if="actionMode!=='view'">
-              <span class="el-dropdown-link">
+            <el-dropdown @command="selectTableKind" class="ksd-fright" trigger="click" v-if="actionMode!=='view'">
+              <span class="el-dropdown-link" style="display: block;height: 100%;width: 100%;">
                <i class="el-icon-setting" style="color:#fff"></i>
               </span>
               <el-dropdown-menu slot="dropdown" >
