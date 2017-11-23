@@ -436,12 +436,21 @@ public class KapConfig {
 
     public String sparderJars() {
         try {
-            File file = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib", "kylin-storage-parquet-kap-.*.jar");
-            String path = "";
-            if (file != null) {
-                path = file.getCanonicalPath();
+            File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",
+                    "kylin-storage-parquet-kap-.*.jar");
+            String path1 = "";
+            if (storageFile != null) {
+                path1 = storageFile.getCanonicalPath();
             }
-            return config.getOptional("kap.query.engine.sparder-additional-jars", path);
+
+            File log4jConf = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
+                    "spark-executor-log4j.properties");
+            String path2 = "";
+            if (log4jConf != null) {
+                path2 = log4jConf.getCanonicalPath();
+            }
+
+            return config.getOptional("kap.query.engine.sparder-additional-jars", path1 + "," + path2);
         } catch (IOException e) {
             return "";
         }

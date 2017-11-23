@@ -63,7 +63,6 @@ object SparderFunc {
     val fairscheduler = KylinConfig.getKylinConfDir.getCanonicalPath + "/fairscheduler.xml"
     conf.set("spark.scheduler.allocation.file", fairscheduler)
     //  conf.set("spark.yarn.am.extraJavaOptions", "-Dhdp.version=current")
-    //  conf.set("spark.driver.extraJavaOptions", "-Dhdp.version=current")
     //  conf.set("spark.executor.extraJavaOptions", "-Dhdp.version=current")
     //  conf.set("spark.yarn.jars","hdfs:///user/spark/spark-lib/2.1.1/*")
     //  conf.set("spark.executor.instances","2")

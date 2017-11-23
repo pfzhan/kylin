@@ -81,6 +81,7 @@ function retrieveDependency() {
     export KYLIN_SPARK_JAR_PATH=`ls $KYLIN_HOME/lib/kylin-storage-parquet-kap-*.jar`
     export KAP_HDFS_WORKING_DIR=`$KYLIN_HOME/bin/get-properties.sh kylin.env.hdfs-working-dir`
     export KAP_METADATA_URL=`$KYLIN_HOME/bin/get-properties.sh kylin.metadata.url`
+    export KAP_SPARK_IDENTIFIER=$RANDOM
     if [ -z "$ZIPKIN_HOSTNAME" ]
     then
         export ZIPKIN_HOSTNAME=`hostname`
