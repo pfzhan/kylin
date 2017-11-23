@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.commons.lang.time.DateUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 
@@ -465,4 +466,17 @@ public class KapConfig {
         }
     }
 
+    public String getAsyncResultBaseDir() {
+        return config.getOptional("kap.query.engine.sparder-asyncresult-base-dir",
+                KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/async_query_result");
+    }
+
+    public Long getAsyncResultCleanUpInterval() {
+        return Long.valueOf(config.getOptional("kap.query.engine.sparder-asyncresult-cleanup-interval",
+                DateUtils.MILLIS_PER_DAY + ""));
+    }
+
+    public Boolean isAsyncResultRepartitionEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-asyncresult-repartition-enabled", "false"));
+    }
 }

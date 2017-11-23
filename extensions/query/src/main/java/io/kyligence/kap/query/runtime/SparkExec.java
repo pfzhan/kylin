@@ -28,10 +28,13 @@ import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
 import org.apache.calcite.linq4j.Linq4j;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan;
+import org.apache.spark.sql.common.SparderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -67,6 +70,17 @@ public class SparkExec implements IKeep {
         return SparderRuntime$.MODULE$.collectScalarEnumerable(df, rowType);
     }
 
+    public static Enumerable<Object[]> asyncResult(DataContext dataContext) {
+        if (BackdoorToggles.getPrepareOnly()) {
+            return Linq4j.emptyEnumerable();
+        }
+        String path = KapConfig.getInstanceFromEnv().getAsyncResultBaseDir() + "/" + QueryContext.current().getQueryId();
+        KapRel kapRel = KapContext.getKapRel();
+        RelDataType rowType = KapContext.getRowType();
+        Dataset<Row> df = createDataFrame(dataContext, kapRel);
+        return SparderRuntime$.MODULE$.asyncResult(df, rowType, SparderContext.getSeparator(), path);
+    }
+
     private static Dataset<Row> createDataFrame(DataContext dataContext, KapRel kapRel) {
         long start = System.currentTimeMillis();
         Dataset<Row> df = new KapRel.SparderImplementor(dataContext).visitChild(kapRel);
@@ -74,6 +88,7 @@ public class SparkExec implements IKeep {
         LogicalPlan optimizedPlan = df.queryExecution().optimizedPlan();
         logger.info("sparder optimized plan: \n" + optimizedPlan);
         logger.info("Time cost on sparder planning: " + (System.currentTimeMillis() - start));
+
         return df;
     }
 }

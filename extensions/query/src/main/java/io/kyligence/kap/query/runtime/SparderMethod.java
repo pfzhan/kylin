@@ -36,7 +36,8 @@ import org.apache.calcite.linq4j.tree.Types;
  */
 public enum SparderMethod {
     COLLECT(SparkExec.class, "collectToEnumerable", DataContext.class), //
-    COLLECT_SCALAR(SparkExec.class, "collectToScalarEnumerable", DataContext.class);
+    COLLECT_SCALAR(SparkExec.class, "collectToScalarEnumerable", DataContext.class),
+    ASYNC_RESULT(SparkExec.class, "asyncResult", DataContext.class);
 
     private static final HashMap<Method, SparderMethod> MAP = new HashMap<Method, SparderMethod>();
 

@@ -58,7 +58,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
     protected static final Logger logger = LoggerFactory.getLogger(KapStorageCleanupCLI.class);
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws IOException {
         KapStorageCleanupCLI cli = new KapStorageCleanupCLI();
         cli.execute(args);
     }
@@ -69,6 +69,7 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
         Configuration conf = new Configuration();
         cleanUnusedParquetFolders(conf);
         cleanUnusedIntermediateHDFSFile(conf);
+        cleanUnusedAsyncResult(conf);
     }
 
     @Override
@@ -283,4 +284,52 @@ public class KapStorageCleanupCLI extends StorageCleanupJob {
 
     }
 
+    public void cleanUnusedAsyncResult(Configuration conf) throws IOException {
+        List<String> allHdfsPathsNeedToBeDeleted = new ArrayList<String>();
+        FileSystem fs = HadoopUtil.getWorkingFileSystem(conf);
+        Path basePath = new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir());
+        if (!fs.exists(basePath)) {
+            logger.info("AsyncResult dir not exist, skip asyncResult clean.");
+            return;
+        }
+        FileStatus[] fileStatuses = fs.listStatus(basePath);
+        for (FileStatus fileStatus : fileStatuses) {
+            if (canDelete(fileStatus)) {
+                allHdfsPathsNeedToBeDeleted.add(fileStatus.getPath().toString());
+            }
+        }
+        if (delete || "true".equalsIgnoreCase(System.getProperty("cleanjob.test"))) {
+            // remove files
+            for (String hdfsPath : allHdfsPathsNeedToBeDeleted) {
+                logger.info("Deleting hdfs path " + hdfsPath);
+                Path p = new Path(hdfsPath);
+                if (fs.exists(p)) {
+                    fs.delete(p, true);
+                    logger.info("Deleted HDFS path " + hdfsPath);
+                } else {
+                    logger.info("HDFS path " + hdfsPath + "does not exist");
+                }
+            }
+        } else {
+            System.out.println("--------------- HDFS Path To Be Deleted ---------------");
+            for (String hdfsPath : allHdfsPathsNeedToBeDeleted) {
+                System.out.println(hdfsPath);
+            }
+            System.out.println("-------------------------------------------------------");
+        }
+    }
+
+    public boolean canDelete(FileStatus fileStatus) {
+        if (fileStatus.isDirectory()) {
+            long modificationTime = fileStatus.getModificationTime();
+            Long exportDataCleanUpInterval = KapConfig.getInstanceFromEnv().getAsyncResultCleanUpInterval();
+            if ((System.currentTimeMillis() - modificationTime) > exportDataCleanUpInterval) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
 }

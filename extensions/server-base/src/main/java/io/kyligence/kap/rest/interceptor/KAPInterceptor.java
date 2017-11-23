@@ -28,7 +28,9 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.query.relnode.KapContext;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
+import org.apache.spark.sql.common.SparderContext;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
 
@@ -47,5 +49,7 @@ public class KAPInterceptor extends HandlerInterceptorAdapter {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getOriginClassLoader());
+        KapContext.clean();
+        SparderContext.clean();
     }
 }

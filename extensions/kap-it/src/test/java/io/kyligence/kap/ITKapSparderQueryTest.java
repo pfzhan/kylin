@@ -48,7 +48,7 @@ import com.google.common.collect.Maps;
 
 @RunWith(SparkTestRunner.class)
 @Ignore("ITKapSparderQueryTest is contained by KAPITCombinationTest")
-public class ITKapSparderQueryTest extends ITKapKylinQueryTest {
+public class ITKapSparderQueryTest extends KapTestBase {
     private static final Logger logger = LoggerFactory.getLogger(ITKapSparderQueryTest.class);
 
     @Test

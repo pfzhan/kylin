@@ -45,4 +45,10 @@ public class KapContext {
     public static RelDataType getRowType() {
         return _resultType.get();
     }
+
+    public static void clean() {
+        _inputRel.set(null);
+        _resultType.set(null);
+    }
+
 }

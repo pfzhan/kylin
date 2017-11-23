@@ -37,13 +37,19 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderFunc;
+import org.apache.spark.sql.common.SparderContext;
 import org.apache.spark.sql.hive.HiveContext;
 import org.apache.spark.sql.types.StructField;
 import org.slf4j.Logger;
@@ -74,7 +80,7 @@ public class SparkSqlClient implements Serializable {
                 .isNullOrEmpty(System.getProperty("kap.storage.columnar.driver-allocation-timeout")) ? 60
                         : Integer.parseInt(System.getProperty("kap.storage.columnar.driver-allocation-timeout"));
         hiveContext = new HiveContext(sc);
-        
+
         hiveContext.sql("CREATE TEMPORARY FUNCTION timestampadd AS 'org.apache.spark.sql.udf.TimestampAdd'");
         hiveContext.sql("CREATE TEMPORARY FUNCTION timestampdiff AS 'org.apache.spark.sql.udf.TimestampDiff'");
         hiveContext.sql("CREATE TEMPORARY FUNCTION truncate AS 'org.apache.spark.sql.udf.Truncate'");
@@ -91,8 +97,8 @@ public class SparkSqlClient implements Serializable {
 
         String msg = "SparkSQL returned result DataFrame";
         logger.info(msg);
-        Trace.addTimelineAnnotation(msg);
 
+        Trace.addTimelineAnnotation(msg);
         return DFToList(uuid, df);
     }
 
@@ -214,8 +220,26 @@ public class SparkSqlClient implements Serializable {
 
             fieldList.add(builder.build());
         }
+        List<List<String>> rowList = Lists.newArrayList();
+        if (SparderContext.isAsyncQuery()) {
+            SparderContext.getResultRef().set(true);
+            final String separator = SparderContext.getSeparator();
+            String path = KapConfig.getInstanceFromEnv().getAsyncResultBaseDir() + QueryContext.current().getQueryId();
+            JavaRDD<String> mapRdd = rowRdd.map(new Function<List<String>, String>() {
+                @Override
+                public String call(List<String> v1) {
+                    return StringUtil.join(v1, separator);
+                }
+            });
 
-        List<List<String>> rowList = rowRdd.collect();
+            if (KapConfig.getInstanceFromEnv().isAsyncResultRepartitionEnabled()) {
+                mapRdd.repartition(SparderFunc.getAsyncResultCore()).saveAsTextFile(path);
+            } else {
+                mapRdd.saveAsTextFile(path);
+            }
+        } else {
+            rowList = rowRdd.collect();
+        }
 
         rowRdd.unpersist();
         df.unpersist();

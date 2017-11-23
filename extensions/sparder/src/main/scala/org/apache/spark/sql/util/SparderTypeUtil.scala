@@ -28,6 +28,7 @@ import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 object SparderTypeUtil {
@@ -36,6 +37,7 @@ object SparderTypeUtil {
     SqlTypeName.DATETIME_TYPES.contains(sqlTypeName)
   }
 
+  // scalastyle:off
   def kylinTypeToSparkType(
       dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
@@ -60,6 +62,7 @@ object SparderTypeUtil {
     }
   }
 
+  // scalastyle:off
   def convertSqlTypeNameToSparkType(sqlTypeName: SqlTypeName): String = {
     sqlTypeName match {
       case SqlTypeName.DECIMAL   => "decimal"
@@ -80,6 +83,28 @@ object SparderTypeUtil {
     }
   }
 
+  def convertSqlTypeToSparkType(
+      sqlTypeName: SqlTypeName): org.apache.spark.sql.types.DataType = {
+    sqlTypeName match {
+      case SqlTypeName.DECIMAL   => StringType
+      case SqlTypeName.CHAR      => StringType
+      case SqlTypeName.VARCHAR   => StringType
+      case SqlTypeName.INTEGER   => IntegerType
+      case SqlTypeName.TINYINT   => ByteType
+      case SqlTypeName.SMALLINT  => ShortType
+      case SqlTypeName.BIGINT    => LongType
+      case SqlTypeName.FLOAT     => FloatType
+      case SqlTypeName.DOUBLE    => DoubleType
+      case SqlTypeName.DATE      => TimestampType
+      case SqlTypeName.TIMESTAMP => TimestampType
+      case SqlTypeName.BOOLEAN   => BooleanType
+      case _ =>
+        throw new IllegalArgumentException(
+          s"unsupported SqlTypeName $sqlTypeName")
+    }
+  }
+
+  // scalastyle:off
   def convertStringToValue(s: Any,
                            rowType: RelDataType,
                            toCalcite: Boolean): Any = {
@@ -125,6 +150,124 @@ object SparderTypeUtil {
       }
       a
     }
+  }
+
+  // scalastyle:off
+  def convertStringToValue(s: Any, rowType: String, toCalcite: Boolean): Any = {
+    if (s == null) {
+      val a: Any = rowType match {
+        case "DECIMAL"   => new java.math.BigDecimal(0)
+        case "CHAR"      => null
+        case "VARCHAR"   => null
+        case "INTEGER"   => 0
+        case "TINYINT"   => 0.toByte
+        case "SMALLINT"  => 0.toShort
+        case "BIGINT"    => 0L
+        case "FLOAT"     => 0f
+        case "DOUBLE"    => 0d
+        case "DATE"      => 0
+        case "TIMESTAMP" => 0L
+        case "TIME"      => 0L
+        case null        => null
+        case _           => null
+      }
+      a
+    } else {
+      val a: Any = rowType match {
+        case "DECIMAL"  => new java.math.BigDecimal(s.toString)
+        case "CHAR"     => s.toString
+        case "VARCHAR"  => s.toString
+        case "INTEGER"  => s.toString.toInt
+        case "TINYINT"  => s.toString.toByte
+        case "SMALLINT" => s.toString.toShort
+        case "BIGINT"   => s.toString.toLong
+        case "FLOAT"    => java.lang.Float.parseFloat(s.toString)
+        case "DOUBLE"   => java.lang.Double.parseDouble(s.toString)
+        case "DATE" => {
+          if (toCalcite)
+            (DateFormat.stringToMillis(s.toString) / (1000 * 3600 * 24)).toInt
+          else
+            DateFormat.stringToMillis(s.toString)
+        }
+        case "TIMESTAMP" | "TIME" => DateFormat.stringToMillis(s.toString)
+        case _                    => s.toString
+      }
+      a
+    }
+  }
+
+  // scalastyle:off
+  def convertStringToResultValue(s: Any,
+                                 rowType: String,
+                                 toCalcite: Boolean): Any = {
+    if (s == null) {
+      val a: Any = rowType match {
+        case "DECIMAL"   => new java.math.BigDecimal(0)
+        case "CHAR"      => null
+        case "VARCHAR"   => null
+        case "INTEGER"   => 0
+        case "TINYINT"   => 0.toByte
+        case "SMALLINT"  => 0.toShort
+        case "BIGINT"    => 0L
+        case "FLOAT"     => 0f
+        case "DOUBLE"    => 0d
+        case "DATE"      => 0
+        case "TIMESTAMP" => 0L
+        case "TIME"      => 0L
+        case null        => null
+        case _           => null
+      }
+      a
+    } else {
+      val a: Any = rowType match {
+        case "DECIMAL"  => new java.math.BigDecimal(s.toString)
+        case "CHAR"     => s.toString
+        case "VARCHAR"  => s.toString
+        case "INTEGER"  => s.toString.toInt
+        case "TINYINT"  => s.toString.toByte
+        case "SMALLINT" => s.toString.toShort
+        case "BIGINT"   => s.toString.toLong
+        case "FLOAT"    => java.lang.Float.parseFloat(s.toString)
+        case "DOUBLE"   => java.lang.Double.parseDouble(s.toString)
+        case "DATE" => {
+          if (toCalcite)
+            DateFormat.formatToDateStr(DateFormat.stringToMillis(s.toString))
+          else
+            DateFormat.stringToMillis(s.toString)
+        }
+        case "TIMESTAMP" | "TIME" =>
+          DateFormat.formatToTimeStr(DateFormat.stringToMillis(s.toString))
+
+        case _ => s.toString
+      }
+      a
+    }
+  }
+
+  def convertRowToRow(rows: Iterator[Row],
+                      typeMap: Map[Int, String],
+                      separator: String): Iterator[String] = {
+    rows.map { row =>
+      var rowIndex = 0
+      row.toSeq
+        .map { cell =>
+          {
+            val rType = typeMap.apply(rowIndex)
+            val value =
+              SparderTypeUtil
+                .convertStringToResultValue(cell, rType, toCalcite = true)
+
+            rowIndex = rowIndex + 1
+            if (value == null) {
+              ""
+            } else {
+              value
+            }
+          }
+        }
+        .mkString(separator)
+    }
+
   }
 
 }

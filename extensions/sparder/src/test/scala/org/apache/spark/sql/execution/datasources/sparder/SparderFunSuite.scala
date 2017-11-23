@@ -41,7 +41,6 @@ import org.apache.spark.sql.execution.utils.HexUtils
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import scala.io.Source
-
 class SparderFunSuite extends FunSuite
   with BeforeAndAfterAll
   with Logging {
@@ -97,7 +96,7 @@ class SparderFunSuite extends FunSuite
   def afterInit(): Unit = {
 
   }
-
+  
   protected def checkAnswer(df: => DataFrame, expectedAnswer: Seq[Row]): Unit = {
     val analyzedDF = try df catch {
       case ae: AnalysisException =>

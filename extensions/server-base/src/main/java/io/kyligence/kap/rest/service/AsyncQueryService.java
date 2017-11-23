@@ -23,11 +23,13 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
@@ -36,6 +38,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -44,12 +47,16 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
+import org.apache.parquet.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.supercsv.io.CsvListWriter;
-import org.supercsv.io.ICsvListWriter;
-import org.supercsv.prefs.CsvPreference;
+
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.rest.msg.KapMessage;
 import io.kyligence.kap.rest.msg.KapMsgPicker;
@@ -57,145 +64,211 @@ import io.kyligence.kap.rest.msg.KapMsgPicker;
 @Component("asyncQueryService")
 public class AsyncQueryService extends QueryService {
 
-    public static final String BASE_FOLDER = "async_query_result";
+    @Autowired
+    @Qualifier("queryService")
+    private QueryService queryService;
+
     private static final Logger logger = LoggerFactory.getLogger(AsyncQueryService.class);
+
+    public enum QueryStatus {
+        RUNNING, FAILED, SUCCESS, MISS
+    }
+
+    private Cache<String, QueryStatus> queryStatusCache = CacheBuilder.newBuilder().maximumSize(1000)
+            .expireAfterWrite(1, TimeUnit.DAYS).build();
 
     protected FileSystem getFileSystem() throws IOException {
         return HadoopUtil.getWorkingFileSystem();
     }
 
-    public void createExistFlag(String queryId) throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        fileSystem.mkdirs(asyncQueryResultDir);
-        Path outputPath = new Path(asyncQueryResultDir, getExistFlagFileName(queryId));
-        fileSystem.createNewFile(outputPath);
+    public void updateStatus(String queryId, QueryStatus status) {
+        queryStatusCache.put(queryId, status);
     }
 
-    public void flushResultToHdfs(SQLResponse result, String queryId) throws IOException {
-        logger.info("Flushing results to hdfs...");
+    public void saveMetaData(SQLResponse sqlResponse, String queryId) throws IOException {
+        ArrayList<String> dataTypes = Lists.newArrayList();
+        ArrayList<String> columnNames = Lists.newArrayList();
+        for (SelectedColumnMeta selectedColumnMeta : sqlResponse.getColumnMetas()) {
+            dataTypes.add(selectedColumnMeta.getColumnTypeName());
+            columnNames.add(selectedColumnMeta.getName());
+        }
+
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        fileSystem.mkdirs(asyncQueryResultDir);
-        Path outputPath = new Path(asyncQueryResultDir, queryId);
+        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getMetaDataFileName())); //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+            String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
+            osw.write(metaString);
 
-        if (result.getIsException()) {
-            try (FSDataOutputStream os = fileSystem.create(outputPath); //
-                    OutputStreamWriter osw = new OutputStreamWriter(os)) {
-                osw.write(result.getExceptionMessage());
-            }
+        }
+    }
 
-            Path failureFlagPath = new Path(asyncQueryResultDir, getFailureFlagFileName(queryId));
-            fileSystem.createNewFile(failureFlagPath);
-            logger.info("failed result flushed");
-        } else {
-            try (FSDataOutputStream os = fileSystem.create(outputPath); //
-                    OutputStreamWriter osw = new OutputStreamWriter(os); //
-                    ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {
+    public List<List<String>> getMetaData(String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, KapMsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        FileSystem fileSystem = getFileSystem();
+        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        List<List<String>> result = Lists.newArrayList();
+        try (FSDataInputStream is = fileSystem.open(new Path(asyncQueryResultDir, getMetaDataFileName()));
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(is))) {
+            result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
+            result.add(Lists.newArrayList(bufferedReader.readLine().split(",")));
+        }
+        //
+        return result;
 
-                List<String> headerList = new ArrayList<String>();
+    }
 
-                for (SelectedColumnMeta column : result.getColumnMetas()) {
-                    headerList.add(column.getName());
-                }
-
-                String[] headers = new String[headerList.size()];
-                csvWriter.writeHeader(headerList.toArray(headers));
-
-                for (List<String> row : result.getResults()) {
-                    csvWriter.write(row);
-                }
-            }
-
-            Path successFlagPath = new Path(asyncQueryResultDir, getSuccessFlagFileName(queryId));
-            fileSystem.createNewFile(successFlagPath);
-            logger.info("successful result flushed");
+    public void createErrorFlag(String errorMessage, String queryId) throws IOException {
+        updateStatus(queryId, AsyncQueryService.QueryStatus.FAILED);
+        FileSystem fileSystem = getFileSystem();
+        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, getFailureFlagFileName())); //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) {
+            osw.write(errorMessage);
+            os.hflush();
         }
 
     }
 
     public void retrieveSavedQueryResult(String queryId, HttpServletResponse response) throws IOException {
-        KapMessage msg = KapMsgPicker.getMsg();
-
-        if (!isQuerySuccessful(queryId)) {
-            throw new BadRequestException(msg.getQUERY_RESULT_NOT_FOUND());
-        }
+        checkStatus(queryId, QueryStatus.SUCCESS, KapMsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
+        Path asyncQueryResultDir = getAsyncQueryResultBaseDir();
         Path dataPath = new Path(asyncQueryResultDir, queryId);
 
         if (!fileSystem.exists(dataPath)) {
-            throw new BadRequestException(msg.getQUERY_RESULT_FILE_NOT_FOUND());
+            throw new BadRequestException(KapMsgPicker.getMsg().getQUERY_RESULT_FILE_NOT_FOUND());
         }
-
-        try (FSDataInputStream inputStream = fileSystem.open(dataPath); ServletOutputStream outputStream = response.getOutputStream()) {
-            IOUtils.copyLarge(inputStream, outputStream);
+        FileStatus[] fileStatuses = fileSystem.listStatus(dataPath);
+        ServletOutputStream outputStream = response.getOutputStream();
+        try {
+            for (FileStatus f : fileStatuses) {
+                if (!f.getPath().getName().startsWith("_")) {
+                    try (FSDataInputStream inputStream = fileSystem.open(f.getPath())) {
+                        IOUtils.copyLarge(inputStream, outputStream);
+                    }
+                }
+            }
+        } finally {
+            outputStream.close();
         }
     }
 
     public String retrieveSavedQueryException(String queryId) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
-
-        if (!isQueryFailed(queryId)) {
-            throw new BadRequestException(msg.getQUERY_EXCEPTION_NOT_FOUND());
-        }
+        checkStatus(queryId, QueryStatus.FAILED, msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
 
         FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        Path dataPath = new Path(asyncQueryResultDir, queryId);
+        Path dataPath = new Path(getAsyncQueryResultDir(queryId), getFailureFlagFileName());
 
         if (!fileSystem.exists(dataPath)) {
             throw new BadRequestException(msg.getQUERY_EXCEPTION_FILE_NOT_FOUND());
         }
-
-        try (FSDataInputStream inputStream = fileSystem.open(dataPath); InputStreamReader reader = new InputStreamReader(inputStream)) {
+        try (FSDataInputStream inputStream = fileSystem.open(dataPath);
+                InputStreamReader reader = new InputStreamReader(inputStream)) {
             List<String> strings = IOUtils.readLines(reader);
 
             return StringUtils.join(strings, "");
         }
     }
 
-    public boolean cleanFolder() throws IOException {
-        return getFileSystem().delete(getAsyncQueryResultDir(), true);
+    public QueryStatus queryStatus(String queryId) throws IOException {
+        QueryStatus ifPresent = queryStatusCache.getIfPresent(queryId);
+        if (ifPresent != null) {
+            return ifPresent;
+        }
+        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        if (getFileSystem().exists(asyncQueryResultDir)) {
+            if (getFileSystem().exists(new Path(asyncQueryResultDir, getFailureFlagFileName()))) {
+                return QueryStatus.FAILED;
+            }
+            if (getFileSystem().exists(new Path(asyncQueryResultDir, getSuccessFlagFileName()))) {
+                return QueryStatus.SUCCESS;
+            }
+        }
+        return QueryStatus.MISS;
     }
 
-    public boolean isQueryExisting(String queryId) throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        Path initFlagPath = new Path(asyncQueryResultDir, getExistFlagFileName(queryId));
-        return fileSystem.exists(initFlagPath);
+    public long fileStatus(String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, KapMsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        Path asyncQueryResultDir = getAsyncQueryResultDir(queryId);
+        if (getFileSystem().exists(asyncQueryResultDir) && getFileSystem().isDirectory(asyncQueryResultDir)) {
+            long totalFileSize = 0;
+            FileStatus[] fileStatuses = getFileSystem().listStatus(asyncQueryResultDir);
+            for (FileStatus fileStatus : fileStatuses) {
+                if (!fileStatus.getPath().getName().startsWith("_"))
+                    totalFileSize += fileStatus.getLen();
+            }
+            return totalFileSize;
+        } else {
+            throw new BadRequestException(KapMsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        }
     }
 
-    public boolean isQuerySuccessful(String queryId) throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        Path successFlagPath = new Path(asyncQueryResultDir, getSuccessFlagFileName(queryId));
-        return fileSystem.exists(successFlagPath);
+
+    public boolean cleanAllFolder() throws IOException {
+        Path asyncQueryResultBaseDir = getAsyncQueryResultBaseDir();
+        if (!getFileSystem().exists(asyncQueryResultBaseDir)) {
+            return true;
+        }
+        logger.info("clean all async result dir");
+        return getFileSystem().delete(asyncQueryResultBaseDir, true);
     }
 
-    public boolean isQueryFailed(String queryId) throws IOException {
-        FileSystem fileSystem = getFileSystem();
-        Path asyncQueryResultDir = getAsyncQueryResultDir();
-        Path failureFlagPath = new Path(asyncQueryResultDir, getFailureFlagFileName(queryId));
-        return fileSystem.exists(failureFlagPath);
+    public String asyncQueryResultPath(String queryId) throws IOException {
+        checkStatus(queryId, QueryStatus.SUCCESS, KapMsgPicker.getMsg().getQUERY_RESULT_NOT_FOUND());
+        return getAsyncQueryResultDir(queryId).toString();
+
     }
 
-    protected Path getAsyncQueryResultDir() {
-        String hdfsWorkingDirectory = KapConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory();
-        Path asyncQueryResultDir = new Path(hdfsWorkingDirectory, BASE_FOLDER);
-        return asyncQueryResultDir;
+    public void checkStatus(String queryId, QueryStatus queryStatus, String message) throws IOException {
+        switch (queryStatus) {
+        case SUCCESS:
+            if (queryStatus(queryId) != QueryStatus.SUCCESS) {
+                throw new BadRequestException(message);
+            }
+            break;
+        case RUNNING:
+            if (queryStatus(queryId) != QueryStatus.RUNNING) {
+                throw new BadRequestException(message);
+            }
+            break;
+        case FAILED:
+            if (queryStatus(queryId) != QueryStatus.FAILED) {
+                throw new BadRequestException(message);
+            }
+            break;
+        case MISS:
+            if (queryStatus(queryId) != QueryStatus.MISS) {
+                throw new BadRequestException(message);
+            }
+            break;
+        default:
+            break;
+        }
     }
 
-    private String getExistFlagFileName(String queryId) {
-        return queryId + ".exist";
+    public Path getAsyncQueryResultBaseDir() {
+        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir());
     }
 
-    private String getSuccessFlagFileName(String queryId) {
-        return queryId + ".success";
+    public Path getAsyncQueryResultDir(String queryId) {
+        return new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir(), queryId);
     }
 
-    private String getFailureFlagFileName(String queryId) {
-        return queryId + ".failure";
+    public String getSuccessFlagFileName() {
+        return "_SUCCESS";
+    }
+
+    public String getFailureFlagFileName() {
+        return "_FAILED";
+    }
+
+    public String getMetaDataFileName() {
+        return "_METADATA";
     }
 }

@@ -42,6 +42,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
@@ -50,6 +51,7 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.kylin.query.security.QueryInterceptor;
 import org.apache.kylin.query.security.QueryInterceptorUtil;
 import org.apache.kylin.storage.hybrid.HybridInstance;
+import org.apache.spark.sql.common.SparderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,7 +114,6 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         // rewrite query if necessary
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
         rewriteImplementor.visitChild(this, getInput());
-
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
         if (sparderEnabled) {
             sparderEnabled = isSparderAppliable(contexts);
@@ -121,18 +122,27 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         }
 
         if (!sparderEnabled) {
+            if (SparderContext.isAsyncQuery()) {
+                throw new NoRealizationFoundException("export data must enable sparder,routing to pushdown");
+            }
             OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
             EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
             this.replaceInput(0, inputAsEnum);
             return impl.visitChild(this, 0, inputAsEnum, pref);
         } else {
+
             final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
                     pref.preferCustom());
             final BlockBuilder list = new BlockBuilder();
 
             KapContext.setKapRel((KapRel) getInput());
             KapContext.setRowType(getRowType());
-
+            if (SparderContext.isAsyncQuery()) {
+                Expression enumerable = list.append("enumerable",
+                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
+                list.add(Expressions.return_(null, enumerable));
+                return enumImplementor.result(physType, list.toBlock());
+            }
             if (physType.getFormat() == JavaRowFormat.SCALAR) {
                 Expression enumerable = list.append("enumerable",
                         Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));

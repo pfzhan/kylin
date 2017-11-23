@@ -32,14 +32,20 @@ import io.kyligence.kap.query.runtime.{
 }
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.common.SparderContext
 import org.apache.spark.sql.execution.datasources.sparder.SparderConstants
 import org.apache.spark.sql.manager.{UDTManager, UdfManager}
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.util.SparderTypeUtil
+
+import scala.collection.JavaConverters._
 
 import scala.collection.JavaConverters._
 
 object SparderFunc {
+
   var spark: SparkSession = initSpark()
+  var sparkCores = 3
 
   def getSparkSession(): SparkSession = {
     if (spark == null || spark.sparkContext.isStopped) {
@@ -52,12 +58,18 @@ object SparderFunc {
     getSparkSession().sparkContext.conf.get(key)
   }
 
+  def getAsyncResultCore(): Int = {
+    Math.round(sparkCores / 3)
+  }
+
   def initSpark(): SparkSession = {
     val conf = initSparkConf()
+
     val instances = conf.get("spark.executor.instances").toInt
     val cores = conf.get("spark.executor.cores").toInt
+    sparkCores = instances * cores
     if (conf.get("spark.sql.shuffle.partitions", "").isEmpty) {
-      conf.set("spark.sql.shuffle.partitions", (instances * cores).toString)
+      conf.set("spark.sql.shuffle.partitions", sparkCores.toString)
     }
     conf.set("spark.debug.maxToStringFields", "1000")
     conf.set("spark.scheduler.mode", "FAIR")
@@ -152,5 +164,24 @@ object SparderFunc {
     } else {
       aggArgc.dataFrame
     }
+  }
+
+  def export(df: DataFrame,
+             indexDataType: Map[Int, String],
+             separator: String,
+             path: String): Unit = {
+    SparderContext.setDF(df)
+    SparderContext.getResultRef.set(true)
+    val maprdd = df.rdd
+      .mapPartitions(itera =>
+        SparderTypeUtil.convertRowToRow(itera, indexDataType, separator))
+    if (KapConfig.getInstanceFromEnv.isAsyncResultRepartitionEnabled) {
+      maprdd
+        .repartition(SparderFunc.getAsyncResultCore())
+        .saveAsTextFile(path)
+    } else {
+      maprdd.saveAsTextFile(path)
+    }
+
   }
 }

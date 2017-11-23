@@ -47,6 +47,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum
 import org.apache.kylin.query.relnode.{KylinAggregateCall, OLAPAggregateRel}
 import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryRequest
 import org.apache.kylin.storage.hybrid.HybridInstance
+import org.apache.spark.sql.common.SparderContext
 import org.apache.spark.sql.execution.utils.{
   CubePathCache,
   HexUtils,
@@ -416,8 +417,21 @@ object SparderRuntime {
     inputs.get(0).sort(columns: _*)
   }
 
+  def asyncResult(df: DataFrame,
+                  rowType: RelDataType,
+                  separator: String,
+                  path: String): Enumerable[Array[Any]] = {
+    var indexDataType = rowType.getFieldList.asScala.toList.zipWithIndex.map {
+      case (field, index) =>
+        (index, field.getType.getSqlTypeName.getName)
+    }.toMap
+    SparderFunc.export(df, indexDataType, separator, path)
+    Linq4j.asEnumerable(Array.empty[Array[Any]])
+  }
+
   def collectEnumerable(df: DataFrame,
                         rowType: RelDataType): Enumerable[Array[Any]] = {
+    SparderContext.setDF(df)
     val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
     Linq4j.asEnumerable(rowsItr.array)
   }
@@ -448,4 +462,5 @@ object SparderRuntime {
     }
     dt
   }
+
 }

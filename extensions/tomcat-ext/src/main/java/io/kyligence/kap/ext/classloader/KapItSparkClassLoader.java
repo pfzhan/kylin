@@ -100,9 +100,9 @@ public class KapItSparkClassLoader extends URLClassLoader {
             addURL(new File("../sparder/target/classes").toURI().toURL());
             addURL(new File("../storage-parquet/target/classes").toURI().toURL());
             addURL(new File("../query/target/classes").toURI().toURL());
+            addURL(new File("../query/target/test-classes").toURI().toURL());
             System.setProperty("kap.query.engine.sparder-additional-jars", sparkJar.getCanonicalPath());
             System.setProperty("kap.query.engine.sparder-additional-files", sparkFile.getCanonicalPath());
-
         } catch (IOException e) {
             e.printStackTrace();
         }

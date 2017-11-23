@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.service;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -35,19 +36,22 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Exchanger;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
-import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.parquet.Strings;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,8 +60,13 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.supercsv.io.CsvListWriter;
+import org.supercsv.io.ICsvListWriter;
+import org.supercsv.prefs.CsvPreference;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.tool.storage.KapStorageCleanupCLI;
 
 public class AysncQueryServiceTest extends ServiceTestBase {
 
@@ -68,15 +77,15 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     private static String TEST_ROOT_DIR;
     private static String TEST_BASE_DIR;
     private static File base;
+    List<String> columnNames = Lists.newArrayList("name", "age", "city");
+    List<String> dataTypes = Lists.newArrayList("varchar", "int", "varchar");
 
     @Before
     public void setup() throws Exception {
         super.setup();
-
         TEST_ROOT_DIR = getLocalWorkingDirectory();
-        TEST_BASE_DIR = TEST_ROOT_DIR + "/" + AsyncQueryService.BASE_FOLDER;
+        TEST_BASE_DIR = KapConfig.getInstanceFromEnv().getAsyncResultBaseDir();
         base = new File(TEST_BASE_DIR);
-
         FileUtil.setWritable(base, true);
         FileUtil.fullyDelete(base);
         assertTrue(!base.exists());
@@ -99,16 +108,12 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.flushResultToHdfs(sqlResponse, queryId);
-
-        assertTrue(asyncQueryService.isQueryFailed(queryId));
-        assertTrue(!asyncQueryService.isQuerySuccessful(queryId));
-
-        assertEquals(2, countFileNum());
-
+        if (sqlResponse.getIsException()) {
+            asyncQueryService.createErrorFlag(sqlResponse.getExceptionMessage(), queryId);
+        }
+        assertTrue(asyncQueryService.queryStatus(queryId) == AsyncQueryService.QueryStatus.FAILED);
         String ret = asyncQueryService.retrieveSavedQueryException(queryId);
         assertEquals("some error!!!", ret);
-        assertEquals(2, countFileNum());
     }
 
     @Test
@@ -124,31 +129,13 @@ public class AysncQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
-    public void testSuccessQuery() throws IOException {
+    public void testSuccessQuery() throws IOException, InterruptedException {
         SQLResponse sqlResponse = mock(SQLResponse.class);
         when(sqlResponse.getIsException()).thenReturn(false);
-        List<String> row1 = Lists.newArrayList("a1", "b1", "c1");
-        List<String> row2 = Lists.newArrayList("a2", "b2", "c2");
-        List<List<String>> rows = Lists.newArrayList();
-        rows.add(row1);
-        rows.add(row2);
-        when(sqlResponse.getResults()).thenReturn(rows);
-
-        List<SelectedColumnMeta> metalist = Lists.newArrayList();
-        metalist.add((SelectedColumnMeta) when(mock(SelectedColumnMeta.class).getName()).thenReturn("A").getMock());
-        metalist.add((SelectedColumnMeta) when(mock(SelectedColumnMeta.class).getName()).thenReturn("B").getMock());
-        metalist.add((SelectedColumnMeta) when(mock(SelectedColumnMeta.class).getName()).thenReturn("C").getMock());
-        when(sqlResponse.getColumnMetas()).thenReturn(metalist);
-
         UUID uuid = UUID.randomUUID();
         String queryId = uuid.toString();
-        asyncQueryService.flushResultToHdfs(sqlResponse, queryId);
-
-        assertTrue(!asyncQueryService.isQueryFailed(queryId));
-        assertTrue(asyncQueryService.isQuerySuccessful(queryId));
-
-        assertEquals(2, countFileNum());
-
+        mockResultFile(queryId, false);
+        assertTrue(asyncQueryService.queryStatus(queryId) == AsyncQueryService.QueryStatus.SUCCESS);
         HttpServletResponse response = mock(HttpServletResponse.class);
         ServletOutputStream servletOutputStream = mock(ServletOutputStream.class);
         final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -164,18 +151,198 @@ public class AysncQueryServiceTest extends ServiceTestBase {
 
         asyncQueryService.retrieveSavedQueryResult(queryId, response);
 
-        assertEquals("A,B,C\r\n" + "a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
-        assertEquals(2, countFileNum());
+        assertEquals("a1,b1,c1\r\n" + "a2,b2,c2\r\n", baos.toString());
 
     }
 
-    private int countFileNum() throws IOException {
-        RemoteIterator<LocatedFileStatus> locatedFileStatusRemoteIterator = HadoopUtil.getWorkingFileSystem().listFiles(new Path(TEST_BASE_DIR), true);
-        int count = 0;
-        while (locatedFileStatusRemoteIterator.hasNext()) {
-            count++;
-            LocatedFileStatus next = locatedFileStatusRemoteIterator.next();
+    public Path mockResultFile(String queryId, boolean bolck) throws IOException, InterruptedException {
+
+        List<String> row1 = Lists.newArrayList("a1", "b1", "c1");
+        List<String> row2 = Lists.newArrayList("a2", "b2", "c2");
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
         }
-        return count;
+        asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
+        if (bolck) {
+            Thread.sleep(5000);
+        }
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
+                OutputStreamWriter osw = new OutputStreamWriter(os); //
+                ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {
+            csvWriter.write(row1);
+            csvWriter.write(row2);
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
+            asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return asyncQueryResultDir;
     }
+
+    public Path mockOldResultFile(String queryId, boolean bolck) throws IOException, InterruptedException {
+
+        List<String> row1 = Lists.newArrayList("a1", "b1", "c1");
+        List<String> row2 = Lists.newArrayList("a2", "b2", "c2");
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
+        if (bolck) {
+            Thread.sleep(5000);
+        }
+        try (FSDataOutputStream os = fileSystem.create(new Path(asyncQueryResultDir, "m00")); //
+                OutputStreamWriter osw = new OutputStreamWriter(os); //
+                ICsvListWriter csvWriter = new CsvListWriter(osw, CsvPreference.STANDARD_PREFERENCE)) {
+            csvWriter.write(row1);
+            csvWriter.write(row2);
+            fileSystem.createNewFile(new Path(asyncQueryResultDir, asyncQueryService.getSuccessFlagFileName()));
+            asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        fileSystem.setTimes(asyncQueryResultDir, 0, 0);
+        return asyncQueryResultDir;
+    }
+
+    public void mockMetadata(String queryId) throws IOException {
+        FileSystem fileSystem = asyncQueryService.getFileSystem();
+        Path asyncQueryResultDir = asyncQueryService.getAsyncQueryResultDir(queryId);
+        if (!fileSystem.exists(asyncQueryResultDir)) {
+            fileSystem.mkdirs(asyncQueryResultDir);
+        }
+        try (FSDataOutputStream os = fileSystem
+                .create(new Path(asyncQueryResultDir, asyncQueryService.getMetaDataFileName())); //
+                OutputStreamWriter osw = new OutputStreamWriter(os)) { //
+            String metaString = Strings.join(columnNames, ",") + "\n" + Strings.join(dataTypes, ",");
+            osw.write(metaString);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Test
+    public void testCleanFolder() throws IOException, InterruptedException {
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockResultFile(queryId, false);
+        Path resultPath = new Path(asyncQueryService.asyncQueryResultPath(queryId));
+        assertTrue(asyncQueryService.getFileSystem().exists(resultPath));
+        asyncQueryService.cleanAllFolder();
+        assertTrue(!asyncQueryService.getFileSystem().exists(resultPath));
+    }
+
+    @Test
+    public void testQueryStatus() throws IOException, InterruptedException {
+        UUID uuid = UUID.randomUUID();
+        final String queryId = uuid.toString();
+        final Exchanger<Boolean> exchanger = new Exchanger<Boolean>();
+
+        Thread queryThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    mockResultFile(queryId, true);
+                } catch (IOException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        Thread client = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    boolean hasRunning = false;
+                    for (int i = 0; i < 10; i++) {
+                        Thread.sleep(1000);
+                        AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(queryId);
+                        if (queryStatus == AsyncQueryService.QueryStatus.RUNNING) {
+                            hasRunning = true;
+                        }
+                    }
+                    exchanger.exchange(hasRunning);
+                } catch (Throwable e) {
+                }
+            }
+        });
+        queryThread.start();
+        client.start();
+        Boolean hasRunning = exchanger.exchange(false);
+        assertTrue(hasRunning);
+        AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(queryId);
+        assertTrue(queryStatus == AsyncQueryService.QueryStatus.SUCCESS);
+        long l = asyncQueryService.fileStatus(queryId);
+        assertTrue(l == 20);
+    }
+
+    @Test
+    public void testMetadata() throws IOException, InterruptedException {
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockResultFile(queryId, false);
+        mockMetadata(queryId);
+        List<List<String>> metaData = asyncQueryService.getMetaData(queryId);
+        assertArrayEquals(columnNames.toArray(), metaData.get(0).toArray());
+        assertArrayEquals(dataTypes.toArray(), metaData.get(1).toArray());
+    }
+
+    @Test
+    public void testDeleteOld() throws IOException, InterruptedException {
+        System.setProperty("cleanjob.test", "true");
+        Path basePath = new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir());
+
+        if (asyncQueryService.getFileSystem().exists(basePath)) {
+            asyncQueryService.getFileSystem().delete(basePath, true);
+        }
+
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockOldResultFile(queryId, false);
+        uuid = UUID.randomUUID();
+        queryId = uuid.toString();
+        mockOldResultFile(queryId, false);
+        if (asyncQueryService.getFileSystem().exists(basePath)) {
+            assertTrue(asyncQueryService.getFileSystem().listStatus(basePath).length == 2);
+            KapStorageCleanupCLI kapStorageCleanupCLI = new KapStorageCleanupCLI();
+            kapStorageCleanupCLI.cleanUnusedAsyncResult(new Configuration());
+            assertTrue(asyncQueryService.getFileSystem().listStatus(basePath).length == 0);
+        } else {
+            fail();
+        }
+        System.setProperty("cleanjob.test", "false");
+
+    }
+
+    @Test
+    public void testDeleteNew() throws IOException, InterruptedException {
+        System.setProperty("cleanjob.test", "true");
+        Path basePath = new Path(KapConfig.getInstanceFromEnv().getAsyncResultBaseDir());
+
+        if (asyncQueryService.getFileSystem().exists(basePath)) {
+            asyncQueryService.getFileSystem().delete(basePath, true);
+        }
+        UUID uuid = UUID.randomUUID();
+        String queryId = uuid.toString();
+        mockResultFile(queryId, false);
+        uuid = UUID.randomUUID();
+        queryId = uuid.toString();
+        mockResultFile(queryId, false);
+        if (asyncQueryService.getFileSystem().exists(basePath)) {
+            assertTrue(asyncQueryService.getFileSystem().listStatus(basePath).length == 2);
+            KapStorageCleanupCLI kapStorageCleanupCLI = new KapStorageCleanupCLI();
+            kapStorageCleanupCLI.cleanUnusedAsyncResult(new Configuration());
+            assertTrue(asyncQueryService.getFileSystem().listStatus(basePath).length == 2);
+        } else {
+            fail();
+        }
+        System.setProperty("cleanjob.test", "false");
+    }
+
 }

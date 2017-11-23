@@ -30,15 +30,16 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.request.AsyncQuerySQLRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
+import org.apache.spark.sql.common.SparderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,49 +78,72 @@ public class AsyncQueryController extends BasicController {
     @RequestMapping(value = "/async_query", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse query(@RequestBody final SQLRequest sqlRequest) throws InterruptedException {
-
+    public EnvelopeResponse query(@RequestBody final AsyncQuerySQLRequest sqlRequest) throws InterruptedException {
+        if (!KylinConfig.getInstanceFromEnv().getSchemaFactory()
+                .equalsIgnoreCase("io.kyligence.kap.query.schema.KapSchemaFactory")) {
+            throw new IllegalArgumentException("");
+        }
         final AtomicReference<String> queryIdRef = new AtomicReference<>();
+        final AtomicReference<Boolean> compileResultRef = new AtomicReference<>();
+        final AtomicReference<String> exceptionHandle = new AtomicReference<>();
         final SecurityContext context = SecurityContextHolder.getContext();
         executorService.submit(new Runnable() {
             @Override
             public void run() {
                 SecurityContextHolder.setContext(context);
+                SparderContext.setAsAsyncQuery();
+                SparderContext.setSeparator(sqlRequest.getSeparator());
+                SparderContext.setResultRef(compileResultRef);
                 QueryContext queryContext = QueryContext.current();
                 logger.info("Start a new async query with queryId: " + queryContext.getQueryId());
-                queryIdRef.set(queryContext.getQueryId());
+                String queryId = queryContext.getQueryId();
+                queryIdRef.set(queryId);
+                asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.RUNNING);
                 try {
-                    asyncQueryService.createExistFlag(queryContext.getQueryId());
-                    try {
-                        SQLResponse response = queryService.doQueryWithCache(sqlRequest);
-                        asyncQueryService.flushResultToHdfs(response, queryContext.getQueryId());
-                    } catch (Exception ie) {
-                        SQLResponse error = new SQLResponse(null, null, null, 0, true, ie.getMessage(), false, false);
-                        asyncQueryService.flushResultToHdfs(error, queryContext.getQueryId());
+                    SQLResponse response = queryService.doQueryWithCache(sqlRequest);
+                    if (response.getIsException()) {
+                        asyncQueryService.createErrorFlag(response.getExceptionMessage(), queryContext.getQueryId());
                     }
-                } catch (IOException e) {
-                    logger.error("failed to run query " + queryContext.getQueryId(), e);
+                    asyncQueryService.updateStatus(queryId, AsyncQueryService.QueryStatus.SUCCESS);
+                    asyncQueryService.saveMetaData(response, queryId);
+                } catch (Exception e) {
+                    try {
+                        logger.error("failed to run query " + queryContext.getQueryId(), e);
+                        compileResultRef.set(false);
+                        asyncQueryService.createErrorFlag(e.getMessage(), queryContext.getQueryId());
+                        exceptionHandle.set(e.getMessage());
+                    } catch (Exception e1) {
+                        exceptionHandle.set(exceptionHandle.get() + "\n" + e.getMessage());
+                        throw new RuntimeException(e1);
+                    }
+
                 }
             }
         });
 
-        while (StringUtils.isEmpty(queryIdRef.get())) {
-            Thread.sleep(1);
+        while (compileResultRef.get() == null) {
+            Thread.sleep(200);
+        }
+        if (compileResultRef.get()) {
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "still running"), "");
+        } else {
+            //todo message
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                    new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.FAILED, exceptionHandle.get()), "");
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                new AsyncQueryResponse(queryIdRef.get(), AsyncQueryResponse.Status.RUNNING, "still running"), "");
     }
 
     @RequestMapping(value = "/async_query", method = RequestMethod.DELETE, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse clean() throws IOException {
+    public EnvelopeResponse cleanAllQuery() throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        boolean b = asyncQueryService.cleanFolder();
-        if (b)
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, b, "");
+        boolean result = asyncQueryService.cleanAllFolder();
+        if (result)
+            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
         else
             throw new BadRequestException(msg.getCLEAN_FOLDER_FAIL());
     }
@@ -129,28 +153,48 @@ public class AsyncQueryController extends BasicController {
     @ResponseBody
     public EnvelopeResponse inqueryStatus(@PathVariable String query_id) throws IOException {
 
-        if (asyncQueryService.isQueryFailed(query_id)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED,
-                            asyncQueryService.retrieveSavedQueryException(query_id)), //
-                    "");
-        } else if (asyncQueryService.isQuerySuccessful(query_id)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.SUCCESSFUL, "await fetching results"), //
-                    "");
-        } else if (asyncQueryService.isQueryExisting(query_id)) {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.RUNNING, "still running"), //
-                    "");
-        } else {
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, //
-                    new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.MISSING,
-                            "query does not exit or got cleaned"), //
-                    "");
+        AsyncQueryService.QueryStatus queryStatus = asyncQueryService.queryStatus(query_id);
+        AsyncQueryResponse asyncQueryResponse = null;
+        switch (queryStatus) {
+        case SUCCESS:
+            asyncQueryResponse = new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.SUCCESSFUL,
+                    "await fetching results");
+            break;
+        case RUNNING:
+            asyncQueryResponse = new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.RUNNING, "still running");
+            break;
+        case FAILED:
+            asyncQueryResponse = new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.FAILED,
+                    asyncQueryService.retrieveSavedQueryException(query_id));
+            break;
+        case MISS:
+            asyncQueryResponse = new AsyncQueryResponse(query_id, AsyncQueryResponse.Status.MISSING,
+                    "query does not exit or got cleaned"); //
+            break;
+        default:
+            throw new IllegalStateException("error queryStatus");
         }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, asyncQueryResponse, "");
     }
 
-    @RequestMapping(value = "/async_query/{query_id}/result", method = RequestMethod.GET, produces = {
+    @RequestMapping(value = "/async_query/{query_id}/filestatus", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse fileStatus(@PathVariable String query_id) throws IOException {
+        long length = asyncQueryService.fileStatus(query_id);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, length, "");
+    }
+
+    @RequestMapping(value = "/async_query/{query_id}/metadata", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse metadata(@PathVariable String query_id) throws Exception {
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, asyncQueryService.getMetaData(query_id), "");
+    }
+
+    @RequestMapping(value = "/async_query/{query_id}/result_download", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public void downloadQueryResult(@PathVariable String query_id, HttpServletResponse response) throws IOException {
@@ -159,6 +203,14 @@ public class AsyncQueryController extends BasicController {
         response.setHeader("Content-Disposition", "attachment; filename=\"result.csv\"");
 
         asyncQueryService.retrieveSavedQueryResult(query_id, response);
+    }
+
+    @RequestMapping(value = "/async_query/{query_id}/result_path", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse queryPath(@PathVariable String query_id, HttpServletResponse response) throws IOException {
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, asyncQueryService.asyncQueryResultPath(query_id), "");
     }
 
 }
