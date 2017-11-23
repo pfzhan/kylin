@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.catalina.loader.ParallelWebappClassLoader;
 import org.slf4j.Logger;
@@ -44,6 +46,25 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
             "org.apache.calcite" };
     private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object",
             "Baz" };
+
+
+    private static final Set<String> wontFindClasses = new HashSet<>();
+
+    static {
+        wontFindClasses.add("Class");
+        wontFindClasses.add("Object");
+        wontFindClasses.add("org");
+        wontFindClasses.add("java.lang.org");
+        wontFindClasses.add("java.lang$org");
+        wontFindClasses.add("java$lang$org");
+        wontFindClasses.add("org.apache");
+        wontFindClasses.add("org.apache.calcite");
+        wontFindClasses.add("org.apache.calcite.runtime");
+        wontFindClasses.add("org.apache.calcite.linq4j");
+        wontFindClasses.add("Long");
+        wontFindClasses.add("String");
+    }
+    
     private static Logger logger = LoggerFactory.getLogger(DebugTomcatClassLoader.class);
     private SparkClassLoader sparkClassLoader;
 
@@ -95,11 +116,15 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (name.startsWith("io.kyligence.kap.ext")) {
-            return parent.loadClass(name);
+        if (isWontFind(name)) {
+            throw new ClassNotFoundException();
         }
         if (isCodeGen(name)) {
             throw new ClassNotFoundException();
+        }
+
+        if (name.startsWith("io.kyligence.kap.ext")) {
+            return parent.loadClass(name);
         }
         if (sparkClassLoader.needLoad(name)) {
             return sparkClassLoader.loadClass(name);
@@ -127,7 +152,7 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoader.haResource(name)) {
+        if (sparkClassLoader.hasResource(name)) {
             return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);
@@ -150,6 +175,11 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
             }
         }
         return false;
+    }
+
+
+    boolean isWontFind(String name) {
+        return wontFindClasses.contains(name);
     }
 
     boolean isCodeGen(String name) {

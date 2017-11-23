@@ -17,7 +17,7 @@
   ~ limitations under the License.
   -->
 <!-- The contents of this file will be loaded for each web application -->
-<Context>
+<Context allowLinking="true">
 
     <!-- Default set of monitored resources -->
     <WatchedResource>WEB-INF/web.xml</WatchedResource>
@@ -33,6 +33,6 @@
     <Valve className="org.apache.catalina.valves.CometConnectionManagerValve" />
     -->
 
-    <Loader loaderClass="org.apache.catalina.loader.ParallelWebappClassLoader"/>
+    <Loader loaderClass="io.kyligence.kap.ext.classloader.DebugTomcatClassLoader"/>
 
 </Context>

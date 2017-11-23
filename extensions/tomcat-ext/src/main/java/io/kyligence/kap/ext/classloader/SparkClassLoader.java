@@ -183,7 +183,7 @@ public class SparkClassLoader extends URLClassLoader {
         return false;
     }
 
-    public boolean haResource(String name) {
+    public boolean hasResource(String name) {
         if (name.replaceAll("/", "\\.").startsWith("org.apache.spark")) {
             return true;
         }

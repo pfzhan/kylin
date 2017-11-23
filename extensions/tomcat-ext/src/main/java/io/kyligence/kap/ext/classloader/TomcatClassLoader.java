@@ -109,12 +109,14 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        // when calcite compile class, some stupid class name will be proposed, not worth to actually lookup
         if (isWontFind(name)) {
             throw new ClassNotFoundException();
         }
         if (isCodeGen(name)) {
             throw new ClassNotFoundException();
         }
+        // class loaders should conform to global's
         if (name.startsWith("io.kyligence.kap.ext")) {
             return parent.loadClass(name);
         }
@@ -133,7 +135,7 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoader.haResource(name)) {
+        if (sparkClassLoader.hasResource(name)) {
             return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);

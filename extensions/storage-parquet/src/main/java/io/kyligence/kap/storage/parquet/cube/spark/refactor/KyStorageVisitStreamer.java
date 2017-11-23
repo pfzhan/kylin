@@ -69,7 +69,7 @@ public class KyStorageVisitStreamer implements IPartitionStreamer {
 
                         byte[] bytes = partitionResponse.getBlob().toByteArray();
                         logger.info(
-                                "[Partition Response Metrics] scan-request %s, result bytes: %s, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}",
+                                "[Partition Response Metrics] scan-request {}, result bytes: {}, scanned rows: {}, scanned bytes: {},  returned rows: {} , start latency: {}, partition duration: {}, partition calculated on {}",
                                 //
                                 scanRequestId, bytes.length, partitionResponse.getScannedRows(),
                                 partitionResponse.getScannedBytes(), partitionResponse.getReturnedRows(),
