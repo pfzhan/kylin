@@ -220,7 +220,6 @@ export default {
           this.trialLicenseFile(this.userMessage).then((res) => {
             handleSuccess(res, (data) => {
               if (data && data['kap.dates']) {
-                console.log(this.lastTime(data['kap.dates']), 7777)
                 if (this.lastTime(data['kap.dates']) > 0) {
                   this.$alert(this.$t('evaluationPeriod') + data['kap.dates'], this.$t('evaluationLicense'), {
                     cancelConfirmButton: true,

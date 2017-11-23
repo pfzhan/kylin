@@ -175,7 +175,7 @@
               <li>Waiting: {{ step.exec_wait_time | tofixedTimer(2)}}</li>
               <li>Start At: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
               <li>End At: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
-              <li v-if="step.info.hdfs_bytes_written">Data Size: <span class="blue">{{ step.info.hdfs_bytes_written}}</span></li>
+              <li v-if="step.info.hdfs_bytes_written">Data Size: <span class="blue">{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
               <li v-if="step.info.mr_job_id">MR Job: {{step.info.mr_job_id}}</li>
             </ul>
           </el-popover>
