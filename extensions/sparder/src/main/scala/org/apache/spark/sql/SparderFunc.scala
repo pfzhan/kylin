@@ -24,7 +24,6 @@
 
 package org.apache.spark.sql
 
-import scala.collection.JavaConverters._
 import io.kyligence.kap.query.runtime.{
   AggArgc,
   CreateDictPushdownTableArgc,
@@ -36,6 +35,8 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.execution.datasources.sparder.SparderConstants
 import org.apache.spark.sql.manager.{UDTManager, UdfManager}
 import org.apache.spark.sql.types.StructType
+
+import scala.collection.JavaConverters._
 
 object SparderFunc {
   var spark: SparkSession = initSpark()
@@ -76,7 +77,17 @@ object SparderFunc {
           .enableHiveSupport()
           .getOrCreate()
       } else {
-        conf.set("spark.jars", KapConfig.getInstanceFromEnv.sparderJars)
+        conf.set("spark.yarn.dist.jars",
+                 KapConfig.getInstanceFromEnv.sparderJars)
+        conf.set("spark.yarn.dist.files",
+                 KapConfig.getInstanceFromEnv.sparderFiles())
+
+        val filePath = KapConfig.getInstanceFromEnv.sparderJars
+          .split(",")
+          .filter(p => p.contains("storage-parquet"))
+          .apply(0)
+        val fileName = filePath.substring(filePath.lastIndexOf('/') + 1)
+        conf.set("spark.executor.extraClassPath", fileName)
         SparkSession.builder
           .master("yarn-client")
           .appName("sparder-sql-context")

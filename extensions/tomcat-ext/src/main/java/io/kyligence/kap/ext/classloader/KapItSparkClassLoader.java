@@ -83,6 +83,8 @@ public class KapItSparkClassLoader extends URLClassLoader {
             addURL(jar.toURI().toURL());
         }
         File sparkJar = findFile("../storage-parquet/target", "kap-storage-parquet-.*-SNAPSHOT-spark.jar");
+        File sparkFile = findFile("../../build/conf", "spark-executor-log4j.properties");
+
         try {
             // sparder and query module has org.apache.spark class ,if not add,
             // that will be load by system classloader
@@ -94,8 +96,9 @@ public class KapItSparkClassLoader extends URLClassLoader {
             addURL(new File("../sparder/target/classes").toURI().toURL());
             addURL(new File("../storage-parquet/target/classes").toURI().toURL());
             addURL(new File("../query/target/classes").toURI().toURL());
-            String sparkJarCanonicalPath = sparkJar.getCanonicalPath();
-            System.setProperty("kap.query.engine.sparder-additional-jars", sparkJarCanonicalPath);
+            System.setProperty("kap.query.engine.sparder-additional-jars", sparkJar.getCanonicalPath());
+            System.setProperty("kap.query.engine.sparder-additional-files", sparkFile.getCanonicalPath());
+
         } catch (IOException e) {
             e.printStackTrace();
         }

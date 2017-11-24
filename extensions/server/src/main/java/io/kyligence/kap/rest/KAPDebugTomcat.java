@@ -89,12 +89,10 @@ public class KAPDebugTomcat {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         File devJobJar = findFile("../assembly/target", "kap-assembly-.*-SNAPSHOT-job.jar");
         File sparkJar = findFile("../storage-parquet/target", "kap-storage-parquet-.*-SNAPSHOT-spark.jar");
-        File executorLog4jConf = findFile("../build/conf", "spark-executor-log4j.properties");
+        File sparkFile = findFile("../../build/conf", "spark-executor-log4j.properties");
         try {
-            String sparkJarCanonicalPath = sparkJar.getCanonicalPath();
-            String executorLog4jConfPath = executorLog4jConf.getCanonicalPath();
-            System.setProperty("kap.query.engine.sparder-additional-jars",
-                    sparkJarCanonicalPath + "," + executorLog4jConfPath);
+            System.setProperty("kap.query.engine.sparder-additional-jars", sparkJar.getCanonicalPath());
+            System.setProperty("kap.query.engine.sparder-additional-files", sparkFile.getCanonicalPath());
         } catch (IOException e) {
             e.printStackTrace();
         }

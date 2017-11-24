@@ -443,16 +443,26 @@ public class KapConfig {
                 path1 = storageFile.getCanonicalPath();
             }
 
-            File log4jConf = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
-                    "spark-executor-log4j.properties");
-            String path2 = "";
-            if (log4jConf != null) {
-                path2 = log4jConf.getCanonicalPath();
-            }
-
-            return config.getOptional("kap.query.engine.sparder-additional-jars", path1 + "," + path2);
+            return config.getOptional("kap.query.engine.sparder-additional-jars", path1);
         } catch (IOException e) {
             return "";
         }
     }
+
+
+    public String sparderFiles() {
+        try {
+            File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/conf",
+                "spark-executor-log4j.properties");
+            String path1 = "";
+            if (storageFile != null) {
+                path1 = storageFile.getCanonicalPath();
+            }
+
+            return config.getOptional("kap.query.engine.sparder-additional-files", path1);
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
 }

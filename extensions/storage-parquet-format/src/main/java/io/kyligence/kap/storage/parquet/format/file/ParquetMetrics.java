@@ -159,6 +159,7 @@ public class ParquetMetrics {
     public String summary() {
         StringBuilder sb = new StringBuilder();
 
+        sb.append("PARQUET METRICS: \n");
         sb.append("...footerReadCnt\t" + footerReadCnt + "\n");
         sb.append("...footerReadTime\t" + footerReadTime / 1000000 + "\n");
 

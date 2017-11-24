@@ -25,7 +25,7 @@ package org.apache.spark.sql.execution.datasources.sparder.batch.reader
 
 import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics
 import org.apache.kylin.metadata.datatype.DataTypeSerializer
-import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.RowTearer
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch
 
@@ -33,9 +33,10 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 class SparderFillReader(
-                         vectorizedSparderRecordReader: VectorizedSparderRecordReader,
-                         rowTearerV2: RowTearer,
-                         columnarBatch: ColumnarBatch) {
+    vectorizedSparderRecordReader: VectorizedSparderRecordReader,
+    rowTearerV2: RowTearer,
+    columnarBatch: ColumnarBatch)
+    extends Logging {
   val columnReaders: ListBuffer[ColumnDecodeReader] = {
     val sparderColumnReaders = ListBuffer.empty[ColumnDecodeReader]
     var ordinal = 0
@@ -115,12 +116,10 @@ class SparderFillReader(
       vectorizedSparderRecordReader.close()
     }
     columnReaders.foreach(_.printStatistics())
-    
-    // scalastyle:off
+
     val summary = ParquetMetrics.get.summary
-    System.err.println(summary)
+    log.info(summary)
     ParquetMetrics.get.reset()
-    // scalastyle:on
 
   }
 }

@@ -136,8 +136,7 @@ public class ParquetBundleReader {
 
     public void close() throws IOException {
         rawReader.close();
-
-        System.err.println(metrics.summary());
+        logger.info(metrics.summary());
         metrics.reset();
     }
 
