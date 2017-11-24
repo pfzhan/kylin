@@ -37,16 +37,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
-    private static final String[] CLASS_PREFIX_EXEMPTIONS = new String[] {
+    private static final String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
             // Java standard library:
             "com.sun.", "launcher.", "javax.", "org.ietf", "java", "org.omg", "org.w3c", "org.xml", "sunw.",
             // logging
             "org.slf4j", "org.apache.commons.logging", "org.apache.log4j", "org.apache.catalina", "org.apache.tomcat" };
-    private static final String[] CLASS_PREFIX_INCLUDE = new String[] { "io.kyligence", "org.apache.kylin",
+    private static final String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "io.kyligence", "org.apache.kylin",
             "org.apache.calcite" };
     private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object",
             "Baz" };
-
 
     private static final Set<String> wontFindClasses = new HashSet<>();
 
@@ -64,7 +63,7 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
         wontFindClasses.add("Long");
         wontFindClasses.add("String");
     }
-    
+
     private static Logger logger = LoggerFactory.getLogger(DebugTomcatClassLoader.class);
     private SparkClassLoader sparkClassLoader;
 
@@ -98,20 +97,6 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
                 e.printStackTrace();
             }
         }
-        //        String spark_home = System.getenv("SPARK_HOME");
-        //        try {
-        //            //SparkContext use spi to match deploy mode
-        //            //otherwise SparkContext init fail ,can not find yarn deploy mode
-        //            File yarnJar = findFile(spark_home + "/jars", "spark-yarn.*.jar");
-        //            addURL(yarnJar.toURI().toURL());
-        //            //jersey in spark will attempt find @Path class file in current classloader. Not possible to delegate to spark loader
-        //            // otherwise spark web ui executors tab can not render
-        //            File coreJar = findFile(spark_home + "/jars", "spark-core.*.jar");
-        //            addURL(coreJar.toURI().toURL());
-        //        } catch (MalformedURLException e) {
-        //            e.printStackTrace();
-        //        }
-
     }
 
     @Override
@@ -126,41 +111,27 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
         if (name.startsWith("io.kyligence.kap.ext")) {
             return parent.loadClass(name);
         }
-        if (sparkClassLoader.needLoad(name)) {
+        if (sparkClassLoader.classNeedPreempt(name)) {
             return sparkClassLoader.loadClass(name);
         }
-        if (isClassExempt(name)) {
+        if (isParentCLPrecedent(name)) {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             return parent.loadClass(name);
         }
         return super.loadClass(name, resolve);
     }
 
-    //    @Override
-    //    public Class<?> findClass(String name) throws ClassNotFoundException {
-    //
-    //        Class<?> aClass = null;
-    //        if (isInclude(name)) {
-    //            aClass = super.findClass(name);
-    //        }
-    //        if (aClass == null) {
-    //            return Class.forName(name, false, parent);
-    //        }
-    //        return aClass;
-    //
-    //    }
-
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoader.hasResource(name)) {
+        if (sparkClassLoader.fileNeedPreempt(name)) {
             return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);
 
     }
 
-    protected boolean isClassExempt(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_EXEMPTIONS) {
+    private boolean isParentCLPrecedent(String name) {
+        for (String exemptPrefix : PARENT_CL_PRECEDENT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -168,21 +139,11 @@ public class DebugTomcatClassLoader extends ParallelWebappClassLoader {
         return false;
     }
 
-    boolean isInclude(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_INCLUDE) {
-            if (name.startsWith(exemptPrefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-    boolean isWontFind(String name) {
+    private boolean isWontFind(String name) {
         return wontFindClasses.contains(name);
     }
 
-    boolean isCodeGen(String name) {
+    private boolean isCodeGen(String name) {
         for (String exemptPrefix : CODE_GEN_CLASS) {
             if (name.startsWith(exemptPrefix)) {
                 return true;

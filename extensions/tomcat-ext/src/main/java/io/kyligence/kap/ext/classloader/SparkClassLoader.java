@@ -35,27 +35,56 @@ import java.security.PrivilegedAction;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SparkClassLoader extends URLClassLoader {
-    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "scala.", "org.spark_project"
-            //            "javax.ws.rs.core.Application",
-            //            "javax.ws.rs.core.UriBuilder", "org.glassfish.jersey", "javax.ws.rs.ext"
-            //user javax.ws.rs.api 2.01  not jersey-core-1.9.jar
-    };
-    private static final String[] RESOURCE_PREFIX = new String[] { "spark-version-info.properties", "HiveClientImpl" };
-    private static final String[] CLASS_PREFIX_EXEMPTIONS = new String[] {
+    //preempt these classes from parent
+    private static String[] SPARK_CL_PREEMPT_CLASSES = new String[] { "org.apache.spark", "scala.",
+            "org.spark_project" };
+
+    //preempt these files from parent
+    private static String[] SPARK_CL_PREEMPT_FILES = new String[] { "spark-version-info.properties", "HiveClientImpl",
+            "org/apache/spark" };
+
+    //when loading class (indirectly used by SPARK_CL_PREEMPT_CLASSES), some of them should NOT use parent's first
+    private static String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "javax.ws.rs", "org.apache.hadoop.hive" };
+
+    //when loading class (indirectly used by SPARK_CL_PREEMPT_CLASSES), some of them should use parent's first
+    private static String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
             //            // Java standard library:
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
             "org.apache.commons.logging", "org.apache.log4j", "org.slf4j", "org.apache.hadoop",
             // Hadoop/HBase/ZK:
             "io.kyligence", "org.apache.kylin", "com.intellij", "org.apache.calcite" };
+
     private static final Set<String> classNotFoundCache = new HashSet<>();
     private static Logger logger = LoggerFactory.getLogger(SparkClassLoader.class);
 
     static {
+        String sparkclassloader_spark_cl_preempt_classes = System.getenv("SPARKCLASSLOADER_SPARK_CL_PREEMPT_CLASSES");
+        if (!StringUtils.isEmpty(sparkclassloader_spark_cl_preempt_classes)) {
+            SPARK_CL_PREEMPT_CLASSES = StringUtils.split(sparkclassloader_spark_cl_preempt_classes, ",");
+        }
+
+        String sparkclassloader_spark_cl_preempt_files = System.getenv("SPARKCLASSLOADER_SPARK_CL_PREEMPT_FILES");
+        if (!StringUtils.isEmpty(sparkclassloader_spark_cl_preempt_files)) {
+            SPARK_CL_PREEMPT_FILES = StringUtils.split(sparkclassloader_spark_cl_preempt_files, ",");
+        }
+
+        String sparkclassloader_this_cl_precedent_classes = System.getenv("SPARKCLASSLOADER_THIS_CL_PRECEDENT_CLASSES");
+        if (!StringUtils.isEmpty(sparkclassloader_this_cl_precedent_classes)) {
+            THIS_CL_PRECEDENT_CLASSES = StringUtils.split(sparkclassloader_this_cl_precedent_classes, ",");
+        }
+
+        String sparkclassloader_parent_cl_precedent_classes = System
+                .getenv("SPARKCLASSLOADER_PARENT_CL_PRECEDENT_CLASSES");
+        if (!StringUtils.isEmpty(sparkclassloader_parent_cl_precedent_classes)) {
+            PARENT_CL_PRECEDENT_CLASSES = StringUtils.split("sparkclassloader_parent_cl_precedent_classes", ",");
+        }
+
         try {
             final Method registerParallel = ClassLoader.class.getDeclaredMethod("registerAsParallelCapable");
             AccessController.doPrivileged(new PrivilegedAction<Object>() {
@@ -84,14 +113,6 @@ public class SparkClassLoader extends URLClassLoader {
         init();
     }
 
-    //    @Override
-    //    public InputStream getResourceAsStream(String name) {
-    //        if (RESOURCE.contains(name)) {
-    //            return getParent().getResourceAsStream(name);
-    //        }
-    //        return super.getResourceAsStream(name);
-    //    }
-
     public void init() throws MalformedURLException {
         String spark_home = System.getenv("SPARK_HOME");
         if (spark_home == null) {
@@ -110,15 +131,16 @@ public class SparkClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (!name.startsWith("org.apache.hadoop.hive") && !name.startsWith("javax.ws.rs") && isClassExempt(name)
-                && !needLoad(name)) {
-            logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
+
+        if (needToUseGlobal(name)) {
+            logger.debug("delegate " + name + " directly to parent");
             try {
                 return getParent().loadClass(name);
             } catch (ClassNotFoundException e) {
                 return super.findClass(name);
             }
         }
+
         synchronized (getClassLoadingLock(name)) {
             // Check whether the class has already been loaded:
             Class<?> clasz = findLoadedClass(name);
@@ -150,20 +172,8 @@ public class SparkClassLoader extends URLClassLoader {
         }
     }
 
-    //    @Override
-    //    protected Class<?> findClass(String name) throws ClassNotFoundException {
-    //        Class clazz = null;
-    //           if(classloader.needLoad(name)) {
-    //            clazz =super.findClass(name);
-    //           }
-    //       if(clazz != null){
-    //           return clazz;
-    //       }
-    //        return Class.forName(name, false, parent);
-    //    }
-
-    protected boolean isClassExempt(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_EXEMPTIONS) {
+    private boolean isThisCLPrecedent(String name) {
+        for (String exemptPrefix : THIS_CL_PRECEDENT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -171,11 +181,24 @@ public class SparkClassLoader extends URLClassLoader {
         return false;
     }
 
-    public boolean needLoad(String name) {
+    private boolean isParentCLPrecedent(String name) {
+        for (String exemptPrefix : PARENT_CL_PRECEDENT_CLASSES) {
+            if (name.startsWith(exemptPrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean needToUseGlobal(String name) {
+        return !isThisCLPrecedent(name) && !classNeedPreempt(name) && isParentCLPrecedent(name);
+    }
+
+    boolean classNeedPreempt(String name) {
         if (classNotFoundCache.contains(name)) {
             return false;
         }
-        for (String exemptPrefix : CLASS_PREFIX) {
+        for (String exemptPrefix : SPARK_CL_PREEMPT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -183,12 +206,8 @@ public class SparkClassLoader extends URLClassLoader {
         return false;
     }
 
-    public boolean hasResource(String name) {
-        if (name.replaceAll("/", "\\.").startsWith("org.apache.spark")) {
-            return true;
-        }
-
-        for (String exemptPrefix : RESOURCE_PREFIX) {
+    boolean fileNeedPreempt(String name) {
+        for (String exemptPrefix : SPARK_CL_PREEMPT_FILES) {
             if (name.contains(exemptPrefix)) {
                 return true;
             }

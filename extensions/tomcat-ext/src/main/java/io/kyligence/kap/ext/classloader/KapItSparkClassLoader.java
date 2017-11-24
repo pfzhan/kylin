@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.ext.classloader;
 
+import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -36,16 +38,19 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
-
 public class KapItSparkClassLoader extends URLClassLoader {
-    private static final String[] CLASS_PREFIX = new String[] { "org.apache.spark", "scala.", "org.spark_project"
+    private static final String[] SPARK_CL_PREEMPT_CLASSES = new String[] { "org.apache.spark", "scala.",
+            "org.spark_project"
             //            "javax.ws.rs.core.Application",
             //            "javax.ws.rs.core.UriBuilder", "org.glassfish.jersey", "javax.ws.rs.ext"
             //user javax.ws.rs.api 2.01  not jersey-core-1.9.jar
     };
-    private static final String[] RESOURCE_PREFIX = new String[] { "spark-version-info.properties", "HiveClientImpl" };
-    private static final String[] CLASS_PREFIX_EXEMPTIONS = new String[] {
+    private static final String[] SPARK_CL_PREEMPT_FILES = new String[] { "spark-version-info.properties",
+            "HiveClientImpl", "org/apache/spark" };
+
+    private static final String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "javax.ws.rs", "org.apache.hadoop.hive" };
+
+    private static final String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
             //            // Java standard library:
             "com.sun.", "launcher.", "java.", "javax.", "org.ietf", "org.omg", "org.w3c", "org.xml", "sunw.", "sun.",
             // logging
@@ -55,7 +60,6 @@ public class KapItSparkClassLoader extends URLClassLoader {
             "org.apache.calcite", "org.roaringbitmap", "org.apache.parquet" };
     private static final Set<String> classNotFoundCache = Sets.newHashSet();
     private static Logger logger = LoggerFactory.getLogger(KapItSparkClassLoader.class);
-    private static KapItSparkClassLoader classloader;
 
     /**
      * Creates a DynamicClassLoader that can load classes dynamically
@@ -68,13 +72,13 @@ public class KapItSparkClassLoader extends URLClassLoader {
         init();
     }
 
-
     public void init() throws MalformedURLException {
         String spark_home = System.getenv("SPARK_HOME");
         if (spark_home == null) {
             spark_home = System.getProperty("SPARK_HOME");
             if (spark_home == null) {
-                throw new RuntimeException("Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
+                throw new RuntimeException(
+                        "Spark home not found; set it explicitly or use the SPARK_HOME environment variable.");
             }
         }
         File file = new File(spark_home + "/jars");
@@ -106,8 +110,7 @@ public class KapItSparkClassLoader extends URLClassLoader {
 
     @Override
     public Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (!name.startsWith("org.apache.hadoop.hive") && !name.startsWith("javax.ws.rs") && isClassExempt(name)
-                && !needLoad(name)) {
+        if (needToUseGlobal(name)) {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             try {
                 return getParent().loadClass(name);
@@ -115,6 +118,7 @@ public class KapItSparkClassLoader extends URLClassLoader {
                 return super.findClass(name);
             }
         }
+
         synchronized (getClassLoadingLock(name)) {
             // Check whether the class has already been loaded:
             Class<?> clasz = findLoadedClass(name);
@@ -146,8 +150,8 @@ public class KapItSparkClassLoader extends URLClassLoader {
         }
     }
 
-    protected boolean isClassExempt(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_EXEMPTIONS) {
+    private boolean isThisCLPrecedent(String name) {
+        for (String exemptPrefix : THIS_CL_PRECEDENT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -155,11 +159,24 @@ public class KapItSparkClassLoader extends URLClassLoader {
         return false;
     }
 
-    public boolean needLoad(String name) {
+    private boolean isParentCLPrecedent(String name) {
+        for (String exemptPrefix : PARENT_CL_PRECEDENT_CLASSES) {
+            if (name.startsWith(exemptPrefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean needToUseGlobal(String name) {
+        return !isThisCLPrecedent(name) && !classNeedPreempt(name) && isParentCLPrecedent(name);
+    }
+
+    boolean classNeedPreempt(String name) {
         if (classNotFoundCache.contains(name)) {
             return false;
         }
-        for (String exemptPrefix : CLASS_PREFIX) {
+        for (String exemptPrefix : SPARK_CL_PREEMPT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -167,12 +184,9 @@ public class KapItSparkClassLoader extends URLClassLoader {
         return false;
     }
 
-    public boolean hasResource(String name) {
-        if (name.replaceAll("/", "\\.").startsWith("org.apache.spark")) {
-            return true;
-        }
+    boolean fileNeedPreempt(String name) {
 
-        for (String exemptPrefix : RESOURCE_PREFIX) {
+        for (String exemptPrefix : SPARK_CL_PREEMPT_FILES) {
             if (name.contains(exemptPrefix)) {
                 return true;
             }

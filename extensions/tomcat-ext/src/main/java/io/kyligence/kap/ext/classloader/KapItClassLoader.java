@@ -36,13 +36,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KapItClassLoader extends URLClassLoader {
-    private static final String[] CLASS_PREFIX_EXEMPTIONS = new String[] {
+    private static final String[] PARENT_CL_PRECEDENT_CLASS = new String[] {
             // Java standard library:
             "com.sun.", "launcher.", "javax.", "org.ietf", "java", "org.omg", "org.w3c", "org.xml", "sunw.",
             // logging
             "org.slf4j", "org.apache.commons.logging", "org.apache.log4j", "sun", "org.apache.catalina",
             "org.apache.tomcat", };
-    private static final String[] CLASS_PREFIX_INCLUDE = new String[] { "io.kyligence", "org.apache.kylin",
+    private static final String[] THIS_CL_PRECEDENT_CLASS = new String[] { "io.kyligence", "org.apache.kylin",
             "org.apache.calcite" };
     private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object" };
     public static KapItClassLoader defaultClassLoad = null;
@@ -104,7 +104,7 @@ public class KapItClassLoader extends URLClassLoader {
         if (name.startsWith("io.kyligence.kap.ext")) {
             return parent.loadClass(name);
         }
-        if (isInclude(name)) {
+        if (isThisCLPrecedent(name)) {
             synchronized (getClassLoadingLock(name)) {
                 // Check whether the class has already been loaded:
                 Class<?> clasz = findLoadedClass(name);
@@ -132,41 +132,27 @@ public class KapItClassLoader extends URLClassLoader {
             }
         }
         //交换位置 为了让codehua 被父类加载
-        if (isClassExempt(name)) {
+        if (isParentCLPrecedent(name)) {
             logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
             return parent.loadClass(name);
         }
-        if (sparkClassLoader.needLoad(name)) {
+        if (sparkClassLoader.classNeedPreempt(name)) {
             return sparkClassLoader.loadClass(name);
         }
         return super.loadClass(name, resolve);
     }
 
-    //    @Override
-    //    public Class<?> findClass(String name) throws ClassNotFoundException {
-    //
-    //        Class<?> aClass = null;
-    //        if (isInclude(name)) {
-    //            aClass = super.findClass(name);
-    //        }
-    //        if (aClass == null) {
-    //            return Class.forName(name, false, parent);
-    //        }
-    //        return aClass;
-    //
-    //    }
-
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoader.hasResource(name)) {
+        if (sparkClassLoader.fileNeedPreempt(name)) {
             return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);
 
     }
 
-    protected boolean isClassExempt(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_EXEMPTIONS) {
+    private boolean isParentCLPrecedent(String name) {
+        for (String exemptPrefix : PARENT_CL_PRECEDENT_CLASS) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -174,8 +160,8 @@ public class KapItClassLoader extends URLClassLoader {
         return false;
     }
 
-    boolean isInclude(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_INCLUDE) {
+    private boolean isThisCLPrecedent(String name) {
+        for (String exemptPrefix : THIS_CL_PRECEDENT_CLASS) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -183,7 +169,7 @@ public class KapItClassLoader extends URLClassLoader {
         return false;
     }
 
-    boolean isCodeGen(String name) {
+    private boolean isCodeGen(String name) {
         for (String exemptPrefix : CODE_GEN_CLASS) {
             if (name.startsWith(exemptPrefix)) {
                 return true;

@@ -34,28 +34,43 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.catalina.loader.ParallelWebappClassLoader;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TomcatClassLoader extends ParallelWebappClassLoader {
-    private static final String[] CLASS_PREFIX_EXEMPTIONS = new String[] {
+    private static String[] PARENT_CL_PRECEDENT_CLASSES = new String[] {
             // Java standard library:
             "com.sun.", "launcher.", "javax.", "org.ietf", "java", "org.omg", "org.w3c", "org.xml", "sunw.",
             // logging
             "org.slf4j", "org.apache.commons.logging", "org.apache.log4j", "org.apache.catalina", "org.apache.tomcat" };
-    private static final String[] CLASS_PREFIX_INCLUDE = new String[] { "io.kyligence", "org.apache.kylin",
-            "org.apache.calcite" };
-    private static final String[] CODE_GEN_CLASS = new String[] { "org.apache.spark.sql.catalyst.expressions.Object",
-            "Baz"
-            //        , 
-            //        "Class", "Object", "org", "java.lang.org", "java.lang$org", "java$lang$org", "org.apache",
-            //            "org.apache.calcite", "org.apache.calcite.runtime", "org.apache.calcite.linq4j", "Long", "String"
 
-    };
+    private static String[] THIS_CL_PRECEDENT_CLASSES = new String[] { "io.kyligence", "org.apache.kylin",
+            "org.apache.calcite" };
+
+    private static String[] CODEGEN_CLASSES = new String[] { "org.apache.spark.sql.catalyst.expressions.Object",
+            "Baz" };
 
     private static final Set<String> wontFindClasses = new HashSet<>();
 
     static {
+        String tomcatclassloader_parent_cl_precedent_classes = System
+                .getenv("TOMCATCLASSLOADER_PARENT_CL_PRECEDENT_CLASSES");
+        if (!StringUtils.isEmpty(tomcatclassloader_parent_cl_precedent_classes)) {
+            PARENT_CL_PRECEDENT_CLASSES = StringUtils.split(tomcatclassloader_parent_cl_precedent_classes, ",");
+        }
+
+        String tomcatclassloader_this_cl_precedent_classes = System
+                .getenv("TOMCATCLASSLOADER_THIS_CL_PRECEDENT_CLASSES");
+        if (!StringUtils.isEmpty(tomcatclassloader_this_cl_precedent_classes)) {
+            THIS_CL_PRECEDENT_CLASSES = StringUtils.split(tomcatclassloader_this_cl_precedent_classes, ",");
+        }
+
+        String tomcatclassloader_codegen_classes = System.getenv("TOMCATCLASSLOADER_CODEGEN_CLASSES");
+        if (!StringUtils.isEmpty(tomcatclassloader_codegen_classes)) {
+            CODEGEN_CLASSES = StringUtils.split(tomcatclassloader_codegen_classes, ",");
+        }
+
         wontFindClasses.add("Class");
         wontFindClasses.add("Object");
         wontFindClasses.add("org");
@@ -113,6 +128,8 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
         if (isWontFind(name)) {
             throw new ClassNotFoundException();
         }
+        // spark codegen classload parent is Thread.currentThread().getContextClassLoader()
+        // and calcite baz classloader is EnumerableInterpretable.class's classloader
         if (isCodeGen(name)) {
             throw new ClassNotFoundException();
         }
@@ -120,14 +137,13 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
         if (name.startsWith("io.kyligence.kap.ext")) {
             return parent.loadClass(name);
         }
-        // spark codegen classload parent is Thread.currentThread().getContextClassLoader()
-        // and calcite baz classloader is EnumerableInterpretable.class's classloader
-        if (sparkClassLoader.needLoad(name)) {
+        // if spark CL needs preempt
+        if (sparkClassLoader.classNeedPreempt(name)) {
             return sparkClassLoader.loadClass(name);
         }
         // tomcat classpath include KAP_HOME/lib , ensure this classload can load kap class
-        if (isClassExempt(name) && !isInclude(name)) {
-            logger.debug("Skipping exempt class " + name + " - delegating directly to parent");
+        if (isParentCLPrecedent(name) && !isThisCLPrecedent(name)) {
+            logger.debug("delegate " + name + " directly to parent");
             return parent.loadClass(name);
         }
         return super.loadClass(name, resolve);
@@ -135,15 +151,15 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
 
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (sparkClassLoader.hasResource(name)) {
+        if (sparkClassLoader.fileNeedPreempt(name)) {
             return sparkClassLoader.getResourceAsStream(name);
         }
         return super.getResourceAsStream(name);
 
     }
 
-    protected boolean isClassExempt(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_EXEMPTIONS) {
+    private boolean isParentCLPrecedent(String name) {
+        for (String exemptPrefix : PARENT_CL_PRECEDENT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -151,8 +167,8 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
         return false;
     }
 
-    boolean isInclude(String name) {
-        for (String exemptPrefix : CLASS_PREFIX_INCLUDE) {
+    private boolean isThisCLPrecedent(String name) {
+        for (String exemptPrefix : THIS_CL_PRECEDENT_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
@@ -160,12 +176,12 @@ public class TomcatClassLoader extends ParallelWebappClassLoader {
         return false;
     }
 
-    boolean isWontFind(String name) {
+    private boolean isWontFind(String name) {
         return wontFindClasses.contains(name);
     }
 
-    boolean isCodeGen(String name) {
-        for (String exemptPrefix : CODE_GEN_CLASS) {
+    private boolean isCodeGen(String name) {
+        for (String exemptPrefix : CODEGEN_CLASSES) {
             if (name.startsWith(exemptPrefix)) {
                 return true;
             }
