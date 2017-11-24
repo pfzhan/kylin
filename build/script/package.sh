@@ -93,6 +93,28 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
+#### KAP 2.5.4 release note
+
+**Feature & Enhancement**
+
+- Support user group access setting and management
+- Support integrate with Cognos ACL system
+- Allow set integer column as time partition
+- Allow store lookup table as snapshot or others
+- Optimize dimension/measures edit
+- Allow load in table with array column
+- Allow export massive result set via API
+- Allow user to define dfs.deplication
+
+**Bugfix**
+
+- Fix OOM error when building precise count distinct measure
+- Fix query report error when it contains computed column
+- Solve the issue model advisor would add all dimensions from model when entering query "select sum(1)"
+- Solve the issue model advisor would suggest wrong time format
+- Solve the issue SparkSQL will executing "create" sort of queries twice
+- Fix the build error of "Clean cube index output" on EMR 4.7
+
 #### KAP 2.5.3 release note
 
 **Bugfix**
