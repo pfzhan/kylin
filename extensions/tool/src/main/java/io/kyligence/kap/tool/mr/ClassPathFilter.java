@@ -55,13 +55,16 @@ public class ClassPathFilter {
             }
             File file = filePath.toFile();
             if (file.isDirectory()) {
-                if (filePath.getFileName().toString().endsWith("conf")) {
+                Path fileName = filePath.getFileName();
+                 if(fileName == null){
+                     continue;
+                 }
+                if (fileName.toString().endsWith("conf")) {
                     fileList.add(filePath.toFile());
                 } else {
                     File[] childrenFiles = file.listFiles();
                     for (File childrenFile : childrenFiles) {
                         filterFile(filters, fileList, childrenFile);
-
                     }
                 }
             } else {

@@ -435,4 +435,8 @@ public class ITKapKylinQueryTest extends ITKylinQueryTest {
         execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_union", null, true);
     }
 
+    @Test
+    public void testTimeStampAdd() throws Exception {
+        execAndCompQuery("src/test/resources/query/sql_current_date", null, true);
+    }
 }

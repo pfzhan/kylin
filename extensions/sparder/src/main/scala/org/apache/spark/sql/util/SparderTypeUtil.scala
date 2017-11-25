@@ -36,85 +36,91 @@ object SparderTypeUtil {
     SqlTypeName.DATETIME_TYPES.contains(sqlTypeName)
   }
 
-  def kylinTypeToSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
+  def kylinTypeToSparkType(
+      dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       case x if x.startsWith("hllc") => LongType
-      case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
-      case "date" => IntegerType
-      case "time" => LongType
-      case "timestamp" => LongType
-      case "datetime" => LongType
-      case "tinyint" => ByteType
-      case "smallint" => ShortType
-      case "integer" => IntegerType
-      case "int4" => IntegerType
-      case "bigint" => LongType
-      case "long8" => LongType
-      case "float" => FloatType
-      case "double" => DoubleType
-      case "varchar" => StringType
-      case "bitmap" => LongType
-      case "dim_dc" => LongType
-      case _ => throw new IllegalArgumentException
+      case "decimal"                 => DecimalType(dataTp.getPrecision, dataTp.getScale)
+      case "date"                    => IntegerType
+      case "time"                    => LongType
+      case "timestamp"               => LongType
+      case "datetime"                => LongType
+      case "tinyint"                 => ByteType
+      case "smallint"                => ShortType
+      case "integer"                 => IntegerType
+      case "int4"                    => IntegerType
+      case "bigint"                  => LongType
+      case "long8"                   => LongType
+      case "float"                   => FloatType
+      case "double"                  => DoubleType
+      case "varchar"                 => StringType
+      case "bitmap"                  => LongType
+      case "dim_dc"                  => LongType
+      case _                         => throw new IllegalArgumentException
     }
   }
 
   def convertSqlTypeNameToSparkType(sqlTypeName: SqlTypeName): String = {
     sqlTypeName match {
-      case SqlTypeName.DECIMAL => "decimal"
-      case SqlTypeName.CHAR => "string"
-      case SqlTypeName.VARCHAR => "string"
-      case SqlTypeName.INTEGER => "int"
-      case SqlTypeName.TINYINT => "byte"
-      case SqlTypeName.SMALLINT => "short"
-      case SqlTypeName.BIGINT => "long"
-      case SqlTypeName.FLOAT => "float"
-      case SqlTypeName.DOUBLE => "double"
-      case SqlTypeName.DATE => "date"
+      case SqlTypeName.DECIMAL   => "decimal"
+      case SqlTypeName.CHAR      => "string"
+      case SqlTypeName.VARCHAR   => "string"
+      case SqlTypeName.INTEGER   => "int"
+      case SqlTypeName.TINYINT   => "byte"
+      case SqlTypeName.SMALLINT  => "short"
+      case SqlTypeName.BIGINT    => "long"
+      case SqlTypeName.FLOAT     => "float"
+      case SqlTypeName.DOUBLE    => "double"
+      case SqlTypeName.DATE      => "date"
       case SqlTypeName.TIMESTAMP => "timestamp"
-      case SqlTypeName.BOOLEAN => "boolean"
-      case _ => throw new IllegalArgumentException(s"unsupported SqlTypeName $sqlTypeName")
+      case SqlTypeName.BOOLEAN   => "boolean"
+      case _ =>
+        throw new IllegalArgumentException(
+          s"unsupported SqlTypeName $sqlTypeName")
     }
   }
 
-  def convertStringToValue(s: Any, rowType: RelDataType, toCalcite: Boolean): Any = {
+  def convertStringToValue(s: Any,
+                           rowType: RelDataType,
+                           toCalcite: Boolean): Any = {
     val sqlTypeName = rowType.getSqlTypeName
     if (s == null) {
       val a: Any = sqlTypeName match {
-        case SqlTypeName.DECIMAL => new java.math.BigDecimal(0)
-        case SqlTypeName.CHAR => null
-        case SqlTypeName.VARCHAR => null
-        case SqlTypeName.INTEGER => 0
-        case SqlTypeName.TINYINT => 0.toByte
-        case SqlTypeName.SMALLINT => 0.toShort
-        case SqlTypeName.BIGINT => 0L
-        case SqlTypeName.FLOAT => 0f
-        case SqlTypeName.DOUBLE => 0d
-        case SqlTypeName.DATE => 0
+        case SqlTypeName.DECIMAL   => new java.math.BigDecimal(0)
+        case SqlTypeName.CHAR      => null
+        case SqlTypeName.VARCHAR   => null
+        case SqlTypeName.INTEGER   => 0
+        case SqlTypeName.TINYINT   => 0.toByte
+        case SqlTypeName.SMALLINT  => 0.toShort
+        case SqlTypeName.BIGINT    => 0L
+        case SqlTypeName.FLOAT     => 0f
+        case SqlTypeName.DOUBLE    => 0d
+        case SqlTypeName.DATE      => 0
         case SqlTypeName.TIMESTAMP => 0L
-        case SqlTypeName.TIME => 0L
-        case null => null
-        case _ => null
+        case SqlTypeName.TIME      => 0L
+        case null                  => null
+        case _                     => null
       }
       a
     } else {
       val a: Any = sqlTypeName match {
-        case SqlTypeName.DECIMAL => new java.math.BigDecimal(s.toString)
-        case SqlTypeName.CHAR => s.toString
-        case SqlTypeName.VARCHAR => s.toString
-        case SqlTypeName.INTEGER => s.toString.toInt
-        case SqlTypeName.TINYINT => s.toString.toByte
-        case SqlTypeName.SMALLINT => s.toString.toShort
-        case SqlTypeName.BIGINT => s.toString.toLong
-        case SqlTypeName.FLOAT => java.lang.Float.parseFloat(s.toString)
-        case SqlTypeName.DOUBLE => java.lang.Double.parseDouble(s.toString)
+        case SqlTypeName.DECIMAL  => new java.math.BigDecimal(s.toString)
+        case SqlTypeName.CHAR     => s.toString
+        case SqlTypeName.VARCHAR  => s.toString
+        case SqlTypeName.INTEGER  => s.toString.toDouble.toInt
+        case SqlTypeName.TINYINT  => s.toString.toDouble.toByte
+        case SqlTypeName.SMALLINT => s.toString.toDouble.toShort
+        case SqlTypeName.BIGINT   => s.toString.toDouble.toLong
+        case SqlTypeName.FLOAT    => java.lang.Float.parseFloat(s.toString)
+        case SqlTypeName.DOUBLE   => java.lang.Double.parseDouble(s.toString)
         case SqlTypeName.DATE => {
           if (toCalcite)
             (DateFormat.stringToMillis(s.toString) / (1000 * 3600 * 24)).toInt
           else
             DateFormat.stringToMillis(s.toString)
         }
-        case SqlTypeName.TIMESTAMP | SqlTypeName.TIME => DateFormat.stringToMillis(s.toString)
+        case SqlTypeName.TIMESTAMP | SqlTypeName.TIME =>
+          DateFormat.stringToMillis(s.toString)
         case _ => s.toString
       }
       a

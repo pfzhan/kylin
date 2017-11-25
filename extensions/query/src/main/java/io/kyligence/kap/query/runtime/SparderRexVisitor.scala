@@ -27,7 +27,6 @@ package io.kyligence.kap.query.runtime
 import java.lang.{Boolean, Byte, Double, Float, Long, Short}
 import java.math.BigDecimal
 import java.util.{GregorianCalendar, TimeZone}
-import scala.collection.JavaConverters._
 
 import org.apache.calcite.DataContext
 import org.apache.calcite.avatica.util.TimeUnitRange
@@ -37,18 +36,21 @@ import org.apache.calcite.sql.SqlKind._
 import org.apache.calcite.sql.`type`.IntervalSqlType
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.util.NlsString
+import org.apache.spark.sql.catalyst.util.DateTimeUtils
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{Column, DataFrame}
 
+import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
 /**
   * Convert RexNode to a nested Column
-  * @param df      dataframe
+  *
+  * @param df             dataframe
   * @param rowType        rowtyple
-  * @param dataContext       context
-  * @param afterAggregate     agg
+  * @param dataContext    context
+  * @param afterAggregate agg
   */
 class SparderRexVisitor(val df: DataFrame,
                         val rowType: RelDataType,
@@ -56,6 +58,7 @@ class SparderRexVisitor(val df: DataFrame,
                         val afterAggregate: Boolean)
     extends RexVisitorImpl[Any](true) {
   val fieldNames: Array[String] = df.schema.fieldNames
+
   // scalastyle:off
   override def visitCall(call: RexCall): Any = {
     val children = new ListBuffer[Any]()
@@ -243,6 +246,13 @@ class SparderRexVisitor(val df: DataFrame,
           case "concat" =>
             concat(lit(children.head), lit(children.apply(1)))
           // time_funcs
+          case "current_date" =>
+            lit(
+              DateTimeUtils
+                .millisToDays(System.currentTimeMillis())
+                .toLong * 24 * 3600 * 1000)
+          case "current_timestamp" =>
+            lit(System.currentTimeMillis() * 1000)
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")

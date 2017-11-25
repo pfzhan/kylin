@@ -141,8 +141,8 @@ object SparderRuntime {
 
           //  prepare filter
           var dictmap = dictMapping.get
-          if(dictmap == null){
-              dictmap = Map.empty[Integer, String]
+          if (dictmap == null) {
+            dictmap = Map.empty[Integer, String]
           }
 
           val jsonMap = JsonUtil.writeValueAsString(dictmap.asJava)
@@ -213,7 +213,7 @@ object SparderRuntime {
 
     val lookupTableName = olapContext.firstTableScan.getTableName
     val dim = cube.getDescriptor.findDimensionByTable(lookupTableName)
-    if (dim == null){
+    if (dim == null) {
       throw new IllegalStateException(
         "No dimension with derived columns found for lookup table "
           + lookupTableName + ", cube desc " + cube.getDescriptor)
@@ -429,11 +429,12 @@ object SparderRuntime {
     Linq4j.asEnumerable(x)
   }
 
-  private def collectInternal(df: DataFrame, rowType: RelDataType) = {
+  private def collectInternal(df: DataFrame,
+                              rowType: RelDataType): Array[Array[Any]] = {
     val resultTypes = rowType.getFieldList.asScala
     val data = df.collect()
 
-    data.map { row =>
+    val dt = data.map { row =>
       var rowIndex = 0
       row.toSeq.map { cell =>
         {
@@ -445,5 +446,6 @@ object SparderRuntime {
         }
       }.toArray
     }
+    dt
   }
 }

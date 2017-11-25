@@ -149,7 +149,10 @@ class ColumnChunkPageReadStore {
 
             byte[] ret = new byte[uncompressedSize];
             CompressionCodec compressionCodec = CodecFactory.getCodec(codec, configuration);
-            InputStream is = compressionCodec.createInputStream(bytesInput.toInputStream(), decompressor);
+            InputStream is = bytesInput.toInputStream() ;
+            if(compressionCodec != null){
+                is = compressionCodec.createInputStream(bytesInput.toInputStream(), decompressor);
+            }
             IOUtils.readFully(is, ret, 0, uncompressedSize);
             ParquetMetrics.get().pageReadIOAndDecompressEnd(bytesInput.size(), uncompressedSize);
 

@@ -431,7 +431,7 @@ public class KapConfig {
 
     public String sparderFileFormat() {
         return config.getOptional("kap.query.engine.sparder-fileformat",
-                "org.apache.spark.sql.execution.datasources.sparder.v3.SparderFileFormatV3");
+                "org.apache.spark.sql.execution.datasources.sparder.batch.SparderBatchFileFormat");
     }
 
     public String sparderJars() {

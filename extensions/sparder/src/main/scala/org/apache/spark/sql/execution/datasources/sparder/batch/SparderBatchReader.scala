@@ -26,7 +26,10 @@ package org.apache.spark.sql.execution.datasources.sparder.batch
 import java.nio.ByteBuffer
 
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants
-import io.kyligence.kap.storage.parquet.format.file.ParquetBundleReader
+import io.kyligence.kap.storage.parquet.format.file.{
+  ParquetBundleReader,
+  ParquetMetrics
+}
 import io.kyligence.kap.storage.parquet.format.filter.{
   BinaryFilter,
   BinaryFilterSerializer
@@ -237,6 +240,7 @@ class SparderBatchReader extends RecordReader[Void, Object] with Logging {
       columnarBatch.close()
       columnarBatch = null
     }
+    ParquetMetrics.get().reset()
   }
 
   override def initialize(split: InputSplit,
