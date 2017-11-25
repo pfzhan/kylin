@@ -11,19 +11,19 @@ client_version=1.1.25
 if [ "$1" == "cdh5.7" ]; then
     pkg_name="kybot-client-${client_version}-cdh5.7-bin.tar.gz"
     pkg_url="http://cn.kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-cdh5.7-bin.tar.gz"
-    pkg_md5="9337ec5f8182b03ee0a22daad15fd3bb"
+    pkg_md5="9aaaca4b6038af3a36aa3ae7b0d6e3bd"
 fi
 # use hbase0.98 version
 if [ "$1" == "hbase0.98" ]; then
     pkg_name="kybot-client-${client_version}-hbase0.98-bin.tar.gz"
     pkg_url="http://cn.kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-hbase0.98-bin.tar.gz"
-    pkg_md5="407228d08860e26aef35afe9d5145457"
+    pkg_md5="c3f01bf0633f9049b214eadf4357ba36"
 fi
 # use hbase1.x version
 if [ "$1" == "hbase1.x" ]; then
     pkg_name="kybot-client-${client_version}-hbase1.x-bin.tar.gz"
     pkg_url="http://cn.kyligence.io/download/kybot/${client_version}/kybot-client-${client_version}-hbase1.x-bin.tar.gz"
-    pkg_md5="a4a1b53dfc397c242bf82197d82d5336"
+    pkg_md5="f1d21369ef4cb4c67e6e92cd33b4513b"
 fi  
 
 if [[ -z "${pkg_name}" ]]; then
