@@ -375,4 +375,8 @@ public class ITKapSparderAsyncQueryTest extends ITKapKylinQueryTest {
     @Ignore
     public void testVersionQuery() throws Exception {
     }
+
+    @Ignore
+    public void testTimeStampAdd() throws Exception {
+    }
 }
