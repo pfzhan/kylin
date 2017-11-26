@@ -137,10 +137,15 @@ public class SparkClassLoader extends URLClassLoader {
             try {
                 return getParent().loadClass(name);
             } catch (ClassNotFoundException e) {
-                return super.findClass(name);
+                //  If parent can not find this class,
+                // the class maybe in this classloader, try load it
+                return doLoadclass(name);
             }
         }
+        return doLoadclass(name);
+    }
 
+    private Class<?> doLoadclass(String name) throws ClassNotFoundException {
         synchronized (getClassLoadingLock(name)) {
             // Check whether the class has already been loaded:
             Class<?> clasz = findLoadedClass(name);
