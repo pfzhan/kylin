@@ -33,7 +33,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
-import org.apache.calcite.sql.`type`.IntervalSqlType
+import org.apache.calcite.sql.`type`.{IntervalSqlType, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.util.NlsString
 import org.apache.spark.sql.catalyst.util.DateTimeUtils
@@ -121,19 +121,27 @@ class SparderRexVisitor(val df: DataFrame,
                 TimeZone.getDefault.getID)
               val r = from_utc_timestamp(add_months(lit(ts), num.num),
                                          TimeZone.getDefault.getID)
-              return lit(
-                unix_timestamp(r).multiply(1000).cast("long").cast("string"))
+              return lit(unix_timestamp(r).multiply(1000).cast("long"))
             }
             case _ =>
-              return lit(children.head)
-                .plus(lit(children.last))
+              lit(children.head)
+                .plus(lit(children.last.toString.toLong))
                 .cast("long")
-                .cast("string")
-
           }
         }
 
-        return lit(children.head).plus(lit(children.last))
+        call.getType.getSqlTypeName match {
+          case SqlTypeName.DATE =>
+            lit(children.head).plus(lit(children.last)).cast("long")
+          case SqlTypeName.TIMESTAMP =>
+            lit(children.head)
+              .plus(lit(children.last).cast("long"))
+              .cast("long")
+          case _ =>
+            lit(children.head)
+              .plus(lit(children.last))
+              .cast("long")
+        }
       case MINUS =>
         assert(children.size == 2)
         if (op.isInstanceOf[SqlDatetimeSubtractionOperator]) {
@@ -199,9 +207,16 @@ class SparderRexVisitor(val df: DataFrame,
       case REINTERPRET =>
         lit(children.head)
       case CAST =>
-        lit(children.head).cast(
-          SparderTypeUtil.convertSqlTypeNameToSparkType(
-            call.getType.getSqlTypeName))
+        // all date type is long,skip is
+        if (SparderTypeUtil
+              .convertSqlTypeNameToSparkType(call.getType.getSqlTypeName)
+              .equals("date")) {
+          children.head
+        } else {
+          lit(children.head).cast(
+            SparderTypeUtil.convertSqlTypeNameToSparkType(
+              call.getType.getSqlTypeName))
+        }
       case OTHER =>
         val funcName = call.getOperator.getName.toLowerCase
         funcName match {
@@ -252,7 +267,7 @@ class SparderRexVisitor(val df: DataFrame,
                 .millisToDays(System.currentTimeMillis())
                 .toLong * 24 * 3600 * 1000)
           case "current_timestamp" =>
-            lit(System.currentTimeMillis() * 1000)
+            lit(System.currentTimeMillis())
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")

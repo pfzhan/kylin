@@ -176,6 +176,11 @@ object RuntimeHelper {
       try {
         val mapping = request.getCuboid.getCuboidToGridTableMapping
         request.getDimensions.asScala
+          .filter(
+            dimension =>
+              cubeSegment.getCubeDesc.getRowkey
+                .getColDesc(dimension)
+                .isUsingDictionary)
           .map(
             dimension =>
               (mapping

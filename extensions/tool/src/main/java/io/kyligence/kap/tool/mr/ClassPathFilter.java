@@ -50,21 +50,32 @@ public class ClassPathFilter {
                 path = path.substring(0, path.length() - 1);
             }
             Path filePath = Paths.get(path);
-            if(filePath == null){
+            if (filePath == null) {
                 continue;
             }
             File file = filePath.toFile();
             if (file.isDirectory()) {
                 Path fileName = filePath.getFileName();
-                 if(fileName == null){
-                     continue;
-                 }
-                if (fileName.toString().endsWith("conf")) {
+                if (fileName == null) {
+                    continue;
+                }
+                if (fileName.toString().endsWith("conf") || fileName.toString().endsWith("config")) {
                     fileList.add(filePath.toFile());
                 } else {
                     File[] childrenFiles = file.listFiles();
+                    fileList.add(filePath.toFile());
+                    boolean isConf = false;
+                    if (childrenFiles == null) {
+                        return;
+                    }
                     for (File childrenFile : childrenFiles) {
                         filterFile(filters, fileList, childrenFile);
+                        if (childrenFile.getName().contains("xml")) {
+                            isConf = true;
+                        }
+                    }
+                    if (isConf) {
+                        fileList.add(filePath.toFile());
                     }
                 }
             } else {

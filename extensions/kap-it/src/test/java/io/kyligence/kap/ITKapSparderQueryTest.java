@@ -50,7 +50,10 @@ import com.google.common.collect.Maps;
 @Ignore("ITKapSparderQueryTest is contained by KAPITCombinationTest")
 public class ITKapSparderQueryTest extends KapTestBase {
     private static final Logger logger = LoggerFactory.getLogger(ITKapSparderQueryTest.class);
-
+    //inherit query tests from ITKylinQueryTest
+    protected String getQueryFolderPrefix() {
+        return "../../kylin/kylin-it/";
+    }
     @Test
     public void testIntdersectCountQuery() throws Exception {
         // cannot compare coz H2 does not support intersect count yet..
@@ -179,7 +182,7 @@ public class ITKapSparderQueryTest extends KapTestBase {
     //pass
     @Test
     public void testOrderByQuery() throws Exception {
-        execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_orderby", null, true);
+            execAndCompQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_orderby", null, true);
         // FIXME
         // as of optiq 0.8, we lost metadata type with "order by" clause, e.g. sql_orderby/query01.sql
         // thus, temporarily the "order by" clause was cross out, and the needSort is set to true
