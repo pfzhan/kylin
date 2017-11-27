@@ -223,6 +223,7 @@ public class SparkSqlClient implements Serializable {
         List<List<String>> rowList = Lists.newArrayList();
         if (SparderContext.isAsyncQuery()) {
             SparderContext.getResultRef().set(true);
+            SparderContext.setDF(df);
             final String separator = SparderContext.getSeparator();
             String path = KapConfig.getInstanceFromEnv().getAsyncResultBaseDir() + QueryContext.current().getQueryId();
             JavaRDD<String> mapRdd = rowRdd.map(new Function<List<String>, String>() {
@@ -231,7 +232,6 @@ public class SparkSqlClient implements Serializable {
                     return StringUtil.join(v1, separator);
                 }
             });
-
             if (KapConfig.getInstanceFromEnv().isAsyncResultRepartitionEnabled()) {
                 mapRdd.repartition(SparderFunc.getAsyncResultCore()).saveAsTextFile(path);
             } else {
