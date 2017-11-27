@@ -56,13 +56,14 @@ then
                 valid_conf_dir=false
                 continue
             fi
-            
-            if [ ! -f $result/mapred-site.xml ]
-            then
-                verbose "$result is not valid hadoop dir conf because mapred-site.xml is missing"
-                valid_conf_dir=false
-                continue
-            fi
+
+# FusionInsight's hadoop conf dir doesn't contains this file
+#            if [ ! -f $result/mapred-site.xml ]
+#            then
+#                verbose "$result is not valid hadoop dir conf because mapred-site.xml is missing"
+#                valid_conf_dir=false
+#                continue
+#            fi
             
             if [ ! -f $result/hdfs-site.xml ]
             then
