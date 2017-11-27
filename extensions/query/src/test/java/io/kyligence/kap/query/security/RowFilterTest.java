@@ -26,11 +26,13 @@
 package io.kyligence.kap.query.security;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -179,14 +181,9 @@ public class RowFilterTest {
     }
 
     @Test
-    public void testRowFilter2() throws SqlParseException {
-        String sql = "";
-        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
-        whereCond.put("DB.T", "(a > 0 OR b < 0)");
-        whereCond.put("DB2.TT", "(aa > 0 OR bb < 0)");
-        whereCond.put("DB2.TTT", "(aaa > 0 OR bbb < 0)");
-        String expectedSQL = "";
-        Assert.assertEquals(expectedSQL, RowFilter.rowFilter("DB2", sql, whereCond));
+    public void testNeedEscape() throws SqlParseException {
+        String sql = "select count(*) as \"m0\"";
+        Assert.assertEquals(true, RowFilter.needEscape(true, sql, "DB2", Lists.<Map<String, String>>newArrayList(new HashMap<String, String>())));
     }
 
     @Test

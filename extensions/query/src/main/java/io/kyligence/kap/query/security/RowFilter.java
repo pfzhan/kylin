@@ -65,10 +65,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!KapConfig.getInstanceFromEnv().isRowACLEnabled()) {
+        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
+        if (needEscape(KapConfig.getInstanceFromEnv().isRowACLEnabled(), sql, defaultSchema, allWhereCondWithTbls)) {
             return sql;
         }
-        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
         // if origin SQL has where clause, add "()", see KAP#2873
         sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
 
@@ -76,6 +76,14 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
             sql = rowFilter(defaultSchema, sql, whereCondWithTbls);
         }
         return sql;
+    }
+
+    static boolean needEscape(boolean isRowACLEnabled, String sql, String defaultSchema, List<Map<String, String>> cond) {
+        return !isRowACLEnabled //
+                || StringUtils.isEmpty(defaultSchema) //
+                || StringUtils.isEmpty(sql) //
+                || !StringUtils.containsIgnoreCase(sql, "from") //
+                || cond.isEmpty(); //
     }
 
     private Set<String> getCandidateTables(List<Map<String, String>> allWhereCondWithTbls) {
@@ -108,13 +116,6 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     }
 
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
-        if (StringUtils.isEmpty(inputSQL)) {
-            return "";
-        }
-        if (StringUtils.isEmpty(schema) || whereCondWithTbls.isEmpty()) {
-            return inputSQL;
-        }
-
         Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls, selectClausesWithTbls);
 
@@ -412,9 +413,15 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     private List<Map<String, String>> getAllWhereCondWithTbls(String project) {
         RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<Map<String, String>> list = new ArrayList<>();
-        list.add(rowACLManager.getQueryUsedTblToConds(project, getUsername(), MetadataConstants.TYPE_USER));
+        Map<String, String> conds = rowACLManager.getQueryUsedTblToConds(project, getUsername(), MetadataConstants.TYPE_USER);
+        if (!conds.isEmpty()) {
+            list.add(conds);
+        }
         for (String group : getUserGroups()) {
-            list.add(rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP));
+            Map<String, String> groupConds = rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP);
+            if (!groupConds.isEmpty()) {
+                list.add(groupConds);
+            }
         }
         return list;
     }
