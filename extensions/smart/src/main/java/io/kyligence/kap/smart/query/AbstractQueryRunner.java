@@ -44,6 +44,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 
 public abstract class AbstractQueryRunner implements Closeable {
@@ -72,8 +73,13 @@ public abstract class AbstractQueryRunner implements Closeable {
             @Override
             public void run() {
                 try {
+                    boolean isCacheValid = false;
                     QueryRecord record = queryCache.getIfPresent(sql);
-                    if (record == null) {
+                    if (record != null && record.getSqlResult() != null
+                            && record.getSqlResult().getStatus() == Status.SUCCESS) {
+                        isCacheValid = true;
+                    }
+                    if (!isCacheValid) {
                         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
                         record = executor.execute(project, sql);
                         queryCache.put(sql, record);

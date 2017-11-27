@@ -89,7 +89,6 @@ public class MockupQueryExecutor {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
         } catch (Throwable e) {
-            logger.trace("failed to run in MockupQueryExecutor", e);
             if (e.getCause() != null
                     && e.getCause() instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
                 StackTraceElement[] stackTrace = e.getCause().getStackTrace();
@@ -103,8 +102,9 @@ public class MockupQueryExecutor {
                 }
             }
 
-            String message = e.getMessage() == null ? e.getClass().toString() : QueryUtil.makeErrorMsgUserFriendly(e);
-
+            String message = e.getMessage() == null ? e.getClass().toString() + ", check kylin.log for details" : QueryUtil.makeErrorMsgUserFriendly(e);
+            logger.debug("Failed to run in MockupQueryExecutor", e);
+            
             sqlResult.setStatus(SQLResult.Status.FAILED);
             sqlResult.setMessage(message);
             sqlResult.setException(e);
