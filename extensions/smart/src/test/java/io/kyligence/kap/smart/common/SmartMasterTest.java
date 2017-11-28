@@ -107,7 +107,7 @@ public class SmartMasterTest {
             models.add(modelDesc);
             modelManager.createDataModelDesc(modelDesc, proj, null);
         }
-        Assert.assertEquals(14, i);
+        Assert.assertEquals(13, i);
 
         CubeDescManager cubeDescManager = CubeDescManager.getInstance(kylinConfig);
         CubeManager cubeManager = CubeManager.getInstance(kylinConfig);
@@ -119,6 +119,6 @@ public class SmartMasterTest {
             cubeDescManager.createCubeDesc(cube);
             cubeManager.createCube(cube.getName(), proj, cube, null);
         }
-        Assert.assertEquals(14, i);
+        Assert.assertEquals(13, i);
     }
 }
