@@ -131,7 +131,6 @@ public class KAPDebugTomcat {
                     field.setAccessible(true);
                     Object obj = field.get(env);
                     Map<String, String> map = (Map<String, String>) obj;
-                    map.clear();
                     map.putAll(newenv);
                 }
             }
@@ -171,7 +170,6 @@ public class KAPDebugTomcat {
 
     public static void main(String[] args) throws Exception {
         setupDebugEnv();
-
         int port = 7070;
         if (args.length >= 1) {
             port = Integer.parseInt(args[0]);

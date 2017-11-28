@@ -33,7 +33,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
+import com.google.common.collect.Lists;
+
 public class ClassPathFilter {
+    public static final List<String> HADOOP_CONF = Lists.newArrayList("mapred-site.xml", "hdfs-site.xml",
+            "yarn-site.xml", "core-site.xml", "hive-site.xml");
 
     public static void main(String[] args) throws IOException {
         String classpath = args[0];
@@ -70,7 +74,7 @@ public class ClassPathFilter {
                     }
                     for (File childrenFile : childrenFiles) {
                         filterFile(filters, fileList, childrenFile);
-                        if (childrenFile.getName().contains("xml")) {
+                        if (HADOOP_CONF.contains(childrenFile.getName())) {
                             isConf = true;
                         }
                     }
