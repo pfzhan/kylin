@@ -28,6 +28,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.util.Collections;
+import java.util.Map;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.core.AprLifecycleListener;
@@ -35,9 +37,10 @@ import org.apache.catalina.core.StandardServer;
 import org.apache.catalina.deploy.ErrorPage;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
+
+import com.google.common.collect.Maps;
 
 public class KAPDebugTomcat {
 
@@ -45,21 +48,12 @@ public class KAPDebugTomcat {
         try {
             System.setProperty("HADOOP_USER_NAME", "root");
             System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
-
-            // test_case_data/sandbox/ contains HDP 2.2 site xmls which is dev sandbox
-            KylinConfig.setSandboxEnvIfPossible();
-            overrideDevJobJarLocations();
-
             System.setProperty("spring.profiles.active", "testing");
             System.setProperty("kylin.query.cache-enabled", "false");
-
-            //avoid log permission issue
-            if (System.getProperty("catalina.home") == null)
-                System.setProperty("catalina.home", ".");
-
-            if (StringUtils.isEmpty(System.getProperty("hdp.version"))) {
-                System.setProperty("hdp.version", "2.4.0.0-169");
-            }
+            // test_case_data/sandbox/ contains HDP 2.2 site xmls which is dev sandbox
+            KylinConfig.setSandboxEnvIfPossible();
+            setSparderRuntimeIfPossible();
+            overrideDevJobJarLocations();
 
             // workaround for job submission from win to linux -- https://issues.apache.org/jira/browse/MAPREDUCE-4052
             if (Shell.WINDOWS) {
@@ -82,6 +76,65 @@ public class KAPDebugTomcat {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
+        }
+    }
+
+    private static void setSparderRuntimeIfPossible() throws Exception {
+        setDefaultProperty("hdp.version", "2.4.0.0-169");
+        setDefaultProperty("spark.local", "false");
+        setDefaultProperty("calcite.debug", "false");
+        if (Shell.MAC) {
+            setDefaultProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");
+        }
+        //avoid log permission issue
+        setDefaultProperty("catalina.home", ".");
+        Map<String, String> newenv = Maps.newHashMap();
+        setDefaultEnv("SPARK_HOME", "../../build/spark", newenv);
+        setDefaultEnv("hdp.version", "2.4.0.0-169", newenv);
+        setDefaultEnv("ZIPKIN_HOSTNAME", "localhost", newenv);
+        setDefaultEnv("ZIPKIN_PORT", "9410", newenv);
+        setDefaultEnv("KAP_HDFS_WORKING_DIR", "/kylin", newenv);
+        changeEnv(newenv);
+
+    }
+
+    private static void setDefaultProperty(String property, String defaultValue) {
+        if (System.getProperty(property) == null) {
+            System.setProperty(property, defaultValue);
+        }
+    }
+
+    private static void setDefaultEnv(String env, String defaultValue, Map<String, String> newenv) {
+        if (System.getenv(env) == null) {
+            newenv.put(env, defaultValue);
+        }
+    }
+
+    protected static void changeEnv(Map<String, String> newenv) throws Exception {
+        try {
+            Class<?> processEnvironmentClass = Class.forName("java.lang.ProcessEnvironment");
+            Field theEnvironmentField = processEnvironmentClass.getDeclaredField("theEnvironment");
+            theEnvironmentField.setAccessible(true);
+            Map<String, String> env = (Map<String, String>) theEnvironmentField.get(null);
+            env.putAll(newenv);
+            Field theCaseInsensitiveEnvironmentField = processEnvironmentClass
+                    .getDeclaredField("theCaseInsensitiveEnvironment");
+            theCaseInsensitiveEnvironmentField.setAccessible(true);
+            Map<String, String> cienv = (Map<String, String>) theCaseInsensitiveEnvironmentField.get(null);
+            cienv.putAll(newenv);
+        } catch (NoSuchFieldException e) {
+            Class[] classes = Collections.class.getDeclaredClasses();
+            Map<String, String> env = System.getenv();
+            for (Class cl : classes) {
+                if ("java.util.Collections$UnmodifiableMap".equals(cl.getName())) {
+                    Field field = cl.getDeclaredField("m");
+                    field.setAccessible(true);
+                    Object obj = field.get(env);
+                    Map<String, String> map = (Map<String, String>) obj;
+                    map.clear();
+                    map.putAll(newenv);
+                }
+            }
         }
     }
 
