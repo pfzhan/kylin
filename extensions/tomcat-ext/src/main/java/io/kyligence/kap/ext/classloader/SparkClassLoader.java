@@ -134,13 +134,7 @@ public class SparkClassLoader extends URLClassLoader {
 
         if (needToUseGlobal(name)) {
             logger.debug("delegate " + name + " directly to parent");
-            try {
-                return getParent().loadClass(name);
-            } catch (ClassNotFoundException e) {
-                //  If parent can not find this class,
-                // the class maybe in this classloader, try load it
-                return doLoadclass(name);
-            }
+            return super.loadClass(name, resolve);
         }
         return doLoadclass(name);
     }
@@ -164,6 +158,8 @@ public class SparkClassLoader extends URLClassLoader {
                     // Class not found using this ClassLoader, so delegate to parent
                     logger.debug("Class " + name + " not found - delegating to parent");
                     try {
+                        // sparder and query module has some class start with org.apache.spark,
+                        // We need to use some lib that does not exist in spark/jars
                         clasz = getParent().loadClass(name);
                     } catch (ClassNotFoundException e2) {
                         // Class not found in this ClassLoader or in the parent ClassLoader
