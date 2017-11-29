@@ -60,6 +60,9 @@ public final class ClassLoaderUtils {
             logger.error("sparkClassLoader already initialized");
         }
         logger.info("set sparkClassLoader :" + classLoader);
+        if (System.getenv("DEBUG_SPARK_CLASSLOADER") != null) {
+            return;
+        }
         sparkClassLoader = classLoader;
     }
 

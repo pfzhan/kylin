@@ -82,7 +82,7 @@ public class SparkClassLoader extends URLClassLoader {
         String sparkclassloader_parent_cl_precedent_classes = System
                 .getenv("SPARKCLASSLOADER_PARENT_CL_PRECEDENT_CLASSES");
         if (!StringUtils.isEmpty(sparkclassloader_parent_cl_precedent_classes)) {
-            PARENT_CL_PRECEDENT_CLASSES = StringUtils.split("sparkclassloader_parent_cl_precedent_classes", ",");
+            PARENT_CL_PRECEDENT_CLASSES = StringUtils.split(sparkclassloader_parent_cl_precedent_classes, ",");
         }
 
         try {
