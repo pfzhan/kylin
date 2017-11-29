@@ -423,7 +423,7 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         }
         Set<String> groups = getUserGroups();
         if (groups == null || groups.isEmpty()) {
-            return list;
+            throw new RuntimeException("Can not get uses's group when in row ACL transforming");
         }
         for (String group : getUserGroups()) {
             Map<String, String> groupConds = rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP);
