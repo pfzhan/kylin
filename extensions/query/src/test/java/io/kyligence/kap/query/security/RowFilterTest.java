@@ -183,7 +183,7 @@ public class RowFilterTest {
     @Test
     public void testNeedEscape() throws SqlParseException {
         String sql = "select count(*) as \"m0\"";
-        Assert.assertEquals(true, RowFilter.needEscape(true, sql, "DB2", Lists.<Map<String, String>>newArrayList(new HashMap<String, String>())));
+        Assert.assertEquals(true, RowFilter.needEscape(sql, "DB2", Lists.<Map<String, String>>newArrayList(new HashMap<String, String>())));
     }
 
     @Test

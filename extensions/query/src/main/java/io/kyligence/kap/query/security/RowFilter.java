@@ -65,10 +65,15 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
-        if (needEscape(KapConfig.getInstanceFromEnv().isRowACLEnabled(), sql, defaultSchema, allWhereCondWithTbls)) {
+        if (!KapConfig.getInstanceFromEnv().isRowACLEnabled()) {
             return sql;
         }
+
+        List<Map<String, String>> allWhereCondWithTbls = getAllWhereCondWithTbls(project);
+        if (needEscape(sql, defaultSchema, allWhereCondWithTbls)) {
+            return sql;
+        }
+
         // if origin SQL has where clause, add "()", see KAP#2873
         sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
 
@@ -78,9 +83,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         return sql;
     }
 
-    static boolean needEscape(boolean isRowACLEnabled, String sql, String defaultSchema, List<Map<String, String>> cond) {
-        return !isRowACLEnabled //
-                || StringUtils.isEmpty(defaultSchema) //
+    static boolean needEscape(String sql, String defaultSchema, List<Map<String, String>> cond) {
+        return StringUtils.isEmpty(defaultSchema) //
                 || StringUtils.isEmpty(sql) //
                 || !StringUtils.containsIgnoreCase(sql, "from") //
                 || cond.isEmpty(); //
@@ -416,6 +420,10 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         Map<String, String> conds = rowACLManager.getQueryUsedTblToConds(project, getUsername(), MetadataConstants.TYPE_USER);
         if (!conds.isEmpty()) {
             list.add(conds);
+        }
+        Set<String> groups = getUserGroups();
+        if (groups == null || groups.isEmpty()) {
+            return list;
         }
         for (String group : getUserGroups()) {
             Map<String, String> groupConds = rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP);

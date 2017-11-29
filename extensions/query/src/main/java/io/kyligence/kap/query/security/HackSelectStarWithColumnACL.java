@@ -55,7 +55,7 @@ import io.kyligence.kap.metadata.acl.ColumnACLManager;
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IKeep {
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!isSingleSelectStar(sql) || !isColumnInterceptorEnabled()) {
+        if (!isColumnInterceptorEnabled() || !isSingleSelectStar(sql)) {
             return sql;
         }
 

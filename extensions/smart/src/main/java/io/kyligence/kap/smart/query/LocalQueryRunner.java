@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -71,6 +72,9 @@ class LocalQueryRunner extends AbstractQueryRunner {
         Utils.setLargeRowkeySizeConf(config);
         config.setProperty("kylin.query.disable-cube-noagg-sql",
                 Boolean.toString(srcKylinConfig.isDisableCubeNoAggSQL()));
+        config.setProperty("kylin.query.transformers", StringUtils.join(srcKylinConfig.getQueryTransformers(), ','));
+        config.setProperty("kap.query.security.row-acl-enabled", "false");
+        config.setProperty("kap.query.security.column-acl-enabled", "false");
         return config;
     }
 
