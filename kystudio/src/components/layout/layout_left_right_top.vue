@@ -97,8 +97,9 @@
 
 <script>
   // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
-  import { handleError, kapConfirm, hasRole } from '../../util/business'
+  import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
   import { objectClone, isFireFox } from '../../util/index'
+  import { permissions } from '../../config'
   import { mapActions, mapMutations } from 'vuex'
   import projectSelect from '../project/project_select'
   import projectEdit from '../project/project_edit'
@@ -187,7 +188,7 @@
         resetProjectState: 'RESET_PROJECT_STATE'
       }),
       showMenuByRole (menuName) {
-        if (menuName === 'system' && this.isAdmin === false) {
+        if (menuName === 'system' && this.isAdmin === false || menuName === 'monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
           return false
         }
         return true
@@ -292,15 +293,20 @@
       _isAjaxProjectAcess (allProject, curProjectName, curProjectId, currentPath) {
         let uuid = allProject.length > 0 ? this._getUuidFromProjects(allProject, curProjectName) : null
         // 当前project的权限没拿过才需要发请求,project list 空的话，uuid也就不存在，就直接跳
-        if (uuid && !curProjectId[uuid]) {
-          let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
-          let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-          Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
-            this._replaceRouter(currentPath)
-          })
-        } else {
+        // if (uuid && !curProjectId[uuid]) {
+        //   let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
+        //   let curProjectUserAccess = this.getUserAccess({project: curProjectName})
+        //   Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
+        //     this._replaceRouter(currentPath)
+        //   })
+        // } else {
+        //   this._replaceRouter(currentPath)
+        // }
+        let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
+        let curProjectUserAccess = this.getUserAccess({project: curProjectName})
+        Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
           this._replaceRouter(currentPath)
-        }
+        })
       },
       changeProject (val) {
         var currentPath = this.$router.currentRoute.path
@@ -408,11 +414,28 @@
       },
       resetProjectForm () {
         this.$refs['projectForm'].$refs['projectForm'].resetFields()
+      },
+      getProjectIdByName (pname) {
+        var projectList = this.$store.state.project.allProject
+        var len = projectList && projectList.length || 0
+        var projectId = ''
+        for (var s = 0; s < len; s++) {
+          if (projectList[s].name === pname) {
+            projectId = projectList[s].uuid
+          }
+        }
+        return projectId
+      },
+      hasSomeProjectPermission (projectName) {
+        return hasPermission(this, this.getProjectIdByName(projectName), permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
       }
     },
     computed: {
       isAdmin () {
         return hasRole(this, 'ROLE_ADMIN')
+      },
+      hasPermissionWithoutQuery () {
+        return this.hasSomeProjectPermission(this.$store.state.project.selected_project)
       },
       briefMenu () {
         return this.$store.state.config.layoutConfig.briefMenu
