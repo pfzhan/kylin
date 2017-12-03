@@ -321,6 +321,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         String dropSql = getTextFromFile(
                 new File(getQueryFolderPrefix() + "src/test/resources/query/sql_pushdown/query10.sql"));
 
+        tryPushDownNonSelectQuery(dropSql, false);
         Pair<List<List<String>>, List<SelectedColumnMeta>> result = tryPushDownNonSelectQuery(createSql, true);
         Assert.assertNotNull(result.getFirst());
         Assert.assertNotNull(result.getSecond());

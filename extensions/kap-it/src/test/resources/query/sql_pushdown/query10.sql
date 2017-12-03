@@ -1,1 +1,1 @@
-drop table new_table
+drop table if exists table_pushdown_create
