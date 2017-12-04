@@ -32,6 +32,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.Assert;
 import org.junit.Test;
 
 import junit.framework.TestCase;
@@ -93,6 +94,26 @@ public class HiveTableExtSamplerTest extends TestCase {
         ByteBuffer buf = sampler.code();
         buf.flip();
         sampler.decode(buf);
+    }
+
+    @Test
+    public void testCardinality() {
+        String[] stringValues = { "江西", "湖南", "山东", "四川", "广东", "浙江", "安徽", "江苏", "福建", "广西" };
+        HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 256);
+
+        int count = 100000;
+        while (count > 0) {
+            for (int i = 0; i < stringValues.length; i++) {
+                sampler.samples(stringValues[i]);
+            }
+            count--;
+        }
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+        long cardinality = sampler.getCardinality();
+        Assert.assertEquals(stringValues.length, cardinality);
     }
 
     @Test
