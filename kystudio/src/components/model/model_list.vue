@@ -1,7 +1,7 @@
 <template>
 	<div class="modelist_box">
 
-    <el-button type="trans" icon="plus" class="ksd-mb-10 radius" id="addModel" v-if="isAdmin || hasPermissionOfProject(project)" @click="addModel"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+    <el-button type="trans" icon="plus" class="ksd-mb-10 radius" id="addModel" v-if="isAdmin || hasPermissionOfProject()" @click="addModel"><span>{{$t('kylinLang.common.model')}}</span></el-button>
     <br/>
     <p class="ksd-right ksd-mb-10" v-if="modelsList&&modelsList.length">
       <span class="icon_card" @click="changeGridModal('card')" :class="{active: viewModal==='card'}"></span>
@@ -11,7 +11,7 @@
 		  <el-col :span="8"  v-for="(o, index) in modelsList" :key="o.uuid" :style="{height:'152px'}">
 		    <el-card :body-style="{ padding: '0px'}" style="height:100%" :class="{'is_draft': o.is_draft}">
 		      <p style="font-size: 12px;padding-left: 10px;" class="title">{{$t('kylinLang.model.modifiedGrid')}} {{ o.gmtTime }}
-					<el-dropdown style="margin-right: 20px;" @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermissionOfProject(o.project)">
+					<el-dropdown style="margin-right: 20px;" @command="handleCommand" :id="o.name" trigger="click"  v-show="isAdmin || hasPermissionOfProject()">
 					  <span class="el-dropdown-link" >
 					    <icon name="ellipsis-h"></icon>
 					  </span>
@@ -101,8 +101,8 @@
       width="100"
       :label="$t('kylinLang.common.action')">
        <template scope="scope">
-       <span v-if="!(isAdmin || hasPermissionOfProject(scope.row.project))"> N/A</span>
-        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermissionOfProject(scope.row.project)">
+       <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
+        <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermissionOfProject()">
            <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
           </el-button >
@@ -1046,16 +1046,8 @@ export default {
         })
       })
     },
-    hasPermissionOfProject (project) {
-      var projectList = this.$store.state.project.allProject
-      var len = projectList && projectList.length || 0
-      var projectId = ''
-      for (var s = 0; s < len; s++) {
-        if (projectList[s].name === project) {
-          projectId = projectList[s].uuid
-        }
-      }
-      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    hasPermissionOfProject () {
+      return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     }
   },
   computed: {

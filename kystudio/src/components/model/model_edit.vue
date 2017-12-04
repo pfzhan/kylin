@@ -1144,20 +1144,8 @@ export default {
         }
       })
     },
-    getProjectIdByName (pname) {
-      var projectList = this.$store.state.project.allProject
-      var len = projectList && projectList.length || 0
-      var projectId = ''
-      for (var s = 0; s < len; s++) {
-        if (projectList[s].name === pname) {
-          projectId = projectList[s].uuid
-        }
-      }
-      return projectId
-    },
     hasSomePermissionOfProject () {
-      var projectId = this.getProjectIdByName(this.project)
-      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+      return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     },
     renderCubeTree (h, {node, data, store}) {
       var _this = this

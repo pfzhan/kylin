@@ -140,14 +140,14 @@ export function transToGmtTimeAfterAjax (t, timeZone, _vue) {
 }
 
 // 检测是否有project的某种权限
-export function hasPermission (vue, projectId) {
+export function hasPermission (vue) {
   var curUser = vue.$store.state.user.currentUser
   var curUserAccess = vue.$store.state.user.currentUserAccess
   if (!curUser || !curUserAccess) {
     return null
   }
   var masks = []
-  for (var i = 2; i < arguments.length; i++) {
+  for (var i = 1; i < arguments.length; i++) {
     if (arguments[i]) {
       masks.push(permissionsMaps[arguments[i]])
     }
@@ -159,61 +159,7 @@ export function hasPermission (vue, projectId) {
   // return hasPermission || true
   return false
 }
-// 检测是否有cube的某种权限
-export function hasPermissionOfCube (vue, cubeId) {
-  var entity = vue.$store.state.cube.cubeEndAccess[cubeId]
-  var curUser = vue.$store.state.user.currentUser
-  if (!curUser) {
-    return curUser
-  }
-  var hasPermission = false
-  var masks = []
-  for (var i = 2; i < arguments.length; i++) {
-    if (arguments[i]) {
-      masks.push(arguments[i])
-    }
-  }
-  if (entity) {
-    entity.forEach((acessEntity, index) => {
-      if (masks.indexOf(acessEntity.permission.mask) !== -1) {
-        if ((curUser.username === acessEntity.sid.principal)) {
-          hasPermission = true
-        }
-      }
-    })
-  }
-  // 为了测试先全部true
-  return hasPermission || true
-  // return hasPermission
-}
 
-// 检测是否有cube的某种权限
-export function hasPermissionOfModel (vue, modelId) {
-  var entity = vue.$store.state.model.modelEndAccess[modelId]
-  var curUser = vue.$store.state.user.currentUser
-  if (!curUser) {
-    return curUser
-  }
-  var hasPermission = false
-  var masks = []
-  for (var i = 2; i < arguments.length; i++) {
-    if (arguments[i]) {
-      masks.push(arguments[i])
-    }
-  }
-  if (entity) {
-    entity.forEach((acessEntity, index) => {
-      if (masks.indexOf(acessEntity.permission.mask) !== -1) {
-        if ((curUser.username === acessEntity.sid.principal)) {
-          hasPermission = true
-        }
-      }
-    })
-  }
-  // 为了测试先全部true
-  return hasPermission || true
-  // return hasPermission
-}
 // 检测当前用户是否有某种角色
 export function hasRole (vue, roleName) {
   var haseRole = false
@@ -353,7 +299,7 @@ export function msTransDate (ms, limitWeeks) {
 export function filterMutileSqlsToOneLine (_sqls, splitChar) {
   var sqls = _sqls.split(splitChar || ';')
   sqls = sqls.filter((s) => {
-    return !!(s.replace(/\s*[\r\n]+\s*/g, ''))
+    return !!(s.replace(/\s*[\r\n]?\s*/g, ''))
   })
   sqls = sqls.map((s) => {
     var r = s.replace(/[\r\n]+(\s+)?/g, ' ')

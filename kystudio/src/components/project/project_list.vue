@@ -199,8 +199,8 @@ export default {
         sid: ''
       }
     },
-    hasAdminProjectPermission (pid) {
-      return hasPermission(this, pid, permissions.ADMINISTRATION.mask)
+    hasAdminProjectPermission () {
+      return hasPermission(this, permissions.ADMINISTRATION.mask)
     },
     resetProjectForm () {
       this.$refs['projectForm'].$refs['projectForm'].resetFields()

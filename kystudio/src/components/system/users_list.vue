@@ -269,7 +269,7 @@ export default {
       return projectId
     },
     hasAdminProjectPermission () {
-      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
+      return hasPermission(this, permissions.ADMINISTRATION.mask)
     },
     pageCurrentChange (pager) {
       this.currentPage = pager

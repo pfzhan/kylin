@@ -300,7 +300,7 @@ export default {
       return this.aclColumnList.slice(perPager * (this.currentPage - 1), perPager * (this.currentPage))
     },
     hasSomeProjectPermission () {
-      return hasPermission(this, this.getProjectIdByName(localStorage.getItem('selected_project')), permissions.ADMINISTRATION.mask)
+      return hasPermission(this, permissions.ADMINISTRATION.mask)
     },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')

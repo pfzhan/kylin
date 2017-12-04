@@ -285,8 +285,7 @@ export default {
       })
     },
     hasProjectAdminPermission () {
-      var pid = this.accessId
-      return hasPermission(this, pid, permissions.ADMINISTRATION.mask)
+      return hasPermission(this, permissions.ADMINISTRATION.mask)
     },
     loadAccess () {
       var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'

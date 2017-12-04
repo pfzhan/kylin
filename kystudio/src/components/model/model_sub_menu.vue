@@ -56,20 +56,8 @@ export default {
         this.$refs.cubes.reloadCubeList()
       }
     },
-    getProjectIdByName (pname) {
-      var projectList = this.$store.state.project.allProject
-      var len = projectList && projectList.length || 0
-      var projectId = ''
-      for (var s = 0; s < len; s++) {
-        if (projectList[s].name === pname) {
-          projectId = projectList[s].uuid
-        }
-      }
-      return projectId
-    },
     hasSomePermissionOfProject () {
-      var projectId = this.getProjectIdByName(this.$store.state.project.selected_project)
-      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+      return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     }
   },
   computed: {

@@ -415,19 +415,8 @@
       resetProjectForm () {
         this.$refs['projectForm'].$refs['projectForm'].resetFields()
       },
-      getProjectIdByName (pname) {
-        var projectList = this.$store.state.project.allProject
-        var len = projectList && projectList.length || 0
-        var projectId = ''
-        for (var s = 0; s < len; s++) {
-          if (projectList[s].name === pname) {
-            projectId = projectList[s].uuid
-          }
-        }
-        return projectId
-      },
-      hasSomeProjectPermission (projectName) {
-        return hasPermission(this, this.getProjectIdByName(projectName), permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
+      hasSomeProjectPermission () {
+        return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask, permissions.OPERATION.mask)
       }
     },
     computed: {
@@ -435,7 +424,7 @@
         return hasRole(this, 'ROLE_ADMIN')
       },
       hasPermissionWithoutQuery () {
-        return this.hasSomeProjectPermission(this.$store.state.project.selected_project)
+        return this.hasSomeProjectPermission()
       },
       briefMenu () {
         return this.$store.state.config.layoutConfig.briefMenu

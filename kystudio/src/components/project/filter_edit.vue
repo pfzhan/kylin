@@ -1,3 +1,4 @@
+<!-- 暂不使用 -->
 <template>
 <div>
       <el-button class="ksd-mb-20" type="primary" @click="addFilter"> ＋ {{$t('filter')}}</el-button>
@@ -108,7 +109,7 @@ export default {
       this.getFilters(this.project).then((res) => {
         handleSuccess(res, (data) => {
           this.filterList = data
-          this.hasActionAccess = hasRole(this, 'ROLE_ADMIN') || hasPermission(this, this.projectId, 16)
+          this.hasActionAccess = hasRole(this, 'ROLE_ADMIN') || hasPermission(this, 16)
         })
       })
     },

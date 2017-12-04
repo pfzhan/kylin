@@ -841,28 +841,14 @@ export default {
         tab.$children[0].loadSegments()
       }
     },
-    getProjectIdByName (pname) {
-      var projectList = this.$store.state.project.allProject
-      var len = projectList && projectList.length || 0
-      var projectId = ''
-      for (var s = 0; s < len; s++) {
-        if (projectList[s].name === pname) {
-          projectId = projectList[s].uuid
-        }
-      }
-      return projectId
+    hasSomePermissionOfProject () {
+      return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
     },
-    hasSomePermissionOfProject (project) {
-      var projectId = this.getProjectIdByName(project)
-      return hasPermission(this, projectId, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+    hasQueryPermissionOfProject () {
+      return hasPermission(this, permissions.READ.mask)
     },
-    hasQueryPermissionOfProject (project) {
-      var projectId = this.getProjectIdByName(project)
-      return hasPermission(this, projectId, permissions.READ.mask)
-    },
-    hasOperationPermissionOfProject (project) {
-      var projectId = this.getProjectIdByName(project)
-      return hasPermission(this, projectId, permissions.OPERATION.mask)
+    hasOperationPermissionOfProject () {
+      return hasPermission(this, permissions.OPERATION.mask)
     },
     loadAllModels () {
       this.loadModels({pageSize: 10000, pageOffset: 0, projectName: this.selected_project || null}).then((res) => {
