@@ -707,13 +707,13 @@ export default {
     renderAutoModel (data) {
       data.last_modified = this.modelInfo.last_modified
       data.uuid = this.modelInfo.uuid
-      this.addSQLFormVisible = false
       this.removeAllLinks()
       // 清空画布数据
       this.resetModelEditArea()
       this.$nextTick(() => {
         // 重新绘制
         this.loadEditData(data)
+        this.addSQLFormVisible = false
       })
     },
     autoModel () {
