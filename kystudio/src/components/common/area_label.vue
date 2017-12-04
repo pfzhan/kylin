@@ -25,7 +25,7 @@
 <script>
 export default {
   name: 'labelArea',
-  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSpecialChar', 'validateRegex'],
+  props: ['labels', 'refreshInfo', 'selectedlabels', 'placeholder', 'changeable', 'datamap', 'disabled', 'allowcreate', 'ignoreSplitChar', 'validateRegex', 'splitChar'],
   data () {
     return {
       selectedL: this.selectedlabels,
@@ -64,7 +64,9 @@ export default {
         this.$emit('change')
         if (this.allowcreate && e.length > 0) {
           let result = this.filterCreateTag(e[e.length - 1])
-          if (!this.ignoreSpecialChar && !/^\w+\.\w+$/.test(e[e.length - 1])) {
+          var splitChar = this.splitChar || ';'
+          var regOfSeparate = new RegExp(splitChar)
+          if (!this.ignoreSplitChar && regOfSeparate.test(e[e.length - 1])) {
             if (result && result.length > 0) {
               this.selectedL.splice(this.selectedL.length - 1, 1)
               this.selectedL = this.selectedL.concat(result)
@@ -125,31 +127,24 @@ export default {
           return []
         }
       }
-      if (this.ignoreSpecialChar) {
+      // 忽略分隔符
+      if (this.ignoreSplitChar) {
         return [item]
       }
       var result = []
       // 分隔符
-      var regOfSeparate = /[,;$|]/
-      var refOfAllowChar = /[^\w.,;$|]/g
-      // 只有分隔符
-      var regJustSeparate = /(^[,;$|]+$)|([,;$|]+$)|(^[,;$|]+)/g
-      //  多个分隔符
-      var moreSeparate = /([,;$|])+/g
-      // var needRefresh = false
-      item = item.replace(refOfAllowChar, '').replace(regJustSeparate, '').replace(moreSeparate, '$1')
+      var splitChar = this.splitChar || ';'
+      var regOfSeparate = new RegExp(splitChar)
       if (item && regOfSeparate.test(item)) {
         Array.prototype.push.apply(result, item.split(regOfSeparate))
       } else if (item) {
         result.push(item)
       }
-      // 添加默认的datasource
-      result = result.map((table) => {
-        if (!/^\w+\.\w+$/.test(table)) {
-          return 'default.' + table
-        } else {
-          return table
-        }
+      result = result.map((item) => {
+        return item.replace(/^\s+|\s+$/g, '')
+      })
+      result = result.filter((item) => {
+        return item
       })
       return result
     }

@@ -225,7 +225,7 @@
 		  </div></el-col>
 		  <el-col :span="16"><div class="grid-content bg-purple">
 		  	<div class="tree_check_content ksd-mt-20">
-		 	  <arealabel :validateRegex="/^\w+\.\w+$/" @validateFail="selectedHiveValidateFail" @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
+		 	  <arealabel :validateRegex="/^\s*;?(\w+\.\w+)\s*(;\s*\w+\.\w+)*;?\s*$/" @validateFail="selectedHiveValidateFail" @refreshData="refreshHiveData"  :selectedlabels="selectTablesNames" :allowcreate='true' placeholder=" " @removeTag="removeSelectedHive"  :datamap="{label: 'label', value: 'value'}"></arealabel>
         <div class="ksd-mt-10 ksd-extend-tips" v-html="$t('loadHiveTip')"></div>
         <div class="ksd-mt-20">
           <!-- <el-checkbox v-model="openCollectRange">Table Sampling</el-checkbox> -->

@@ -93,7 +93,7 @@
                     </el-col>
                     <el-col :sm="4" :md="3" :lg="2" class="ksd-right"><el-button type="danger" icon="minus" @click="removeRowSet(index)"></el-button></el-col>
                     <el-col :span="24" class="ksd-pt-4" style="position: relative">
-                      <arealabel  :placeholder="$t('pressEnter')" :ignoreSpecialChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
+                      <arealabel  :placeholder="$t('pressEnter')" :ignoreSplitChar="true" @refreshData="refreshData" :selectedlabels="rowset.valueList" :allowcreate='true'  :refreshInfo="{columnName: rowset.columnName, index: index}" @validateFail="validateFail" :validateRegex="rowset.validateReg"></arealabel>
                       <datepicker ref="hideDatePicker" :dateType="rowset.timeComponentType" :selectList="rowset.valueList" v-show="dateTypeList.indexOf(getColumnType(rowset.columnName))>=0 || dateTimeTypeList.indexOf(getColumnType(rowset.columnName))>=0"></datepicker>
                     </el-col>
                     <el-col :span="24"><div class="line"></div></el-col>
