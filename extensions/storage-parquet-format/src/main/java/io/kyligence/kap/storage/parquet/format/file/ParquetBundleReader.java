@@ -55,7 +55,7 @@ public class ParquetBundleReader {
     public ParquetBundleReader(Configuration configuration, Path path, ImmutableRoaringBitmap columns,
             ImmutableRoaringBitmap pageBitset, long fileOffset, ParquetMetadata metadata) throws IOException {
 
-        metrics = new ParquetMetrics();
+        metrics = ParquetMetrics.get();
         rawReader = new ParquetRawReader(configuration, path, metadata, metrics, fileOffset);
 
         int columnCnt = columns.getCardinality();

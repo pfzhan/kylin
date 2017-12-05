@@ -324,7 +324,6 @@ public class ParquetTask implements Serializable {
     }
 
     Pair<Iterator<RDDPartitionResult>, JavaRDD<RDDPartitionResult>> executeTask() throws Exception {
-
         logger.info("Start to visit cube data with Spark <<<<<<");
         final Accumulator<Long> scannedRecords = sc.accumulator(0L, "Scanned Records", LongAccumulableParam.INSTANCE);
         final Accumulator<Long> collectedRecords = sc.accumulator(0L, "Collected Records",
@@ -338,7 +337,7 @@ public class ParquetTask implements Serializable {
         JavaRDD<RDDPartitionResult> baseRDD = seed.mapPartitions(new SparkExecutorPreAggFunction(scannedRecords,
                 collectedRecords, realizationType, isSplice, hasPreFiltered(), //
                 streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(), request.getStartTime(),
-                traceInfo)).cache();
+                traceInfo, kapConfig.diagnosisMetricWriterType())).cache();
 
         baseRDD.count();//trigger lazy materialization
         Trace.addTimelineAnnotation("result rdd materialized");

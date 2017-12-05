@@ -25,43 +25,24 @@ package org.apache.spark.sql.execution.datasources.sparder.batch
 
 import java.nio.ByteBuffer
 
+import io.kyligence.kap.common.metric.JVMInfoCollector
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants
-import io.kyligence.kap.storage.parquet.format.file.{
-  ParquetBundleReader,
-  ParquetMetrics
-}
-import io.kyligence.kap.storage.parquet.format.filter.{
-  BinaryFilter,
-  BinaryFilterSerializer
-}
-import io.kyligence.kap.storage.parquet.format.pageIndex.{
-  ParquetPageIndexSpliceReader,
-  ParquetPageIndexTable
-}
+import io.kyligence.kap.storage.parquet.format.file.{ParquetBundleReader, ParquetMetrics}
+import io.kyligence.kap.storage.parquet.format.filter.{BinaryFilter, BinaryFilterSerializer}
+import io.kyligence.kap.storage.parquet.format.pageIndex.{ParquetPageIndexSpliceReader, ParquetPageIndexTable}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FSDataInputStream, FileSystem, Path}
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
-import org.apache.hadoop.mapreduce.{
-  InputSplit,
-  RecordReader,
-  TaskAttemptContext
-}
+import org.apache.hadoop.mapreduce.{InputSplit, RecordReader, TaskAttemptContext}
 import org.apache.kylin.common.util.JsonUtil
 import org.apache.kylin.gridtable.{GTInfo, GTUtil}
+import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.memory.MemoryMode
-import org.apache.spark.sql.catalyst.expressions.{
-  GenericInternalRow,
-  UnsafeProjection,
-  UnsafeRow
-}
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeProjection, UnsafeRow}
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.execution.datasources.sparder.SparderConstants
-import org.apache.spark.sql.execution.datasources.sparder.batch.reader.{
-  SparderFileReader,
-  SparderFillReader,
-  VectorizedSparderRecordReader
-}
+import org.apache.spark.sql.execution.datasources.sparder.batch.reader.{SparderFileReader, SparderFillReader, VectorizedSparderRecordReader}
 import org.apache.spark.sql.execution.utils.{HexUtils, RowTearer}
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch
 import org.apache.spark.sql.types.StructType
@@ -97,7 +78,9 @@ class SparderBatchReader extends RecordReader[Void, Object] with Logging {
            requiredSchema: StructType,
            partitionSchema: StructType,
            file: PartitionedFile): Unit = {
-
+    System.setProperty("kap.metric.diagnosis.graph-writer-type",
+                              options.apply(SparderConstants.DIAGNOSIS_WRITER_TYPE))
+    JVMInfoCollector.init("executor_id:" + SparkEnv.get.executorId)
     initTime = System.currentTimeMillis()
     val gtinfo = GTInfo.serializer.deserialize(
       ByteBuffer.wrap(HexUtils.toBytes(
@@ -135,15 +118,15 @@ class SparderBatchReader extends RecordReader[Void, Object] with Logging {
     readTime = System.currentTimeMillis()
 
     val sparderBatchReader = new SparderFileReader(conf,
-                                                   new Path(file.filePath),
-                                                   null,
-                                                   null,
-                                                   indexLength,
-                                                   filteredBitmap,
-                                                   rowTearerV2.scanColumns)
+      new Path(file.filePath),
+      null,
+      null,
+      indexLength,
+      filteredBitmap,
+      rowTearerV2.scanColumns)
     val vtReader = new VectorizedSparderRecordReader(sparderBatchReader,
-                                                     rowTearerV2.scanColumns,
-                                                     columnarBatch)
+      rowTearerV2.scanColumns,
+      columnarBatch)
     batchReader = new SparderFillReader(vtReader, rowTearerV2, columnarBatch)
 
   }

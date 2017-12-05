@@ -83,8 +83,7 @@ public class ParquetRawReader {
     public ParquetRawReader(Configuration configuration, Path path, ParquetMetadata metadata, ParquetMetrics metrics,
             long fileOffset) throws IOException {
         this.config = configuration;
-        this.metrics = (metrics != null) ? metrics : new ParquetMetrics();
-
+        this.metrics = (metrics != null) ? metrics : ParquetMetrics.get();
         if (metadata == null) {
             this.metrics.footerReadStart();
             this.parquetMetadata = ParquetFileReader.readFooter(config, path, ParquetMetadataConverter.NO_FILTER);

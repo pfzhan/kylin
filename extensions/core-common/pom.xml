@@ -37,7 +37,12 @@
             <artifactId>commons-dbcp</artifactId>
         </dependency>
 
-
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-external-influxdb</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <!--Env & Test-->
         <dependency>
             <groupId>org.apache.kylin</groupId>

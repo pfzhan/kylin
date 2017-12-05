@@ -35,7 +35,7 @@
     <mvc:annotation-driven/>
     <aop:aspectj-autoproxy/>
 
-    <bean class="org.apache.kylin.rest.init.InitialTaskManager"/>
+    <bean class="io.kyligence.kap.rest.init.KapInitialTaskManager"/>
 
     <context:component-scan base-package="org.apache.kylin.rest.controller"/>
     <context:component-scan base-package="org.apache.kylin.rest.service"/>

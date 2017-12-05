@@ -435,6 +435,13 @@ public class KapConfig {
                 "org.apache.spark.sql.execution.datasources.sparder.batch.SparderBatchFileFormat");
     }
 
+    /**
+     * Diagnosis graph
+     */
+    public String diagnosisMetricWriterType() {
+        return config.getOptional("kap.metric.diagnosis.graph-writer-type", "BLACK_HOLE");
+    }
+
     public String sparderJars() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",

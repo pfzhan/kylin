@@ -136,6 +136,7 @@ object SparderFunc {
       .option(SparderConstants.FILTER_PUSH_DOWN, args.pushdown)
       .option(SparderConstants.BINARY_FILTER_PUSH_DOWN,
               args.binaryFilterPushdown)
+      .option(SparderConstants.DIAGNOSIS_WRITER_TYPE, args.diagnosisWriterType)
       .load(args.filePath: _*)
       .as(args.tableName)
   }

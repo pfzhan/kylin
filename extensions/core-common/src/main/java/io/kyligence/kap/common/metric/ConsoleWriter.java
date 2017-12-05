@@ -21,25 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.spark.sql.execution.datasources.sparder
 
-object SparderConstants {
-  val KYLIN_SCAN_GTINFO_BYTES = "io.kylin.storage.parquet.scan.gtinfo"
-  val KYLIN_SCAN_REQUEST_BYTES = "io.kylin.storage.parquet.scan.gtscanrequest"
-  val SPARK_PROJECT_SCHEMA = "org.apache.spark.sql.sparder.row.project"
-  val FILTER_PUSH_DOWN = "filter_push_down"
-  val BINARY_FILTER_PUSH_DOWN = "binary_filter_push_down"
-  val CUBOID_ID = "cuboid_id"
-  val TABLE_ALIAS = "table_alias"
-  val COLUMN_PREFIX = "col_"
-  val DICT = "dict"
-  val DIAGNOSIS_WRITER_TYPE = "diagnosisWriterType"
-  val COLUMN_NAMES_SEPARATOR = "SEPARATOR"
-  val COLUMN_NAME_SEPARATOR = "_"
-  val DERIVE_TABLE = "DERIVE"
-  val DATASCHMEA_TABLE_ORD = 0
-  val DATASCHMEA_COL_ORD = 1
-  val DATASCHMEA_DATATYPE_ORD = 2
-  val DATASTYPESCHMEA_COL_ORD = 0
-  val DATASTYPESCHMEA_DATA_ORD = 1
+package io.kyligence.kap.common.metric;
+
+import java.util.Map;
+
+public enum ConsoleWriter implements MetricWriter {
+    INSTANCE;
+
+    @Override
+    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) throws Throwable {
+        System.out.println("=============:::" + measurement + ":::=============");
+        for (String id : tags.keySet()) {
+            System.out.println(id + ":" + tags.get(id));
+        }
+        for (String metric : metrics.keySet()) {
+            System.out.println("Metric:" + metric + ", value:" + metrics.get(metric));
+        }
+        System.out.println("=============:::END:::=============");
+    }
+
+    @Override
+    public String getType() {
+        return "CONSOLE";
+    }
 }

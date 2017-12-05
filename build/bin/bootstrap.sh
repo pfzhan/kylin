@@ -90,6 +90,12 @@ function retrieveDependency() {
     then
         export ZIPKIN_SCRIBE_PORT="9410"
     fi
+
+    if [ -z "$INFLUXDB_ADDRESS" ]
+    then
+        export INFLUXDB_ADDRESS=`hostname`:8086
+    fi
+    echo "INFLUXDB_ADDRESS is set to ${INFLUXDB_ADDRESS}"
     echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
     echo "ZIPKIN_SCRIBE_PORT is set to ${ZIPKIN_SCRIBE_PORT}"
     # compose kylin_common_opts

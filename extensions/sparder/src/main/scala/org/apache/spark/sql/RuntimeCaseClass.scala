@@ -50,7 +50,8 @@ case class CreateDictPushdownTableArgc(gtinfo: String,
                                        binaryFilterPushdown: String,
                                        dict: String,
                                        filePath: Seq[String],
-                                       fileFormat: String)
+                                       fileFormat: String,
+                                       diagnosisWriterType: String)
 
 case class AggArgc(dataFrame: DataFrame, group: List[Column], agg: List[Column])
 

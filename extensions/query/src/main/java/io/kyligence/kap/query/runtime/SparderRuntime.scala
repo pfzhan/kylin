@@ -169,7 +169,8 @@ object SparderRuntime {
               CubePathCache.cuboidFileSeq(request.getCuboid.getId,
                                           cubeInstance.getId,
                                           cubeSegment.getUuid),
-              KapConfig.getInstanceFromEnv.sparderFileFormat()
+              KapConfig.getInstanceFromEnv.sparderFileFormat(),
+              KapConfig.getInstanceFromEnv.diagnosisMetricWriterType()
             ))
           val converteredColumns =
             RuntimeHelper.gtInfoSchemaToCalciteSchema(rel,

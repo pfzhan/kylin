@@ -24,13 +24,19 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.metric.MetricWriterStrategy;
 
 public class ParquetMetrics {
     public static final Logger logger = LoggerFactory.getLogger(ParquetMetrics.class);
 
     static ThreadLocal<ParquetMetrics> metric = new ThreadLocal<>();
+    static ThreadLocal<ParquetMetrics> executorMetric = new ThreadLocal<>();
     private long footerReadCnt;
     private long footerReadTime;
     private long footerReadTmp;
@@ -84,6 +90,16 @@ public class ParquetMetrics {
         if (metrics == null) {
             ParquetMetrics parquetMetrics = new ParquetMetrics();
             metric.set(parquetMetrics);
+            executorMetric.set(parquetMetrics);
+            return parquetMetrics;
+        }
+        return metrics;
+    }
+
+    public static ParquetMetrics getExecutorMetric() {
+        ParquetMetrics metrics = executorMetric.get();
+        if (metrics == null) {
+            ParquetMetrics parquetMetrics = new ParquetMetrics();
             return parquetMetrics;
         }
         return metrics;
@@ -158,30 +174,54 @@ public class ParquetMetrics {
 
     public String summary() {
         StringBuilder sb = new StringBuilder();
-
+        Map<String, Long> metric = getMetric();
         sb.append("PARQUET METRICS: \n");
-        sb.append("...footerReadCnt\t" + footerReadCnt + "\n");
-        sb.append("...footerReadTime\t" + footerReadTime / 1000000 + "\n");
-
-        sb.append("...pageReadOverallPageCnt\t" + pageReadOverallPageCnt + "\n");
-        sb.append("...pageReadOverallCellCnt\t" + pageReadOverallCellCnt + "\n");
-        sb.append("...pageReadOverallTime\t" + pageReadOverallTime / 1000000 + "\n");
-
-        sb.append("...pageReadHeaderCnt\t" + pageReadHeaderCnt + "\n");
-        sb.append("...pageReadHeaderTime\t" + pageReadHeaderTime / 1000000 + "\n");
-        sb.append("...pageReadHeaderSeekTime\t" + pageReadHeaderSeekTime / 1000000 + "\n");
-        sb.append("...pageReadHeaderStreamTime\t" + pageReadHeaderStreamTime / 1000000 + "\n");
-
-        sb.append("...pageReadIOAndDecompressRawIOBytes\t" + pageReadIOAndDecompressRawIOBytes + "\n");
-        sb.append("...pageReadIOAndDecompressBytes\t" + pageReadIOAndDecompressBytes + "\n");
-        sb.append("...pageReadIOAndDecompressTime\t" + pageReadIOAndDecompressTime / 1000000 + "\n");
-
-        sb.append("...pageReadDecodeBytes\t" + pageReadDecodeBytes + "\n");
-        sb.append("...pageReadDecodeTime\t" + pageReadDecodeTime / 1000000 + "\n");
-        sb.append("...groupReadTime\t" + groupReadTime / 1000000 + "\n");
-        sb.append("...bufferReadTime\t" + bufferReadTime / 1000000 + "\n");
-        sb.append("...totalTime\t"
-                + (groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000 + "\n");
+        for (String k : metric.keySet()) {
+            sb.append("...").append(k).append("\t").append(metric.get(k)).append("\n");
+        }
         return sb.toString();
+    }
+
+    public void reportToWriter(String host, String identifier) {
+        try {
+            Map<String, String> tags = new HashMap<>();
+            tags.put("host", host);
+            tags.put("identifier", identifier);
+
+            Map<String, Object> fields = new HashMap<>();
+            fields.putAll(getMetric());
+
+            MetricWriterStrategy writer = MetricWriterStrategy.INSTANCE;
+            writer.write("KAP_METRIC", "parquet_metric", tags, fields);
+        } catch (Throwable th) {
+            logger.error("Metric write error.", th);
+        }
+        executorMetric.set(null);
+    }
+
+    private Map<String, Long> getMetric() {
+        Map<String, Long> metric = new HashMap<>();
+        metric.put("footerReadCnt", footerReadCnt);
+        metric.put("footerReadTime", footerReadTime / 1000000);
+
+        metric.put("pageReadOverallPageCnt", pageReadOverallPageCnt);
+        metric.put("pageReadOverallCellCnt", pageReadOverallCellCnt);
+        metric.put("pageReadOverallTime", pageReadOverallTime / 1000000);
+
+        metric.put("pageReadHeaderCnt", pageReadHeaderCnt);
+        metric.put("pageReadHeaderTime", pageReadHeaderTime / 1000000);
+        metric.put("pageReadHeaderSeekTime", pageReadHeaderSeekTime / 1000000);
+        metric.put("pageReadHeaderStreamTime", pageReadHeaderStreamTime / 1000000);
+
+        metric.put("pageReadIOAndDecompressRawIOBytes", pageReadIOAndDecompressRawIOBytes);
+        metric.put("pageReadIOAndDecompressBytes", pageReadIOAndDecompressBytes);
+        metric.put("pageReadIOAndDecompressTime", pageReadIOAndDecompressTime / 1000000);
+
+        metric.put("pageReadDecodeBytes", pageReadDecodeBytes);
+        metric.put("pageReadDecodeTime", pageReadDecodeTime / 1000000);
+        metric.put("groupReadTime", groupReadTime / 1000000);
+        metric.put("bufferReadTime", bufferReadTime / 1000000);
+        metric.put("totalTime", (groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000);
+        return metric;
     }
 }

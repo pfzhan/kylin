@@ -31,6 +31,7 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.htrace.HtraceInit;
@@ -44,6 +45,7 @@ import org.apache.kylin.metadata.realization.RealizationType;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.Trace;
 import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.apache.spark.Accumulator;
+import org.apache.spark.SparkEnv;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 
+import io.kyligence.kap.common.metric.JVMInfoCollector;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.cube.spark.rpc.gtscanner.ParquetBytesGTScanner4Raw;
@@ -73,18 +76,19 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     private final long startTime;
 
     private final KryoTraceInfo kryoTraceInfo;
+    private final String diagnosisMetricWriterType;
 
     public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
             String realizationType, String streamIdentifier) {
         this(scannedRecords, collectedRecords, realizationType, false, false, streamIdentifier, true, Long.MAX_VALUE,
-                System.currentTimeMillis(), null);
+                System.currentTimeMillis(), null, "");
     }
 
     //TODO: too long parameter
     public SparkExecutorPreAggFunction(Accumulator<Long> scannedRecords, Accumulator<Long> collectedRecords,
             String realizationType, //
             boolean isSplice, boolean hasPreFiltered, String streamIdentifier, boolean spillEnabled,
-            long maxScannedBytes, long startTime, KryoTraceInfo kryoTraceInfo) {
+            long maxScannedBytes, long startTime, KryoTraceInfo kryoTraceInfo, String diagnosisMetricWriterType) {
         this.streamIdentifier = streamIdentifier;
         this.realizationType = realizationType;
         this.scannedRecords = scannedRecords;
@@ -95,11 +99,15 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
         this.maxScannedBytes = maxScannedBytes;
         this.startTime = startTime;
         this.kryoTraceInfo = kryoTraceInfo;
+        this.diagnosisMetricWriterType = diagnosisMetricWriterType;
     }
 
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
-        
+        logger.info("Start to record executor's JVM Info");
+        System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
+        JVMInfoCollector.init("executor_id:" + SparkEnv.get().executorId());
+        logger.info("end to record executor's JVM Info");
         TraceScope scope = null;
         if (kryoTraceInfo != null) {
             HtraceInit.init();
@@ -192,7 +200,8 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
                     InetAddress.getLocalHost().getHostName(), localStartTime - startTime,
                     System.currentTimeMillis() - localStartTime);
 
-
+            logger.info("Start to record executor's parquet metric");
+            ParquetMetrics.getExecutorMetric().reportToWriter(InetAddress.getLocalHost().toString(), SparkEnv.get().executorId());
             return Collections.singleton(o).iterator();
         } finally {
             if (scope != null)

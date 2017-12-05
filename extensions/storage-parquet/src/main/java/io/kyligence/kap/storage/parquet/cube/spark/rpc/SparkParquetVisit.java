@@ -335,8 +335,8 @@ public class SparkParquetVisit implements Serializable {
                         new SparkExecutorPreAggFunction(scannedRecords, collectedRecords, realizationType, isSplice,
                                 hasPreFiltered(), //
                                 streamIdentifier, request.getSpillEnabled(), request.getMaxScanBytes(),
-                                request.getStartTime(), Trace.isTracing()
-                                        ? KryoTraceInfo.fromTraceInfo(TraceInfo.fromSpan(Trace.currentSpan())) : null))
+                                request.getStartTime(), Trace.isTracing() ? KryoTraceInfo.fromTraceInfo(TraceInfo.fromSpan(Trace.currentSpan())) : null, //
+                                kapConfig.diagnosisMetricWriterType())) //
                 .cache();
 
         baseRDD.count();//trigger lazy materialization

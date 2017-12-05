@@ -23,8 +23,11 @@
  */
 package org.apache.spark.sql.execution.datasources.sparder.batch.reader
 
+import java.net.InetAddress
+
 import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics
 import org.apache.kylin.metadata.datatype.DataTypeSerializer
+import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.RowTearer
 import org.apache.spark.sql.execution.vectorized.ColumnarBatch
@@ -117,6 +120,7 @@ class SparderFillReader(
     }
     columnReaders.foreach(_.printStatistics())
 
+    ParquetMetrics.get.reportToWriter(InetAddress.getLocalHost.toString, SparkEnv.get.executorId)
     val summary = ParquetMetrics.get.summary
     log.info(summary)
     ParquetMetrics.get.reset()
