@@ -69,7 +69,7 @@
         <div v-show="table.openMutilSelected" class="sub_tool">
           <ul>
             <li><el-tooltip :content="$t('checkAllColumns')" placement="top-start"><el-checkbox class="ksd-mb-2" v-model="table.allChecked" @change="checkAllColumns(table)"></el-checkbox></el-tooltip></li>
-            <el-tooltip :content="$t('unSelectColumnsTip')" trigger="manual" :disabled="table.mutilSelectedList && table.mutilSelectedList.length" v-model="table.showUnSelectTip" placement="top-start">
+            <el-tooltip :content="$t('unSelectColumnsTip')" trigger="manual" :disabled="!!(table.mutilSelectedList && table.mutilSelectedList.length)" v-model="table.showUnSelectTip" placement="top-start">
             <li class="dm-btn" :class="{'active': table.mutilSelectedList && table.mutilSelectedList.length > 0}">
               <icon width="22" height="22" name="ksd-dimension" @click.native="changeSelectedColumnKind(table, 'D')"></icon>
               <icon width="22" height="22" name="ksd-measure" @click.native="changeSelectedColumnKind(table, 'M')"></icon>
