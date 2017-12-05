@@ -51,7 +51,7 @@ public enum InfluxDBWriter implements MetricWriter {
                 if (influxDB == null) {
                     String addr = System.getProperty("influxDB.address");
                     if (StringUtils.isBlank(addr)) {
-                        addr = InetAddress.getLocalHost().getHostName() + ":8086";
+                        addr = InetAddress.getLocalHost().getHostName() + ":8085";
                     }
                     logger.info("The influx DB' address is:" + addr);
                     influxDB = InfluxDBFactory.connect("http://" + addr, "root", "root");

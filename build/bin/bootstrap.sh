@@ -93,7 +93,7 @@ function retrieveDependency() {
 
     if [ -z "$INFLUXDB_ADDRESS" ]
     then
-        export INFLUXDB_ADDRESS=`hostname`:8086
+        export INFLUXDB_ADDRESS=`hostname`:8085
     fi
     echo "INFLUXDB_ADDRESS is set to ${INFLUXDB_ADDRESS}"
     echo "ZIPKIN_HOSTNAME is set to ${ZIPKIN_HOSTNAME}"
