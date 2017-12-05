@@ -6,7 +6,8 @@
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
      <el-tab-pane :label="$t('newQuery')" name="first">
-       <editor v-model="sourceSchema" ref="insightBox" lang="sql" theme="monokai" width="100%" height="170" useWrapMode="true"></editor>
+      <kap_editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema"> 
+      </kap_editor>
        <div class="clearfix operatorBox">
          <p class="tips_box">{{$t('tips')}}</p>
          <p class="operator">
@@ -17,7 +18,7 @@
              <el-form-item>
                <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
              </el-form-item>
-             <el-form-item >
+             <el-form-item>
                <el-input  placeholder="" size="small" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
              </el-form-item>
              <el-form-item>
@@ -112,7 +113,7 @@ import queryresult from 'components/insight/query_result'
 import { mapActions } from 'vuex'
 // import 'vue2-ace-editor'
 // import languageTool from 'brace/ext/language_tools'
-import {groupData, indexOfObjWithSomeKey} from '../../util/index'
+import { groupData, indexOfObjWithSomeKey } from '../../util/index'
 import { handleSuccess, kapConfirm, transToGmtTime } from '../../util/business'
 import { pageCount, insightKeyword } from '../../config'
 export default {
@@ -362,8 +363,7 @@ export default {
     clickTable (leaf) {
       if (leaf) {
         var tipsName = leaf.label
-        // console.log(this.$refs.insightBox)
-        var editor = this.$refs.insightBox.editor
+        var editor = this.$refs.insightBox.$refs.kapEditor.editor
         editor.focus()
         editor.insert(tipsName)
         this.sourceSchema = editor.getValue()
@@ -397,7 +397,7 @@ export default {
     }
   },
   mounted () {
-    var editor = this.$refs.insightBox.editor
+    var editor = this.$refs.insightBox.$refs.kapEditor.editor
     var setCompleteData = function (data) {
       editor.completers.splice(0, editor.completers.length - 3)
       editor.completers.unshift({

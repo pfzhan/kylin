@@ -117,8 +117,6 @@ export default {
       }
     }
   },
-  created () {
-  },
   mounted () {
     var _this = this
     clearInterval(this.ST)

@@ -1,12 +1,15 @@
 <template>
 <div class="model_edit_box"  @drop='drop($event)' @dragover='allowDrop($event)' :style="{width:dockerScreen.w+'px', height:dockerScreen.h+'px'}">
 
-    <div class="tree_list" >
-<!--     <draggable  @start="drag=true" @end="drag=false"> -->
+    <div class="tree_list"  v-show="showTree">
+      <div class='treeBtnRight' @click='showTree=false'>
+        <i class='el-icon-caret-left' aria-hidden='true'></i>
+      </div>
       <model-assets  v-on:drag="drag" :project="extraoption.project" @okFunc="serverDataToDragData" ></model-assets>
-      <!-- <el-tree v-if="extraoption.uuid" @nodeclick="clickCube" :data="cubeDataTree" style="background-color: #f1f2f7;border:none;width:250px;" :render-content="renderCubeTree"></el-tree> -->
       <tree  v-if="extraoption.uuid && !isFullScreen && !modelInfo.is_draft" style="background-color: #f1f2f7;border:none;width:250px;" :treedata="cubeDataTree" :placeholder="$t('kylinLang.common.pleaseFilter')" maxLabelLen="20" :showfilter= "false" :expandall="true" @nodeclick="clickCube"  v-unselect :renderTree="renderCubeTree" maxlevel="2"></tree>
-<!--     </draggable> -->
+    </div>
+    <div class='treeBtnLeft' v-show="!showTree" @click='showTree=true'>
+      <i class='el-icon-caret-right' aria-hidden='true'></i>
     </div>
     <ul class="sample_info">
       <li><span class="iconD">D </span><span class="info">{{$t('kylinLang.common.dimension')}}</span></li>
@@ -97,9 +100,10 @@
         </section>
         <div class="more_tool"></div>
       </div>
-
-
     </div>
+    <model-tool @changeColumnType="changeColumnBType" v-if="modelDataLoadEnd" :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu" :sqlString="sqlString"
+    :checkModel="checkModel" :hasStreamingTable="hasStreamingTable">
+    </model-tool>
      <el-dialog :title="$t('addJoinCondition')" v-model="dialogVisible" size="small" class="links_dialog" @close="saveLinks(currentLinkData.source.guid,currentLinkData.target.guid, true)" :close-on-press-escape="false" :close-on-click-modal="false">
         <span>
             <br/>
@@ -191,7 +195,8 @@
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
                 <!-- <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input> -->
-               <editor v-model="computedColumn.expression" @click.native="completeInput" ref="expressionBox" lang="sql" theme="monokai" width="100%" height="100" useWrapMode="true"></editor>
+                <kap_editor @click.native="completeInput" ref="expressionBox" class="ksd-mt-20 ksd-mb-10" height="100" width="100%" lang="sql" theme="chrome" v-model="computedColumn.expression" dragbar="#393e53"> 
+                </kap_editor>
                <p :class="{isvalid:checkExpressResult.isValid}" v-if="checkExpressResult.msg" class="checkresult">
                  {{checkExpressResult.msg}}
                </p>
@@ -258,8 +263,6 @@
             <el-button type="primary" @click="computedColumnFormVisible = false">{{$t('kylinLang.common.ok')}}</el-button>
           </span>
         </el-dialog>
-      <model-tool @changeColumnType="changeColumnBType" v-if="modelDataLoadEnd" :modelInfo="modelInfo" :actionMode="actionMode" :editLock="editLock" :compeleteModelId="modelData&&modelData.uuid||null" :columnsForTime="timeColumns" :columnsForDate="dateColumns"  :activeName="submenuInfo.menu1" :activeNameSub="submenuInfo.menu2" :tableList="tableList" :partitionSelect="partitionSelect"  :selectTable="currentSelectTable" ref="modelsubmenu" :sqlString="sqlString"
-      :checkModel="checkModel" :hasStreamingTable="hasStreamingTable"></model-tool>
 
        <!-- 添加cube -->
 
@@ -288,7 +291,8 @@
     <p style="font-size:12px">{{$t('autoModelTip2')}}</p>
     <p style="font-size:12px">{{$t('autoModelTip3')}}</p>
     <div :class="{hasCheck: hasCheck}">
-    <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+      <kap_editor ref="sqlbox" class="ksd-mt-20" height="200" width="95%" lang="sql" theme="chrome" v-model="sqlString" dragbar="#393e53"> 
+      </kap_editor>
     </div>
     <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
     <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
@@ -350,6 +354,7 @@ export default {
     return {
       showUnSelectTip: false,
       computedDataTypeSelects: computedDataType,
+      showTree: true,
       firstLoad: false,
       ignoreErrorSql: false,
       sqlBtnLoading: false,
@@ -752,7 +757,7 @@ export default {
       if (sqls.length === 0) {
         return
       }
-      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.$refs.kapEditor.editor || ''
       this.renderEditerRender(editor)
       editor && editor.removeListener('change', this.editerChangeHandle)
       this.errorMsg = false
@@ -790,7 +795,7 @@ export default {
       this.ignoreErrorSql = false
       this.addSQLFormVisible = true
       this.$nextTick(() => {
-        var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor
+        var editor = this.$refs.sqlbox && this.$refs.sqlbox.$refs.kapEditor.editor
         if (editor) {
           editor && editor.removeListener('change', this.editerChangeHandle)
           if (this.actionMode === 'view') {
@@ -908,7 +913,7 @@ export default {
         return
       }
       this.$message(this.$t('longTimeTip'))
-      var editor = this.$refs.expressionBox.editor
+      var editor = this.$refs.expressionBox.$refs.kapEditor.editor
       editor.setReadOnly(true)
       this.checkExpressionBtnLoad = true
       var checkData = JSON.parse(this.DragDataToServerData(false, true))
@@ -945,7 +950,7 @@ export default {
       })
     },
     cancelCheckExpression () {
-      var editor = this.$refs.expressionBox.editor
+      var editor = this.$refs.expressionBox.$refs.kapEditor.editor
       editor.setReadOnly(false)
       this.checkExpressionBtnLoad = false
     },
@@ -1177,7 +1182,7 @@ export default {
       this.$set(this.currentSelectTable, 'tablename', tablename || '')
     },
     completeInput: function () {
-      var editor = this.$refs.expressionBox.editor
+      var editor = this.$refs.expressionBox.$refs.kapEditor.editor
       editor.execCommand('startAutocomplete')
     },
     addComputedColumn: function (guid) {
@@ -1194,7 +1199,7 @@ export default {
       this.openAddComputedColumnForm = false
       this.refreshComputed()
       this.$nextTick(() => {
-        var editor = this.$refs.expressionBox.editor
+        var editor = this.$refs.expressionBox.$refs.kapEditor.editor
         editor.setValue('')
         var autoCompeleteData = []
         var setCompleteData = function (data, tableName) {
@@ -1296,7 +1301,7 @@ export default {
       })
     },
     cancelComputedEditForm: function (argument) {
-      var editor = this.$refs.expressionBox.editor
+      var editor = this.$refs.expressionBox.$refs.kapEditor.editor
       editor.setValue('')
       this.isEditComputedColumn = false
       setTimeout(() => {
@@ -3009,6 +3014,42 @@ export default {
       }
     }
    .model_edit_box {
+    .treeBtnLeft {
+      position: absolute;
+      top: 240px;
+      left: 0px;
+      height: 48px;
+      padding: 5px;
+      color: #71779d;
+      border-radius: 0 4px 4px 0;
+      cursor: pointer;
+      z-index: 2000;
+      border: 1px solid #71779d;
+      i {
+        position: relative;
+        top: 16px;
+        color: #909eb0;
+        font-size:14px;
+      }
+    }
+    .treeBtnRight {
+      position: absolute;
+      top: 240px;
+      right: 0px;
+      height: 48px;
+      padding: 5px;
+      color: #71779d;
+      border-radius:4px 0 0 4px;
+      cursor: pointer;
+      z-index: 2000;
+      border: 1px solid #71779d;
+      i {
+        position: relative;
+        top: 16px;
+        color: #909eb0;
+        font-size:14px;
+      }
+    }
     .checkresult {
        color: red;
        font-size: 12px;

@@ -48,7 +48,8 @@
     <p>{{$t('kylinLang.cube.inputSqlTip1')}}</p>
     <p>{{$t('kylinLang.cube.inputSqlTip2')}}</p>
     <div :class="{hasCheck: hasCheck}">
-    <editor v-model="sampleSql.sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+      <kap_editor ref="sqlbox" class="ksd-mt-20" height="200" width="95%" lang="sql" theme="chrome" v-model="sampleSql.sqlString" dragbar="#393e53"> 
+      </kap_editor>
     </div>
     <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
     <!-- <div> <icon v-if="result && result.length === 0" name="check" style="color:green"></icon></div> -->
@@ -211,7 +212,7 @@ export default {
       if (sqls.length === 0) {
         return
       }
-      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.$refs.kapEditor.editor || ''
       this.renderEditerRender(editor)
       this.errorMsg = false
       this.checkSqlLoadBtn = true
@@ -239,7 +240,7 @@ export default {
     loadSql () {
       this.errorMsg = ''
       this.$nextTick(() => {
-        var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+        var editor = this.$refs.sqlbox && this.$refs.sqlbox.$refs.kapEditor.editor || ''
         editor && editor.removeListener('change', this.editerChangeHandle)
         this.renderEditerRender(editor)
         editor.setOption('wrap', 'free')

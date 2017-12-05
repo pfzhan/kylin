@@ -1,161 +1,165 @@
 <template>
-	<div class="model_edit_tool">
-  <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
-		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick" >
-		    <el-tab-pane :label="$t('kylinLang.common.overview')" name="first" >
-            <el-tabs class="el-tabs--default modelExtraInfoTab" v-model="subMenuActive" >
-                <el-tab-pane :label="$t('modelInfo')" name="first"  class="ksd-pl-30">
-                    <table  cellspacing="0" cellpadding="0" class="normal_table">
-                      <tr>
-                        <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></th>
-                        <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
-                      </tr>
-                      <tr>
-                        <th>{{$t('discribe')}}</th>
-                        <td>
-                            <el-input class="model-discribe-input"
-                            type="textarea"
-                            :rows="2" :disabled="actionMode==='view'"
-                            :placeholder="$t('inputModelDescription')"
-                            v-model="currentModelInfo.modelDiscribe">
-                          </el-input>
-                        </td>
-                      </tr>
-                       <tr v-if="">
-                        <th>{{$t('health')}}</th>
-                        <td>
-                        <icon v-if="modelHealth.status!=='RUNNING' && modelHealth.status!=='ERROR' && (modelHealth.progress===0 || modelHealth.progress===100)" :name="modelHealth.icon" :style="{color:modelHealth.color}"></icon>
-                         <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='RUNNING'" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
-                         <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='ERROR'" status="exception" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
-                         <span style="color:rgb(32, 160, 255)" v-if="modelHealth.status==='RUNNING'">{{modelHealth.progress||0}}%</span>
-                         <div style="color:#ccc;line-height:20px;margin-top:-8px;display:inline-block;vertical-align:text-top;" class=" ksd-ml-10" v-html="modelHealth.msg"></div>
-                        </td>
-                      </tr>
-                       <tr v-show="currentModelInfo.owner">
-                        <th>{{$t('owner')}}</th>
-                        <td>
-                           {{currentModelInfo.owner}}
-                        </td>
-                      </tr>
-                    </table>
-                </el-tab-pane>
-                <el-tab-pane :label="$t('setting')" name="second">
-                 <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :editLock="editLock"  :tableList="tableList" :partitionSelect="partitionSelect" :checkModel="checkModel" :hasStreamingTable="hasStreamingTable" :showModelCheck="false"></partition-column>
-                </el-tab-pane>
-                <!-- Data model -->
-                 <el-tab-pane :label="$t('datamodel')" name="third" class="ksd-pl-30">
-                    <span style="font-size:12px;font-weight:bolder" v-if="factTables && factTables.length">{{$t('kylinLang.common.fact')}}</span>
-                    <el-table :data="factTables"  v-show="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
-                      <el-table-column
-                        width="180">
-                         <template scope="scope">
-                            {{$t('kylinLang.common.tableName')}}
-                          </template>
-                      </el-table-column>
-                      <el-table-column
-                        label="tableName"
-                       >
-                         <template scope="scope">
-                            {{scope.row.tableInfo.name}}
-                          </template>
-                      </el-table-column>
-                    </el-table>
-                    <span style="font-size:12px;font-weight:bolder"  v-if="limitLookupTables && limitLookupTables.length">{{$t('kylinLang.common.lookup')}}</span>
-                    <el-table v-show="limitLookupTables && limitLookupTables.length" class="ksd-mt-6 formTable" :data="limitLookupTables"  border style="width: 100%">
+  <div class="model_panel">
+    <div class="panel_dragbar" ref="modelEditBar"></div>
+  	<div class="model_edit_tool" ref="modelEditTool">
+    <icon :name="menuStatus==='show'?'sort-down':'sort-up'" @click.native="slideSubMenu()" class="display_bar"></icon>
+  		<el-tabs v-model="menuActive" type="border-card"  @tab-click="subMenuTabClick"  ref="modelToolMenu">
+  		    <el-tab-pane :label="$t('kylinLang.common.overview')" name="first" >
+              <el-tabs class="el-tabs--default modelExtraInfoTab" v-model="subMenuActive" >
+                  <el-tab-pane :label="$t('modelInfo')" name="first"  class="ksd-pl-30">
+                      <table  cellspacing="0" cellpadding="0" class="normal_table">
+                        <tr>
+                          <th>{{$t('modelName')}} <common-tip :content="$t('kylinLang.model.modelNameTips')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></th>
+                          <td><el-input class="model-name-input" v-model="currentModelInfo.modelName" :disabled="actionMode==='view'|| !!compeleteModelId"></el-input></td>
+                        </tr>
+                        <tr>
+                          <th>{{$t('discribe')}}</th>
+                          <td>
+                              <el-input class="model-discribe-input"
+                              type="textarea"
+                              :rows="2" :disabled="actionMode==='view'"
+                              :placeholder="$t('inputModelDescription')"
+                              v-model="currentModelInfo.modelDiscribe">
+                            </el-input>
+                          </td>
+                        </tr>
+                         <tr v-if="">
+                          <th>{{$t('health')}}</th>
+                          <td>
+                          <icon v-if="modelHealth.status!=='RUNNING' && modelHealth.status!=='ERROR' && (modelHealth.progress===0 || modelHealth.progress===100)" :name="modelHealth.icon" :style="{color:modelHealth.color}"></icon>
+                           <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='RUNNING'" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
+                           <el-progress  :width="15" type="circle" :stroke-width="2" :show-text="false" v-if="modelHealth.status==='ERROR'" status="exception" :percentage="modelHealth.progress||0" style="width:20px;vertical-align: sub;"></el-progress>
+                           <span style="color:rgb(32, 160, 255)" v-if="modelHealth.status==='RUNNING'">{{modelHealth.progress||0}}%</span>
+                           <div style="color:#ccc;line-height:20px;margin-top:-8px;display:inline-block;vertical-align:text-top;" class=" ksd-ml-10" v-html="modelHealth.msg"></div>
+                          </td>
+                        </tr>
+                         <tr v-show="currentModelInfo.owner">
+                          <th>{{$t('owner')}}</th>
+                          <td>
+                             {{currentModelInfo.owner}}
+                          </td>
+                        </tr>
+                      </table>
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('setting')" name="second">
+                   <partition-column :comHeight="260" style="margin-left: 20px;margin-bottom: 20px;" :modelInfo="modelInfo" :actionMode="actionMode"  :columnsForTime="timeColumns" :columnsForDate="dateColumns" :editLock="editLock"  :tableList="tableList" :partitionSelect="partitionSelect" :checkModel="checkModel" :hasStreamingTable="hasStreamingTable" :showModelCheck="false"></partition-column>
+                  </el-tab-pane>
+                  <!-- Data model -->
+                   <el-tab-pane :label="$t('datamodel')" name="third" class="ksd-pl-30">
+                      <span style="font-size:12px;font-weight:bolder" v-if="factTables && factTables.length">{{$t('kylinLang.common.fact')}}</span>
+                      <el-table :data="factTables"  v-show="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
                         <el-table-column
-                          label="ID"
-                          width="180">
-                          <template scope="scope">
-                            {{scope.$index+1}}
-                          </template>
-                        </el-table-column>
-                        <el-table-column
-                          :label="$t('kylinLang.common.alias')"
                           width="180">
                            <template scope="scope">
-                            {{scope.row.tableInfo.alias}}
-                          </template>
+                              {{$t('kylinLang.common.tableName')}}
+                            </template>
                         </el-table-column>
                         <el-table-column
-                          :label="$t('kylinLang.common.tableName')">
-                          <template scope="scope">
-                            {{scope.row.tableInfo.name}}
-                          </template>
-                        </el-table-column>
-                        <el-table-column
-                          :renderHeader="renderColumn">
+                          label="tableName"
+                         >
                            <template scope="scope">
-                            <el-checkbox v-model="scope.row.isSnapshot" @change="changeSnapshotStatus(scope.row)"></el-checkbox>
-                          </template>
+                              {{scope.row.tableInfo.name}}
+                            </template>
                         </el-table-column>
                       </el-table>
-                </el-tab-pane>
-                <el-tab-pane :label="$t('dimension')" name="fourth"  class="ksd-pl-30">
-                  <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;" >{{value}}</div>
-                    <div class="dimensionBox">
-                      <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" type="primary" v-for="i in dimensions[value]" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
+                      <span style="font-size:12px;font-weight:bolder"  v-if="limitLookupTables && limitLookupTables.length">{{$t('kylinLang.common.lookup')}}</span>
+                      <el-table v-show="limitLookupTables && limitLookupTables.length" class="ksd-mt-6 formTable" :data="limitLookupTables"  border style="width: 100%">
+                          <el-table-column
+                            label="ID"
+                            width="180">
+                            <template scope="scope">
+                              {{scope.$index+1}}
+                            </template>
+                          </el-table-column>
+                          <el-table-column
+                            :label="$t('kylinLang.common.alias')"
+                            width="180">
+                             <template scope="scope">
+                              {{scope.row.tableInfo.alias}}
+                            </template>
+                          </el-table-column>
+                          <el-table-column
+                            :label="$t('kylinLang.common.tableName')">
+                            <template scope="scope">
+                              {{scope.row.tableInfo.name}}
+                            </template>
+                          </el-table-column>
+                          <el-table-column
+                            :renderHeader="renderColumn">
+                             <template scope="scope">
+                              <el-checkbox v-model="scope.row.isSnapshot" @change="changeSnapshotStatus(scope.row)"></el-checkbox>
+                            </template>
+                          </el-table-column>
+                        </el-table>
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('dimension')" name="fourth"  class="ksd-pl-30">
+                    <div v-for="(key, value) in dimensions" :key="key+''" v-show="dimensions[value].length">
+                      <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;" >{{value}}</div>
+                      <div class="dimensionBox">
+                        <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" type="primary" v-for="i in dimensions[value]" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
+                      </div>
                     </div>
-                  </div>
-                </el-tab-pane>
-                <el-tab-pane :label="$t('measure')" name="fifth"  class="ksd-pl-30">
-                  <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
-                    <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;">{{value}}</div>
-                     <div class="dimensionBox">
-                    <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" v-for="i in measures[value]" type="primary" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('measure')" name="fifth"  class="ksd-pl-30">
+                    <div v-for="(key, value) in measures" :key="key+''" v-show="measures[value].length">
+                      <div class="ksd-mt-10 ksd-mb-10" style="font-size:12px;">{{value}}</div>
+                       <div class="dimensionBox">
+                      <el-tag class="ksd-ml-10 ksd-mt-6" :closable="true" @close="setColumnDisable(i.guid, i.name, i.isComputed)" v-for="i in measures[value]" type="primary" :key="i.name">{{i.name}}</el-tag>&nbsp;&nbsp;
+                      </div>
                     </div>
-                  </div>
-                </el-tab-pane>
-                <el-tab-pane :label="$t('sql')" name="sixth"  class="ksd-pl-30">
-                  <div style="margin-left:30px">
-                    <editor v-show="sqlPatterns.length > 0" ref="sqlPatterns" v-model="sqlString"  theme="chrome" width="100%" useWrapMode="true" height="220" ></editor>
-                    <el-card v-show="sqlPatterns.length === 0" class="noSqlPatterns">
-                      {{$t('NoSQLInfo')}}
-                    </el-card>
-                  </div>
-                </el-tab-pane>
-            </el-tabs>
-        </el-tab-pane>
-        <el-tab-pane :label="$t('tableStatistics')" name="second">
-             <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
-             <el-table
-              :data="statistics.slice(1)"
-              tooltip-effect="dark"
-              border
-              style="width: 100%" class="staticsTableStyle ksd-mt-10">
-               <el-table-column show-overflow-tooltip v-for="(val,index) in statistics[0]" :key="index"
-                :fixed="index === 0"
-                :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
-                :label="statistics[0][index]">
-                 <template scope="scope">
-                    {{index === 0? $t('kylinLang.dataSource.'+scope.row[0]): '' + scope.row[index]}}
-                  </template>
-              </el-table-column>
-            </el-table>
-            <div style="font-size:12px;" class="ksd-mt-20"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
-          <el-table
-          :data="modelStatics.slice(1)"
-          tooltip-effect="dark"
-          border
-          style="width: 100%" class="staticsTableStyle ksd-mt-10">
-          <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
-            :fixed="index === 0"
-            show-overflow-tooltip
-            :prop="''+index"
-            :width="36+15*(modelStatics[0][index]&&modelStatics[0][index].length || 4)"
-            :label="modelStatics[0][index]">
-          </el-table-column>
-        </el-table>
-        </el-tab-pane>
-		</el-tabs>
-
-	</div>
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('sql')" name="sixth"  class="ksd-pl-30">
+                    <div class="ksd-ml-10 ksd-mr-10">
+                      <kap_editor v-show="sqlPatterns.length > 0"  ref="sqlPatterns" class="ksd-mt-20 ksd-mb-10" height="220" width="100%" lang="sql" theme="chrome" v-model="sqlPatterns" dragbar="#393e53"> 
+                      </kap_editor>
+                      <el-card v-show="sqlPatterns.length === 0" class="noSqlPatterns">
+                        {{$t('NoSQLInfo')}}
+                      </el-card>
+                    </div>
+                  </el-tab-pane>
+              </el-tabs>
+          </el-tab-pane>
+          <el-tab-pane :label="$t('tableStatistics')" name="second">
+               <div style="font-size:12px;"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.metaData')}} </div>
+               <el-table
+                :data="statistics.slice(1)"
+                tooltip-effect="dark"
+                border
+                style="width: 100%" class="staticsTableStyle ksd-mt-10">
+                 <el-table-column show-overflow-tooltip v-for="(val,index) in statistics[0]" :key="index"
+                  :fixed="index === 0"
+                  :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
+                  :label="statistics[0][index]">
+                   <template scope="scope">
+                      {{index === 0? $t('kylinLang.dataSource.'+scope.row[0]): '' + scope.row[index]}}
+                    </template>
+                </el-table-column>
+              </el-table>
+              <div style="font-size:12px;" class="ksd-mt-20"><span>{{selectTable.database + '.' + selectTable.tablename }}</span> {{$t('kylinLang.model.checkData')}} </div>
+            <el-table
+            :data="modelStatics.slice(1)"
+            tooltip-effect="dark"
+            border
+            style="width: 100%" class="staticsTableStyle ksd-mt-10">
+            <el-table-column v-for="(val,index) in modelStatics[0]" :key="index"
+              :fixed="index === 0"
+              show-overflow-tooltip
+              :prop="''+index"
+              :width="36+15*(modelStatics[0][index]&&modelStatics[0][index].length || 4)"
+              :label="modelStatics[0][index]">
+            </el-table-column>
+          </el-table>
+          </el-tab-pane>
+  		</el-tabs>
+  	</div>
+  </div>
 </template>
 <script>
 import { mapActions } from 'vuex'
+import $ from 'jquery'
 import { changeDataAxis } from '../../util/index'
 import { modelHealthStatus } from '../../config'
-import { handleSuccess, filterMutileSqlsToOneLine } from '../../util/business'
+import { handleSuccess } from '../../util/business'
 import partitionColumn from 'components/model/model_partition.vue'
 // import commonTip from 'components/common/common_tip'
 export default {
@@ -170,6 +174,7 @@ export default {
       modelStaticsCache: [],
       resultDimensionArr: {},
       resultMeasureArr: {},
+      sqlPatterns: this.sqlString,
       project: localStorage.getItem('selected_project'),
       tableData: [],
       columnsD: this.columnsForDate,
@@ -178,7 +183,9 @@ export default {
       hasSeparate: false,
       statistics: [],
       ST: null,
-      subMenuActive: this.activeNameSub
+      dragging: false,
+      subMenuActive: this.activeNameSub,
+      offsetHeight: 0
       // menuActive: this.activeName
     }
   },
@@ -207,15 +214,26 @@ export default {
       this.$emit('changeColumnType', guid, columnName, 'M', isComputed)
     },
     slideSubMenu (currentMenuStatus) {
+      var editTool = this.$refs.modelEditTool
+      var dragbar = this.$el.querySelector('.panel_dragbar')
+      var content = this.$el.querySelectorAll('.el-tabs__content')
       if (currentMenuStatus) {
         this.menuStatus = currentMenuStatus
       }
       if (this.menuStatus === 'hide') {
         this.menuStatus = 'show'
-        this.$el.style.bottom = '0'
+        editTool.style.bottom = '0px'
+        dragbar.style.bottom = this.offsetHeight + 360 + 'px'
+        content[0].style.height = this.offsetHeight + 338 + 'px'
+        content[1].style.height = this.offsetHeight + 260 + 'px'
+        editTool.style.height = this.offsetHeight + 360 + 'px'
       } else {
         this.menuStatus = 'hide'
-        this.$el.style.bottom = '-318px'
+        editTool.style.bottom = '-318px'
+        dragbar.style.bottom = '42px'
+        content[0].style.height = '338px'
+        content[1].style.height = '260px'
+        editTool.style.height = '360px'
       }
     },
     changeDateColumn (val) {
@@ -319,12 +337,12 @@ export default {
       } else {
         this.hasSeparate = false
       }
+    },
+    'sqlString' (val) {
+      this.sqlPatterns = val
     }
   },
   computed: {
-    sqlPatterns () {
-      return filterMutileSqlsToOneLine(this.sqlString)
-    },
     editMode () {
       return this.editLock
     },
@@ -437,9 +455,43 @@ export default {
     }
   },
   mounted () {
-    var editor = this.$refs.sqlPatterns && this.$refs.sqlPatterns.editor || ''
-    editor.setOption('wrap', 'free')
+    var editor = this.$refs.sqlPatterns && this.$refs.sqlPatterns.$refs.kapEditor.editor || ''
     editor.setReadOnly(true)
+    var editTool = this.$el.querySelector('.model_edit_tool')
+    var dragbar = this.$el.querySelector('.panel_dragbar')
+    var content = this.$el.querySelectorAll('.el-tabs__content')
+    dragbar.onmousedown = (e) => {
+      e.preventDefault()
+      this.dragging = true
+      var oldTop = 0
+      var fullScreen = $(window)
+      // handle mouse movement
+      $(document).mousemove((e) => {
+        if (e.pageY - oldTop > 4 || oldTop - e.pageY > 4) {
+          oldTop = e.pageY
+          this.offsetHeight = fullScreen.height() - e.pageY - 360
+          // Set wrapper height
+          dragbar.style.bottom = this.offsetHeight + 360 + 'px'
+          if (this.offsetHeight > 0) {
+            editTool.style.bottom = '0px'
+            editTool.style.height = this.offsetHeight + 360 + 'px'
+            content[0].style.height = 338 + this.offsetHeight + 'px'
+            content[1].style.height = 260 + this.offsetHeight + 'px'
+          } else {
+            editTool.style.bottom = this.offsetHeight + 'px'
+            editTool.style.height = '360px'
+            content[0].style.height = '338px'
+            content[1].style.height = '260px'
+          }
+        }
+      })
+    }
+    $(document).mouseup((e) => {
+      if (this.dragging) {
+        $(document).unbind('mousemove')
+        this.dragging = false
+      }
+    })
   },
   created () {
     this.$on('menu-toggle', (currentMenuStatus) => {
@@ -451,6 +503,8 @@ export default {
   },
   destroyed () {
     clearTimeout(this.ST)
+    $(document).unbind('mouseup')
+    $(document).unbind('mousemove')
   },
   locales: {
     'en': {modelName: 'Model Name', discribe: 'Model Description', owner: 'Owner', inputModelDescription: 'Please input model description.', modelInfo: 'Model Info', partition: 'Partition', setting: 'Setting', filter: 'Filter', filterCondition: 'Filter Condition', tableStatistics: 'Table Statistics', dimension: 'Dimension', measure: 'Measure', filterPlaceHolder: 'Please input filter condition', health: 'Model health', NoSQLInfo: 'No SQL patterns.', sql: 'SQL Patterns', datamodel: 'Model', snapshorttip: 'Snapshot', snapshortdesc: '1.If lookup table >300Mb, then it cannot be a snapshot, and can support query only when joining its fact table;<br/>2.You can overwrite the limit of lookup table size(300Mb in default) on kylin.properties;'},
@@ -470,151 +524,162 @@ export default {
         background:none;
       }
     }
-  .model_edit_tool {
-    .noSqlPatterns{
-      font-size: 12px;
-      border: 1px solid #4f5473;
+  .model_panel {
+    .panel_dragbar {
+      width: 100%;
+      height: 4px;
+      position: fixed;
+      cursor: row-resize;
+      opacity: 1;
+      z-index: 2000;
+      bottom: 42px;
     }
-    .el-form-item__label,.el-textarea__inner{
-      font-size:12px;
-    }
-    .staticsTableStyle {
-      thead{
-        th{
-          background: #494E67;
-          height:30px;
-          div{
+    .model_edit_tool {
+      .noSqlPatterns{
+        font-size: 12px;
+        border: 1px solid #4f5473;
+      }
+      .el-form-item__label,.el-textarea__inner{
+        font-size:12px;
+      }
+      .staticsTableStyle {
+        thead{
+          th{
             background: #494E67;
+            height:30px;
+            div{
+              background: #494E67;
+            }
           }
         }
       }
-    }
-    .modelExtraInfoTab{
-      &>.el-tabs__content{
-      &>.el-tab-pane{
-        overflow-y:auto;height:260px;
-        .partitionBox{
-          overflow-y:visible;
-          height: auto!important;
-        }
-        .el-tag.el-tag--primary:hover {
-          background: none;
+      .modelExtraInfoTab{
+        &>.el-tabs__content{
+        &>.el-tab-pane{
+          overflow-y:auto;
+          height: 100%;
+          .partitionBox{
+            overflow-y:visible;
+            height: auto!important;
+          }
+          .el-tag.el-tag--primary:hover {
+            background: none;
+          }
         }
       }
-    }
-    }
-    height: 360px;
-  	z-index:2000;
-    position:fixed;
-    // background-color: #fff;
-    bottom:0;
-    left:200px;
-    right: 0px;
+      }
+      height: 360px;
+    	z-index:2000;
+      position:fixed;
+      // background-color: #fff;
+      bottom:0;
+      left:200px;
+      right: 0px;
 
-    .el-table__fixed{
-      box-shadow: none;
-      overflow-y: hidden;
-    }
-    >.el-tabs{
-      >.el-tabs__content{
-        height: 308px;
+      .el-table__fixed{
+        box-shadow: none;
+        overflow-y: hidden;
       }
-    }
-    .el-table__fixed-header-wrapper thead div{
-      background: none;
-      color:#fff;
-    }
-    .el-table__row.hover-row{
-      td{
-       background:none;
-      }
-    }
-    &.smallScreen {
-      left:100px;
-    }
-    .el-tab-pane{
-      // min-height: 400px;
-      // overflow-y: hidden;
-      background-color: #393e53;
-    }
-    .display_bar{
-      position: absolute;
-      top:10px;
-      right: 10px;
-      cursor: pointer;
-      z-index: 1
-    }
-    .el-badge__content {
-      background-color: #393e53;
-    }
-    table.normal_table{
-      width: 100%;
-      border-right:1px solid @grey-color;;
-      border-bottom:1px solid @grey-color;;
-      th{
-        background: #2b2d3c;
-        border-left:1px solid @grey-color;;
-        border-top:1px solid @grey-color;;
-        width: 220px;
-        font-weight: normal;
-        font-size: 12px;
-      }
-      td{
-        border-left:1px solid @grey-color;;
-        border-top:1px solid @grey-color;;
-        background-color: #2b2d3c;
-        font-size: 12px;
-        line-height: 44px;
-        padding-left: 4px;
-        input{
-          width: 400px;
-          margin: 4px 0;
-        }
-        textarea{
-          width: 400px;
-          margin: 4px 0;
+      >.el-tabs{
+        >.el-tabs__content{
+          height: 308px;
         }
       }
-    }
-    .dimensionBox {
-      background-color: #2b2d3b;
-      padding: 4px;
-    }
-    .el-tabs--border-card{
-      box-shadow: none;
-      border-bottom: none;
-      &>.el-tabs__header .el-tabs__item {
-        height: 43px;
-        margin-top: 4px;
-        border-radius: 4px 4px 0 0;
-        &.is-active {
-            background-color: #393e53!important;
+      .el-table__fixed-header-wrapper thead div{
+        background: none;
+        color:#fff;
+      }
+      .el-table__row.hover-row{
+        td{
+         background:none;
         }
       }
-      &>.el-tabs__content{
+      &.smallScreen {
+        left:100px;
+      }
+      .el-tab-pane{
+        // min-height: 400px;
+        // overflow-y: hidden;
         background-color: #393e53;
-        .el-tabs__nav-scroll{
-          border-bottom:solid 1px #474d65;
+      }
+      .display_bar{
+        position: absolute;
+        top:10px;
+        right: 10px;
+        cursor: pointer;
+        z-index: 1
+      }
+      .el-badge__content {
+        background-color: #393e53;
+      }
+      table.normal_table{
+        width: 100%;
+        border-right:1px solid @grey-color;;
+        border-bottom:1px solid @grey-color;;
+        th{
+          background: #2b2d3c;
+          border-left:1px solid @grey-color;;
+          border-top:1px solid @grey-color;;
+          width: 220px;
+          font-weight: normal;
+          font-size: 12px;
+        }
+        td{
+          border-left:1px solid @grey-color;;
+          border-top:1px solid @grey-color;;
+          background-color: #2b2d3c;
+          font-size: 12px;
+          line-height: 44px;
+          padding-left: 4px;
+          input{
+            width: 400px;
+            margin: 4px 0;
+          }
+          textarea{
+            width: 400px;
+            margin: 4px 0;
+          }
+        }
+      }
+      .dimensionBox {
+        background-color: #2b2d3b;
+        padding: 4px;
+      }
+      .el-tabs--border-card{
+        box-shadow: none;
+        border-bottom: none;
+        &>.el-tabs__header .el-tabs__item {
+          height: 43px;
+          margin-top: 4px;
+          border-radius: 4px 4px 0 0;
+          &.is-active {
+              background-color: #393e53!important;
+          }
+        }
+        &>.el-tabs__content{
+          background-color: #393e53;
+          .el-tabs__nav-scroll{
+            border-bottom:solid 1px #474d65;
+          }
+        }
+      }
+      .el-tab-pane .el-form{
+        height: 260px;
+        // overflow-y: auto;
+      }
+      .model-name-input{
+        .el-input__inner{
+          border-color: @grey-color;
+        }
+      }
+      .el-input__inner{
+          border-color: @grey-color;
+      }
+      .model-discribe-input{
+        .el-textarea__inner{
+          border-color: @grey-color;
         }
       }
     }
-    .el-tab-pane .el-form{
-      height: 260px;
-      // overflow-y: auto;
-    }
-    .model-name-input{
-      .el-input__inner{
-        border-color: @grey-color;
-      }
-    }
-    .el-input__inner{
-        border-color: @grey-color;
-    }
-    .model-discribe-input{
-      .el-textarea__inner{
-        border-color: @grey-color;
-      }
-    }
-
   }
 </style>
