@@ -27,6 +27,7 @@ package io.kyligence.kap.common.metric;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryPoolMXBean;
 import java.lang.management.OperatingSystemMXBean;
 import java.net.InetAddress;
 import java.util.HashMap;
@@ -129,6 +130,13 @@ public class JVMInfoCollector {
         fields.put("non-heap.used", mxBean.getNonHeapMemoryUsage().getUsed());
         fields.put("non-heap.max", mxBean.getNonHeapMemoryUsage().getMax());
         fields.put("non-heap.committed", mxBean.getNonHeapMemoryUsage().getCommitted());
+
+        for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
+            fields.put(pool.getName() + ".init", pool.getUsage().getInit());
+            fields.put(pool.getName() + ".used", pool.getUsage().getUsed());
+            fields.put(pool.getName() + ".max", pool.getUsage().getMax());
+            fields.put(pool.getName() + ".committed", pool.getUsage().getCommitted());
+        }
         writer.write(DB, MEASURE_MEM, getTags(host, identifier), fields);
     }
 
