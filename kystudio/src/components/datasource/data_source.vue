@@ -276,7 +276,8 @@
         </el-row>
         <div slot="footer" class="dialog-footer">
           <el-button @click="cancelReloadTable">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="reloadTable">{{$t('kylinLang.common.submit')}}</el-button>
+           <kap-icon-button  type="primary" :size="mini" :useload="true" @click.native="reloadTable" ref="reloadBtnConfirm">{{$t('kylinLang.common.submit')}}</kap-icon-button>
+          <!-- <el-button type="primary" :loading="loadHiveLoad" @click="reloadTable">{{$t('kylinLang.common.submit')}}</el-button> -->
         </div>
       </el-dialog>
       <!-- 单个采样dialog -->
@@ -564,6 +565,7 @@ export default {
     cancelReloadTable () {
       this.scanRatioDialogVisible = false
       this.$refs.reloadBtn.loading = false
+      this.$refs.reloadBtnConfirm.loading = false
     },
     cancelLoadSample () {
       this.scanSampleRatioDialogVisible = false
@@ -617,7 +619,7 @@ export default {
     // 重新加载table
     reloadTable () {
       var tableName = this.tableData.database + '.' + this.tableData.name
-      this.loadHivesAction([tableName], this.$refs.reloadBtn)
+      this.loadHivesAction([tableName], this.$refs.reloadBtnConfirm)
     },
     // 卸载Table
     unloadTable () {
