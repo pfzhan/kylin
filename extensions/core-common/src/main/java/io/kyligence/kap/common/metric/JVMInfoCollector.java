@@ -132,12 +132,28 @@ public class JVMInfoCollector {
         fields.put("non-heap.committed", mxBean.getNonHeapMemoryUsage().getCommitted());
 
         for (MemoryPoolMXBean pool : ManagementFactory.getMemoryPoolMXBeans()) {
-            fields.put(pool.getName() + ".init", pool.getUsage().getInit());
-            fields.put(pool.getName() + ".used", pool.getUsage().getUsed());
-            fields.put(pool.getName() + ".max", pool.getUsage().getMax());
-            fields.put(pool.getName() + ".committed", pool.getUsage().getCommitted());
+            fields.put(getName(pool.getName()) + ".init", pool.getUsage().getInit());
+            fields.put(getName(pool.getName()) + ".used", pool.getUsage().getUsed());
+            fields.put(getName(pool.getName()) + ".max", pool.getUsage().getMax());
+            fields.put(getName(pool.getName()) + ".committed", pool.getUsage().getCommitted());
         }
         writer.write(DB, MEASURE_MEM, getTags(host, identifier), fields);
+    }
+
+    private static String getName(String name) {
+        String n;
+        if (name.contains("Eden")) {
+            n = "Eden Space";
+        } else if (name.contains("Survivor")) {
+            n = "Survivor Space";
+        } else if (name.contains("Old") || name.contains("Tenured")) {
+            n = "Old Gen";
+        } else if (name.contains("Perm")) {
+            n = "Perm Gen";
+        } else {
+            n = name;
+        }
+        return n;
     }
 
     private static Map<String, String> getTags(String host, String identifier) {
