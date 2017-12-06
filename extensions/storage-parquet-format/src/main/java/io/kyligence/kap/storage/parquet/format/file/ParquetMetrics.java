@@ -204,10 +204,6 @@ public class ParquetMetrics {
         metric.put("footerReadCnt", footerReadCnt);
         metric.put("footerReadTime", footerReadTime / 1000000);
 
-        metric.put("pageReadOverallPageCnt", pageReadOverallPageCnt);
-        metric.put("pageReadOverallCellCnt", pageReadOverallCellCnt);
-        metric.put("pageReadOverallTime", pageReadOverallTime / 1000000);
-
         metric.put("pageReadHeaderCnt", pageReadHeaderCnt);
         metric.put("pageReadHeaderTime", pageReadHeaderTime / 1000000);
         metric.put("pageReadHeaderSeekTime", pageReadHeaderSeekTime / 1000000);
@@ -217,11 +213,17 @@ public class ParquetMetrics {
         metric.put("pageReadIOAndDecompressBytes", pageReadIOAndDecompressBytes);
         metric.put("pageReadIOAndDecompressTime", pageReadIOAndDecompressTime / 1000000);
 
+        // for sparder
         metric.put("pageReadDecodeBytes", pageReadDecodeBytes);
         metric.put("pageReadDecodeTime", pageReadDecodeTime / 1000000);
         metric.put("groupReadTime", groupReadTime / 1000000);
         metric.put("bufferReadTime", bufferReadTime / 1000000);
-        metric.put("totalTime", (groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000);
+
+        metric.put("pageReadOverallPageCnt", pageReadOverallPageCnt);
+        metric.put("pageReadOverallCellCnt", pageReadOverallCellCnt);
+        metric.put("pageReadOverallTime", pageReadOverallTime / 1000000);
+
+        metric.put("totalTime", (footerReadTime + pageReadHeaderTime + groupReadTime + bufferReadTime + pageReadDecodeTime + pageReadIOAndDecompressTime) / 1000000);
         return metric;
     }
 }
