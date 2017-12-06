@@ -212,7 +212,8 @@
         <p style="font-size:12px">{{$t('verifyModelTip1')}}</p>
         <p style="font-size:12px">{{$t('verifyModelTip2')}}</p>
         <div :class="{hasCheck: hasCheck}">
-        <editor v-model="sqlString" ref="sqlbox" theme="chrome"  class="ksd-mt-20" width="95%" height="200" ></editor>
+          <kap_editor ref="sqlbox" class="ksd-mt-20" height="200" width="95%" lang="sql" theme="chrome" v-model="sqlString" dragbar="#393e53"> 
+          </kap_editor>
         </div>
         <div class="ksd-mt-10">
           <el-button :disabled="sqlString === ''" :loading="checkSqlLoadBtn" @click="validateSql" >{{$t('kylinLang.common.verify')}}</el-button><el-button type="text" v-show="checkSqlLoadBtn" @click="cancelCheckSql">{{$t('kylinLang.common.cancel')}}</el-button></div>
@@ -371,12 +372,6 @@ export default {
       this.currentSqlErrorMsg = false
       this.errorMsg = ''
       this.successMsg = ''
-      this.$nextTick(() => {
-        var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
-        if (editor) {
-          editor.setOption('wrap', 'free')
-        }
-      })
     },
     // 渲染编辑器行号列尺寸
     renderEditerRender (editor) {
@@ -404,12 +399,11 @@ export default {
         return
       }
       this.hasCheck = false
-      var editor = this.$refs.sqlbox && this.$refs.sqlbox.editor || ''
+      var editor = this.$refs.sqlbox && this.$refs.sqlbox.$refs.kapEditor.editor || ''
       editor && editor.removeListener('change', this.editerChangeHandle)
       this.renderEditerRender(editor)
       this.errorMsg = false
       this.checkSqlLoadBtn = true
-      editor.setOption('wrap', 'free')
       // this.sqlString = sqls.join(';\r\n')
       this.sqlString = sqls.length > 0 ? sqls.join(';\r\n') + ';' : ''
       this.verifyCubeSql({

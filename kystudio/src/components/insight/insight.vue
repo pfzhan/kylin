@@ -6,7 +6,7 @@
     <div class="ksd_right_box">
 	 <el-tabs type="card" v-model="activeMenu" class="query_box">
      <el-tab-pane :label="$t('newQuery')" name="first">
-      <kap_editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema"> 
+      <kap_editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema">
       </kap_editor>
        <div class="clearfix operatorBox">
          <p class="tips_box">{{$t('tips')}}</p>

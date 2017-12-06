@@ -68,7 +68,8 @@
    <el-dialog :title="$t('kylinLang.common.save')" v-model="saveQueryFormVisible">
     <el-form :model="saveQueryMeta"  ref="saveQueryForm" :rules="rules" label-width="100px">
       <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
-       <editor v-model="saveQueryMeta.sql" lang="sql" theme="chrome" width="100%" height="200" useWrapMode="true"></editor>
+        <kap_editor height="200" lang="sql" theme="chrome" v-model="saveQueryMeta.sql" dragbar="#393e53">
+        </kap_editor>
       </el-form-item>
       <el-form-item :label="$t('kylinLang.query.name')" prop="name">
         <el-input v-model="saveQueryMeta.name" auto-complete="off"></el-input>

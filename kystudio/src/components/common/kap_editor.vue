@@ -1,6 +1,6 @@
-<template>  
+<template>
   <div class="smyles_editor_wrap" :style="{width: width? width: '100%'}">
-    <editor class="smyles_editor" v-model="editorData" useWrapMode="true" ref="kapEditor" :height="height? height: '100%'" width="100%" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :height="height? height: '100%'" width="100%" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
     <div class="smyles_dragbar" :style="{'background-color': dragbar? dragbar: '#292b38'}"></div>
   </div>
 </template>
@@ -22,6 +22,7 @@ export default {
   },
   mounted () {
     var editor = this.$refs.kapEditor.editor
+    editor.setOption('wrap', 'free')
     var editorWrap = this.$el
     var smylesEditor = this.$el.querySelector('.smyles_editor')
     this.$el.querySelector('.smyles_dragbar').onmousedown = (e) => {

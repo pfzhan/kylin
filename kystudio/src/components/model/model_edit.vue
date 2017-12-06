@@ -26,7 +26,7 @@
         <li style="background:none;font-size:14px;text-align:center;color:#99A9BF;">{{Math.ceil(currentZoom*100)}}%</li>
         <li class="toolbtn" @click="autoLayerPosition" v-unselect  :title="$t('kylinLang.common.automaticlayout')" style="line-height:42px;margin-top:10px"><img src="../../assets/img/layout.png"></li>
         <li class="toolbtn" @click="toggleFullScreen" v-unselect  :title="$t('kylinLang.common.fullscreen')" style="line-height:42px;margin-top:10px"><img style="width:26px;height:22px;" src="../../assets/img/full-screen.png"></li>
-        
+
       </ul>
     <div class="btn_group"  v-if="actionMode!=='view'">
       <!-- <el-button @click="saveDraft(true)" :loading="draftBtnLoading">{{$t('kylinLang.common.draft')}}</el-button> -->
@@ -195,7 +195,7 @@
               <el-form-item :label="$t('kylinLang.dataSource.expression')" prop="expression">
                 <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><icon name="question-circle" class="ksd-question-circle"></icon></common-tip></span>
                 <!-- <el-input type="textarea"  auto-complete="off" v-model="computedColumn.expression"></el-input> -->
-                <kap_editor @click.native="completeInput" ref="expressionBox" class="ksd-mt-20 ksd-mb-10" height="100" width="100%" lang="sql" theme="chrome" v-model="computedColumn.expression" dragbar="#393e53"> 
+                <kap_editor ref="expressionBox" class="ksd-mt-20 ksd-mb-10" height="100" width="100%" lang="sql" theme="chrome" v-model="computedColumn.expression" dragbar="#393e53">
                 </kap_editor>
                <p :class="{isvalid:checkExpressResult.isValid}" v-if="checkExpressResult.msg" class="checkresult">
                  {{checkExpressResult.msg}}
@@ -291,7 +291,7 @@
     <p style="font-size:12px">{{$t('autoModelTip2')}}</p>
     <p style="font-size:12px">{{$t('autoModelTip3')}}</p>
     <div :class="{hasCheck: hasCheck}">
-      <kap_editor ref="sqlbox" class="ksd-mt-20" height="200" width="95%" lang="sql" theme="chrome" v-model="sqlString" dragbar="#393e53"> 
+      <kap_editor ref="sqlbox" class="ksd-mt-20" height="200" width="95%" lang="sql" theme="chrome" v-model="sqlString" dragbar="#393e53">
       </kap_editor>
     </div>
     <!-- <div class="checkSqlResult">{{errorMsg}}</div> -->
@@ -1180,10 +1180,6 @@ export default {
       this.submenuInfo.menu1 = 'second'
       this.$set(this.currentSelectTable, 'database', database || '')
       this.$set(this.currentSelectTable, 'tablename', tablename || '')
-    },
-    completeInput: function () {
-      var editor = this.$refs.expressionBox.$refs.kapEditor.editor
-      editor.execCommand('startAutocomplete')
     },
     addComputedColumn: function (guid) {
       this.isEditComputedColumn = false
@@ -3025,6 +3021,7 @@ export default {
       cursor: pointer;
       z-index: 2000;
       border: 1px solid #71779d;
+      border-left: none;
       i {
         position: relative;
         top: 16px;
@@ -3043,6 +3040,7 @@ export default {
       cursor: pointer;
       z-index: 2000;
       border: 1px solid #71779d;
+      border-right: none;
       i {
         position: relative;
         top: 16px;
@@ -3423,7 +3421,7 @@ export default {
                       stroke:#138ded;
                     }
                   }
-                  
+
                 }
               }
               >svg{
@@ -3434,7 +3432,7 @@ export default {
                 cursor: pointer;
                 vertical-align:middle;
               }
-              
+
             }
           }
          }

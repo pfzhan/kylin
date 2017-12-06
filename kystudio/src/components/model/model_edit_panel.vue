@@ -55,8 +55,7 @@
                             </template>
                         </el-table-column>
                         <el-table-column
-                          label="tableName"
-                         >
+                          label="tableName">
                            <template scope="scope">
                               {{scope.row.tableInfo.name}}
                             </template>
@@ -110,7 +109,7 @@
                   </el-tab-pane>
                   <el-tab-pane :label="$t('sql')" name="sixth"  class="ksd-pl-30">
                     <div class="ksd-ml-10 ksd-mr-10">
-                      <kap_editor v-show="sqlPatterns.length > 0"  ref="sqlPatterns" class="ksd-mt-20 ksd-mb-10" height="220" width="100%" lang="sql" theme="chrome" v-model="sqlPatterns" dragbar="#393e53"> 
+                      <kap_editor v-show="sqlPatterns.length > 0"  ref="sqlPatterns" class="ksd-mt-20 ksd-mb-10" height="220" width="100%" lang="sql" theme="chrome" v-model="sqlPatterns" dragbar="#393e53">
                       </kap_editor>
                       <el-card v-show="sqlPatterns.length === 0" class="noSqlPatterns">
                         {{$t('NoSQLInfo')}}
@@ -471,17 +470,23 @@ export default {
           oldTop = e.pageY
           this.offsetHeight = fullScreen.height() - e.pageY - 360
           // Set wrapper height
-          dragbar.style.bottom = this.offsetHeight + 360 + 'px'
-          if (this.offsetHeight > 0) {
-            editTool.style.bottom = '0px'
-            editTool.style.height = this.offsetHeight + 360 + 'px'
-            content[0].style.height = 338 + this.offsetHeight + 'px'
-            content[1].style.height = 260 + this.offsetHeight + 'px'
+          if (fullScreen.height() - e.pageY > 42) {
+            this.menuStatus = 'show'
+            dragbar.style.bottom = this.offsetHeight + 360 + 'px'
+            if (this.offsetHeight > 0) {
+              editTool.style.bottom = '0px'
+              editTool.style.height = this.offsetHeight + 360 + 'px'
+              content[0].style.height = 338 + this.offsetHeight + 'px'
+              content[1].style.height = 260 + this.offsetHeight + 'px'
+            } else {
+              editTool.style.bottom = this.offsetHeight + 'px'
+              editTool.style.height = '360px'
+              content[0].style.height = '338px'
+              content[1].style.height = '260px'
+            }
           } else {
-            editTool.style.bottom = this.offsetHeight + 'px'
-            editTool.style.height = '360px'
-            content[0].style.height = '338px'
-            content[1].style.height = '260px'
+            this.menuStatus = 'hide'
+            this.offsetHeight = 0
           }
         }
       })
