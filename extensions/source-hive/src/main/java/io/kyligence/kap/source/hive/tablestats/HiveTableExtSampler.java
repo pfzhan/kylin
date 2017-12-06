@@ -37,7 +37,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
@@ -60,6 +62,7 @@ public class HiveTableExtSampler implements Serializable {
     private static final int DEFAULT_VARCHAR_PRECISION = 256;
 
     final static Map<String, Class<?>> implementations = Maps.newHashMap();
+    final static Map<String, Class<?>> complexTypeImplementations = Maps.newHashMap();
 
     static {
         implementations.put("char", StringImplementor.class);
@@ -79,6 +82,8 @@ public class HiveTableExtSampler implements Serializable {
         implementations.put("date", StringImplementor.class);
         implementations.put("datetime", StringImplementor.class);
         implementations.put("timestamp", StringImplementor.class);
+
+        complexTypeImplementations.put("array\\<.*\\>", ArrayImplementor.class);
     }
 
     private Map<String, String> sampleValues = new LinkedHashMap<>();
@@ -161,8 +166,17 @@ public class HiveTableExtSampler implements Serializable {
 
     private void initImplementor(String dataType) {
         Class<?> clz = implementations.get(dataType);
-        if (clz == null)
+        if (clz == null) {
+            for (String nameRegx : complexTypeImplementations.keySet()) {
+                Pattern pattern = Pattern.compile(nameRegx);
+                if (pattern.matcher(dataType).matches()) {
+                    clz = complexTypeImplementations.get(nameRegx);
+                }
+            }
+        }
+        if (clz == null) {
             throw new RuntimeException("No DataTypeImplementor for type " + dataType);
+        }
         try {
             implementor = (DataTypeImplementor) clz.getDeclaredConstructor(HiveTableExtSampler.class).newInstance(this);
         } catch (InstantiationException e) {
@@ -606,6 +620,41 @@ public class HiveTableExtSampler implements Serializable {
         public void sampleMin();
 
         public void sync();
+    }
+
+    public class ArrayImplementor implements DataTypeImplementor {
+        private String[] max = null;
+        private String[] min = null;
+        private String[] current;
+
+        public ArrayImplementor() {
+        }
+
+        @Override
+        public void accept(String value) {
+            // TODO: better split method
+            current = value.split(",");
+        }
+
+        @Override
+        public void sampleMax() {
+            if (max == null || current.length > max.length) {
+                max = current;
+            }
+        }
+
+        @Override
+        public void sampleMin() {
+            if (min == null || current.length < min.length) {
+                min = current;
+            }
+        }
+
+        @Override
+        public void sync() {
+            setMax(StringUtils.join(max, ","));
+            setMin(StringUtils.join(min, ","));
+        }
     }
 
     public class StringImplementor implements DataTypeImplementor {

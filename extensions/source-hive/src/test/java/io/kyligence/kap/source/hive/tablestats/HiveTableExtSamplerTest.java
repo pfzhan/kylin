@@ -245,6 +245,22 @@ public class HiveTableExtSamplerTest extends TestCase {
     }
 
     @Test
+    public void testComplexTypeStats() {
+        HiveTableExtSampler sampler = new HiveTableExtSampler("array<string>", 100, 0, 1);
+
+        String[] sampleValues = { "[a,b]", "[a]", "[a,b,c]" };
+        for (int i = 0; i < sampleValues.length; i++)
+            sampler.samples(sampleValues[i]);
+
+        sampler.sync();
+        ByteBuffer buf = sampler.code();
+        buf.flip();
+        sampler.decode(buf);
+        assertEquals("[a,b,c]", sampler.getMax());
+        assertEquals("[a]", sampler.getMin());
+    }
+
+    @Test
     public void testMutable() {
         LinkedList<HiveTableExtSampler.SimpleTopN.MutableLong> testList = new LinkedList<>();
         HiveTableExtSampler sampler = new HiveTableExtSampler("varchar", 100);
