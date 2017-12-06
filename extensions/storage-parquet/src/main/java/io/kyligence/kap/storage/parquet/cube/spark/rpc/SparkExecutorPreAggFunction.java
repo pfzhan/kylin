@@ -106,7 +106,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
         logger.info("Start to record executor's JVM Info");
         System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
-        JVMInfoCollector.init("executor_id:" + SparkEnv.get().executorId());
+        JVMInfoCollector.init(SparkEnv.get().executorId());
         logger.info("end to record executor's JVM Info");
         TraceScope scope = null;
         if (kryoTraceInfo != null) {
@@ -201,7 +201,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
                     System.currentTimeMillis() - localStartTime);
 
             logger.info("Start to record executor's parquet metric");
-            ParquetMetrics.getExecutorMetric().reportToWriter(InetAddress.getLocalHost().toString(), SparkEnv.get().executorId());
+            ParquetMetrics.getExecutorMetric().reportToWriter(InetAddress.getLocalHost().getHostName(), SparkEnv.get().executorId());
             return Collections.singleton(o).iterator();
         } finally {
             if (scope != null)

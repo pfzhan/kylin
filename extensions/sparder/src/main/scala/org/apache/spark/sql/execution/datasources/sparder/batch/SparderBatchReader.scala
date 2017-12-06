@@ -80,7 +80,7 @@ class SparderBatchReader extends RecordReader[Void, Object] with Logging {
            file: PartitionedFile): Unit = {
     System.setProperty("kap.metric.diagnosis.graph-writer-type",
                               options.apply(SparderConstants.DIAGNOSIS_WRITER_TYPE))
-    JVMInfoCollector.init("executor_id:" + SparkEnv.get.executorId)
+    JVMInfoCollector.init(SparkEnv.get.executorId)
     initTime = System.currentTimeMillis()
     val gtinfo = GTInfo.serializer.deserialize(
       ByteBuffer.wrap(HexUtils.toBytes(
