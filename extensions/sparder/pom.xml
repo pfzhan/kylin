@@ -160,46 +160,6 @@
                 <artifactId>scala-maven-plugin</artifactId>
                 <version>3.2.2</version>
             </plugin>
-        
-            <!--for sparder-->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>copy</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>copy</goal>
-                        </goals>
-                        <configuration>
-                            <artifactItems>
-
-                                <artifactItem>
-                                    <groupId>org.codehaus.janino</groupId>
-                                    <artifactId>commons-compiler</artifactId>
-                                    <version>3.0.0</version>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>
-                                        ${project.basedir}/../../build/ext
-                                    </outputDirectory>
-                                </artifactItem>
-                                <artifactItem>
-                                    <groupId>org.codehaus.janino</groupId>
-                                    <artifactId>janino</artifactId>
-                                    <version>3.0.0</version>
-                                    <overWrite>false</overWrite>
-                                    <outputDirectory>
-                                        ${project.basedir}/../../build/ext
-                                    </outputDirectory>
-                                </artifactItem>
-                            </artifactItems>
-                            <overWriteReleases>false</overWriteReleases>
-                            <overWriteSnapshots>true</overWriteSnapshots>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
 </project>

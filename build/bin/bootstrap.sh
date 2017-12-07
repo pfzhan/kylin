@@ -272,7 +272,6 @@ then
         quit "Couldn't find hive.metastore.uris in hive-site.xml. hive.metastore.uris specifies Thrift URI of hive metastore . Please export HIVE_METASTORE_URI with hive.metastore.uris before starting kylin , for example: export HIVE_METASTORE_URI=thrift://sandbox.hortonworks.com:9083"
     fi
     classpathDebug ${KYLIN_TOMCAT_CLASSPATH}
-    export KYLIN_TOMCAT_CLASSPATH=`$JAVA -cp ${KYLIN_HOME}/tool/kylin-tool-kap-*.jar io.kyligence.kap.tool.mr.ClassPathFilter ${KYLIN_TOMCAT_CLASSPATH} jersey  spark-unsafe`
     $JAVA ${KYLIN_EXTRA_START_OPTS} ${KYLIN_TOMCAT_OPTS} -classpath ${KYLIN_TOMCAT_CLASSPATH}  org.apache.catalina.startup.Bootstrap start >> ${KYLIN_HOME}/logs/kylin.out 2>&1 & echo $! > ${KYLIN_HOME}/pid &
 
     echo ""
