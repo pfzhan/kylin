@@ -27,11 +27,11 @@
         <p style="font-size:13px;">{{$t('action')}}</p>
         <el-button style="margin-top: 22px;" type="primary" class="but-width bg_blue" @click="reload"><p class="p_font">{{$t('reloadMetadata')}}</p></el-button>
         <el-button class="but-width bg_blue" type="primary" @click="setConfig"><p class="p_font">{{$t('setConfig')}}</p></el-button>
-        <el-button class="but-width bg_blue" type="primary" @click="backup">
-          <p class="p_font">
+        <el-button class="but-width bg_blue" type="primary" @click="backup" :loading="btnload">
+          <span class="p_font">
             <!-- <icon name="cogs"></icon> -->
             {{$t('backup')}}
-          </p>
+          </span>
         </el-button>
         <el-button class="but-width bg_blue" type="primary" @click="diagnosisSys" style="margin-bottom:30px;">
           <p class="p_font">
@@ -57,7 +57,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
-import { handleSuccess, handleError } from '../../util/business'
+import { handleSuccess, handleError, kapConfirm } from '../../util/business'
 import setConfig from './set_config'
 import diagnosis from './diagnosis'
 import loginKybot from '../common/login_kybot.vue'
@@ -66,6 +66,7 @@ import protocolContent from '../system/protocol.vue'
 export default {
   data () {
     return {
+      btnload: false,
       activeName: 'system',
       setConfigFormVisible: false,
       diagnosisVisible: false,
@@ -151,15 +152,22 @@ export default {
       this.setConfigFormVisible = false
     },
     backup: function () {
-      this.backupMetadata().then((res) => {
-        handleSuccess(res, (data, code, status, msg) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('backupSuccess') + data
+      kapConfirm(this.$t('backupSys')).then(() => {
+        this.btnload = true
+        this.backupMetadata().then((res) => {
+          this.btnload = false
+          handleSuccess(res, (data, code, status, msg) => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.backupSuccessTip') + data,
+              showClose: true,
+              duration: 0
+            })
           })
+        }).catch((res) => {
+          this.btnload = false
+          handleError(res)
         })
-      }).catch((res) => {
-        handleError(res)
       })
     },
     diagnosisSys: function () {
@@ -212,8 +220,8 @@ export default {
     this.refreshConfig()
   },
   locales: {
-    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Configuration', backup: 'Backup', diagnosis: 'Diagnosis', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', backupSuccess: 'Metadata backup successfully: '},
-    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!', autoUpload: 'KyBot 自动上传', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', backupSuccess: '元数据备份成功: '}
+    'en': {ServerConfig: 'Server Config', ServerEnvironment: 'Server Environment', action: 'Actions', reloadMetadata: 'Reload Metadata', setConfig: 'Set Configuration', backup: 'Backup', diagnosis: 'Diagnosis', link: 'Links', success: 'Success', successEnvironment: 'Server environment get successfully', successConfig: 'Server config get successfully', reloadTip: 'Are you sure to reload metadata and clean cache? ', cancel: 'Cancel', yes: 'Yes', tip: 'Tip', reloadSuccessful: 'Reload metadata successful!', setConfigSuccessful: 'Set config successful!', autoUpload: 'KyBot Auto Upload', contentOne: 'By analyzing your diagnostic package, ', contentTwo: 'can provide online diagnostic, tuning and support service for KAP.', backupSys: 'Are you sure to backup the system?'},
+    'zh-cn': {ServerConfig: '服务器配置', ServerEnvironment: '服务器环境', action: '操作', reloadMetadata: '重载元数据', setConfig: '设置配置', backup: '备份', diagnosis: '诊断', link: '链接', success: '成功', successEnvironment: '成功获取环境信息', successConfig: '成功获取服务器配置', reloadTip: '确定要重载元数据并清理缓存? ', tip: '提示', cancel: '取消', yes: '确定', reloadSuccessful: '重载元数据成功!', setConfigSuccessful: '设置配置成功!', autoUpload: 'KyBot 自动上传', contentOne: '通过分析生成的诊断包，', contentTwo: '提供在线诊断，优化服务。', backupSys: '确定要进行系统备份? '}
   }
 }
 </script>

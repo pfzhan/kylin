@@ -87,7 +87,7 @@ import filterEdit from './filter_edit'
 import projectEdit from './project_edit'
 import projectConfig from './project_config'
 import { permissions, pageCount } from '../../config/index'
-import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole } from '../../util/business'
+import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'projectlist',
   methods: {
@@ -181,15 +181,19 @@ export default {
       })
     },
     backup (project) {
-      this.backupProject(project).then((result) => {
-        handleSuccess(result, (data, code, status, msg) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('backupSuccessful') + data
+      kapConfirm(this.$t('backupProject')).then(() => {
+        this.backupProject(project).then((result) => {
+          handleSuccess(result, (data, code, status, msg) => {
+            this.$message({
+              type: 'success',
+              message: this.$t('kylinLang.common.backupSuccessTip') + data,
+              showClose: true,
+              duration: 0
+            })
           })
+        }, (res) => {
+          handleError(res)
         })
-      }, (res) => {
-        handleError(res)
       })
     },
     initAccessMeta () {
@@ -257,8 +261,8 @@ export default {
     this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
   },
   locales: {
-    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', backupSuccessful: 'Project backup successful: ', projectConfig: 'Configuration'},
-    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', backupSuccessful: '项目备份成功：', projectConfig: '项目配置'}
+    'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Yes', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?'},
+    'zh-cn': {project: '项目', name: '名称', owner: '所有者', description: '描述', createTime: '创建时间', actions: '操作', access: '权限', externalFilters: '其他过滤', edit: '配置', backup: '备份', delete: '删除', tip: '提示', cancel: '取消', yes: '确定', saveSuccessful: '保存项目成功!', saveFailed: '保存失败!', deleteProject: '删除后, 项目定义及数据会被清除, 且不能恢复.', projectConfig: '项目配置', backupProject: '确认要备份此项目？'}
   }
 }
 </script>

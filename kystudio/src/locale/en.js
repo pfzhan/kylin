@@ -67,6 +67,7 @@ exports.default = {
     userName: 'User Name',
     userOrGroup: 'User/Group',
     // 通用提示
+    backupSuccessTip: 'Metadata backup successfully: ',
     unknownError: 'Unknown Error.',
     submitSuccess: 'Submitted successfully.',
     addSuccess: 'Added successfully.',

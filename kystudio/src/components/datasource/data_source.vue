@@ -276,7 +276,7 @@
         </el-row>
         <div slot="footer" class="dialog-footer">
           <el-button @click="cancelReloadTable">{{$t('kylinLang.common.cancel')}}</el-button>
-           <kap-icon-button  type="primary" :size="mini" :useload="true" @click.native="reloadTable" ref="reloadBtnConfirm">{{$t('kylinLang.common.submit')}}</kap-icon-button>
+           <kap-icon-button  type="primary" size="mini" :useload="true" @click.native="reloadTable" ref="reloadBtnConfirm">{{$t('kylinLang.common.submit')}}</kap-icon-button>
           <!-- <el-button type="primary" :loading="loadHiveLoad" @click="reloadTable">{{$t('kylinLang.common.submit')}}</el-button> -->
         </div>
       </el-dialog>

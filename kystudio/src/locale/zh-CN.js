@@ -66,6 +66,7 @@ exports.default = {
     userName: '用户名',
     userOrGroup: '用户／组',
     // 通用提示
+    backupSuccessTip: '元数据备份成功: ',
     unknownError: '未知错误。',
     submitSuccess: '提交成功。',
     addSuccess: '添加成功。',
