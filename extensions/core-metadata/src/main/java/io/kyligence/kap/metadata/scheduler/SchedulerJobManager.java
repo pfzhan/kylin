@@ -34,8 +34,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -49,42 +47,24 @@ public class SchedulerJobManager {
     public static final Serializer<SchedulerJobInstance> SCHEDULER_JOB_INSTANCE_SERIALIZER = new JsonSerializer<>(
             SchedulerJobInstance.class);
     private static final Logger logger = LoggerFactory.getLogger(SchedulerJobManager.class);
+    
+    public static SchedulerJobManager getInstance(KylinConfig config) {
+        return config.getManager(SchedulerJobManager.class);
+    }
 
-    private static final ConcurrentMap<KylinConfig, SchedulerJobManager> CACHE = new ConcurrentHashMap<>();
+    // called by reflection
+    static SchedulerJobManager newInstance(KylinConfig config) throws IOException {
+        return new SchedulerJobManager(config);
+    }
+
+    // ============================================================================
+
     private KylinConfig kylinConfig;
 
     private SchedulerJobManager(KylinConfig config) throws IOException {
         logger.info("Initializing BadQueryHistoryManager with config " + config);
         this.kylinConfig = config;
         loadAllSchedulerJobInstance();
-    }
-
-    public static SchedulerJobManager getInstance(KylinConfig config) {
-        SchedulerJobManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (SchedulerJobManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new SchedulerJobManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init SchedulerJobManager from " + config, e);
-            }
-        }
-    }
-
-    public static void clearCache() {
-        CACHE.clear();
     }
 
     private ResourceStore getStore() {

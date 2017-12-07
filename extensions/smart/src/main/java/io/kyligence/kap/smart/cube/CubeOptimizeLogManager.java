@@ -25,8 +25,6 @@
 package io.kyligence.kap.smart.cube;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -42,52 +40,29 @@ public class CubeOptimizeLogManager {
     private static final Logger logger = LoggerFactory.getLogger(CubeOptimizeLogManager.class);
     public static final Serializer<CubeOptimizeLog> CUBE_OPTIMIZE_LOG_STATISTICS_SERIALIZER = new JsonSerializer<>(
             CubeOptimizeLog.class);
-    private static final ConcurrentMap<KylinConfig, CubeOptimizeLogManager> CACHE = new ConcurrentHashMap<>();
-    private KylinConfig kylinConfig;
 
     public static final String CUBE_OPTIMIZE_LOG_STATISTICS_ROOT = "/cube_opt_log";
 
+    public static CubeOptimizeLogManager getInstance(KylinConfig config) {
+        return config.getManager(CubeOptimizeLogManager.class);
+    }
+
+    // called by reflection
+    static CubeOptimizeLogManager newInstance(KylinConfig config) throws IOException {
+        return new CubeOptimizeLogManager(config);
+    }
+
+    // ============================================================================
+
+    private KylinConfig kylinConfig;
+    
     private CubeOptimizeLogManager(KylinConfig config) throws IOException {
         logger.info("Initializing CubeOptimizeLogManager with config " + config);
         this.kylinConfig = config;
         Broadcaster.getInstance(config).registerListener(new CubeOptimizeLogManager.CubeSyncListener(), "cube");
     }
 
-    public static CubeOptimizeLogManager getInstance(KylinConfig config) {
-        CubeOptimizeLogManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (CubeOptimizeLogManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new CubeOptimizeLogManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init CubeOptimizeLogManager from " + config, e);
-            }
-        }
-    }
-
-    public static void clearCache() {
-        CACHE.clear();
-    }
-
-    // ============================================================================
-
     private class CubeSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
 
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)

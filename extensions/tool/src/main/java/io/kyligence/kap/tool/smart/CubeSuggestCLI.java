@@ -154,10 +154,8 @@ public class CubeSuggestCLI implements IKeep {
         CubeManager cubeManager = CubeManager.getInstance(kylinConfig);
         cubeManager.createCube(cubeDesc.getName(), projectName, cubeDesc, owner);
 
-        CubeDescManager.clearCache();
+        kylinConfig.clearManagers();
         CubeDescManager.getInstance(kylinConfig);
-
-        CubeManager.clearCache();
         CubeManager.getInstance(kylinConfig);
 
         logger.info("Cube is created and saved successfully: name={}", cubeDesc.getName());

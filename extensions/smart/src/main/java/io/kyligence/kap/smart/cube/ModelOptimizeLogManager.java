@@ -25,8 +25,6 @@
 package io.kyligence.kap.smart.cube;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -41,52 +39,29 @@ public class ModelOptimizeLogManager {
     private static final Logger logger = LoggerFactory.getLogger(ModelOptimizeLogManager.class);
     public static final Serializer<ModelOptimizeLog> MODEL_OPTIMIZE_LOG_STATISTICS_SERIALIZER = new JsonSerializer<>(
             ModelOptimizeLog.class);
-    private static final ConcurrentMap<KylinConfig, ModelOptimizeLogManager> CACHE = new ConcurrentHashMap<>();
-    private KylinConfig kylinConfig;
-
+    
     public static final String MODEL_OPTIMIZE_LOG_STATISTICS_ROOT = "/model_opt_log";
 
+    public static ModelOptimizeLogManager getInstance(KylinConfig config) {
+        return config.getManager(ModelOptimizeLogManager.class);
+    }
+
+    // called by reflection
+    static ModelOptimizeLogManager newInstance(KylinConfig config) throws IOException {
+        return new ModelOptimizeLogManager(config);
+    }
+
+    // ============================================================================
+
+    private KylinConfig kylinConfig;
+    
     private ModelOptimizeLogManager(KylinConfig config) throws IOException {
         logger.info("Initializing ModelOptimizeLogManager with config " + config);
         this.kylinConfig = config;
         Broadcaster.getInstance(config).registerListener(new ModelOptimizeLogManager.ModelSyncListener(), "model");
     }
 
-    public static ModelOptimizeLogManager getInstance(KylinConfig config) {
-        ModelOptimizeLogManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (ModelOptimizeLogManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new ModelOptimizeLogManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init ModelOptimizeLogManager from " + config, e);
-            }
-        }
-    }
-
-    public static void clearCache() {
-        CACHE.clear();
-    }
-
-    // ============================================================================
-
     private class ModelSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
 
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)

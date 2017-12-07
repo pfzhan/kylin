@@ -52,36 +52,12 @@ public class ColumnACLManager {
     private static final ConcurrentMap<KylinConfig, ColumnACLManager> CACHE = new ConcurrentHashMap<>();
 
     public static ColumnACLManager getInstance(KylinConfig config) {
-        ColumnACLManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (ColumnACLManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new ColumnACLManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init CubeDescManager from " + config, e);
-            }
-        }
+        return config.getManager(ColumnACLManager.class);
     }
 
-    private static void clearCache() {
-        CACHE.clear();
-    }
-
-    public static void clearCache(KylinConfig kylinConfig) {
-        if (kylinConfig != null)
-            CACHE.remove(kylinConfig);
+    // called by reflection
+    static ColumnACLManager newInstance(KylinConfig config) throws IOException {
+        return new ColumnACLManager(config);
     }
 
     // ============================================================================
@@ -99,10 +75,6 @@ public class ColumnACLManager {
     }
 
     private class ColumnACLSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
 
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)

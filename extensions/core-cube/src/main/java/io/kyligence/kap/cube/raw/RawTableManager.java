@@ -32,8 +32,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -70,35 +68,13 @@ public class RawTableManager implements IRealizationProvider {
     public static final Serializer<RawTableInstance> INSTANCE_SERIALIZER = new JsonSerializer<RawTableInstance>(
             RawTableInstance.class);
 
-    // static cached instances
-    private static final ConcurrentMap<KylinConfig, RawTableManager> CACHE = new ConcurrentHashMap<>();
-
     public static RawTableManager getInstance(KylinConfig config) {
-        RawTableManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (RawTableManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new RawTableManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init RawTableManager from " + config, e);
-            }
-        }
+        return config.getManager(RawTableManager.class);
     }
 
-    public static void clearCache() {
-        CACHE.clear();
+    // called by reflection
+    static RawTableManager newInstance(KylinConfig config) throws IOException {
+        return new RawTableManager(config);
     }
 
     // ==========================================================
@@ -119,10 +95,6 @@ public class RawTableManager implements IRealizationProvider {
     }
 
     private class RawTableSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
 
         @Override
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {

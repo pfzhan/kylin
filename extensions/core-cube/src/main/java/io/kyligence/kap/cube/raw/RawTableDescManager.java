@@ -27,8 +27,6 @@ package io.kyligence.kap.cube.raw;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -54,35 +52,13 @@ public class RawTableDescManager {
 
     public static final Serializer<RawTableDesc> DESC_SERIALIZER = new JsonSerializer<RawTableDesc>(RawTableDesc.class);
 
-    // static cached instances
-    private static final ConcurrentMap<KylinConfig, RawTableDescManager> CACHE = new ConcurrentHashMap<KylinConfig, RawTableDescManager>();
-
     public static RawTableDescManager getInstance(KylinConfig config) {
-        RawTableDescManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (RawTableDescManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new RawTableDescManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init RawTableDescManager from " + config, e);
-            }
-        }
+        return config.getManager(RawTableDescManager.class);
     }
 
-    public static void clearCache() {
-        CACHE.clear();
+    // called by reflection
+    static RawTableDescManager newInstance(KylinConfig config) throws IOException {
+        return new RawTableDescManager(config);
     }
 
     // ============================================================================
@@ -102,11 +78,6 @@ public class RawTableDescManager {
     }
 
     private class RawTableDescSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            clearCache();
-        }
 
         @Override
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {

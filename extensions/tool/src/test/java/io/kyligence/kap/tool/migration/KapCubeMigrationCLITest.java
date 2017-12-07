@@ -88,7 +88,7 @@ public class KapCubeMigrationCLITest extends LocalFileMetadataTestCase {
                 "file:///", "--overwrite", "true" };
         cli.doOpts(restoreArgs);
         cli.doOpts(restoreArgs);
-        projectInstance = projectManager.reloadProjectLocal(dstProject);
+        projectInstance = projectManager.reloadProjectQuietly(dstProject);
         boolean bRet = projectInstance.containsModel("ssb");
         Assert.assertTrue(bRet);
         Assert.assertEquals(1, projectInstance.getModels().size());

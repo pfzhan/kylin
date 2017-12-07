@@ -25,8 +25,6 @@
 package io.kyligence.kap.source.hive.modelstats;
 
 import java.io.IOException;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -41,36 +39,16 @@ public class ModelStatsManager {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelStatsManager.class);
     public static final Serializer<ModelStats> MODEL_STATISTICS_SERIALIZER = new JsonSerializer<>(ModelStats.class);
-    private static final ConcurrentMap<KylinConfig, ModelStatsManager> CACHE = new ConcurrentHashMap<>();
 
     public static final String MODEL_STATISTICS_ROOT = "/model_stats";
 
     public static ModelStatsManager getInstance(KylinConfig config) {
-        ModelStatsManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (ModelStatsManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new ModelStatsManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init ModelStatsManager from " + config, e);
-            }
-        }
+        return config.getManager(ModelStatsManager.class);
     }
 
-    public static void clearCache() {
-        CACHE.clear();
+    // called by reflection
+    static ModelStatsManager newInstance(KylinConfig config) throws IOException {
+        return new ModelStatsManager(config);
     }
 
     // ============================================================================

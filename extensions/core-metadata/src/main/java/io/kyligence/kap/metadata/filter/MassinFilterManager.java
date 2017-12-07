@@ -64,7 +64,6 @@ import com.google.common.collect.Sets;
 public class MassinFilterManager {
     public static final Logger logger = LoggerFactory.getLogger(MassinFilterManager.class);
 
-    private static final ConcurrentMap<KylinConfig, MassinFilterManager> CACHE = new ConcurrentHashMap<>();
     private static final ConcurrentMap<KylinConfig, ResourceStore> RESOURCE_STORE_CACHE = new ConcurrentHashMap<>();
     private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder().maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
         @Override
@@ -73,6 +72,17 @@ public class MassinFilterManager {
         }
     }).build();
     private static final ConcurrentMap<String, DimensionEncoding> EncodingMapping = new ConcurrentHashMap<>();
+    
+    public static MassinFilterManager getInstance(KylinConfig config) {
+        return config.getManager(MassinFilterManager.class);
+    }
+
+    // called by reflection
+    static MassinFilterManager newInstance(KylinConfig config) throws IOException {
+        return new MassinFilterManager(config);
+    }
+
+    // ============================================================================
 
     private KylinConfig kylinConfig;
 
@@ -83,30 +93,6 @@ public class MassinFilterManager {
 
     public void setEncoding(String resourceIdentifier, DimensionEncoding encoding) {
         EncodingMapping.put(resourceIdentifier, encoding);
-    }
-
-    public static MassinFilterManager getInstance(KylinConfig config) {
-        MassinFilterManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (MassinFilterManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new MassinFilterManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init MassinFilterManager from " + config, e);
-            }
-        }
     }
 
     public static String getResourceIdentifier(KapConfig kapConfig, String filterName) {
