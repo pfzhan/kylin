@@ -79,6 +79,7 @@ public class MetaStoreService extends BasicService {
         }
         File backupRootDir = new File(KylinConfig.getKylinHome() + "/meta_backups");
         FileUtils.forceMkdir(backupRootDir);
+        String exportPath;
 
         // Global backup
         if (StringUtils.isEmpty(project) && StringUtils.isEmpty(cube)) {
@@ -90,6 +91,7 @@ public class MetaStoreService extends BasicService {
 
             KylinConfig kylinConfig = KylinConfig.createInstanceFromUri(backupDir.getAbsolutePath());
             ResourceTool.copy(KylinConfig.getInstanceFromEnv(), kylinConfig, true);
+            exportPath = backupDir.getAbsolutePath();
         } else {
             List<String> args = new ArrayList<String>();
             args.add("-destDir");
@@ -97,23 +99,29 @@ public class MetaStoreService extends BasicService {
             if (!StringUtils.isEmpty(project)) {
                 args.add("-project");
                 args.add(project);
+
+                args.add("-packagetype");
+                args.add(new StringBuilder().append("project").append("_").append(project).toString());
             }
             if (!StringUtils.isEmpty(cube)) {
                 args.add("-cube");
                 args.add(cube);
+                args.add("-packagetype");
+                args.add(new StringBuilder().append("cube").append("_").append(cube).toString());
             }
-            
+
             args.add("-compress");
             args.add("false");
-            
+
             String[] cubeMetaArgs = new String[args.size()];
             args.toArray(cubeMetaArgs);
             CubeMetaExtractor cubeMetaExtractor = new CubeMetaExtractor();
             logger.info("CubeMetaExtractor args: " + Arrays.toString(cubeMetaArgs));
             cubeMetaExtractor.execute(cubeMetaArgs);
+            exportPath = cubeMetaExtractor.getExportPath();
         }
-        logger.info("metadata store backed up to " + backupRootDir.getAbsolutePath());
-        return backupRootDir.getAbsolutePath();
+        logger.info("metadata store backed up to " + exportPath);
+        return exportPath;
     }
 
 }
