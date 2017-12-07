@@ -78,7 +78,7 @@ cp spark/jars/jackson-mapper-asl-1.9.13.jar ${package_name}/ext/jackson-mapper-a
 cp spark/jars/jackson-module-paranamer-2.6.5.jar ${package_name}/ext/jackson-module-paranamer-2.6.5.jar
 cp spark/jars/jackson-module-scala_2.11-2.6.5.jar ${package_name}/ext/jackson-module-scala_2.11-2.6.5.jar
 cp spark/jars/spark-unsafe*  ${package_name}/ext/spark-unsafe.jar
-
+cp ../extensions/udf/target/kap-udf-${release_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
 
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them

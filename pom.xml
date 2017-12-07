@@ -86,6 +86,7 @@
         <module>extensions/kap-it</module>
         <module>extensions/smart</module>
         <module>extensions/tomcat-ext</module>
+        <module>extensions/udf</module>
     </modules>
 
     <dependencyManagement>
@@ -175,6 +176,11 @@
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>sparder</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

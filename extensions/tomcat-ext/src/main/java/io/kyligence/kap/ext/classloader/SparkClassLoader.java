@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.ext.classloader;
 
+import static io.kyligence.kap.ext.classloader.ClassLoaderUtils.findFile;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashSet;
@@ -127,6 +131,27 @@ public class SparkClassLoader extends URLClassLoader {
         for (File jar : jars) {
             addURL(jar.toURI().toURL());
         }
+        if (System.getenv("KYLIN_HOME") != null) {
+            // for prod
+            String kylin_home = System.getenv("KYLIN_HOME");
+            File sparkJar = findFile(kylin_home + "/lib", "kylin-udf-.*-SNAPSHOT.jar");
+            if (sparkJar != null) {
+                logger.info("Add kylin UDF jar to spark classloader : " + sparkJar.getName());
+                addURL(sparkJar.toURI().toURL());
+            }
+        } else if (Files.exists(Paths.get("../udf/target/classes"))) {
+            //  for debugtomcat
+            logger.info("Add kylin UDF classes to spark classloader");
+            addURL(new File("../udf/target/classes").toURI().toURL());
+        } else {
+            if (System.getenv("KYLIN_HOME") == null) {
+                throw new RuntimeException(
+                        "Can not found kylin UDF jar, please set KYLIN_HOME and make sure the kylin-udf-*.jar exists in $KYLIN_HOME/lib");
+            } else {
+                throw new RuntimeException("Can not found kylin UDF classes, please run cmd mvn compile");
+            }
+        }
+
     }
 
     @Override
