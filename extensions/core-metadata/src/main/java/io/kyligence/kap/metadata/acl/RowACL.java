@@ -67,6 +67,17 @@ public class RowACL extends RootPersistentEntity implements IKeep {
     @JsonProperty("tableRowCondsWithGroup")
     private RowACLEntry tableRowCondsWithGroup = new RowACLEntry();
 
+    private String project;
+    
+    void init(String project) {
+        this.project = project;
+    }
+    
+    @Override
+    public String resourceName() {
+        return project;
+    }
+    
     private RowACLEntry currentEntry(String type) {
         if (type.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             return tableRowCondsWithUser;

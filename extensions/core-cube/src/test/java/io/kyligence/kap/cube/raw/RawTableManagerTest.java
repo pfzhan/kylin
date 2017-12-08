@@ -82,7 +82,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         toUpdate.setVersion("dummy");
         RawTableUpdate builder = new RawTableUpdate(toUpdate);
         mgr.updateRawTable(builder);
-        mgr.reloadAllRawTableInstance();
+        mgr.reloadAll();
         RawTableInstance updated = mgr.getRawTableInstance(cubeName);
 
         assertEquals("dummy", updated.getVersion());
@@ -200,7 +200,8 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         final NavigableSet<String> rawPath = store.listResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT);
         assertTrue(rawPath.size() > 1);
 
-        final List<RawTableInstance> raws = store.getAllResources(RawTableInstance.RAW_TABLE_INSTANCE_RESOURCE_ROOT, RawTableInstance.class, RawTableManager.INSTANCE_SERIALIZER);
+        RawTableManager rawMgr = RawTableManager.getInstance(getTestConfig());
+        final List<RawTableInstance> raws = rawMgr.listAllRawTables();
         assertEquals(rawPath.size(), raws.size());
     }
 

@@ -42,8 +42,8 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.DataModelManager;
+import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +64,23 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(RawTableDesc.class);
     public static final String RAW_TABLE_DESC_RESOURCE_ROOT = "/raw_table_desc";
+
+    public static RawTableDesc getCopyOf(RawTableDesc desc) {
+        RawTableDesc rawTableDesc = new RawTableDesc();
+        rawTableDesc.setName(desc.getName());
+        rawTableDesc.setDraft(desc.isDraft());
+        rawTableDesc.setModelName(desc.getModelName());
+        rawTableDesc.setColumns(desc.getColumns());
+        rawTableDesc.setEngineType(desc.getEngineType());
+        rawTableDesc.setStorageType(desc.getStorageType());
+        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
+        rawTableDesc.setRawTableMapping(desc.rawTableMapping);
+        rawTableDesc.updateRandomUuid();
+        rawTableDesc.init(desc.getConfig());
+        return rawTableDesc;
+    }
+    
+    // ============================================================================
 
     @JsonProperty("name")
     private String name;
@@ -101,20 +118,10 @@ public class RawTableDesc extends RootPersistentEntity implements IEngineAware {
     // for Jackson
     public RawTableDesc() {
     }
-
-    public static RawTableDesc getCopyOf(RawTableDesc desc) {
-        RawTableDesc rawTableDesc = new RawTableDesc();
-        rawTableDesc.setName(desc.getName());
-        rawTableDesc.setDraft(desc.isDraft());
-        rawTableDesc.setModelName(desc.getModelName());
-        rawTableDesc.setColumns(desc.getColumns());
-        rawTableDesc.setEngineType(desc.getEngineType());
-        rawTableDesc.setStorageType(desc.getStorageType());
-        rawTableDesc.setAutoMergeTimeRanges(desc.getAutoMergeTimeRanges());
-        rawTableDesc.setRawTableMapping(desc.rawTableMapping);
-        rawTableDesc.updateRandomUuid();
-        rawTableDesc.init(desc.getConfig());
-        return rawTableDesc;
+    
+    @Override
+    public String resourceName() {
+        return name;
     }
 
     @Override

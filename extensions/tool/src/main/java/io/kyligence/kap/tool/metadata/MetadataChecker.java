@@ -33,6 +33,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.cube.CubeDescManager;
 import org.apache.kylin.cube.CubeInstance;
@@ -216,10 +217,11 @@ public class MetadataChecker implements IKeep {
 
         List<String> allAffectedEntities = new ArrayList<>();
         List<String> toDelDescs = new ArrayList<>();
+        JsonSerializer<CubeDesc> cubeDescSerializer = CubeDesc.newSerializerForLowLevelAccess();
 
         for (String descPath : cubeDescPaths) {
             try {
-                CubeDesc desc = store.getResource(descPath, CubeDesc.class, CubeDescManager.CUBE_DESC_SERIALIZER);
+                CubeDesc desc = store.getResource(descPath, CubeDesc.class, cubeDescSerializer);
                 if (desc == null) {
                     logger.info("No cube desc found at: {}, skip it.", descPath);
                     continue;

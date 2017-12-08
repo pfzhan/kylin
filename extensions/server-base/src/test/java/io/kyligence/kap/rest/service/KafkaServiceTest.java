@@ -23,7 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
@@ -32,10 +36,7 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
 public class KafkaServiceTest extends LocalFileMetadataTestCase {
 
@@ -103,8 +104,7 @@ public class KafkaServiceTest extends LocalFileMetadataTestCase {
         KafkaConfig kafkaConfig = JsonUtil.readValue(kafkaConfigObject, KafkaConfig.class);
         kafkaConfig.setName(tableDesc.getIdentity());
         kafkaConfig.setUuid(UUID.randomUUID().toString());
-        kafkaService.getKafkaManager().saveKafkaConfig(kafkaConfig);
-        kafkaService.getKafkaManager().reloadKafkaConfigLocal(tableDesc.getIdentity());
+        kafkaService.getKafkaManager().createKafkaConfig(kafkaConfig);
         Assert.assertTrue(kafkaService.getTableManager().getTableDesc(tableDesc.getIdentity(), project).getUuid()
                 .equals(tableDesc.getUuid()));
         Assert.assertTrue(kafkaService.getKafkaManager().getKafkaConfig(kafkaConfig.getName()).getUuid()

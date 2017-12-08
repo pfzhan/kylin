@@ -72,6 +72,20 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
 
     public static final String RAW_TABLE_INSTANCE_RESOURCE_ROOT = "/raw_table_instance";
 
+    public static RawTableInstance create(String name, RawTableDesc desc) {
+        RawTableInstance rawInstance = new RawTableInstance();
+        rawInstance.setConfig(desc.getConfig());
+        rawInstance.setName(name);
+        rawInstance.setDescName(desc.getName());
+        rawInstance.setCreateTimeUTC(System.currentTimeMillis());
+        rawInstance.setSegments(new Segments<RawTableSegment>());
+        rawInstance.setStatus(RealizationStatusEnum.DISABLED);
+        rawInstance.updateRandomUuid();
+        return rawInstance;
+    }
+
+    // ============================================================================
+    
     @JsonIgnore
     private KylinConfig config;
     @JsonProperty("name")
@@ -101,18 +115,6 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     public RawTableInstance() {
     }
 
-    public static RawTableInstance create(String name, RawTableDesc desc) {
-        RawTableInstance rawInstance = new RawTableInstance();
-        rawInstance.setConfig(desc.getConfig());
-        rawInstance.setName(name);
-        rawInstance.setDescName(desc.getName());
-        rawInstance.setCreateTimeUTC(System.currentTimeMillis());
-        rawInstance.setSegments(new Segments<RawTableSegment>());
-        rawInstance.setStatus(RealizationStatusEnum.DISABLED);
-        rawInstance.updateRandomUuid();
-        return rawInstance;
-    }
-
     public void init(KylinConfig config) {
         if (null == config)
             throw new IllegalArgumentException("config is null in RawTableInstance Init!");
@@ -120,6 +122,11 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         initAllColumns();
         initDimensions();
         initMeasures();
+    }
+    
+    @Override
+    public String resourceName() {
+        return name;
     }
 
     public RawTableDesc getRawTableDesc() {

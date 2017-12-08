@@ -28,16 +28,15 @@ import static io.kyligence.kap.metadata.acl.RowACL.concatConds;
 import static io.kyligence.kap.metadata.acl.RowACL.getColumnWithType;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.AutoReadWriteLock;
+import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
+import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,12 +46,6 @@ import com.google.common.base.Preconditions;
 public class RowACLManager {
 
     private static final Logger logger = LoggerFactory.getLogger(RowACLManager.class);
-
-    private static final Serializer<RowACL> ROW_ACL_SERIALIZER = new JsonSerializer<>(RowACL.class);
-    private static final String DIR_PREFIX = "/row_acl/";
-
-    // static cached instances
-    private static final ConcurrentMap<KylinConfig, RowACLManager> CACHE = new ConcurrentHashMap<>();
 
     public static RowACLManager getInstance(KylinConfig config) {
         return config.getManager(RowACLManager.class);
@@ -68,20 +61,36 @@ public class RowACLManager {
     private KylinConfig config;
     // user ==> RowACL
     private CaseInsensitiveStringCache<RowACL> rowACLMap;
+    private CachedCrudAssist<RowACL> crud;
+    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public RowACLManager(KylinConfig config) throws IOException {
         logger.info("Initializing RowACLManager with config " + config);
         this.config = config;
         this.rowACLMap = new CaseInsensitiveStringCache<>(config, "row_acl");
-        loadAllRowACL();
+        this.crud = new CachedCrudAssist<RowACL>(getStore(), "/row_acl", "", RowACL.class, rowACLMap) {
+            @Override
+            protected RowACL initEntityAfterReload(RowACL acl, String resourceName) {
+                acl.init(resourceName);
+                return acl;
+            }
+        };
+
+        crud.reloadAll();
         Broadcaster.getInstance(config).registerListener(new RowACLSyncListener(), "row_acl");
     }
 
     private class RowACLSyncListener extends Broadcaster.Listener {
 
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey) throws IOException {
-            reloadRowACL(cacheKey);
+        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
+                throws IOException {
+            try (AutoLock l = lock.lockForWrite()) {
+                if (event == Event.DROP)
+                    rowACLMap.removeLocal(cacheKey);
+                else
+                    crud.reloadQuietly(cacheKey);
+            }
             broadcaster.notifyProjectACLUpdate(cacheKey);
         }
     }
@@ -94,83 +103,77 @@ public class RowACLManager {
         return ResourceStore.getStore(this.config);
     }
 
-    public RowACL getRowACLByCache(String project){
-        RowACL tableACL = rowACLMap.get(project);
-        if (tableACL == null) {
-            return new RowACL();
+    public RowACL getRowACLByCache(String project) {
+        try (AutoLock l = lock.lockForRead()) {
+            RowACL rowACL = rowACLMap.get(project);
+            if (rowACL == null) {
+                return newRowACL(project);
+            }
+            return rowACL;
         }
-        return tableACL;
     }
 
-    private void loadAllRowACL() throws IOException {
-        ResourceStore store = getStore();
-        List<String> paths = store.collectResourceRecursively("/row_acl", "");
-        final int prefixLen = DIR_PREFIX.length();
-        for (String path : paths) {
-            String project = path.substring(prefixLen, path.length());
-            reloadRowACL(project);
+    public void addRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
+            throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            RowACL rowACL = loadRowACL(project).add(name, table, condsWithColumn, type);
+            crud.save(rowACL);
         }
-        logger.info("Loading row ACL from folder " + store.getReadableResourcePath("/row_acl"));
     }
 
-    private void reloadRowACL(String project) throws IOException {
-        RowACL tableACLRecord = getRowACL(project);
-        rowACLMap.putLocal(project, tableACLRecord);
+    public void updateRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn,
+            String type) throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            RowACL rowACL = loadRowACL(project).update(name, table, condsWithColumn, type);
+            crud.save(rowACL);
+        }
     }
 
-    private RowACL getRowACL(String project) throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACLRecord = getStore().getResource(path, RowACL.class, ROW_ACL_SERIALIZER);
-        if (rowACLRecord == null) {
-            return new RowACL();
+    public void deleteRowACL(String project, String name, String table, String type) throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            RowACL rowACL = loadRowACL(project).delete(name, table, type);
+            crud.save(rowACL);
         }
-        return rowACLRecord;
+    }
+
+    public void deleteRowACL(String project, String name, String type) throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            RowACL rowACL = loadRowACL(project).delete(name, type);
+            crud.save(rowACL);
+        }
+    }
+
+    public void deleteRowACLByTbl(String project, String table) throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            RowACL rowACL = loadRowACL(project).deleteByTbl(table);
+            crud.save(rowACL);
+        }
+    }
+
+    private RowACL loadRowACL(String project) throws IOException {
+        RowACL acl = crud.reload(project);
+        if (acl == null) {
+            acl = newRowACL(project);
+        }
+        return acl;
+    }
+
+    private RowACL newRowACL(String project) {
+        RowACL acl = new RowACL();
+        acl.updateRandomUuid();
+        acl.init(project);
+        return acl;
+    }
+
+    // ============================================================================
+
+    public String preview(String project, String table, RowACL.ColumnToConds condsWithColumn) throws IOException {
+        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
+        return concatConds(condsWithColumn, columnWithType);
     }
 
     public Map<String, String> getQueryUsedTblToConds(String project, String name, String type) {
         return getRowACLByCache(project).getQueryUsedTblToConds(project, name, type);
     }
 
-    public String preview(String project, String table, RowACL.ColumnToConds condsWithColumn)
-            throws IOException {
-        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        return concatConds(condsWithColumn, columnWithType);
-    }
-
-    public void addRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
-            throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).add(name, table, condsWithColumn, type);
-        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
-        rowACLMap.put(project, rowACL);
-    }
-
-    public void updateRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
-            throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).update(name, table, condsWithColumn, type);
-        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
-        rowACLMap.put(project, rowACL);
-    }
-
-    public void deleteRowACL(String project, String name, String table, String type) throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).delete(name, table, type);
-        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
-        rowACLMap.put(project, rowACL);
-    }
-
-    public void deleteRowACL(String project, String name, String type) throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).delete(name, type);
-        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
-        rowACLMap.put(project, rowACL);
-    }
-
-    public void deleteRowACLByTbl(String project, String table) throws IOException {
-        String path = DIR_PREFIX + project;
-        RowACL rowACL = getRowACL(project).deleteByTbl(table);
-        getStore().putResource(path, rowACL, System.currentTimeMillis(), ROW_ACL_SERIALIZER);
-        rowACLMap.put(project, rowACL);
-    }
 }

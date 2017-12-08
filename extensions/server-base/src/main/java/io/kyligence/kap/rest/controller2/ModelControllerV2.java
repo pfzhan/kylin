@@ -289,7 +289,7 @@ public class ModelControllerV2 extends BasicController {
         newModelDesc = (KapModel) modelService.createModelDesc(project, newModelDesc);
 
         //reload avoid shallow
-        metaManager.reloadDataModelDescAt(DataModelDesc.concatResourcePath(newModelName));
+        metaManager.reloadDataModel(newModelName);
 
         String descData = JsonUtil.writeValueAsIndentString(newModelDesc);
         GeneralResponse data = new GeneralResponse();
