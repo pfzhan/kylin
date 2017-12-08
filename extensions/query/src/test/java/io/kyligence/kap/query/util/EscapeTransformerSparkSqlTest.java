@@ -28,34 +28,13 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.kyligence.kap.query.util.EscapeFunction.FnConversion;
-
-public class EscapeTransformerTest {
+public class EscapeTransformerSparkSqlTest {
 
     private static final EscapeTransformer transformer = new EscapeTransformer();
 
     @BeforeClass
     public static void prepare() {
-
-        /**
-         * Use all existing function conversions
-         */
-        EscapeDialect ALL_FUNC = new EscapeDialect() {
-
-            @Override
-            public void init() {
-                for (FnConversion func : FnConversion.values()) {
-                    register(func);
-                }
-            }
-
-            @Override
-            public String defaultConversion(String functionName, String[] args) {
-                return EscapeFunction.normalFN(functionName, args);
-            }
-        };
-
-        transformer.setFunctionDialect(ALL_FUNC);
+        transformer.setFunctionDialect(EscapeDialect.SPARK_SQL);
     }
 
     @Test

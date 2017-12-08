@@ -4,7 +4,7 @@ options {
     UNICODE_INPUT=true;
 }
 
-PARSER_BEGIN(EscapeTransformer)
+PARSER_BEGIN(EscapeParser)
 package io.kyligence.kap.query.util;
 import java.io.StringReader;
 import java.util.List;
@@ -16,45 +16,30 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
+public class EscapeParser implements IKeep {
 
-    private final static Logger logger = LoggerFactory.getLogger(EscapeTransformer.class);
+    private final static Logger logger = LoggerFactory.getLogger(EscapeParser.class);
 
-    public EscapeTransformer() {}
+    private EscapeDialect dialect = EscapeDialect.DEFAULT;
 
     public static void main(String args[]) throws ParseException {
         System.out.println("Input SQL:");
         Scanner reader = new Scanner(System.in);
         String sql = reader.nextLine();
         reader.close();
-        EscapeTransformer parser = new EscapeTransformer(new StringReader(sql));
+        EscapeParser parser = new EscapeParser(new StringReader(sql));
         String parseResult = parser.Input();
         System.out.println("Translated SQL:");
         System.out.println(parseResult);
     }
 
-    @Override
-    public String transform(String sql, String project, String defaultSchema) {
-        if (!KapConfig.getInstanceFromEnv().isJdbcEscapeEnabled()) {
-            return sql;
-        }
-
-        return transform(sql);
-    }
-
-    public String transform(String sql) {
-        try {
-            EscapeTransformer parser = new EscapeTransformer(new StringReader(sql));
-            return parser.Input();
-        } catch (Exception ex) {
-            logger.error("Something unexpected while EscapeTransformer transforming the query, return original query",
-                    ex);
-            return sql;
-        }
+    public EscapeParser(EscapeDialect newDialect, String sql) {
+        this(new StringReader(sql));
+        this.dialect = newDialect;
     }
 }
 
-PARSER_END(EscapeTransformer)
+PARSER_END(EscapeParser)
 
 //< DEFAULT, ESCAPE, FUNCTION >
 //SKIP :
@@ -238,7 +223,7 @@ String EscapeFunction() :
     )?
     < RPAREN >
     {
-        return EscapeTransformerFunction.transform(functionName, parameters.toArray(new String [ 0 ]));
+        return dialect.transformFN(functionName, parameters.toArray(new String [ 0 ]));
     }
 }
 

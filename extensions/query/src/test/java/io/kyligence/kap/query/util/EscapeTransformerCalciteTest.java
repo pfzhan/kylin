@@ -28,40 +28,19 @@ import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.kyligence.kap.query.util.EscapeFunction.FnConversion;
-
-public class EscapeTransformerTest {
+public class EscapeTransformerCalciteTest {
 
     private static final EscapeTransformer transformer = new EscapeTransformer();
 
     @BeforeClass
     public static void prepare() {
-
-        /**
-         * Use all existing function conversions
-         */
-        EscapeDialect ALL_FUNC = new EscapeDialect() {
-
-            @Override
-            public void init() {
-                for (FnConversion func : FnConversion.values()) {
-                    register(func);
-                }
-            }
-
-            @Override
-            public String defaultConversion(String functionName, String[] args) {
-                return EscapeFunction.normalFN(functionName, args);
-            }
-        };
-
-        transformer.setFunctionDialect(ALL_FUNC);
+        transformer.setFunctionDialect(EscapeDialect.CALCITE);
     }
 
     @Test
-    public void normalFNTest() {
+    public void scalarFNTest() {
         String originalSQL = "select { fn count(*) }, avg(sales) from tbl";
-        String expectedSQL = "select count(*), avg(sales) from tbl";
+        String expectedSQL = "select {fn count(*)}, avg(sales) from tbl";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -88,7 +67,7 @@ public class EscapeTransformerTest {
     @Test
     public void lengthFNTest() {
         String originalSQL = "select {fn LENGTH('Happy')}";
-        String expectedSQL = "select LENGTH('Happy')";
+        String expectedSQL = "select {fn LENGTH('Happy')}";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -97,7 +76,7 @@ public class EscapeTransformerTest {
     @Test
     public void convertFNTest() {
         String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
+        String expectedSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -106,7 +85,7 @@ public class EscapeTransformerTest {
     @Test
     public void lcaseFNTest() {
         String originalSQL = "select { fn LCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
-        String expectedSQL = "select LOWER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+        String expectedSQL = "select {fn LCASE(LSTG_FORMAT_NAME)} from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -115,7 +94,7 @@ public class EscapeTransformerTest {
     @Test
     public void ucaseFNTest() {
         String originalSQL = "select { fn UCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
-        String expectedSQL = "select UPPER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+        String expectedSQL = "select {fn UCASE(LSTG_FORMAT_NAME)} from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -124,7 +103,7 @@ public class EscapeTransformerTest {
     @Test
     public void ifnullFNTest() {
         String originalSQL = "select { fn IFNULL(LSTG_FORMAT_NAME, 'Bad name') } from KYLIN_SALES";
-        String expectedSQL = "select NULLIF(LSTG_FORMAT_NAME, 'Bad name') from KYLIN_SALES";
+        String expectedSQL = "select {fn IFNULL(LSTG_FORMAT_NAME, 'Bad name')} from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -133,7 +112,7 @@ public class EscapeTransformerTest {
     @Test
     public void logFNTest() {
         String originalSQL = "select { fn LOG(PRICE) } from KYLIN_SALES";
-        String expectedSQL = "select LN(PRICE) from KYLIN_SALES";
+        String expectedSQL = "select {fn LOG(PRICE)} from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -169,7 +148,7 @@ public class EscapeTransformerTest {
     @Test
     public void quotedStringTest() {
         String originalSQL = "select 'Hello World!', {fn LENGTH('12345 67890')}";
-        String expectedSQL = "select 'Hello World!', LENGTH('12345 67890')";
+        String expectedSQL = "select 'Hello World!', {fn LENGTH('12345 67890')}";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -178,7 +157,7 @@ public class EscapeTransformerTest {
     @Test
     public void spaceDelimitersTest() {
         String originalSQL = "select 'Hello World!',\r\n\t {fn\tLENGTH('12345 \r\n\t 67890')}\nlimit 1";
-        String expectedSQL = "select 'Hello World!',\r\n\t LENGTH('12345 \r\n\t 67890')\nlimit 1";
+        String expectedSQL = "select 'Hello World!',\r\n\t {fn LENGTH('12345 \r\n\t 67890')}\nlimit 1";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

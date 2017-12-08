@@ -22,28 +22,43 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.spark.sql.udf;
+package io.kyligence.kap.query.util;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.query.util.QueryUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import org.apache.hadoop.hive.ql.exec.UDF;
+import io.kyligence.kap.common.obf.IKeep;
 
-public class Truncate extends UDF {
+public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
 
-    public int evaluate(int b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).intValue();
+
+    private final static Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
+    
+    private EscapeDialect dialect = EscapeDialect.DEFAULT;
+
+    @Override
+    public String transform(String sql, String project, String defaultSchema) {
+        if (!KapConfig.getInstanceFromEnv().isJdbcEscapeEnabled()) {
+            return sql;
+        }
+
+        return transform(sql);
     }
 
-    public long evaluate(long b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).longValue();
+    public String transform(String sql) {
+        try {
+            EscapeParser parser = new EscapeParser(dialect, sql);
+            return parser.Input();
+        } catch (Exception ex) {
+            logger.error("Something unexpected while EscapeTransformer transforming the query, return original query",
+                    ex);
+            return sql;
+        }
     }
-
-    public double evaluate(double b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).doubleValue();
-    }
-
-    public BigDecimal evaluate(BigDecimal b0, int b1) {
-        return b0.movePointRight(b1).setScale(0, RoundingMode.DOWN).movePointLeft(b1);
+    
+    public void setFunctionDialect(EscapeDialect newDialect) {
+        this.dialect = newDialect;
     }
 }

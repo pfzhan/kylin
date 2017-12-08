@@ -5,3 +5,6 @@
 /SimpleCharStream.java
 /Token.java
 /TokenMgrError.java
+/EscapeParser.java
+/EscapeParserConstants.java
+/EscapeParserTokenManager.java

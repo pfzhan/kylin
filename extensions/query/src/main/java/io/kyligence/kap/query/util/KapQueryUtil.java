@@ -57,6 +57,10 @@ public class KapQueryUtil {
                             t instanceof HackSelectStarWithColumnACL) {
                         continue;
                     }
+                    if (t instanceof EscapeTransformer) {
+                        // TODO adjust dialect by data types
+                        ((EscapeTransformer) t).setFunctionDialect(EscapeDialect.HIVE);
+                    }
                     queryTransformers.add(t);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to init query transformer", e);

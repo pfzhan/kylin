@@ -22,28 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.spark.sql.udf;
+package io.kyligence.kap.query.util;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 
-import org.apache.hadoop.hive.ql.exec.UDF;
-
-public class Truncate extends UDF {
-
-    public int evaluate(int b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).intValue();
+public class SparkSQLFunctionConverter extends EscapeTransformer implements IPushDownConverter {
+    
+    public SparkSQLFunctionConverter() {
+        super();
+        setFunctionDialect(EscapeDialect.SPARK_SQL);
     }
 
-    public long evaluate(long b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).longValue();
+    @Override
+    public String convert(String originSql, String project, String defaultSchema, boolean isPrepare) {
+        return transform(originSql);
     }
 
-    public double evaluate(double b0, int b1) {
-        return evaluate(BigDecimal.valueOf(b0), b1).doubleValue();
-    }
-
-    public BigDecimal evaluate(BigDecimal b0, int b1) {
-        return b0.movePointRight(b1).setScale(0, RoundingMode.DOWN).movePointLeft(b1);
-    }
 }
