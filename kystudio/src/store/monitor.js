@@ -7,7 +7,13 @@ export default {
     pushdownQueries: [],
     totalJobs: 0,
     totalSlowQueries: 0,
-    totalPushDownQueries: 0
+    totalPushDownQueries: 0,
+    filter: {
+      timeFilter: 1,
+      jobName: '',
+      sortby: 'last_modify',
+      status: []
+    }
   },
   mutations: {
     [types.SAVE_JOBS_LIST]: function (state, { list, total }) {
@@ -21,6 +27,18 @@ export default {
     [types.SAVE_PUSHDOWN_QUERIES]: function (state, { list, total }) {
       state.pushdownQueries = list
       state.totalPushDownQueries = total
+    },
+    [types.RESET_MONITOR_STATE]: function (state) {
+      state.jobsList.splice(0, state.jobsList.length)
+      state.slowQueries.splice(0, state.slowQueries.length)
+      state.pushdownQueries.splice(0, state.pushdownQueries.length)
+      state.totalJobs = 0
+      state.totalSlowQueries = 0
+      state.totalPushDownQueries = 0
+      state.filter.timeFilter = 1
+      state.filter.jobName = ''
+      state.filter.sortby = 'last_modify'
+      state.filter.status = []
     }
   },
   actions: {

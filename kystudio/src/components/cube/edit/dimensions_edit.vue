@@ -101,7 +101,7 @@
                 </el-row>
                 <el-row>
                   <el-col :span="24" class="includes_tag">
-                    <area_label ref="includesSelect" :disabled="isReadyCube" :labels="rowkeyColumns.convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" @removeTag="removeIncludes">
+                    <area_label ref="includesSelect" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="isReadyCube" :labels="rowkeyColumns.convertedRowkeys" :datamap="{label:'column', value:'column'}" :refreshInfo="{index: group_index, key: 'includes'}" @refreshData="refreshIncludeData"   :selectedlabels="group.includes" @change="dimensionsChangeCalc(group_index)" @checklabel="showDetail" @removeTag="removeIncludes">
                     </area_label>
                   </el-col>
                 </el-row>

@@ -185,7 +185,8 @@
       }),
       ...mapMutations({
         setCurUser: 'SAVE_CURRENT_LOGIN_USER',
-        resetProjectState: 'RESET_PROJECT_STATE'
+        resetProjectState: 'RESET_PROJECT_STATE',
+        resetMonitorState: 'RESET_MONITOR_STATE'
       }),
       showMenuByRole (menuName) {
         if (menuName === 'system' && this.isAdmin === false || menuName === 'monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
@@ -376,6 +377,7 @@
               localStorage.setItem('buyit', false)
               // reset 所有的project信息
               this.resetProjectState()
+              this.resetMonitorState()
               this.$router.push({name: 'Login'})
             })
           })

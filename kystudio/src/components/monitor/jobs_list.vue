@@ -274,10 +274,10 @@
           pageOffset: 0,
           pageSize: pageCount,
           projectName: localStorage.getItem('selected_project'),
-          timeFilter: 1,
-          jobName: '',
-          sortby: 'last_modify',
-          status: []
+          timeFilter: this.$store.state.monitor.filter.timeFilter,
+          jobName: this.$store.state.monitor.filter.jobName,
+          sortby: this.$store.state.monitor.filter.sortby,
+          status: this.$store.state.monitor.filter.status
         },
         allStatus: [
           {name: 'PENDING', value: 1},
@@ -327,6 +327,12 @@
       window.clearTimeout(this.scrollST)
       window.removeEventListener('click', this.closeIt)
       document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+      this.$store.state.monitor.filter = {
+        timeFilter: this.filter.timeFilter,
+        jobName: this.filter.jobName,
+        sortby: this.filter.sortby,
+        status: this.filter.status
+      }
     },
     computed: {
       jobsList () {
