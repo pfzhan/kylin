@@ -330,6 +330,10 @@ public class KapConfig {
         return Integer.parseInt(config.getOptional("kap.external.http.proxy.port", "-1"));
     }
 
+    public String getChannelUser() {
+        return config.getOptional("kap.channel.user", "on-premises");
+    }
+
     /**
      * Spark configuration
      */

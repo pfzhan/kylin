@@ -168,14 +168,14 @@ public class LicenseInfoService extends BasicService {
         String url;
         try {
             url = kapConfig.getKyAccountSiteUrl()
-                    + String.format("/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s",
+                    + String.format("/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s&source=%s",
                             URLEncoder.encode(licenseRequest.getUserName(), "UTF-8"),
                             URLEncoder.encode(licenseRequest.getEmail(), "UTF-8"),
-                            URLEncoder.encode(licenseRequest.getCompany(), "UTF-8"), licenseRequest.getLang());
+                            URLEncoder.encode(licenseRequest.getCompany(), "UTF-8"), licenseRequest.getLang(), kapConfig.getChannelUser());
         } catch (UnsupportedEncodingException e) {
             url = kapConfig.getKyAccountSiteUrl() + String.format(
-                    "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s", licenseRequest.getUserName(),
-                    licenseRequest.getEmail(), licenseRequest.getCompany(), licenseRequest.getLang());
+                    "/thirdParty/license?userName=%s&email=%s&company=%s&lang=%s&source=%s", licenseRequest.getUserName(),
+                    licenseRequest.getEmail(), licenseRequest.getCompany(), licenseRequest.getLang(), kapConfig.getChannelUser());
             logger.error("URLDecoder decode url error, url=" + url, e);
         }
         String response = HttpClient.doGet(url, proxyServer, proxyPort);
