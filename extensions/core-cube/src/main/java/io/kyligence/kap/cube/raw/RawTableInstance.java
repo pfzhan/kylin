@@ -183,13 +183,17 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     @Override
     public CapabilityResult isCapable(SQLDigest digest) {
         CapabilityResult result = RawTableCapabilityChecker.check(this, digest);
-        CubeInstance cube = CubeManager.getInstance(getConfig()).getCube(name);
-        result.cost = 10 * cube.getCost(digest);//cube precedes raw in normal cases
+        result.cost = getCost(digest);
 
         if (!result.capable) {
             result.cost = -1;
         }
         return result;
+    }
+
+    public int getCost(SQLDigest digest) {
+        CubeInstance cube = CubeManager.getInstance(getConfig()).getCube(name);
+        return 10 * cube.getCost(digest);
     }
 
     @Override
@@ -331,8 +335,10 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
         this.status = status;
     }
 
+    @Override
     public int getCost() {
-        return cost;
+        CubeInstance cube = CubeManager.getInstance(getConfig()).getCube(name);
+        return 10 * cube.getCost();
     }
 
     public void setCost(int cost) {
