@@ -111,6 +111,7 @@ public class QueryCuboidTestCLI {
 
         CubeManager cubeManager = CubeManager.getInstance(config);
         for (CubeInstance cubeInstance : cubeManager.listAllCubes()) {
+            cubeInstance = cubeInstance.latestCopyForWrite();
             cubeInstance.setStatus(RealizationStatusEnum.READY);
             if (cubeInstance.getSegments().isEmpty()) {
                 CubeSegment mockSeg = new CubeSegment();

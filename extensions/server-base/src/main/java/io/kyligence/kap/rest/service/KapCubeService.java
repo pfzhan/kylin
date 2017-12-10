@@ -145,7 +145,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
             if (rawSeg != null) {
                 String rawSegmentDir = ColumnarStorageUtils.getReadSegmentDir(rawSeg);
                 columnarResp.setRawTableSegmentPath(rawSegmentDir);
-                
+
                 if (fs.exists(new Path(rawSegmentDir))) {
                     ContentSummary cs = fs.getContentSummary(new Path(rawSegmentDir));
                     columnarResp.setRawTableFileCount(cs.getFileCount());
@@ -257,16 +257,18 @@ public class KapCubeService extends BasicService implements InitializingBean {
         List<JobInstance> ret = new ArrayList<>();
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        CubeInstance cube = getCubeManager().getCube(cubeName);
-        for (CubeSegment s : cube.getSegments()) {
-            if (selectedSegments.contains(s.getName())) {
+        Segments<CubeSegment> existings = getCubeManager().getCube(cubeName).getSegments();
+        for (CubeSegment exist : existings) {
+            if (selectedSegments.contains(exist.getName())) {
+                // make sure work on the latest cube
+                CubeInstance cube = getCubeManager().getCube(cubeName);
                 JobInstance job;
-                if (s.isOffsetCube()) {
-                    job = jobService.submitJob(cube, null, s.getSegRange(), null, null, CubeBuildTypeEnum.REFRESH, true,
-                            submitter);
+                if (exist.isOffsetCube()) {
+                    job = jobService.submitJob(cube, null, exist.getSegRange(), null, null, CubeBuildTypeEnum.REFRESH,
+                            true, submitter);
                 } else {
-                    job = jobService.submitJob(cube, s.getTSRange(), null, null, null, CubeBuildTypeEnum.REFRESH, true,
-                            submitter);
+                    job = jobService.submitJob(cube, exist.getTSRange(), null, null, null, CubeBuildTypeEnum.REFRESH,
+                            true, submitter);
                 }
                 ret.add(job);
             }
@@ -275,8 +277,8 @@ public class KapCubeService extends BasicService implements InitializingBean {
     }
 
     public void dropSegments(String cubeName, List<String> selectedSegments) throws IOException {
-        CubeInstance cube = getCubeManager().getCube(cubeName);
         for (String seg : selectedSegments) {
+            CubeInstance cube = getCubeManager().getCube(cubeName);
             cubeService.deleteSegment(cube, seg);
         }
     }

@@ -227,7 +227,7 @@ public class MPCubeManagerTest extends LocalFileMetadataTestCase {
 
         ProjectManager prjMgr = ProjectManager.getInstance(config);
 
-        assertTrue(mpCube == cubeMgr.getCube(mpCubeName));
+        assertTrue(mpCube.equals(cubeMgr.getCube(mpCubeName)));
         assertTrue(prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(mpCube));
 
         return mpCube;

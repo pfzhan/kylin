@@ -106,12 +106,12 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         RawTableDesc desc = descMgr.getRawTableDesc(cubeDesc);
         RawTableInstance createdRaw = rawMgr.createRawTableInstance(cubeName, ProjectInstance.DEFAULT_PROJECT_NAME, desc, null);
 
-        assertTrue(createdRaw == rawMgr.getRawTableInstance(cubeName));
+        assertTrue(createdRaw.equals(rawMgr.getRawTableInstance(cubeName)));
         assertTrue(prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(createdRaw));
 
         RawTableInstance droppedRaw = RawTableManager.getInstance(getTestConfig()).dropRawTableInstance(cubeName, false);
 
-        assertTrue(createdRaw == droppedRaw);
+        assertTrue(createdRaw.equals(droppedRaw));
         assertTrue(!prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(droppedRaw));
         assertNull(RawTableManager.getInstance(getTestConfig()).getRawTableInstance(cubeName));
 
@@ -129,7 +129,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         CubeDesc desc = cubeDescMgr.getCubeDesc(descName);
         CubeInstance createdCube = cubeMgr.createCube(cubeName, ProjectInstance.DEFAULT_PROJECT_NAME, desc, null);
 
-        assertTrue(createdCube == cubeMgr.getCube(cubeName));
+        assertTrue(createdCube.equals(cubeMgr.getCube(cubeName)));
         assertTrue(prjMgr.listAllRealizations(ProjectInstance.DEFAULT_PROJECT_NAME).contains(createdCube));
 
     }
@@ -147,7 +147,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         String cubeName = "ci_left_join_cube";
 
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
-        CubeInstance cube = mgr.getCube(cubeName);
+        CubeInstance cube = mgr.getCube(cubeName).latestCopyForWrite();
 
         RawTableManager rawMgr = RawTableManager.getInstance(getTestConfig());
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
@@ -167,23 +167,21 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
         // append first
         CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
-        seg1.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
         CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
-        seg2.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
         rawSeg2.setStatus(SegmentStatusEnum.READY);
 
-        CubeUpdate cubeBuilder = new CubeUpdate(cube);
-        RawTableUpdate rawBuilder = new RawTableUpdate(raw);
+        RawTableUpdate rawUpdate = new RawTableUpdate(raw);
+        rawMgr.updateRawTable(rawUpdate);
 
-        mgr.updateCube(cubeBuilder);
-        rawMgr.updateRawTable(rawBuilder);
-
+        cube = mgr.getCube(cube.getName());
         assertEquals(2, cube.getSegments().size());
         assertEquals(2, raw.getSegments().size());
 
@@ -210,7 +208,7 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         String cubeName = "ci_left_join_cube";
 
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
-        CubeInstance cube = mgr.getCube(cubeName);
+        CubeInstance cube = mgr.getCube(cubeName).latestCopyForWrite();
 
         RawTableManager rawMgr = RawTableManager.getInstance(getTestConfig());
         RawTableInstance raw = rawMgr.getRawTableInstance(cubeName);
@@ -230,17 +228,18 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
         // append first
         CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
-        seg1.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg1 = rawMgr.appendSegment(raw, seg1);
         rawSeg1.setStatus(SegmentStatusEnum.READY);
 
         CubeSegment seg3 = mgr.appendSegment(cube, new TSRange(2000L, 4000L));
-        seg3.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg3, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg3 = rawMgr.appendSegment(raw, seg3);
         rawSeg3.setStatus(SegmentStatusEnum.READY);
 
+        cube = mgr.getCube(cube.getName());
         assertEquals(2, cube.getSegments().size());
         assertEquals(2, raw.getSegments().size());
 
@@ -253,11 +252,12 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         // append a new seg which will be merged
 
         CubeSegment seg4 = mgr.appendSegment(cube, new TSRange(4000L, 8000L));
-        seg4.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg4, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg4 = rawMgr.appendSegment(raw, seg4);
         rawSeg4.setStatus(SegmentStatusEnum.READY);
 
+        cube = mgr.getCube(cube.getName());
         assertEquals(3, cube.getSegments().size());
         assertEquals(3, raw.getSegments().size());
 
@@ -273,11 +273,12 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
         // fill the gap
 
         CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
-        seg2.setStatus(SegmentStatusEnum.READY);
+        mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
         RawTableSegment rawSeg2 = rawMgr.appendSegment(raw, seg2);
         rawSeg2.setStatus(SegmentStatusEnum.READY);
 
+        cube = mgr.getCube(cube.getName());
         assertEquals(4, cube.getSegments().size());
         assertEquals(4, raw.getSegments().size());
 

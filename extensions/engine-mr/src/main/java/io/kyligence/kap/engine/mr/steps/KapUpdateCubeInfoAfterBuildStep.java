@@ -28,7 +28,6 @@ import java.io.IOException;
 
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.CubeUpdate;
 import org.apache.kylin.engine.mr.steps.CubingExecutableUtil;
 import org.apache.kylin.engine.mr.steps.UpdateCubeInfoAfterBuildStep;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -61,15 +60,11 @@ public class KapUpdateCubeInfoAfterBuildStep extends UpdateCubeInfoAfterBuildSte
         CubeInstance master = mpMgr.convertToMPMasterIfNeeded(cube.getName());
         try {
             // disable MP Cube
-            CubeUpdate update = new CubeUpdate(cube);
-            update.setStatus(RealizationStatusEnum.DISABLED);
-            cubeManager.updateCube(update);
+            cubeManager.updateCubeStatus(cube, RealizationStatusEnum.DISABLED);
             
             // enable MP Master
             if (master.getStatus() == RealizationStatusEnum.DISABLED) {
-                update = new CubeUpdate(master);
-                update.setStatus(RealizationStatusEnum.READY);
-                cubeManager.updateCube(update);
+                cubeManager.updateCubeStatus(master, RealizationStatusEnum.READY);
             }
         } catch (IOException e) {
             logger.error("Failed to update MP master " + master + " status to ready", e);
