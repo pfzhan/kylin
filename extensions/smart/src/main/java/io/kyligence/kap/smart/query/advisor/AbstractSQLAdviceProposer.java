@@ -71,6 +71,9 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
             "No realization found for [^\\s]+:OLAPTableScan\\.OLAP\\.\\[\\]\\(table=\\[([^\\s]+), ([^\\s]+)\\].*",
             Pattern.MULTILINE | Pattern.DOTALL);
 
+    private static final Pattern PTN_ARITHMETIC_ERROR = Pattern.compile("ArithmeticException: (.*)",
+            Pattern.MULTILINE | Pattern.DOTALL);
+
     protected AdviceMessage msg = AdviceMsgPicker.getMsg();
 
     @Override
@@ -122,6 +125,11 @@ abstract class AbstractSQLAdviceProposer implements ISQLAdviceProposer {
         if (m.matches()) {
             return SQLAdvice.build(msg.getNO_REALIZATION_FOUND_REASON(),
                     String.format(msg.getNO_REALIZATION_FOUND_SUGGEST(), m.group(1), m.group(2)));
+        }
+
+        m = PTN_ARITHMETIC_ERROR.matcher(message);
+        if (m.matches()) {
+            return SQLAdvice.build(msg.getARITHMETIC_ERROR_REASON() + m.group(1), msg.getARITHMETIC_ERROR_SUGGEST());
         }
 
         // by default, return origin message

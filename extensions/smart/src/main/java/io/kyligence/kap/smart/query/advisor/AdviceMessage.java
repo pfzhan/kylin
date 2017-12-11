@@ -298,4 +298,12 @@ public class AdviceMessage {
     public String getNO_REALIZATION_FOUND_SUGGEST() {
         return "Please ensure you have the cube which including fact table %s.%s. Another suggested way is using Verify SQL(action for cube) among the desired cube to shape it as your will.";
     }
+
+    public String getARITHMETIC_ERROR_REASON() {
+        return "SQL contains arithmetic error: ";
+    }
+
+    public String getARITHMETIC_ERROR_SUGGEST() {
+        return "Please correct it and try again.";
+    }
 }
