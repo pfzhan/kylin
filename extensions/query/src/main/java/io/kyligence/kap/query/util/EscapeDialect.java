@@ -68,11 +68,7 @@ public abstract class EscapeDialect {
         public void init() {
             register(FnConversion.LEFT);
             register(FnConversion.RIGHT);
-            register(FnConversion.LTRIM);
-            register(FnConversion.RTRIM);
             register(FnConversion.CONVERT);
-            register(FnConversion.LCASE);
-            register(FnConversion.UCASE);
             register(FnConversion.IFNULL);
             register(FnConversion.LOG);
             register(FnConversion.CURRENT_DATE);

@@ -92,6 +92,16 @@ public class EscapeFunction {
                 if (sqlType.startsWith(sqlPrefix)) {
                     sqlType = sqlType.substring(sqlPrefix.length());
                 }
+                switch (sqlType) {
+                case "VARCHAR":
+                case "WVARCHAR":
+                case "CHAR":
+                case "WCHAR":
+                    sqlType = "STRING";
+                    break;
+                default:
+                    break;
+                }
                 String[] newArgs = new String[] { value + " AS " + sqlType };
                 return normalFN("CAST", newArgs);
             }

@@ -31,19 +31,31 @@ import org.apache.hadoop.hive.ql.exec.UDF;
 
 public class Truncate extends UDF {
 
-    public int evaluate(int b0, int b1) {
+    public Integer evaluate(Integer b0, Integer b1) {
+        if (b0 == null || b1 == null) {
+            return b0;
+        }
         return evaluate(BigDecimal.valueOf(b0), b1).intValue();
     }
 
-    public long evaluate(long b0, int b1) {
+    public Long evaluate(Long b0, Integer b1) {
+        if (b0 == null || b1 == null) {
+            return b0;
+        }
         return evaluate(BigDecimal.valueOf(b0), b1).longValue();
     }
 
-    public double evaluate(double b0, int b1) {
+    public Double evaluate(Double b0, Integer b1) {
+        if (b0 == null || b1 == null) {
+            return b0;
+        }
         return evaluate(BigDecimal.valueOf(b0), b1).doubleValue();
     }
 
-    public BigDecimal evaluate(BigDecimal b0, int b1) {
+    public BigDecimal evaluate(BigDecimal b0, Integer b1) {
+        if (b0 == null || b1 == null) {
+            return b0;
+        }
         return b0.movePointRight(b1).setScale(0, RoundingMode.DOWN).movePointLeft(b1);
     }
 }
