@@ -517,7 +517,7 @@ export default {
     },
     // 加载Hive列表
     loadHivesAction (tableNamesArr, btn) {
-      this.loadHiveInProject({
+      return this.loadHiveInProject({
         project: this.project,
         tables: tableNamesArr.join(','),
         data: {
@@ -619,7 +619,11 @@ export default {
     // 重新加载table
     reloadTable () {
       var tableName = this.tableData.database + '.' + this.tableData.name
-      this.loadHivesAction([tableName], this.$refs.reloadBtnConfirm)
+      this.loadHivesAction([tableName], this.$refs.reloadBtnConfirm).then(() => {
+        this.loadHiveTree().then(() => {
+          this.showTableDetail(this.tableData.database, this.tableData.name)
+        })
+      })
     },
     // 卸载Table
     unloadTable () {
@@ -644,7 +648,7 @@ export default {
       })
     },
     loadHiveTree () {
-      this.loadDataSourceByProject({project: this.project, isExt: true}).then((response) => {
+      return this.loadDataSourceByProject({project: this.project, isExt: true}).then((response) => {
         handleSuccess(response, (data, code) => {
           var datasourceData = data
           var datasourceTreeData = {
