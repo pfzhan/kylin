@@ -76,7 +76,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void convertFNTest() {
         String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
+        String expectedSQL = "select CAST(PART_DT AS DATE), LTRIM(CAST(PRICE AS STRING)) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -85,7 +85,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void lcaseFNTest() {
         String originalSQL = "select { fn LCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
-        String expectedSQL = "select LOWER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+        String expectedSQL = "select LCASE(LSTG_FORMAT_NAME) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -94,7 +94,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void ucaseFNTest() {
         String originalSQL = "select { fn UCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
-        String expectedSQL = "select UPPER(LSTG_FORMAT_NAME) from KYLIN_SALES";
+        String expectedSQL = "select UCASE(LSTG_FORMAT_NAME) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

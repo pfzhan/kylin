@@ -154,6 +154,13 @@ public class EscapeFunction {
                 checkArgs(args, 0);
                 return "CURRENT_TIMESTAMP";
             }
+        }), 
+        WEEK(new IConvert() {
+            @Override
+            public String convert(String[] args) {
+                checkArgs(args, 1);
+                return normalFN("WEEKOFYEAR", args);
+            }
         });
 
         private interface IConvert {

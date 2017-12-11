@@ -97,7 +97,7 @@ public class EscapeTransformerTest {
     @Test
     public void convertFNTest() {
         String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
+        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS STRING)) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

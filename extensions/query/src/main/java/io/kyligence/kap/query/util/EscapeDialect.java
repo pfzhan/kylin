@@ -75,6 +75,7 @@ public abstract class EscapeDialect {
             register(FnConversion.CURRENT_TIME);
             register(FnConversion.CURRENT_TIMESTAMP);
             register("CHAR_LENGTH", FnConversion.LENGTH);
+            register(FnConversion.WEEK);
         }
 
         @Override
