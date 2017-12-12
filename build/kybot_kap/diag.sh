@@ -12,7 +12,7 @@ mkdir -p ${KYLIN_HOME}/logs
 tomcat_root=${dir}/../tomcat
 export tomcat_root
 
-if [ $# -gt 0 ] && [ $# -lt 7 ]
+if [ $# -gt 0 ] && [ $# -lt 13 ]
 then
     patient="$1"
     if [ -z "$patient" ]
@@ -30,25 +30,55 @@ then
     startTime="$4"
     endTime="$5"
     currTime="$6"
+    base="$7"
+    storage="$8"
+    query="$9"
+    meta="${10}"
+    job="${11}"
+    others="${12}"
 
     KYBOT_OPTS=""
     if [ "$needUpload" == "true" ]; then
         KYBOT_OPTS="${KYBOT_OPTS} -uploadToServer true"
     fi
 
-    if [ -n "$startTime" ]
+    if [ "$startTime" != "-1" ]
     then
         KYBOT_OPTS="${KYBOT_OPTS} -startTime $startTime"
     fi
 
-    if [ -n "$endTime" ]
+    if [ "$endTime" != "-1" ]
     then
         KYBOT_OPTS="${KYBOT_OPTS} -endTime $endTime"
     fi
 
-    if [ -n "$currTime" ]
+    if [ "$currTime" != "-1" ]
     then
         KYBOT_OPTS="${KYBOT_OPTS} -currentTime $currTime"
+    fi
+
+    if [ "$base" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -base true"
+    fi
+
+    if [ "$storage" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -storage true"
+    fi
+
+    if [ "$query" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -query true"
+    fi
+
+    if [ "$meta" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -meta true"
+    fi
+
+    if [ "$job" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -job true"
+    fi
+
+    if [ "$others" == "true" ]; then
+        KYBOT_OPTS="${KYBOT_OPTS} -others true"
     fi
 
     if [ ${#patient} -eq 36 ]; then

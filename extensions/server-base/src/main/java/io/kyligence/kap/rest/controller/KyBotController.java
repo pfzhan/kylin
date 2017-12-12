@@ -60,13 +60,14 @@ public class KyBotController extends BasicController {
     public void localDumpKyBotPackage(@RequestParam(value = "startTime", required = false) Long startTime,
             @RequestParam(value = "endTime", required = false) Long endTime,
             @RequestParam(value = "currentTime", required = false) Long currTime,
+            @RequestParam(value = "types[]", required = false) String[] types,
             @RequestParam(value = "target", required = false) String target, final HttpServletRequest request,
             final HttpServletResponse response) {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String filePath;
         try {
-            filePath = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, currTime, false);
+            filePath = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, currTime, false, types);
         } catch (IOException e) {
             throw new InternalErrorException(msg.getDUMP_KYBOT_PACKAGE_FAIL());
         }
@@ -80,10 +81,11 @@ public class KyBotController extends BasicController {
     public EnvelopeResponse uploadToKybot(@RequestParam(value = "startTime", required = false) Long startTime,
             @RequestParam(value = "endTime", required = false) Long endTime,
             @RequestParam(value = "currentTime", required = false) Long currTime,
+            @RequestParam(value = "types[]", required = false) String[] types,
             @RequestParam(value = "target", required = false) String target) throws IOException {
         KapMessage msg = KapMsgPicker.getMsg();
 
-        String path = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, currTime, true);
+        String path = kybotService.dumpLocalKyBotPackage(target, startTime, endTime, currTime, true, types);
         boolean retVal = !StringUtils.isEmpty(path);
 
         return new EnvelopeResponse(retVal ? KyBotService.SUCC_CODE : KyBotService.AUTH_FAILURE, retVal,
@@ -196,5 +198,14 @@ public class KyBotController extends BasicController {
 
         boolean stopped = kybotService.stopDaemon();
         return new EnvelopeResponse(KyBotService.SUCC_CODE, stopped, null);
+    }
+
+    @RequestMapping(value = "/kybot/servers", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getServerList() {
+        String[] servers = kybotService.getServerList();
+
+        return new EnvelopeResponse(KyBotService.SUCC_CODE, servers, null);
     }
 }

@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -66,12 +67,21 @@ public class KyBotService extends BasicService {
     public static final String NO_ACCOUNT = "401";
     public static final String AUTH_FAILURE = "402";
     public static final String NO_INTERNET = "403";
+    // diag types
+    private static final String CATE_BASE = "0";
+    private static final String CATE_STORAGE = "1";
+    private static final String CATE_QUERY = "2";
+    private static final String CATE_META = "3";
+    private static final String CATE_JOB = "4";
+    private static final String CATE_OTHERS = "5";
+
 
     private static final Logger logger = LoggerFactory.getLogger(KyBotService.class);
     private KapConfig kapConfig = KapConfig.getInstanceFromEnv();
+    private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, Long currTime, boolean needUpload)
+    public String dumpLocalKyBotPackage(String target, Long startTime, Long endTime, Long currTime, boolean needUpload, String[] types)
             throws IOException {
         File exportPath = Files.createTempDir();
         if (StringUtils.isEmpty(target)) {
@@ -82,6 +92,20 @@ public class KyBotService extends BasicService {
             validateToken();
         }
 
+        Map<String, String> typeMap = new TreeMap<>();
+        typeMap.put(CATE_BASE, "true");
+        typeMap.put(CATE_STORAGE, "false");
+        typeMap.put(CATE_QUERY, "false");
+        typeMap.put(CATE_META, "false");
+        typeMap.put(CATE_JOB, "false");
+        typeMap.put(CATE_OTHERS, "false");
+
+        if (types != null){
+            for (String type : types) {
+                typeMap.put(type, "true");
+            }
+        }
+
         ArrayList<String> args = Lists.newArrayList();
         args.add(target);
         args.add(exportPath.getAbsolutePath());
@@ -89,13 +113,24 @@ public class KyBotService extends BasicService {
 
         if (startTime != null) {
             args.add(Long.toString(startTime));
+        } else {
+            args.add("-1");
         }
         if (endTime != null) {
             args.add(Long.toString(endTime));
+        } else {
+            args.add("-1");
         }
         if (currTime != null) {
             args.add(Long.toString(currTime));
+        } else {
+            args.add("-1");
         }
+
+        for (Map.Entry<String, String> entry : typeMap.entrySet()) {
+            args.add(entry.getValue());
+        }
+
         runKyBotCLI(args.toArray(new String[0]));
         return getKyBotPackagePath(exportPath);
     }
@@ -376,5 +411,11 @@ public class KyBotService extends BasicService {
     private String getKyAccountToken() {
         readLocalKyAccountToken();
         return kapConfig.getKyAccountToken();
+    }
+
+    public String[] getServerList() {
+        String[] servers = kylinConfig.getRestServers();
+
+        return servers;
     }
 }
