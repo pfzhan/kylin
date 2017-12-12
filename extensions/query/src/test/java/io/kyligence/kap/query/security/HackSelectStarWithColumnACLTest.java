@@ -29,9 +29,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.TreeSet;
 
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -86,18 +89,25 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
     }
 
     @Test
+    public void testExplainSyntax() {
+        HackSelectStarWithColumnACL transformer = new HackSelectStarWithColumnACL();
+        String sql = "explain plan for select * from t";
+        Assert.assertEquals(sql, transformer.transform("explain plan for select * from t", PROJECT, SCHEMA));
+    }
+
+    @Test
     public void testGetNewSelectClause() {
         enableQueryPushDown();
         String sql = "select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ";
         TreeSet<String> mockBlackList = new TreeSet<>();
-        String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(sql, PROJECT, SCHEMA, mockBlackList);
+        String newSelectClause = HackSelectStarWithColumnACL.getNewSelectClause(parse(sql), PROJECT, SCHEMA, mockBlackList);
         String expect = "T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.PRICE, T1.ITEM_COUNT, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.BUYER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN";
         Assert.assertEquals(expect, newSelectClause);
 
         mockBlackList.add("DEFAULT.TEST_KYLIN_FACT.PRICE");
         mockBlackList.add("DEFAULT.TEST_ORDER.BUYER_ID");
 
-        String newSelectClause1 = HackSelectStarWithColumnACL.getNewSelectClause(sql, PROJECT, SCHEMA, mockBlackList);
+        String newSelectClause1 = HackSelectStarWithColumnACL.getNewSelectClause(parse(sql), PROJECT, SCHEMA, mockBlackList);
         String expect1 ="T1.TRANS_ID, T1.ORDER_ID, T1.CAL_DT, T1.LSTG_FORMAT_NAME, T1.LEAF_CATEG_ID, T1.LSTG_SITE_ID, T1.SLR_SEGMENT_CD, T1.SELLER_ID, T1.ITEM_COUNT, T1.TEST_COUNT_DISTINCT_BITMAP, T1.DEAL_AMOUNT, T1.DEAL_YEAR, T1.BUYER_ID_AND_COUNTRY_NAME, T1.SELLER_ID_AND_COUNTRY_NAME, T1.BUYER_COUNTRY_ABBR, T1.SELLER_COUNTRY_ABBR, T2.ORDER_ID, T2.TEST_DATE_ENC, T2.TEST_TIME_ENC, T2.TEST_EXTENDED_COLUMN";
         Assert.assertEquals(expect1, newSelectClause1);
     }
@@ -105,7 +115,7 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
     @Test
     public void testGetColsCanAccess() {
         List<String> empty = HackSelectStarWithColumnACL
-                .getColsCanAccess("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID " //
+                .getColsCanAccess(parse("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ") //
                         , PROJECT //
                         , SCHEMA //
                         , new HashSet<String>());
@@ -113,7 +123,7 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
 
         enableQueryPushDown();
         List<String> colsCanAccess = HackSelectStarWithColumnACL
-                .getColsCanAccess("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID " //
+                .getColsCanAccess(parse("select * from TEST_KYLIN_FACT t1 join TEST_ORDER t2 on t1.ORDER_ID = t2.ORDER_ID ") //
                         , PROJECT //
                         , SCHEMA //
                         , new HashSet<String>());
@@ -123,5 +133,15 @@ public class HackSelectStarWithColumnACLTest extends LocalFileMetadataTestCase {
     private void enableQueryPushDown() {
         KylinConfig.getInstanceFromEnv().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+    }
+
+    private SqlNode parse(String sql) {
+        SqlNode sqlNode;
+        try {
+            sqlNode = CalciteParser.parse(sql);
+        } catch (SqlParseException e) {
+            throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
+        }
+        return sqlNode;
     }
 }

@@ -32,12 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 
 public class RowFilterTest {
@@ -71,6 +72,16 @@ public class RowFilterTest {
         String expectedSQL = "select * from (select * from t WHERE ( T.a > 0 OR T.b < 0 ) AND ( T.a > 0 OR T.b < 0 ) AND ( T.a > 0 OR T.b < 0 ))";
         Assert.assertEquals(expectedSQL, sql);
     }
+
+    @Test
+    public void testExplainSyntax() {
+        String sql = "explain plan for select * from t";
+        Map<String, String> whereCond = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        whereCond.put("DB.T", "(a > 0 OR b < 0)");
+        Assert.assertEquals("explain plan for select * from t WHERE (T.a > 0 OR T.b < 0)",
+                RowFilter.rowFilter("DB", sql, whereCond));
+    }
+
 
     @Test
     public void testSimpleRowFilter() {

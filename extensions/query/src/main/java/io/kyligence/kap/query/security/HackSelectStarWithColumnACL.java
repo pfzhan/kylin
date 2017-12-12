@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
@@ -55,7 +56,18 @@ import io.kyligence.kap.metadata.acl.ColumnACLManager;
 public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer, IKeep {
     @Override
     public String transform(String sql, String project, String defaultSchema) {
-        if (!isColumnInterceptorEnabled() || !isSingleSelectStar(sql)) {
+        if (!isColumnInterceptorEnabled()) {
+            return sql;
+        }
+
+        SqlNode sqlNode;
+        try {
+            sqlNode = CalciteParser.parse(sql);
+        } catch (SqlParseException e) {
+            throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
+        }
+
+        if (!isSingleSelectStar(sqlNode)) {
             return sql;
         }
 
@@ -69,16 +81,16 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
             return sql;
         }
 
-        String newSelectClause = getNewSelectClause(sql, project, defaultSchema, columnBlackList);
-        int selectStarPos = getSelectStarPos(sql);
+        String newSelectClause = getNewSelectClause(sqlNode, project, defaultSchema, columnBlackList);
+        int selectStarPos = getSelectStarPos(sql, sqlNode);
         StringBuilder result = new StringBuilder(sql);
         result.replace(selectStarPos, selectStarPos + 1, newSelectClause);
         return result.toString();
     }
 
-    static String getNewSelectClause(String sql, String project, String defaultSchema, Set<String> columnBlackList) {
+    static String getNewSelectClause(SqlNode sqlNode, String project, String defaultSchema, Set<String> columnBlackList) {
         StringBuilder newSelectClause = new StringBuilder();
-        List<String> allCols = getColsCanAccess(sql, project, defaultSchema, columnBlackList);
+        List<String> allCols = getColsCanAccess(sqlNode, project, defaultSchema, columnBlackList);
         for (String col : allCols) {
             if (!col.equals(allCols.get(allCols.size() - 1))) {
                 newSelectClause.append(col).append(", ");
@@ -89,11 +101,11 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return newSelectClause.toString();
     }
 
-    static List<String> getColsCanAccess(String sql, String project, String defaultSchema,
+    static List<String> getColsCanAccess(SqlNode sqlNode, String project, String defaultSchema,
             Set<String> columnBlackList) {
         List<String> cols = new ArrayList<>();
 
-        List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sql));
+        List<RowFilter.Table> tblWithAlias = RowFilter.getTblWithAlias(defaultSchema, getSingleSelect(sqlNode));
         for (RowFilter.Table table : tblWithAlias) {
             TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .getTableDesc(table.getName(), project);
@@ -111,28 +123,22 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
         return KapConfig.getInstanceFromEnv().isColumnACLEnabled();
     }
 
-    private static boolean isSingleSelectStar(String sql) {
-        if (SelectNumVisitor.getSelectNum(sql) != 1) {
+    private static boolean isSingleSelectStar(SqlNode sqlNode) {
+        if (SelectNumVisitor.getSelectNum(sqlNode) != 1 || sqlNode instanceof SqlExplain) {
             return false;
         }
-        SqlSelect singleSelect = getSingleSelect(sql);
+        SqlSelect singleSelect = getSingleSelect(sqlNode);
         return singleSelect.getSelectList().toString().equals("*");
     }
 
-    private static int getSelectStarPos(String sql) {
-        SqlSelect singleSelect = getSingleSelect(sql);
+    private static int getSelectStarPos(String sql, SqlNode sqlNode) {
+        SqlSelect singleSelect = getSingleSelect(sqlNode);
         Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(singleSelect.getSelectList(), sql);
         Preconditions.checkState(replacePos.getSecond() - replacePos.getFirst() == 1);
         return replacePos.getFirst();
     }
 
-    private static SqlSelect getSingleSelect(String sql) {
-        SqlNode sqlNode;
-        try {
-            sqlNode = CalciteParser.parse(sql);
-        } catch (SqlParseException e) {
-            throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid");
-        }
+    private static SqlSelect getSingleSelect(SqlNode sqlNode) {
         if (sqlNode instanceof SqlOrderBy) {
             SqlOrderBy orderBy = (SqlOrderBy) sqlNode;
             return (SqlSelect) orderBy.query;
@@ -157,14 +163,8 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
     static class SelectNumVisitor extends SqlBasicVisitor<SqlNode> {
         int selectNum = 0;
 
-        static int getSelectNum(String sql) {
+        static int getSelectNum(SqlNode sqlNode) {
             SelectNumVisitor snv = new SelectNumVisitor();
-            SqlNode sqlNode;
-            try {
-                sqlNode = CalciteParser.parse(sql);
-            } catch (SqlParseException e) {
-                throw new RuntimeException("Failed to parse SQL \'" + sql + "\', please make sure the SQL is valid", e);
-            }
             sqlNode.accept(snv);
             return snv.getNum();
         }
