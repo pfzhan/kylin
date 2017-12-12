@@ -146,7 +146,6 @@ export default {
   },
   methods: {
     ...mapActions({
-      loadHiddenFeature: 'LOAD_HIDDEN_FEATURE',
       getCubeSuggestions: 'GET_CUBE_DIMENSIONS'
     }),
     resetMeasures: function () {

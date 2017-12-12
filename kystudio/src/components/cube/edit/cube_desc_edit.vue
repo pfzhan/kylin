@@ -768,23 +768,11 @@ export default {
         }
       }
     },
-    getProperty: function (name) {
-      let result = (new RegExp(name + '=(.*?)\\n')).exec(this.$store.state.system.serverConfig)
-      return result && result[1] || ''
-    },
     getCubeEng: function () {
-      let CubeEng = this.getProperty('kylin.engine.default').trim()
-      if (!CubeEng) {
-        return 2
-      }
-      return +CubeEng
+      return +this.$store.state.system.engine
     },
     getStorageEng: function () {
-      let StorageEng = this.getProperty('kylin.storage.default').trim()
-      if (!StorageEng) {
-        return 2
-      }
-      return +StorageEng
+      return +this.$store.state.system.storage
     },
     loadCubeDetail: function () {
       var _this = this

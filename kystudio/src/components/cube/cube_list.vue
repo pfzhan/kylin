@@ -329,7 +329,6 @@ export default {
   },
   methods: {
     ...mapActions({
-      getConf: 'GET_CONF',
       getCubesList: 'GET_CUBES_LIST',
       getCubesSegmentsList: 'GET_CUBES_SEGMENTS_LIST',
       deleteCube: 'DELETE_CUBE',

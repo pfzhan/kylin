@@ -145,7 +145,6 @@ export const VERIFY_CUBE_SQL = 'VERIFY_CUBE_SQL'
 // config actions mutations
 export const LOAD_DEFAULT_CONFIG = 'LOAD_DEFAULT_CONFIG'
 export const SAVE_DEFAULT_CONFIG = 'SAVE_DEFAULT_CONFIG'
-export const LOAD_HIDDEN_FEATURE = 'LOAD_HIDDEN_FEATURE'
 export const SAVE_HIDDEN_FEATURE = 'SAVE_HIDDEN_FEATURE'
 
 // kafka actions mutations
@@ -170,6 +169,8 @@ export const LOAD_AUTHENTICATION = 'LOAD_AUTHENTICATION'
 export const GET_ENV = 'GET_ENV'
 export const SAVE_ENV = 'SAVE_ENV'
 export const GET_CONF = 'GET_CONF'
+export const SAVE_ADMIN_CONF = 'SAVE_ADMIN_CONF'
+export const GET_ADMIN_CONFIG = 'GET_ADMIN_CONFIG'
 export const GET_CONF_BY_NAME = 'GET_CONF_BY_NAME'
 export const SAVE_CONF = 'SAVE_CONF'
 export const RELOAD_METADATA = 'RELOAD_METADATA'

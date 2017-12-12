@@ -30,7 +30,7 @@ KylinApp.service('kylinConfig', function (AdminService, $log) {
 
 
   this.init = function () {
-    return AdminService.config({}, function (config) {
+    return AdminService.publicConfig({}, function (config) {
       _config = config.config;
     }, function (e) {
       $log.error("failed to load kylin.properties" + e);

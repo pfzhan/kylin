@@ -5,6 +5,7 @@ export default {
   state: {
     needReset: false,
     authentication: null,
+    adminConfig: null,
     serverConfig: null,
     serverEnvironment: null,
     serverAboutKap: null,
@@ -13,6 +14,10 @@ export default {
     limitlookup: 'true',
     strategy: 'default',
     showHtrace: false,
+    hiddenRaw: true,
+    hiddenExtendedColumn: true,
+    storage: 2,
+    engine: 2,
     filterUserName: ''// group页面 选择用户组件使用
   },
   mutations: {
@@ -24,6 +29,9 @@ export default {
     },
     [types.SAVE_CONF]: function (state, result) {
       state.serverConfig = result.conf
+    },
+    [types.SAVE_ADMIN_CONF]: function (state, result) {
+      state.adminConfig = result.conf
     },
     [types.GET_TIMEZONE]: function (state, name) {
       if (!state.timeZone) {
@@ -60,32 +68,31 @@ export default {
         })
       })
     },
+    [types.GET_ADMIN_CONFIG]: function ({ commit }) {
+      return api.system.getConfig().then((response) => {
+        commit(types.SAVE_ADMIN_CONF, { conf: response.data.data })
+        return response
+      })
+    },
     [types.GET_ENV]: function ({ commit }) {
       return api.system.getEnv().then((response) => {
         commit(types.SAVE_ENV, { env: response.data.data })
+        return response
       })
     },
     [types.GET_CONF]: function ({ commit }) {
-      /* return api.system.getConfig().then((response) => {
-        commit(types.SAVE_CONF, { conf: response.data.data })
-        commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
-        commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
-      }) */
-
       return new Promise((resolve, reject) => {
-        api.system.getConfig().then((response) => {
+        api.system.getPublicConfig().then((response) => {
           commit(types.SAVE_CONF, { conf: response.data.data })
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
-          commit(types.GET_CONF_BY_NAME, {name: 'kap.kyaccount.username', key: 'kyAccount'})
-          commit(types.GET_CONF_BY_NAME, {name: 'kap.license.statement', key: 'statement'})
-          commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
+          // commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.htrace.show-gui-trace-toggle', key: 'showHtrace'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.raw-measure', key: 'hiddenRaw'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.extendedcolumn-measure', key: 'hiddenExtendedColumn'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.engine.default', key: 'engine'})
+          commit(types.GET_CONF_BY_NAME, {name: 'kylin.storage.default', key: 'storage'})
           resolve(response.data.data)
         }, () => {
           reject()

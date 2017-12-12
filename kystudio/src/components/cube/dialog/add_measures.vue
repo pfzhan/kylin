@@ -601,11 +601,11 @@ export default {
     initHiddenFeature: function () {
       let rawIndex = indexOfObjWithSomeKey(this.expressionsConf, 'value', 'RAW')
       let extendedIndex = indexOfObjWithSomeKey(this.expressionsConf, 'value', 'EXTENDED_COLUMN')
-      if (this.$store.state.config.hiddenFeature['raw-measure'] === true && rawIndex >= 0) {
-        this.expressionsConf.splice(rawIndex, 1)
-      }
-      if (this.$store.state.config.hiddenFeature['extendedcolumn-measure'] === true && extendedIndex >= 0) {
+      if (this.$store.state.system.hiddenExtendedColumn === 'true' && extendedIndex >= 0) {
         this.expressionsConf.splice(extendedIndex, 1)
+      }
+      if (this.$store.state.system.hiddenRaw === 'true' && rawIndex >= 0) {
+        this.expressionsConf.splice(rawIndex, 1)
       }
     },
     checkMeasures: function () {

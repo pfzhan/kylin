@@ -30,29 +30,17 @@ export default {
       currentPathName: ''
     },
     overLock: localStorage.getItem('buyit'),
-    hiddenFeature: {
-      raw_measure: false,
-      extendedcolumn_measure: false
-    },
     loginKyaccountDialog: false
   },
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list, type }) {
       state.defaultConfig[type] = list
-    },
-    [types.SAVE_HIDDEN_FEATURE]: function (state, {value, name}) {
-      state.hiddenFeature[name] = value
     }
   },
   actions: {
     [types.LOAD_DEFAULT_CONFIG]: function ({ commit }, type) {
       return api.config.getDefaults(type).then((response) => {
         commit(types.SAVE_DEFAULT_CONFIG, { type: type, list: response.data.data })
-      })
-    },
-    [types.LOAD_HIDDEN_FEATURE]: function ({ commit }, feature) {
-      return api.config.hiddenMeasure(feature).then((response) => {
-        commit(types.SAVE_HIDDEN_FEATURE, {value: response.data.data, name: feature.feature_name})
       })
     }
   },

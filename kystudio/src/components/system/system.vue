@@ -93,7 +93,7 @@ export default {
   methods: {
     ...mapActions({
       getEnv: 'GET_ENV',
-      getConf: 'GET_CONF',
+      getConf: 'GET_ADMIN_CONFIG',
       reloadMetadata: 'RELOAD_METADATA',
       backupMetadata: 'BACKUP_METADATA',
       updateConfig: 'UPDATE_CONFIG',
@@ -145,7 +145,6 @@ export default {
             duration: 3000
           })
         })
-        this.getConf()
       }).catch((res) => {
         handleError(res)
       })
@@ -185,35 +184,18 @@ export default {
     },
     refreshEnv: function () {
       this.getEnv().then((res) => {
-        // handleSuccess(res, (data, code, status, msg) => {
-        //   this.$notify({
-        //     title: this.$t('success'),
-        //     message: this.$t('successEnvironment'),
-        //     type: 'success',
-        //     duration: 3000
-        //   })
-        // })
         this.getServerEnvironment = JSON.stringify(this.$store.state.system.serverEnvironment).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
       }, (res) => {
         handleError(res)
       })
     },
     refreshConfig: function () {
-      let _this = this
-      _this.getConf().then((result) => {
-        // _this.$notify({
-        //   title: _this.$t('success'),
-        //   message: _this.$t('successConfig'),
-        //   type: 'success',
-        //   duration: 3000
-        // })
-        this.getServerConfig = JSON.stringify(this.$store.state.system.serverConfig).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
-      }).catch((res) => {
+      this.getConf().then((result) => {
+        this.getServerConfig = JSON.stringify(this.$store.state.system.adminConfig).replace(/\\n/g, '\r').replace(/^"|"$/g, '')
+      }, (res) => {
         handleError(res)
       })
     }
-  },
-  computed: {
   },
   created () {
     this.refreshEnv()

@@ -11,6 +11,9 @@ export default {
   getConfig: () => {
     return Vue.resource(apiUrl + 'admin/config').get()
   },
+  getPublicConfig: () => {
+    return Vue.resource(apiUrl + 'admin/public_config').get()
+  },
   getAuthentication: () => {
     return Vue.resource(apiUrl + 'user/authentication').get()
   },
