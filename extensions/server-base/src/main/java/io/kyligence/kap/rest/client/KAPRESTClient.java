@@ -35,10 +35,11 @@ import org.apache.http.util.EntityUtils;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.JsonUtil;
-import io.kyligence.kap.rest.request.QueryRequest;
+import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.rest.request.QueryRequest;
 import io.kyligence.kap.rest.request.SequenceSQLRequest;
 import io.kyligence.kap.rest.request.ShardedSequenceSQLRequest;
 import io.kyligence.kap.rest.response.SequenceSQLResponse;
@@ -164,6 +165,27 @@ public class KAPRESTClient extends RestClient {
 
         } catch (Exception ex) {
             throw new IOException(ex);
+        } finally {
+            get.releaseConnection();
+        }
+    }
+
+    public Pair<String, String> getJobServerState() {
+        String url = baseUrl + "/service_discovery/state/is_job_server";
+        HttpGet get = new HttpGet(url);
+        get.addHeader("Authorization", basicAuthentication);
+        try {
+            HttpResponse response = client.execute(get);
+            String msg = EntityUtils.toString(response.getEntity());
+
+            if (response.getStatusLine().getStatusCode() != 200) {
+                logger.error("Invalid response " + response.getStatusLine().getStatusCode()
+                        + " when collecting results from  " + url + "\n" + msg);
+                msg = "unknown";
+            }
+            return Pair.newPair(host + ":" + port, msg);
+        } catch (Exception ex) {
+            throw new RuntimeException(ex);
         } finally {
             get.releaseConnection();
         }

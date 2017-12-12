@@ -67,6 +67,7 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
         zkTestServer = new TestingServer();
         zkTestServer.start();
         System.setProperty("kylin.env.zookeeper-connect-string", zkTestServer.getConnectString());
+        System.setProperty("kylin.server.mode", "query");
         createTestMetadata();
     }
 
@@ -75,6 +76,9 @@ public class CuratorSchedulerTest extends LocalFileMetadataTestCase {
         zkTestServer.close();
         cleanupTestMetadata();
         System.clearProperty("kylin.env.zookeeper-connect-string");
+        System.clearProperty("kap.server.host-address");
+        System.clearProperty("kylin.server.cluster-servers");
+        System.clearProperty("kylin.server.mode");
     }
 
     @Test

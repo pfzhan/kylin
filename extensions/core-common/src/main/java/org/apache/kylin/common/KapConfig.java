@@ -461,6 +461,20 @@ public class KapConfig {
         }
     }
 
+    /**
+     * ZK Connection
+     */
+    public int getZKBaseSleepTimeMs() {
+        return Integer.parseInt(config.getOptional("kap.env.zookeeper-base-sleep-time", "3000"));
+    }
+
+    public int getZKMaxRetries() {
+        return Integer.parseInt(config.getOptional("kap.env.zookeeper-max-retries", "3"));
+    }
+
+    public int getZKMonitorInterval() {
+        return Integer.parseInt(config.getOptional("kap.job.zookeeper-monitor-interval", "30"));
+    }
 
     public String sparderFiles() {
         try {
