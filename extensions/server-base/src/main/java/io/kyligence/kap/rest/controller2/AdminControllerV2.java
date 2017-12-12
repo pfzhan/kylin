@@ -25,8 +25,12 @@
 package io.kyligence.kap.rest.controller2;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 
+import com.google.common.collect.Lists;
 import org.apache.commons.configuration.ConfigurationException;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.MetricsRequest;
@@ -74,7 +78,33 @@ public class AdminControllerV2 extends BasicController {
     @ResponseBody
     public EnvelopeResponse getConfigV2() throws IOException {
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, adminService.exportToString(), "");
+        String config = KylinConfig.getInstanceFromEnv().exportAllToString();
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, config, "");
+    }
+
+    @RequestMapping(value = "/public_config", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getPublicConfigV2() throws IOException {
+
+        final String whiteListProperties = KylinConfig.getInstanceFromEnv().getPropertiesWhiteList();
+
+        Collection<String> propertyKeys = Lists.newArrayList();
+        if (StringUtils.isNotEmpty(whiteListProperties)) {
+            propertyKeys.addAll(Arrays.asList(whiteListProperties.split(",")));
+        }
+
+        // add KAP specific
+        propertyKeys.add("kap.kyaccount.username");
+        propertyKeys.add("kap.license.statement");
+        propertyKeys.add("kap.web.hide-feature.raw-measure");
+        propertyKeys.add("kap.web.hide-feature.extendedcolumn-measure");
+        propertyKeys.add("kap.web.hide-feature.limited-lookup");
+        propertyKeys.add("kap.smart.conf.aggGroup.strategy");
+
+        final String config = KylinConfig.getInstanceFromEnv().exportToString(propertyKeys);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, config, "");
     }
 
     @RequestMapping(value = "/metrics/cubes", method = { RequestMethod.GET }, produces = {

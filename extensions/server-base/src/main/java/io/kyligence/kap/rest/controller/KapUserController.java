@@ -50,7 +50,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -360,20 +359,6 @@ public class KapUserController extends BasicController implements UserDetailsSer
             userName = principal.toString();
         }
         return userName;
-    }
-
-    private boolean isAdmin() {
-        boolean isAdmin = false;
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null) {
-            for (GrantedAuthority auth : authentication.getAuthorities()) {
-                if (auth.getAuthority().equals(Constant.ROLE_ADMIN)) {
-                    isAdmin = true;
-                }
-                break;
-            }
-        }
-        return isAdmin;
     }
 
     public List<ManagedUser> listAllUsers() throws IOException {
