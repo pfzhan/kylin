@@ -41,7 +41,7 @@ public class PagingUtilTest {
     @Test
     public void testFuzzyMatching() {
         ArrayList<String> noAccessList = Lists.newArrayList("a1", "AB1", "Ab1", "aB1", "abc1");
-        Assert.assertEquals(Lists.newArrayList("AB1", "Ab1", "aB1", "abc1"), PagingUtil.getUsersByFuzzyMatching("ab", false, noAccessList));
-        Assert.assertEquals(Lists.newArrayList("abc1"), PagingUtil.getUsersByFuzzyMatching("ab", true, noAccessList));
+        Assert.assertEquals(Lists.newArrayList("AB1", "Ab1", "aB1", "abc1"), PagingUtil.getIdentifierAfterFuzzyMatching("ab", false, noAccessList));
+        Assert.assertEquals(Lists.newArrayList("abc1"), PagingUtil.getIdentifierAfterFuzzyMatching("ab", true, noAccessList));
     }
 }

@@ -25,19 +25,25 @@
 package io.kyligence.kap.rest.controller2;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.request.AccessRequest;
+import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermissionFactory;
+import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.CubeService;
 import org.apache.kylin.rest.service.ProjectService;
+import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.acls.model.Acl;
@@ -48,8 +54,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.service.UserGroupService;
 import io.kyligence.kap.rest.util.ACLOperationUtil;
 
 /**
@@ -72,21 +81,70 @@ public class AccessControllerV2 extends BasicController {
     @Qualifier("projectService")
     private ProjectService projectService;
 
+    @Autowired
+    @Qualifier("userService")
+    protected UserService userService;
+
+    @Autowired
+    @Qualifier("userGroupService")
+    private UserGroupService userGroupService;
+
     /**
      * Get current user's permission in the project
      */
-    @RequestMapping(value = "/user/permission/{project}", method = {RequestMethod.GET}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/user/permission/{project}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse<String> getUserPermissionInPrj(@PathVariable("project") String project) {
         String grantedPermission = accessService.getUserPermissionInPrj(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, grantedPermission, "");
     }
 
+    /**
+     * Get users/groups that can be added to project ACL.
+     */
+    @RequestMapping(value = "/available/{sidType}/{uuid}", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getAvailableSids(@PathVariable String uuid, @PathVariable String sidType,
+            @RequestParam(value = "project", required = false) String project,
+            @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            throws IOException {
+        AclEntity ae = accessService.getAclEntity(AclEntityType.PROJECT_INSTANCE, uuid);
+        Acl acl = accessService.getAcl(ae);
+        final String GROUP = "group";
+        final String USER = "user";
+        List<String> oriList = new ArrayList<>();
+        if (sidType.equalsIgnoreCase(USER)) {
+            List<ManagedUser> allUsers = userService.listUsers();
+            List<String> users = accessService.getAllAclSids(acl, USER);
+            for (ManagedUser u : allUsers) {
+                if (!users.contains(u.getUsername())) {
+                    oriList.add(u.getUsername());
+                }
+            }
+        }
+        if (sidType.equalsIgnoreCase(GROUP)) {
+            oriList.addAll(userGroupService.listAllAuthorities(project));
+            List<String> groups = accessService.getAllAclSids(acl, GROUP);
+            oriList.removeAll(groups);
+        }
+
+        List<String> sids = PagingUtil.getIdentifierAfterFuzzyMatching(nameSeg, isCaseSensitive, oriList);
+        List<String> subList = PagingUtil.cutPage(sids, pageOffset, pageSize);
+        HashMap<String, Object> data = new HashMap<>();
+
+        data.put("sids", subList);
+        data.put("size", sids.size());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, data, "");
+    }
 
     /**
      * Get access entry list of a domain object
-     * 
+     *
      * @param uuid
      * @return
      * @throws IOException
@@ -94,26 +152,21 @@ public class AccessControllerV2 extends BasicController {
     @RequestMapping(value = "/{type}/{uuid}", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAccessEntitiesV2(@PathVariable String type, @PathVariable String uuid) {
+    public EnvelopeResponse getAccessEntitiesV2(@PathVariable String type, @PathVariable String uuid,
+            @RequestParam(value = "name", required = false) String nameSeg,
+            @RequestParam(value = "isCaseSensitive", required = false) boolean isCaseSensitive,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize) {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Acl acl = accessService.getAcl(ae);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAceResponses(acl), "");
-    }
+        List<AccessEntryResponse> resultsAfterFuzzyMatching = this.accessService.generateAceResponsesByFuzzMatching(acl, nameSeg, isCaseSensitive);
+        List<AccessEntryResponse> sublist = PagingUtil.cutPage(resultsAfterFuzzyMatching, pageOffset, pageSize);
 
-    /**
-     * List access entry list of a domain object including its parent
-     * @param type
-     * @param uuid
-     * @return
-     */
-    @RequestMapping(value = "all/{type}/{uuid}", method = { RequestMethod.GET }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse listAccessEntitiesV2(@PathVariable String type, @PathVariable String uuid) {
-        AclEntity ae = accessService.getAclEntity(type, uuid);
-        Acl acl = accessService.getAcl(ae);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAllAceResponses(acl), "");
+        HashMap<String, Object> data = new HashMap<>();
+        data.put("sids", sublist);
+        data.put("size", resultsAfterFuzzyMatching.size());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     /**
@@ -131,7 +184,7 @@ public class AccessControllerV2 extends BasicController {
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Sid sid = accessService.getSid(accessRequest.getSid(), accessRequest.isPrincipal());
         Permission permission = AclPermissionFactory.getPermission(accessRequest.getPermission());
-        Acl acl = accessService.grant(ae, permission, sid);
+        accessService.grant(ae, permission, sid);
 
         if (AclEntityType.CUBE_INSTANCE.equals(type)) {
             CubeInstance instance = cubeService.getCubeManager().getCubeByUuid(uuid);
@@ -142,7 +195,7 @@ public class AccessControllerV2 extends BasicController {
             }
         }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAceResponses(acl), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -159,9 +212,9 @@ public class AccessControllerV2 extends BasicController {
 
         AclEntity ae = accessService.getAclEntity(type, uuid);
         Permission permission = AclPermissionFactory.getPermission(accessRequest.getPermission());
-        Acl acl = accessService.update(ae, accessRequest.getAccessEntryId(), permission);
+        accessService.update(ae, accessRequest.getAccessEntryId(), permission);
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAceResponses(acl), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     /**
@@ -181,8 +234,8 @@ public class AccessControllerV2 extends BasicController {
         } else {
             revokeLowLevelACL(entityType, uuid, accessRequest.getSid(), MetadataConstants.TYPE_GROUP);
         }
-        Acl acl = accessService.revoke(ae, accessRequest.getAccessEntryId());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, accessService.generateAceResponses(acl), "");
+        accessService.revoke(ae, accessRequest.getAccessEntryId());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     private void revokeLowLevelACL(String entityType, String uuid, String name, String type) throws IOException {

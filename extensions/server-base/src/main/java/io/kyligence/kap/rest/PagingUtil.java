@@ -48,7 +48,7 @@ public class PagingUtil {
         return full.subList(begin, end);
     }
 
-    public static List<String> getUsersByFuzzyMatching(String nameSeg, boolean isCaseSensitive, List<String> noAccessList) {
+    public static List<String> getIdentifierAfterFuzzyMatching(String nameSeg, boolean isCaseSensitive, List<String> noAccessList) {
         List<String> users = new ArrayList<>();
         if (nameSeg != null) {
             for (String u : noAccessList) {

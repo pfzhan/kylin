@@ -116,7 +116,7 @@ public class TableAclControllerV2 extends BasicController {
         validateUtil.validateArgs(project, table);
         validateUtil.validateTable(project, table);
         //for name fuzzy matching
-        List<String> usersByFuzzyMatching = PagingUtil.getUsersByFuzzyMatching(name, isCaseSensitive, tableACLService.getNoAccessList(project, table, type));
+        List<String> usersByFuzzyMatching = PagingUtil.getIdentifierAfterFuzzyMatching(name, isCaseSensitive, tableACLService.getNoAccessList(project, table, type));
 
         HashMap<String, Object> data = new HashMap<>();
         data.put("users", PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize));

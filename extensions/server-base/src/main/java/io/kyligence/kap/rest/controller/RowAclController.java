@@ -117,7 +117,7 @@ public class RowAclController extends BasicController {
         validateUtil.validateTable(project, table);
         Set<String> allIdentifiers = validateUtil.getAllIdentifiers(project, type);
         //for name fuzzy matching
-        List<String> usersByFuzzyMatching = PagingUtil.getUsersByFuzzyMatching(name, isCaseSensitive, rowACLService.getIdentifiersCanAddRowACL(project, table, allIdentifiers, type));
+        List<String> usersByFuzzyMatching = PagingUtil.getIdentifierAfterFuzzyMatching(name, isCaseSensitive, rowACLService.getIdentifiersCanAddRowACL(project, table, allIdentifiers, type));
 
         HashMap<String, Object> data = new HashMap<>();
         data.put("users", PagingUtil.cutPage(usersByFuzzyMatching, pageOffset, pageSize));
