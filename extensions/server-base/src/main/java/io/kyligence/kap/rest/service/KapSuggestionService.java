@@ -231,8 +231,9 @@ public class KapSuggestionService extends BasicService {
             ModelMaster master = MasterFactory.createModelMaster(config, project, sqlArray, factTable);
             if (master != null) {
                 ModelContext ctx = master.getContext();
-                ctx.setModelName(modelName);
+//                ctx.setModelName(modelName);
                 DataModelDesc modelDesc = master.proposeAll();
+                modelDesc.setName(modelName);
                 return modelDesc;
             } else {
                 return null;
