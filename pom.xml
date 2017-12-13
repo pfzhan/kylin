@@ -175,7 +175,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>sparder</artifactId>
+                <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -275,7 +275,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>sparder</artifactId>
+                <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
