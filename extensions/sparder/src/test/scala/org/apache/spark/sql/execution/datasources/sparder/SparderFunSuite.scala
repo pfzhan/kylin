@@ -41,30 +41,42 @@ import org.apache.spark.sql.execution.utils.HexUtils
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
 import scala.io.Source
-class SparderFunSuite extends FunSuite
-  with BeforeAndAfterAll
-  with Logging {
+class SparderFunSuite extends FunSuite with BeforeAndAfterAll with Logging {
   val CUBE_FILE_DIR: String = TestConstants.TEST_WORK_DIR + "cube/"
-  val path = new Path(TestConstants.TEST_WORK_DIR + "cube/peoLwWAlpT.parquettar")
+  val path = new Path(
+    TestConstants.TEST_WORK_DIR + "cube/peoLwWAlpT.parquettar")
   val cubeInfoPath = new Path(TestConstants.TEST_WORK_DIR + "cube/CUBE_INFO")
   val alias = "col"
   val cuboid: Long = 114696L
   val payloadPath: String = "payload"
   val gtinfoPath: String = "gtinfo"
   var sparkJobRequest: SparkJobRequest = {
-    val str: String = Source.fromInputStream(this.getClass.getClassLoader.getResourceAsStream(payloadPath)).mkString
-    val payload: SparkJobProtos.SparkJobRequestPayload = SparkJobProtos.SparkJobRequestPayload.newBuilder().mergeFrom(HexUtils.toBytes(str)).build()
+    val str: String = Source
+      .fromInputStream(
+        this.getClass.getClassLoader.getResourceAsStream(payloadPath))
+      .mkString
+    val payload: SparkJobProtos.SparkJobRequestPayload =
+      SparkJobProtos.SparkJobRequestPayload
+        .newBuilder()
+        .mergeFrom(HexUtils.toBytes(str))
+        .build()
     SparkJobRequest.newBuilder.setPayload(payload).build
   }
-  KylinConfig.setKylinConfigInEnvIfMissing(sparkJobRequest.getPayload.getKylinProperties)
-  val scanRequestArray: Array[Byte] = sparkJobRequest.getPayload.getGtScanRequest.toByteArray
-  var scanRequest: GTScanRequest = TestGtscanRequest.serializer.deserialize(ByteBuffer.wrap(scanRequestArray))
+  KylinConfig.setKylinConfigInEnvIfMissing(
+    sparkJobRequest.getPayload.getKylinProperties)
+  val scanRequestArray: Array[Byte] =
+    sparkJobRequest.getPayload.getGtScanRequest.toByteArray
+  var scanRequest: GTScanRequest =
+    TestGtscanRequest.serializer.deserialize(ByteBuffer.wrap(scanRequestArray))
   val gTInfo: GTInfo = scanRequest.getInfo
   var spark: SparkSession = _
   var format: SparderFileFormat = _
   var hadoopConf: Configuration = _
 
-  var gtInfoStr: String = Source.fromInputStream(this.getClass.getClassLoader.getResourceAsStream(gtinfoPath)).mkString
+  var gtInfoStr: String = Source
+    .fromInputStream(
+      this.getClass.getClassLoader.getResourceAsStream(gtinfoPath))
+    .mkString
   var sparkNeed = true
   var javaContext: JavaSparkContext = _
 
@@ -77,7 +89,8 @@ class SparderFunSuite extends FunSuite
       javaContext = new JavaSparkContext(sparkConf)
       spark = SparkSession.builder
         .config("spark.executor.memory", "8g")
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
+        .config("spark.serializer",
+                "org.apache.spark.serializer.KryoSerializer")
         .config("spark.sql.shuffle.partitions", "1")
         .config("spark.broadcast.blockSize", "512m")
         .config(javaContext.getConf)
@@ -89,20 +102,17 @@ class SparderFunSuite extends FunSuite
 
   }
 
-  def beforeInit(): Unit = {
+  def beforeInit(): Unit = {}
 
-  }
+  def afterInit(): Unit = {}
 
-  def afterInit(): Unit = {
-
-  }
-  
-  protected def checkAnswer(df: => DataFrame, expectedAnswer: Seq[Row]): Unit = {
-    val analyzedDF = try df catch {
+  protected def checkAnswer(df: => DataFrame,
+                            expectedAnswer: Seq[Row]): Unit = {
+    val analyzedDF = try df
+    catch {
       case ae: AnalysisException =>
         if (ae.plan.isDefined) {
-          fail(
-            s"""
+          fail(s"""
                |Failed to analyze query: $ae
                |${ae.plan.get}
                |
@@ -115,18 +125,21 @@ class SparderFunSuite extends FunSuite
 
     assertEmptyMissingInput(analyzedDF)
 
-    QueryTest.checkAnswer(analyzedDF, expectedAnswer) match {
+    SparderQueryTest.checkAnswer(analyzedDF, expectedAnswer) match {
       case Some(errorMessage) => fail(errorMessage)
-      case None =>
+      case None               =>
     }
   }
 
   def assertEmptyMissingInput(query: Dataset[_]): Unit = {
-    assert(query.queryExecution.analyzed.missingInput.isEmpty,
+    assert(
+      query.queryExecution.analyzed.missingInput.isEmpty,
       s"The analyzed logical plan has missing inputs:\n${query.queryExecution.analyzed}")
-    assert(query.queryExecution.optimizedPlan.missingInput.isEmpty,
+    assert(
+      query.queryExecution.optimizedPlan.missingInput.isEmpty,
       s"The optimized logical plan has missing inputs:\n${query.queryExecution.optimizedPlan}")
-    assert(query.queryExecution.executedPlan.missingInput.isEmpty,
+    assert(
+      query.queryExecution.executedPlan.missingInput.isEmpty,
       s"The physical plan has missing inputs:\n${query.queryExecution.executedPlan}")
   }
 

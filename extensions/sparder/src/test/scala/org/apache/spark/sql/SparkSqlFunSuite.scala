@@ -30,9 +30,7 @@ import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.execution.datasources.sparder.SparderFileFormat
 import org.scalatest.{BeforeAndAfterAll, FunSuite}
 
-
-class SparkSqlFunSuite extends FunSuite with BeforeAndAfterAll
-  with Logging {
+class SparkSqlFunSuite extends FunSuite with BeforeAndAfterAll with Logging {
   var spark: SparkSession = _
   var format: SparderFileFormat = _
   var hadoopConf: Configuration = _
@@ -48,12 +46,13 @@ class SparkSqlFunSuite extends FunSuite with BeforeAndAfterAll
     hadoopConf = spark.sparkContext.hadoopConfiguration
   }
 
-  protected def checkAnswer(df: => DataFrame, expectedAnswer: Seq[Row]): Unit = {
-    val analyzedDF = try df catch {
+  protected def checkAnswer(df: => DataFrame,
+                            expectedAnswer: Seq[Row]): Unit = {
+    val analyzedDF = try df
+    catch {
       case ae: AnalysisException =>
         if (ae.plan.isDefined) {
-          fail(
-            s"""
+          fail(s"""
                |Failed to analyze query: $ae
                |${ae.plan.get}
                |
@@ -66,18 +65,21 @@ class SparkSqlFunSuite extends FunSuite with BeforeAndAfterAll
 
     assertEmptyMissingInput(analyzedDF)
 
-    QueryTest.checkAnswer(analyzedDF, expectedAnswer) match {
+    SparderQueryTest.checkAnswer(analyzedDF, expectedAnswer) match {
       case Some(errorMessage) => fail(errorMessage)
-      case None =>
+      case None               =>
     }
   }
 
   def assertEmptyMissingInput(query: Dataset[_]): Unit = {
-    assert(query.queryExecution.analyzed.missingInput.isEmpty,
+    assert(
+      query.queryExecution.analyzed.missingInput.isEmpty,
       s"The analyzed logical plan has missing inputs:\n${query.queryExecution.analyzed}")
-    assert(query.queryExecution.optimizedPlan.missingInput.isEmpty,
+    assert(
+      query.queryExecution.optimizedPlan.missingInput.isEmpty,
       s"The optimized logical plan has missing inputs:\n${query.queryExecution.optimizedPlan}")
-    assert(query.queryExecution.executedPlan.missingInput.isEmpty,
+    assert(
+      query.queryExecution.executedPlan.missingInput.isEmpty,
       s"The physical plan has missing inputs:\n${query.queryExecution.executedPlan}")
   }
 }

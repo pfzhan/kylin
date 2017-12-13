@@ -24,14 +24,14 @@
 package org.apache.spark.sql.execution.datasources.sparder.v2
 
 import org.apache.spark.sql.execution.datasources.sparder.SparderFunSuite
-import org.apache.spark.sql.{QueryTest, Row}
+import org.apache.spark.sql.{SparderQueryTest, Row}
 
 class SparderFileFormatV2Test extends SparderFunSuite {
 
   test("testBuildReaderWithPartitionValues") {
     val rows = spark.sql(
       "select col_0, col_1, col_2, col_3, col_4, col_5 from test limit 1 ")
-    QueryTest.checkAnswer(
+    SparderQueryTest.checkAnswer(
       rows,
       Seq(
         Row(Array[Byte](65, 66, 73, 78, 9, 9, 9, 9, 9, 9, 9, 9),

@@ -30,8 +30,8 @@ import org.apache.spark.sql.catalyst.util._
 
 import scala.collection.JavaConverters._
 
+object SparderQueryTest {
 
-object QueryTest {
   /**
     * Runs the plan and makes sure the answer matches the expected result.
     * If there was exception during the execution or the contents of the DataFrame does not
@@ -42,16 +42,16 @@ object QueryTest {
     * @param expectedAnswer the expected result in a [[Seq]] of [[Row]]s.
     * @param checkToRDD     whether to verify deserialization to an RDD. This runs the query twice.
     */
-  def checkAnswer(
-                   df: DataFrame,
-                   expectedAnswer: Seq[Row],
-                   checkToRDD: Boolean = true): Option[String] = {
+  def checkAnswer(df: DataFrame,
+                  expectedAnswer: Seq[Row],
+                  checkToRDD: Boolean = true): Option[String] = {
     val isSorted = df.logicalPlan.collect { case s: logical.Sort => s }.nonEmpty
     if (checkToRDD) {
       df.rdd.count() // Also attempt to deserialize as an RDD [SPARK-15791]
     }
 
-    val sparkAnswer = try df.collect().toSeq catch {
+    val sparkAnswer = try df.collect().toSeq
+    catch {
       case e: Exception =>
         val errorMessage =
           s"""
@@ -77,7 +77,6 @@ object QueryTest {
     }
   }
 
-
   def prepareAnswer(answer: Seq[Row], isSorted: Boolean): Seq[Row] = {
     // Converts data to types that we can do equality comparison using Scala collections.
     // For BigDecimal type, the Scala type has a better definition of equality test (similar to
@@ -91,40 +90,40 @@ object QueryTest {
   // We need to call prepareRow recursively to handle schemas with struct types.
   def prepareRow(row: Row): Row = {
     Row.fromSeq(row.toSeq.map {
-      case null => null
+      case null                    => null
       case d: java.math.BigDecimal => BigDecimal(d)
       // Convert array to Seq for easy equality check.
       case b: Array[_] => b.toSeq
-      case r: Row => prepareRow(r)
-      case o => o
+      case r: Row      => prepareRow(r)
+      case o           => o
     })
   }
 
-  def sameRows(
-                expectedAnswer: Seq[Row],
-                sparkAnswer: Seq[Row],
-                isSorted: Boolean = false): Option[String] = {
-    if (prepareAnswer(expectedAnswer, isSorted) != prepareAnswer(sparkAnswer, isSorted)) {
+  def sameRows(expectedAnswer: Seq[Row],
+               sparkAnswer: Seq[Row],
+               isSorted: Boolean = false): Option[String] = {
+    if (prepareAnswer(expectedAnswer, isSorted) != prepareAnswer(sparkAnswer,
+                                                                 isSorted)) {
       val errorMessage =
         s"""
            |== Results ==
-           |${
-          sideBySide(
-            s"== Correct Answer - ${expectedAnswer.size} ==" +:
-              prepareAnswer(expectedAnswer, isSorted).map(_.toString()),
-            s"== Spark Answer - ${sparkAnswer.size} ==" +:
-              prepareAnswer(sparkAnswer, isSorted).map(_.toString())).mkString("\n")
-        }
+           |${sideBySide(
+             s"== Correct Answer - ${expectedAnswer.size} ==" +:
+               prepareAnswer(expectedAnswer, isSorted).map(_.toString()),
+             s"== Spark Answer - ${sparkAnswer.size} ==" +:
+               prepareAnswer(sparkAnswer, isSorted).map(_.toString())
+           ).mkString("\n")}
         """.stripMargin
       return Some(errorMessage)
     }
     None
   }
 
-  def checkAnswer(df: DataFrame, expectedAnswer: java.util.List[Row]): String = {
+  def checkAnswer(df: DataFrame,
+                  expectedAnswer: java.util.List[Row]): String = {
     checkAnswer(df, expectedAnswer.asScala) match {
       case Some(errorMessage) => errorMessage
-      case None => null
+      case None               => null
     }
   }
 
@@ -135,22 +134,23 @@ object QueryTest {
     * @param expectedAnswer the expected result in a[[Row]].
     * @param absTol         the absolute tolerance between actual and expected answers.
     */
-  protected def checkAggregatesWithTol(actualAnswer: Row, expectedAnswer: Row, absTol: Double) = {
+  protected def checkAggregatesWithTol(actualAnswer: Row,
+                                       expectedAnswer: Row,
+                                       absTol: Double) = {
     require(actualAnswer.length == expectedAnswer.length,
-      s"actual answer length ${actualAnswer.length} != " +
-        s"expected answer length ${expectedAnswer.length}")
+            s"actual answer length ${actualAnswer.length} != " +
+              s"expected answer length ${expectedAnswer.length}")
 
     // TODO: support other numeric types besides Double
     // TODO: support struct types?
     actualAnswer.toSeq.zip(expectedAnswer.toSeq).foreach {
       case (actual: Double, expected: Double) =>
-        assert(math.abs(actual - expected) < absTol,
+        assert(
+          math.abs(actual - expected) < absTol,
           s"actual answer $actual not within $absTol of correct answer $expected")
       case (actual, expected) =>
         assert(actual == expected, s"$actual did not equal $expected")
     }
   }
-
-
 
 }
