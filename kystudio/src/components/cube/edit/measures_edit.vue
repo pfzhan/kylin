@@ -457,8 +457,6 @@ export default {
       this.autoAddMeasures()
     }
     this.initColumnFamily()
-    this.loadHiddenFeature({feature_name: 'raw-measure'})
-    this.loadHiddenFeature({feature_name: 'extendedcolumn-measure'})
   },
   locales: {
     'en': {name: 'Name', expression: 'Expression', parameters: 'Parameters', datatype: 'Datatype', comment: 'Comment', returnType: 'Return Type', action: 'Action', addMeasure: 'Add Measure', editMeasure: 'Edit Measure', cancel: 'Cancel', yes: 'Yes', advancedDictionaries: 'Advanced Dictionaries', addDictionary: 'Add Dictionary', editDictionary: 'Edit Dictionary', builderClass: 'Builder Class', reuse: 'Reuse', advancedColumnFamily: 'Advanced Column Family', addColumnFamily: 'Add Column Family', columnFamily: 'Column Family', measures: 'Measures', sqlOutput: 'Measures Suggestion', resetMeasures: 'Reset', measuresSuggestTip: 'Clicking on the \'Measures Suggestion\' will output the suggested type. \'Reset\' will call last saving back and overwrite existing measures.', outputTipOne: 'Measures suggested based on inputed SQL patterns.', deleteMeasuresTip: 'Reset will call last saving back and overwrite existing measures. Please confirm to continue?', dataOriented: 'Data Oriented', mix: 'Mix', businessOriented: 'Business Oriented'},

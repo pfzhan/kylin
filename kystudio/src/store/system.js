@@ -87,7 +87,6 @@ export default {
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.web.timezone', key: 'timeZone'})
           // commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.limited-lookup', key: 'limitlookup'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.security.profile', key: 'securityProfile'})
-          commit(types.GET_CONF_BY_NAME, {name: 'kap.smart.conf.aggGroup.strategy', key: 'strategy'})
           commit(types.GET_CONF_BY_NAME, {name: 'kylin.htrace.show-gui-trace-toggle', key: 'showHtrace'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.raw-measure', key: 'hiddenRaw'})
           commit(types.GET_CONF_BY_NAME, {name: 'kap.web.hide-feature.extendedcolumn-measure', key: 'hiddenExtendedColumn'})
