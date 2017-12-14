@@ -73,6 +73,9 @@ cp spark/jars/javax.ws.rs-api-*.jar ${package_name}/ext/
 cp spark/jars/jersey-server-*.jar ${package_name}/ext/
 
 
+#add udf jar to lib
+cp ../extensions/udf/target/kap-udf-${release_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar
+
 ## comment all default properties, and append them to the user visible kylin.properties
 ## first 16 lines are license, just skip them
 sed '1,21d' ../extensions/core-common/src/main/resources/kylin-defaults0.properties | awk '{print "#"$0}' >> ${package_name}/conf/profile_min/kylin.properties
