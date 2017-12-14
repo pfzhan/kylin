@@ -1,7 +1,7 @@
 <template>
   <div id="over-view">
   <div class="cube-info-view ksd-common-table ksd-mt-10">
-  <el-row class="tableheader" v-for="d in cubeData">
+  <el-row class="tableheader" v-for="d in cubeData" :key="d.value">
     <el-col :span="4" class="left-part"> <b>{{$t(d.label)}}</b></el-col>
     <el-col :span="20"> {{d.value}}</el-col>
   </el-row>

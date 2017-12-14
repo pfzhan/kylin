@@ -10,7 +10,7 @@
       </el-table-column>
      <!--  <el-table-column
         :label="$t('kylinLang.common.action')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <span @click="gottoCube" style="cursor:pointer">{{$t('kylinLang.common.detail')}}</span>
         </template>      
       </el-table-column> -->

@@ -43,7 +43,7 @@
           label="Segment ID"
           show-overflow-tooltip
           width="120">
-          <template scope="scope">
+          <template slot-scope="scope">
             <el-tooltip class="item" effect="dark" placement="top">
               <div slot="content">
                {{scope.row.uuid}}
@@ -66,26 +66,26 @@
         <el-table-column
           :label="$t('StorageSize')"
           width="110">
-          <template scope="scope">
+          <template slot-scope="scope">
             {{+scope.row.additionalInfo.storageSizeBytes + (+scope.row.additionalInfo.tableIndexStorageSizeBytes || 0)|dataSize}}
           </template>
         </el-table-column>
         <el-table-column
           :label="$t('startTime')">
-          <template scope="scope">
+          <template slot-scope="scope">
             {{scope.row.date_range_start | utcTimeOrInt(isInteger)}}
           </template>
         </el-table-column>
         <el-table-column
           :label="$t('endTime')">
-          <template scope="scope">
+          <template slot-scope="scope">
             {{scope.row.date_range_end | utcTimeOrInt(isInteger)}}
           </template>
         </el-table-column>
         <el-table-column
           :label="$t('action')"
           width="60">
-          <template scope="scope">
+          <template slot-scope="scope">
             <el-dropdown trigger="click" @click.native.stop>
               <el-button class="el-dropdown-link">
                 <i class="el-icon-more"></i>

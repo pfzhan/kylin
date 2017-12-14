@@ -40,7 +40,7 @@
     </el-table-column>
     <el-table-column
       label="Kind">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-tag
           v-if="scope.row.kind=='FACT'"
           type="primary"
@@ -53,7 +53,7 @@
     </el-table-column>
     <el-table-column
       label="Join">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag
           type="primary" 
           close-transition>{{scope.row.join.type}}</el-tag>

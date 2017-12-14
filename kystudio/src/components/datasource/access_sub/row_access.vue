@@ -17,7 +17,7 @@
               :label="$t('kylinLang.common.userOrGroup')"
               width="180"
               >
-              <template scope="scope">
+              <template slot-scope="scope">
                 <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.nameType === 'user'"></icon>
                 <icon v-show="scope.row.nameType === 'group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
                 &nbsp;{{ scope.row.name}}
@@ -26,7 +26,7 @@
             <el-table-column
               :label="$t('condition')"
               >
-              <template scope="scope">
+              <template slot-scope="scope">
                 <p v-for="(key, v) in scope.row.conditions">{{v}} = {{key && key.join(',')}}</p>
               </template>
             </el-table-column>
@@ -34,7 +34,7 @@
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
-              <template scope="scope">
+              <template slot-scope="scope">
               <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfRow(scope.row.name, scope.row.conditions, scope.row.nameType)"></el-button>
               <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfRow(scope.row.name, scope.row.nameType)"></el-button>
               </template>
@@ -80,7 +80,7 @@
                   <!-- <el-input v-model="grantObj.name"  auto-complete="off" placeholder="UserName"></el-input> -->
                 </el-form-item>
                 <el-form-item :label="$t('condition')" label-width="80px" class="ksd-mt-20 is-required" style="position:relative">
-                  <el-row v-for="(rowset, index) in rowSetDataList" >
+                  <el-row v-for="(rowset, index) in rowSetDataList" :key="index">
                     <el-col :sm="20" :md="21" :lg="22">
                       <el-select v-model="rowset.columnName" style="width:100%" :placeholder="$t('kylinLang.common.pleaseSelectColumnName')" @change="selectColumnName(index, rowset.columnName)">
                         <el-option v-for="(item, index) in filterHasSelected(columnList, index, rowSetDataList, 'columnName')" :key="item.name" :label="item.name" :value="item.name">

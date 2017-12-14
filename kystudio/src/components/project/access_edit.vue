@@ -56,7 +56,7 @@
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
 
             <!--<el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>-->
-            <el-option :label="item.key" :value="item.value" v-for="item in showMaskByOrder"></el-option>
+            <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
 <!--             <el-option label="Management" :value="32"></el-option>
             <el-option label="OPERATION" :value="64"></el-option>
             <el-option label="Query" :value="1"></el-option> -->
@@ -76,7 +76,7 @@
 	      prop="roleOrName"
 	      :label="$t('kylinLang.common.userOrGroup')"
 	     >
-       <template scope="scope">
+       <template slot-scope="scope">
                 <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.type === 'User'"></icon>
                 <icon v-show="scope.row.type === 'Group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
                 &nbsp;{{ scope.row.roleOrName}}
@@ -95,7 +95,7 @@
 	   <el-table-column
 	      :label="$t('kylinLang.common.action')"
 	      width="160">
-	      <template scope="scope">
+	      <template slot-scope="scope">
         <span v-if="!(hasProjectAdminPermission()||isAdmin)">N/A</span>
 	        <el-button  v-if="hasProjectAdminPermission()||isAdmin"
 	          @click="beginEdit(scope.row)"

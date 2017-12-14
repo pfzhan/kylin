@@ -121,14 +121,14 @@
         show-overflow-tooltip
         :label="$t('ID')"
         width="60">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-tag>{{scope.$index+1}}</el-tag>
         </template>
       </el-table-column>
       <el-table-column
         show-overflow-tooltip
         :label="$t('column')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-select v-model="scope.row.column" :class="{distinctWidth : isCountDistinct, topnWidth : !isCountDistinct}" filterable>
            <el-option
             v-for="(item, index) in getMultipleColumns"
@@ -144,7 +144,7 @@
         v-if="measure.function.expression === 'TOP_N'"
         :label="$t('encoding')"
         width="100">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-select v-model="scope.row.encoding" @change="changeEncoding(scope.row);">
             <el-option
               v-for="(item, index) in initEncodingType(scope.row)"
@@ -163,13 +163,13 @@
                        v-if="measure.function.expression === 'TOP_N'"
         :label="$t('length')"
         width="100">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-input v-model="scope.row.valueLength"  :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('boolean')>=0"></el-input>
         </template>
       </el-table-column>
       <el-table-column
         width="50">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-button type="delete" icon="minus" size="mini" @click="removeProperty(scope.$index)"></el-button>
         </template>
       </el-table-column>

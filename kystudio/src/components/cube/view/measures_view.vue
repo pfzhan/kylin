@@ -25,7 +25,7 @@
       :label="$t('parameters')"
       header-align="center"
       align="center">
-      <template scope="scope">
+      <template slot-scope="scope">
         <parameter_tree :measure="scope.row">
         </parameter_tree>  
       </template>
@@ -36,7 +36,7 @@
       header-align="center"
       align="center"
       width="110"> 
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
           {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
         </span>
@@ -48,7 +48,7 @@
       header-align="center"
       align="center"
       width="110">   
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value]">
           {{cubeDesc.modelDesc.columnsDetail[scope.row.function.parameter.value].comment}}
         </span>
@@ -78,7 +78,7 @@
     <el-table-column
         show-overflow-tooltip
         :label="$t('measures')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-col :span="24">
             <el-tag class="tag_margin" type="primary" v-for="(mr, index) in scope.row.columns[0].measure_refs" :key="index">{{mr}}</el-tag>
           </el-col>

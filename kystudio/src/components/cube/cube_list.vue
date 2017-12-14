@@ -20,7 +20,7 @@
     border
     style="width:100%">
     <el-table-column type="expand" width="30">
-      <template scope="props">
+      <template slot-scope="props">
         <el-tabs activeName="first" class="el-tabs--default" id="cube-view" @tab-click="changeTab">
           <el-tab-pane label="Overview" name="first" v-if="!props.row.is_draft">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
@@ -58,7 +58,7 @@
       sortable
       width="90"
       prop="status">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag  :type="scope.row.status === 'DISABLED' ? 'danger' : scope.row.status === 'DESCBROKEN'? 'warning' : 'success'">{{scope.row.status}}</el-tag>
       </template>
     </el-table-column>
@@ -67,7 +67,7 @@
       width="100"
       :label="$t('cubeSize')"
       prop="total_storage_size_kb">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tooltip class="item" effect="dark" placement="top">
           <div slot="content">
             {{$t('sourceTableSize')}}{{scope.row.input_records_size|dataSize}}<br/>
@@ -83,14 +83,14 @@
       show-overflow-tooltip
       prop="input_records_count"
       >
-      <template scope="scope">
+      <template slot-scope="scope">
         <span class="ksd-mr-20">{{scope.row.input_records_count | readableNumber}} </span>
       </template> 
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
       :label="$t('lastBuildTime')">
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="scope.row.segments[scope.row.segments.length-1]">{{scope.row.buildGMTTime}}</span>
       </template>
     </el-table-column>
@@ -110,7 +110,7 @@
     <el-table-column
        width="70"
       :label="$t('actions')">
-      <template scope="scope">
+      <template slot-scope="scope">
       <span v-if="!(isAdmin || hasSomePermissionOfProject(scope.row.project) || hasOperationPermissionOfProject(selected_project))"> N/A</span>
         <el-dropdown trigger="click" v-show="isAdmin || hasSomePermissionOfProject(scope.row.project) || hasOperationPermissionOfProject(selected_project) ">
           <el-button class="el-dropdown-link">

@@ -7,7 +7,7 @@
     tooltip-effect="dark"
     style="width: 100%">
     <el-table-column type="expand">
-      <template scope="props">
+      <template slot-scope="props">
          <el-tabs activeName="first" class="el-tabs--default">
           <el-tab-pane label="Models" name="first">
             <model_list :modelList="props.row.models"></model_list>
@@ -53,7 +53,7 @@
     <el-table-column
       :width="100"
       :label="$t('actions')">
-      <template scope="scope">
+      <template slot-scope="scope">
       <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
       <el-dropdown trigger="click">
       <el-button class="el-dropdown-link">

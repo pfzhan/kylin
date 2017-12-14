@@ -6,7 +6,7 @@
   style="width: 100%">
       <el-table-column
       width="120">
-      <template scope="scope">
+      <template slot-scope="scope">
         {{$t(scope.row.label)}}
       </template>
     </el-table-column>

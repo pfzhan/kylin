@@ -10,7 +10,7 @@
       header-align="center"
       align="center"
       width="80">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag class="index-tag">{{15 * (currentPage -1) +scope.$index + 1}}</el-tag>
       </template>
     </el-table-column>
@@ -26,7 +26,7 @@
         :label="$t('dataType')"
         header-align="center"
         align="center">      
-        <template scope="scope">
+        <template slot-scope="scope">
         {{cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column]&&cubeDesc.modelDesc.columnsDetail[scope.row.table+'.'+scope.row.column].datatype}}
       </template>
     </el-table-column>  
@@ -42,7 +42,7 @@
         :label="$t('Encoding')"
         header-align="center"
         align="center">   
-        <template scope="scope">
+        <template slot-scope="scope">
           {{getEncoding(scope.row.encoding)}}
         </template>
     </el-table-column>  
@@ -51,7 +51,7 @@
         :label="$t('Length')"
         header-align="center"
         align="center">   
-        <template scope="scope">
+        <template slot-scope="scope">
           {{getLength(scope.row.encoding)}}          
         </template> 
     </el-table-column>
@@ -59,7 +59,7 @@
         label="Sorted By"
         header-align="center"
         align="center">   
-            <template scope="scope">
+            <template slot-scope="scope">
             {{scope.row.is_sortby}}
             </template>
       </el-table-column>   
@@ -67,7 +67,7 @@
         label="Shard By"
         header-align="center"
         align="center">   
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.is_shardby}}          
         </template> 
     </el-table-column>     

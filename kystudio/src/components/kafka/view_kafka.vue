@@ -10,7 +10,7 @@
             label='ID'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <span>{{scope.row.id}}</span>
             </template>
           </el-table-column>
@@ -20,7 +20,7 @@
             prop='host'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <span>{{scope.row.host}}</span>
             </template>
           </el-table-column>
@@ -30,7 +30,7 @@
             prop='port'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <span>{{scope.row.port}}</span>
             </template>
           </el-table-column>

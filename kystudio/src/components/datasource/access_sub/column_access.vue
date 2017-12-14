@@ -23,7 +23,7 @@
               :label="$t('kylinLang.common.userOrGroup')"
               width="180"
               >
-              <template scope="scope">
+              <template slot-scope="scope">
                 <icon name="user-o"  scale="0.8" style="color: #d4d7e3;" v-show="scope.row.nameType === 'user'"></icon>
                 <icon v-show="scope.row.nameType === 'group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
                 &nbsp;{{ scope.row.name}}
@@ -33,7 +33,7 @@
               show-overflow-tooltip
               :label="$t('columns')"
               >
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{ scope.row.columns && scope.row.columns.join(',') || ''}}
               </template>
             </el-table-column>
@@ -41,7 +41,7 @@
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
-              <template scope="scope">
+              <template slot-scope="scope">
               <el-button size="mini" class="ksd-btn del" icon="edit" @click="editAclOfColumn(scope.row.name, scope.row.columns, scope.row.nameType)"></el-button>
               <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfColumn(scope.row.name, scope.row.nameType)"></el-button>
               </template>

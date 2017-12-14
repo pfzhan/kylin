@@ -98,7 +98,7 @@
       <!--</div>-->
 
      <tab type="border-card" class="insight_tab" v-on:addtab="addTab" :isedit="true"   :tabslist="editableTabs"  :active="activeSubMenu"  v-on:removetab="delTab">
-       <template scope="props">
+       <template slot-scope="props">
         <component :is="props.item.content" v-on:changeView="changeTab" v-on:reloadSavedProject="loadSavedQuery" :extraoption="props.item.extraoption"></component>
        </template>
      </tab>

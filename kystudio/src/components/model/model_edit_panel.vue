@@ -50,13 +50,13 @@
                       <el-table :data="factTables"  v-show="factTables && factTables.length" class="ksd-mb-20 ksd-mt-6" border style="width: 100%" :show-header="false">
                         <el-table-column
                           width="180">
-                           <template scope="scope">
+                           <template slot-scope="scope">
                               {{$t('kylinLang.common.tableName')}}
                             </template>
                         </el-table-column>
                         <el-table-column
                           label="tableName">
-                           <template scope="scope">
+                           <template slot-scope="scope">
                               {{scope.row.tableInfo.name}}
                             </template>
                         </el-table-column>
@@ -66,26 +66,26 @@
                           <el-table-column
                             label="ID"
                             width="180">
-                            <template scope="scope">
+                            <template slot-scope="scope">
                               {{scope.$index+1}}
                             </template>
                           </el-table-column>
                           <el-table-column
                             :label="$t('kylinLang.common.alias')"
                             width="180">
-                             <template scope="scope">
+                             <template slot-scope="scope">
                               {{scope.row.tableInfo.alias}}
                             </template>
                           </el-table-column>
                           <el-table-column
                             :label="$t('kylinLang.common.tableName')">
-                            <template scope="scope">
+                            <template slot-scope="scope">
                               {{scope.row.tableInfo.name}}
                             </template>
                           </el-table-column>
                           <el-table-column
                             :renderHeader="renderColumn">
-                             <template scope="scope">
+                             <template slot-scope="scope">
                               <el-checkbox v-model="scope.row.isSnapshot" @change="changeSnapshotStatus(scope.row)"></el-checkbox>
                             </template>
                           </el-table-column>
@@ -129,7 +129,7 @@
                   :fixed="index === 0"
                   :width="15*(statistics[0][index]&&statistics[0][index].length || 10)"
                   :label="statistics[0][index]">
-                   <template scope="scope">
+                   <template slot-scope="scope">
                       {{index === 0? $t('kylinLang.dataSource.'+scope.row[0]): '' + scope.row[index]}}
                     </template>
                 </el-table-column>

@@ -57,7 +57,7 @@
     show-overflow-tooltip
       :label="$t('kylinLang.model.modelNameGrid')"
       width="180">
-       <template scope="scope" >
+       <template slot-scope="scope" >
        <span style="cursor:pointer" @click="viewModel(scope.row)">{{scope.row.name}}</span>
        </template>
     </el-table-column>
@@ -77,7 +77,7 @@
       width="130"
       class-name="ksd-center"
       :label="$t('kylinLang.model.statusGrid')">
-      <template scope="scope" >
+      <template slot-scope="scope" >
          <!-- <icon v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.progress===0" :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon> -->
           <common-tip  :content="scope.row.diagnose&&scope.row.diagnose.messages&&scope.row.diagnose.messages.join('<br/>')" v-if="!scope.row.is_draft && scope.row.diagnose && scope.row.diagnose.heathStatus!=='RUNNING'&& scope.row.diagnose.heathStatus!=='ERROR' && (scope.row.diagnose.progress===0 || scope.row.diagnose.progress===100)"> <icon  :name="modelHealthStatus[scope.row.diagnose.heathStatus].icon" :style="{color:modelHealthStatus[scope.row.diagnose.heathStatus].color}"></icon></common-tip>
          <common-tip :content="scope.row.diagnose&&scope.row.diagnose.progress + '%'||'0%'">
@@ -100,7 +100,7 @@
      <el-table-column class="ksd-center"
       width="100"
       :label="$t('kylinLang.common.action')">
-       <template scope="scope">
+       <template slot-scope="scope">
        <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
         <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" v-show="isAdmin || hasPermissionOfProject()">
            <el-button class="el-dropdown-link">

@@ -16,7 +16,7 @@
       sortable
       show-overflow-tooltip
       prop="first">
-      <template scope="scope">
+      <template slot-scope="scope">
         <icon name="group" style="color: #d4d7e3;position: absolute;top:15px;" scale="0.8"></icon>
         <span @click="addTab(scope.row.first, scope.row.second)"  style="cursor:pointer;" class="ksd-ml-20 underline">{{scope.row.first}}</span>
       </template>
@@ -25,13 +25,13 @@
       :label="$t('usersCount')"
       show-overflow-tooltip
       sortable>
-      <template scope="scope">
+      <template slot-scope="scope">
         {{scope.row.second && scope.row.second.length || 0}}
       </template>
     </el-table-column>
     <el-table-column v-if="$store.state.system.securityProfile === 'testing' && (hasAdminProjectPermission() || isAdmin)"
       :label="$t('kylinLang.common.action')" :width="100">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-dropdown trigger="click" >
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>

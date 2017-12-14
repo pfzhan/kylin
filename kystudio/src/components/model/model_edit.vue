@@ -142,7 +142,7 @@
               <el-table-column style="border:none"
                 :label="$t('kylinLang.common.pk')"
                 >
-                <template scope="scope">
+                <template slot-scope="scope">
                 <el-select v-model="scope.row[2]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%;background: #393e53;" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.source.columns"
@@ -154,12 +154,12 @@
                 </template>
               </el-table-column>
               <el-table-column  style="border:none" label="" align="center" width="40">
-                 <template scope="scope" align="center">＝</template>
+                 <template slot-scope="scope" align="center">＝</template>
               </el-table-column>
               <el-table-column style="border:none"
                 :label="$t('kylinLang.common.fk')"
                 >
-                <template scope="scope">
+                <template slot-scope="scope">
                 <el-select v-model="scope.row[3]" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:100%;background: #393e53;" :disabled = "actionMode ==='view'">
                   <el-option
                     v-for="item in currentLinkData.target.columns"
@@ -171,7 +171,7 @@
                 </template>
               </el-table-column>
               <el-table-column style="border:none" :label="$t('kylinLang.common.action')" width="80" v-if="actionMode!=='view'">
-                <template scope="scope" >
+                <template slot-scope="scope" >
                   <el-button size="small" type="danger" @click="delConnect(scope.row)">
                     {{$t('kylinLang.common.drop')}}
                   </el-button>
@@ -250,7 +250,7 @@
               <el-table-column
                  width="140"
                 :label="$t('kylinLang.common.action')" v-if="actionMode!=='view'">
-                <template scope="scope">
+                <template slot-scope="scope">
                   <el-button  icon="edit" size="small" v-on:click='editComputedColumn(scope.row)'></el-button>
                    <confirm-btn  v-on:okFunc='delComputedColumn(scope.row)' :tips="$t('kylinLang.common.confirmDel')">
                    <el-button size="small" icon="delete" ></el-button></confirm-btn>

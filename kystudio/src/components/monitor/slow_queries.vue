@@ -23,7 +23,7 @@
       :label="$t('sql')"
       show-overflow-tooltip
       >
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.sql}}
         </template>
       </el-table-column>
@@ -36,7 +36,7 @@
       <el-table-column
       :width="165"
       :label="$t('running_seconds')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.running_seconds}} (s)
         </template>
       </el-table-column>
@@ -45,7 +45,7 @@
       :width="150"
       show-overflow-tooltip
       :label="$t('start_time')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.start_time}}
         </template>
       </el-table-column>
@@ -54,7 +54,7 @@
       :width="150"
       show-overflow-tooltip
       :label="$t('last_modified')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.last_modified}}
         </template>
       </el-table-column>

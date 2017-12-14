@@ -17,7 +17,7 @@
               :label="$t('kylinLang.common.userOrGroup')"
               width="180"
               >
-              <template scope="scope">
+              <template slot-scope="scope">
                 <icon name="user-o" style="color: #d4d7e3;" scale="0.8" v-show="scope.row.nameType === 'user'"></icon>
                 <icon v-show="scope.row.nameType === 'group'" scale="0.8" name="group" style="color: #d4d7e3;"></icon>
                 &nbsp;{{ scope.row.name}}
@@ -26,13 +26,13 @@
             <el-table-column
               :label="$t('access')"
               >
-              <template scope="scope">Query</template>
+              <template slot-scope="scope">Query</template>
             </el-table-column>
             <el-table-column v-if="hasSomeProjectPermission || isAdmin"
               width="100"
               prop="Action"
               :label="$t('kylinLang.common.action')">
-              <template scope="scope">
+              <template slot-scope="scope">
               <el-button size="mini" class="ksd-btn del" icon="delete" @click="delAclOfTable(scope.row.name, scope.row.nameType)"></el-button>
               </template>
             </el-table-column>

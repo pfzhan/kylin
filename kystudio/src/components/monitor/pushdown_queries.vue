@@ -21,7 +21,7 @@
     :default-sort = "{prop: 'last_modified', order: 'descending'}"
     style="width:100%">
         <el-table-column type="expand">
-          <template scope="scope">
+          <template slot-scope="scope">
              <el-tabs v-model="activeName" class="el-tabs--default">
                 <el-tab-pane :label="$t('kylinLang.common.overview')" name="overview" >
                     <div class="ksd-common-table ksd-mt-10">
@@ -84,7 +84,7 @@
       :label="$t('sql')"
       class-name="hideOverContent"
       prop="sql">
-        <template scope="scope">
+        <template slot-scope="scope">
            <common-tip :content="scope.row.sql" placement="top-start">
             <p>{{scope.row.sql}}</p>
           </common-tip>
@@ -102,7 +102,7 @@
       sortable
       prop="running_seconds"
       :label="$t('running_seconds')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.running_seconds}} (s)
         </template>
       </el-table-column>
@@ -112,7 +112,7 @@
       :width="150"
       prop="start_time"
       :label="$t('start_time')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.start_time}}
         </template>
       </el-table-column>
@@ -122,7 +122,7 @@
       show-overflow-tooltip
       prop="last_modified"
       :label="$t('last_modified')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.last_modified}}
         </template>
       </el-table-column>

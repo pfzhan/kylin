@@ -26,7 +26,7 @@
             width="50">
           </el-table-column>    
           <el-table-column>
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-row class="row_padding">
                 <el-col :span="4">{{$t('Includes')}}</el-col>
                 <el-col :span="20">
@@ -92,7 +92,7 @@
               header-align="center"
               align="center"
               width="130">
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{getEncoding(scope.row.encoding)}}
               </template>
           </el-table-column>    
@@ -102,7 +102,7 @@
               header-align="center"
               align="center"
               width="110">
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{getLength(scope.row.encoding)}}          
               </template>        
           </el-table-column>    
@@ -112,7 +112,7 @@
               header-align="center"
               align="center"
               width="110">
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{scope.row.isShardBy}}
               </template>
           </el-table-column>    
@@ -122,7 +122,7 @@
               header-align="center"
               align="center"
               width="110">
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{cubeDesc.modelDesc.columnsDetail[scope.row.column] && cubeDesc.modelDesc.columnsDetail[scope.row.column].datatype}}
               </template>
           </el-table-column>    
@@ -132,7 +132,7 @@
               header-align="center"
               align="center"
               width="110">
-              <template scope="scope">
+              <template slot-scope="scope">
                 {{cubeDesc.modelDesc.columnsDetail[scope.row.column] && cubeDesc.modelDesc.columnsDetail[scope.row.column].cardinality}}
               </template>
           </el-table-column>                                           

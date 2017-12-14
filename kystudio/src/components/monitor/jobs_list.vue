@@ -41,7 +41,7 @@
         :width="300"
         prop="jobname"
       >
-        <template scope="scope">
+        <template slot-scope="scope">
           <i class="el-icon-arrow-right" ></i> {{scope.row.name}}
         </template>
       </el-table-column>
@@ -55,7 +55,7 @@
       <el-table-column
         :width="180"
         :label="$t('ProgressStatus')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <!--  <el-progress  :percentage="scope.row.progress" v-if="scope.row.progress === 100" status="success">
            </el-progress>
            <el-progress  :percentage="scope.row.progress" v-if="scope.row.job_status === 'ERROR'" status="exception">
@@ -70,21 +70,21 @@
         :label="$t('LastModifiedTime')"
         show-overflow-tooltip
         sortable>
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.gmtTime}}
         </template>
       </el-table-column>
       <el-table-column
         :width="180"
         :label="$t('Duration')">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{scope.row.duration/60 | number(2) }}  mins
         </template>
       </el-table-column>
       <el-table-column
         :label="$t('Actions')"
         width="100">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-dropdown trigger="click">
             <el-button class="el-dropdown-link" @click.stop>
               <i class="el-icon-more"></i>

@@ -14,7 +14,7 @@
             </el-tab-pane>
           </el-tabs>
         </el-tab-pane>
-       <template scope="props">
+       <template slot-scope="props">
         <component :is="props.item.content" :extraoption="props.item.extraoption" :ref="props.item.content"></component>
        </template>
     </tab>

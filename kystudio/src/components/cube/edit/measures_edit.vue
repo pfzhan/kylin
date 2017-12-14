@@ -32,7 +32,7 @@
       :label="$t('parameters')"
       header-align="center"
       align="center" width="150">
-      <template scope="scope">
+      <template slot-scope="scope">
         <parameter_tree :measure="scope.row">
         </parameter_tree>
       </template>
@@ -43,7 +43,7 @@
       header-align="center"
       align="center"
       width="110">
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="modelDesc.columnsDetail[scope.row.function.parameter.value]">
           {{modelDesc.columnsDetail[scope.row.function.parameter.value].datatype}}
         </span>
@@ -53,7 +53,7 @@
       show-overflow-tooltip
       :label="$t('comment')"
       width="110">
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="modelDesc.columnsDetail[scope.row.function.parameter.value]">
           {{modelDesc.columnsDetail[scope.row.function.parameter.value].comment}}
         </span>
@@ -72,7 +72,7 @@
       header-align="center"
       align="center"
       width="100">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-button type="edit"  size="mini" icon="edit" :disabled="isReadyCube"  @click="editMeasure(scope.row)"></el-button><!--
          处理inline-block的间隙 勿删此处注释--><el-button type="edit"  size="mini" icon="delete" :disabled="isReadyCube" @click="removeMeasure(scope.row, scope.$index)"></el-button>
       </template>
@@ -92,7 +92,7 @@
         </el-table-column>
         <el-table-column
             :label="$t('measures')">
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-col :span="24">
                 <area_label :labels="currentMeasure" :selectedlabels="scope.row.columns[0].measure_refs" :refreshInfo="{index: scope.$index, key: 'measure_refs'}" @refreshData="refreshColumnFamily">
                 </area_label>
@@ -101,7 +101,7 @@
         </el-table-column>
         <el-table-column
         width="110">
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-button type="delete" icon="minus" size="mini" @click="removeColumnFamily(scope.$index)">
               </el-button>
             </template>

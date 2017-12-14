@@ -1,7 +1,7 @@
 <template>
   <div class="modeltab">
     <tab id="modeltab" class="modeltab ksd-common-tab" v-on:addtab="addTab" v-on:reload="reloadTab" :isedit="editable" v-on:removetab="delTab"   :tabslist="editableTabs"  :active="activeName" v-on:clicktab="checkTab">
-       <template scope="props">
+       <template slot-scope="props">
         <component :is="props.item.content" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="props.item.extraoption" :ref="props.item.content"></component>
        </template>
     </tab>

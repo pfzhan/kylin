@@ -48,7 +48,7 @@
        <el-table-column v-if="hasActionAccess"
           :label="$t('kylinLang.common.action')"
           width="120">
-          <template scope="scope" >
+          <template slot-scope="scope" >
             <el-button
               @click="removeFilter(scope.row)"
               type="text"

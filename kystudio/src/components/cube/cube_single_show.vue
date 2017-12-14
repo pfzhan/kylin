@@ -5,7 +5,7 @@
     :default-expand-all="true"
     style="width: 100%!important">
     <el-table-column type="expand">
-      <template scope="props" >
+      <template slot-scope="props" >
         <el-tabs activeName="first" type="border-card" @tab-click="changeTab">
           <el-tab-pane label="Grid" name="first">
             <cube_desc_view :cube="props.row" :index="props.$index"></cube_desc_view>
@@ -33,13 +33,13 @@
     <el-table-column
       :label="$t('status')"
       prop="status">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag  :type="scope.row.status === 'DISABLED' ? 'danger' : 'success'">{{scope.row.status}}</el-tag>
       </template>
     </el-table-column>
     <el-table-column
       :label="$t('cubeSize')">
-      <template scope="scope">
+      <template slot-scope="scope">
         <span>{{scope.row.size_kb*1024}}KB</span>
       </template>
     </el-table-column>
@@ -49,7 +49,7 @@
     </el-table-column>
     <el-table-column
       :label="$t('lastBuildTime')">
-      <template scope="scope">
+      <template slot-scope="scope">
         <span v-if="scope.row.segments[scope.row.segments.length-1]">{{scope.row.buildGMTTime}}</span>
       </template>
     </el-table-column>
@@ -63,7 +63,7 @@
     </el-table-column>
     <el-table-column
       :label="$t('actions')">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-dropdown trigger="click">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>
@@ -84,7 +84,7 @@
     </el-table-column>
     <el-table-column
       label="Admin">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-dropdown trigger="click">
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>

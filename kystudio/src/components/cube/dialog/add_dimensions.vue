@@ -22,7 +22,7 @@
       </el-table-column>
       <el-table-column
         :label="$t('name')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-input @click.native.stop v-model="scope.row.name" :disabled="!scope.row.isSelected">
           </el-input>
         </template>
@@ -36,7 +36,7 @@
         show-overflow-tooltip
         :label="$t('datatype')"
         width="110">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
@@ -44,7 +44,7 @@
         show-overflow-tooltip
         :label="$t('cardinality')"
         width="100">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>
@@ -70,7 +70,7 @@
       </el-table-column>
        <el-table-column
         :label="$t('name')">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-input v-model="scope.row.name" @click.native.stop :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
         </template>
       </el-table-column>
@@ -83,7 +83,7 @@
         show-overflow-tooltip
         :label="$t('datatype')"
         width="110">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
         </template>
       </el-table-column>
@@ -91,14 +91,14 @@
         show-overflow-tooltip
         :label="$t('cardinality')"
         width="100">
-        <template scope="scope">
+        <template slot-scope="scope">
           {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
         </template>
       </el-table-column>
       <el-table-column
         :label="$t('type')"
         width="185">
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-radio-group @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
             <el-radio-button label="false">Normal</el-radio-button><!--
             注释是为了取消button之间的间距，不要删--><el-radio-button label="true">Derived</el-radio-button>

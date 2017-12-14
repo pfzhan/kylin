@@ -23,14 +23,14 @@
       :label="$t('userName')"
       sortable
       prop="username" :width="220">
-      <template scope="scope">
+      <template slot-scope="scope">
         <icon name="user-o"  style="color: #d4d7e3;position: absolute;top:15px;" scale="0.8"></icon><span class="ksd-ml-20">{{scope.row.username}}</span>
       </template>
     </el-table-column>
     <el-table-column
       :label="$t('kylinLang.common.group')"
       sortable>
-      <template scope="scope">
+      <template slot-scope="scope">
         <common-tip :content="scope.row.groups && scope.row.groups.join('<br/>')" placement="top-start">
             <p>{{scope.row.groups && scope.row.groups.join(',')}}</p>
         </common-tip>
@@ -38,20 +38,20 @@
     </el-table-column>
     <el-table-column
       :label="$t('admin')" :width="120">
-      <template scope="scope">
+      <template slot-scope="scope">
         <i class="el-icon-check" v-if="scope.row.admin"></i>
       </template>
     </el-table-column>
     <el-table-column
       :label="$t('status')" :width="120">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag type="primary" v-if="scope.row.disabled">Disabled</el-tag>
         <el-tag type="success" v-else>Enabled</el-tag>
       </template>
     </el-table-column>
     <el-table-column v-if="$store.state.system.securityProfile === 'testing' && (hasAdminProjectPermission() || isAdmin)"
       :label="$t('action')" :width="100">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-dropdown trigger="click" >
           <el-button class="el-dropdown-link">
             <i class="el-icon-more"></i>

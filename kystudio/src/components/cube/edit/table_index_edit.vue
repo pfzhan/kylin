@@ -13,7 +13,7 @@
       header-align="center"
       align="center"
       width="80">
-      <template scope="scope">
+      <template slot-scope="scope">
         <el-tag style="background: transparent;">{{scope.$index + 1 + 15*(currentPage-1)}}</el-tag>
       </template>
      </el-table-column>
@@ -43,7 +43,7 @@
         :label="$t('Encoding')"
         header-align="center"
         align="center">   
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-select v-model="scope.row.encoding" @change=" changeEncoding(scope.row, scope.$index);changeRawTable(scope.row, scope.$index);">
                 <el-option
                     v-for="(item, index) in scope.row.selectEncoding" :key="index"
@@ -62,7 +62,7 @@
         :label="$t('Length')"
         header-align="center"
         align="center">   
-        <template scope="scope">
+        <template slot-scope="scope">
           <el-input v-model="scope.row.valueLength" :disabled="scope.row.encoding.indexOf('dict')>=0||scope.row.encoding.indexOf('date')>=0||scope.row.encoding.indexOf('time')>=0||scope.row.encoding.indexOf('var')>=0||scope.row.encoding.indexOf('orderedbytes')>=0||scope.row.encoding.indexOf('boolean')>=0"  @change="changeRawTable(scope.row, scope.$index)"></el-input>  
         </template>  
     </el-table-column>
@@ -71,7 +71,7 @@
         :label="$t('sortBy')"
         header-align="center"
         align="center">   
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-select v-model="scope.row.is_sortby" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in booleanSelect" :key="index"
@@ -86,7 +86,7 @@
         :label="$t('shardBy')"
         header-align="center"
         align="center">   
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-select v-model="scope.row.is_shardby" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in booleanSelect" :key="index"
@@ -101,7 +101,7 @@
         :label="$t('Index')"
         header-align="center"
         align="center">
-            <template scope="scope">
+            <template slot-scope="scope">
               <el-select v-model="scope.row.index" @change="changeRawTable(scope.row, scope.$index)">
                 <el-option
                     v-for="(item, index) in rawTableIndexOptions" :key="index"

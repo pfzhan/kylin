@@ -9,7 +9,7 @@
             label='ID'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <el-input v-model='scope.row.id' v-if='currentCheck === scope.$index'></el-input>
               <span v-else>{{scope.row.id}}</span>
             </template>
@@ -20,7 +20,7 @@
             prop='host'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <el-input v-model='scope.row.host' v-if='currentCheck === scope.$index'></el-input>
               <span v-else>{{scope.row.host}}</span>
             </template>
@@ -31,7 +31,7 @@
             prop='port'
             header-align='center'
             align='center'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <el-input v-model='scope.row.port' v-if='currentCheck === scope.$index'></el-input>
               <span v-else >{{scope.row.port}}</span>
             </template>
@@ -41,7 +41,7 @@
             header-align='center'
             align='center'
             width='110'>
-            <template scope='scope'>
+            <template slot-scope='scope'>
               <el-button size='mini' icon='check' @click='checkBroker(scope.$index)' v-if='currentCheck === scope.$index'></el-button>
               <el-button size='mini' icon='edit' @click='editBroker(scope.$index)'  v-else></el-button >
               <el-button size='mini' icon='delete' @click='removeBroker(scope.$index)'></el-button>

@@ -254,7 +254,7 @@
           <el-table-column
             :label="$t('kylinLang.dataSource.statistics')"
             >
-            <template scope="scope">
+            <template slot-scope="scope">
               {{$t('kylinLang.dataSource.'+scope.row.name)}}
             </template>
           </el-table-column>
