@@ -28,6 +28,11 @@
 	java.lang.Object writeReplace();
 	java.lang.Object readResolve();
 }
+
+-keepclassmembernames class io.kyligence.kap**Manager {
+    static io.kyligence.kap.**.*Manager newInstance(org.apache.kylin.common.KylinConfig);
+}
+
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
 -keep class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
