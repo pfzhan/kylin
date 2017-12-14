@@ -210,14 +210,8 @@ public class CuratorScheduler implements Scheduler<AbstractExecutable> {
         started = false;
     }
 
-    @Override
-    public boolean stop(AbstractExecutable executable) throws SchedulerException {
-        shutdown();
-        return true;
-    }
-
-    static String slickMetadataPrefix(String metadataPrefix) {
-        if (metadataPrefix.contains("/")) {
+    public static String slickMetadataPrefix(String metadataPrefix) {
+        if (metadataPrefix.indexOf("/") >= 0) {
             // for local test
             return metadataPrefix.substring(metadataPrefix.lastIndexOf("/") + 1);
         }
