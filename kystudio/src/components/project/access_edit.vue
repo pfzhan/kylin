@@ -1,6 +1,6 @@
 <template>
 <div class="access_edit">
-    <el-button class="ksd-mb-20" type="primary" size="small" @click="addAccess()" v-if="hasProjectAdminPermission()||isAdmin" > ＋ {{$t('grant')}}</el-button>
+    <el-button class="ksd-mb-20" type="primary" size="small" @click="addAccess()" v-if="hasProjectAdminPermission||isAdmin" > ＋ {{$t('grant')}}</el-button>
     <kap-common-popover>
       <div slot="content">
          <h4>{{$t('grantTitle')}}</h4>
@@ -13,19 +13,6 @@
       </div>
       <icon name="question-circle" class="ksd-question-circle"></icon>
     </kap-common-popover>
-   <!--  <el-popover ref="popoverGrant" placement="right" trigger="click" width="400">
-      <div class="grant-popover">
-        <h4>{{$t('grantTitle')}}</h4>
-        <ul>
-          <li>{{$t('grantDetail1')}}</li>
-          <li>{{$t('grantDetail2')}}</li>
-          <li>{{$t('grantDetail3')}}</li>
-          <li>{{$t('grantDetail4')}}</li>
-        </ul>
-      </div>
-    </el-popover>
-    <el-button v-popover:popoverGrant class="ques">?</el-button> -->
-
       <div v-show="editAccessVisible">
       <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline">
        <el-form-item :label="$t('type')">
@@ -34,32 +21,15 @@
             <el-option label="group" :value="false"></el-option>
           </el-select>
         </el-form-item>
-         <el-form-item :label="$t('name')" prop="sid" v-show="accessMeta.principal" >
-<!--           <el-input  :placeholder="$t('nameAccount')" v-model="accessMeta.sid"></el-input> -->
-         <kap-filter-select :asyn="true" @req="getFilterList" v-model="accessMeta.sid" :disabled="isEdit" :dataMap="{label: 'username', value: 'username'}" :list="userList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
-         <!--  <el-select filterable :disabled="isEdit" v-model="accessMeta.sid" :placeholder="$t('nameAccount')">
-            <el-option
-              v-for="item in userList"
-              :key="item.username"
-              :label="item.username"
-              :value="item.username">
-            </el-option>
-          </el-select> -->
+         <el-form-item :label="$t('name')" prop="sid" v-if="accessMeta.principal" >
+           <kap-filter-select :asyn="true" @req="filterUser" v-model="accessMeta.sid" :disabled="isEdit"  :list="renderUserList" placeholder="kylinLang.common.pleaseInputUserName" :size="100"></kap-filter-select>
         </el-form-item>
-         <el-form-item :label="$t('kylinLang.common.group')" prop="sid" v-show="!accessMeta.principal">
-         <!--  <el-select  placeholder="group" :disabled="isEdit" v-model="accessMeta.sid">
-            <el-option :label="item" :value="item" v-for="item in groupLists"></el-option>
-          </el-select> -->
-          <kap-filter-select v-model="accessMeta.sid" :disabled="isEdit"  :list="groupLists" :dataMap="{label: 'label', value:'value'}" placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
+         <el-form-item :label="$t('kylinLang.common.group')" prop="sid" v-if="!accessMeta.principal">
+          <kap-filter-select :asyn="true" @req="filterGroup" v-model="accessMeta.sid" :disabled="isEdit"  :list="renderGroupList"  placeholder="kylinLang.common.pleaseInputUserGroup" :size="100"></kap-filter-select>
         </el-form-item>
         <el-form-item :label="$t('access')" prop="permission">
           <el-select  :placeholder="$t('access')" v-model="accessMeta.permission">
-
-            <!--<el-option :label="key" :value="+value" v-for="(key, value) in showMask"></el-option>-->
             <el-option :label="item.key" :value="item.value" :key="item.value" v-for="item in showMaskByOrder"></el-option>
-<!--             <el-option label="Management" :value="32"></el-option>
-            <el-option label="OPERATION" :value="64"></el-option>
-            <el-option label="Query" :value="1"></el-option> -->
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -96,13 +66,13 @@
 	      :label="$t('kylinLang.common.action')"
 	      width="160">
 	      <template slot-scope="scope">
-        <span v-if="!(hasProjectAdminPermission()||isAdmin)">N/A</span>
-	        <el-button  v-if="hasProjectAdminPermission()||isAdmin"
+        <span v-if="!(hasProjectAdminPermission||isAdmin)">N/A</span>
+	        <el-button  v-if="hasProjectAdminPermission||isAdmin"
 	          @click="beginEdit(scope.row)"
 	          type="blue" size="small">
 	          {{$t('kylinLang.common.edit')}}
 	        </el-button>
-           <el-button  v-if="isAdmin || hasProjectAdminPermission()"
+           <el-button  v-if="isAdmin || hasProjectAdminPermission"
             @click="removeAccess(scope.row.id, scope.row.roleOrName)"
             type="danger" size="small">
             {{$t('kylinLang.common.delete')}}
@@ -110,22 +80,25 @@
 	      </template>
 	    </el-table-column>
 	  </el-table>
+    <pager class="ksd-center" :totalSize="accessSize" v-on:handleCurrentChange='pageCurrentChange' ></pager>
    </div>
 </template>
 
 <script>
 import { mapActions } from 'vuex'
-import { permissions } from '../../config/index'
+import { permissions, pageCount } from '../../config/index'
 import { objectClone } from '../../util/index'
-import { handleSuccess, handleError, hasPermission, hasRole, kapConfirm } from '../../util/business'
+import { handleSuccess, handleError, hasPermissionOfProjectAccess, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'access',
   props: ['accessId', 'own', 'projectName'],
   data () {
     return {
       isEdit: false,
+      currentPage: 1,
       editAccessVisible: false,
       settleAccessList: [],
+      accessSize: 0,
       hasActionAccess: false,
       accessMeta: {
         permission: 1,
@@ -157,7 +130,9 @@ export default {
         { key: 'Admin', value: 16 }
       ],
       groupList: [],
-      btnLoad: false
+      userList: [],
+      btnLoad: false,
+      projectAccess: null
     }
   },
   methods: {
@@ -170,25 +145,39 @@ export default {
       editCubeAccess: 'EDIT_CUBE_ACCESS',
       getCubeAccess: 'GET_CUBE_ACCESS',
       delCubeAccess: 'DEL_CUBE_ACCESS',
-      getProjectEndAccess: 'GET_PROJECT_END_ACCESS',
       loadUsersList: 'LOAD_USERS_LIST',
-      getGroupList: 'GET_GROUP_LIST'
+      getGroupList: 'GET_GROUP_LIST',
+      getAvailableUserOrGroupList: 'ACCESS_AVAILABLE_USER_OR_GROUP',
+      getUserAccessByProject: 'USER_ACCESS'
     }),
     getFilterList (query) {
       this.loadUser(query)
     },
-    loadUser (filterUserName) {
-      var para = {pageSize: 100, pageOffset: 0, project: this.projectName}
+    loadUserOrGroup (filterUserName, type) {
+      var para = {data: {pageSize: 100, pageOffset: 0, project: this.projectName}}
       if (filterUserName) {
-        para.name = filterUserName
+        para.data.name = filterUserName
       }
-      this.loadUsersList(para)
+      para.uuid = this.accessId
+      para.type = type
+      return this.getAvailableUserOrGroupList(para)
     },
-    loadAllGroups (data) {
-      this.getGroupList({project: localStorage.getItem('selected_project')}).then((res) => {
-        handleSuccess(res, (groups) => {
-          this.groupList = groups
+    filterUser (filterUserName) {
+      this.loadUserOrGroup(filterUserName, 'user').then((res) => {
+        handleSuccess(res, (data) => {
+          this.userList = data.sids
         })
+      }, (res) => {
+        handleError(res)
+      })
+    },
+    filterGroup (filterUserName) {
+      this.loadUserOrGroup(filterUserName, 'group').then((res) => {
+        handleSuccess(res, (data) => {
+          this.groupList = data.sids
+        })
+      }, (res) => {
+        handleError(res)
       })
     },
     changeUserType () {
@@ -232,8 +221,6 @@ export default {
           this.btnLoad = false
           this.editAccessVisible = false
           this.loadAccess()
-          // 需要重新刷新projectlist下的权限
-          this.getProjectEndAccess(this.accessId)
           this.$message(this.$t('kylinLang.common.saveSuccess'))
         }, (res) => {
           this.btnLoad = false
@@ -250,8 +237,6 @@ export default {
             message: this.$t('kylinLang.common.delSuccess')
           })
           this.loadAccess()
-          // 需要重新刷新projectlist下的权限
-          this.getProjectEndAccess(this.accessId)
         }, (res) => {
           handleError(res)
         })
@@ -284,15 +269,16 @@ export default {
         handleError(res)
       })
     },
-    hasProjectAdminPermission () {
-      return hasPermission(this, permissions.ADMINISTRATION.mask)
-    },
     loadAccess () {
-      var actionType = this.own === 'cube' ? 'getCubeAccess' : 'getProjectAccess'
-      this[actionType](this.accessId).then((res) => {
+      var para = {
+        data: {pageOffset: this.currentPage - 1, pageSize: pageCount},
+        projectId: this.accessId
+      }
+      this.getProjectAccess(para).then((res) => {
         handleSuccess(res, (data) => {
-          this.accessList = data
-          this.settleAccessList = data && data.map((access) => {
+          this.accessList = data.sids
+          this.accessSize = data.size
+          this.settleAccessList = this.accessList && this.accessList.map((access) => {
             access.roleOrName = access.sid.grantedAuthority || access.sid.principal
             access.type = access.sid.principal ? 'User' : 'Group'
             access.promission = this.showMask[access.permission.mask]
@@ -301,11 +287,18 @@ export default {
         })
       })
     },
+    pageCurrentChange (currentPage) {
+      this.currentPage = currentPage
+      this.loadAccess()
+    },
     grantDetail () {
 
     }
   },
   computed: {
+    hasProjectAdminPermission () {
+      return hasPermissionOfProjectAccess(this, this.projectAccess, permissions.ADMINISTRATION.mask)
+    },
     isAdmin () {
       return hasRole(this, 'ROLE_ADMIN')
     },
@@ -323,34 +316,37 @@ export default {
       })
       return userList
     },
-    userList () {
-      let userList = []
-      this.$store.state.user.usersList.forEach((user) => {
-        if (this.accessUserList && this.accessUserList.users.indexOf(user.username) < 0) {
-          userList.push(user)
-        }
+    renderUserList () {
+      var result = []
+      this.userList.forEach((u) => {
+        result.push({label: u, value: u})
       })
-      return userList
+      return result
     },
-    groupLists () {
-      let groupList = []
-      this.groupList.forEach((group) => {
-        if (this.accessUserList && this.accessUserList.groups.indexOf(group) < 0) {
-          groupList.push({label: group, value: group})
-        }
+    renderGroupList () {
+      var result = []
+      this.groupList.forEach((u) => {
+        result.push({label: u, value: u})
       })
-      return groupList
+      return result
     }
   },
   created () {
     this.loadAccess()
-    if (this.hasProjectAdminPermission() || this.isAdmin) {
-      this.loadAllGroups()
-      this.loadUser()
-    }
-    if (!this.$store.state.project.projectEndAccess[this.accessId]) {
-      this.getProjectEndAccess(this.accessId)
-    }
+    this.getUserAccessByProject({
+      project: this.projectName,
+      notCache: true
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.projectAccess = data
+        if (this.hasProjectAdminPermission || this.isAdmin) {
+          this.filterUser()
+          this.filterGroup()
+        }
+      })
+    }, (res) => {
+      handleError(res)
+    })
   },
   locales: {
     'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does KAP provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to cube and jobs. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?', pleaseInput: 'Please input user name.'},

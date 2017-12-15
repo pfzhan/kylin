@@ -180,7 +180,6 @@
         loadAllProjects: 'LOAD_ALL_PROJECT',
         resetPassword: 'RESET_PASSWORD',
         getAboutKap: 'GET_ABOUTKAP',
-        getProjectEndAccess: 'GET_PROJECT_END_ACCESS',
         getUserAccess: 'USER_ACCESS'
       }),
       ...mapMutations({
@@ -270,17 +269,17 @@
           return obj
         }
       },
-      _getUuidFromProjects (list, projectName) {
-        var uuid = list[0].uuid
-        for (var i = 0; i < list.length; i++) {
-          var item = list[i]
-          if (item.name === projectName) {
-            uuid = item.uuid
-            break
-          }
-        }
-        return uuid
-      },
+      // _getUuidFromProjects (list, projectName) {
+      //   var uuid = list[0].uuid
+      //   for (var i = 0; i < list.length; i++) {
+      //     var item = list[i]
+      //     if (item.name === projectName) {
+      //       uuid = item.uuid
+      //       break
+      //     }
+      //   }
+      //   return uuid
+      // },
       _replaceRouter (currentPath) {
         if (currentPath.indexOf('dashboard') < 0) {
           this.$router.replace('/')
@@ -291,35 +290,15 @@
           this.$router.replace(currentPath)
         })
       },
-      _isAjaxProjectAcess (allProject, curProjectName, curProjectId, currentPath) {
-        let uuid = allProject.length > 0 ? this._getUuidFromProjects(allProject, curProjectName) : null
-        // 当前project的权限没拿过才需要发请求,project list 空的话，uuid也就不存在，就直接跳
-        // if (uuid && !curProjectId[uuid]) {
-        //   let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
-        //   let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-        //   Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
-        //     this._replaceRouter(currentPath)
-        //   })
-        // } else {
-        //   this._replaceRouter(currentPath)
-        // }
-        let curProjectEndAccessPromise = this.getProjectEndAccess(uuid)
+      _isAjaxProjectAcess (allProject, curProjectName, currentPath) {
         let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-        Promise.all([curProjectEndAccessPromise, curProjectUserAccess]).then(() => {
+        Promise.all([curProjectUserAccess]).then(() => {
           this._replaceRouter(currentPath)
         })
       },
       changeProject (val) {
         var currentPath = this.$router.currentRoute.path
-        /* if (currentPath.indexOf('dashboard') < 0) {
-          this.$router.replace('/')
-        } else {
-          this.$router.replace('/system/config')
-        }
-        this.$nextTick(() => {
-          this.$router.replace(currentPath)
-        }) */
-        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, this.$store.state.project.projectEndAccess, currentPath)
+        this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPath)
       },
       addProject () {
         this.isEdit = false

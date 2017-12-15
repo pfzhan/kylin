@@ -94,7 +94,9 @@ export default {
     [types.USER_ACCESS]: function ({ commit }, para) {
       return new Promise((resolve, reject) => {
         api.user.userAccess({project: para.project}).then((res) => {
-          commit(types.SAVE_CURRENT_USER_ACCESS, {access: res.data.data})
+          if (!para.notCache) {
+            commit(types.SAVE_CURRENT_USER_ACCESS, {access: res.data.data})
+          }
           resolve(res)
         }, () => {
           reject()

@@ -70,22 +70,6 @@ export default {
     var subRouter = hash.replace(/.*\/(.*)$/, '$1')
     this.subMenu = subRouter
   }
-  /* watch: {
-    '$store.state': {
-      handler: function (value, oldValue) {
-        if (!this.hasGetPermission) {
-          if (value.project && value.user && value.user.currentUser && value.project.selected_project) {
-            var projectId = this.getProjectIdByName(value.project.selected_project)
-            if (value.project.projectEndAccess[projectId]) {
-              this.hasPermissionOfProject = this.hasSomePermissionOfProject()
-              this.hasGetPermission = true
-            }
-          }
-        }
-      },
-      deep: true
-    }
-  } */
 }
 </script>
 <style lang="less">

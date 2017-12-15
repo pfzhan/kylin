@@ -23,8 +23,8 @@ export default {
   editProjectAccess: (accessData, projectId) => {
     return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).update(accessData)
   },
-  getProjectAccess: (projectId) => {
-    return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).get()
+  getProjectAccess: (projectId, data) => {
+    return Vue.resource(apiUrl + 'access/ProjectInstance/' + projectId).get(data)
   },
   getProjectEndAccess: (projectId) => {
     return Vue.resource(apiUrl + 'access/all/ProjectInstance/' + projectId).get()
@@ -51,5 +51,8 @@ export default {
   },
   backupProject: (project) => {
     return Vue.resource(apiUrl + 'metastore/backup?project=' + project.name).save()
+  },
+  accessAvailableUserOrGroup: (sidType, uuid, data) => {
+    return Vue.resource(apiUrl + 'access/available/' + sidType + '/' + uuid).get(data)
   }
 }

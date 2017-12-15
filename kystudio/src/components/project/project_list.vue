@@ -97,10 +97,6 @@ export default {
       deleteProject: 'DELETE_PROJECT',
       updateProject: 'UPDATE_PROJECT',
       saveProject: 'SAVE_PROJECT',
-      saveAccess: 'SAVE_PROJECT_ACCESS',
-      editAccess: 'EDIT_PROJECT_ACCESS',
-      getAccess: 'GET_PROJECT_ACCESS',
-      delAccess: 'DEL_PROJECT_ACCESS',
       backupProject: 'BACKUP_PROJECT'
     }),
     editProject (project) {
@@ -110,19 +106,6 @@ export default {
     },
     checkProjectForm () {
       this.$refs.projectForm.$emit('projectFormValid')
-    },
-    saveAccess () {
-      // this.$notify({
-      //   title: '保存成功',
-      //   message: 'Access保存成功',
-      //   type: 'success'
-      // })
-      this.$message(this.$t('kylinLang.common.saveSuccess'))
-      // this.editAccessVisible = false
-    },
-    saveFilter () {
-      this.$message(this.$t('kylinLang.common.saveSuccess'))
-      // this.editFilterVisible = false
     },
     pageCurrentChange (currentPage) {
       this.currentPage = currentPage

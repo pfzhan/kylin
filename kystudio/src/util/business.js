@@ -139,7 +139,7 @@ export function transToGmtTimeAfterAjax (t, timeZone, _vue) {
   }
 }
 
-// 检测是否有project的某种权限
+// 测试当前用户在默认project下的权限
 export function hasPermission (vue) {
   var curUser = vue.$store.state.user.currentUser
   var curUserAccess = vue.$store.state.user.currentUserAccess
@@ -155,11 +155,25 @@ export function hasPermission (vue) {
   if (masks.indexOf(curUserAccess) >= 0) {
     return true
   }
-  // 为了测试先全部true
-  // return hasPermission || true
   return false
 }
-
+// 监测当前用户在某个特定project下的权限
+export function hasPermissionOfProjectAccess (vue, projectAccess) {
+  var curUser = vue.$store.state.user.currentUser
+  if (!curUser || !projectAccess) {
+    return null
+  }
+  var masks = []
+  for (var i = 2; i < arguments.length; i++) {
+    if (arguments[i]) {
+      masks.push(permissionsMaps[arguments[i]])
+    }
+  }
+  if (masks.indexOf(projectAccess) >= 0) {
+    return true
+  }
+  return false
+}
 // 检测当前用户是否有某种角色
 export function hasRole (vue, roleName) {
   var haseRole = false
