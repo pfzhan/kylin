@@ -36,7 +36,7 @@ import io.kyligence.kap.smart.query.Utils;
 import io.kyligence.kap.source.hive.modelstats.ModelStats;
 
 public class ProposerProviderTest {
-    private static KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/learn_kylin/meta");
+    private static KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/smart/learn_kylin/meta");
 
     @BeforeClass
     public static void beforeClass() {

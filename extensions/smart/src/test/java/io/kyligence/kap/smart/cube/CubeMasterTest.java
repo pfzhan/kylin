@@ -47,8 +47,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.smart.common.MasterFactory;
 import io.kyligence.kap.smart.query.Utils;
 
-//@Ignore("Ignore because this is only used for demo.")
 public class CubeMasterTest {
+    private static String TEST_META_BASE = "src/test/resources/smart/";
     public static String aggrStrategy = "mixed";
 
     @After
@@ -58,22 +58,22 @@ public class CubeMasterTest {
 
     @Test
     public void testE2E_LearnKylin() throws IOException {
-        testInternal("src/test/resources/learn_kylin/meta", "kylin_sales_model", "src/test/resources/learn_kylin/sql");
+        testInternal(TEST_META_BASE + "learn_kylin/meta", "kylin_sales_model", TEST_META_BASE + "learn_kylin/sql");
     }
 
     @Test
     public void testE2E_SSB() throws IOException {
-        testInternal("src/test/resources/ssb/meta", "ssb", "src/test/resources/ssb/sql");
+        testInternal(TEST_META_BASE + "ssb/meta", "ssb", TEST_META_BASE + "ssb/sql");
     }
 
     @Test
     public void testE2E_TPCH_LineItem() throws IOException {
-        testInternal("src/test/resources/tpch/meta", "lineitem_model", "src/test/resources/tpch/sql_lineitem");
+        testInternal(TEST_META_BASE + "tpch/meta", "lineitem_model", TEST_META_BASE + "tpch/sql_lineitem");
     }
 
     @Test
     public void testE2E_Airline() throws IOException {
-        testInternal("src/test/resources/airline/meta", "airline_model", null);
+        testInternal(TEST_META_BASE + "airline/meta", "airline_model", null);
     }
 
     private void testInternal(String metaDir, String modelName, String sqlDir) throws IOException {

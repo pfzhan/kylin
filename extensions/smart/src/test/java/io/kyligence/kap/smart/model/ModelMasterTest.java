@@ -51,6 +51,7 @@ import io.kyligence.kap.smart.query.Utils;
 
 //@Ignore("Ignore because this is only used for demo.")
 public class ModelMasterTest {
+    private static String TEST_META_BASE = "src/test/resources/smart/";
     private static final Logger logger = LoggerFactory.getLogger(ModelMasterTest.class);
 
     @AfterClass
@@ -60,8 +61,8 @@ public class ModelMasterTest {
 
     @Test
     public void testE2E_LearnKylin() throws Exception {
-        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
-                "src/test/resources/learn_kylin/sql");
+        DataModelDesc modelDesc = testInternal(TEST_META_BASE + "learn_kylin/meta", "learn_kylin", "kylin_sales",
+                TEST_META_BASE + "learn_kylin/sql");
         Assert.assertNull(modelDesc.getPartitionDesc().getPartitionDateFormat());
         Assert.assertNull(modelDesc.getPartitionDesc().getPartitionTimeFormat());
         Assert.assertEquals(DataModelDesc.TableKind.FACT, modelDesc.getJoinTables()[0].getKind());
@@ -70,44 +71,44 @@ public class ModelMasterTest {
 
     @Test
     public void testE2E_LearnKylin_dupJoins_1() throws Exception {
-        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
-                "src/test/resources/learn_kylin/sql_dupJoins_1");
+        DataModelDesc modelDesc = testInternal(TEST_META_BASE + "learn_kylin/meta", "learn_kylin", "kylin_sales",
+                TEST_META_BASE + "learn_kylin/sql_dupJoins_1");
         Assert.assertNotNull(modelDesc);
         Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }
 
     @Test
     public void testE2E_LearnKylin_dupJoins_2() throws Exception {
-        DataModelDesc modelDesc = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin", "kylin_sales",
-                "src/test/resources/learn_kylin/sql_dupJoins_2");
+        DataModelDesc modelDesc = testInternal(TEST_META_BASE + "learn_kylin/meta", "learn_kylin", "kylin_sales",
+                TEST_META_BASE + "learn_kylin/sql_dupJoins_2");
         Assert.assertNotNull(modelDesc);
         Assert.assertEquals(modelDesc.getJoinTables().length, 6);
     }
 
     @Test
     public void testE2E_SSB() throws Exception {
-        testInternal("src/test/resources/ssb/meta", "ssb", "src/test/resources/ssb/sql");
+        testInternal(TEST_META_BASE + "ssb/meta", "ssb", TEST_META_BASE + "ssb/sql");
     }
 
     @Test
     public void testE2E_TPCH_LineItem() throws Exception {
-        testInternal("src/test/resources/tpch/meta", "tpch", "src/test/resources/tpch/sql_lineitem");
+        testInternal(TEST_META_BASE + "tpch/meta", "tpch", TEST_META_BASE + "tpch/sql_lineitem");
     }
 
     @Test
     public void testE2E_TPCDS_ss() throws Exception {
-        testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES",
-                "src/test/resources/tpcds/sql_ss");
+        testInternal(TEST_META_BASE + "tpcds/meta", "TPC_DS_2", "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES",
+                TEST_META_BASE + "tpcds/sql_ss");
     }
 
     @Test
     public void testE2E_TPCDS_MultiFact() throws Exception {
-        testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss");
+        testInternal(TEST_META_BASE + "tpcds/meta", "TPC_DS_2", TEST_META_BASE + "tpcds/sql_ss");
     }
 
     @Test
     public void testE2E_TPCDS_SelfJoin() throws Exception {
-        testInternal("src/test/resources/tpcds/meta", "TPC_DS_2", "src/test/resources/tpcds/sql_ss_selfjoin");
+        testInternal(TEST_META_BASE + "tpcds/meta", "TPC_DS_2", TEST_META_BASE + "tpcds/sql_ss_selfjoin");
     }
 
     private DataModelDesc testInternal(String metaDir, String project, String factTable, String sqlDir)

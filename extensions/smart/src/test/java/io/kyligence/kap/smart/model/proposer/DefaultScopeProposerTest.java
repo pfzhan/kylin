@@ -45,7 +45,7 @@ import io.kyligence.kap.smart.query.Utils;
 
 public class DefaultScopeProposerTest {
 
-    private static KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/learn_kylin/meta");
+    private static KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/smart/learn_kylin/meta");
 
     @BeforeClass
     public static void beforeClass() {

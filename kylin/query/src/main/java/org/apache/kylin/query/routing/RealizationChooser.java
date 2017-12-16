@@ -57,7 +57,6 @@ public class RealizationChooser {
         // try different model for different context
 
         for (OLAPContext ctx : contexts) {
-            ctx.realizationCheck = new RealizationCheck();
             attemptSelectRealization(ctx);
             Preconditions.checkNotNull(ctx.realization);
         }

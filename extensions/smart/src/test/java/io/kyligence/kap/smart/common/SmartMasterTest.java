@@ -59,7 +59,7 @@ public class SmartMasterTest {
 
     @Test
     public void testE2E_TPCDS() throws Exception {
-        String base = "src/test/resources/tpcds/";
+        String base = "src/test/resources/smart/tpcds/";
         File tmpMetaDir = Files.createTempDir();
         FileUtils.copyDirectory(new File(base + "meta"), tmpMetaDir);
         testInternal("TPC_DS_2", tmpMetaDir.getAbsolutePath(), base + "sql_filtered");

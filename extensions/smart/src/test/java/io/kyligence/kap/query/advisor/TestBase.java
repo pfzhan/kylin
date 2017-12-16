@@ -42,7 +42,7 @@ import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.Utils;
 
 public class TestBase {
-    String metaDir = "src/test/resources/tpch/meta";
+    String metaDir = "src/test/resources/smart/tpch/meta";
     protected KylinConfig kylinConfig = getKylinConfig(metaDir);
     protected SQLResult sqlResult;
     protected Collection<OLAPContext> olapContexts;

@@ -26,6 +26,14 @@ package io.kyligence.kap.cube.model;
 
 import java.util.Map;
 
+import org.apache.kylin.dimension.DateDimEnc;
+import org.apache.kylin.dimension.DictionaryDimEnc;
+import org.apache.kylin.dimension.FixedLenDimEnc;
+import org.apache.kylin.dimension.IntegerDimEnc;
+import org.apache.kylin.dimension.TimeDimEnc;
+import org.apache.kylin.metadata.TableMetadataManager;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
@@ -33,6 +41,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.common.SmartConfig;
 
 public class NDimensionProposer extends NAbstractCubeProposer {
     NDimensionProposer(NSmartContext.NModelContext context) {
@@ -51,18 +60,71 @@ public class NDimensionProposer extends NAbstractCubeProposer {
         NDataModel model = context.getTargetModel();
         for (Map.Entry<Integer, TblColRef> colEntry : model.getEffectiveColsMap().entrySet()) {
             if (dimDescMap.containsKey(colEntry.getKey()))
-                continue;
+                continue; // TODO: for those existing dimension but not used in any ready cuboids, we still can modify the encoding.
 
             NDimensionDesc dimDesc = new NDimensionDesc();
             dimDesc.setId(colEntry.getKey());
-
-            NDimensionDesc.NEncodingDesc encodingDesc = new NDimensionDesc.NEncodingDesc();
-            encodingDesc.setName("dict"); // TODO: will decide encoding when we have table stats
-            encodingDesc.setVersion(1);
-            dimDesc.setEncoding(encodingDesc);
-
+            dimDesc.setEncoding(suggestEncoding(colEntry.getValue()));
             dimDescMap.put(colEntry.getKey(), dimDesc);
         }
         cubePlan.setDimensions(Lists.newArrayList(dimDescMap.values()));
+    }
+
+    private NDimensionDesc.NEncodingDesc suggestEncoding(TblColRef colRef) {
+        // select encoding according to column type
+        // eg. date, tinyint, integer, smallint, bigint
+        // TODO: we can set boolean encoding according to column type and cardinality, but cardinality is not precise.
+        DataType dataType = colRef.getType();
+
+        // datatime family
+        if (dataType.isDate()) {
+            return newEnc(DateDimEnc.ENCODING_NAME);
+        } else if (dataType.isDateTimeFamily()) {
+            return newEnc(TimeDimEnc.ENCODING_NAME);
+        }
+
+        // number family
+        if (dataType.isTinyInt()) {
+            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 1));
+        } else if (dataType.isSmallInt()) {
+            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 2));
+        } else if (dataType.isInt()) {
+            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 4));
+        } else if (dataType.isIntegerFamily()) {
+            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 8));
+        } else if (dataType.isNumberFamily()) {
+            return newEnc(DictionaryDimEnc.ENCODING_NAME);
+        }
+
+        // select dict or fixlen for other type columns according to cardinality
+        SmartConfig smartConfig = context.getSmartContext().getSmartConfig();
+        TableMetadataManager tableMetadataManager = TableMetadataManager
+                .getInstance(context.getSmartContext().getKylinConfig());
+        TableExtDesc tableExt = tableMetadataManager.getTableExt(colRef.getTableRef().getTableDesc());
+        if (tableExt != null && !tableExt.getColumnStats().isEmpty()) {
+            TableExtDesc.ColumnStats columnStats = tableExt.getColumnStats()
+                    .get(colRef.getColumnDesc().getZeroBasedIndex());
+            long cardinality = columnStats.getCardinality();
+
+            if (cardinality > smartConfig.getRowkeyDictEncCardinalityMax())
+                return newEnc(String.format("%s:%d", FixedLenDimEnc.ENCODING_NAME, Math.min(
+                        columnStats.getMaxLengthValue().getBytes().length, smartConfig.getRowkeyFixLenLengthMax())));
+            else
+                return newEnc(DictionaryDimEnc.ENCODING_NAME);
+        }
+
+        String defaultEnc = smartConfig.getRowkeyDefaultEnc();
+        return newEnc(defaultEnc);
+    }
+
+    private NDimensionDesc.NEncodingDesc newEnc(String name) {
+        return newEnc(name, 1);
+    }
+
+    private NDimensionDesc.NEncodingDesc newEnc(String name, int ver) {
+        NDimensionDesc.NEncodingDesc encodingDesc = new NDimensionDesc.NEncodingDesc();
+        encodingDesc.setName(name);
+        encodingDesc.setVersion(ver);
+        return encodingDesc;
     }
 }

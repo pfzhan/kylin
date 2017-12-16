@@ -1,0 +1,1 @@
+select lstg_format_name, sum(price), avg(account_id) from kylin_sales inner join kylin_account as buyer_account on kylin_sales.buyer_id = buyer_account.account_id  inner join kylin_country as buyer_country on buyer_account.account_country = buyer_country.country group by lstg_format_name;

@@ -63,8 +63,8 @@ public class RawModelSQLValidatorTest {
 
     @Test
     public void testE2E_LearnKylin() throws Exception {
-        Map<String, SQLValidateResult> results = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin",
-                "kylin_sales", "src/test/resources/learn_kylin/sql");
+        Map<String, SQLValidateResult> results = testInternal("src/test/resources/smart/learn_kylin/meta",
+                "learn_kylin", "kylin_sales", "src/test/resources/smart/learn_kylin/sql");
         Assert.assertEquals(1, results.size());
         for (SQLValidateResult result : results.values()) {
             Assert.assertTrue(result.isCapable());
@@ -73,8 +73,8 @@ public class RawModelSQLValidatorTest {
 
     @Test
     public void testE2E_LearnKylin_conflictJoins() throws Exception {
-        Map<String, SQLValidateResult> results = testInternal("src/test/resources/learn_kylin/meta", "learn_kylin",
-                "kylin_sales", "src/test/resources/learn_kylin/sql_conflictJoins");
+        Map<String, SQLValidateResult> results = testInternal("src/test/resources/smart/learn_kylin/meta",
+                "learn_kylin", "kylin_sales", "src/test/resources/smart/learn_kylin/sql_conflictJoins");
         Assert.assertEquals(3, results.size());
         int countSucc = 0, countFail = 0;
         for (SQLValidateResult result : results.values()) {
@@ -90,8 +90,8 @@ public class RawModelSQLValidatorTest {
 
     @Test
     public void testE2E_TPCDS_ss() throws Exception {
-        Map<String, SQLValidateResult> results = testInternal("src/test/resources/tpcds/meta", "TPC_DS_2",
-                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES", "src/test/resources/tpcds/sql_ss");
+        Map<String, SQLValidateResult> results = testInternal("src/test/resources/smart/tpcds/meta", "TPC_DS_2",
+                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES", "src/test/resources/smart/tpcds/sql_ss");
         Assert.assertEquals(3, results.size());
         for (SQLValidateResult result : results.values()) {
             Assert.assertTrue(result.isCapable());
@@ -100,8 +100,8 @@ public class RawModelSQLValidatorTest {
 
     @Test
     public void testE2E_TPCDS_badQuery() throws Exception {
-        Map<String, SQLValidateResult> results = testInternal("src/test/resources/tpcds/meta", "TPC_DS_2",
-                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES", "src/test/resources/tpcds/sql_badquery");
+        Map<String, SQLValidateResult> results = testInternal("src/test/resources/smart/tpcds/meta", "TPC_DS_2",
+                "TPCDS_BIN_PARTITIONED_ORC_2.STORE_SALES", "src/test/resources/smart/tpcds/sql_badquery");
         Assert.assertEquals(1, results.size());
         for (SQLValidateResult result : results.values()) {
             Assert.assertFalse(result.isCapable());
@@ -144,7 +144,7 @@ public class RawModelSQLValidatorTest {
             throws Exception {
         DataModelDesc modelDesc = master.proposeAll();
         modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc> newArrayList(), false);
+                Lists.<DataModelDesc>newArrayList(), false);
         return modelDesc;
     }
 

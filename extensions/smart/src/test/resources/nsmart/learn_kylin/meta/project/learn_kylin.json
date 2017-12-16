@@ -1,0 +1,22 @@
+{
+  "uuid": "2fbca32a-a33e-4b69-83dd-0bb8b1f8c91b",
+  "last_modified": 1513414143831,
+  "version": "3.0.0.0",
+  "name": "learn_kylin",
+  "tables": [
+    "DEFAULT.KYLIN_CAL_DT",
+    "DEFAULT.KYLIN_CATEGORY_GROUPINGS",
+    "DEFAULT.KYLIN_ACCOUNT",
+    "DEFAULT.KYLIN_COUNTRY",
+    "DEFAULT.KYLIN_SALES"
+  ],
+  "owner": null,
+  "status": null,
+  "create_time_utc": 0,
+  "last_update_time": null,
+  "description": null,
+  "realizations": [],
+  "models": [],
+  "ext_filters": [],
+  "override_kylin_properties": {}
+}

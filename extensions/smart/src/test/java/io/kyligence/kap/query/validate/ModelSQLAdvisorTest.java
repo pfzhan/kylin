@@ -38,43 +38,31 @@ public class ModelSQLAdvisorTest extends TestBase {
     @Test
     public void testBadSQL() {
         List<String> sqls = Lists.newArrayList("select a,b,c,d from t");
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "lineitem_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "lineitem_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
                 && CollectionUtils.isNotEmpty(sqlValidateResult.getSQLAdvices()));
     }
 
-
     @Test
     public void testBadJoin() {
-        String sql = "with tmp3 as (\n" +
-                "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n" +
-                "    from v_lineitem\n" +
-                "    left join supplier on l_suppkey = S_NATIONKEY\n" +
-                "    inner join nation on s_nationkey = n_nationkey\n" +
-                "    inner join part on l_partkey = p_partkey\n" +
-                "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n" +
-                "    and n_name = 'CANADA'\n" +
-                "    and p_name like 'forest%'\n" +
-                "    group by l_partkey, l_suppkey\n" +
-                ")\n" +
-                "\n" +
-                "select\n" +
-                "    s_name,\n" +
-                "    s_address\n" +
-                "from\n" +
-                "    v_partsupp\n" +
-                "    inner join supplier on ps_suppkey = s_suppkey\n" +
-                "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" +
-                "where\n" +
-                "    ps_availqty > sum_quantity\n" +
-                "group by\n" +
-                "    s_name, s_address\n" +
-                "order by\n" +
-                "    s_name;";
+        String sql = "with tmp3 as (\n" + "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n"
+                + "    from v_lineitem\n" + "    left join supplier on l_suppkey = S_NATIONKEY\n"
+                + "    inner join nation on s_nationkey = n_nationkey\n"
+                + "    inner join part on l_partkey = p_partkey\n"
+                + "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n"
+                + "    and n_name = 'CANADA'\n" + "    and p_name like 'forest%'\n"
+                + "    group by l_partkey, l_suppkey\n" + ")\n" + "\n" + "select\n" + "    s_name,\n"
+                + "    s_address\n" + "from\n" + "    v_partsupp\n"
+                + "    inner join supplier on ps_suppkey = s_suppkey\n"
+                + "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" + "where\n"
+                + "    ps_availqty > sum_quantity\n" + "group by\n" + "    s_name, s_address\n" + "order by\n"
+                + "    s_name;";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "lineitem_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "lineitem_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
@@ -83,33 +71,21 @@ public class ModelSQLAdvisorTest extends TestBase {
 
     @Test
     public void testColumnNotFound() {
-        String sql = "with tmp3 as (\n" +
-                "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n" +
-                "    from v_lineitem\n" +
-                "    inner join supplier on l_suppkey = S_SUPPKEY\n" +
-                "    inner join nation on s_nationkey = n_nationkey\n" +
-                "    inner join part on l_partkey = p_partkey\n" +
-                "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n" +
-                "    and n_name = 'CANADA'\n" +
-                "    and p_name like 'forest%' and L_SALEPRICE = 'test'\n" +
-                "    group by l_partkey, l_suppkey\n" +
-                ")\n" +
-                "\n" +
-                "select\n" +
-                "    s_name,\n" +
-                "    s_address\n" +
-                "from\n" +
-                "    v_partsupp\n" +
-                "    inner join supplier on ps_suppkey = s_suppkey\n" +
-                "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" +
-                "where\n" +
-                "    ps_availqty > sum_quantity\n" +
-                "group by\n" +
-                "    s_name, s_address\n" +
-                "order by\n" +
-                "    s_name;";
+        String sql = "with tmp3 as (\n" + "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n"
+                + "    from v_lineitem\n" + "    inner join supplier on l_suppkey = S_SUPPKEY\n"
+                + "    inner join nation on s_nationkey = n_nationkey\n"
+                + "    inner join part on l_partkey = p_partkey\n"
+                + "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n"
+                + "    and n_name = 'CANADA'\n" + "    and p_name like 'forest%' and L_SALEPRICE = 'test'\n"
+                + "    group by l_partkey, l_suppkey\n" + ")\n" + "\n" + "select\n" + "    s_name,\n"
+                + "    s_address\n" + "from\n" + "    v_partsupp\n"
+                + "    inner join supplier on ps_suppkey = s_suppkey\n"
+                + "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" + "where\n"
+                + "    ps_availqty > sum_quantity\n" + "group by\n" + "    s_name, s_address\n" + "order by\n"
+                + "    s_name;";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "lineitem_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "lineitem_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
@@ -118,29 +94,16 @@ public class ModelSQLAdvisorTest extends TestBase {
 
     @Test
     public void testDimensionUnmatched() {
-        String sql = "select\n" +
-                "    l_returnflag,\n" +
-                "    l_linestatus,\n" +
-                "    sum(l_quantity) as sum_qty,\n" +
-                "    sum(l_extendedprice) as sum_base_price,\n" +
-                "    sum(l_saleprice) as sum_disc_price,\n" +
-                "    sum(l_saleprice) + sum(l_taxprice) as sum_charge,\n" +
-                "    avg(l_quantity) as avg_qty,\n" +
-                "    avg(l_extendedprice) as avg_price,\n" +
-                "    avg(l_discount) as avg_disc,\n" +
-                "    count(*) as count_order\n" +
-                "from\n" +
-                "    v_lineitem\n" +
-                "where\n" +
-                "    l_shipdate <= '1998-09-16' and L_SALEPRICE > 100\n" +
-                "group by\n" +
-                "    l_returnflag,\n" +
-                "    l_linestatus\n" +
-                "order by\n" +
-                "    l_returnflag,\n" +
-                "    l_linestatus;";
+        String sql = "select\n" + "    l_returnflag,\n" + "    l_linestatus,\n" + "    sum(l_quantity) as sum_qty,\n"
+                + "    sum(l_extendedprice) as sum_base_price,\n" + "    sum(l_saleprice) as sum_disc_price,\n"
+                + "    sum(l_saleprice) + sum(l_taxprice) as sum_charge,\n" + "    avg(l_quantity) as avg_qty,\n"
+                + "    avg(l_extendedprice) as avg_price,\n" + "    avg(l_discount) as avg_disc,\n"
+                + "    count(*) as count_order\n" + "from\n" + "    v_lineitem\n" + "where\n"
+                + "    l_shipdate <= '1998-09-16' and L_SALEPRICE > 100\n" + "group by\n" + "    l_returnflag,\n"
+                + "    l_linestatus\n" + "order by\n" + "    l_returnflag,\n" + "    l_linestatus;";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "lineitem_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "lineitem_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
@@ -151,7 +114,8 @@ public class ModelSQLAdvisorTest extends TestBase {
     public void testMeasureUnmatched() {
         String sql = "select sum(C_ACCTBAL) from customer";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "customer_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "customer_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == true);
@@ -159,17 +123,12 @@ public class ModelSQLAdvisorTest extends TestBase {
 
     @Test
     public void testFactTableNotFound() {
-        String sql = "select s_name,\n " +
-                    "    s_address\n" +
-                    "from\n" +
-                    "    supplier\n" +
-                    "    inner join v_partsupp on s_suppkey = ps_suppkey\n" +
-                    "group by\n" +
-                    "    s_name, s_address\n" +
-                    "order by\n" +
-                    "    s_name";
+        String sql = "select s_name,\n " + "    s_address\n" + "from\n" + "    supplier\n"
+                + "    inner join v_partsupp on s_suppkey = ps_suppkey\n" + "group by\n" + "    s_name, s_address\n"
+                + "order by\n" + "    s_name";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "lineitem_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "lineitem_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
@@ -177,16 +136,13 @@ public class ModelSQLAdvisorTest extends TestBase {
     }
 
     @Test
-    public void testTableNotFound(){
-        String sql = "select\n" +
-                "        substring(c_phone, 1, 2) as cntrycode,\n" +
-                "        c_acctbal\n" +
-                "    from \n" +
-                "        customer inner join supplier on c_custkey = s_suppkey\n" +
-                "    where \n" +
-                "        substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17')\n";
+    public void testTableNotFound() {
+        String sql = "select\n" + "        substring(c_phone, 1, 2) as cntrycode,\n" + "        c_acctbal\n"
+                + "    from \n" + "        customer inner join supplier on c_custkey = s_suppkey\n" + "    where \n"
+                + "        substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17')\n";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "customer_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "customer_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false
@@ -194,34 +150,22 @@ public class ModelSQLAdvisorTest extends TestBase {
     }
 
     @Test
-    public void testOtherModelFail(){
-        String sql = "with tmp3 as (\n" +
-                "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n" +
-                "    from v_lineitem\n" +
-                "    left join supplier on l_suppkey = s_suppkey\n" +
-                "    inner join nation on s_nationkey = n_nationkey\n" +
-                "    inner join part on l_partkey = p_partkey\n" +
-                "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n" +
-                "    and n_name = 'CANADA'\n" +
-                "    and p_name like 'forest%'\n" +
-                "    group by l_partkey, l_suppkey\n" +
-                ")\n" +
-                "\n" +
-                "select\n" +
-                "    s_name,\n" +
-                "    s_address\n" +
-                "from\n" +
-                "    v_partsupp\n" +
-                "    inner join supplier on ps_suppkey = s_suppkey\n" +
-                "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" +
-                "where\n" +
-                "    ps_availqty > sum_quantity\n" +
-                "group by\n" +
-                "    s_name, s_address\n" +
-                "order by\n" +
-                "    s_name;";
+    public void testOtherModelFail() {
+        String sql = "with tmp3 as (\n" + "    select l_partkey, 0.5 * sum(l_quantity) as sum_quantity, l_suppkey\n"
+                + "    from v_lineitem\n" + "    left join supplier on l_suppkey = s_suppkey\n"
+                + "    inner join nation on s_nationkey = n_nationkey\n"
+                + "    inner join part on l_partkey = p_partkey\n"
+                + "    where l_shipdate >= '1994-01-01' and l_shipdate <= '1995-01-01'\n"
+                + "    and n_name = 'CANADA'\n" + "    and p_name like 'forest%'\n"
+                + "    group by l_partkey, l_suppkey\n" + ")\n" + "\n" + "select\n" + "    s_name,\n"
+                + "    s_address\n" + "from\n" + "    v_partsupp\n"
+                + "    inner join supplier on ps_suppkey = s_suppkey\n"
+                + "    inner join tmp3 on ps_partkey = l_partkey and ps_suppkey = l_suppkey\n" + "where\n"
+                + "    ps_availqty > sum_quantity\n" + "group by\n" + "    s_name, s_address\n" + "order by\n"
+                + "    s_name;";
         List<String> sqls = Lists.newArrayList(sql);
-        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/tpch/meta", "partsupp_model", sqls);
+        Map<String, SQLValidateResult> validateResultMap = validateModel("src/test/resources/smart/tpch/meta",
+                "partsupp_model", sqls);
 
         SQLValidateResult sqlValidateResult = validateResultMap.get(sqls.get(0));
         Assert.assertTrue(validateResultMap != null && sqlValidateResult.isCapable() == false

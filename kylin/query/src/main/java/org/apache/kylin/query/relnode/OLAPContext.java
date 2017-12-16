@@ -128,7 +128,7 @@ public class OLAPContext {
 
     // cube metadata
     public IRealization realization;
-    public RealizationCheck realizationCheck;
+    public RealizationCheck realizationCheck = new RealizationCheck();
     public boolean fixedModel;
 
     public Set<TblColRef> allColumns = new HashSet<>();
@@ -226,6 +226,7 @@ public class OLAPContext {
         }
         fixedModel = false;
     }
+
     public void bindVariable(DataContext dataContext) {
         bindVariable(this.filter, dataContext);
     }

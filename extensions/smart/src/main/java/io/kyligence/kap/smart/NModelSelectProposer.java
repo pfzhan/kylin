@@ -52,7 +52,7 @@ public class NModelSelectProposer extends NAbstractProposer {
 
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
-            NDataModel model = compareWithFactTable(modelContext.getModelTree());
+            NDataModel model = compareWithFactTable(modelTree);
             if (model != null) {
                 // found matched, then use it
                 modelContext.setOrigModel(model);

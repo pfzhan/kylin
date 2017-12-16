@@ -70,7 +70,7 @@ public class CubeOptimizeLogManagerTest extends LocalFileMetadataTestCase {
         String[] sqls = { "select * from table1", "select count(*) from table2", "select sum(column1) from table3",
                 "select lstg_format_name, sum(price) from kylin_sales group by lstg_format_name" };
 
-        KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/learn_kylin/meta");
+        KylinConfig kylinConfig = Utils.newKylinConfig("src/test/resources/smart/learn_kylin/meta");
         kylinConfig.setProperty("kylin.cube.aggrgroup.max-combination", "4096");
 
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);

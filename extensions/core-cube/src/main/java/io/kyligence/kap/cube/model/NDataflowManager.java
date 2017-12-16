@@ -366,7 +366,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             logger.info("Reloaded NDataflow {} being {} having {} segments", name, df, df.getSegments().size());
             return df;
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Error during load NDataflow, skipping : " + path, e);
             return null;
         }

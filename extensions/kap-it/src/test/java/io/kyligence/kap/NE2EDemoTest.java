@@ -64,12 +64,12 @@ import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
+import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.smart.NSmartController;
 
 @Ignore("Failed in maven")
-public class NE2EDemoTest extends NLocalSparkWithMetaTest {
+public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
     private KylinConfig kylinConfig;
 
     @Before

@@ -54,16 +54,13 @@ public class NSmartMaster {
     private NSmartContext context;
     private NProposerProvider proposerProvider;
 
-    private boolean saveOutputs;
-
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, boolean saveOutputs) {
+    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
         this.context = new NSmartContext(kylinConfig, project, sqls);
         this.proposerProvider = NProposerProvider.create(context);
-        this.saveOutputs = saveOutputs;
     }
 
-    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
-        this(kylinConfig, project, sqls, true);
+    public NSmartContext getContext() {
+        return context;
     }
 
     public void analyzeSQLs() {
@@ -90,17 +87,14 @@ public class NSmartMaster {
         analyzeSQLs();
         selectModel();
         optimizeModel();
-        if (saveOutputs)
-            saveModel();
+        saveModel();
 
         selectCubePlan();
         optimizeCubePlan();
-
-        if (saveOutputs)
-            saveCubePlan();
+        saveCubePlan();
     }
 
-    private void saveCubePlan() throws IOException {
+    public void saveCubePlan() throws IOException {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig());
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig());
         NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(context.getKylinConfig());
@@ -134,7 +128,7 @@ public class NSmartMaster {
         }
     }
 
-    private void saveModel() throws IOException {
+    public void saveModel() throws IOException {
         NDataModelManager modelManager = (NDataModelManager) DataModelManager.getInstance(context.getKylinConfig());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             if (modelManager.getDataModelDesc(modelCtx.getTargetModel().getName()) != null) {
