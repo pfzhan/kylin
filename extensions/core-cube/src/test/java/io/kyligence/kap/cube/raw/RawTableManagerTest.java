@@ -79,13 +79,13 @@ public class RawTableManagerTest extends LocalFileMetadataTestCase {
 
         // update
         RawTableInstance toUpdate = mgr.getRawTableInstance(cubeName);
-        toUpdate.setVersion("dummy");
+        toUpdate.setCreateTimeUTC(1000);
         RawTableUpdate builder = new RawTableUpdate(toUpdate);
         mgr.updateRawTable(builder);
         mgr.reloadAll();
         RawTableInstance updated = mgr.getRawTableInstance(cubeName);
 
-        assertEquals("dummy", updated.getVersion());
+        assertEquals(1000, updated.getCreateTimeUTC());
     }
 
     @Test

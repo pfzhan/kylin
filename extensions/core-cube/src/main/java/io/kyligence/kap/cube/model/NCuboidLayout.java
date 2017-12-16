@@ -25,6 +25,7 @@
 package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,50 +74,6 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private Map<Integer, Integer> dimensionPosMap;
 
     public NCuboidLayout() {
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public NRowkeyColumnDesc[] getRowkeyColumns() {
-        return rowkeys;
-    }
-
-    public void setRowkeyColumns(NRowkeyColumnDesc[] rowkeys) {
-        this.rowkeys = rowkeys;
-    }
-
-    public int[] getShardByColumns() {
-        return shardByColumns;
-    }
-
-    public void setShardByColumns(int[] shardByColumns) {
-        this.shardByColumns = shardByColumns;
-    }
-
-    public int[] getSortByColumns() {
-        return sortByColumns;
-    }
-
-    public void setSortByColumns(int[] sortByColumns) {
-        this.sortByColumns = sortByColumns;
-    }
-
-    public int getStorageType() {
-        return storageType;
-    }
-
-    public void setStorageType(int storageType) {
-        this.storageType = storageType;
-    }
-
-    public NCuboidDesc getCuboidDesc() {
-        return cuboidDesc;
-    }
-
-    public long getId() {
-        return id;
     }
 
     public ImmutableBiMap<Integer, TblColRef> getOrderedDimensions() { // dimension order abides by rowkey_col_desc
@@ -174,14 +131,6 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public NColumnFamilyDesc.DimensionCF[] getDimensionCFs() {
-        return dimensionCFs;
-    }
-
-    public NColumnFamilyDesc.MeasureCF[] getMeasureCFs() {
-        return measureCFs;
-    }
-
     public List<TblColRef> getColumns() {
         return Lists.newArrayList(getOrderedDimensions().values());
     }
@@ -232,16 +181,89 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         return cuboidDesc.getCubePlan().getModel();
     }
 
-    void setDimensionCFs(NColumnFamilyDesc.DimensionCF[] dimensionCFs) {
-        this.dimensionCFs = dimensionCFs;
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        checkIsNotCachedAndShared();
+        this.id = id;
+    }
+
+    public NRowkeyColumnDesc[] getRowkeyColumns() {
+        return isCachedAndShared() ? Arrays.copyOf(rowkeys, rowkeys.length) : rowkeys;
+    }
+
+    public void setRowkeyColumns(NRowkeyColumnDesc[] rowkeys) {
+        checkIsNotCachedAndShared();
+        this.rowkeys = rowkeys;
+    }
+
+    public int[] getShardByColumns() {
+        return isCachedAndShared() ? Arrays.copyOf(shardByColumns, shardByColumns.length) : shardByColumns;
+    }
+
+    public void setShardByColumns(int[] shardByColumns) {
+        checkIsNotCachedAndShared();
+        this.shardByColumns = shardByColumns;
+    }
+
+    public int[] getSortByColumns() {
+        return isCachedAndShared() ? Arrays.copyOf(sortByColumns, sortByColumns.length) : sortByColumns;
+    }
+
+    public void setSortByColumns(int[] sortByColumns) {
+        checkIsNotCachedAndShared();
+        this.sortByColumns = sortByColumns;
+    }
+
+    public int getStorageType() {
+        return storageType;
+    }
+
+    public void setStorageType(int storageType) {
+        checkIsNotCachedAndShared();
+        this.storageType = storageType;
+    }
+
+    public NCuboidDesc getCuboidDesc() {
+        return cuboidDesc;
     }
 
     void setCuboidDesc(NCuboidDesc cuboidDesc) {
+        checkIsNotCachedAndShared();
         this.cuboidDesc = cuboidDesc;
     }
 
-    void setMeasureCFs(NColumnFamilyDesc.MeasureCF[] measureCFs) {
-        this.measureCFs = measureCFs;
-
+    public NColumnFamilyDesc.DimensionCF[] getDimensionCFs() {
+        return isCachedAndShared() ? Arrays.copyOf(dimensionCFs, dimensionCFs.length) : dimensionCFs;
     }
+
+    void setDimensionCFs(NColumnFamilyDesc.DimensionCF[] dimensionCFs) {
+        checkIsNotCachedAndShared();
+        this.dimensionCFs = dimensionCFs;
+    }
+
+    public NColumnFamilyDesc.MeasureCF[] getMeasureCFs() {
+        return isCachedAndShared() ? Arrays.copyOf(measureCFs, measureCFs.length) : measureCFs;
+    }
+
+    void setMeasureCFs(NColumnFamilyDesc.MeasureCF[] measureCFs) {
+        checkIsNotCachedAndShared();
+        this.measureCFs = measureCFs;
+    }
+
+    public boolean isCachedAndShared() {
+        return cuboidDesc == null ? false : cuboidDesc.isCachedAndShared();
+    }
+
+    public void checkIsNotCachedAndShared() {
+        if (cuboidDesc != null)
+            cuboidDesc.checkIsNotCachedAndShared();
+    }
+
 }

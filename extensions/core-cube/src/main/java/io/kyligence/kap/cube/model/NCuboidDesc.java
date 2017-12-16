@@ -46,6 +46,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -71,6 +72,7 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     private NDataModel model;
 
+    // FIXME why the below are transient??
     private transient BiMap<Integer, TblColRef> effectiveDimCols;
     private ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures;
     private transient ImmutableBitSet dimensionSet = null;
@@ -79,7 +81,7 @@ public class NCuboidDesc implements Serializable, IKeep {
     public NCuboidDesc() {
     }
 
-    public void init() {
+    void init() {
         this.model = cubePlan.getModel();
         this.dimensionSet = ImmutableBitSet.valueOf(dimensions);
         this.measureSet = ImmutableBitSet.valueOf(measures);
@@ -99,26 +101,6 @@ public class NCuboidDesc implements Serializable, IKeep {
         orderedMeasures = measuresBuilder.build();
     }
 
-    public NCubePlan getCubePlan() {
-        return cubePlan;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public BiMap<Integer, TblColRef> getEffectiveDimCols() {
-        return effectiveDimCols;
-    }
-
-    public ImmutableBiMap<Integer, NDataModel.Measure> getOrderedMeasures() {
-        return orderedMeasures;
-    }
-
     public ImmutableBitSet getEffectiveDimBitSetIncludingDerived() {
         BitSet bitSet = new BitSet();
         bitSet.or(dimensionSet.mutable());
@@ -134,45 +116,6 @@ public class NCuboidDesc implements Serializable, IKeep {
         return new ImmutableBitSet(bitSet);
     }
 
-    public ImmutableBitSet getDimensionSet() {
-        return dimensionSet;
-    }
-
-    public ImmutableBitSet getMeasureSet() {
-        return measureSet;
-    }
-
-    public int[] getDimensions() {
-        return dimensions;
-    }
-
-    public void setDimensions(int[] dimensions) {
-        this.dimensions = dimensions;
-    }
-
-    public int[] getMeasures() {
-        return measures;
-    }
-
-    public List<MeasureDesc> getMeasureDescs() {
-        Collection<NDataModel.Measure> measures = getOrderedMeasures().values();
-        List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
-        result.addAll(measures);
-        return result;
-    }
-
-    public void setMeasures(int[] measures) {
-        this.measures = measures;
-    }
-
-    public List<NCuboidLayout> getLayouts() {
-        return layouts;
-    }
-
-    public void setLayouts(List<NCuboidLayout> layouts) {
-        this.layouts = layouts;
-    }
-
     public boolean dimensionDerive(NCuboidDesc child) {
         return child.getDimensionSet().andNot(getDimensionSet()).isEmpty();
     }
@@ -180,6 +123,13 @@ public class NCuboidDesc implements Serializable, IKeep {
     public boolean fullyDerive(NCuboidDesc child) {
         return child.getDimensionSet().andNot(getDimensionSet()).isEmpty()
                 && child.getMeasureSet().andNot(getMeasureSet()).isEmpty();
+    }
+
+    public List<MeasureDesc> getMeasureDescs() {
+        Collection<NDataModel.Measure> measures = getOrderedMeasures().values();
+        List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
+        result.addAll(measures);
+        return result;
     }
 
     public NCuboidLayout getLastLayout() {
@@ -191,7 +141,78 @@ public class NCuboidDesc implements Serializable, IKeep {
         }
     }
 
+    public BiMap<Integer, TblColRef> getEffectiveDimCols() {
+        return effectiveDimCols;
+    }
+
+    public ImmutableBiMap<Integer, NDataModel.Measure> getOrderedMeasures() {
+        return orderedMeasures;
+    }
+
+    public ImmutableBitSet getDimensionSet() {
+        return dimensionSet;
+    }
+
+    public ImmutableBitSet getMeasureSet() {
+        return measureSet;
+    }
+
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public NCubePlan getCubePlan() {
+        return cubePlan;
+    }
+
     void setCubePlan(NCubePlan cubePlan) {
+        checkIsNotCachedAndShared();
         this.cubePlan = cubePlan;
     }
+
+    public long getId() {
+        return id;
+    }
+
+    public void setId(long id) {
+        checkIsNotCachedAndShared();
+        this.id = id;
+    }
+
+    public int[] getDimensions() {
+        return isCachedAndShared() ? Arrays.copyOf(dimensions, dimensions.length) : dimensions;
+    }
+
+    public void setDimensions(int[] dimensions) {
+        checkIsNotCachedAndShared();
+        this.dimensions = dimensions;
+    }
+
+    public int[] getMeasures() {
+        return isCachedAndShared() ? Arrays.copyOf(measures, measures.length) : measures;
+    }
+
+    public void setMeasures(int[] measures) {
+        checkIsNotCachedAndShared();
+        this.measures = measures;
+    }
+
+    public List<NCuboidLayout> getLayouts() {
+        return isCachedAndShared() ? ImmutableList.copyOf(layouts) : layouts;
+    }
+
+    public void setLayouts(List<NCuboidLayout> layouts) {
+        checkIsNotCachedAndShared();
+        this.layouts = layouts;
+    }
+
+    public boolean isCachedAndShared() {
+        return cubePlan == null ? false : cubePlan.isCachedAndShared();
+    }
+
+    public void checkIsNotCachedAndShared() {
+        if (cubePlan != null)
+            cubePlan.checkIsNotCachedAndShared();
+    }
+
 }

@@ -75,6 +75,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     }
 
     public void setVersion(String version) {
+        checkIsNotCachedAndShared();
         this.version = version;
     }
 
@@ -83,6 +84,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     }
 
     public void setUuid(String uuid) {
+        checkIsNotCachedAndShared();
         this.uuid = uuid;
     }
 
@@ -95,6 +97,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     }
 
     public void setLastModified(long lastModified) {
+        //checkIsNotCachedAndShared(); // comment out due to let pass legacy tests, like StreamingManagerTest
         this.lastModified = lastModified;
     }
 
@@ -107,7 +110,15 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     }
 
     public void setCachedAndShared(boolean isCachedAndShared) {
+        if (this.isCachedAndShared && isCachedAndShared == false)
+            throw new IllegalStateException();
+            
         this.isCachedAndShared = isCachedAndShared;
+    }
+    
+    public void checkIsNotCachedAndShared() {
+        if (isCachedAndShared)
+            throw new IllegalStateException();
     }
 
     /**

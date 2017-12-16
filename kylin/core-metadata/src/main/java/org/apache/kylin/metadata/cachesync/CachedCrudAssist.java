@@ -82,7 +82,11 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
     public T copyForWrite(T entity) {
         if (entity.isCachedAndShared() == false)
             return entity;
-
+        else
+            return copyBySerialization(entity);
+    }
+    
+    public T copyBySerialization(T entity) {    
         T copy;
         try {
             byte[] bytes;

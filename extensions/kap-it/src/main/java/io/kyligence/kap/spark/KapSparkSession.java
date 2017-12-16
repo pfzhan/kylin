@@ -56,7 +56,6 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -202,8 +201,6 @@ public class KapSparkSession extends SparkSession {
 
     private void buildAllCubes(KylinConfig kylinConfig, String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();
-        NDataflowManager.clearCache();
-        NCubePlanManager.clearCache();
         ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
         ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);

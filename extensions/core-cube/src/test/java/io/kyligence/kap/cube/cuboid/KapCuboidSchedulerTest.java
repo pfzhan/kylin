@@ -152,6 +152,7 @@ public class KapCuboidSchedulerTest extends LocalFileMetadataTestCase {
     private CubeDesc utCube(String resetVer, Integer resetDimCap) {
         CubeDescManager mgr = CubeDescManager.getInstance(getTestConfig());
         CubeDesc cube = mgr.getCubeDesc("ut_inner_join_cube_partial");
+        cube = CubeDesc.getCopyOf(cube);
         cube.setVersion(resetVer);
         cube.setParentForward(256); // disable parent forward
 

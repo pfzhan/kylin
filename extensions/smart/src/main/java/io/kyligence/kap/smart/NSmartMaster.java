@@ -107,7 +107,7 @@ public class NSmartMaster {
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) != null) {
-                cubePlanManager.updateCubePlan(cubePlan);
+                cubePlan = cubePlanManager.updateCubePlan(cubePlan);
 
                 NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
                 NDataflowUpdate update = new NDataflowUpdate(df);

@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -62,6 +63,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -76,6 +78,16 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKeep {
     public static final String CUBE_PLAN_RESOURCE_ROOT = "/cube_plan";
+
+    public static String concatResourcePath(String name) {
+        return CUBE_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
+    }
+
+    public static NCubePlan getCopyOf(NCubePlan orig) {
+        return NCubePlanManager.getInstance(orig.getConfig()).copy(orig);
+    }
+
+    // ============================================================================
 
     @JsonProperty("name")
     private String name;
@@ -109,6 +121,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private KylinConfigExt config = null;
 
     private transient NSpanningTree spanningTree = null;
+    // FIXME why the below two are transient??
     private transient BiMap<Integer, TblColRef> effectiveDimCols;
     private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures;
 
@@ -124,11 +137,12 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     public NCubePlan() {
     }
 
-    public static String concatResourcePath(String name) {
-        return CUBE_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
+    @Override
+    public String resourceName() {
+        return name;
     }
 
-    public void init(KylinConfig config) {
+    void init(KylinConfig config) {
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
@@ -145,9 +159,8 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
             }
         }
         this.config = KylinConfigExt.createInstance(config, overrideProps);
-
         this.model = (NDataModel) DataModelManager.getInstance(config).getDataModelDesc(modelName);
-        checkNotNull(this.model, "NDataModel(%s) not found", modelName);
+        checkNotNull(getModel(), "NDataModel(%s) not found", modelName);
 
         initAllCuboids();
         initDimensionAndMeasures();
@@ -233,123 +246,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return config;
     }
 
-    public List<NCuboidDesc> getCuboids() {
-        return cuboids;
-    }
-
-    public void setCuboids(List<NCuboidDesc> cuboids) {
-        this.cuboids = cuboids;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public List<NDimensionDesc> getDimensions() {
-        return dimensions;
-    }
-
-    public NDimensionDesc.NEncodingDesc getDimensionEncoding(TblColRef dimColRef) {
-        return dimEncodingMap.get(model.getColId(dimColRef));
-    }
-
-    public void setDimensions(List<NDimensionDesc> dimensions) {
-        this.dimensions = dimensions;
-    }
-
-    public LinkedHashMap<String, String> getOverrideProps() {
-        return overrideProps;
-    }
-
-    public void setOverrideProps(LinkedHashMap<String, String> overrideProps) {
-        this.overrideProps = overrideProps;
-    }
-
-    public long getSegmentRangeStart() {
-        return segmentRangeStart;
-    }
-
-    public void setSegmentRangeStart(long segmentRangeStart) {
-        this.segmentRangeStart = segmentRangeStart;
-    }
-
-    public long getSegmentRangeEnd() {
-        return segmentRangeEnd;
-    }
-
-    public void setSegmentRangeEnd(long segmentRangeEnd) {
-        this.segmentRangeEnd = segmentRangeEnd;
-    }
-
-    public long[] getAutoMergeTimeRanges() {
-        return autoMergeTimeRanges;
-    }
-
-    public void setAutoMergeTimeRanges(long[] autoMergeTimeRanges) {
-        this.autoMergeTimeRanges = autoMergeTimeRanges;
-    }
-
-    public long getRetentionRange() {
-        return retentionRange;
-    }
-
-    public void setRetentionRange(long retentionRange) {
-        this.retentionRange = retentionRange;
-    }
-
-    public List<String> getNotifyList() {
-        return notifyList;
-    }
-
-    public void setNotifyList(List<String> notifyList) {
-        this.notifyList = notifyList;
-    }
-
-    public List<String> getStatusNeedNotify() {
-        return statusNeedNotify;
-    }
-
-    public void setStatusNeedNotify(List<String> statusNeedNotify) {
-        this.statusNeedNotify = statusNeedNotify;
-    }
-
-    @Override
-    public int getEngineType() {
-        return engineType;
-    }
-
-    public void setEngineType(int engineType) {
-        this.engineType = engineType;
-    }
-
-    public String getResourcePath() {
-        return concatResourcePath(name);
-    }
-
-    public NDataModel getModel() {
-        return model;
-    }
-
     public void addError(String message) {
         this.errors.add(message);
     }
@@ -360,6 +256,18 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
     public String getErrorMsg() {
         return Joiner.on(" ").join(errors);
+    }
+
+    public NDimensionDesc.NEncodingDesc getDimensionEncoding(TblColRef dimColRef) {
+        return dimEncodingMap.get(model.getColId(dimColRef));
+    }
+
+    public String getResourcePath() {
+        return concatResourcePath(name);
+    }
+
+    public NDataModel getModel() {
+        return model;
     }
 
     public BiMap<Integer, TblColRef> getEffectiveDimCols() {
@@ -396,7 +304,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     }
 
     public NCuboidDesc getLastCuboidDesc() {
-        List<NCuboidDesc> existing = getCuboids();
+        List<NCuboidDesc> existing = cuboids;
         if (existing.isEmpty()) {
             return null;
         } else {
@@ -426,27 +334,132 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
     public List<NCuboidLayout> getAllCuboidLayouts() {
         List<NCuboidLayout> r = new ArrayList<>();
-        for (NCuboidDesc cd : getCuboids()) {
+        for (NCuboidDesc cd : cuboids) {
             r.addAll(cd.getLayouts());
         }
         return r;
     }
 
-    public static NCubePlan getCopyOf(NCubePlan orig) {
-        NCubePlan copy = new NCubePlan();
-        copy.name = orig.name;
-        copy.modelName = orig.modelName;
-        copy.description = orig.description;
-        copy.dimensions = orig.dimensions;
-        copy.cuboids = orig.cuboids;
-        copy.overrideProps = orig.overrideProps;
-        copy.segmentRangeStart = orig.segmentRangeStart;
-        copy.segmentRangeEnd = orig.segmentRangeEnd;
-        copy.autoMergeTimeRanges = orig.autoMergeTimeRanges;
-        copy.retentionRange = orig.retentionRange;
-        copy.notifyList = orig.notifyList;
-        copy.statusNeedNotify = orig.statusNeedNotify;
-        copy.engineType = orig.engineType;
-        return copy;
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public List<NCuboidDesc> getCuboids() {
+        return isCachedAndShared ? ImmutableList.copyOf(cuboids) : cuboids;
     }
+
+    public void setCuboids(List<NCuboidDesc> cuboids) {
+        checkIsNotCachedAndShared();
+        this.cuboids = cuboids;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        checkIsNotCachedAndShared();
+        this.name = name;
+    }
+
+    public String getModelName() {
+        return modelName;
+    }
+
+    public void setModelName(String modelName) {
+        checkIsNotCachedAndShared();
+        this.modelName = modelName;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        checkIsNotCachedAndShared();
+        this.description = description;
+    }
+
+    public List<NDimensionDesc> getDimensions() {
+        return isCachedAndShared ? ImmutableList.copyOf(dimensions) : dimensions;
+    }
+
+    public void setDimensions(List<NDimensionDesc> dimensions) {
+        checkIsNotCachedAndShared();
+        this.dimensions = dimensions;
+    }
+
+    public LinkedHashMap<String, String> getOverrideProps() {
+        return isCachedAndShared ? new LinkedHashMap(overrideProps) : overrideProps;
+    }
+
+    public void setOverrideProps(LinkedHashMap<String, String> overrideProps) {
+        checkIsNotCachedAndShared();
+        this.overrideProps = overrideProps;
+    }
+
+    public long getSegmentRangeStart() {
+        return segmentRangeStart;
+    }
+
+    public void setSegmentRangeStart(long segmentRangeStart) {
+        checkIsNotCachedAndShared();
+        this.segmentRangeStart = segmentRangeStart;
+    }
+
+    public long getSegmentRangeEnd() {
+        return segmentRangeEnd;
+    }
+
+    public void setSegmentRangeEnd(long segmentRangeEnd) {
+        checkIsNotCachedAndShared();
+        this.segmentRangeEnd = segmentRangeEnd;
+    }
+
+    public long[] getAutoMergeTimeRanges() {
+        return isCachedAndShared ? Arrays.copyOf(autoMergeTimeRanges, autoMergeTimeRanges.length) : autoMergeTimeRanges;
+    }
+
+    public void setAutoMergeTimeRanges(long[] autoMergeTimeRanges) {
+        checkIsNotCachedAndShared();
+        this.autoMergeTimeRanges = autoMergeTimeRanges;
+    }
+
+    public long getRetentionRange() {
+        return retentionRange;
+    }
+
+    public void setRetentionRange(long retentionRange) {
+        checkIsNotCachedAndShared();
+        this.retentionRange = retentionRange;
+    }
+
+    public List<String> getNotifyList() {
+        return isCachedAndShared ? ImmutableList.copyOf(notifyList) : notifyList;
+    }
+
+    public void setNotifyList(List<String> notifyList) {
+        checkIsNotCachedAndShared();
+        this.notifyList = notifyList;
+    }
+
+    public List<String> getStatusNeedNotify() {
+        return isCachedAndShared ? ImmutableList.copyOf(statusNeedNotify) : statusNeedNotify;
+    }
+
+    public void setStatusNeedNotify(List<String> statusNeedNotify) {
+        checkIsNotCachedAndShared();
+        this.statusNeedNotify = statusNeedNotify;
+    }
+
+    @Override
+    public int getEngineType() {
+        return engineType;
+    }
+
+    public void setEngineType(int engineType) {
+        checkIsNotCachedAndShared();
+        this.engineType = engineType;
+    }
+
 }

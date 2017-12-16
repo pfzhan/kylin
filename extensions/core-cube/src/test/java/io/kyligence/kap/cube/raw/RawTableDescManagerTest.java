@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.cube.raw;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -75,10 +75,10 @@ public class RawTableDescManagerTest extends LocalFileMetadataTestCase {
 
         // update
         RawTableDesc toUpdate = mgr.getRawTableDesc(name);
-        toUpdate.setVersion("dummy");
+        toUpdate.setAutoMergeTimeRanges(new long[] { 100, 200 });
         mgr.updateRawTableDesc(toUpdate);
         mgr.reloadAll();
         RawTableDesc updated = mgr.getRawTableDesc(name);
-        assertEquals("dummy", updated.getVersion());
+        assertArrayEquals(new long[] { 100, 200 }, updated.getAutoMergeTimeRanges());
     }
 }

@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
 
 public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
 
@@ -72,9 +73,18 @@ public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(cube);
 
         // update
-        cube.setDescription("new_description");
-        manager.updateCubePlan(cube);
-        cube = manager.getCubePlan(cubeName);
+        try {
+            cube.setDescription("new_description");
+            Assert.fail();
+        } catch (IllegalStateException ex) {
+            // expected for updating the cached object
+        }
+        cube = manager.updateCubePlan(cube.getName(), new NCubePlanUpdater() {
+            @Override
+            public void modify(NCubePlan copyForWrite) {
+                copyForWrite.setDescription("new_description");
+            }
+        });
         Assert.assertEquals("new_description", cube.getDescription());
 
         // delete

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.cube.cuboid;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
@@ -210,8 +211,10 @@ public class NCuboidLayoutChooser {
                 return false;
             }
 
-            if (bestCuboidLayout != null)
+            if (bestCuboidLayout != null) {
+                availableLayouts = new ArrayList<>(availableLayouts); // make modifiable
                 availableLayouts.add(bestCuboidLayout);
+            }
 
             bestCuboidLayout = Collections.min(availableLayouts, smalllestComparator);
             return true;
