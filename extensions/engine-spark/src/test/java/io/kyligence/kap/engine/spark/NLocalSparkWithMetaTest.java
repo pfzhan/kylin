@@ -38,13 +38,13 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 @SuppressWarnings("serial")
 public class NLocalSparkWithMetaTest extends NLocalFileMetadataTestCase implements Serializable {
-    
+
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
 
     @BeforeClass
     public static void beforeClass() {
-        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[2]");
+        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         ss = new SparkSession(SparkContext.getOrCreate(sparkConf));
     }
