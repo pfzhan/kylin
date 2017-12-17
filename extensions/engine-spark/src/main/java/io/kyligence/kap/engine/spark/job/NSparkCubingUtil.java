@@ -30,6 +30,7 @@ import java.util.Set;
 import org.apache.kylin.common.KapConfig;
 import org.apache.spark.sql.Column;
 
+import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
@@ -89,10 +90,10 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<NCuboidLayout> toLayouts(NDataflow dataflow, Set<Long> ids) {
+    public static Set<NCuboidLayout> toLayouts(NCubePlan cubePlan, Set<Long> ids) {
         Set<NCuboidLayout> r = new LinkedHashSet<>();
         for (Long id : ids) {
-            r.add(dataflow.getCubePlan().getCuboidLayout(id));
+            r.add(cubePlan.getCuboidLayout(id));
         }
         return r;
     }

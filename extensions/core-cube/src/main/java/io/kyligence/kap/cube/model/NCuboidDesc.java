@@ -57,6 +57,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCuboidDesc implements Serializable, IKeep {
 
+    @JsonBackReference
+    private NCubePlan cubePlan;
+    
     @JsonProperty("id")
     private long id;
     @JsonProperty("dimensions")
@@ -67,16 +70,13 @@ public class NCuboidDesc implements Serializable, IKeep {
     @JsonProperty("layouts")
     private List<NCuboidLayout> layouts = Lists.newArrayList();
 
-    @JsonBackReference
-    private NCubePlan cubePlan;
-
+    // computed fields below
+    
     private NDataModel model;
-
-    // FIXME why the below are transient??
-    private transient BiMap<Integer, TblColRef> effectiveDimCols;
+    private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures;
-    private transient ImmutableBitSet dimensionSet = null;
-    private transient ImmutableBitSet measureSet = null;
+    private ImmutableBitSet dimensionSet = null;
+    private ImmutableBitSet measureSet = null;
 
     public NCuboidDesc() {
     }

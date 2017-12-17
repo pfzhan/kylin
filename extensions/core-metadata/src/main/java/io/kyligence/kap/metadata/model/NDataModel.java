@@ -131,7 +131,7 @@ public class NDataModel extends DataModelDesc {
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
 
-    // calculated fields
+    // computed fields below
     private List<TblColRef> allCols; // including DELETED cols
     private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols

@@ -62,7 +62,7 @@ public class NDictionaryBuilder {
         this.dataSet = dataSet;
     }
 
-    public void buildDictionary() throws Exception {
+    public NDataSegment buildDictionary() throws Exception {
 
         final NDataflow dataflow = seg.getDataflow();
         final NCubePlan cubePlan = dataflow.getCubePlan();
@@ -121,19 +121,23 @@ public class NDictionaryBuilder {
                     })));
         }
         final long end = System.currentTimeMillis();
-        writeDictionary(seg, dictionaryMap, start, end);
+        NDataSegment segCopy = writeDictionary(seg, dictionaryMap, start, end);
         try {
-            NDataflowUpdate nBuilder = new NDataflowUpdate(dataflow);
-            nBuilder.setToUpdateSegs(seg);
-            NDataflowManager.getInstance(seg.getConfig()).updateDataflow(nBuilder);
+            NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+            update.setToUpdateSegs(segCopy);
+            NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig()).updateDataflow(update);
+            return updatedDataflow.getSegment(seg.getId());
         } catch (IOException e) {
             throw new RuntimeException("Failed to deal with the request: " + e.getLocalizedMessage());
         }
     }
 
-    private Map<TblColRef, Dictionary<String>> writeDictionary(NDataSegment segment,
-            Map<TblColRef, Dictionary<String>> dictionaryMap, long startOffset, long endOffset) {
-        Map<TblColRef, Dictionary<String>> realDictMap = Maps.newHashMap();
+    private NDataSegment writeDictionary(NDataSegment segment, Map<TblColRef, Dictionary<String>> dictionaryMap,
+            long startOffset, long endOffset) {
+        
+        // make a copy of the changing segment, avoid changing the cached object
+        NDataflow dfCopy = segment.getDataflow().copy();
+        NDataSegment segCopy = dfCopy.getSegment(segment.getId());
 
         for (Map.Entry<TblColRef, Dictionary<String>> entry : dictionaryMap.entrySet()) {
             final TblColRef tblColRef = entry.getKey();
@@ -147,12 +151,11 @@ public class NDictionaryBuilder {
             DictionaryManager dictionaryManager = DictionaryManager.getInstance(segment.getConfig());
             try {
                 DictionaryInfo realDict = dictionaryManager.trySaveNewDict(dictionary, dictInfo);
-                segment.putDictResPath(tblColRef, realDict.getResourcePath());
-                realDictMap.put(tblColRef, realDict.getDictionaryObject());
+                segCopy.putDictResPath(tblColRef, realDict.getResourcePath());
             } catch (IOException e) {
                 throw new RuntimeException("error save dictionary for column:" + tblColRef, e);
             }
         }
-        return realDictMap;
+        return segCopy;
     }
 }

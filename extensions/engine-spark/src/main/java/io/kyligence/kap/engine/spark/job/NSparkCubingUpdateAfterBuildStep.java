@@ -56,15 +56,14 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         String dataflowName = cubingStep.getDataflowName();
 
         NDataflowManager mgr = NDataflowManager.getInstance(context.getConfig());
-        NDataflow dataflow = mgr.getDataflow(dataflowName);
-        NDataflowUpdate update = new NDataflowUpdate(dataflow);
+        NDataflowUpdate update = new NDataflowUpdate(dataflowName);
 
         fillUpdateFromCubingStep(context.getConfig(), cubingStep, update);
 
         try {
             mgr.updateDataflow(update);
         } catch (IOException e) {
-            throw new ExecuteException("failed to update " + dataflow, e);
+            throw new ExecuteException("failed to update NDataflow " + dataflowName, e);
         }
 
         return new ExecuteResult(State.SUCCEED);
@@ -77,7 +76,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
 
         NDataflowManager distMgr = NDataflowManager.getInstance(distConfig);
         String dfName = cubingStep.getDataflowName();
-        NDataflow distDataflow = distMgr.getDataflow(dfName);
+        NDataflow distDataflow = distMgr.getDataflow(dfName).copy(); // avoid changing cached objects
 
         List<NDataSegment> toUpdateSegments = new ArrayList<>();
         List<NDataCuboid> toAddCuboids = new ArrayList<>();
@@ -96,7 +95,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         }
         update.setToRemoveSegs((NDataSegment[]) toRemoveSegments.toArray(new NDataSegment[toRemoveSegments.size()]));
         update.setToUpdateSegs((NDataSegment[]) toUpdateSegments.toArray(new NDataSegment[toUpdateSegments.size()]));
-        update.setToAddCuboids((NDataCuboid[]) toAddCuboids.toArray(new NDataCuboid[toAddCuboids.size()]));
+        update.setToAddOrUpdateCuboids((NDataCuboid[]) toAddCuboids.toArray(new NDataCuboid[toAddCuboids.size()]));
         update.setStatus(RealizationStatusEnum.READY);
     }
 

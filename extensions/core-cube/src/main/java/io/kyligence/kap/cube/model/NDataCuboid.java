@@ -35,6 +35,10 @@ import com.google.common.primitives.Longs;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataCuboid {
 
+    public static NDataCuboid newDataCuboid(NDataflow df, int segId, long cuboidLayoutId) {
+        return newDataCuboid(NDataSegDetails.newSegDetails(df, segId), cuboidLayoutId);
+    }
+    
     public static NDataCuboid newDataCuboid(NDataSegDetails segDetails, long cuboidLayoutId) {
         NDataCuboid r = new NDataCuboid();
         r.setSegDetails(segDetails);
@@ -67,78 +71,6 @@ public class NDataCuboid {
     public NDataCuboid() {
     }
 
-    public NDataSegDetails getSegDetails() {
-        return segDetails;
-    }
-
-    public long getCuboidLayoutId() {
-        return cuboidLayoutId;
-    }
-
-    public SegmentStatusEnum getStatus() {
-        return status;
-    }
-
-    public String getBuildJobId() {
-        return buildJobId;
-    }
-
-    public long getRows() {
-        return rows;
-    }
-
-    public long getSizeKB() {
-        return sizeKB;
-    }
-
-    public long getSourceRows() {
-        return sourceRows;
-    }
-
-    public long getSourceKB() {
-        return sourceKB;
-    }
-
-    public long getFileCount() {
-        return fileCount;
-    }
-
-    public void setSegDetails(NDataSegDetails segDetails) {
-        this.segDetails = segDetails;
-    }
-
-    public void setCuboidLayoutId(long cuboidLayoutId) {
-        this.cuboidLayoutId = cuboidLayoutId;
-    }
-
-    public void setStatus(SegmentStatusEnum status) {
-        this.status = status;
-    }
-
-    public void setBuildJobId(String buildJobId) {
-        this.buildJobId = buildJobId;
-    }
-
-    public void setRows(long rows) {
-        this.rows = rows;
-    }
-
-    public void setSizeKB(long sizeKB) {
-        this.sizeKB = sizeKB;
-    }
-
-    public void setSourceRows(long sourceRows) {
-        this.sourceRows = sourceRows;
-    }
-
-    public void setSourceKB(long sourceKB) {
-        this.sourceKB = sourceKB;
-    }
-
-    public void setFileCount(long fileCount) {
-        this.fileCount = fileCount;
-    }
-
     public KylinConfigExt getConfig() {
         return segDetails.getConfig();
     }
@@ -146,7 +78,110 @@ public class NDataCuboid {
     public NCuboidLayout getCuboidLayout() {
         return segDetails.getDataflow().getCubePlan().getSpanningTree().getCuboidLayout(cuboidLayoutId);
     }
+    
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
 
+    public NDataSegDetails getSegDetails() {
+        return segDetails;
+    }
+
+    public void setSegDetails(NDataSegDetails segDetails) {
+        checkIsNotCachedAndShared();
+        this.segDetails = segDetails;
+    }
+    
+    public long getCuboidLayoutId() {
+        return cuboidLayoutId;
+    }
+
+    public void setCuboidLayoutId(long cuboidLayoutId) {
+        checkIsNotCachedAndShared();
+        this.cuboidLayoutId = cuboidLayoutId;
+    }
+
+    public SegmentStatusEnum getStatus() {
+        return status;
+    }
+
+    public void setStatus(SegmentStatusEnum status) {
+        checkIsNotCachedAndShared();
+        this.status = status;
+    }
+
+    public String getBuildJobId() {
+        return buildJobId;
+    }
+
+    public void setBuildJobId(String buildJobId) {
+        checkIsNotCachedAndShared();
+        this.buildJobId = buildJobId;
+    }
+
+    public long getRows() {
+        return rows;
+    }
+
+    public void setRows(long rows) {
+        checkIsNotCachedAndShared();
+        this.rows = rows;
+    }
+
+    public long getSizeKB() {
+        return sizeKB;
+    }
+
+    public void setSizeKB(long sizeKB) {
+        checkIsNotCachedAndShared();
+        this.sizeKB = sizeKB;
+    }
+
+    public long getSourceRows() {
+        return sourceRows;
+    }
+
+    public void setSourceRows(long sourceRows) {
+        checkIsNotCachedAndShared();
+        this.sourceRows = sourceRows;
+    }
+
+    public long getSourceKB() {
+        return sourceKB;
+    }
+
+    public void setSourceKB(long sourceKB) {
+        checkIsNotCachedAndShared();
+        this.sourceKB = sourceKB;
+    }
+
+    public long getFileCount() {
+        return fileCount;
+    }
+
+    public void setFileCount(long fileCount) {
+        checkIsNotCachedAndShared();
+        this.fileCount = fileCount;
+    }
+
+    // ============================================================================
+
+    public boolean isCachedAndShared() {
+        if (segDetails == null || segDetails.isCachedAndShared() == false)
+            return false;
+        
+        for (NDataCuboid cached : segDetails.getCuboids()) {
+            if (cached == this)
+                return true;
+        }
+        return false;
+    }
+
+    public void checkIsNotCachedAndShared() {
+        if (isCachedAndShared())
+            throw new IllegalStateException();
+    }
+    
     @Override
     public int hashCode() {
         final int prime = 31;

@@ -82,9 +82,9 @@ public class NCubePlanManager implements IKeepNames {
             @Override
             protected NCubePlan initEntityAfterReload(NCubePlan cubePlan, String resourceName) {
                 try {
-                    cubePlan.init(config);
+                    cubePlan.initAfterReload(config);
                 } catch (Exception e) {
-                    logger.warn("Broken NCubePlan" + resourceName, e);
+                    logger.warn("Broken NCubePlan " + resourceName, e);
                     cubePlan.addError(e.getMessage());
                 }
                 return cubePlan;
@@ -155,7 +155,9 @@ public class NCubePlanManager implements IKeepNames {
                 throw new IllegalArgumentException("NCubePlan '" + cubePlan.getName() + "' already exists");
 
             try {
-                cubePlan.init(config);
+                // init the cube plan if not yet
+                if (cubePlan.getConfig() == null)
+                    cubePlan.initAfterReload(config);
             } catch (Exception e) {
                 logger.warn("Broken cube plan " + cubePlan, e);
                 cubePlan.addError(e.getMessage());
@@ -189,6 +191,8 @@ public class NCubePlanManager implements IKeepNames {
         }
     }
 
+    // use the NCubePlanUpdater instead
+    @Deprecated
     public NCubePlan updateCubePlan(NCubePlan cubePlan) throws IOException {
         try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
             if (cubePlan.isCachedAndShared())
@@ -204,7 +208,7 @@ public class NCubePlanManager implements IKeepNames {
             try {
                 // init the cube plan if not yet
                 if (cubePlan.getConfig() == null)
-                    cubePlan.init(config);
+                    cubePlan.initAfterReload(config);
             } catch (Exception e) {
                 logger.warn("Broken cube desc " + cubePlan, e);
                 cubePlan.addError(e.getMessage());

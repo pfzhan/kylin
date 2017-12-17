@@ -54,7 +54,6 @@ import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegDetailsManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -134,7 +133,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment seg = df.getSegment(1);
-        NDataSegDetails segCuboids = NDataSegDetailsManager.getInstance(config).getForSegment(seg);
+        NDataSegDetails segCuboids = seg.getSegDetails();
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, 1);
         NCuboidLayout layout = dataCuboid.getCuboidLayout();
 

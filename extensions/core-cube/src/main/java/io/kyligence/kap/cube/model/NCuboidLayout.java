@@ -49,6 +49,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
+    @JsonBackReference
+    private NCuboidDesc cuboidDesc;
+
     @JsonProperty("id")
     private long id;
     @JsonProperty("rowkeys")
@@ -65,9 +68,8 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private int[] sortByColumns = new int[0];
     @JsonProperty("storage_type")
     private int storageType = IStorageAware.ID_HBASE;
-
-    @JsonBackReference
-    private NCuboidDesc cuboidDesc;
+    
+    // computed fields below
 
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
     private Map<Integer, String> dimensionIndexMap;

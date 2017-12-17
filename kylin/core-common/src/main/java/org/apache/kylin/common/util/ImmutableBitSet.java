@@ -17,12 +17,14 @@
  */
 package org.apache.kylin.common.util;
 
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Iterator;
 
-public class ImmutableBitSet implements Iterable<Integer> {
-
+public class ImmutableBitSet implements Iterable<Integer>, Serializable {
+    private static final long serialVersionUID = 2670748367234738640L;
+    
     public static final ImmutableBitSet EMPTY = new ImmutableBitSet(new BitSet());
 
     public static ImmutableBitSet valueOf(int... values) {

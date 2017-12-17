@@ -38,6 +38,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -81,61 +82,16 @@ public class NDataSegDetails extends RootPersistentEntity {
     @JsonIgnore
     private KylinConfigExt config;
 
-    public Map<Long, Long> getCuboidRowsMap() {
-        Map<Long, Long> cuboidRows = Maps.newHashMap();
-        for (NDataCuboid cuboid : cuboids) {
-            cuboidRows.put(cuboid.getCuboidLayoutId(), cuboid.getRows());
-        }
-        return cuboidRows;
-    }
-
     public String getResourcePath() {
         return NDataSegDetailsManager.getResourcePathForSegment(dataflowName, segmentId);
     }
 
-    public void setConfig(KylinConfigExt config) {
-        this.config = config;
-    }
-
-    public String getDataflowName() {
-        return dataflowName;
-    }
-
-    public int getSegmentId() {
-        return segmentId;
-    }
-
-    public List<NDataCuboid> getCuboids() {
-        return cuboids;
-    }
-
-    public void addCuboid(NDataCuboid cuboid) {
-        if (cuboids.contains(cuboid)) {
-            logger.warn("NDataCuboid should be immutable, but {} is being updated", cuboid);
-            cuboids.remove(cuboid); // remove the old cuboid
-        }
-
-        cuboids.add(cuboid);
-    }
-
-    public void removeCuboid(NDataCuboid cuboid) {
-        cuboids.remove(cuboid);
-    }
-
-    public void setDataflowName(String dfName) {
-        this.dataflowName = dfName;
-    }
-
-    public void setSegmentId(int segmentId) {
-        this.segmentId = segmentId;
-    }
-
-    public void setCuboids(List<NDataCuboid> cuboids) {
-        this.cuboids = cuboids;
-    }
-
     public KylinConfigExt getConfig() {
         return config;
+    }
+
+    void setConfig(KylinConfigExt config) {
+        this.config = config;
     }
 
     public NDataflow getDataflow() {
@@ -145,6 +101,62 @@ public class NDataSegDetails extends RootPersistentEntity {
     public NDataSegment getDataSegment() {
         return getDataflow().getSegment(segmentId);
     }
+
+    public Map<Long, Long> getCuboidRowsMap() {
+        Map<Long, Long> cuboidRows = Maps.newHashMap();
+        for (NDataCuboid cuboid : cuboids) {
+            cuboidRows.put(cuboid.getCuboidLayoutId(), cuboid.getRows());
+        }
+        return cuboidRows;
+    }
+    
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public String getDataflowName() {
+        return dataflowName;
+    }
+
+    public void setDataflowName(String dfName) {
+        checkIsNotCachedAndShared();
+        this.dataflowName = dfName;
+    }
+
+    public int getSegmentId() {
+        return segmentId;
+    }
+
+    public void setSegmentId(int segmentId) {
+        checkIsNotCachedAndShared();
+        this.segmentId = segmentId;
+    }
+
+    public List<NDataCuboid> getCuboids() {
+        return isCachedAndShared() ? ImmutableList.copyOf(cuboids) : cuboids;
+    }
+
+    public void setCuboids(List<NDataCuboid> cuboids) {
+        checkIsNotCachedAndShared();
+        this.cuboids = cuboids;
+    }
+    
+    public void addCuboid(NDataCuboid cuboid) {
+        checkIsNotCachedAndShared();
+        if (cuboids.contains(cuboid)) {
+            logger.warn("NDataCuboid should be immutable, but {} is being updated", cuboid);
+            cuboids.remove(cuboid); // remove the old cuboid
+        }
+
+        cuboids.add(cuboid);
+    }
+
+    public void removeCuboid(NDataCuboid cuboid) {
+        checkIsNotCachedAndShared();
+        cuboids.remove(cuboid);
+    }
+
+    // ============================================================================
 
     @Override
     public int hashCode() {

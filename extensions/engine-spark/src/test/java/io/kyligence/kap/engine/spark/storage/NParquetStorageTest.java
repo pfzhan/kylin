@@ -62,7 +62,6 @@ import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegDetailsManager;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
@@ -111,7 +110,7 @@ public class NParquetStorageTest extends NLocalSparkWithMetaTest implements Seri
                 new Path(tmpDir.getAbsolutePath(), "kylin.properties"));
 
         NDataflow df = NDataflowManager.getInstance(hdfsConfig).getDataflow(dfName);
-        NDataSegDetails segCuboids = NDataSegDetailsManager.getInstance(hdfsConfig).getForSegment(df.getLastSegment());
+        NDataSegDetails segCuboids = df.getLastSegment().getSegDetails();
         final NCuboidLayout layout = df.getCubePlan().getCuboidLayout(layoutId);
         final int dimNum = layout.getOrderedDimensions().size();
 

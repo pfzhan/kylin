@@ -49,6 +49,24 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
     }
+    
+    @Test
+    public void testCached() {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        Assert.assertTrue(df.isCachedAndShared());
+        Assert.assertTrue(df.getSegment(0).isCachedAndShared());
+        Assert.assertTrue(df.getSegment(0).getSegDetails().isCachedAndShared());
+        Assert.assertTrue(df.getSegment(0).getCuboid(1).isCachedAndShared());
+        
+        df = df.copy();
+        Assert.assertFalse(df.isCachedAndShared());
+        Assert.assertFalse(df.getSegment(0).isCachedAndShared());
+        Assert.assertFalse(df.getSegment(0).getSegDetails().isCachedAndShared());
+        Assert.assertFalse(df.getSegment(0).getCuboid(1).isCachedAndShared());
+    }
 
     @Test
     public void testCRUD() throws IOException {
@@ -76,13 +94,16 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(df);
 
         // update
-        df.setDescription("new_description");
-        mgr.updateDataflow(new NDataflowUpdate(df));
-        df = mgr.getDataflow(name);
+        NDataflowUpdate update = new NDataflowUpdate(name);
+        update.setDescription("new_description");
+        df = mgr.updateDataflow(update);
         Assert.assertEquals("new_description", df.getDescription());
+        
+        // update cached objects causes exception
+        
 
         // remove
-        mgr.dropDataflow(name, false);
+        mgr.dropDataflow(name);
         Assert.assertEquals(cntBeforeCreate, mgr.listAllDataflows().size());
         Assert.assertNull(mgr.getDataflow(name));
     }
@@ -98,7 +119,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
-        NDataflowUpdate update = new NDataflowUpdate(df);
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(newSeg);
         mgr.updateDataflow(update);
 
@@ -114,7 +135,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         // test cuboid remove
         Assert.assertEquals(4, df.getSegment(0).getCuboidsMap().size());
-        NDataflowUpdate update = new NDataflowUpdate(df);
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveCuboids(df.getSegment(0).getCuboid(1001L));
         mgr.updateDataflow(update);
 
@@ -124,10 +145,10 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         // test cuboid add
         NDataSegment seg = df.getSegment(0);
-        update = new NDataflowUpdate(df);
-        update.setToAddCuboids(//
-                NDataCuboid.newDataCuboid(seg.getSegDetails(), 1001L), // to add
-                NDataCuboid.newDataCuboid(seg.getSegDetails(), 1002L) // existing, will update with warning
+        update = new NDataflowUpdate(df.getName());
+        update.setToAddOrUpdateCuboids(//
+                NDataCuboid.newDataCuboid(df, seg.getId(), 1001L), // to add
+                NDataCuboid.newDataCuboid(df, seg.getId(), 1002L) // existing, will update with warning
         );
         mgr.updateDataflow(update);
 

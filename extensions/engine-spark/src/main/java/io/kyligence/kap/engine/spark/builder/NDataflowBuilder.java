@@ -52,13 +52,11 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegDetailsManager;
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -86,11 +84,8 @@ public class NDataflowBuilder extends AbstractApplication {
             .isRequired(true).withDescription("Current job id").create(NBatchConstants.P_JOB_ID);
 
     private volatile KylinConfig config;
-    private volatile NDataflow dataFlow;
     private volatile NSpanningTree nSpanningTree;
     private volatile String jobId;
-    private Set<NCuboidLayout> cuboids;
-    private Set<NDataSegment> segments;
     private volatile Map<NCuboidDesc, NDatasetChooser.DataSource> sources;
     private SparkSession ss;
 
@@ -107,7 +102,7 @@ public class NDataflowBuilder extends AbstractApplication {
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
-        String dataFlowName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
         String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
@@ -116,17 +111,24 @@ public class NDataflowBuilder extends AbstractApplication {
         config = AbstractHadoopJob.loadKylinConfigFromHdfs(hdfsMetalUrl);
         KylinConfig.setKylinConfigThreadLocal(config);
         try {
-            dataFlow = NDataflowManager.getInstance(config).getDataflow(dataFlowName);
-            cuboids = NSparkCubingUtil.toLayouts(dataFlow, layoutIds);
-            segments = NSparkCubingUtil.toSegments(dataFlow, segmentIds);
-            nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dataFlow.getName());
+            NDataflowManager dfMgr = NDataflowManager.getInstance(config);
+            NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
+            Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds);
+            nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
             ss = SparkSession.builder().getOrCreate();
 
-            for (NDataSegment seg : segments) {
+            for (int segId : segmentIds) {
+                NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
+                
+                // choose source
                 NDatasetChooser datasetChooser = new NDatasetChooser(nSpanningTree, seg, ss, config);
                 sources = datasetChooser.decideSources();
+                
+                // note segment (source count, dictionary etc) maybe updated as a result of source select
+                seg = dfMgr.getDataflow(dfName).getSegment(segId);
+                
                 for (NCuboidDesc root : nSpanningTree.getRootCuboidDescs()) {
-                    recursiveBuildCuboid(seg, root, sources.get(root).ds, dataFlow.getCubePlan().getEffectiveMeasures(),
+                    recursiveBuildCuboid(seg, root, sources.get(root).ds, cubePlan.getEffectiveMeasures(),
                             nSpanningTree);
                 }
             }
@@ -165,10 +167,8 @@ public class NDataflowBuilder extends AbstractApplication {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
         long sizeKB = sources.get(root).sizeKB;
-        NDataSegDetails segDetails = NDataSegDetailsManager.getInstance(config).getForSegment(seg);
-        NDataCuboid dataCuboid = new NDataCuboid();
-        dataCuboid.setCuboidLayoutId(layoutId);
-        dataCuboid.setSegDetails(segDetails);
+        
+        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
         dataCuboid.setSourceKB(sizeKB);
         dataCuboid.setBuildJobId(jobId);
@@ -177,9 +177,9 @@ public class NDataflowBuilder extends AbstractApplication {
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);
         fillCuboid(dataCuboid);
-        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow());
-        update.setToAddCuboids(dataCuboid);
-        update.setToUpdateSegs(seg);
+        
+        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
+        update.setToAddOrUpdateCuboids(dataCuboid);
         NDataflowManager.getInstance(config).updateDataflow(update);
     }
 

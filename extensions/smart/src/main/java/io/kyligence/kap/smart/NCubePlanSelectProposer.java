@@ -56,7 +56,7 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
             NCubePlan cubePlan = findExisting(modelContext.getTargetModel());
             if (cubePlan != null) {
                 modelContext.setOrigCubePlan(cubePlan);
-                modelContext.setTargetCubePlan(NCubePlan.getCopyOf(cubePlan));
+                modelContext.setTargetCubePlan(cubePlan.copy());
             }
         }
     }

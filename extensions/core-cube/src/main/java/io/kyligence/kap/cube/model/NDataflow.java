@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.cube.model;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -62,7 +64,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     public static NDataflow create(String name, NCubePlan plan) {
         NDataflow df = new NDataflow();
 
-        df.setConfig((KylinConfigExt) plan.getConfig());
+        df.config = (KylinConfigExt) plan.getConfig();
         df.setName(name);
         df.setCubePlanName(plan.getName());
         df.setCreateTimeUTC(System.currentTimeMillis());
@@ -71,6 +73,10 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         df.updateRandomUuid();
 
         return df;
+    }
+
+    public static String concatResourcePath(String name) {
+        return DATAFLOW_RESOURCE_ROOT + "/" + name + ".json";
     }
 
     // ============================================================================
@@ -84,7 +90,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     @JsonProperty("owner")
     private String owner;
     @JsonProperty("mp_values")
-    private String[] mpValues;
+    private String[] mpValues = StringUtil.EMPTY_ARRAY;
     @JsonProperty("cube_plan")
     private String cubePlanName;
     @JsonProperty("create_time_utc")
@@ -104,10 +110,23 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     // ================================================================
 
     void initAfterReload(KylinConfigExt config) {
-        setConfig(config);
+        this.config = config;
         for (NDataSegment seg : segments) {
             seg.initAfterReload();
         }
+    }
+    
+    public KylinConfigExt getConfig() {
+        return config;
+    }
+
+    public NDataflow copy() {
+        return NDataflowManager.getInstance(config).copy(this);
+    }
+    
+    @Override
+    public String resourceName() {
+        return name;
     }
 
     public String getResourcePath() {
@@ -138,10 +157,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     public NCubePlan getCubePlan() {
         return NCubePlanManager.getInstance(config).getCubePlan(cubePlanName);
-    }
-
-    public static String concatResourcePath(String name) {
-        return DATAFLOW_RESOURCE_ROOT + "/" + name + ".json";
     }
 
     @Override
@@ -192,10 +207,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         return getStatus() == RealizationStatusEnum.READY;
     }
 
-    public String getName() {
-        return name;
-    }
-
     @Override
     public String getCanonicalName() {
         return getType() + "[name=" + name + "]";
@@ -211,107 +222,16 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         return segments.getTSEnd();
     }
 
-    @Override
-    public boolean supportsLimitPushDown() {
-        return true; // TODO: storage_type defined on cuboid level, which will decide whether to support
-    }
-
-    public KylinConfigExt getConfig() {
-        return config;
-    }
-
-    @Override
-    public boolean hasPrecalculatedFields() {
-        return true;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String[] getMpValues() {
-        return mpValues;
-    }
-
-    public String getCubePlanName() {
-        return cubePlanName;
-    }
-
-    public long getCreateTimeUTC() {
-        return createTimeUTC;
-    }
-
-    public RealizationStatusEnum getStatus() {
-        return status;
-    }
-
-    public Segments<NDataSegment> getSegments() {
-        return segments;
+    public NDataSegment getSegment(int segId) {
+        for (NDataSegment seg : segments) {
+            if (seg.getId() == segId)
+                return seg;
+        }
+        return null;
     }
 
     public Segments<NDataSegment> getSegments(SegmentStatusEnum status) {
         return segments.getSegments(status);
-    }
-
-    public String getStorageLocationIdentifier() {
-        return storageLocationIdentifier;
-    }
-
-    public void setStatus(RealizationStatusEnum status) {
-        this.status = status;
-    }
-
-    void setConfig(KylinConfigExt config) {
-        this.config = config;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    void setOwner(String owner) {
-        this.owner = owner;
-    }
-
-    public void setSegments(Segments<NDataSegment> segments) {
-        this.segments = segments;
-    }
-
-    void setName(String name) {
-        this.name = name;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public void setMpValues(String[] mpValues) {
-        this.mpValues = mpValues;
-    }
-
-    public void setCubePlanName(String cubePlanName) {
-        this.cubePlanName = cubePlanName;
-    }
-
-    public void setCreateTimeUTC(long createTimeUTC) {
-        this.createTimeUTC = createTimeUTC;
-    }
-
-    public void setStorageLocationIdentifier(String storageLocationIdentifier) {
-        this.storageLocationIdentifier = storageLocationIdentifier;
-    }
-
-    public int getCost() {
-        return cost;
-    }
-
-    public void setCost(int cost) {
-        this.cost = cost;
-    }
-
-    @Override
-    public int getStorageType() {
-        return IKapStorageAware.ID_NDATA_STORAGE;
     }
 
     public Segments calculateToBeSegments(NDataSegment newSegment) {
@@ -331,14 +251,117 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         }
     }
 
-    public NDataSegment getSegment(int segId) {
-        for (NDataSegment seg : segments) {
-            if (seg.getId() == segId)
-                return seg;
-        }
-        return null;
+    @Override
+    public boolean supportsLimitPushDown() {
+        return true; // TODO: storage_type defined on cuboid level, which will decide whether to support
     }
 
+    @Override
+    public boolean hasPrecalculatedFields() {
+        return true;
+    }
+
+    @Override
+    public int getStorageType() {
+        return IKapStorageAware.ID_NDATA_STORAGE;
+    }
+
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public String getName() {
+        return name;
+    }
+
+    void setName(String name) {
+        checkIsNotCachedAndShared();
+        this.name = name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        checkIsNotCachedAndShared();
+        this.description = description;
+    }
+
+    public String[] getMpValues() {
+        return isCachedAndShared() ? Arrays.copyOf(mpValues, mpValues.length) : mpValues;
+    }
+
+    public void setMpValues(String[] mpValues) {
+        checkIsNotCachedAndShared();
+        this.mpValues = mpValues;
+    }
+
+    public String getCubePlanName() {
+        return cubePlanName;
+    }
+
+    public void setCubePlanName(String cubePlanName) {
+        checkIsNotCachedAndShared();
+        this.cubePlanName = cubePlanName;
+    }
+
+    public long getCreateTimeUTC() {
+        return createTimeUTC;
+    }
+
+    public void setCreateTimeUTC(long createTimeUTC) {
+        checkIsNotCachedAndShared();
+        this.createTimeUTC = createTimeUTC;
+    }
+
+    public RealizationStatusEnum getStatus() {
+        return status;
+    }
+
+    public void setStatus(RealizationStatusEnum status) {
+        checkIsNotCachedAndShared();
+        this.status = status;
+    }
+
+    public Segments<NDataSegment> getSegments() {
+        return isCachedAndShared() ? new Segments(segments) : segments;
+    }
+
+    public void setSegments(Segments<NDataSegment> segments) {
+        checkIsNotCachedAndShared();
+        this.segments = segments;
+    }
+
+    public String getOwner() {
+        return owner;
+    }
+
+    void setOwner(String owner) {
+        checkIsNotCachedAndShared();
+        this.owner = owner;
+    }
+
+    public String getStorageLocationIdentifier() {
+        return storageLocationIdentifier;
+    }
+
+    public void setStorageLocationIdentifier(String storageLocationIdentifier) {
+        checkIsNotCachedAndShared();
+        this.storageLocationIdentifier = storageLocationIdentifier;
+    }
+
+    public int getCost() {
+        return cost;
+    }
+
+    public void setCost(int cost) {
+        checkIsNotCachedAndShared();
+        this.cost = cost;
+    }
+
+    // ============================================================================
+    
     @Override
     public int hashCode() {
         final int prime = 31;

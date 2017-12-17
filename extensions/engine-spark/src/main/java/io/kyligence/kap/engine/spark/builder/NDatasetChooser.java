@@ -42,8 +42,8 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegDetailsManager;
 import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
@@ -71,7 +71,7 @@ public class NDatasetChooser {
             DataSource dataSource = new DataSource();
             NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(seg,
                     rootCuboid.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(rootCuboid));
-            NDataSegDetails segCuboids = NDataSegDetailsManager.getInstance(config).getForSegment(seg);
+            NDataSegDetails segCuboids = seg.getSegDetails();
 
             if (layout != null) {
                 NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, layout.getId());
@@ -95,11 +95,15 @@ public class NDatasetChooser {
                                         + ", please make sure there are available records in the \n"
                                         + "source tables, and made the correct join on the model.");
                     }
+                    
                     if (-1 == seg.getSourceCount()) {
-                        seg.setSourceCount(count);
-                        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow());
-                        update.setToUpdateSegs(seg);
-                        NDataflowManager.getInstance(config).updateDataflow(update);
+                        // first build of this segment, fill row count
+                        NDataSegment segCopy = seg.getDataflow().copy().getSegment(seg.getId());
+                        segCopy.setSourceCount(count);
+                        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
+                        update.setToUpdateSegs(segCopy);
+                        NDataflow updated = NDataflowManager.getInstance(config).updateDataflow(update);
+                        seg = updated.getSegment(seg.getId());
 
                     } else if (seg.getSourceCount() != count) {
                         throw new RuntimeException(
@@ -129,7 +133,7 @@ public class NDatasetChooser {
         Dataset<Row> afterJoin = source.getSourceData(seg.getDataflow(), seg.getSegRange(), ss);
 
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, afterJoin);
-        dictionaryBuilder.buildDictionary();
+        seg = dictionaryBuilder.buildDictionary(); // note the segment instance is updated
         Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg).encode();
         return afterEncode;
     }

@@ -24,45 +24,30 @@
 
 package io.kyligence.kap.cube.model;
 
-import java.io.IOException;
-
-import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 public class NDataflowUpdate {
-    private NDataflow dataflow;
 
+    private final String dataflowName;
+    
     private NDataSegment[] toAddSegs = null;
     private NDataSegment[] toRemoveSegs = null;
     private NDataSegment[] toUpdateSegs = null;
     
-    private NDataCuboid[] toAddCuboids = null;
+    private NDataCuboid[] toAddOrUpdateCuboids = null;
     private NDataCuboid[] toRemoveCuboids = null;
 
     private RealizationStatusEnum status;
+    private String description;
     private String owner;
     private int cost = -1;
 
-    public NDataflowUpdate(NDataflow df) {
-        setDataflow(df);
+    public NDataflowUpdate(String dfName) {
+        this.dataflowName = dfName;
     }
-
-    public NDataflow getDataflow() {
-        return dataflow;
-    }
-
-    public NDataflowUpdate setDataflow(NDataflow df) {
-        try {
-            // make a copy, never modify the pass-in (potentially shared) object
-            String str = JsonUtil.writeValueAsString(df);
-            NDataflow copy = JsonUtil.readValue(str, NDataflow.class);
-            copy.initAfterReload(df.getConfig());
-            
-            this.dataflow = copy;
-            return this;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    
+    public String getDataflowName() {
+        return dataflowName;
     }
 
     public NDataSegment[] getToAddSegs() {
@@ -70,6 +55,9 @@ public class NDataflowUpdate {
     }
 
     public NDataflowUpdate setToAddSegs(NDataSegment... toAddSegs) {
+        for (NDataSegment seg : toAddSegs)
+            seg.checkIsNotCachedAndShared();
+        
         this.toAddSegs = toAddSegs;
         return this;
     }
@@ -88,16 +76,22 @@ public class NDataflowUpdate {
     }
 
     public NDataflowUpdate setToUpdateSegs(NDataSegment... toUpdateSegs) {
+        for (NDataSegment seg : toUpdateSegs)
+            seg.checkIsNotCachedAndShared();
+        
         this.toUpdateSegs = toUpdateSegs;
         return this;
     }
 
-    public NDataCuboid[] getToAddCuboids() {
-        return toAddCuboids;
+    public NDataCuboid[] getToAddOrUpdateCuboids() {
+        return toAddOrUpdateCuboids;
     }
 
-    public void setToAddCuboids(NDataCuboid... toAddCuboids) {
-        this.toAddCuboids = toAddCuboids;
+    public void setToAddOrUpdateCuboids(NDataCuboid... toAddCuboids) {
+        for (NDataCuboid cuboid : toAddCuboids)
+            cuboid.checkIsNotCachedAndShared();
+        
+        this.toAddOrUpdateCuboids = toAddCuboids;
     }
 
     public NDataCuboid[] getToRemoveCuboids() {
@@ -115,6 +109,14 @@ public class NDataflowUpdate {
     public NDataflowUpdate setStatus(RealizationStatusEnum status) {
         this.status = status;
         return this;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     public String getOwner() {

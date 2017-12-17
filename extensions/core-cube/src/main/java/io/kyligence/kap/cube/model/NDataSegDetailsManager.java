@@ -31,8 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -46,40 +44,24 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 
+/**
+ * Package private. Not intended for public use.
+ * 
+ * Public use goes through NDataflowManager.
+ */
 public class NDataSegDetailsManager implements IKeepNames {
     public static final Serializer<NDataSegDetails> DATA_SEG_CUBOID_INSTANCES_SERIALIZER = new JsonSerializer<>(
             NDataSegDetails.class);
 
     private static final Logger logger = LoggerFactory.getLogger(NDataSegDetailsManager.class);
 
-    private static final ConcurrentMap<KylinConfig, NDataSegDetailsManager> CACHE = new ConcurrentHashMap<>();
-
     public static NDataSegDetailsManager getInstance(KylinConfig config) {
-        NDataSegDetailsManager r = CACHE.get(config);
-        if (r != null) {
-            return r;
-        }
-
-        synchronized (NDataSegDetailsManager.class) {
-            r = CACHE.get(config);
-            if (r != null) {
-                return r;
-            }
-            try {
-                r = new NDataSegDetailsManager(config);
-                CACHE.put(config, r);
-                if (CACHE.size() > 1) {
-                    logger.warn("More than one singleton exist");
-                }
-                return r;
-            } catch (IOException e) {
-                throw new IllegalStateException("Failed to init NDataSegDetailsManager from " + config, e);
-            }
-        }
+        return config.getManager(NDataSegDetailsManager.class);
     }
 
-    public static void clearCache() {
-        CACHE.clear();
+    // called by reflection
+    static NDataSegDetailsManager newInstance(KylinConfig config) throws IOException {
+        return new NDataSegDetailsManager(config);
     }
 
     // ============================================================================
@@ -98,8 +80,8 @@ public class NDataSegDetailsManager implements IKeepNames {
     private ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
-
-    public NDataSegDetails getForSegment(NDataflow df, int segId) {
+    
+    NDataSegDetails getForSegment(NDataflow df, int segId) {
         try {
             NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getName(), segId),
                     NDataSegDetails.class, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
@@ -112,22 +94,18 @@ public class NDataSegDetailsManager implements IKeepNames {
         }
     }
 
-    public NDataSegDetails getForSegment(NDataSegment segment) {
+    NDataSegDetails getForSegment(NDataSegment segment) {
         return getForSegment(segment.getDataflow(), segment.getId());
     }
 
-    void updateDataflow(NDataflowUpdate update) throws IOException {
-        if (update == null || update.getDataflow() == null)
-            throw new IllegalStateException();
-
-        NDataflow df = update.getDataflow();
+    void updateDataflow(NDataflow df, NDataflowUpdate update) throws IOException {
 
         // figure out all impacted segments
         Set<Integer> allSegIds = new TreeSet<>();
         Map<Integer, List<NDataCuboid>> toUpsert = new TreeMap<>();
         Map<Integer, List<NDataCuboid>> toRemove = new TreeMap<>();
-        if (update.getToAddCuboids() != null) {
-            for (NDataCuboid c : update.getToAddCuboids()) {
+        if (update.getToAddOrUpdateCuboids() != null) {
+            for (NDataCuboid c : update.getToAddOrUpdateCuboids()) {
                 int segId = c.getSegDetails().getSegmentId();
                 allSegIds.add(segId);
                 List<NDataCuboid> list = toUpsert.get(segId);
@@ -166,7 +144,6 @@ public class NDataSegDetailsManager implements IKeepNames {
             }
             if (toRemove.containsKey(segId)) {
                 for (NDataCuboid c : toRemove.get(segId)) {
-                    c.setSegDetails(details);
                     details.removeCuboid(c);
                 }
             }

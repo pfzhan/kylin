@@ -29,6 +29,7 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -46,6 +47,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
@@ -82,12 +84,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private Map<String, String> dictionaries; // table/column ==> dictionary resource path
     @JsonProperty("snapshots")
     private Map<String, String> snapshots; // table name ==> snapshot resource path
-    @JsonProperty("column_stats")
-    private Map<String, Object> columnStats; // column ==> something?
     @JsonProperty("last_build_time")
     private long lastBuildTime; // last segment incr build job
-    @JsonProperty("last_build_job_id")
-    private long lastBuildJobId; // last segment incr build job
 
     @JsonProperty("source_count")
     private long sourceCount = -1; // source table records number
@@ -97,17 +95,20 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     // computed fields below
 
-    private transient NDataSegDetails segDetails;
-    private transient Map<Long, NDataCuboid> cuboidsMap = Collections.emptyMap();
+    private transient NDataSegDetails segDetails; // transient, not required by spark cubing
+    private transient Map<Long, NDataCuboid> cuboidsMap = Collections.emptyMap(); // transient, not required by spark cubing
 
     void initAfterReload() {
         segDetails = NDataSegDetailsManager.getInstance(getConfig()).getForSegment(this);
         if (segDetails == null) {
             segDetails = NDataSegDetails.newSegDetails(dataflow, id);
         }
+        
+        segDetails.setCachedAndShared(dataflow.isCachedAndShared());
 
-        cuboidsMap = new HashMap<Long, NDataCuboid>(segDetails.getCuboids().size());
-        for (NDataCuboid i : segDetails.getCuboids()) {
+        List<NDataCuboid> cuboids = segDetails.getCuboids();
+        cuboidsMap = new HashMap<Long, NDataCuboid>(cuboids.size());
+        for (NDataCuboid i : cuboids) {
             cuboidsMap.put(i.getCuboidLayoutId(), i);
         }
     }
@@ -115,11 +116,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @Override
     public KylinConfig getConfig() {
         return dataflow.getConfig();
-    }
-
-    @Override
-    public String getName() {
-        return name;
     }
 
     @Override
@@ -137,50 +133,13 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return new SegmentRange.TSRange(tsRangeStart, tsRangeEnd);
     }
 
+    public NDataSegDetails getSegDetails() {
+        return segDetails;
+    }
+
     @Override
     public DataModelDesc getModel() {
         return dataflow.getModel();
-    }
-
-    @Override
-    public SegmentStatusEnum getStatus() {
-        return status;
-    }
-
-    @Override
-    public long getLastBuildTime() {
-        return lastBuildTime;
-    }
-
-    @Override
-    public void validate() throws IllegalStateException {
-    }
-
-    @Override
-    public int compareTo(ISegment other) {
-        if (this.getSegRange() == null && other.getSegRange() == null)
-            return 0;
-
-        if (this.getSegRange().isInfinite() && other.getSegRange().isInfinite())
-            return 0;
-
-        int comp = this.getSegRange().start.compareTo(other.getSegRange().start);
-        if (comp != 0)
-            return comp;
-
-        return this.getSegRange().end.compareTo(other.getSegRange().end);
-    }
-
-    public Map<TblColRef, Dictionary<String>> buildDictionaryMap() {
-        Map<TblColRef, Dictionary<String>> result = Maps.newHashMap();
-        for (TblColRef col : getCubePlan().getAllColumnsHaveDictionary()) {
-            result.put(col, getDictionary(col));
-        }
-        return result;
-    }
-
-    public NDataSegDetails getSegDetails() {
-        return segDetails;
     }
 
     public NDataCuboid getCuboid(long cuboidLayoutId) {
@@ -191,78 +150,20 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return cuboidsMap;
     }
 
-    public NDataflow getDataflow() {
-        return dataflow;
-    }
-
     public NCubePlan getCubePlan() {
         return dataflow.getCubePlan();
     }
 
-    public void setDataflow(NDataflow df) {
-        this.dataflow = df;
+    @Override
+    public void validate() throws IllegalStateException {
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getSegRangeStart() {
-        return segRangeStart;
-    }
-
-    public void setSegRangeStart(String segRangeStart) {
-        this.segRangeStart = segRangeStart;
-    }
-
-    public String getSegRangeEnd() {
-        return segRangeEnd;
-    }
-
-    public void setSegRangeEnd(String segRangeEnd) {
-        this.segRangeEnd = segRangeEnd;
-    }
-
-    public long getTsRangeStart() {
-        return tsRangeStart;
-    }
-
-    public void setTsRangeStart(long tsRangeStart) {
-        this.tsRangeStart = tsRangeStart;
-    }
-
-    public long getTsRangeEnd() {
-        return tsRangeEnd;
-    }
-
-    public void setTsRangeEnd(long tsRangeEnd) {
-        this.tsRangeEnd = tsRangeEnd;
-    }
-
-    public Map<Integer, Long> getSourcePartitionOffsetStart() {
-        return sourcePartitionOffsetStart;
-    }
-
-    public void setSourcePartitionOffsetStart(Map<Integer, Long> sourcePartitionOffsetStart) {
-        this.sourcePartitionOffsetStart = sourcePartitionOffsetStart;
-    }
-
-    public Map<Integer, Long> getSourcePartitionOffsetEnd() {
-        return sourcePartitionOffsetEnd;
-    }
-
-    public void setSourcePartitionOffsetEnd(Map<Integer, Long> sourcePartitionOffsetEnd) {
-        this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public Map<String, String> getDictionaries() {
-        if (dictionaries == null)
-            dictionaries = new ConcurrentHashMap<String, String>();
-        return dictionaries;
+    public Map<TblColRef, Dictionary<String>> buildDictionaryMap() {
+        Map<TblColRef, Dictionary<String>> result = Maps.newHashMap();
+        for (TblColRef col : getCubePlan().getAllColumnsHaveDictionary()) {
+            result.put(col, getDictionary(col));
+        }
+        return result;
     }
 
     public String getDictResPath(TblColRef col) {
@@ -296,60 +197,202 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         }
         return (Dictionary<String>) info.getDictionaryObject();
     }
+    
+    // ============================================================================
+    // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
+    // ============================================================================
+
+    public NDataflow getDataflow() {
+        return dataflow;
+    }
+
+    public void setDataflow(NDataflow df) {
+        checkIsNotCachedAndShared();
+        this.dataflow = df;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        checkIsNotCachedAndShared();
+        this.id = id;
+    }
+
+    @Override
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        checkIsNotCachedAndShared();
+        this.name = name;
+    }
+
+    @Override
+    public SegmentStatusEnum getStatus() {
+        return status;
+    }
+
+    public void setStatus(SegmentStatusEnum status) {
+        checkIsNotCachedAndShared();
+        this.status = status;
+    }
+
+    @Override
+    public long getLastBuildTime() {
+        return lastBuildTime;
+    }
+
+    public void setLastBuildTime(long lastBuildTime) {
+        checkIsNotCachedAndShared();
+        this.lastBuildTime = lastBuildTime;
+    }
+    
+    public String getSegRangeStart() {
+        return segRangeStart;
+    }
+
+    public void setSegRangeStart(String segRangeStart) {
+        checkIsNotCachedAndShared();
+        this.segRangeStart = segRangeStart;
+    }
+
+    public String getSegRangeEnd() {
+        return segRangeEnd;
+    }
+
+    public void setSegRangeEnd(String segRangeEnd) {
+        checkIsNotCachedAndShared();
+        this.segRangeEnd = segRangeEnd;
+    }
+
+    public long getTsRangeStart() {
+        return tsRangeStart;
+    }
+
+    public void setTsRangeStart(long tsRangeStart) {
+        checkIsNotCachedAndShared();
+        this.tsRangeStart = tsRangeStart;
+    }
+
+    public long getTsRangeEnd() {
+        return tsRangeEnd;
+    }
+
+    public void setTsRangeEnd(long tsRangeEnd) {
+        checkIsNotCachedAndShared();
+        this.tsRangeEnd = tsRangeEnd;
+    }
+
+    public Map<Integer, Long> getSourcePartitionOffsetStart() {
+        return isCachedAndShared() ? ImmutableMap.copyOf(sourcePartitionOffsetStart) : sourcePartitionOffsetStart;
+    }
+
+    public void setSourcePartitionOffsetStart(Map<Integer, Long> sourcePartitionOffsetStart) {
+        checkIsNotCachedAndShared();
+        this.sourcePartitionOffsetStart = sourcePartitionOffsetStart;
+    }
+
+    public Map<Integer, Long> getSourcePartitionOffsetEnd() {
+        return isCachedAndShared() ? ImmutableMap.copyOf(sourcePartitionOffsetEnd) : sourcePartitionOffsetEnd;
+    }
+
+    public void setSourcePartitionOffsetEnd(Map<Integer, Long> sourcePartitionOffsetEnd) {
+        checkIsNotCachedAndShared();
+        this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd;
+    }
+
+    public Map<String, String> getDictionaries() {
+        if (dictionaries == null)
+            dictionaries = new ConcurrentHashMap<String, String>();
+        
+        return isCachedAndShared() ? ImmutableMap.copyOf(dictionaries) : dictionaries;
+    }
+
+    public void putDictResPath(TblColRef col, String dictResPath) {
+        checkIsNotCachedAndShared();
+        getDictionaries(); // touch to create
+        String dictKey = col.getIdentity();
+        dictionaries.put(dictKey, dictResPath);
+    }
+
+    public void setDictionaries(Map<String, String> dictionaries) {
+        checkIsNotCachedAndShared();
+        this.dictionaries = dictionaries;
+    }
 
     public Map<String, String> getSnapshots() {
         if (snapshots == null)
             snapshots = new ConcurrentHashMap<String, String>();
-        return snapshots;
-    }
-
-    public void putDictResPath(TblColRef col, String dictResPath) {
-        String dictKey = col.getIdentity();
-        getDictionaries().put(dictKey, dictResPath);
-    }
-
-    public void setStatus(SegmentStatusEnum status) {
-        this.status = status;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public void setCreateTimeUTC(long createTimeUTC) {
-        this.createTimeUTC = createTimeUTC;
-    }
-
-    public void setDictionaries(Map<String, String> dictionaries) {
-        this.dictionaries = dictionaries;
+        
+        return isCachedAndShared() ? ImmutableMap.copyOf(snapshots) : snapshots;
     }
 
     public void setSnapshots(Map<String, String> snapshots) {
+        checkIsNotCachedAndShared();
         this.snapshots = snapshots;
     }
-
-    public void setColumnStats(Map<String, Object> columnStats) {
-        this.columnStats = columnStats;
+    
+    public long getCreateTimeUTC() {
+        return createTimeUTC;
     }
 
-    public void setLastBuildTime(long lastBuildTime) {
-        this.lastBuildTime = lastBuildTime;
+    public void setCreateTimeUTC(long createTimeUTC) {
+        checkIsNotCachedAndShared();
+        this.createTimeUTC = createTimeUTC;
     }
 
-    public void setLastBuildJobId(long lastBuildJobId) {
-        this.lastBuildJobId = lastBuildJobId;
+    public Map<String, String> getAdditionalInfo() {
+        return isCachedAndShared() ? ImmutableMap.copyOf(additionalInfo) : additionalInfo;
     }
-
+    
     public void setAdditionalInfo(Map<String, String> additionalInfo) {
+        checkIsNotCachedAndShared();
         this.additionalInfo = additionalInfo;
-    }
-
-    public void setSourceCount(long sourceCount) {
-        this.sourceCount = sourceCount;
     }
 
     public long getSourceCount() {
         return sourceCount;
+    }
+    
+    public void setSourceCount(long sourceCount) {
+        checkIsNotCachedAndShared();
+        this.sourceCount = sourceCount;
+    }
+
+    // ============================================================================
+    
+    public boolean isCachedAndShared() {
+        if (dataflow == null || dataflow.isCachedAndShared() == false)
+            return false;
+        
+        for (NDataSegment cached : dataflow.getSegments()) {
+            if (cached == this)
+                return true;
+        }
+        return false;
+    }
+
+    public void checkIsNotCachedAndShared() {
+        if (isCachedAndShared())
+            throw new IllegalStateException();
+    }
+    
+    @Override
+    public int compareTo(ISegment other) {
+        if (this.getSegRange() == null && other.getSegRange() == null)
+            return 0;
+
+        if (this.getSegRange().isInfinite() && other.getSegRange().isInfinite())
+            return 0;
+
+        int comp = this.getSegRange().start.compareTo(other.getSegRange().start);
+        if (comp != 0)
+            return comp;
+
+        return this.getSegRange().end.compareTo(other.getSegRange().end);
     }
 
     @Override

@@ -40,8 +40,6 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegDetailsManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -49,6 +47,7 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class NSmartMaster {
+    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSmartMaster.class);
 
     private NSmartContext context;
@@ -97,29 +96,27 @@ public class NSmartMaster {
     public void saveCubePlan() throws IOException {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig());
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig());
-        NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(context.getKylinConfig());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) != null) {
                 cubePlan = cubePlanManager.updateCubePlan(cubePlan);
 
                 NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
-                NDataflowUpdate update = new NDataflowUpdate(df);
+                NDataflowUpdate update = new NDataflowUpdate(df.getName());
                 List<NDataCuboid> toAddCuboids = Lists.newArrayList();
 
                 for (NDataSegment seg : df.getSegments()) {
-                    NDataSegDetails det = segDetailsManager.getForSegment(seg);
                     Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
                     for (NCuboidDesc desc : cubePlan.getCuboids()) {
                         for (NCuboidLayout layout : desc.getLayouts()) {
                             if (!cuboidMap.containsKey(layout.getId())) {
-                                toAddCuboids.add(NDataCuboid.newDataCuboid(det, layout.getId()));
+                                toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
                             }
                         }
                     }
                 }
 
-                update.setToAddCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
+                update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
                 dataflowManager.updateDataflow(update);
             } else {
                 cubePlanManager.createCubePlan(cubePlan);

@@ -26,6 +26,8 @@ import org.apache.commons.lang.StringUtils;
 /**
  */
 public class StringUtil {
+    
+    public static String[] EMPTY_ARRAY = new String[0];
 
     public static String[] filterSystemArgs(String[] args) {
         ArrayList<String> whatsLeft = new ArrayList<String>();

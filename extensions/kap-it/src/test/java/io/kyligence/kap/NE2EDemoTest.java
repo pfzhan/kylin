@@ -133,7 +133,6 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
 
     private void rebuildAllCubes(String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();
-        NDataflowManager.clearCache();
         ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
         ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);

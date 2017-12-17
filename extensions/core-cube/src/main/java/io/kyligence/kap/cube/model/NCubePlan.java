@@ -83,10 +83,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return CUBE_PLAN_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
 
-    public static NCubePlan getCopyOf(NCubePlan orig) {
-        return NCubePlanManager.getInstance(orig.getConfig()).copy(orig);
-    }
-
     // ============================================================================
 
     @JsonProperty("name")
@@ -117,13 +113,14 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("engine_type")
     private int engineType = IKapEngineAware.ID_KAP_NSPARK;
 
-    private NDataModel model = null;
+    // computed fields below
+    
     private KylinConfigExt config = null;
+    private NDataModel model = null;
 
-    private transient NSpanningTree spanningTree = null;
-    // FIXME why the below two are transient??
-    private transient BiMap<Integer, TblColRef> effectiveDimCols;
-    private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures;
+    private transient NSpanningTree spanningTree = null; // transient, because can self recreate
+    private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
+    private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
 
     private LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
     private LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
@@ -137,12 +134,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     public NCubePlan() {
     }
 
-    @Override
-    public String resourceName() {
-        return name;
-    }
-
-    void init(KylinConfig config) {
+    void initAfterReload(KylinConfig config) {
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
@@ -220,6 +212,15 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
         Preconditions.checkState(dimEncodingMap.keySet().containsAll(effectiveDimCols.keySet()),
                 "Some dimensions do not have encoding configuration.");
+    }
+
+    @Override
+    public String resourceName() {
+        return name;
+    }
+    
+    public NCubePlan copy() {
+        return NCubePlanManager.getInstance(config).copy(this);
     }
 
     public NSpanningTree getSpanningTree() {
