@@ -39,8 +39,10 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -73,8 +75,9 @@ public class CsvSourceTest extends NLocalSparkWithMetaTest {
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataModel model = (NDataModel) df.getModel();
 
-        NSparkCubingSource cubingSource = new CsvSource().adaptToBuildEngine(NSparkCubingSource.class);
-        Dataset<Row> ds = cubingSource.getSourceData(df, new SegmentRange<>(0L, System.currentTimeMillis()), ss);
+        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(),
+                new SegmentRange<>(0L, System.currentTimeMillis()));
+        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
         ds.show(10);
 
         StructType schema = ds.schema();

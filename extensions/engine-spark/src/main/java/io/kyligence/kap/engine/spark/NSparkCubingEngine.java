@@ -28,7 +28,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.util.ImplementationSwitch;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -38,7 +37,6 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.job.engine.NCubingEngine;
 
 public class NSparkCubingEngine implements NCubingEngine, IKeep {
@@ -63,17 +61,6 @@ public class NSparkCubingEngine implements NCubingEngine, IKeep {
     }
 
     public interface NSparkCubingSource {
-        /**
-         * Get Dataset<Row>
-         *
-         * @param dataflow, used to retrieve the columns
-         * @param range, define the data range
-         * @param ss
-         * @return the Dataset<Row>, its schema consists of column's index, for example, [0,1,2,4]
-         */
-        Dataset<Row> getSourceData(NDataflow dataflow, @SuppressWarnings("rawtypes") SegmentRange range,
-                SparkSession ss);
-
         /**
          * Get Dataset<Row>
          *

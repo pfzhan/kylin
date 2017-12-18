@@ -36,7 +36,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IBuildable;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -50,9 +49,6 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 
 public class CsvSource implements ISource {
@@ -114,13 +110,6 @@ public class CsvSource implements ISource {
 
         if (engineInterface == NSparkCubingSource.class) {
             return (I) new NSparkCubingSource() {
-
-                @Override
-                public Dataset<Row> getSourceData(NDataflow dataflow, @SuppressWarnings("rawtypes") SegmentRange range,
-                        SparkSession ss) {
-                    NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(dataflow.getCubePlan(), range);
-                    return NJoinedFlatTable.generateDataset(flatTable, this, ss);
-                }
 
                 @Override
                 public Dataset<Row> getSourceData(TableDesc table, SparkSession ss) {

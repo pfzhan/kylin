@@ -24,7 +24,6 @@
 package io.kyligence.kap.engine.spark.source;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -32,18 +31,9 @@ import org.apache.spark.sql.SparkSession;
 
 import com.google.common.base.Joiner;
 
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingSource {
-    @Override
-    public Dataset<Row> getSourceData(NDataflow dataflow, SegmentRange range, SparkSession ss) {
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(dataflow.getCubePlan(), range);
-        return NJoinedFlatTable.generateDataset(flatTable, this, ss);
-    }
-
     @Override
     public Dataset<Row> getSourceData(TableDesc table, SparkSession ss) {
         ColumnDesc[] columnDescs = table.getColumns();

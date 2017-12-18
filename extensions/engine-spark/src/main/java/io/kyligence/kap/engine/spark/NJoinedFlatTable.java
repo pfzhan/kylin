@@ -32,8 +32,10 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -46,11 +48,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NJoinedFlatTable {
 
-    public static Dataset<Row> generateDataset(IJoinedFlatTableDesc flatTable,
-            NSparkCubingEngine.NSparkCubingSource source, SparkSession ss) {
+    public static Dataset<Row> generateDataset(IJoinedFlatTableDesc flatTable, SparkSession ss) {
         NDataModel model = (NDataModel) flatTable.getDataModel();
-        Dataset<Row> ds = source.getSourceData(model.getRootFactTable().getTableDesc(), ss)
-                .alias(model.getRootFactTable().getAlias());
+        TableDesc rootFactDesc = model.getRootFactTable().getTableDesc();
+        Dataset<Row> ds = SourceFactory.createEngineAdapter(rootFactDesc, NSparkCubingEngine.NSparkCubingSource.class)
+                .getSourceData(rootFactDesc, ss).alias(model.getRootFactTable().getAlias());
 
         ds = changeSchemaToAliasDotName(ds, model.getRootFactTable().getAlias());
 
@@ -59,7 +61,9 @@ public class NJoinedFlatTable {
             if (join != null && !StringUtils.isEmpty(join.getType())) {
                 String joinType = join.getType().toUpperCase();
                 TableRef dimTable = lookupDesc.getTableRef();
-                Dataset<Row> dimDataset = source.getSourceData(dimTable.getTableDesc(), ss).alias(dimTable.getAlias());
+                Dataset<Row> dimDataset = SourceFactory
+                        .createEngineAdapter(dimTable.getTableDesc(), NSparkCubingEngine.NSparkCubingSource.class)
+                        .getSourceData(dimTable.getTableDesc(), ss).alias(dimTable.getAlias());
                 dimDataset = changeSchemaToAliasDotName(dimDataset, dimTable.getAlias());
 
                 TblColRef[] pk = join.getPrimaryKeyColumns();

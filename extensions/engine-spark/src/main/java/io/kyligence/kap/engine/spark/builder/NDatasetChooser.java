@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
@@ -46,8 +47,8 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.source.NSparkDataSource;
 
 public class NDatasetChooser {
     protected static final Logger logger = LoggerFactory.getLogger(NDatasetChooser.class);
@@ -108,8 +109,8 @@ public class NDatasetChooser {
                     } else if (seg.getSourceCount() != count) {
                         throw new RuntimeException(
                                 "Error: Current flat table's records are inconsistent with before, \n"
-                                        + "please check if there are any modifications on the source tables, the relevant model: "
-                                        + seg.getModel().getName()
+                                        + "please check if there are any modifications on the source tables, \n"
+                                        + "the relevant model: " + seg.getModel().getName()
                                         + ", if the data in the source table has been changed \n"
                                         + "in purpose, KAP would update all the impacted cuboids.");
                         //TODO: Update all ready cuboids by using last data.
@@ -128,10 +129,8 @@ public class NDatasetChooser {
     }
 
     private Dataset<Row> getDatasetFromFlatTable() throws Exception {
-        NSparkCubingEngine.NSparkCubingSource source = new NSparkDataSource()
-                .adaptToBuildEngine(NSparkCubingEngine.NSparkCubingSource.class);
-        Dataset<Row> afterJoin = source.getSourceData(seg.getDataflow(), seg.getSegRange(), ss);
-
+        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(seg.getCubePlan(), seg.getSegRange());
+        Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss);
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, afterJoin);
         seg = dictionaryBuilder.buildDictionary(); // note the segment instance is updated
         Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg).encode();
