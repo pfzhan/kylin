@@ -22,39 +22,46 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.smart.common;
 
-import org.apache.commons.lang.StringUtils;
+import java.io.File;
+import java.util.Collection;
 
-import io.kyligence.kap.smart.NSmartContext;
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.junit.After;
+import org.junit.Before;
 
-public class NCubeMaster {
-    private final NSmartContext.NModelContext context;
-    private final NProposerProvider proposerProvider;
+import com.google.common.io.Files;
 
-    public NCubeMaster(NSmartContext.NModelContext context) {
-        this.context = context;
-        this.proposerProvider = NProposerProvider.create(this.context);
+import io.kyligence.kap.smart.query.Utils;
+
+public abstract class NTestBase {
+    protected static final String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
+    protected static final String proj = "learn_kylin";
+    protected static File tmpMeta;
+    protected static KylinConfig kylinConfig;
+
+    @Before
+    public void setUp() throws Exception {
+        tmpMeta = Files.createTempDir();
+        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
+
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getAbsolutePath());
+        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
     }
 
-    public NSmartContext.NModelContext getContext() {
-        return this.context;
+    @After
+    public void tearDown() throws Exception {
+        if (tmpMeta != null)
+            FileUtils.forceDelete(tmpMeta);
     }
 
-    public NCubePlan proposeInitialCube() {
-        NCubePlan cubePlan = new NCubePlan();
-        cubePlan.updateRandomUuid();
-        cubePlan.setName(cubePlan.getUuid());
-        cubePlan.setModelName(context.getTargetModel().getName());
-        cubePlan.setDescription(StringUtils.EMPTY);
-        return cubePlan;
-    }
-
-    public NCubePlan proposeCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidProposer().propose(cubePlan);
-    }
-
-    public NCubePlan proposeDimensions(final NCubePlan cubePlan) {
-        return proposerProvider.getDimensionProposer().propose(cubePlan);
+    protected <T> int countInnerObj(Collection<T>... list) {
+        int i = 0;
+        for (Collection<T> l : list) {
+            i += l.size();
+        }
+        return i;
     }
 }

@@ -24,22 +24,15 @@
 
 package io.kyligence.kap.smart;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-
-import com.google.common.io.Files;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -47,35 +40,10 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
-import io.kyligence.kap.smart.query.Utils;
 
-public class NSmartMasterTest {
-    private static final String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
-    private static final String proj = "learn_kylin";
-
-    private static File tmpMeta;
-    private static KylinConfig kylinConfig;
-
-    @Before
-    public void setUp() throws Exception {
-        tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-
-        kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
-        kylinConfig.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
-        kylinConfig.setProperty("kylin.metadata.data-model-manager-impl",
-                "io.kyligence.kap.metadata.model.NDataModelManager");
-        kylinConfig.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
-
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        if (tmpMeta != null)
-            FileUtils.forceDelete(tmpMeta);
-    }
+public class NSmartMasterTest extends NTestBase {
 
     private void test1stRound() throws IOException {
         TableMetadataManager tableMetadataManager = TableMetadataManager.getInstance(kylinConfig);
@@ -283,11 +251,4 @@ public class NSmartMasterTest {
         test2ndRound();
     }
 
-    private <T> int countInnerObj(Collection<T>... list) {
-        int i = 0;
-        for (Collection<T> l : list) {
-            i += l.size();
-        }
-        return i;
-    }
 }

@@ -72,6 +72,27 @@ public class Utils {
         return KylinConfig.createKylinConfig(props);
     }
 
+    public static KylinConfig smartKylinConfig(String metadataUrl) {
+        Properties props = new Properties();
+        setLargeCuboidCombinationConf(props);
+        props.setProperty("kylin.env", "DEV");
+        props.setProperty("kylin.metadata.url", metadataUrl);
+        props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
+        props.setProperty("kylin.metadata.data-model-manager-impl",
+                "io.kyligence.kap.metadata.model.NDataModelManager");
+        props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
+
+        List<String> queryTransformers = Lists.newArrayList();
+        queryTransformers.add(ConvertToComputedColumn.class.getName());
+        queryTransformers.add(EscapeTransformer.class.getName());
+        queryTransformers.add(DefaultQueryTransformer.class.getName());
+        queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
+        queryTransformers.add(CognosParenthesesEscape.class.getName());
+        props.setProperty("kylin.query.transformers", StringUtils.join(queryTransformers, ","));
+
+        return KylinConfig.createKylinConfig(props);
+    }
+
     public static void setLargeCuboidCombinationConf(Properties props) {
         props.setProperty("kylin.cube.aggrgroup.max-combination", Long.toString(Long.MAX_VALUE - 1));
     }

@@ -22,31 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart;
+package io.kyligence.kap.smart.cube;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.model.NModelMaster;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.smart.NSmartContext;
 
-public class NModelOptProposer extends NAbstractProposer {
-    public NModelOptProposer(NSmartContext modelCtx) {
-        super(modelCtx);
+public abstract class NAbstractCubeProposer {
+    final NSmartContext.NModelContext context;
+
+    NAbstractCubeProposer(NSmartContext.NModelContext context) {
+        this.context = context;
     }
 
-    @Override
-    void propose() {
-        if (context.getModelContexts() == null)
-            return;
-
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            NModelMaster modelMaster = new NModelMaster(modelCtx);
-            NDataModel model = modelCtx.getTargetModel();
-            if (model == null)
-                model = modelMaster.proposeInitialModel();
-
-            model = modelMaster.proposeJoins(model);
-            model = modelMaster.proposeScope(model);
-
-            modelCtx.setTargetModel(model);
-        }
+    public NCubePlan propose(NCubePlan cubePlan) {
+        doPropose(cubePlan);
+        return cubePlan;
     }
+
+    abstract void doPropose(NCubePlan cubePlan);
 }

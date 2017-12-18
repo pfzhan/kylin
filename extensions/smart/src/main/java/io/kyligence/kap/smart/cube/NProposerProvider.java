@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.smart.cube;
 
 import io.kyligence.kap.smart.NSmartContext;
 

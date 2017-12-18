@@ -22,26 +22,32 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.smart.cube;
 
-import io.kyligence.kap.smart.NSmartContext;
+import java.util.ArrayList;
+import java.util.Collection;
 
-public class NProposerProvider {
-    private NProposerProvider(NSmartContext.NModelContext context) {
-        this.context = context;
+import org.apache.kylin.query.relnode.OLAPContext;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+
+public class NCubeContext {
+    private NDataModel dataModel;
+    private Collection<OLAPContext> olapContexts = new ArrayList<>();
+
+    public Collection<OLAPContext> getOlapContexts() {
+        return olapContexts;
     }
 
-    private NSmartContext.NModelContext context;
-
-    public static NProposerProvider create(NSmartContext.NModelContext context) {
-        return new NProposerProvider(context);
+    public void setOlapContexts(Collection<OLAPContext> olapContexts) {
+        this.olapContexts = olapContexts;
     }
 
-    public NAbstractModelProposer getJoinProposer() {
-        return new NJoinProposer(context);
+    public NDataModel getDataModel() {
+        return dataModel;
     }
 
-    public NAbstractModelProposer getScopeProposer() {
-        return new NQueryScopeProposer(context);
+    public void setDataModel(NDataModel dataModel) {
+        this.dataModel = dataModel;
     }
 }

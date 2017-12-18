@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.smart;
 
-import io.kyligence.kap.cube.model.NCubeMaster;
+import io.kyligence.kap.smart.cube.NCubeMaster;
 import io.kyligence.kap.cube.model.NCubePlan;
 
 public class NCubePlanOptProposer extends NAbstractProposer {

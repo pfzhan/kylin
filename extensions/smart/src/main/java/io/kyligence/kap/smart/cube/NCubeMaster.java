@@ -22,32 +22,40 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.smart.cube;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import io.kyligence.kap.cube.model.NCubePlan;
+import org.apache.commons.lang.StringUtils;
 
-import org.apache.kylin.query.relnode.OLAPContext;
+import io.kyligence.kap.smart.NSmartContext;
 
-import io.kyligence.kap.metadata.model.NDataModel;
+public class NCubeMaster {
+    private final NSmartContext.NModelContext context;
+    private final NProposerProvider proposerProvider;
 
-public class NCubeContext {
-    private NDataModel dataModel;
-    private Collection<OLAPContext> olapContexts = new ArrayList<>();
-
-    public Collection<OLAPContext> getOlapContexts() {
-        return olapContexts;
+    public NCubeMaster(NSmartContext.NModelContext context) {
+        this.context = context;
+        this.proposerProvider = NProposerProvider.create(this.context);
     }
 
-    public void setOlapContexts(Collection<OLAPContext> olapContexts) {
-        this.olapContexts = olapContexts;
+    public NSmartContext.NModelContext getContext() {
+        return this.context;
     }
 
-    public NDataModel getDataModel() {
-        return dataModel;
+    public NCubePlan proposeInitialCube() {
+        NCubePlan cubePlan = new NCubePlan();
+        cubePlan.updateRandomUuid();
+        cubePlan.setName(cubePlan.getUuid());
+        cubePlan.setModelName(context.getTargetModel().getName());
+        cubePlan.setDescription(StringUtils.EMPTY);
+        return cubePlan;
     }
 
-    public void setDataModel(NDataModel dataModel) {
-        this.dataModel = dataModel;
+    public NCubePlan proposeCuboids(final NCubePlan cubePlan) {
+        return proposerProvider.getCuboidProposer().propose(cubePlan);
+    }
+
+    public NCubePlan proposeDimensions(final NCubePlan cubePlan) {
+        return proposerProvider.getDimensionProposer().propose(cubePlan);
     }
 }

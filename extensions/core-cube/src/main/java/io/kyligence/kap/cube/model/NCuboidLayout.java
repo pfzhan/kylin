@@ -68,7 +68,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private int[] sortByColumns = new int[0];
     @JsonProperty("storage_type")
     private int storageType = IStorageAware.ID_HBASE;
-    
+
     // computed fields below
 
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
@@ -236,7 +236,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         return cuboidDesc;
     }
 
-    void setCuboidDesc(NCuboidDesc cuboidDesc) {
+    public void setCuboidDesc(NCuboidDesc cuboidDesc) {
         checkIsNotCachedAndShared();
         this.cuboidDesc = cuboidDesc;
     }
@@ -245,7 +245,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         return isCachedAndShared() ? Arrays.copyOf(dimensionCFs, dimensionCFs.length) : dimensionCFs;
     }
 
-    void setDimensionCFs(NColumnFamilyDesc.DimensionCF[] dimensionCFs) {
+    public void setDimensionCFs(NColumnFamilyDesc.DimensionCF[] dimensionCFs) {
         checkIsNotCachedAndShared();
         this.dimensionCFs = dimensionCFs;
     }
@@ -254,7 +254,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         return isCachedAndShared() ? Arrays.copyOf(measureCFs, measureCFs.length) : measureCFs;
     }
 
-    void setMeasureCFs(NColumnFamilyDesc.MeasureCF[] measureCFs) {
+    public void setMeasureCFs(NColumnFamilyDesc.MeasureCF[] measureCFs) {
         checkIsNotCachedAndShared();
         this.measureCFs = measureCFs;
     }

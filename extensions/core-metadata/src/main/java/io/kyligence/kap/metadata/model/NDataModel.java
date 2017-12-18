@@ -264,7 +264,7 @@ public class NDataModel extends DataModelDesc {
         return allCols;
     }
 
-    List<Measure> getAllMeasures() {
+    public List<Measure> getAllMeasures() {
         return allMeasures;
     }
 
@@ -409,7 +409,7 @@ public class NDataModel extends DataModelDesc {
         return computedColumnDescs;
     }
 
-    void setComputedColumnDescs(List<ComputedColumnDesc> computedColumnDescs) {
+    public void setComputedColumnDescs(List<ComputedColumnDesc> computedColumnDescs) {
         this.computedColumnDescs = computedColumnDescs;
     }
 
@@ -453,11 +453,11 @@ public class NDataModel extends DataModelDesc {
         return allNamedColumns;
     }
 
-    void setAllNamedColumns(List<NamedColumn> allNamedColumns) {
+    public void setAllNamedColumns(List<NamedColumn> allNamedColumns) {
         this.allNamedColumns = allNamedColumns;
     }
 
-    void setAllMeasures(List<Measure> allMeasures) {
+    public void setAllMeasures(List<Measure> allMeasures) {
         this.allMeasures = allMeasures;
     }
 

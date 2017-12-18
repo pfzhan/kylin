@@ -22,12 +22,13 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.smart.model;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -35,7 +36,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 
 public class NJoinProposer extends NAbstractModelProposer {

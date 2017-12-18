@@ -22,21 +22,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.smart.model;
 
 import io.kyligence.kap.smart.NSmartContext;
 
-public abstract class NAbstractCubeProposer {
-    final NSmartContext.NModelContext context;
-
-    NAbstractCubeProposer(NSmartContext.NModelContext context) {
+public class NProposerProvider {
+    private NProposerProvider(NSmartContext.NModelContext context) {
         this.context = context;
     }
 
-    public NCubePlan propose(NCubePlan cubePlan) {
-        doPropose(cubePlan);
-        return cubePlan;
+    private NSmartContext.NModelContext context;
+
+    public static NProposerProvider create(NSmartContext.NModelContext context) {
+        return new NProposerProvider(context);
     }
 
-    abstract void doPropose(NCubePlan cubePlan);
+    public NAbstractModelProposer getJoinProposer() {
+        return new NJoinProposer(context);
+    }
+
+    public NAbstractModelProposer getScopeProposer() {
+        return new NQueryScopeProposer(context);
+    }
 }

@@ -59,7 +59,7 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     @JsonBackReference
     private NCubePlan cubePlan;
-    
+
     @JsonProperty("id")
     private long id;
     @JsonProperty("dimensions")
@@ -71,7 +71,7 @@ public class NCuboidDesc implements Serializable, IKeep {
     private List<NCuboidLayout> layouts = Lists.newArrayList();
 
     // computed fields below
-    
+
     private NDataModel model;
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures;
@@ -165,7 +165,7 @@ public class NCuboidDesc implements Serializable, IKeep {
         return cubePlan;
     }
 
-    void setCubePlan(NCubePlan cubePlan) {
+    public void setCubePlan(NCubePlan cubePlan) {
         checkIsNotCachedAndShared();
         this.cubePlan = cubePlan;
     }
