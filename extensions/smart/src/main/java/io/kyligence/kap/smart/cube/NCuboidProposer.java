@@ -36,6 +36,7 @@ import java.util.SortedSet;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -69,8 +70,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
     void doPropose(NCubePlan cubePlan) {
         Map<Pair<BitSet, BitSet>, NCuboidDesc> cuboidDescs = Maps.newLinkedHashMap();
         for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-            Pair<BitSet, BitSet> key = new Pair<>(cuboidDesc.getDimensionSet().mutable(),
-                    cuboidDesc.getMeasureSet().mutable());
+            Pair<BitSet, BitSet> key = new Pair<>(ImmutableBitSet.valueOf(cuboidDesc.getDimensions()).mutable(),
+                    ImmutableBitSet.valueOf(cuboidDesc.getMeasures()).mutable());
             NCuboidDesc desc = cuboidDescs.get(key);
 
             if (desc == null) {
