@@ -31,6 +31,7 @@ import java.util.UUID;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -49,7 +50,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
     }
-    
+
     @Test
     public void testCached() {
         KylinConfig testConfig = getTestConfig();
@@ -60,12 +61,35 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(df.getSegment(0).isCachedAndShared());
         Assert.assertTrue(df.getSegment(0).getSegDetails().isCachedAndShared());
         Assert.assertTrue(df.getSegment(0).getCuboid(1).isCachedAndShared());
-        
+
         df = df.copy();
         Assert.assertFalse(df.isCachedAndShared());
         Assert.assertFalse(df.getSegment(0).isCachedAndShared());
         Assert.assertFalse(df.getSegment(0).getSegDetails().isCachedAndShared());
         Assert.assertFalse(df.getSegment(0).getCuboid(1).isCachedAndShared());
+    }
+
+    @Test
+    public void testImmutableCachedObj() {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        try {
+            df.setStatus(RealizationStatusEnum.DISABLED);
+            Assert.fail();
+        } catch (IllegalStateException ex) {
+            // expected
+        }
+
+        try {
+            df.getSegments().get(0).setCreateTimeUTC(0);
+            Assert.fail();
+        } catch (IllegalStateException ex) {
+            // expected
+        }
+        
+        df.copy().setStatus(RealizationStatusEnum.DISABLED);
     }
 
     @Test
@@ -98,9 +122,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         update.setDescription("new_description");
         df = mgr.updateDataflow(update);
         Assert.assertEquals("new_description", df.getDescription());
-        
+
         // update cached objects causes exception
-        
 
         // remove
         mgr.dropDataflow(name);
