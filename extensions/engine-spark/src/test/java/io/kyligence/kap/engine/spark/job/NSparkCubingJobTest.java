@@ -50,14 +50,21 @@ import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
 
 @SuppressWarnings("serial")
@@ -82,6 +89,23 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
     }
 
     @Test
+    public void testBuildDictionary() throws Exception {
+        System.out.println(getTestConfig().getMetadataUrl());
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig());
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+
+        NDataSegment seg = df.copy().getLastSegment();
+        seg.setDictionaries(null);
+        Assert.assertEquals(0, seg.getDictionaries().size());
+        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(), seg.getSegRange());
+        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
+
+        NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, ds);
+        seg = dictionaryBuilder.buildDictionary();
+        Assert.assertEquals(3, seg.getDictionaries().size());
+    }
+
+    @Test
     public void test() throws InterruptedException, IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
@@ -97,6 +121,13 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         round1.add(layouts.get(4));
         round1.add(layouts.get(5));
 
+        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertEquals(null, layout);
+        }
+
         // Round1. Build new segment
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
         NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
@@ -111,12 +142,24 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        //Round2. Build new layouts, should reuse the data from already existing cuboid.
+        /**
+         * Round2. Build new layouts, should reuse the data from already existing cuboid.
+         * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
+         */
         List<NCuboidLayout> round2 = new ArrayList<>();
         round2.add(layouts.get(0));
         round2.add(layouts.get(1));
         round2.add(layouts.get(2));
         round2.add(layouts.get(3));
+
+        //update seg
+        oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
+        nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round2, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertTrue(layout != null);
+        }
 
         job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
         execMgr.addJob(job);

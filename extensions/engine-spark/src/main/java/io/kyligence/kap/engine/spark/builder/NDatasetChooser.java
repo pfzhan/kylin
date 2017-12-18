@@ -96,7 +96,7 @@ public class NDatasetChooser {
                                         + ", please make sure there are available records in the \n"
                                         + "source tables, and made the correct join on the model.");
                     }
-                    
+
                     if (-1 == seg.getSourceCount()) {
                         // first build of this segment, fill row count
                         NDataSegment segCopy = seg.getDataflow().copy().getSegment(seg.getId());
@@ -121,7 +121,6 @@ public class NDatasetChooser {
                 dataSource.sizeKB = NSizeEstimator.estimate(flatTable,
                         KapConfig.wrap(config).getSampleDatasetSizeRatio()) / 1024;
                 sources.put(rootCuboid, dataSource);
-
                 logger.info("No suitable ready layouts could be reused, generate dataset from flat table.");
             }
         }
