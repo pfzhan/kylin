@@ -26,8 +26,6 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Map;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NDimensionDesc;
 import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
@@ -41,6 +39,8 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NDimensionDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
@@ -52,7 +52,7 @@ public class NDimensionProposer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        Map<Integer, NDimensionDesc> dimDescMap = Maps.newHashMap();
+        Map<Integer, NDimensionDesc> dimDescMap = Maps.newTreeMap();
 
         // keep old dimensions
         for (NDimensionDesc dimensionDesc : cubePlan.getDimensions()) {
