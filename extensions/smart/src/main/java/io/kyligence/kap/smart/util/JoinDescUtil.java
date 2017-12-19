@@ -34,10 +34,12 @@ import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 
 public class JoinDescUtil {
 
-    public static JoinTableDesc convert(JoinDesc join, TableKind kind, String pkTblAlias, String fkTblAlias) {
+    public static JoinTableDesc convert(JoinDesc join, TableKind kind, String pkTblAlias, String fkTblAlias,
+            Map<String, TableRef> aliasTableRefMap) {
         if (join == null) {
             return null;
         }
@@ -52,16 +54,38 @@ public class JoinDescUtil {
 
         joinDesc.setType(join.getType().toLowerCase());
         String[] pkCols = new String[join.getPrimaryKey().length];
+        TblColRef[] pkColRefs = new TblColRef[pkCols.length];
+        TableRef pkTblRef = aliasTableRefMap.get(pkTblAlias);
+        if (pkTblRef == null) {
+            pkTblRef = TblColRef.tableForUnknownModel(pkTblAlias,
+                    join.getPrimaryKeyColumns()[0].getTableRef().getTableDesc());
+            aliasTableRefMap.put(pkTblAlias, pkTblRef);
+        }
         for (int i = 0; i < pkCols.length; i++) {
-            pkCols[i] = pkTblAlias + "." + join.getPrimaryKeyColumns()[i].getName();
+            TblColRef colRef = join.getPrimaryKeyColumns()[i];
+            pkCols[i] = pkTblAlias + "." + colRef.getName();
+            pkColRefs[i] = TblColRef.columnForUnknownModel(pkTblRef, colRef.getColumnDesc());
         }
         joinDesc.setPrimaryKey(pkCols);
+        joinDesc.setPrimaryKeyColumns(pkColRefs);
 
         String[] fkCols = new String[join.getForeignKey().length];
+        TblColRef[] fkColRefs = new TblColRef[fkCols.length];
+
+        TableRef fkTblRef = aliasTableRefMap.get(fkTblAlias);
+        if (fkTblRef == null) {
+            fkTblRef = TblColRef.tableForUnknownModel(fkTblAlias,
+                    join.getForeignKeyColumns()[0].getTableRef().getTableDesc());
+            aliasTableRefMap.put(fkTblAlias, fkTblRef);
+        }
+
         for (int i = 0; i < fkCols.length; i++) {
-            fkCols[i] = fkTblAlias + "." + join.getForeignKeyColumns()[i].getName();
+            TblColRef colRef = join.getForeignKeyColumns()[i];
+            fkCols[i] = fkTblAlias + "." + colRef.getName();
+            fkColRefs[i] = TblColRef.columnForUnknownModel(fkTblRef, colRef.getColumnDesc());
         }
         joinDesc.setForeignKey(fkCols);
+        joinDesc.setForeignKeyColumns(fkColRefs);
         joinTableDesc.setJoin(joinDesc);
 
         return joinTableDesc;
@@ -94,15 +118,33 @@ public class JoinDescUtil {
         return (a.isInnerJoin() && b.isInnerJoin()) || (a.isLeftJoin() && b.isLeftJoin());
     }
 
+    public static boolean isJoinTableEqual(JoinTableDesc a, JoinTableDesc b) {
+        if (a == b)
+            return true;
+
+        if (!a.getTable().equalsIgnoreCase(b.getTable()))
+            return false;
+        if (a.getKind() != b.getKind())
+            return false;
+        if (!a.getAlias().equalsIgnoreCase(b.getAlias()))
+            return false;
+
+        JoinDesc ja = a.getJoin();
+        JoinDesc jb = b.getJoin();
+        if (!ja.getType().equalsIgnoreCase(jb.getType()))
+            return false;
+        if (!Arrays.equals(ja.getForeignKey(), jb.getForeignKey()))
+            return false;
+        if (!Arrays.equals(ja.getPrimaryKey(), jb.getPrimaryKey()))
+            return false;
+        return true;
+    }
+
     public static boolean isJoinKeysEqual(JoinDesc a, JoinDesc b) {
         if (!Arrays.equals(a.getForeignKey(), b.getForeignKey()))
             return false;
         if (!Arrays.equals(a.getPrimaryKey(), b.getPrimaryKey()))
             return false;
-        //        if (!Arrays.equals(a.getForeignKeyColumns(), b.getForeignKeyColumns()))
-        //            return false;
-        //        if (!Arrays.equals(a.getPrimaryKeyColumns(), b.getPrimaryKeyColumns()))
-        //            return false;
         return true;
     }
 

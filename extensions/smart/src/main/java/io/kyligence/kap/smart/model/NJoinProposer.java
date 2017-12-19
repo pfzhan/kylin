@@ -28,13 +28,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.DataModelDesc.TableKind;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 
@@ -49,6 +51,7 @@ public class NJoinProposer extends NAbstractModelProposer {
         ModelTree modelTree = modelContext.getModelTree();
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
         Map<TableRef, String> tableAliasMap = modelTree.getTableRefAliasMap();
+        Map<String, TableRef> aliasRefMap = Maps.newHashMap();
 
         for (JoinTableDesc joinTableDesc : modelDesc.getJoinTables()) {
             joinTables.put(joinTableDesc.getAlias(), joinTableDesc);
@@ -76,7 +79,7 @@ public class NJoinProposer extends NAbstractModelProposer {
                 String joinTableAlias = pkTblAlias;
 
                 while (!skipModification) {
-                    JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias);
+                    JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias, aliasRefMap);
                     JoinTableDesc oldJoinTable = joinTablesUpdates.get(joinTableAlias);
 
                     // new join table

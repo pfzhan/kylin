@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.model;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -133,6 +134,7 @@ public class GreedyModelTreesBuilder {
             Map<String, JoinTableDesc> joinTables = new HashMap<>();
             Map<TableRef, String> tableAliasMap = correctedTableAlias;
             List<OLAPContext> usedCtxs = Lists.newArrayList();
+            Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             for (OLAPContext ctx : inputCtxs) {
                 if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
                     usedCtxs.add(ctx);
@@ -140,8 +142,8 @@ public class GreedyModelTreesBuilder {
                 }
 
                 // Save context updates and apply later
-                Map<String, JoinTableDesc> joinTablesUpdates = new HashMap<>(joinTables);
-                Map<TableRef, String> tableAliasUpdates = new HashMap<>(tableAliasMap);
+                Map<String, JoinTableDesc> joinTablesUpdates = new LinkedHashMap<>(joinTables);
+                Map<TableRef, String> tableAliasUpdates = new LinkedHashMap<>(tableAliasMap);
                 boolean skipModification = false;
 
                 List<DataModelDesc.TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
@@ -155,7 +157,8 @@ public class GreedyModelTreesBuilder {
                     String joinTableAlias = pkTblAlias;
 
                     while (!skipModification) {
-                        JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias);
+                        JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias,
+                                aliasRefMap);
                         JoinTableDesc oldJoinTable = joinTablesUpdates.get(joinTableAlias);
 
                         // new join table
@@ -166,7 +169,7 @@ public class GreedyModelTreesBuilder {
                         }
 
                         // duplicated join table
-                        if (oldJoinTable.equals(joinTable)) {
+                        if (JoinDescUtil.isJoinTableEqual(oldJoinTable, joinTable)) {
                             tableAliasUpdates.put(join.getPKSide(), joinTableAlias);
                             break;
                         }

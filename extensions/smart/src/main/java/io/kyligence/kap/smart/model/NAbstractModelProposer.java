@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.smart.model;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 
 public abstract class NAbstractModelProposer {

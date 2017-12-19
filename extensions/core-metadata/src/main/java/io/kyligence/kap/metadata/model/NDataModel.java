@@ -48,6 +48,7 @@ import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -151,11 +152,11 @@ public class NDataModel extends DataModelDesc {
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {
             String s = entry.getKey();
             TableDesc tableDesc = entry.getValue();
-            
+
             // null is possible when only involved table metadata is copied to remote executor
             if (tableDesc == null)
                 continue;
-            
+
             TableDesc extendedTableDesc = tableDesc.appendColumns(createComputedColumns(tableDesc), !isOnlineModel);
             tables.put(s, extendedTableDesc);
         }
@@ -489,6 +490,8 @@ public class NDataModel extends DataModelDesc {
 
     public static NDataModel getCopyOf(NDataModel orig) {
         NDataModel copy = (NDataModel) DataModelDesc.copy(orig, new NDataModel());
+        copy.setDimensions(Lists.<ModelDimensionDesc>newArrayList());
+        copy.setMetrics(new String[0]);
         copy.computedColumnDescs = orig.computedColumnDescs;
         copy.allCols = orig.allCols;
         copy.allMeasures = orig.allMeasures;

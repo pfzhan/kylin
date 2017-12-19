@@ -41,6 +41,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
@@ -70,6 +71,7 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     private void submitQueryExecute(final CountDownLatch counter, final MockupQueryExecutor executor,
             final KylinConfig kylinConfig, final String project, final String sql, final int index) {
+        Preconditions.checkNotNull(sql, "SQL Statement cannot be null.");
         executorService.execute(new Runnable() {
             @Override
             public void run() {

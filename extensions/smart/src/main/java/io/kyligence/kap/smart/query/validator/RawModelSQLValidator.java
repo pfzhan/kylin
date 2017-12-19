@@ -40,6 +40,7 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.smart.model.ModelContext;
 import io.kyligence.kap.smart.model.ModelContextBuilder;
@@ -97,6 +98,7 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
 
         Map<String, JoinTableDesc> joinTables = new HashMap<>();
         Map<TableRef, String> tableAliasMap = context.getModelTree().getTableRefAliasMap();
+        Map<String, TableRef> aliasRefMap = Maps.newHashMap();
 
         for (int i = 0; i < sqlList.size(); i++) {
             String sql = sqlList.get(i);
@@ -118,7 +120,8 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
                     String pkTblAlias = tableAliasMap.get(join.getPKSide());
                     String fkTblAlias = tableAliasMap.get(join.getFKSide());
 
-                    JoinTableDesc joinTable = JoinDescUtil.convert(join, TableKind.LOOKUP, pkTblAlias, fkTblAlias);
+                    JoinTableDesc joinTable = JoinDescUtil.convert(join, TableKind.LOOKUP, pkTblAlias, fkTblAlias,
+                            aliasRefMap);
 
                     String joinTableAlias = joinTable.getAlias();
                     JoinTableDesc oldJoinTable = joinTables.get(joinTableAlias);
@@ -139,7 +142,8 @@ public class RawModelSQLValidator extends AbstractSQLValidator {
                         // add and resolve alias
                         String newAlias = getNewAlias(tableAliasMap.values(), join.getPKSide().getTableName());
                         joinTable.setAlias(newAlias);
-                        JoinTableDesc newJoinTable = JoinDescUtil.convert(join, TableKind.LOOKUP, newAlias, fkTblAlias);
+                        JoinTableDesc newJoinTable = JoinDescUtil.convert(join, TableKind.LOOKUP, newAlias, fkTblAlias,
+                                null);
                         joinTablesModification.put(newAlias, newJoinTable);
                         tableAliasMap.put(join.getPKSide(), newAlias);
                         continue;

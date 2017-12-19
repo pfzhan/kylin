@@ -25,10 +25,18 @@
 package io.kyligence.kap.smart;
 
 import java.util.List;
+import java.util.Map;
 
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.TableRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -63,8 +71,29 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
         for (DataModelDesc model : modelManager.getModels(context.getProject())) {
-            if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity()))
-                return (NDataModel) model;
+            if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
+                List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
+                TableRef factTblRef = null;
+                if (modelTree.getJoins().isEmpty()) {
+                    factTblRef = model.getRootFactTable();
+                } else {
+                    Map<TableRef, TableRef> joinMap = Maps.newHashMap();
+                    for (JoinTableDesc joinTableDesc : modelTree.getJoins().values()) {
+                        modelTreeJoins.add(joinTableDesc.getJoin());
+                        joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
+                    }
+                    for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
+                        if (!joinMap.containsKey(joinEntry.getValue())) {
+                            factTblRef = joinEntry.getValue();
+                            break;
+                        }
+                    }
+                }
+                JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
+                Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
+                if (matching != null)
+                    return (NDataModel) model;
+            }
         }
 
         return null;

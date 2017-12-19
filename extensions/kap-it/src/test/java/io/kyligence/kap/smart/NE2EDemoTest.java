@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap;
+package io.kyligence.kap.smart;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -66,7 +66,6 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.smart.NSmartController;
 
 @Ignore("Failed in maven")
 public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
