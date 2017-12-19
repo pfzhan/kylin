@@ -31,7 +31,6 @@ import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
 import org.apache.kylin.dimension.IntegerDimEnc;
 import org.apache.kylin.dimension.TimeDimEnc;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -100,12 +99,8 @@ public class NDimensionProposer extends NAbstractCubeProposer {
 
         // select dict or fixlen for other type columns according to cardinality
         SmartConfig smartConfig = context.getSmartContext().getSmartConfig();
-        TableMetadataManager tableMetadataManager = TableMetadataManager
-                .getInstance(context.getSmartContext().getKylinConfig());
-        TableExtDesc tableExt = tableMetadataManager.getTableExt(colRef.getTableRef().getTableDesc());
-        if (tableExt != null && !tableExt.getColumnStats().isEmpty()) {
-            TableExtDesc.ColumnStats columnStats = tableExt.getColumnStats()
-                    .get(colRef.getColumnDesc().getZeroBasedIndex());
+        TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+        if (columnStats != null) {
             long cardinality = columnStats.getCardinality();
 
             if (cardinality > smartConfig.getRowkeyDictEncCardinalityMax())

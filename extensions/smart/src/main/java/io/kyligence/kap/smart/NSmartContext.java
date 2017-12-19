@@ -29,7 +29,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.TableMetadataManager;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -44,6 +49,9 @@ public class NSmartContext {
 
     private Map<Integer, Collection<OLAPContext>> olapContexts;
     private List<NModelContext> modelContexts;
+
+    private final TableMetadataManager tableMetadataManager;
+    private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
 
     public static class NModelContext {
         private ModelTree modelTree; // query
@@ -110,6 +118,8 @@ public class NSmartContext {
         this.project = project;
         this.sqls = sqls;
         this.smartConfig = SmartConfig.wrap(this.kylinConfig);
+
+        tableMetadataManager = TableMetadataManager.getInstance(this.kylinConfig);
     }
 
     public KylinConfig getKylinConfig() {
@@ -142,5 +152,22 @@ public class NSmartContext {
 
     public void setModelContexts(List<NModelContext> modelContexts) {
         this.modelContexts = modelContexts;
+    }
+
+    // =======================
+
+    public TableExtDesc.ColumnStats getColumnStats(TblColRef colRef) {
+        TableExtDesc.ColumnStats ret = columnStatsCache.get(colRef.getIdentity());
+        if (ret != null)
+            return ret;
+
+        TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(colRef.getTableRef().getTableDesc());
+        if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
+            ret = tableExtDesc.getColumnStats().get(colRef.getColumnDesc().getZeroBasedIndex());
+        } else {
+            ret = null;
+        }
+        columnStatsCache.put(colRef.getIdentity(), ret);
+        return ret;
     }
 }

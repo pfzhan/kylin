@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -44,6 +45,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.CubeUtils;
 
@@ -174,7 +176,22 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             maxMeasureId = Math.max(measure.id, maxMeasureId);
         }
 
-        nDataModel.setAllNamedColumns(Lists.newArrayList(columnsCandidate.values()));
-        nDataModel.setAllMeasures(Lists.newArrayList(measureCandidate.values()));
+        List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(columnsCandidate.values());
+        Collections.sort(namedColumns, new Comparator<NDataModel.NamedColumn>() {
+            @Override
+            public int compare(NDataModel.NamedColumn o1, NDataModel.NamedColumn o2) {
+                return o1.id - o2.id;
+            }
+        });
+        nDataModel.setAllNamedColumns(namedColumns);
+
+        List<NDataModel.Measure> measures = Lists.newArrayList(measureCandidate.values());
+        Collections.sort(measures, new Comparator<NDataModel.Measure>() {
+            @Override
+            public int compare(NDataModel.Measure o1, NDataModel.Measure o2) {
+                return o1.id - o2.id;
+            }
+        });
+        nDataModel.setAllMeasures(measures);
     }
 }

@@ -95,9 +95,9 @@ public class NCuboidProposer extends NAbstractCubeProposer {
     }
 
     private class RowkeyComparator implements Comparator<NRowkeyColumnDesc> {
-        final Map<Integer, Integer> dimScores;
+        final Map<Integer, Double> dimScores;
 
-        public RowkeyComparator(Map<Integer, Integer> dimScores) {
+        public RowkeyComparator(Map<Integer, Double> dimScores) {
             this.dimScores = dimScores;
         }
 
@@ -105,7 +105,11 @@ public class NCuboidProposer extends NAbstractCubeProposer {
         public int compare(NRowkeyColumnDesc o1, NRowkeyColumnDesc o2) {
             int c1 = o1.getDimensionId();
             int c2 = o2.getDimensionId();
-            return dimScores.get(c1) - dimScores.get(c2);
+            if (dimScores.get(c2) - dimScores.get(c1) > 0) {
+                return 1;
+            } else {
+                return -1;
+            }
         }
     }
 
@@ -204,12 +208,12 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             }
         }
 
-        private NRowkeyColumnDesc[] suggestRowkeys(OLAPContext ctx, final Map<Integer, Integer> dimScores,
+        private NRowkeyColumnDesc[] suggestRowkeys(OLAPContext ctx, final Map<Integer, Double> dimScores,
                 Map<Integer, TblColRef> colRefMap) {
             RowkeySuggester suggester = new RowkeySuggester(ctx);
             NRowkeyColumnDesc[] descs = new NRowkeyColumnDesc[dimScores.size()];
             int i = 0;
-            for (Map.Entry<Integer, Integer> dimEntry : dimScores.entrySet()) {
+            for (Map.Entry<Integer, Double> dimEntry : dimScores.entrySet()) {
                 int dimId = dimEntry.getKey();
                 descs[i++] = suggester.suggest(dimId, colRefMap.get(dimId));
             }
@@ -223,31 +227,36 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             List<Integer> shardBy = Lists.newArrayList();
             for (int dimId : dimIds) {
                 TblColRef colRef = model.getEffectiveColsMap().get(dimId);
-                TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(colRef.getTableRef().getTableDesc());
-                if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
-                    TableExtDesc.ColumnStats colStats = tableExtDesc.getColumnStats()
-                            .get(colRef.getColumnDesc().getZeroBasedIndex());
-                    if (colStats.getCardinality() > context.getSmartContext().getSmartConfig()
-                            .getRowkeyUHCCardinalityMin())
-                        shardBy.add(dimId);
+                TableExtDesc.ColumnStats colStats = context.getSmartContext().getColumnStats(colRef);
+                if (colStats != null && colStats.getCardinality() > context.getSmartContext().getSmartConfig()
+                        .getRowkeyUHCCardinalityMin()) {
+                    shardBy.add(dimId);
                 }
             }
             return ArrayUtils.toPrimitive(shardBy.toArray(new Integer[0]));
         }
 
-        private Map<Integer, Integer> getDimScores(OLAPContext ctx) {
-            final Map<Integer, Integer> dimScores = Maps.newHashMap();
+        private Map<Integer, Double> getDimScores(OLAPContext ctx) {
+            final Map<Integer, Double> dimScores = Maps.newHashMap();
 
             if (CollectionUtils.isNotEmpty(ctx.groupByColumns)) {
                 for (TblColRef colRef : ctx.groupByColumns) {
                     int colId = colIdMap.get(colRef);
-                    dimScores.put(colId, 0);
+                    TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+                    if (columnStats != null && columnStats.getCardinality() > 0)
+                        dimScores.put(colId, -1D / columnStats.getCardinality());
+                    else
+                        dimScores.put(colId, 0D);
                 }
             }
             if (CollectionUtils.isNotEmpty(ctx.filterColumns)) {
                 for (TblColRef colRef : ctx.filterColumns) {
                     int colId = colIdMap.get(colRef);
-                    dimScores.put(colId, 1);
+                    TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+                    if (columnStats != null && columnStats.getCardinality() > 0)
+                        dimScores.put(colId, (double) columnStats.getCardinality());
+                    else
+                        dimScores.put(colId, 0D);
                 }
             }
             return dimScores;
@@ -266,7 +275,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             final BitSet dimBitSet = new BitSet();
             final BitSet measureBitSet = new BitSet();
 
-            final Map<Integer, Integer> dimScores = getDimScores(ctx);
+            final Map<Integer, Double> dimScores = getDimScores(ctx);
             for (int dimId : dimScores.keySet())
                 dimBitSet.set(dimId);
 
@@ -338,6 +347,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             }
             return s;
         }
+
     }
 
     private long findLargestCuboidDescId(Collection<NCuboidDesc> cuboidDescs) {
