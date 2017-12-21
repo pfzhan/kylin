@@ -138,9 +138,9 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         Queue<TreeNode> queue = Lists.newLinkedList(roots);
         while (!queue.isEmpty()) {
             TreeNode head = queue.poll();
-            if (matcher.visit(head.cuboidDesc)) {
-                queue.addAll(head.children);
-            }
+            matcher.visit(head.cuboidDesc);
+            queue.addAll(head.children);
+
         }
         return matcher.getMatched();
     }

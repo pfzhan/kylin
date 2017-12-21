@@ -55,6 +55,7 @@ public class OLAPQuery extends AbstractEnumerable<Object[]> implements Enumerabl
 
     public Enumerator<Object[]> enumerator() {
         OLAPContext olapContext = OLAPContext.getThreadLocalContextById(contextId);
+        olapContext.enumeratorType = type;
         switch (type) {
         case OLAP:
             return BackdoorToggles.getPrepareOnly() ? new EmptyEnumerator()

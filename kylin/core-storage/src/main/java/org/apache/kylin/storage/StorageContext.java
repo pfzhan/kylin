@@ -52,6 +52,8 @@ public class StorageContext {
     private boolean enableStreamAggregate = false;
 
     private IStorageQuery storageQuery;
+    private Long cuboidId;
+
     private AtomicLong processedRowCount = new AtomicLong();
     private boolean partialResultReturned = false;
 
@@ -97,6 +99,14 @@ public class StorageContext {
 
     public void setOffset(int offset) {
         this.offset = offset;
+    }
+
+    public Long getCuboidId() {
+        return cuboidId;
+    }
+
+    public void setCuboidId(Long cuboidId) {
+        this.cuboidId = cuboidId;
     }
 
     /**

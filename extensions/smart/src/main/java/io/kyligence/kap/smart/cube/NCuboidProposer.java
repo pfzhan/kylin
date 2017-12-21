@@ -239,8 +239,24 @@ public class NCuboidProposer extends NAbstractCubeProposer {
         private Map<Integer, Double> getDimScores(OLAPContext ctx) {
             final Map<Integer, Double> dimScores = Maps.newHashMap();
 
-            if (CollectionUtils.isNotEmpty(ctx.groupByColumns)) {
-                for (TblColRef colRef : ctx.groupByColumns) {
+            Set<TblColRef> groupByCols = Sets.newHashSet(ctx.allColumns);
+            if (ctx.filterColumns != null)
+                groupByCols.removeAll(ctx.filterColumns);
+            for (FunctionDesc func : ctx.aggregations) {
+                if (func.getParameter() == null)
+                    continue;
+
+                List<TblColRef> aggCols = func.getParameter().getColRefs();
+                if (aggCols != null)
+                    groupByCols.removeAll(aggCols);
+            }
+            if (ctx.groupByColumns != null)
+                groupByCols.addAll(ctx.groupByColumns);
+            if (ctx.subqueryJoinParticipants != null)
+                groupByCols.addAll(ctx.subqueryJoinParticipants);
+
+            if (CollectionUtils.isNotEmpty(groupByCols)) {
+                for (TblColRef colRef : groupByCols) {
                     int colId = colIdMap.get(colRef);
                     TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
                     if (columnStats != null && columnStats.getCardinality() > 0)
@@ -249,6 +265,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                         dimScores.put(colId, 0D);
                 }
             }
+
             if (CollectionUtils.isNotEmpty(ctx.filterColumns)) {
                 for (TblColRef colRef : ctx.filterColumns) {
                     int colId = colIdMap.get(colRef);
@@ -282,9 +299,20 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             SortedSet<Integer> measureIds = Sets.newTreeSet();
             if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
                 for (FunctionDesc aggFunc : ctx.aggregations) {
-                    int measureId = aggFuncIdMap.get(aggFunc);
-                    measureIds.add(measureId);
-                    measureBitSet.set(measureId);
+                    Integer measureId = aggFuncIdMap.get(aggFunc);
+                    if (measureId == null) {
+                        // dimension as measure, put cols to rowkey tail
+                        if (aggFunc.getParameter() != null) {
+                            for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
+                                int colId = colIdMap.get(colRef);
+                                if (!dimScores.containsKey(colId))
+                                    dimScores.put(colId, -1D);
+                            }
+                        }
+                    } else {
+                        measureIds.add(measureId);
+                        measureBitSet.set(measureId);
+                    }
                 }
             }
 

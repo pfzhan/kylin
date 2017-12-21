@@ -132,6 +132,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     allColumns.addAll(tableScan.getTableRef().getColumns());
                 }
             }
+            if (ctx.subqueryJoinParticipants != null)
+                allColumns.addAll(ctx.subqueryJoinParticipants);
 
             for (TblColRef tblColRef : allColumns) {
                 if (columnsCandidate.containsKey(tblColRef.getIdentity()))

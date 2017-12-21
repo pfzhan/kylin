@@ -44,6 +44,7 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.realization.SQLDigest.SQLCall;
 import org.apache.kylin.metadata.tuple.TupleInfo;
+import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
@@ -118,6 +119,7 @@ public class OLAPContext {
     public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
     public Set<MeasureDesc> involvedMeasure = new HashSet<>();
     public TupleInfo returnTupleInfo = null;
+    public OLAPQuery.EnumeratorTypeEnum enumeratorType;
     public boolean afterAggregate = false;
     public boolean afterHavingClauseFilter = false;
     public boolean afterLimit = false;
@@ -172,7 +174,7 @@ public class OLAPContext {
     }
 
     public boolean hasPrecalculatedFields() {
-        return realization.hasPrecalculatedFields();
+        return realization != null && realization.hasPrecalculatedFields();
     }
 
     public void resetSQLDigest() {
