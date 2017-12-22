@@ -349,7 +349,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataflow copy = copy(cached);
             updater.modify(copy);
             try {
-                return crud.save(copy);
+                NDataflow df = crud.save(copy);
+
+                //this is a duplicate call to take care of scenarios where REST cache service unavailable
+                ProjectManager.getInstance(df.getConfig()).clearL2Cache();
+
+                return df;
             } catch (IllegalStateException ex) {
                 if (firstException == null)
                     firstException = ex;

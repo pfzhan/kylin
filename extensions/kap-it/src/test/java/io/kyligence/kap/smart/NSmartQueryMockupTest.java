@@ -292,8 +292,6 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
     }
 
     private void verifySQLs(String sql) {
-        getTestConfig().clearManagers();
-
         QueryRecord qr = exec.execute(PROJ_NAME, sql);
         Collection<OLAPContext> ctxs = qr.getOLAPContexts();
         if (CollectionUtils.isEmpty(ctxs)) {
