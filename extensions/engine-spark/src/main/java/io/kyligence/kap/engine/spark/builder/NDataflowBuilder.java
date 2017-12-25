@@ -115,18 +115,18 @@ public class NDataflowBuilder extends AbstractApplication {
             NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
             Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds);
             nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
-            ss = SparkSession.builder().getOrCreate();
+            ss = SparkSession.builder().enableHiveSupport().getOrCreate();
 
             for (int segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
-                
+
                 // choose source
                 NDatasetChooser datasetChooser = new NDatasetChooser(nSpanningTree, seg, ss, config);
                 sources = datasetChooser.decideSources();
-                
+
                 // note segment (source count, dictionary etc) maybe updated as a result of source select
                 seg = dfMgr.getDataflow(dfName).getSegment(segId);
-                
+
                 for (NCuboidDesc root : nSpanningTree.getRootCuboidDescs()) {
                     recursiveBuildCuboid(seg, root, sources.get(root).ds, cubePlan.getEffectiveMeasures(),
                             nSpanningTree);
@@ -167,7 +167,7 @@ public class NDataflowBuilder extends AbstractApplication {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
         long sizeKB = sources.get(root).sizeKB;
-        
+
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
         dataCuboid.setSourceKB(sizeKB);
@@ -177,7 +177,7 @@ public class NDataflowBuilder extends AbstractApplication {
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);
         fillCuboid(dataCuboid);
-        
+
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
         update.setToAddOrUpdateCuboids(dataCuboid);
         NDataflowManager.getInstance(config).updateDataflow(update);

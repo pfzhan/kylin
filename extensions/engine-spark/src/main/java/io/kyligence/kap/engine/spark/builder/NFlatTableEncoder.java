@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.dimension.DimensionEncoding;
@@ -57,13 +58,16 @@ import io.kyligence.kap.cube.model.NDataSegment;
 
 @SuppressWarnings("serial")
 public class NFlatTableEncoder implements Serializable {
+    private static final Logger logger = LoggerFactory.getLogger(NFlatTableEncoder.class);
 
     private Dataset<Row> dataset;
     private NDataSegment seg;
+    private KylinConfig config;
 
-    public NFlatTableEncoder(Dataset<Row> dataset, NDataSegment seg) {
+    public NFlatTableEncoder(Dataset<Row> dataset, NDataSegment seg, KylinConfig config) {
         this.dataset = dataset;
         this.seg = seg;
+        this.config = config;
     }
 
     public Dataset<Row> encode() {
@@ -76,28 +80,32 @@ public class NFlatTableEncoder implements Serializable {
         for (Integer index : meaIndexes) {
             schema = schema.add(String.valueOf(index), DataTypes.BinaryType, false);
         }
-        return dataset.map(new EncodeFunction(seg), org.apache.spark.sql.catalyst.encoders.RowEncoder.apply(schema));
+        return dataset.map(new EncodeFunction(seg, config),
+                org.apache.spark.sql.catalyst.encoders.RowEncoder.apply(schema));
     }
 
     static public class EncodeFunction implements MapFunction<Row, Row> {
         private NDataSegment seg;
         private RowEncoder encoder;
+        private KylinConfig config;
         private volatile transient boolean initialized = false;
 
-        public EncodeFunction(NDataSegment seg) {
+        public EncodeFunction(NDataSegment seg, KylinConfig config) {
             this.seg = seg;
+            this.config = config;
         }
 
         @Override
         public Row call(Row row) throws Exception {
-            synchronized (EncodeFunction.class) {
-                if (initialized == false) {
+            if (initialized == false) {
+                synchronized (EncodeFunction.class) {
+                    KylinConfig.setKylinConfigThreadLocal(config);
                     encoder = new RowEncoder(seg);
                     initialized = true;
                 }
-                encoder.resetAggrs();
-                return encoder.encode(row);
             }
+            encoder.resetAggrs();
+            return encoder.encode(row);
         }
     }
 

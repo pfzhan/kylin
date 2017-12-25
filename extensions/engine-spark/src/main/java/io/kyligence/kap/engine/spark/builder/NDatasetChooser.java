@@ -81,6 +81,7 @@ public class NDatasetChooser {
                         .getCuboidData(dataCuboid, ss);
                 dataSource.ds = source;
                 dataSource.sizeKB = dataCuboid.getSizeKB();
+                dataSource.count = dataCuboid.getRows();
                 sources.put(rootCuboid, dataSource);
                 logger.info("Reuse a suitable layout: {} for building cuboid: {}", layout.getId(), rootCuboid.getId());
                 break;
@@ -132,12 +133,13 @@ public class NDatasetChooser {
         Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss);
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, afterJoin);
         seg = dictionaryBuilder.buildDictionary(); // note the segment instance is updated
-        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg).encode();
+        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg, config).encode();
         return afterEncode;
     }
 
     public static class DataSource {
         public Dataset<Row> ds;
         public long sizeKB;
+        public long count;
     }
 }

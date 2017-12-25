@@ -193,6 +193,9 @@ public class NSparkExecutable extends AbstractExecutable {
             if (k.equals(NBatchConstants.P_JARS))
                 continue; // JARS is for spark-submit, not for app
 
+            if (k.equals(PARENT_ID))
+                continue; // JARS is for spark-submit, not for app
+
             if (k.equals(NBatchConstants.P_CLASS_NAME)) {
                 appArgs.add(0, v);
                 appArgs.add(0, "-" + k);

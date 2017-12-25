@@ -1,0 +1,120 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.engine.spark.job;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.spark_project.guava.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+
+@Ignore("This is a convenient way to submit newten spark cubing to yarn.")
+public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
+
+    @Before
+    public void setup() throws Exception {
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        createTestMetadata();
+        DefaultScheduler scheduler = DefaultScheduler.getInstance();
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        System.setProperty("kylin.hadoop.conf.dir",
+                "/Users/wangcheng/Developments/KAP/extensions/examples/test_case_data/sandbox");
+        System.setProperty("SPARK_HOME", "/Users/wangcheng/Developments/KAP/build/spark");
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+    }
+
+    @After
+    public void after() throws Exception {
+        DefaultScheduler.destroyInstance();
+        cleanupTestMetadata();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+    }
+
+    @Test
+    public void test() throws IOException, InterruptedException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        config.setProperty("kylin.source.provider.11", "io.kyligence.kap.engine.spark.source.NSparkDataSource");
+        config.setProperty("kylin.env", "DEV");
+        config.setProperty("kylin.engine.mr.job-jar",
+                "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config);
+
+        // ready dataflow, segment, cuboid layout
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment oneSeg = dsMgr.appendSegment(df);
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<NCuboidLayout> round1 = new ArrayList<>();
+        round1.add(layouts.get(4));
+        round1.add(layouts.get(5));
+
+        // Round1. Build new segment
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
+        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+    }
+
+    private ExecutableState wait(AbstractExecutable job) throws InterruptedException {
+        while (true) {
+            Thread.sleep(500);
+
+            ExecutableState status = job.getStatus();
+            if (!status.isReadyOrRunning()) {
+                return status;
+            }
+        }
+    }
+}

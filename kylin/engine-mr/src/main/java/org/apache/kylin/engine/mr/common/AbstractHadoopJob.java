@@ -486,6 +486,7 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
             InputStream is = fs.open(new Path(metaDir));
             Properties prop = KylinConfig.streamToProps(is);
             KylinConfig config = KylinConfig.createKylinConfig(prop);
+            KylinConfig.setKylinConfigThreadLocal(config);
             return config;
         } catch (IOException e) {
             throw new RuntimeException(e);

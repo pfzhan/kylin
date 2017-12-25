@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.engine.spark.storage;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.engine.mr.common.BatchConstants;
@@ -158,13 +161,17 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
             measureMaxLen += m;
         }
 
-        String path = getCuboidStoragePath(cuboid);
-        logger.debug("Write Cuboid Dataset to path: {}", path);
-
         final int dimBufSize = dimLen;
         final int measureBufSize = measureMaxLen;
 
         Configuration jobConf = new Configuration(ss.sparkContext().hadoopConfiguration());
+        String path = getCuboidStoragePath(cuboid);
+        try {
+            HadoopUtil.deletePath(jobConf, new Path(path));
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Can't delete hdfs path: " + path);
+        }
+        logger.debug("Write Cuboid Dataset to path: {}", path);
         jobConf.set(BatchConstants.CFG_CUBE_NAME, cuboid.getSegDetails().getDataflowName());
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
         jobConf.set(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID, Long.toString(cuboid.getCuboidLayoutId()));
