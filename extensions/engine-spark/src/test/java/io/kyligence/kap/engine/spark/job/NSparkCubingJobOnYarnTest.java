@@ -28,6 +28,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -93,6 +97,13 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         round1.add(layouts.get(4));
         round1.add(layouts.get(5));
 
+        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertEquals(null, layout);
+        }
+
         // Round1. Build new segment
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
         NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
@@ -104,6 +115,32 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
         // wait job done
         ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        /**
+         * Round2. Build new layouts, should reuse the data from already existing cuboid.
+         * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
+         */
+        List<NCuboidLayout> round2 = new ArrayList<>();
+        round2.add(layouts.get(0));
+        round2.add(layouts.get(1));
+        round2.add(layouts.get(2));
+        round2.add(layouts.get(3));
+
+        //update seg
+        oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
+        nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round2, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertTrue(layout != null);
+        }
+
+        job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
+        execMgr.addJob(job);
+
+        // wait job done
+        status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
     }
 

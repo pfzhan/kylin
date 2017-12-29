@@ -30,6 +30,7 @@ import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -44,7 +45,7 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 @SuppressWarnings("serial")
@@ -55,8 +56,9 @@ public class NSparkSourceTest extends NLocalSparkWithCSVDataTest {
         TableMetadataManager tableMgr = TableMetadataManager.getInstance(getTestConfig());
         TableDesc fact = tableMgr.getTableDesc("SSB.P_LINEORDER", "ssb");
 
-        NSparkCubingSource cubingSource = new NSparkDataSource().adaptToBuildEngine(NSparkCubingSource.class);
-        Dataset<Row> df = cubingSource.getSourceData(fact, ss);
+        Dataset<Row> df = SourceFactory.createEngineAdapter(fact, NSparkCubingEngine.NSparkCubingSource.class)
+                .getSourceData(fact, ss);
+
         df.show(10);
 
         StructType schema = df.schema();

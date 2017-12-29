@@ -31,6 +31,7 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
@@ -86,6 +87,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         final IDimensionEncodingMap dimEncMap = new NCubeDimEncMap(cuboid.getSegDetails().getDataSegment());
         final RowKeyColumnIO rowKeyColumnIO = new RowKeyColumnIO(dimEncMap);
         final MeasureCodec measureCodec = new MeasureCodec(orderedMeasures.values().toArray(new MeasureDesc[0]));
+        final KylinConfig config = cuboid.getConfig();
 
         StructType schema = new StructType();
         for (Map.Entry<Integer, TblColRef> dimEntry : orderedDimensions.entrySet()) {
@@ -108,8 +110,17 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         JavaPairRDD<Text, Text> batchRDD = ctx.newAPIHadoopFile(path, NParquetCuboidInputFormat.class, Text.class,
                 Text.class, jobConf);
         JavaRDD<Row> rows = batchRDD.map(new org.apache.spark.api.java.function.Function<Tuple2<Text, Text>, Row>() {
+            private volatile transient boolean initialized = false;
+
             @Override
             public Row call(Tuple2<Text, Text> tuple) throws Exception {
+                if (initialized == false) {
+                    synchronized (NParquetStorage.class) {
+                        KylinConfig.setKylinConfigThreadLocal(config);
+                        initialized = true;
+                    }
+                }
+
                 Object[] cells = new Object[orderedDimensions.size() + orderedMeasures.size()];
 
                 byte[] values = tuple._1.getBytes();

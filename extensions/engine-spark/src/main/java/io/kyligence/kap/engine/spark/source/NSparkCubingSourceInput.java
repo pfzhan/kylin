@@ -42,7 +42,7 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
             colNames[i] = columnDescs[i].getName();
         }
         String colString = Joiner.on(",").join(colNames);
-        String sql = String.format("select %s from %s", colString, table.getIdentity());
+        String sql = String.format("select %s from %s", colString, table.getName());
         return ss.sql(sql).toDF(colNames);
     }
 }
