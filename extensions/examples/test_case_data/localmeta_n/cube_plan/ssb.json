@@ -1,0 +1,509 @@
+{
+  "uuid" : "658a20ed-1253-4f4f-8e15-79181c175dc8",
+  "last_modified" : 1514536509122,
+  "version" : "3.0.0.0",
+  "name" : "ssb",
+  "model_name" : "ssb",
+  "description" : "",
+  "dimensions" : [ {
+    "id" : 0,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 1,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 2,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 3,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 4,
+    "encoding" : {
+      "name" : "integer:4",
+      "version" : 1
+    }
+  }, {
+    "id" : 5,
+    "encoding" : {
+      "name" : "integer:8",
+      "version" : 1
+    }
+  }, {
+    "id" : 6,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 7,
+    "encoding" : {
+      "name" : "integer:8",
+      "version" : 1
+    }
+  }, {
+    "id" : 8,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 9,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 10,
+    "encoding" : {
+      "name" : "integer:8",
+      "version" : 1
+    }
+  }, {
+    "id" : 11,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 12,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 13,
+    "encoding" : {
+      "name" : "integer:4",
+      "version" : 1
+    }
+  }, {
+    "id" : 14,
+    "encoding" : {
+      "name" : "dict",
+      "version" : 1
+    }
+  }, {
+    "id" : 15,
+    "encoding" : {
+      "name" : "integer:4",
+      "version" : 1
+    }
+  } ],
+  "cuboids" : [ {
+    "id" : 0,
+    "dimensions" : [ 0, 1, 2, 3, 4 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 1,
+      "rowkeys" : [ {
+        "dimension_id" : 4,
+        "index" : "all"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 2,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 1,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 0,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 0, 1, 2, 3, 4 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 1000,
+    "dimensions" : [ 1, 2, 3, 4, 6 ],
+    "measures" : [ 1001, 1002 ],
+    "layouts" : [ {
+      "id" : 1001,
+      "rowkeys" : [ {
+        "dimension_id" : 6,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 2,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 1,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 1, 2, 3, 4, 6 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      }, {
+        "name" : "MEASURE_1002",
+        "columns" : [ 1002 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 2000,
+    "dimensions" : [ 3, 4, 8 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 2001,
+      "rowkeys" : [ {
+        "dimension_id" : 8,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 3, 4, 8 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    }, {
+      "id" : 2002,
+      "rowkeys" : [ {
+        "dimension_id" : 8,
+        "index" : "all"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 3, 4, 8 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 3000,
+    "dimensions" : [ 0, 1, 3, 4, 6, 9 ],
+    "measures" : [ 1001, 1002 ],
+    "layouts" : [ {
+      "id" : 3001,
+      "rowkeys" : [ {
+        "dimension_id" : 9,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 6,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 1,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 0,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 0, 1, 3, 4, 6, 9 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      }, {
+        "name" : "MEASURE_1002",
+        "columns" : [ 1002 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 4000,
+    "dimensions" : [ 3, 4, 8, 9 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 4001,
+      "rowkeys" : [ {
+        "dimension_id" : 9,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 8,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 3,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 3, 4, 8, 9 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 5000,
+    "dimensions" : [ 4 ],
+    "measures" : [ 1003 ],
+    "layouts" : [ {
+      "id" : 5001,
+      "rowkeys" : [ {
+        "dimension_id" : 4,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 4 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1003",
+        "columns" : [ 1003 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 6000,
+    "dimensions" : [ 4, 11, 12 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 6001,
+      "rowkeys" : [ {
+        "dimension_id" : 12,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 11,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "all"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 4, 11, 12 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 7000,
+    "dimensions" : [ 13 ],
+    "measures" : [ 1003 ],
+    "layouts" : [ {
+      "id" : 7001,
+      "rowkeys" : [ {
+        "dimension_id" : 13,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 13 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1003",
+        "columns" : [ 1003 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 8000,
+    "dimensions" : [ 0, 2, 4, 11, 12 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 8001,
+      "rowkeys" : [ {
+        "dimension_id" : 12,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 11,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "all"
+      }, {
+        "dimension_id" : 2,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 0,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 0, 2, 4, 11, 12 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 9000,
+    "dimensions" : [ 4, 11, 12, 14 ],
+    "measures" : [ 1001 ],
+    "layouts" : [ {
+      "id" : 9001,
+      "rowkeys" : [ {
+        "dimension_id" : 14,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 12,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 11,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 4, 11, 12, 14 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 10000,
+    "dimensions" : [ 4, 15 ],
+    "measures" : [ 1003 ],
+    "layouts" : [ {
+      "id" : 10001,
+      "rowkeys" : [ {
+        "dimension_id" : 15,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 4, 15 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1003",
+        "columns" : [ 1003 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  }, {
+    "id" : 11000,
+    "dimensions" : [ 0, 1, 4, 8, 9, 11 ],
+    "measures" : [ 1001, 1002 ],
+    "layouts" : [ {
+      "id" : 11001,
+      "rowkeys" : [ {
+        "dimension_id" : 11,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 9,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 8,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 4,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 1,
+        "index" : "eq"
+      }, {
+        "dimension_id" : 0,
+        "index" : "eq"
+      } ],
+      "dim_cf" : [ {
+        "name" : "ALL_DIM",
+        "columns" : [ 0, 1, 4, 8, 9, 11 ]
+      } ],
+      "measure_cf" : [ {
+        "name" : "MEASURE_1001",
+        "columns" : [ 1001 ]
+      }, {
+        "name" : "MEASURE_1002",
+        "columns" : [ 1002 ]
+      } ],
+      "shard_by_columns" : [ ],
+      "sort_by_columns" : [ ],
+      "storage_type" : 20
+    } ]
+  } ],
+  "override_properties" : { },
+  "segment_range_start" : 0,
+  "segment_range_end" : 9223372036854775807,
+  "auto_merge_time_ranges" : null,
+  "retention_range" : 0,
+  "notify_list" : [ ],
+  "status_need_notify" : [ ],
+  "engine_type" : 80
+}

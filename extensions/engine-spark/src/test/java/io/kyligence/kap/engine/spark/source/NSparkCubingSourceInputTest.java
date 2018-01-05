@@ -23,24 +23,26 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import java.util.List;
+
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
-
-import java.util.List;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkCubingSourceInputTest extends NLocalSparkWithCSVDataTest {
     @Test
     public void testGetSourceData() {
         TableMetadataManager tableMgr = TableMetadataManager.getInstance(getTestConfig());
         TableDesc fact = tableMgr.getTableDesc("SSB.P_LINEORDER", "ssb");
-        NSparkCubingSourceInput sparkCubingSourceInput = new NSparkCubingSourceInput();
-        Dataset<Row> sourceData = sparkCubingSourceInput.getSourceData(fact, ss);
+        Dataset<Row> sourceData = SourceFactory.createEngineAdapter(fact, NSparkCubingEngine.NSparkCubingSource.class)
+                .getSourceData(fact, ss);
         List<Row> rows = sourceData.collectAsList();
         Assert.assertTrue(rows != null && rows.size() > 0);
     }

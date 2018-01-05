@@ -67,9 +67,9 @@ public class NDatasetChooser {
     }
 
     public Map<NCuboidDesc, DataSource> decideSources() throws Exception {
-        Dataset<Row> flatTable = null;
+        DataSource flatTable = null;
         for (NCuboidDesc rootCuboid : toBuildTree.getRootCuboidDescs()) {
-            DataSource dataSource = new DataSource();
+
             NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(seg,
                     rootCuboid.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(rootCuboid));
             NDataSegDetails segCuboids = seg.getSegDetails();
@@ -79,7 +79,8 @@ public class NDatasetChooser {
                 Dataset<Row> source = StorageFactory
                         .createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                         .getCuboidData(dataCuboid, ss);
-                dataSource.ds = source;
+                DataSource dataSource = new DataSource();
+                dataSource.ds = source.persist();
                 dataSource.sizeKB = dataCuboid.getSizeKB();
                 dataSource.count = dataCuboid.getRows();
                 sources.put(rootCuboid, dataSource);
@@ -87,10 +88,10 @@ public class NDatasetChooser {
                 break;
             } else {
                 if (flatTable == null) {
-                    flatTable = getDatasetFromFlatTable();
+                    flatTable = getFlatTableAfterEncode();
+
                     //TODO: should use better method to detect the modifications.
-                    long count = flatTable.count();
-                    if (0 == count) {
+                    if (0 == flatTable.count) {
                         throw new RuntimeException(
                                 "There are no available records in the flat table, the relevant model: "
                                         + seg.getModel().getName()
@@ -101,13 +102,13 @@ public class NDatasetChooser {
                     if (-1 == seg.getSourceCount()) {
                         // first build of this segment, fill row count
                         NDataSegment segCopy = seg.getDataflow().copy().getSegment(seg.getId());
-                        segCopy.setSourceCount(count);
+                        segCopy.setSourceCount(flatTable.count);
                         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
                         update.setToUpdateSegs(segCopy);
                         NDataflow updated = NDataflowManager.getInstance(config).updateDataflow(update);
                         seg = updated.getSegment(seg.getId());
 
-                    } else if (seg.getSourceCount() != count) {
+                    } else if (seg.getSourceCount() != flatTable.count) {
                         throw new RuntimeException(
                                 "Error: Current flat table's records are inconsistent with before, \n"
                                         + "please check if there are any modifications on the source tables, \n"
@@ -117,24 +118,26 @@ public class NDatasetChooser {
                         //TODO: Update all ready cuboids by using last data.
                     }
                 }
-
-                dataSource.ds = flatTable;
-                dataSource.sizeKB = NSizeEstimator.estimate(flatTable,
-                        KapConfig.wrap(config).getSampleDatasetSizeRatio()) / 1024;
-                sources.put(rootCuboid, dataSource);
+                sources.put(rootCuboid, flatTable);
                 logger.info("No suitable ready layouts could be reused, generate dataset from flat table.");
             }
         }
         return sources;
     }
 
-    private Dataset<Row> getDatasetFromFlatTable() throws Exception {
+    private DataSource getFlatTableAfterEncode() throws Exception {
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(seg.getCubePlan(), seg.getSegRange());
-        Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss);
+        Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss).persist();
+        long sourceSize = NSizeEstimator.estimate(afterJoin, KapConfig.wrap(config).getSampleDatasetSizeRatio());
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, afterJoin);
         seg = dictionaryBuilder.buildDictionary(); // note the segment instance is updated
-        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg, config).encode();
-        return afterEncode;
+        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg, config).encode().persist();
+        long count = afterEncode.count();
+        DataSource ft = new DataSource();
+        ft.sizeKB = sourceSize / 1024;
+        ft.count = count;
+        ft.ds = afterEncode;
+        return ft;
     }
 
     public static class DataSource {

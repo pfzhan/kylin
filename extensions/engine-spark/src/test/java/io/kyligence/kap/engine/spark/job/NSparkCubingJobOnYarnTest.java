@@ -28,10 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCuboidDesc;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -48,6 +44,10 @@ import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -78,7 +78,9 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void test() throws IOException, InterruptedException {
+    public void test1() throws IOException, InterruptedException {
+        //KylinConfig config = KylinConfig.createInstanceFromUri("/Users/wangcheng/newten_ssb");
+        //KylinConfig.setKylinConfigThreadLocal(config);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
@@ -86,6 +88,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         config.setProperty("kylin.env", "DEV");
         config.setProperty("kylin.engine.mr.job-jar",
                 "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
+
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 
@@ -141,6 +144,33 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
         // wait job done
         status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+    }
+
+    @Test
+    public void test2() throws IOException, InterruptedException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        config.setProperty("kylin.source.provider.11", "io.kyligence.kap.engine.spark.source.NSparkDataSource");
+        config.setProperty("kylin.env", "DEV");
+        config.setProperty("kylin.engine.mr.job-jar",
+                "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
+
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config);
+
+        NDataflow df = dsMgr.getDataflow("ssb");
+        NDataSegment oneSeg = dsMgr.appendSegment(df);
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
     }
 

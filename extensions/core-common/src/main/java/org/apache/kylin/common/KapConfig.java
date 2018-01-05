@@ -519,4 +519,8 @@ public class KapConfig {
     public float getSampleDatasetSizeRatio() {
         return Float.parseFloat(config.getOptional("kap.engine.spark-sample-dataset-ratio", "0.1f"));
     }
+
+    public long getBuildDictionaryThreshold() {
+        return Long.parseLong(config.getOptional("kap.engine.spark-build-dictionary-threshold", "15000000"));
+    }
 }

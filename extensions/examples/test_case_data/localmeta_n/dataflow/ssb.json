@@ -1,0 +1,15 @@
+{
+  "uuid" : "4aae654f-a39a-4b8f-a865-7bc8d3748356",
+  "last_modified" : 1514536509211,
+  "version" : "3.0.0.0",
+  "name" : "ssb",
+  "description" : null,
+  "owner" : null,
+  "mp_values" : [ ],
+  "cube_plan" : "ssb",
+  "create_time_utc" : 1514536509210,
+  "status" : "DISABLED",
+  "cost" : 50,
+  "segments" : [ ],
+  "storage_location_identifier" : null
+}

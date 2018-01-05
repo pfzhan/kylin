@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -131,10 +132,22 @@ public class NDataflowBuilder extends AbstractApplication {
                     recursiveBuildCuboid(seg, root, sources.get(root).ds, cubePlan.getEffectiveMeasures(),
                             nSpanningTree);
                 }
+                unpersist();
             }
 
         } finally {
             KylinConfig.removeKylinConfigThreadLocal();
+        }
+    }
+
+    private void unpersist() {
+        Set<Dataset> roots = new HashSet<>();
+        for (NDatasetChooser.DataSource source : sources.values()) {
+            roots.add(source.ds);
+        }
+
+        for (Dataset ds : roots) {
+            ds.unpersist();
         }
     }
 
@@ -144,11 +157,10 @@ public class NDataflowBuilder extends AbstractApplication {
         Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
         Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndexes, measures.keySet());
         Dataset<Row> afterPrj = parent.select(selectedColumns);
-        Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate();
-        afterAgg.persist();
+        Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate().persist();
         long cuboidRowCnt = afterAgg.count();
-        int partition = estimatePartitions(afterAgg);
 
+        int partition = estimatePartitions(afterAgg);
         Set<Integer> meas = cuboid.getOrderedMeasures().keySet();
         for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
             Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();

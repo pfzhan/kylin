@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dict.DictionaryGenerator;
 import org.apache.kylin.dict.DictionaryInfo;
@@ -76,19 +77,19 @@ public class NDictionaryBuilder {
                 continue;
             int id = cubePlan.getModel().getColumnIdByColumnName(col.getIdentity());
             final Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
+            final List<Row> rows = afterDistinct.collectAsList();
 
-            long count = afterDistinct.count();
+            long count = rows.size();
 
             logger.info("Building dictionary for column: {}, its cardinality is: {}", col.getIdentity(), count);
 
-            if (count > DICTIONARY_OOM_THRESHOLD) {
+            if (count > KapConfig.wrap(seg.getConfig()).getBuildDictionaryThreshold()) {
                 logger.info(
                         "Warning: It's very risky to build the dictionary for column: {}, while its \n"
                                 + "cardinality={} is very high, might cause out of memory exception.",
                         col.getIdentity(), count);
             }
 
-            final List<Row> rows = afterDistinct.collectAsList();
             dictionaryMap.put(col, DictionaryGenerator.buildDictionary(col.getType(),
                     new IterableDictionaryValueEnumerator(new Iterable<String>() {
                         @Override
@@ -134,7 +135,7 @@ public class NDictionaryBuilder {
 
     private NDataSegment writeDictionary(NDataSegment segment, Map<TblColRef, Dictionary<String>> dictionaryMap,
             long startOffset, long endOffset) {
-        
+
         // make a copy of the changing segment, avoid changing the cached object
         NDataflow dfCopy = segment.getDataflow().copy();
         NDataSegment segCopy = dfCopy.getSegment(segment.getId());
