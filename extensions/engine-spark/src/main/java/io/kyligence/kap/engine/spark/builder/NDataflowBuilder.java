@@ -25,7 +25,7 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -87,7 +87,7 @@ public class NDataflowBuilder extends AbstractApplication {
     private volatile KylinConfig config;
     private volatile NSpanningTree nSpanningTree;
     private volatile String jobId;
-    private volatile Map<NCuboidDesc, NDatasetChooser.DataSource> sources;
+    private volatile Map<NDatasetChooser.BuildSource, List<NCuboidDesc>> sources;
     private SparkSession ss;
 
     @Override
@@ -123,31 +123,24 @@ public class NDataflowBuilder extends AbstractApplication {
 
                 // choose source
                 NDatasetChooser datasetChooser = new NDatasetChooser(nSpanningTree, seg, ss, config);
-                sources = datasetChooser.decideSources();
+                datasetChooser.decideSources();
+                sources = datasetChooser.getDataSourceListMap();
 
                 // note segment (source count, dictionary etc) maybe updated as a result of source select
                 seg = dfMgr.getDataflow(dfName).getSegment(segId);
 
-                for (NCuboidDesc root : nSpanningTree.getRootCuboidDescs()) {
-                    recursiveBuildCuboid(seg, root, sources.get(root).ds, cubePlan.getEffectiveMeasures(),
-                            nSpanningTree);
+                Set<NDatasetChooser.BuildSource> toUseSources = sources.keySet();
+
+                for (NDatasetChooser.BuildSource source : toUseSources) {
+                    List<NCuboidDesc> nCuboidDescList = sources.get(source);
+                    for (NCuboidDesc root : nCuboidDescList)
+                        recursiveBuildCuboid(seg, root, source.ds, cubePlan.getEffectiveMeasures(), nSpanningTree);
+                    source.ds.unpersist();
                 }
-                unpersist();
             }
 
         } finally {
             KylinConfig.removeKylinConfigThreadLocal();
-        }
-    }
-
-    private void unpersist() {
-        Set<Dataset> roots = new HashSet<>();
-        for (NDatasetChooser.DataSource source : sources.values()) {
-            roots.add(source.ds);
-        }
-
-        for (Dataset ds : roots) {
-            ds.unpersist();
         }
     }
 
@@ -178,11 +171,14 @@ public class NDataflowBuilder extends AbstractApplication {
             throws IOException {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
-        long sizeKB = sources.get(root).sizeKB;
+
+        long sourceSizeKB = NDatasetChooser.getDataSourceByCuboid(sources, root).sizeKB;
+        long sourceCount = NDatasetChooser.getDataSourceByCuboid(sources, root).count;
 
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
-        dataCuboid.setSourceKB(sizeKB);
+        dataCuboid.setSourceKB(sourceSizeKB);
+        dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
         dataCuboid.setStatus(SegmentStatusEnum.READY);
 

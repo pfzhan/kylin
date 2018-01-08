@@ -109,7 +109,7 @@ public class NDataSegDetails extends RootPersistentEntity {
         }
         return cuboidRows;
     }
-    
+
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
@@ -136,11 +136,19 @@ public class NDataSegDetails extends RootPersistentEntity {
         return isCachedAndShared() ? ImmutableList.copyOf(cuboids) : cuboids;
     }
 
+    public NDataCuboid getCuboidById(long layoutId) {
+        for (NDataCuboid cuboid : getCuboids()) {
+            if (cuboid.getCuboidLayoutId() == layoutId)
+                return cuboid;
+        }
+        return null;
+    }
+
     public void setCuboids(List<NDataCuboid> cuboids) {
         checkIsNotCachedAndShared();
         this.cuboids = cuboids;
     }
-    
+
     public void addCuboid(NDataCuboid cuboid) {
         checkIsNotCachedAndShared();
         if (cuboids.contains(cuboid)) {

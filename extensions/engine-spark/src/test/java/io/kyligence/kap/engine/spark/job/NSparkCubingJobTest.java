@@ -168,7 +168,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        //validate();
+        validate();
     }
 
     private void validate() {
