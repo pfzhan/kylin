@@ -53,8 +53,8 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
         NDataModelManager dataModelManager = (NDataModelManager) NDataModelManager.getInstance(getTestConfig());
         ProjectManager projectManager = ProjectManager.getInstance(getTestConfig());
 
-        Assert.assertTrue(projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertTrue(dataModelManager.getModels(project).isEmpty());
+        Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
+        Assert.assertTrue(!dataModelManager.getModels(project).isEmpty());
         NSmartController.optimizeFromPushdown(getTestConfig(), project);
 
         getTestConfig().clearManagers();

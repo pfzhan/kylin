@@ -62,10 +62,10 @@ public class NCubeMasterTest extends NTestBase {
             Assert.assertNotNull(cubePlan);
             List<NDimensionDesc> dims = cubePlan.getDimensions();
             Assert.assertFalse(dims.isEmpty());
-            Assert.assertEquals("integer:8", dims.get(0).getEncoding().getName());
+            Assert.assertEquals("dict", dims.get(0).getEncoding().getName());
             Assert.assertEquals("date", dims.get(1).getEncoding().getName());
             Assert.assertEquals("dict", dims.get(2).getEncoding().getName());
-            Assert.assertEquals("dict", dims.get(3).getEncoding().getName());
+            Assert.assertEquals("integer:8", dims.get(3).getEncoding().getName());
         }
 
         // propose again, should return same result
@@ -89,7 +89,7 @@ public class NCubeMasterTest extends NTestBase {
                     Set<String> indexes = Sets.newHashSet();
                     indexes.add(c11.getRowkeyColumns()[0].getIndex());
                     indexes.add(c11.getRowkeyColumns()[1].getIndex());
-                    Assert.assertEquals(2, indexes.size());
+                    Assert.assertEquals(1, indexes.size());
                     Assert.assertEquals(1, c11.getDimensionCFs().length);
                     Assert.assertEquals(2, c11.getDimensionCFs()[0].getColumns().length);
                     Assert.assertEquals(1, c11.getMeasureCFs().length);
