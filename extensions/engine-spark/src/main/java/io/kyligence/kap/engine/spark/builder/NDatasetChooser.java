@@ -25,9 +25,10 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -39,6 +40,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Collections2;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
@@ -61,9 +64,8 @@ public class NDatasetChooser {
     private NDataSegment seg;
     private KylinConfig config;
     private SparkSession ss;
-    private BuildSource flatTable = null;
-    private Map<NCuboidLayout, BuildSource> layoutDataSourceMap = new HashMap<>();
-    private Map<BuildSource, List<NCuboidDesc>> dataSourceListMap = new HashMap<>();
+    private List<NBuildSourceInfo> reuseSources = new ArrayList<>();
+    private NBuildSourceInfo flatTableSource = null;
 
     public NDatasetChooser(NSpanningTree toBuildTree, NDataSegment seg, SparkSession ss, KylinConfig config) {
         this.toBuildTree = toBuildTree;
@@ -72,55 +74,62 @@ public class NDatasetChooser {
         this.config = config;
     }
 
-    public Map<BuildSource, List<NCuboidDesc>> getDataSourceListMap() {
-        return dataSourceListMap;
+    public List<NBuildSourceInfo> getReuseSources() {
+        return reuseSources;
+    }
+
+    public NBuildSourceInfo getFlatTableSource() {
+        return flatTableSource;
     }
 
     public void decideSources() throws Exception {
         for (NCuboidDesc rootCuboid : toBuildTree.getRootCuboidDescs()) {
-            BuildSource buildSource;
-            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(seg,
+            final NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(seg,
                     rootCuboid.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(rootCuboid));
 
             if (layout != null) {
-                buildSource = getSourceFromLayout(layout, rootCuboid);
+                Collection<NBuildSourceInfo> layoutSources = Collections2.filter(reuseSources,
+                        new Predicate<NBuildSourceInfo>() {
+                            @Override
+                            public boolean apply(@Nullable NBuildSourceInfo input) {
+                                return (input.getLayoutId() == layout.getId());
+                            }
+                        });
+                if (layoutSources.size() == 0) {
+                    NBuildSourceInfo sourceInfo = getSourceFromLayout(layout, rootCuboid);
+                    reuseSources.add(sourceInfo);
+                } else {
+                    Preconditions.checkState(layoutSources.size() == 1);
+                    List<NBuildSourceInfo> foundSource = new ArrayList<>();
+                    foundSource.addAll(layoutSources);
+                    foundSource.get(0).addCuboid(rootCuboid);
+                }
             } else {
-                if (flatTable == null)
-                    flatTable = getFlatTableAfterEncode();
-                buildSource = flatTable;
+                if (flatTableSource == null)
+                    flatTableSource = getFlatTableAfterEncode();
+                flatTableSource.getToBuildCuboids().add(rootCuboid);
             }
-
-            Preconditions.checkState(buildSource != null);
-            List<NCuboidDesc> nCuboidDescList = dataSourceListMap.get(buildSource);
-            if (null == nCuboidDescList) {
-                nCuboidDescList = new ArrayList<>();
-                nCuboidDescList.add(rootCuboid);
-                dataSourceListMap.put(buildSource, nCuboidDescList);
-            } else
-                nCuboidDescList.add(rootCuboid);
         }
     }
 
-    private BuildSource getSourceFromLayout(NCuboidLayout layout, NCuboidDesc cuboidDesc) {
-        BuildSource buildSource = layoutDataSourceMap.get(layout);
-
-        if (buildSource != null)
-            return buildSource;
-
+    private NBuildSourceInfo getSourceFromLayout(NCuboidLayout layout, NCuboidDesc cuboidDesc) {
+        NBuildSourceInfo buildSource = new NBuildSourceInfo();
         NDataSegDetails segDetails = seg.getSegDetails();
         NDataCuboid dataCuboid = segDetails.getCuboidById(layout.getId());
         Preconditions.checkState(dataCuboid != null);
-        Dataset<Row> source = StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
+        Dataset<Row> layoutDs = StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .getCuboidData(dataCuboid, ss);
-        buildSource = new BuildSource();
-        buildSource.ds = source.persist();
-        buildSource.sizeKB = dataCuboid.getSizeKB();
-        buildSource.count = dataCuboid.getRows();
+        layoutDs.persist();
+        buildSource.setDataset(layoutDs);
+        buildSource.setCount(dataCuboid.getRows());
+        buildSource.setLayoutId(layout.getId());
+        buildSource.setSizeKB(dataCuboid.getSizeKB());
+        buildSource.getToBuildCuboids().add(cuboidDesc);
         logger.info("Reuse a suitable layout: {} for building cuboid: {}", layout.getId(), cuboidDesc.getId());
         return buildSource;
     }
 
-    private BuildSource getFlatTableAfterEncode() throws Exception {
+    private NBuildSourceInfo getFlatTableAfterEncode() throws Exception {
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(seg.getCubePlan(), seg.getSegRange());
         Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss).persist();
         long sourceSize = NSizeEstimator.estimate(afterJoin, KapConfig.wrap(config).getSampleDatasetSizeRatio());
@@ -153,29 +162,30 @@ public class NDatasetChooser {
             //TODO: Update all ready cuboids by using last data.
         }
 
-        BuildSource buildSource = new BuildSource();
-        buildSource.sizeKB = sourceSize / 1024;
-        buildSource.count = count;
-        buildSource.ds = afterEncode;
+        NBuildSourceInfo sourceInfo = new NBuildSourceInfo();
+        sourceInfo.setSizeKB(sourceSize / 1024);
+        sourceInfo.setCount(count);
+        sourceInfo.setDataset(afterEncode);
 
         logger.info("No suitable ready layouts could be reused, generate dataset from flat table.");
 
-        return buildSource;
+        return sourceInfo;
     }
 
-    static BuildSource getDataSourceByCuboid(Map<BuildSource, List<NCuboidDesc>> sources, NCuboidDesc cuboid) {
-        for (Map.Entry<BuildSource, List<NCuboidDesc>> source : sources.entrySet()) {
-            for (NCuboidDesc cd : source.getValue()) {
-                if (cuboid == cd)
-                    return source.getKey();
+    static NBuildSourceInfo getDataSourceByCuboid(List<NBuildSourceInfo> sources, final NCuboidDesc cuboid) {
+
+        List<NBuildSourceInfo> filterSources = new ArrayList<>();
+        filterSources.addAll(Collections2.filter(sources, new Predicate<NBuildSourceInfo>() {
+            @Override
+            public boolean apply(@Nullable NBuildSourceInfo input) {
+                for (NCuboidDesc ncd : input.getToBuildCuboids()) {
+                    if (ncd == cuboid)
+                        return true;
+                }
+                return false;
             }
-        }
-        return null;
-    }
-
-    public static class BuildSource {
-        public Dataset<Row> ds;
-        public long sizeKB;
-        public long count;
+        }));
+        Preconditions.checkState(filterSources.size() == 1);
+        return filterSources.get(0);
     }
 }

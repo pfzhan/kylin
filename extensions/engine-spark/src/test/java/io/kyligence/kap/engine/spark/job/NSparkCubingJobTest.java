@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -90,8 +89,12 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     @Test
     public void testBuildDictionary() throws Exception {
+        KylinConfig config = getTestConfig();
         System.out.println(getTestConfig().getMetadataUrl());
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig());
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         NDataflow df = dsMgr.getDataflow("ncube_basic");
 
         NDataSegment seg = df.copy().getLastSegment();
@@ -102,12 +105,15 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, ds);
         seg = dictionaryBuilder.buildDictionary();
-        Assert.assertEquals(3, seg.getDictionaries().size());
+        Assert.assertEquals(4, seg.getDictionaries().size());
     }
 
     @Test
-    public void test() throws InterruptedException, IOException {
+    public void test() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 

@@ -169,6 +169,18 @@
         },
         "returntype": "bigint"
       }
+    },
+    {
+      "id": 1005,
+      "name": "COUNT_DISTINCT",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
+        },
+        "returntype": "bitmap"
+      }
     }
   ],
   "column_correlations": [

@@ -103,7 +103,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         if (segDetails == null) {
             segDetails = NDataSegDetails.newSegDetails(dataflow, id);
         }
-        
+
         segDetails.setCachedAndShared(dataflow.isCachedAndShared());
 
         List<NDataCuboid> cuboids = segDetails.getCuboids();
@@ -181,23 +181,24 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public Dictionary<String> getDictionary(TblColRef col) {
+        TblColRef reuseCol = getCubePlan().getDictionaryReuseColumn(col);
         DictionaryInfo info = null;
         try {
             DictionaryManager dictMgr = DictionaryManager.getInstance(getConfig());
-            String dictResPath = this.getDictResPath(col);
+            String dictResPath = this.getDictResPath(reuseCol);
             if (dictResPath == null)
                 return null;
 
             info = dictMgr.getDictionaryInfo(dictResPath);
             if (info == null)
                 throw new IllegalStateException("No dictionary found by " + dictResPath
-                        + ", invalid cube state; cube segment" + this + ", col " + col);
+                        + ", invalid cube state; cube segment" + this + ", col " + reuseCol);
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to get dictionary for cube segment" + this + ", col" + col, e);
+            throw new IllegalStateException("Failed to get dictionary for cube segment" + this + ", col" + reuseCol, e);
         }
         return (Dictionary<String>) info.getDictionaryObject();
     }
-    
+
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
@@ -249,7 +250,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         checkIsNotCachedAndShared();
         this.lastBuildTime = lastBuildTime;
     }
-    
+
     public String getSegRangeStart() {
         return segRangeStart;
     }
@@ -307,7 +308,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public Map<String, String> getDictionaries() {
         if (dictionaries == null)
             dictionaries = new ConcurrentHashMap<String, String>();
-        
+
         return isCachedAndShared() ? ImmutableMap.copyOf(dictionaries) : dictionaries;
     }
 
@@ -326,7 +327,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public Map<String, String> getSnapshots() {
         if (snapshots == null)
             snapshots = new ConcurrentHashMap<String, String>();
-        
+
         return isCachedAndShared() ? ImmutableMap.copyOf(snapshots) : snapshots;
     }
 
@@ -334,7 +335,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         checkIsNotCachedAndShared();
         this.snapshots = snapshots;
     }
-    
+
     public long getCreateTimeUTC() {
         return createTimeUTC;
     }
@@ -347,7 +348,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public Map<String, String> getAdditionalInfo() {
         return isCachedAndShared() ? ImmutableMap.copyOf(additionalInfo) : additionalInfo;
     }
-    
+
     public void setAdditionalInfo(Map<String, String> additionalInfo) {
         checkIsNotCachedAndShared();
         this.additionalInfo = additionalInfo;
@@ -356,18 +357,18 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public long getSourceCount() {
         return sourceCount;
     }
-    
+
     public void setSourceCount(long sourceCount) {
         checkIsNotCachedAndShared();
         this.sourceCount = sourceCount;
     }
 
     // ============================================================================
-    
+
     public boolean isCachedAndShared() {
         if (dataflow == null || dataflow.isCachedAndShared() == false)
             return false;
-        
+
         for (NDataSegment cached : dataflow.getSegments()) {
             if (cached == this)
                 return true;
@@ -379,7 +380,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         if (isCachedAndShared())
             throw new IllegalStateException();
     }
-    
+
     @Override
     public int compareTo(ISegment other) {
         if (this.getSegRange() == null && other.getSegRange() == null)

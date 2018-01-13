@@ -30,6 +30,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -57,6 +58,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
@@ -112,9 +114,11 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private List<String> statusNeedNotify = Lists.newArrayList();
     @JsonProperty("engine_type")
     private int engineType = IKapEngineAware.ID_KAP_NSPARK;
-
+    @JsonProperty("dictionaries")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<NDictionaryDesc> dictionaries;
     // computed fields below
-    
+
     private KylinConfigExt config = null;
     private NDataModel model = null;
 
@@ -158,6 +162,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         initDimensionAndMeasures();
         initAllColumns();
         initDimEncodings();
+        initDictionaryDesc();
     }
 
     private void initAllCuboids() {
@@ -204,6 +209,18 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         }
     }
 
+    private void initDictionaryDesc() {
+        if (dictionaries != null) {
+            for (NDictionaryDesc dictDesc : dictionaries) {
+                dictDesc.init(getModel());
+                allColumns.add(dictDesc.getColumnRef());
+                if (dictDesc.getResuseColumnRef() != null) {
+                    allColumns.add(dictDesc.getResuseColumnRef());
+                }
+            }
+        }
+    }
+
     private void initDimEncodings() {
         dimEncodingMap.clear();
         for (NDimensionDesc dimensionDesc : dimensions) {
@@ -218,7 +235,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     public String resourceName() {
         return name;
     }
-    
+
     public NCubePlan copy() {
         return NCubePlanManager.getInstance(config).copy(this);
     }
@@ -297,11 +314,68 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
             result.addAll(aggrType.getColumnsNeedDictionary(funcDesc));
         }
 
+        // any additional dictionaries
+        if (dictionaries != null) {
+            for (NDictionaryDesc dictDesc : dictionaries) {
+                TblColRef col = dictDesc.getColumnRef();
+                result.add(col);
+            }
+        }
+
         return result;
     }
 
     public boolean isUsingDictionary(String encodingName) {
         return DictionaryDimEnc.ENCODING_NAME.equals(encodingName);
+    }
+
+    /**
+     * Get columns that need dictionary built on it. Note a column could reuse dictionary of another column.
+     */
+    public Set<TblColRef> getAllColumnsNeedDictionaryBuilt() {
+        Set<TblColRef> result = getAllColumnsHaveDictionary();
+
+        // remove columns that reuse other's dictionary
+        if (dictionaries != null) {
+            for (NDictionaryDesc dictDesc : dictionaries) {
+                if (dictDesc.getResuseColumnRef() != null) {
+                    result.remove(dictDesc.getColumnRef());
+                    result.add(dictDesc.getResuseColumnRef());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * A column may reuse dictionary of another column, find the dict column, return same col if there's no reuse column
+     */
+    public TblColRef getDictionaryReuseColumn(TblColRef col) {
+        if (dictionaries == null) {
+            return col;
+        }
+        for (NDictionaryDesc dictDesc : dictionaries) {
+            if (dictDesc.getColumnRef().equals(col) && dictDesc.getResuseColumnRef() != null) {
+                return dictDesc.getResuseColumnRef();
+            }
+        }
+        return col;
+    }
+
+    public String getDictionaryBuilderClass(TblColRef col) {
+        if (dictionaries == null)
+            return null;
+
+        for (NDictionaryDesc desc : dictionaries) {
+            if (desc.getBuilderClass() != null) {
+                // column that reuses other's dict need not be built, thus should not reach here
+                if (col.equals(desc.getColumnRef())) {
+                    return desc.getBuilderClass();
+                }
+            }
+        }
+        return null;
     }
 
     public NCuboidDesc getLastCuboidDesc() {
@@ -461,6 +535,16 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     public void setEngineType(int engineType) {
         checkIsNotCachedAndShared();
         this.engineType = engineType;
+    }
+
+    public List<NDictionaryDesc> getDictionaries() {
+        return dictionaries == null ? null
+                : (isCachedAndShared ? ImmutableList.copyOf(dictionaries) : Collections.unmodifiableList(dictionaries));
+    }
+
+    public void setDictionaries(List<NDictionaryDesc> dictionaries) {
+        checkIsNotCachedAndShared();
+        this.dictionaries = dictionaries;
     }
 
 }

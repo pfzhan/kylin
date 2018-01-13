@@ -202,7 +202,9 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
                     buffer.put((byte[]) row.get(i));
                 }
 
-                return Tuple2.apply(new Text(buffer.array()), new Text());
+                byte[] actualBuf = new byte[buffer.position()];
+                System.arraycopy(buffer.array(), 0, actualBuf, 0, buffer.position());
+                return Tuple2.apply(new Text(actualBuf), new Text());
             }
         }).saveAsNewAPIHadoopFile(path, Text.class, Text.class, NParquetCuboidOutputFormat.class, jobConf);
     }

@@ -32,7 +32,6 @@ import java.util.NoSuchElementException;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.dict.DictionaryGenerator;
 import org.apache.kylin.dict.DictionaryInfo;
 import org.apache.kylin.dict.DictionaryManager;
 import org.apache.kylin.dict.IterableDictionaryValueEnumerator;
@@ -53,8 +52,6 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 
 public class NDictionaryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(NDictionaryBuilder.class);
-
-    private static final long DICTIONARY_OOM_THRESHOLD = 15000000;
     private Dataset<Row> dataSet;
     private NDataSegment seg;
 
@@ -71,7 +68,7 @@ public class NDictionaryBuilder {
         final long start = System.currentTimeMillis();
         Map<TblColRef, Dictionary<String>> dictionaryMap = Maps.newHashMap();
 
-        for (TblColRef col : cubePlan.getAllColumnsHaveDictionary()) {
+        for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
             Dictionary<String> existing = seg.getDictionary(col);
             if (existing != null)
                 continue;
@@ -90,7 +87,11 @@ public class NDictionaryBuilder {
                         col.getIdentity(), count);
             }
 
-            dictionaryMap.put(col, DictionaryGenerator.buildDictionary(col.getType(),
+            DictionaryInfo dictInfo = new DictionaryInfo(col.getColumnDesc(), col.getDatatype(), null);
+
+            String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
+
+            dictionaryMap.put(col, DictionaryManager.buildDictionary(col, dictInfo, dictionaryBuilderClass,
                     new IterableDictionaryValueEnumerator(new Iterable<String>() {
                         @Override
                         public Iterator<String> iterator() {

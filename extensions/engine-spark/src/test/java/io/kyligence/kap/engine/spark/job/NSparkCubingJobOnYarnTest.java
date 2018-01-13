@@ -78,7 +78,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void test1() throws IOException, InterruptedException {
+    public void test1() throws Exception {
         //KylinConfig config = KylinConfig.createInstanceFromUri("/Users/wangcheng/newten_ssb");
         //KylinConfig.setKylinConfigThreadLocal(config);
         KylinConfig config = KylinConfig.getInstanceFromEnv();

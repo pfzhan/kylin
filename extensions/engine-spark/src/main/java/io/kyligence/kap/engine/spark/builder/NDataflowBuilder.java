@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,7 +88,7 @@ public class NDataflowBuilder extends AbstractApplication {
     private volatile KylinConfig config;
     private volatile NSpanningTree nSpanningTree;
     private volatile String jobId;
-    private volatile Map<NDatasetChooser.BuildSource, List<NCuboidDesc>> sources;
+    private volatile List<NBuildSourceInfo> sources = new ArrayList<>();
     private SparkSession ss;
 
     @Override
@@ -124,18 +125,31 @@ public class NDataflowBuilder extends AbstractApplication {
                 // choose source
                 NDatasetChooser datasetChooser = new NDatasetChooser(nSpanningTree, seg, ss, config);
                 datasetChooser.decideSources();
-                sources = datasetChooser.getDataSourceListMap();
+                NBuildSourceInfo buildFromFlatTable = datasetChooser.getFlatTableSource();
+                List<NBuildSourceInfo> buildFromLayouts = datasetChooser.getReuseSources();
 
                 // note segment (source count, dictionary etc) maybe updated as a result of source select
                 seg = dfMgr.getDataflow(dfName).getSegment(segId);
 
-                Set<NDatasetChooser.BuildSource> toUseSources = sources.keySet();
+                if (buildFromFlatTable != null) {
+                    sources.add(buildFromFlatTable);
+                    // build cuboids from flat table
+                    for (NCuboidDesc cuboid : buildFromFlatTable.getToBuildCuboids()) {
+                        recursiveBuildCuboid(seg, cuboid, buildFromFlatTable.getDataset(),
+                                cubePlan.getEffectiveMeasures(), nSpanningTree);
+                    }
+                    buildFromFlatTable.getDataset().unpersist();
+                }
 
-                for (NDatasetChooser.BuildSource source : toUseSources) {
-                    List<NCuboidDesc> nCuboidDescList = sources.get(source);
-                    for (NCuboidDesc root : nCuboidDescList)
-                        recursiveBuildCuboid(seg, root, source.ds, cubePlan.getEffectiveMeasures(), nSpanningTree);
-                    source.ds.unpersist();
+                sources.addAll(buildFromLayouts);
+                // build cuboids from reused layouts
+                for (NBuildSourceInfo source : buildFromLayouts) {
+                    for (NCuboidDesc root : source.getToBuildCuboids()) {
+                        recursiveBuildCuboid(seg, root, source.getDataset(),
+                                cubePlan.getCuboidLayout(source.getLayoutId()).getCuboidDesc().getOrderedMeasures(),
+                                nSpanningTree);
+                    }
+                    source.getDataset().unpersist();
                 }
             }
 
@@ -172,8 +186,9 @@ public class NDataflowBuilder extends AbstractApplication {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
 
-        long sourceSizeKB = NDatasetChooser.getDataSourceByCuboid(sources, root).sizeKB;
-        long sourceCount = NDatasetChooser.getDataSourceByCuboid(sources, root).count;
+        NBuildSourceInfo sourceInfo = NDatasetChooser.getDataSourceByCuboid(sources, root);
+        long sourceSizeKB = sourceInfo.getSizeKB();
+        long sourceCount = sourceInfo.getCount();
 
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
