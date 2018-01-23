@@ -33,8 +33,8 @@ import org.slf4j.LoggerFactory;
  * Created by sunyerui on 16/5/24.
  */
 public class GlobalDictionaryBuilder implements IDictionaryBuilder {
-    private AppendTrieDictionaryBuilder builder;
-    private int baseId;
+    protected AppendTrieDictionaryBuilder builder;
+    int baseId;
 
     private DistributedLock lock;
     private String sourceColumn;
@@ -49,7 +49,8 @@ public class GlobalDictionaryBuilder implements IDictionaryBuilder {
         lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
 
         int maxEntriesPerSlice = KylinConfig.getInstanceFromEnv().getAppendDictEntrySize();
-        String baseDir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "resources/GlobalDict" + dictInfo.getResourceDir() + "/";
+        String baseDir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "resources/GlobalDict"
+                + dictInfo.getResourceDir() + "/";
         this.builder = new AppendTrieDictionaryBuilder(baseDir, maxEntriesPerSlice, true);
         this.baseId = baseId;
     }
@@ -60,7 +61,8 @@ public class GlobalDictionaryBuilder implements IDictionaryBuilder {
             if (lock.lock(getLockPath(sourceColumn))) {
                 logger.info("processed {} values for {}", counter, sourceColumn);
             } else {
-                throw new RuntimeException("Failed to create global dictionary on " + sourceColumn + " This client doesn't keep the lock");
+                throw new RuntimeException(
+                        "Failed to create global dictionary on " + sourceColumn + " This client doesn't keep the lock");
             }
         }
 

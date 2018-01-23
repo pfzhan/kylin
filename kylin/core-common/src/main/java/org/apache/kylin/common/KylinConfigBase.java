@@ -377,6 +377,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(this.getOptional("kylin.dictionary.growing-enabled", "false"));
     }
 
+    public int getAppendDictHashPartitions() {
+        return Integer.parseInt(getOptional("kylin.dictionary.append-hash-partitions", "100"));
+    }
+
     public int getAppendDictEntrySize() {
         return Integer.parseInt(getOptional("kylin.dictionary.append-entry-size", "10000000"));
     }

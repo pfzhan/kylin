@@ -79,9 +79,9 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void test1() throws Exception {
-        //KylinConfig config = KylinConfig.createInstanceFromUri("/Users/wangcheng/newten_ssb");
-        //KylinConfig.setKylinConfigThreadLocal(config);
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.source.provider.11", "io.kyligence.kap.engine.spark.source.NSparkDataSource");

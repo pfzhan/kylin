@@ -39,26 +39,30 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.common.util.MemoryBudgetController;
 import org.apache.kylin.dict.global.AppendDictSliceKey;
 import org.apache.kylin.dict.global.AppendTrieDictionaryBuilder;
+import org.apache.kylin.dict.global.AppendTrieDictionaryHashBuilder;
 import org.apache.kylin.dict.global.GlobalDictHDFSStore;
 import org.apache.kylin.dict.global.GlobalDictMetadata;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.Lists;
 
 public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
     private static final String RESOURCE_DIR = "/dict/append_dict_test/" + UUID.randomUUID();
@@ -69,7 +73,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
     public void beforeTest() {
         staticCreateTestMetadata();
         KylinConfig.getInstanceFromEnv().setProperty("kylin.dictionary.append-entry-size", "50000");
-        BASE_DIR = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/resources/GlobalDict" + RESOURCE_DIR + "/";
+        BASE_DIR = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory() + "/resources/GlobalDict" + RESOURCE_DIR
+                + "/";
         LOCAL_BASE_DIR = getLocalWorkingDirectory() + "/resources/GlobalDict" + RESOURCE_DIR + "/";
     }
 
@@ -87,11 +92,19 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         }
     }
 
-    private static final String[] words = new String[]{"paint", "par", "part", "parts", "partition", "partitions", "party", "partie", "parties", "patient", "taste", "tar", "trie", "try", "tries", "字典", "字典树", "字母", // non-ascii characters
+    private static final String[] words = new String[] { "paint", "par", "part", "parts", "partition", "partitions",
+            "party", "partie", "parties", "patient", "taste", "tar", "trie", "try", "tries", "字典", "字典树", "字母", // non-ascii characters
             "", // empty
-            "paiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii", "paiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiipaiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
-            "paintjkjdfklajkdljfkdsajklfjklsadjkjekjrklewjrklewjklrjklewjkljkljkljkljweklrjewkljrklewjrlkjewkljrkljkljkjlkjjkljkljkljkljlkjlkjlkjljdfadfads" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
-                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk" + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk",
+            "paiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+            "paiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiipaiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+            "paintjkjdfklajkdljfkdsajklfjklsadjkjekjrklewjrklewjklrjklewjkljkljkljkljweklrjewkljrklewjrlkjewkljrkljkljkjlkjjkljkljkljkljlkjlkjlkjljdfadfads"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk"
+                    + "dddddddddddddddddddddddddddddddddddddddddddddddddkfjadslkfjdsakljflksadjklfjklsjfkljwelkrjewkljrklewjklrjelkwjrklewjrlkjwkljerklkljlkjrlkwejrk",
             "paint", "tar", "try", // some dup
     };
 
@@ -171,7 +184,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         dict.dump(System.out);
     }
 
-    private void testStringDictAppend(ArrayList<String> list, ArrayList<String> notfound, boolean shuffleList) throws IOException {
+    private void testStringDictAppend(ArrayList<String> list, ArrayList<String> notfound, boolean shuffleList)
+            throws IOException {
         Random rnd = new Random(System.currentTimeMillis());
         ArrayList<String> strList = new ArrayList<String>();
         strList.addAll(list);
@@ -198,7 +212,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
             byte[] bytes = converter.convertToBytes(str);
             int id = dict.getIdFromValueBytesWithoutCache(bytes, 0, bytes.length, 0);
             assertNotEquals(String.format("Value %s not exist", str), -1, id);
-            assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)), checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
+            assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)),
+                    checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
             checkMap.put(id, str);
         }
 
@@ -222,7 +237,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
                 assertEquals("Except id " + id + " for " + str + " but " + checkMap.get(id), str, checkMap.get(id));
             } else {
                 // check second append str, should be new id
-                assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)), checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
+                assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)),
+                        checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
                 checkMap.put(id, str);
             }
         }
@@ -247,7 +263,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
                 assertEquals("Except id " + id + " for " + str + " but " + checkMap.get(id), str, checkMap.get(id));
             } else {
                 // check third append str, should be new id
-                assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)), checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
+                assertFalse(String.format("Id %d for %s should be empty, but is %s", id, str, checkMap.get(id)),
+                        checkMap.containsKey(id) && !str.equals(checkMap.get(id)));
                 checkMap.put(id, str);
             }
         }
@@ -268,7 +285,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         }
     }
 
-    private static AppendTrieDictionary<String> testSerialize(AppendTrieDictionary<String> dict, BytesConverter converter) {
+    private static AppendTrieDictionary<String> testSerialize(AppendTrieDictionary<String> dict,
+            BytesConverter converter) {
         try {
             ByteArrayOutputStream bout = new ByteArrayOutputStream();
             DataOutputStream dataout = new DataOutputStream(bout);
@@ -346,14 +364,14 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
     public void testSerialize() throws IOException {
         AppendTrieDictionaryBuilder builder = createBuilder();
         AppendTrieDictionary dict = builder.build(0);
-        
+
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         DataOutputStream dataout = new DataOutputStream(bout);
         dict.write(dataout);
         dataout.close();
         ByteArrayInputStream bin = new ByteArrayInputStream(bout.toByteArray());
         DataInputStream datain = new DataInputStream(bin);
-        
+
         assertNull(new Path(datain.readUTF()).toUri().getScheme());
         datain.close();
     }
@@ -368,7 +386,7 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         AppendTrieDictionary dict = builder.build(0);
         TreeMap checkMap = new TreeMap();
         BytesConverter converter = new StringBytesConverter();
-        for (String str: strList) {
+        for (String str : strList) {
             byte[] bytes = converter.convertToBytes(str);
             int id = dict.getIdFromValueBytesWithoutCache(bytes, 0, bytes.length, 0);
             checkMap.put(id, str);
@@ -552,6 +570,89 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         assertEquals(7, dict.getIdFromValue("g"));
     }
 
+    @Test
+    public void testMany() throws IOException, InterruptedException {
+        /**Set -Xmx1g*/
+        System.out.println("available: " + MemoryBudgetController.getSystemAvailMB());
+
+        AppendTrieDictionaryBuilder builder = new AppendTrieDictionaryBuilder(BASE_DIR, 100000, true);
+        List<String> data = new ArrayList<>();
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 10000000; i++) {
+            String value = String.valueOf(i);
+            data.add(value);
+            builder.addValue(value);
+        }
+        AppendTrieDictionary dict = builder.build(0);
+
+        long end = System.currentTimeMillis();
+        System.out.println("build sorted dict time: " + (end - start));
+
+        Random random = new Random(1);
+
+        List<String> randomList = new ArrayList<>();
+        for (int i = 0; i < 1000000; i++) {
+            String randomString = String.valueOf(random.nextInt(1000000));
+            randomList.add(randomString);
+        }
+        System.out.println("available: " + MemoryBudgetController.getSystemAvailMB());
+        start = System.currentTimeMillis();
+        for (String s : randomList) {
+            dict.getIdFromValue(s);
+        }
+        end = System.currentTimeMillis();
+        System.out.println("random time: " + (end - start));
+
+        System.out.println("available: " + MemoryBudgetController.getSystemAvailMB());
+        start = System.currentTimeMillis();
+        for (String s : data.subList(0, 1000000)) {
+            dict.getIdFromValue(s);
+        }
+        end = System.currentTimeMillis();
+        System.out.println("sorted time: " + (end - start));
+    }
+
+    @Test
+    public void testManyInHash() throws IOException, InterruptedException {
+        /**Set -Xmx1g*/
+        System.out.println("available: " + MemoryBudgetController.getSystemAvailMB());
+        AppendTrieDictionaryHashBuilder hashBuilder = new AppendTrieDictionaryHashBuilder(BASE_DIR, true, 100);
+        Map<Integer, List<String>> partitionValues_100 = new HashMap<>();
+
+        for (int i = 0; i < 10000000; i++) {
+            String value = String.valueOf(i);
+            int hashKey_100 = AppendTrieDictionaryHashBuilder.getHashKey(value, 100);
+            if (partitionValues_100.get(hashKey_100) == null) {
+                List<String> values = new ArrayList<>();
+                values.add(value);
+                partitionValues_100.put(hashKey_100, values);
+            } else
+                partitionValues_100.get(hashKey_100).add(value);
+        }
+
+        long start = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            for (String s : partitionValues_100.get(i)) {
+                hashBuilder.addValue(s);
+            }
+        }
+        AppendTrieDictionary dict = hashBuilder.build(0);
+
+        long end = System.currentTimeMillis();
+        System.out.println("Build hash dict time: " + (end - start));
+
+        System.out.println("available: " + MemoryBudgetController.getSystemAvailMB());
+
+        start = System.currentTimeMillis();
+        for (int i = 0; i < 1; i++) {
+            for (String s : partitionValues_100.get(i)) {
+                dict.getIdFromValue(s);
+            }
+        }
+        end = System.currentTimeMillis();
+        System.out.println("time: " + (end - start));
+    }
+
     private void convertIndexToOldFormat(String baseDir) throws IOException {
         Path basePath = new Path(baseDir);
         FileSystem fs = HadoopUtil.getFileSystem(basePath);
@@ -565,7 +666,8 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
         Path v2IndexFile = new Path(versionPath, V2_INDEX_NAME);
 
         fs.delete(v2IndexFile, true);
-        GlobalDictHDFSStore.IndexFormat indexFormatV1 = new GlobalDictHDFSStore.IndexFormatV1(fs, HadoopUtil.getCurrentConfiguration());
+        GlobalDictHDFSStore.IndexFormat indexFormatV1 = new GlobalDictHDFSStore.IndexFormatV1(fs,
+                HadoopUtil.getCurrentConfiguration());
         indexFormatV1.writeIndexFile(versionPath, metadata);
 
         //convert v2 fileName format to v1 fileName format
@@ -573,5 +675,4 @@ public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
             fs.rename(new Path(versionPath, entry.getValue()), new Path(versionPath, "cached_" + entry.getKey()));
         }
     }
-
 }

@@ -136,7 +136,7 @@ public class NDatasetChooser {
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, afterJoin);
         seg = dictionaryBuilder.buildDictionary(); // note the segment instance is updated
         afterJoin.unpersist();
-        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg, config).encode().persist();
+        Dataset<Row> afterEncode = new NFlatTableEncoder(afterJoin, seg, config, ss).encode().persist();
         long count = afterEncode.count();
         //TODO: should use better method to detect the modifications.
         if (0 == count) {

@@ -133,7 +133,7 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
     @Override
     public Long[] listAllVersions() throws IOException {
         if (!fileSystem.exists(basePath)) {
-            return new Long[0];  // for the removed SegmentAppendTrieDictBuilder
+            return new Long[0]; // for the removed SegmentAppendTrieDictBuilder
         }
 
         FileStatus[] versionDirs = fileSystem.listStatus(basePath, new PathFilter() {
@@ -261,9 +261,12 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
             return baseDir;
         }
 
-        checkArgument(baseDir.startsWith(srcConfig.getHdfsWorkingDirectory()), "Please check why current directory {} doesn't belong to source working directory {}", baseDir, srcConfig.getHdfsWorkingDirectory());
+        checkArgument(baseDir.startsWith(srcConfig.getHdfsWorkingDirectory()),
+                "Please check why current directory {} doesn't belong to source working directory {}", baseDir,
+                srcConfig.getHdfsWorkingDirectory());
 
-        final String dstBaseDir = baseDir.replaceFirst(srcConfig.getHdfsWorkingDirectory(), dstConfig.getHdfsWorkingDirectory());
+        final String dstBaseDir = baseDir.replaceFirst(srcConfig.getHdfsWorkingDirectory(),
+                dstConfig.getHdfsWorkingDirectory());
 
         Long[] versions = listAllVersions();
         if (versions.length == 0) { // empty dict, nothing to copy
@@ -271,7 +274,8 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
         }
 
         Path srcVersionDir = getVersionDir(versions[versions.length - 1]);
-        Path dstVersionDir = new Path(srcVersionDir.toString().replaceFirst(srcConfig.getHdfsWorkingDirectory(), dstConfig.getHdfsWorkingDirectory()));
+        Path dstVersionDir = new Path(srcVersionDir.toString().replaceFirst(srcConfig.getHdfsWorkingDirectory(),
+                dstConfig.getHdfsWorkingDirectory()));
         FileSystem dstFS = dstVersionDir.getFileSystem(conf);
         if (dstFS.exists(dstVersionDir)) {
             dstFS.delete(dstVersionDir, true);
@@ -378,6 +382,7 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
                 int maxId = in.readInt();
                 int maxValueLength = in.readInt();
                 int nValues = in.readInt();
+                int partitions = in.readInt();
                 String converterName = in.readUTF();
                 BytesConverter converter;
                 try {
@@ -395,7 +400,8 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
                     sliceFileMap.put(key, sliceFileName);
                 }
 
-                return new GlobalDictMetadata(baseId, maxId, maxValueLength, nValues, converter, sliceFileMap);
+                return new GlobalDictMetadata(baseId, maxId, maxValueLength, nValues, partitions, converter,
+                        sliceFileMap);
             }
         }
 
@@ -408,6 +414,7 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
                 out.writeInt(metadata.maxId);
                 out.writeInt(metadata.maxValueLength);
                 out.writeInt(metadata.nValues);
+                out.writeInt(metadata.partitions);
                 out.writeUTF(metadata.bytesConverter.getClass().getName());
                 out.writeInt(metadata.sliceFileMap.size());
                 for (Map.Entry<AppendDictSliceKey, String> entry : metadata.sliceFileMap.entrySet()) {
@@ -421,7 +428,8 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
         public void sanityCheck(Path dir, GlobalDictMetadata metadata) throws IOException {
             for (Map.Entry<AppendDictSliceKey, String> entry : metadata.sliceFileMap.entrySet()) {
                 if (!fs.exists(new Path(dir, entry.getValue()))) {
-                    throw new RuntimeException("The slice file " + entry.getValue() + " for the key: " + entry.getKey() + " must be existed!");
+                    throw new RuntimeException("The slice file " + entry.getValue() + " for the key: " + entry.getKey()
+                            + " must be existed!");
                 }
             }
         }

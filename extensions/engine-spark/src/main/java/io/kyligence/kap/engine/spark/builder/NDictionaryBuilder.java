@@ -25,6 +25,9 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +40,8 @@ import org.apache.kylin.dict.DictionaryManager;
 import org.apache.kylin.dict.IterableDictionaryValueEnumerator;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.IReadableTable;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
@@ -49,8 +54,9 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import scala.Tuple2;
 
-public class NDictionaryBuilder {
+public class NDictionaryBuilder implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(NDictionaryBuilder.class);
     private Dataset<Row> dataSet;
     private NDataSegment seg;
@@ -69,12 +75,35 @@ public class NDictionaryBuilder {
         Map<TblColRef, Dictionary<String>> dictionaryMap = Maps.newHashMap();
 
         for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
+            DictionaryInfo dictInfo = new DictionaryInfo(col.getColumnDesc(), col.getDatatype(), null);
+            String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
             Dictionary<String> existing = seg.getDictionary(col);
             if (existing != null)
                 continue;
             int id = cubePlan.getModel().getColumnIdByColumnName(col.getIdentity());
             final Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
-            final List<Row> rows = afterDistinct.collectAsList();
+
+            final List<String> rows = new ArrayList<>();
+
+            if (dictionaryBuilderClass != null) {
+                int partitions = seg.getConfig().getAppendDictHashPartitions();
+                final Collection<String> ret = afterDistinct.toJavaRDD()
+                        .mapToPair(new PairFunction<Row, String, String>() {
+                            @Override
+                            public Tuple2<String, String> call(Row row) throws Exception {
+                                return new Tuple2<>(row.getString(0), row.getString(0));
+                            }
+                        }).partitionBy(new NHashPartitioner(partitions)).collectAsMap().values();
+                rows.addAll(ret);
+            } else {
+                final List<String> ret = afterDistinct.toJavaRDD().map(new Function<Row, String>() {
+                    @Override
+                    public String call(Row value) throws Exception {
+                        return value.get(0).toString();
+                    }
+                }).collect();
+                rows.addAll(ret);
+            }
 
             long count = rows.size();
 
@@ -86,10 +115,6 @@ public class NDictionaryBuilder {
                                 + "cardinality={} is very high, might cause out of memory exception.",
                         col.getIdentity(), count);
             }
-
-            DictionaryInfo dictInfo = new DictionaryInfo(col.getColumnDesc(), col.getDatatype(), null);
-
-            String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
 
             dictionaryMap.put(col, DictionaryManager.buildDictionary(col, dictInfo, dictionaryBuilderClass,
                     new IterableDictionaryValueEnumerator(new Iterable<String>() {
@@ -106,9 +131,8 @@ public class NDictionaryBuilder {
                                 @Override
                                 public String next() {
                                     if (hasNext()) {
-                                        final Row row = rows.get(i++);
-                                        final Object o = row.get(0);
-                                        return o != null ? o.toString() : null;
+                                        final String row = rows.get(i++);
+                                        return row != null ? row : null;
                                     } else {
                                         throw new NoSuchElementException();
                                     }

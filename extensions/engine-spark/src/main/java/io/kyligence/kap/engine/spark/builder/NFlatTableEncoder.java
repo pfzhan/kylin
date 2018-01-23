@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -39,22 +40,34 @@ import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.measure.MeasureIngester;
+import org.apache.kylin.measure.bitmap.BitmapCounter;
+import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
+import org.apache.kylin.measure.bitmap.BitmapMeasureType;
+import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
+import scala.Tuple2;
 
 @SuppressWarnings("serial")
 public class NFlatTableEncoder implements Serializable {
@@ -63,14 +76,59 @@ public class NFlatTableEncoder implements Serializable {
     private Dataset<Row> dataset;
     private NDataSegment seg;
     private KylinConfig config;
+    private SparkSession ss;
 
-    public NFlatTableEncoder(Dataset<Row> dataset, NDataSegment seg, KylinConfig config) {
+    public NFlatTableEncoder(Dataset<Row> dataset, NDataSegment seg, KylinConfig config, SparkSession ss) {
         this.dataset = dataset;
         this.seg = seg;
         this.config = config;
+        this.ss = ss;
     }
 
     public Dataset<Row> encode() {
+        final Set<TblColRef> globalDictCols = extractGlobalDictColumns();
+        // process global dictionary
+        if (globalDictCols.size() > 0) {
+            int partitions = config.getAppendDictHashPartitions();
+            final NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getCubePlan(),
+                    seg.getSegRange());
+            JavaRDD<Row> globalDictRdd = dataset.toJavaRDD();
+            for (final TblColRef ref : globalDictCols) {
+                final int columnIndex = flatTableDesc.getColumnIndex(ref);
+                globalDictRdd = globalDictRdd.mapToPair(new PairFunction<Row, String, Row>() {
+                    @Override
+                    public Tuple2<String, Row> call(Row row) throws Exception {
+                        return new Tuple2<>(row.getString(columnIndex), row);
+                    }
+                }).partitionBy(new NHashPartitioner(partitions)).values().map(new Function<Row, Row>() {
+                    private RowEncoder encoder;
+                    private volatile transient boolean initialized = false;
+
+                    @Override
+                    public Row call(Row row) throws Exception {
+                        if (initialized == false) {
+                            synchronized (EncodeFunction.class) {
+                                KylinConfig.setKylinConfigThreadLocal(config);
+                                encoder = new RowEncoder(seg);
+                                initialized = true;
+                            }
+                        }
+                        String original = row.getString(columnIndex);
+                        int id = encoder.getGlobalDictId(ref, original);
+                        Object[] objects = new Object[row.size()];
+                        for (int i = 0; i < row.size(); i++) {
+                            if (i == columnIndex)
+                                objects[i] = id == -1 ? null : String.valueOf(id);
+                            else
+                                objects[i] = row.get(i);
+                        }
+                        return RowFactory.create(objects);
+                    }
+                });
+            }
+            dataset = ss.createDataFrame(globalDictRdd, dataset.schema());
+        }
+
         Set<Integer> dimIndexes = seg.getCubePlan().getEffectiveDimCols().keySet();
         Set<Integer> meaIndexes = seg.getCubePlan().getEffectiveMeasures().keySet();
         StructType schema = new StructType();
@@ -82,6 +140,30 @@ public class NFlatTableEncoder implements Serializable {
         }
         return dataset.map(new EncodeFunction(seg, config),
                 org.apache.spark.sql.catalyst.encoders.RowEncoder.apply(schema));
+    }
+
+    private Set<TblColRef> extractGlobalDictColumns() {
+        Set<TblColRef> globalDictColumns = new HashSet<>();
+        for (MeasureDesc measure : seg.getDataflow().getMeasures()) {
+            TblColRef ref = needGlobalDictionary(measure);
+            if (ref != null)
+                globalDictColumns.add(ref);
+        }
+        return globalDictColumns;
+    }
+
+    public static TblColRef needGlobalDictionary(MeasureDesc measure) {
+        String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
+        if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
+            Preconditions.checkArgument(cols.size() == 1);
+            TblColRef ref = cols.get(0);
+            DataType dataType = ref.getType();
+            if (false == dataType.isIntegerFamily()) {
+                return ref;
+            }
+        }
+        return null;
     }
 
     static public class EncodeFunction implements MapFunction<Row, Row> {
@@ -119,6 +201,8 @@ public class NFlatTableEncoder implements Serializable {
         private MeasureIngester<?>[] aggrIngesters;
         private Map<TblColRef, Dictionary<String>> dictionaryMap;
         private NCubeJoinedFlatTableDesc flatTableDesc;
+        private final BitmapCounterFactory factory = RoaringBitmapCounterFactory.INSTANCE;
+        private BitmapCounter bitmapCounter = factory.newBitmap();
 
         public RowEncoder(NDataSegment nDataSegment) {
             this.nDataSegment = nDataSegment;
@@ -131,6 +215,10 @@ public class NFlatTableEncoder implements Serializable {
             this.colIO = new RowKeyColumnIO(dimEncoding);
             aggrIngesters = MeasureIngester.create(nDataSegment.getDataflow().getMeasures());
             dictionaryMap = nDataSegment.buildDictionaryMap();
+        }
+
+        public int getGlobalDictId(TblColRef col, String value) {
+            return dictionaryMap.get(col).getIdFromValue(value);
         }
 
         private byte[] encodeMeasure(int index, Object obj) {
@@ -188,6 +276,13 @@ public class NFlatTableEncoder implements Serializable {
                     value = param.getValue();
                 }
                 inputToMeasure[i] = value;
+            }
+            if (needGlobalDictionary(measure) != null) {
+                bitmapCounter.clear();
+                if (inputToMeasure[0] == null)
+                    return bitmapCounter;
+                bitmapCounter.add(Integer.parseInt(inputToMeasure[0]));
+                return bitmapCounter;
             }
             return aggrIngesters[idxOfMeasure].valueOf(inputToMeasure, measure, dictionaryMap);
         }

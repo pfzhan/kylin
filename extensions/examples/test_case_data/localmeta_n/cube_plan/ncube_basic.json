@@ -324,7 +324,7 @@
   "dictionaries": [
     {
       "id": 3,
-      "builder": "org.apache.kylin.dict.GlobalDictionaryBuilder"
+      "builder": "org.apache.kylin.dict.GlobalDictionaryBuilder2"
     }
   ],
   "override_properties": {},

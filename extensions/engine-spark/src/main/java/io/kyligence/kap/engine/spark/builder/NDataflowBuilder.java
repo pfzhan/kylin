@@ -112,6 +112,7 @@ public class NDataflowBuilder extends AbstractApplication {
 
         config = AbstractHadoopJob.loadKylinConfigFromHdfs(hdfsMetalUrl);
         KylinConfig.setKylinConfigThreadLocal(config);
+
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config);
             NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();

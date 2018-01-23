@@ -18,35 +18,37 @@
 
 package org.apache.kylin.dict.global;
 
-import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.dict.AppendTrieDictionary;
-import org.apache.kylin.dict.BytesConverter;
-import org.apache.kylin.dict.StringBytesConverter;
+import static com.google.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.TreeMap;
 
-import static com.google.common.base.Preconditions.checkState;
+import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.dict.AppendTrieDictionary;
+import org.apache.kylin.dict.BytesConverter;
+import org.apache.kylin.dict.StringBytesConverter;
 
 public class AppendTrieDictionaryBuilder {
 
-    private final String baseDir;
-    private final String workingDir;
-    private final int maxEntriesPerSlice;
-    private final boolean isAppendDictGlobal;
+    protected final String baseDir;
+    protected final String workingDir;
+    protected final int maxEntriesPerSlice;
+    protected final boolean isAppendDictGlobal;
 
-    private GlobalDictStore store;
-    private int maxId;
-    private int maxValueLength;
-    private int nValues;
-    private BytesConverter bytesConverter;
-    private TreeMap<AppendDictSliceKey, String> sliceFileMap = new TreeMap<>(); // slice key -> slice file name
+    protected GlobalDictStore store;
+    protected int maxId;
+    protected int maxValueLength;
+    protected int nValues;
+    protected int partitions;
+    protected BytesConverter bytesConverter;
+    protected TreeMap<AppendDictSliceKey, String> sliceFileMap = new TreeMap<>(); // slice key -> slice file name
 
-    private AppendDictSliceKey curKey;
-    private AppendDictNode curNode;
+    protected AppendDictSliceKey curKey;
+    protected AppendDictNode curNode;
 
-    public AppendTrieDictionaryBuilder(String baseDir, int maxEntriesPerSlice, boolean isAppendDictGlobal) throws IOException {
+    public AppendTrieDictionaryBuilder(String baseDir, int maxEntriesPerSlice, boolean isAppendDictGlobal)
+            throws IOException {
         this.baseDir = baseDir;
         this.workingDir = baseDir + "working";
         this.maxEntriesPerSlice = maxEntriesPerSlice;
@@ -64,6 +66,7 @@ public class AppendTrieDictionaryBuilder {
             this.maxId = 0;
             this.maxValueLength = 0;
             this.nValues = 0;
+            this.partitions = -1;
             this.bytesConverter = new StringBytesConverter();
 
         } else { // append values to last version
@@ -71,6 +74,7 @@ public class AppendTrieDictionaryBuilder {
             this.maxId = metadata.maxId;
             this.maxValueLength = metadata.maxValueLength;
             this.nValues = metadata.nValues;
+            this.partitions = metadata.partitions;
             this.bytesConverter = metadata.bytesConverter;
             this.sliceFileMap = new TreeMap<>(metadata.sliceFileMap);
         }
@@ -84,7 +88,8 @@ public class AppendTrieDictionaryBuilder {
             curNode = new AppendDictNode(new byte[0], false);
             sliceFileMap.put(AppendDictSliceKey.START_KEY, null);
         }
-        checkState(sliceFileMap.firstKey().equals(AppendDictSliceKey.START_KEY), "first key should be \"\", but got \"%s\"", sliceFileMap.firstKey());
+        checkState(sliceFileMap.firstKey().equals(AppendDictSliceKey.START_KEY),
+                "first key should be \"\", but got \"%s\"", sliceFileMap.firstKey());
 
         AppendDictSliceKey nextKey = sliceFileMap.floorKey(AppendDictSliceKey.wrap(valueBytes));
 
@@ -122,7 +127,8 @@ public class AppendTrieDictionaryBuilder {
             flushCurrentNode();
         }
 
-        GlobalDictMetadata metadata = new GlobalDictMetadata(baseId, this.maxId, this.maxValueLength, this.nValues, this.bytesConverter, sliceFileMap);
+        GlobalDictMetadata metadata = new GlobalDictMetadata(baseId, this.maxId, this.maxValueLength, this.nValues,
+                this.partitions, this.bytesConverter, sliceFileMap);
         store.commit(workingDir, metadata, isAppendDictGlobal);
 
         AppendTrieDictionary dict = new AppendTrieDictionary();
@@ -130,7 +136,7 @@ public class AppendTrieDictionaryBuilder {
         return dict;
     }
 
-    private void flushCurrentNode() throws IOException {
+    protected void flushCurrentNode() throws IOException {
         String newSliceFile = store.writeSlice(workingDir, curKey, curNode);
         String oldSliceFile = sliceFileMap.put(curKey, newSliceFile);
         if (oldSliceFile != null) {
@@ -138,7 +144,7 @@ public class AppendTrieDictionaryBuilder {
         }
     }
 
-    private void addValueR(AppendDictNode node, byte[] value, int start) {
+    protected void addValueR(AppendDictNode node, byte[] value, int start) {
         // match the value part of current node
         int i = 0, j = start;
         int n = node.part.length, nn = value.length;
@@ -159,7 +165,8 @@ public class AppendTrieDictionaryBuilder {
                 }
             } else {
                 // otherwise, split the current node into two
-                AppendDictNode c = new AppendDictNode(BytesUtil.subarray(node.part, i, n), node.isEndOfValue, node.children);
+                AppendDictNode c = new AppendDictNode(BytesUtil.subarray(node.part, i, n), node.isEndOfValue,
+                        node.children);
                 c.id = node.id;
                 node.reset(BytesUtil.subarray(node.part, 0, i), true);
                 node.addChild(c);
@@ -171,7 +178,8 @@ public class AppendTrieDictionaryBuilder {
         // if partially matched the current, split the current node, add the new
         // value, make a 3-way
         if (i < n) {
-            AppendDictNode c1 = new AppendDictNode(BytesUtil.subarray(node.part, i, n), node.isEndOfValue, node.children);
+            AppendDictNode c1 = new AppendDictNode(BytesUtil.subarray(node.part, i, n), node.isEndOfValue,
+                    node.children);
             c1.id = node.id;
             AppendDictNode c2 = addNodeMaybeOverflow(value, j, nn);
             node.reset(BytesUtil.subarray(node.part, 0, i), false);
@@ -252,7 +260,7 @@ public class AppendTrieDictionaryBuilder {
         return head;
     }
 
-    private AppendDictNode splitNodeTree(AppendDictNode root) {
+    protected AppendDictNode splitNodeTree(AppendDictNode root) {
         AppendDictNode parent = root;
         int childCountToSplit = (int) (maxEntriesPerSlice * 1.0 / 2);
         while (true) {
