@@ -1,188 +1,267 @@
 {
-  "uuid" : "849c691e-77d7-47d0-b4bf-949af9f4286e",
-  "last_modified" : 1514536508110,
-  "version" : "3.0.0.0",
-  "name" : "ssb",
-  "owner" : null,
-  "is_draft" : false,
-  "description" : "",
-  "fact_table" : "SSB.P_LINEORDER",
-  "lookups" : [ {
-    "table" : "SSB.DATES",
-    "kind" : "LOOKUP",
-    "alias" : "DATES",
-    "join" : {
-      "type" : "left",
-      "primary_key" : [ "DATES.D_DATEKEY" ],
-      "foreign_key" : [ "P_LINEORDER.LO_ORDERDATE" ]
+  "uuid": "849c691e-77d7-47d0-b4bf-949af9f4286e",
+  "last_modified": 1514536508110,
+  "version": "3.0.0.0",
+  "name": "ssb",
+  "owner": null,
+  "is_draft": false,
+  "description": "",
+  "fact_table": "SSB.P_LINEORDER",
+  "lookups": [
+    {
+      "table": "SSB.DATES",
+      "kind": "LOOKUP",
+      "alias": "DATES",
+      "join": {
+        "type": "left",
+        "primary_key": [
+          "DATES.D_DATEKEY"
+        ],
+        "foreign_key": [
+          "P_LINEORDER.LO_ORDERDATE"
+        ]
+      }
+    },
+    {
+      "table": "SSB.CUSTOMER",
+      "kind": "LOOKUP",
+      "alias": "CUSTOMER",
+      "join": {
+        "type": "left",
+        "primary_key": [
+          "CUSTOMER.C_CUSTKEY"
+        ],
+        "foreign_key": [
+          "P_LINEORDER.LO_CUSTKEY"
+        ]
+      }
+    },
+    {
+      "table": "SSB.SUPPLIER",
+      "kind": "LOOKUP",
+      "alias": "SUPPLIER",
+      "join": {
+        "type": "left",
+        "primary_key": [
+          "SUPPLIER.S_SUPPKEY"
+        ],
+        "foreign_key": [
+          "P_LINEORDER.LO_SUPPKEY"
+        ]
+      }
+    },
+    {
+      "table": "SSB.PART",
+      "kind": "LOOKUP",
+      "alias": "PART",
+      "join": {
+        "type": "left",
+        "primary_key": [
+          "PART.P_PARTKEY"
+        ],
+        "foreign_key": [
+          "P_LINEORDER.LO_PARTKEY"
+        ]
+      }
     }
-  }, {
-    "table" : "SSB.CUSTOMER",
-    "kind" : "LOOKUP",
-    "alias" : "CUSTOMER",
-    "join" : {
-      "type" : "left",
-      "primary_key" : [ "CUSTOMER.C_CUSTKEY" ],
-      "foreign_key" : [ "P_LINEORDER.LO_CUSTKEY" ]
+  ],
+  "dimensions": [
+    {
+      "table": "P_LINEORDER",
+      "columns": [
+        "LO_ORDERDATE",
+        "LO_CUSTKEY",
+        "LO_SUPPKEY",
+        "LO_PARTKEY"
+      ]
+    },
+    {
+      "table": "DATES",
+      "columns": [
+        "D_DATEKEY"
+      ]
+    },
+    {
+      "table": "CUSTOMER",
+      "columns": [
+        "C_CUSTKEY"
+      ]
+    },
+    {
+      "table": "SUPPLIER",
+      "columns": [
+        "S_SUPPKEY"
+      ]
+    },
+    {
+      "table": "PART",
+      "columns": [
+        "P_PARTKEY"
+      ]
     }
-  }, {
-    "table" : "SSB.SUPPLIER",
-    "kind" : "LOOKUP",
-    "alias" : "SUPPLIER",
-    "join" : {
-      "type" : "left",
-      "primary_key" : [ "SUPPLIER.S_SUPPKEY" ],
-      "foreign_key" : [ "P_LINEORDER.LO_SUPPKEY" ]
-    }
-  }, {
-    "table" : "SSB.PART",
-    "kind" : "LOOKUP",
-    "alias" : "PART",
-    "join" : {
-      "type" : "left",
-      "primary_key" : [ "PART.P_PARTKEY" ],
-      "foreign_key" : [ "P_LINEORDER.LO_PARTKEY" ]
-    }
-  } ],
-  "dimensions" : [ {
-    "table" : "P_LINEORDER",
-    "columns" : [ "LO_ORDERDATE", "LO_CUSTKEY", "LO_SUPPKEY", "LO_PARTKEY" ]
-  }, {
-    "table" : "DATES",
-    "columns" : [ "D_DATEKEY" ]
-  }, {
-    "table" : "CUSTOMER",
-    "columns" : [ "C_CUSTKEY" ]
-  }, {
-    "table" : "SUPPLIER",
-    "columns" : [ "S_SUPPKEY" ]
-  }, {
-    "table" : "PART",
-    "columns" : [ "P_PARTKEY" ]
-  } ],
-  "metrics" : [ ],
-  "filter_condition" : "",
-  "partition_desc" : {
-    "partition_date_column" : null,
-    "partition_time_column" : null,
-    "partition_date_start" : 0,
-    "partition_date_format" : "yyyy-MM-dd",
-    "partition_time_format" : "HH:mm:ss",
-    "partition_type" : "APPEND",
-    "partition_condition_builder" : "org.apache.kylin.metadata.model.PartitionDesc$DefaultPartitionConditionBuilder"
+  ],
+  "metrics": [],
+  "filter_condition": "",
+  "partition_desc": {
+    "partition_date_column": null,
+    "partition_time_column": null,
+    "partition_date_start": 0,
+    "partition_date_format": "yyyy-MM-dd",
+    "partition_time_format": "HH:mm:ss",
+    "partition_type": "APPEND",
+    "partition_condition_builder": "org.apache.kylin.metadata.model.PartitionDesc$DefaultPartitionConditionBuilder"
   },
-  "capacity" : "MEDIUM",
-  "all_named_columns" : [ {
-    "id" : 0,
-    "name" : "SUPPLIER.S_NATION",
-    "column" : "SUPPLIER.S_NATION"
-  }, {
-    "id" : 1,
-    "name" : "CUSTOMER.C_REGION",
-    "column" : "CUSTOMER.C_REGION"
-  }, {
-    "id" : 2,
-    "name" : "CUSTOMER.C_NATION",
-    "column" : "CUSTOMER.C_NATION"
-  }, {
-    "id" : 3,
-    "name" : "SUPPLIER.S_REGION",
-    "column" : "SUPPLIER.S_REGION"
-  }, {
-    "id" : 4,
-    "name" : "DATES.D_YEAR",
-    "column" : "DATES.D_YEAR"
-  }, {
-    "id" : 5,
-    "name" : "P_LINEORDER.LO_REVENUE",
-    "column" : "P_LINEORDER.LO_REVENUE"
-  }, {
-    "id" : 6,
-    "name" : "PART.P_MFGR",
-    "column" : "PART.P_MFGR"
-  }, {
-    "id" : 7,
-    "name" : "P_LINEORDER.LO_SUPPLYCOST",
-    "column" : "P_LINEORDER.LO_SUPPLYCOST"
-  }, {
-    "id" : 8,
-    "name" : "PART.P_BRAND",
-    "column" : "PART.P_BRAND"
-  }, {
-    "id" : 9,
-    "name" : "PART.P_CATEGORY",
-    "column" : "PART.P_CATEGORY"
-  }, {
-    "id" : 10,
-    "name" : "P_LINEORDER.V_REVENUE",
-    "column" : "P_LINEORDER.V_REVENUE"
-  }, {
-    "id" : 11,
-    "name" : "SUPPLIER.S_CITY",
-    "column" : "SUPPLIER.S_CITY"
-  }, {
-    "id" : 12,
-    "name" : "CUSTOMER.C_CITY",
-    "column" : "CUSTOMER.C_CITY"
-  }, {
-    "id" : 13,
-    "name" : "DATES.D_YEARMONTHNUM",
-    "column" : "DATES.D_YEARMONTHNUM"
-  }, {
-    "id" : 14,
-    "name" : "DATES.D_YEARMONTH",
-    "column" : "DATES.D_YEARMONTH"
-  }, {
-    "id" : 15,
-    "name" : "DATES.D_WEEKNUMINYEAR",
-    "column" : "DATES.D_WEEKNUMINYEAR"
-  } ],
-  "all_measures" : [ {
-    "name" : "COUNT_ALL",
-    "function" : {
-      "expression" : "COUNT",
-      "parameter" : {
-        "type" : "constant",
-        "value" : "1"
-      },
-      "returntype" : "bigint"
+  "capacity": "MEDIUM",
+  "all_named_columns": [
+    {
+      "id": 0,
+      "name": "SUPPLIER.S_NATION",
+      "column": "SUPPLIER.S_NATION"
     },
-    "id" : 1000
-  }, {
-    "name" : "912850BD-94D2-4684-86BA-EDCB1603C9FE",
-    "function" : {
-      "expression" : "SUM",
-      "parameter" : {
-        "type" : "column",
-        "value" : "P_LINEORDER.LO_REVENUE"
-      },
-      "returntype" : "bigint"
+    {
+      "id": 1,
+      "name": "CUSTOMER.C_REGION",
+      "column": "CUSTOMER.C_REGION"
     },
-    "id" : 1001
-  }, {
-    "name" : "C0298CA1-893C-42C1-AC59-8464BC4C5178",
-    "function" : {
-      "expression" : "SUM",
-      "parameter" : {
-        "type" : "column",
-        "value" : "P_LINEORDER.LO_SUPPLYCOST"
-      },
-      "returntype" : "bigint"
+    {
+      "id": 2,
+      "name": "CUSTOMER.C_NATION",
+      "column": "CUSTOMER.C_NATION"
     },
-    "id" : 1002
-  }, {
-    "name" : "D83E0B9D-4C82-4BCD-9FD1-9AFF30A41375",
-    "function" : {
-      "expression" : "SUM",
-      "parameter" : {
-        "type" : "column",
-        "value" : "P_LINEORDER.V_REVENUE"
-      },
-      "returntype" : "bigint"
+    {
+      "id": 3,
+      "name": "SUPPLIER.S_REGION",
+      "column": "SUPPLIER.S_REGION"
     },
-    "id" : 1003
-  } ],
-  "column_correlations" : [ ],
-  "multilevel_partition_cols" : [ ],
-  "computed_columns" : [ ]
+    {
+      "id": 4,
+      "name": "DATES.D_YEAR",
+      "column": "DATES.D_YEAR"
+    },
+    {
+      "id": 5,
+      "name": "P_LINEORDER.LO_REVENUE",
+      "column": "P_LINEORDER.LO_REVENUE"
+    },
+    {
+      "id": 6,
+      "name": "PART.P_MFGR",
+      "column": "PART.P_MFGR"
+    },
+    {
+      "id": 7,
+      "name": "P_LINEORDER.LO_SUPPLYCOST",
+      "column": "P_LINEORDER.LO_SUPPLYCOST"
+    },
+    {
+      "id": 8,
+      "name": "PART.P_BRAND",
+      "column": "PART.P_BRAND"
+    },
+    {
+      "id": 9,
+      "name": "PART.P_CATEGORY",
+      "column": "PART.P_CATEGORY"
+    },
+    {
+      "id": 10,
+      "name": "P_LINEORDER.V_REVENUE",
+      "column": "P_LINEORDER.V_REVENUE"
+    },
+    {
+      "id": 11,
+      "name": "SUPPLIER.S_CITY",
+      "column": "SUPPLIER.S_CITY"
+    },
+    {
+      "id": 12,
+      "name": "CUSTOMER.C_CITY",
+      "column": "CUSTOMER.C_CITY"
+    },
+    {
+      "id": 13,
+      "name": "DATES.D_YEARMONTHNUM",
+      "column": "DATES.D_YEARMONTHNUM"
+    },
+    {
+      "id": 14,
+      "name": "DATES.D_YEARMONTH",
+      "column": "DATES.D_YEARMONTH"
+    },
+    {
+      "id": 15,
+      "name": "DATES.D_WEEKNUMINYEAR",
+      "column": "DATES.D_WEEKNUMINYEAR"
+    },
+    {
+      "id": 16,
+      "name": "P_LINEORDER.LO_LINENUMBER",
+      "column": "P_LINEORDER.LO_LINENUMBER"
+    }
+  ],
+  "all_measures": [
+    {
+      "name": "COUNT_ALL",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "constant",
+          "value": "1"
+        },
+        "returntype": "bigint"
+      },
+      "id": 1000
+    },
+    {
+      "name": "912850BD-94D2-4684-86BA-EDCB1603C9FE",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "P_LINEORDER.LO_REVENUE"
+        },
+        "returntype": "bigint"
+      },
+      "id": 1001
+    },
+    {
+      "name": "C0298CA1-893C-42C1-AC59-8464BC4C5178",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "P_LINEORDER.LO_SUPPLYCOST"
+        },
+        "returntype": "bigint"
+      },
+      "id": 1002
+    },
+    {
+      "name": "D83E0B9D-4C82-4BCD-9FD1-9AFF30A41375",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "P_LINEORDER.V_REVENUE"
+        },
+        "returntype": "bigint"
+      },
+      "id": 1003
+    },
+    {
+      "name": "COUNT_DISTINCT",
+      "function": {
+        "expression": "COUNT_DISTINCT",
+        "parameter": {
+          "type": "column",
+          "value": "P_LINEORDER.LO_LINENUMBER"
+        },
+        "returntype": "bitmap"
+      },
+      "id": 1004
+    }
+  ],
+  "column_correlations": [],
+  "multilevel_partition_cols": [],
+  "computed_columns": []
 }

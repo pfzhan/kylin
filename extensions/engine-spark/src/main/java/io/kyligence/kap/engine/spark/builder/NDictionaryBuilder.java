@@ -34,10 +34,16 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dict.DictionaryInfo;
 import org.apache.kylin.dict.DictionaryManager;
+import org.apache.kylin.dict.GlobalDictionaryBuilder2;
+import org.apache.kylin.dict.IDictionaryBuilder;
 import org.apache.kylin.dict.IterableDictionaryValueEnumerator;
+import org.apache.kylin.measure.bitmap.BitmapMeasureType;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.spark.api.java.function.Function;
@@ -47,6 +53,7 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -85,13 +92,13 @@ public class NDictionaryBuilder implements Serializable {
 
             final List<String> rows = new ArrayList<>();
 
-            if (dictionaryBuilderClass != null) {
+            if (dictionaryBuilderClass != null && isUsingGlobalDict2(dictionaryBuilderClass)) {
                 int partitions = seg.getConfig().getAppendDictHashPartitions();
                 final Collection<String> ret = afterDistinct.toJavaRDD()
                         .mapToPair(new PairFunction<Row, String, String>() {
                             @Override
                             public Tuple2<String, String> call(Row row) throws Exception {
-                                return new Tuple2<>(row.getString(0), row.getString(0));
+                                return new Tuple2<>(row.get(0).toString(), row.get(0).toString());
                             }
                         }).partitionBy(new NHashPartitioner(partitions)).collectAsMap().values();
                 rows.addAll(ret);
@@ -183,5 +190,31 @@ public class NDictionaryBuilder implements Serializable {
             }
         }
         return segCopy;
+    }
+
+    public static boolean isUsingGlobalDict2(String dictBuildClz) {
+        if (dictBuildClz == null) {
+            return false;
+        }
+
+        IDictionaryBuilder builder = (IDictionaryBuilder) ClassUtil.newInstance(dictBuildClz);
+        if (builder instanceof GlobalDictionaryBuilder2)
+            return true;
+
+        return false;
+    }
+
+    public static TblColRef needGlobalDictionary(MeasureDesc measure) {
+        String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
+        if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
+            Preconditions.checkArgument(cols.size() == 1);
+            TblColRef ref = cols.get(0);
+            DataType dataType = ref.getType();
+            if (false == dataType.isIntegerFamily()) {
+                return ref;
+            }
+        }
+        return null;
     }
 }

@@ -150,12 +150,15 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     @Test
     public void test2() throws IOException, InterruptedException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kylin.env.hdfs-working-dir", "hdfs://sandbox/kylin");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.source.provider.11", "io.kyligence.kap.engine.spark.source.NSparkDataSource");
         config.setProperty("kylin.env", "DEV");
         config.setProperty("kylin.engine.mr.job-jar",
                 "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
+        config.setProperty("kap.storage.columnar.shard-size-mb", "16");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         ExecutableManager execMgr = ExecutableManager.getInstance(config);

@@ -189,23 +189,36 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         jobConf.set(NBatchConstants.P_DIST_META_URL, cuboid.getConfig().getMetadataUrl().toString());
 
         data.javaRDD().mapToPair(new PairFunction<Row, Text, Text>() {
+            byte[] buffer = new byte[dimBufSize + measureBufSize];
+
             @Override
             public Tuple2<Text, Text> call(Row row) throws Exception {
-                ByteBuffer buffer = ByteBuffer.allocate(dimBufSize + measureBufSize);
-
+                int offset = 0;
                 int i = 0;
                 for (; i < dimensions.size(); i++) {
-                    buffer.put((byte[]) row.get(i));
+                    offset = addBytes(buffer, (byte[]) row.get(i), offset);
                 }
 
                 for (; i < measures.size() + dimensions.size(); i++) {
-                    buffer.put((byte[]) row.get(i));
+                    offset = addBytes(buffer, (byte[]) row.get(i), offset);
                 }
 
-                byte[] actualBuf = new byte[buffer.position()];
-                System.arraycopy(buffer.array(), 0, actualBuf, 0, buffer.position());
+                byte[] actualBuf = new byte[offset];
+                System.arraycopy(buffer, 0, actualBuf, 0, offset);
                 return Tuple2.apply(new Text(actualBuf), new Text());
             }
+
+            private int addBytes(byte[] source, byte[] target, int offset) {
+                int remain = source.length - offset;
+                if (remain < target.length)
+                    throw new IllegalStateException(
+                            "Overflow exception: available bytes: " + remain + ", expect bytes: " + target.length);
+                for (int i = 0; i < target.length; i++) {
+                    source[i + offset] = target[i];
+                }
+                return offset + target.length;
+            }
+
         }).saveAsNewAPIHadoopFile(path, Text.class, Text.class, NParquetCuboidOutputFormat.class, jobConf);
     }
 }

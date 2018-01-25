@@ -181,6 +181,25 @@
         },
         "returntype": "bitmap"
       }
+    },
+    {
+      "id": 1006,
+      "name": "TOP_SELLER",
+      "function": {
+        "expression": "TOP_N",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.PRICE",
+          "next_parameter": {
+            "type": "column",
+            "value": "TEST_KYLIN_FACT.SELLER_ID"
+          }
+        },
+        "returntype": "topn(100, 4)",
+        "configuration": {
+          "topn.encoding.TEST_KYLIN_FACT.SELLER_ID": "int:4"
+        }
+      }
     }
   ],
   "column_correlations": [

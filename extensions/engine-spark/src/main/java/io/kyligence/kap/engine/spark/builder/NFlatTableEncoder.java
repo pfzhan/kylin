@@ -42,9 +42,7 @@ import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.measure.MeasureIngester;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.BitmapCounterFactory;
-import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -61,8 +59,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
@@ -94,6 +90,11 @@ public class NFlatTableEncoder implements Serializable {
                     seg.getSegRange());
             JavaRDD<Row> globalDictRdd = dataset.toJavaRDD();
             for (final TblColRef ref : globalDictCols) {
+                String dictBuildClz = seg.getCubePlan().getDictionaryBuilderClass(ref);
+
+                if (NDictionaryBuilder.isUsingGlobalDict2(dictBuildClz) == false)
+                    continue;
+
                 final int columnIndex = flatTableDesc.getColumnIndex(ref);
                 globalDictRdd = globalDictRdd.mapToPair(new PairFunction<Row, String, Row>() {
                     @Override
@@ -145,25 +146,11 @@ public class NFlatTableEncoder implements Serializable {
     private Set<TblColRef> extractGlobalDictColumns() {
         Set<TblColRef> globalDictColumns = new HashSet<>();
         for (MeasureDesc measure : seg.getDataflow().getMeasures()) {
-            TblColRef ref = needGlobalDictionary(measure);
+            TblColRef ref = NDictionaryBuilder.needGlobalDictionary(measure);
             if (ref != null)
                 globalDictColumns.add(ref);
         }
         return globalDictColumns;
-    }
-
-    public static TblColRef needGlobalDictionary(MeasureDesc measure) {
-        String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
-        if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
-            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
-            Preconditions.checkArgument(cols.size() == 1);
-            TblColRef ref = cols.get(0);
-            DataType dataType = ref.getType();
-            if (false == dataType.isIntegerFamily()) {
-                return ref;
-            }
-        }
-        return null;
     }
 
     static public class EncodeFunction implements MapFunction<Row, Row> {
@@ -277,12 +264,17 @@ public class NFlatTableEncoder implements Serializable {
                 }
                 inputToMeasure[i] = value;
             }
-            if (needGlobalDictionary(measure) != null) {
-                bitmapCounter.clear();
-                if (inputToMeasure[0] == null)
+            TblColRef tblColRef = NDictionaryBuilder.needGlobalDictionary(measure);
+            if (tblColRef != null) {
+                String dictBuildClz = nDataSegment.getCubePlan().getDictionaryBuilderClass(tblColRef);
+
+                if (NDictionaryBuilder.isUsingGlobalDict2(dictBuildClz)) {
+                    bitmapCounter.clear();
+                    if (inputToMeasure[0] == null)
+                        return bitmapCounter;
+                    bitmapCounter.add(Integer.parseInt(inputToMeasure[0]));
                     return bitmapCounter;
-                bitmapCounter.add(Integer.parseInt(inputToMeasure[0]));
-                return bitmapCounter;
+                }
             }
             return aggrIngesters[idxOfMeasure].valueOf(inputToMeasure, measure, dictionaryMap);
         }
