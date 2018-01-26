@@ -67,7 +67,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
-        Assert.assertEquals(3, effectiveMeasures.size());
+        Assert.assertEquals(4, effectiveMeasures.size());
 
         MeasureDesc m = effectiveMeasures.get(1000);
         Assert.assertEquals("TRANS_CNT", m.getName());

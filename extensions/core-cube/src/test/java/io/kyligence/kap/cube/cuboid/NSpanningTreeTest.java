@@ -85,7 +85,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         Assert.assertSame(rootCuboid, spanningTree.getRootCuboidDesc(childCuboid1));
         Assert.assertSame(rootCuboid, spanningTree.getParentCuboidDesc(childCuboid2));
         Assert.assertSame(null, spanningTree.getParentCuboidDesc(rootCuboid));
-        Assert.assertEquals(3, spanningTree.retrieveAllMeasures(rootCuboid).size());
+        Assert.assertEquals(4, spanningTree.retrieveAllMeasures(rootCuboid).size());
         Assert.assertTrue(spanningTree.getSpanningCuboidDescs(rootCuboid).contains(childCuboid2));
     }
 
