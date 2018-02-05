@@ -190,8 +190,21 @@ public class PartitionDesc implements Serializable {
 
         @Override
         public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
-            long startInclusive = (Long) segRange.start.v;
-            long endExclusive = (Long) segRange.end.v;
+
+            long startInclusive;
+            long endExclusive;
+            if (segRange.start.v instanceof String && segRange.end.v instanceof String) {
+                try {
+                    startInclusive = Long.parseLong((String) segRange.start.v);
+                    endExclusive = Long.parseLong((String) segRange.end.v);
+                } catch (NumberFormatException e) {
+                    //TODO: should support diverse partition type, currently it is only long
+                    throw new IllegalArgumentException("The segRange is not a date.");
+                }
+            } else {
+                startInclusive = (Long) segRange.start.v;
+                endExclusive = (Long) segRange.end.v;
+            }
 
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
             TblColRef partitionTimeColumn = partDesc.getPartitionTimeColumnRef();
