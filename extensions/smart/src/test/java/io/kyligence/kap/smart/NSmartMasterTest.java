@@ -28,8 +28,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import org.apache.kylin.metadata.TableMetadataManager;
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
 import org.junit.Test;
@@ -38,6 +36,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.common.NTestBase;
@@ -46,11 +45,11 @@ import io.kyligence.kap.smart.model.ModelTree;
 public class NSmartMasterTest extends NTestBase {
 
     private void test1stRound() throws IOException {
-        TableMetadataManager tableMetadataManager = TableMetadataManager.getInstance(kylinConfig);
-        NDataModelManager dataModelManager = (NDataModelManager) DataModelManager.getInstance(kylinConfig);
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
-        TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("kylin_sales", proj);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, proj);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, proj);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
+        TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("DEFAULT.KYLIN_SALES");
 
         String[] sqls = new String[] { //
                 "select 1", // not effective olap_context
@@ -130,25 +129,25 @@ public class NSmartMasterTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(0, dataModelManager.listDataModels().size());
+            Assert.assertEquals(0, dataModelManager.getModels().size());
             Assert.assertEquals(0, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(0, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
-            Assert.assertEquals(1, dataModelManager.listDataModels().size());
+            Assert.assertEquals(1, dataModelManager.getModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
     }
 
     private void test2ndRound() throws IOException {
-        TableMetadataManager tableMetadataManager = TableMetadataManager.getInstance(kylinConfig);
-        NDataModelManager dataModelManager = (NDataModelManager) DataModelManager.getInstance(kylinConfig);
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
-        TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("kylin_sales", proj);
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, proj);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, proj);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
+        TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("DEFAULT.KYLIN_SALES");
 
         String[] sqls = new String[] { //
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-03' group by part_dt, lstg_format_name", //
@@ -224,14 +223,14 @@ public class NSmartMasterTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.listDataModels().size());
+            Assert.assertEquals(1, dataModelManager.getModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
-            Assert.assertEquals(1, dataModelManager.listDataModels().size());
+            Assert.assertEquals(1, dataModelManager.getModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -239,10 +238,10 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void test() throws Exception {
-        TableMetadataManager tableMetadataManager = TableMetadataManager.getInstance(kylinConfig);
-        NDataModelManager dataModelManager = (NDataModelManager) DataModelManager.getInstance(kylinConfig);
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
+        //        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig);
+        //        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig);
+        //        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig);
+        //        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
 
         // 1st round - create model and cube_plan
         test1stRound();

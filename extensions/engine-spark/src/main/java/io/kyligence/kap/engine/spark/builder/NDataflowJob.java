@@ -44,6 +44,9 @@ public class NDataflowJob extends AbstractApplication {
     public static final Option OPTION_DATAFLOW_NAME = OptionBuilder.withArgName(NBatchConstants.P_DATAFLOW_NAME)
             .hasArg().isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_DATAFLOW_NAME);
     @SuppressWarnings("static-access")
+    public static final Option OPTION_PROJECT_NAME = OptionBuilder.withArgName(NBatchConstants.P_PROJECT_NAME).hasArg()
+            .isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_PROJECT_NAME);
+    @SuppressWarnings("static-access")
     public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
             .isRequired(true).withDescription("Segment indexes").create(NBatchConstants.P_SEGMENT_IDS);
     @SuppressWarnings("static-access")
@@ -60,11 +63,13 @@ public class NDataflowJob extends AbstractApplication {
     protected volatile KylinConfig config;
     protected volatile String jobId;
     protected SparkSession ss;
+    protected String project;
 
     @Override
     protected Options getOptions() {
         Options options = new Options();
         options.addOption(OPTION_DATAFLOW_NAME);
+        options.addOption(OPTION_PROJECT_NAME);
         options.addOption(OPTION_SEGMENT_IDS);
         options.addOption(OPTION_LAYOUT_IDS);
         options.addOption(OPTION_META_URL);

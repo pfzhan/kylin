@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.source;
 import java.util.List;
 
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Row;
@@ -34,6 +33,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 public class NSparkMetadataExplorerTest extends NLocalSparkWithCSVDataTest {
     @Test
@@ -53,7 +53,8 @@ public class NSparkMetadataExplorerTest extends NLocalSparkWithCSVDataTest {
     @Test
     public void testGetTableDesc() throws Exception {
         NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
-        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("", "p_lineorder", "ssb");
+        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
+                "p_lineorder", "ssb");
         Assert.assertTrue(tableDescTableExtDescPair != null && tableDescTableExtDescPair.getFirst() != null);
     }
 
@@ -68,8 +69,8 @@ public class NSparkMetadataExplorerTest extends NLocalSparkWithCSVDataTest {
     @Test
     public void testCreateSampleTable() throws Exception {
         NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
-        TableMetadataManager tableMgr = TableMetadataManager.getInstance(getTestConfig());
-        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT", "default");
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         sparkMetadataExplorer.createSampleTable(fact);
         List<String> tables = sparkMetadataExplorer.listTables("default");
         Assert.assertTrue(tables != null && tables.contains("test_kylin_fact"));

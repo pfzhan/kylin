@@ -45,7 +45,8 @@ public class NUtilsTest extends NLocalSparkWithMetaTest {
         String withDot = NSparkCubingUtil.convertToDot(withoutDot);
         Assert.assertEquals(col, withDot);
 
-        NDataModel model = (NDataModel) NDataModelManager.getInstance(getTestConfig()).getDataModelDesc("nmodel_basic");
+        NDataModel model = (NDataModel) NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("nmodel_basic");
         String replaced = NJoinedFlatTable.replaceDot(condition, model);
         Assert.assertEquals("TEST_KYLIN_FACT" + NSparkCubingUtil.SEPARATOR + "CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT"
                 + NSparkCubingUtil.SEPARATOR + "CAL_DT < 2017-11-12", replaced);

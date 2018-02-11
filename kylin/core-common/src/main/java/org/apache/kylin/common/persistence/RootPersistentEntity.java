@@ -158,4 +158,8 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
             return false;
         return true;
     }
+
+    public String getResourcePath() {
+        return "";
+    }
 }

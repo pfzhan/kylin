@@ -49,28 +49,31 @@ import io.kyligence.kap.common.obf.IKeepNames;
  * 
  * Public use goes through NDataflowManager.
  */
-public class NDataSegDetailsManager implements IKeepNames {
-    public static final Serializer<NDataSegDetails> DATA_SEG_CUBOID_INSTANCES_SERIALIZER = new JsonSerializer<>(
+class NDataSegDetailsManager implements IKeepNames {
+    private static final Serializer<NDataSegDetails> DATA_SEG_CUBOID_INSTANCES_SERIALIZER = new JsonSerializer<>(
             NDataSegDetails.class);
 
     private static final Logger logger = LoggerFactory.getLogger(NDataSegDetailsManager.class);
 
-    public static NDataSegDetailsManager getInstance(KylinConfig config) {
-        return config.getManager(NDataSegDetailsManager.class);
+    public static NDataSegDetailsManager getInstance(KylinConfig config, String project) {
+        return config.getManager(project, NDataSegDetailsManager.class);
     }
 
     // called by reflection
-    static NDataSegDetailsManager newInstance(KylinConfig config) throws IOException {
-        return new NDataSegDetailsManager(config);
+    @SuppressWarnings("unused")
+    static NDataSegDetailsManager newInstance(KylinConfig config, String project) throws IOException {
+        return new NDataSegDetailsManager(config, project);
     }
 
     // ============================================================================
 
     private KylinConfig kylinConfig;
+    private String project;
 
-    private NDataSegDetailsManager(KylinConfig config) throws IOException {
+    private NDataSegDetailsManager(KylinConfig config, String project) throws IOException {
         logger.info("Initializing NDataSegDetailsManager with config " + config);
         this.kylinConfig = config;
+        this.project = project;
     }
 
     public KylinConfig getConfig() {
@@ -81,12 +84,14 @@ public class NDataSegDetailsManager implements IKeepNames {
         return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
     
-    NDataSegDetails getForSegment(NDataflow df, int segId) {
+    private NDataSegDetails getForSegment(NDataflow df, int segId) {
         try {
             NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getName(), segId),
                     NDataSegDetails.class, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
-            if (instances != null)
+            if (instances != null) {
                 instances.setConfig(df.getConfig());
+                instances.setProject(project);
+            }
             return instances;
         } catch (IOException e) {
             logger.error("Failed to load NDataSegDetails for segment {}", df.getName() + "." + segId, e);
@@ -158,7 +163,7 @@ public class NDataSegDetailsManager implements IKeepNames {
         }
     }
 
-    NDataSegDetails upsertForSegmentQuietly(NDataSegDetails details) {
+    private NDataSegDetails upsertForSegmentQuietly(NDataSegDetails details) {
         try {
             return upsertForSegment(details);
         } catch (IOException e) {
@@ -175,7 +180,7 @@ public class NDataSegDetailsManager implements IKeepNames {
         return details;
     }
 
-    void removeForSegmentQuietly(NDataflow df, int segId) {
+    private void removeForSegmentQuietly(NDataflow df, int segId) {
         try {
             removeForSegment(df, segId);
         } catch (IOException e) {
@@ -187,12 +192,8 @@ public class NDataSegDetailsManager implements IKeepNames {
         getStore().deleteResource(getResourcePathForSegment(df.getName(), segId));
     }
 
-    static String getResourcePath(NDataSegDetails details) {
-        return getResourcePathForSegment(details.getDataflowName(), details.getSegmentId());
-    }
-
-    static String getResourcePathForSegment(String dataflowName, int segId) {
-        return NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + segId
+    private String getResourcePathForSegment(String dataflowName, int segId) {
+        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + segId
                 + MetadataConstants.FILE_SURFIX;
     }
 }

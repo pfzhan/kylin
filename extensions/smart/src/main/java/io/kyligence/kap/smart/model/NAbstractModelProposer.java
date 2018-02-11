@@ -25,11 +25,11 @@
 package io.kyligence.kap.smart.model;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 
@@ -56,8 +56,8 @@ public abstract class NAbstractModelProposer {
     private void initModel(NDataModel modelDesc) {
         KylinConfig kylinConfig = modelContext.getSmartContext().getKylinConfig();
         String project = modelContext.getSmartContext().getProject();
-        modelDesc.init(kylinConfig, TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project),
-                Lists.<DataModelDesc>newArrayList(), false);
+        modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(project),
+                Lists.<DataModelDesc> newArrayList(), false);
     }
 
     protected abstract void doPropose(NDataModel modelDesc);

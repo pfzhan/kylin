@@ -30,15 +30,16 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
-import org.apache.kylin.metadata.badquery.BadQueryHistory;
-import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
+
 public class NSmartController {
     public static synchronized void optimizeFromPushdown(KylinConfig kylinConfig, String project) throws IOException {
-        BadQueryHistoryManager bdMgr = BadQueryHistoryManager.getInstance(kylinConfig);
-        BadQueryHistory bds = bdMgr.getBadQueriesForProject(project);
+        NBadQueryHistoryManager bdMgr = NBadQueryHistoryManager.getInstance(kylinConfig, project);
+        NBadQueryHistory bds = bdMgr.getBadQueriesForProject();
         Set<BadQueryEntry> entries = bds.getEntries();
         String[] sqls = new String[entries.size()];
         Set<BadQueryEntry> toOptimize = Sets.newHashSetWithExpectedSize(sqls.length);
@@ -57,6 +58,6 @@ public class NSmartController {
         for (BadQueryEntry entry : toOptimize) {
             entry.setStatus(BadQueryEntry.STATUS_OPTIMIZED);
         }
-        bdMgr.upsertEntryToProject(toOptimize, project);
+        bdMgr.upsertEntryToProject(toOptimize);
     }
 }

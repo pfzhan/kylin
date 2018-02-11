@@ -33,7 +33,6 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -43,6 +42,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.query.Utils;
 
 public class NSmartDemoTest {
@@ -116,15 +116,18 @@ public class NSmartDemoTest {
         kylinConfig.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
         kylinConfig.setProperty("kylin.metadata.data-model-manager-impl",
                 "io.kyligence.kap.metadata.model.NDataModelManager");
+        kylinConfig.setProperty("kylin.metadata.project-manager-impl",
+                "io.kyligence.kap.metadata.project.NProjectManager");
+        kylinConfig.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
         smartMaster.runAll();
 
-        DataModelManager dataModelManager = DataModelManager.getInstance(kylinConfig);
-        Assert.assertFalse(dataModelManager.listDataModels().isEmpty());
-        System.out.println("Number of models: " + dataModelManager.listDataModels().size());
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
+        Assert.assertFalse(dataModelManager.getModels().isEmpty());
+        System.out.println("Number of models: " + dataModelManager.getModels().size());
 
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
         Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());
         System.out.println("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
 

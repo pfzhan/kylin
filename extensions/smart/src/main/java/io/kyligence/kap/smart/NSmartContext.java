@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -37,6 +36,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -50,7 +50,7 @@ public class NSmartContext {
     private Map<Integer, Collection<OLAPContext>> olapContexts;
     private List<NModelContext> modelContexts;
 
-    private final TableMetadataManager tableMetadataManager;
+    private final NTableMetadataManager tableMetadataManager;
     private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
 
     public static class NModelContext {
@@ -119,7 +119,7 @@ public class NSmartContext {
         this.sqls = sqls;
         this.smartConfig = SmartConfig.wrap(this.kylinConfig);
 
-        tableMetadataManager = TableMetadataManager.getInstance(this.kylinConfig);
+        tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
     }
 
     public KylinConfig getKylinConfig() {

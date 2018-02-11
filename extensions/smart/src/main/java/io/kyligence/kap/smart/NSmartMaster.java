@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +43,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class NSmartMaster {
@@ -94,8 +94,8 @@ public class NSmartMaster {
     }
 
     public void saveCubePlan() throws IOException {
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig());
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig());
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig(), context.getProject());
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) != null) {
@@ -126,12 +126,13 @@ public class NSmartMaster {
     }
 
     public void saveModel() throws IOException {
-        NDataModelManager modelManager = (NDataModelManager) DataModelManager.getInstance(context.getKylinConfig());
+        NDataModelManager modelManager = NDataModelManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelManager.getDataModelDesc(modelCtx.getTargetModel().getName()) != null) {
-                modelManager.updateDataModelDesc(modelCtx.getTargetModel());
+            NDataModel model = modelCtx.getTargetModel();
+            if (modelManager.getDataModelDesc(model.getName()) != null) {
+                modelManager.updateDataModelDesc(model);
             } else {
-                modelManager.createDataModelDesc(modelCtx.getTargetModel(), context.getProject(), null);
+                modelManager.createDataModelDesc(model, null);
             }
         }
     }

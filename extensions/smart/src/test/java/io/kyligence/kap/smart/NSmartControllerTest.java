@@ -50,19 +50,19 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSSB() throws IOException {
         final String project = "ssb";
-        NDataModelManager dataModelManager = (NDataModelManager) NDataModelManager.getInstance(getTestConfig());
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
         ProjectManager projectManager = ProjectManager.getInstance(getTestConfig());
 
         Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertTrue(!dataModelManager.getModels(project).isEmpty());
+        Assert.assertTrue(!dataModelManager.getModels().isEmpty());
         NSmartController.optimizeFromPushdown(getTestConfig(), project);
 
         getTestConfig().clearManagers();
 
-        dataModelManager = (NDataModelManager) NDataModelManager.getInstance(getTestConfig());
+        dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
         projectManager = ProjectManager.getInstance(getTestConfig());
 
         Assert.assertFalse(projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertFalse(dataModelManager.getModels(project).isEmpty());
+        Assert.assertFalse(dataModelManager.getModels().isEmpty());
     }
 }

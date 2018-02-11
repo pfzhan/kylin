@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecuteResult.State;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -49,6 +51,9 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 
 public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
 
+    public NSparkCubingUpdateAfterBuildStep() {
+    }
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
 
@@ -56,7 +61,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         NSparkCubingStep cubingStep = parent.getSparkCubingStep();
         String dataflowName = cubingStep.getDataflowName();
 
-        NDataflowManager mgr = NDataflowManager.getInstance(context.getConfig());
+        NDataflowManager mgr = NDataflowManager.getInstance(context.getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowName);
 
         fillUpdateFromCubingStep(context.getConfig(), cubingStep, update);
@@ -72,6 +77,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
 
     private void fillUpdateFromCubingStep(KylinConfig config, NSparkCubingStep cubingStep, NDataflowUpdate update) {
         // the config from distributed metadata
+        // TODO: Why creating a new kylinconfig here? This will make all manager recreated.
         KylinConfig distConfig = KylinConfig.createKylinConfig(config);
         distConfig.setMetadataUrl(cubingStep.getDistMetaUrl());
         String flowName = cubingStep.getDataflowName();
@@ -80,10 +86,10 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         fillUpdate(distConfig, flowName, segmentIds, layoutIds, update);
     }
 
-    public static void fillUpdate(KylinConfig distConfig, String flowName, Set<Integer> segmentIds,
+    public void fillUpdate(KylinConfig distConfig, String flowName, Set<Integer> segmentIds,
             Set<Long> layoutIds, NDataflowUpdate update) {
-        NDataflowManager distMgr = NDataflowManager.getInstance(distConfig);
         String dfName = flowName;
+        NDataflowManager distMgr = NDataflowManager.getInstance(distConfig, getProject());
         NDataflow distDataflow = distMgr.getDataflow(dfName).copy(); // avoid changing cached objects
 
         List<NDataSegment> toUpdateSegments = new ArrayList<>();
@@ -127,6 +133,11 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
                 + toRemoveSegs);
 
         return toRemoveSegs;
+    }
+
+    @Override
+    protected ExecutableManager getManager() {
+        return NExecutableManager.getInstance(getConfig(), getProject());
     }
 
 }

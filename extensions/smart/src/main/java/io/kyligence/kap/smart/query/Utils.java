@@ -40,8 +40,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.query.util.CognosParenthesesEscape;
-import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.EscapeTransformer;
+import io.kyligence.kap.query.util.NConvertToComputedColumn;
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import io.kyligence.kap.smart.query.mockup.MockupStorage;
 
@@ -62,7 +62,7 @@ public class Utils {
         props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.KapModel");
 
         List<String> queryTransformers = Lists.newArrayList();
-        queryTransformers.add(ConvertToComputedColumn.class.getName());
+        queryTransformers.add(NConvertToComputedColumn.class.getName());
         queryTransformers.add(EscapeTransformer.class.getName());
         queryTransformers.add(DefaultQueryTransformer.class.getName());
         queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
@@ -80,10 +80,11 @@ public class Utils {
         props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
         props.setProperty("kylin.metadata.data-model-manager-impl",
                 "io.kyligence.kap.metadata.model.NDataModelManager");
+        props.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
         props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
 
         List<String> queryTransformers = Lists.newArrayList();
-        queryTransformers.add(ConvertToComputedColumn.class.getName());
+        queryTransformers.add(NConvertToComputedColumn.class.getName());
         queryTransformers.add(EscapeTransformer.class.getName());
         queryTransformers.add(DefaultQueryTransformer.class.getName());
         queryTransformers.add(KeywordDefaultDirtyHack.class.getName());

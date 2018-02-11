@@ -49,7 +49,8 @@ public class NModelSelectProposer extends NAbstractProposer {
     public NModelSelectProposer(NSmartContext context) {
         super(context);
 
-        modelManager = (NDataModelManager) NDataModelManager.getInstance(context.getKylinConfig());
+        modelManager = (NDataModelManager) NDataModelManager.getInstance(context.getKylinConfig(),
+                context.getProject());
     }
 
     @Override
@@ -70,7 +71,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
-        for (DataModelDesc model : modelManager.getModels(context.getProject())) {
+        for (DataModelDesc model : modelManager.getModels()) {
             if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
                 List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
                 TableRef factTblRef = null;

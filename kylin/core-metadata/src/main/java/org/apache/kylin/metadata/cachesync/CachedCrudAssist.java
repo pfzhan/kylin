@@ -30,7 +30,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,8 +68,8 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
         Preconditions.checkArgument(resRootPath.endsWith("/") == false);
     }
 
-    public Serializer<DataModelDesc> getSerializer() {
-        return (Serializer<DataModelDesc>) serializer;
+    public Serializer<T> getSerializer() {
+        return (Serializer<T>) serializer;
     }
 
     public void setCheckCopyOnWrite(boolean check) {
@@ -85,8 +84,8 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
         else
             return copyBySerialization(entity);
     }
-    
-    public T copyBySerialization(T entity) {    
+
+    public T copyBySerialization(T entity) {
         T copy;
         try {
             byte[] bytes;
@@ -165,7 +164,7 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
             if (path.equals(resourcePath(entity.resourceName())) == false)
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
-            
+
             cache.putLocal(entity.resourceName(), entity);
             return entity;
         } catch (Exception e) {
@@ -175,6 +174,7 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
+    // This will trigger broadcast
     public T save(T entity) throws IOException {
         Preconditions.checkArgument(entity != null);
         Preconditions.checkArgument(entity.getUuid() != null);
@@ -194,7 +194,7 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
         logger.debug("Saving {} at {}", entityType.getSimpleName(), path);
 
         store.putResource(path, entity, serializer);
-        
+
         // just to trigger the event broadcast, the entity won't stay in cache
         cache.put(resName, entity);
 

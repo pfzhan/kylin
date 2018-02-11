@@ -48,7 +48,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -59,22 +58,25 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
 
-    public static NDataflowManager getInstance(KylinConfig config) {
-        return config.getManager(NDataflowManager.class);
+    public static NDataflowManager getInstance(KylinConfig config, String project) {
+        return config.getManager(project, NDataflowManager.class);
     }
 
     // called by reflection
-    static NDataflowManager newInstance(KylinConfig config) throws IOException {
-        return new NDataflowManager(config);
+    @SuppressWarnings("unused")
+    static NDataflowManager newInstance(KylinConfig config, String project) throws IOException {
+        return new NDataflowManager(config, project);
     }
 
     // ============================================================================
 
     private KylinConfig config;
+    private String project;
 
     // NDataflow name ==> NDataflow
     private CaseInsensitiveStringCache<NDataflow> dataflowMap;
@@ -84,15 +86,17 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     // to avoid, for example, writing a dataflow in the middle of reloading it (dirty read)
     private AutoReadWriteLock dfMapLock = new AutoReadWriteLock();
 
-    private NDataflowManager(KylinConfig cfg) throws IOException {
+    private NDataflowManager(KylinConfig cfg, final String project) throws IOException {
         logger.info("Initializing NDataflowManager with config " + cfg);
         this.config = cfg;
+        this.project = project;
         this.dataflowMap = new CaseInsensitiveStringCache<>(config, "ncube");
-        this.crud = new CachedCrudAssist<NDataflow>(getStore(), NDataflow.DATAFLOW_RESOURCE_ROOT, NDataflow.class,
-                dataflowMap) {
+        String resourceRootPath = "/" + project + NDataflow.DATAFLOW_RESOURCE_ROOT;
+        this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class, dataflowMap) {
             @Override
             protected NDataflow initEntityAfterReload(NDataflow df, String resourceName) {
-                NCubePlan plan = NCubePlanManager.getInstance(config).getCubePlan(df.getCubePlanName());
+                NCubePlan plan = NCubePlanManager.getInstance(config, project).getCubePlan(df.getCubePlanName());
+                df.setProject(project);
                 try {
                     df.initAfterReload((KylinConfigExt) plan.getConfig());
                 } catch (Exception e) {
@@ -112,7 +116,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private class NDataflowSyncListener extends Broadcaster.Listener {
         @Override
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
-            for (IRealization real : ProjectManager.getInstance(config).listAllRealizations(project)) {
+            for (IRealization real : NProjectManager.getInstance(config).listAllRealizations(project)) {
                 if (real.getType().equals(getRealizationType())) {
                     try (AutoLock lock = dfMapLock.lockForWrite()) {
                         crud.reloadQuietly(real.getName());
@@ -133,7 +137,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     crud.reloadQuietly(dataflowName);
             }
 
-            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjects(getRealizationType(),
+            for (ProjectInstance prj : NProjectManager.getInstance(config).findProjects(getRealizationType(),
                     dataflowName)) {
                 broadcaster.notifyProjectDataUpdate(prj.getName());
             }
@@ -212,8 +216,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             crud.save(df);
 
             // add to project
-            ProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), df.getName(), projectName,
-                    owner);
+            NProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), df.getName(), projectName, owner);
 
             return df;
         }
@@ -374,7 +377,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private void validateNewSegments(NDataflow df, NDataSegment newSegments) {
         List<NDataSegment> tobe = df.calculateToBeSegments(newSegments);
         List<NDataSegment> newList = Arrays.asList(newSegments);
-        if (tobe.containsAll(newList) == false) {
+        if (!tobe.containsAll(newList)) {
             throw new IllegalStateException("For NDataflow " + df.getName() + ", the new segments " + newList
                     + " do not fit in its current " + df.getSegments() + "; the resulted tobe is " + tobe);
         }
@@ -405,7 +408,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 NDataflow df = crud.save(copy);
 
                 //this is a duplicate call to take care of scenarios where REST cache service unavailable
-                ProjectManager.getInstance(df.getConfig()).clearL2Cache();
+                NProjectManager.getInstance(df.getConfig()).clearL2Cache();
 
                 return df;
             } catch (IllegalStateException ex) {
@@ -479,7 +482,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
                 // NDataCuboid updates are idempotent, safe to re-do (retry) many times
                 try {
-                    NDataSegDetailsManager.getInstance(df.getConfig()).updateDataflow(df, update);
+                    NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -487,14 +490,14 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         });
     }
 
-    public NDataflow dropDataflow(String dfName) throws IOException {
+    NDataflow dropDataflow(String dfName) throws IOException {
         try (AutoLock lock = dfMapLock.lockForWrite()) {
             logger.info("Dropping NDataflow '" + dfName + "'");
 
             NDataflow df = getDataflow(dfName);
 
             // delete NDataSegDetails first
-            NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(config);
+            NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(config, project);
             for (NDataSegment seg : df.getSegments()) {
                 segDetailsManager.removeForSegment(df, seg.getId());
             }
@@ -503,7 +506,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             crud.delete(df);
 
             // delete NDataflow from project
-            ProjectManager.getInstance(config).removeRealizationsFromProjects(getRealizationType(), dfName);
+            NProjectManager.getInstance(config).removeRealizationsFromProjects(getRealizationType(), dfName);
 
             return df;
         }

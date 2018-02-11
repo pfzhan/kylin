@@ -28,11 +28,10 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;

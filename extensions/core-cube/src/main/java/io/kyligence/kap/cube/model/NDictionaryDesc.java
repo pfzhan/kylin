@@ -51,6 +51,7 @@ public class NDictionaryDesc implements java.io.Serializable {
     public void init(NDataModel model) {
         colRef = model.getEffectiveColsMap().get(id);
 
+        // TODO: what's the meaning of id == -1 ? -- ETHER
         if (id != -1) {
             reuseColRef = model.getEffectiveColsMap().get(reuseId);
         }

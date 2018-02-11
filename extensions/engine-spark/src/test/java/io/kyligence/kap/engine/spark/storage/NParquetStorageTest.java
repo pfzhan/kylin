@@ -109,7 +109,7 @@ public class NParquetStorageTest extends NLocalSparkWithMetaTest implements Seri
         HadoopUtil.getWorkingFileSystem().copyToLocalFile(true, new Path(tmpProps.getAbsolutePath()),
                 new Path(tmpDir.getAbsolutePath(), "kylin.properties"));
 
-        NDataflow df = NDataflowManager.getInstance(hdfsConfig).getDataflow(dfName);
+        NDataflow df = NDataflowManager.getInstance(hdfsConfig, "default").getDataflow(dfName);
         NDataSegDetails segCuboids = df.getLastSegment().getSegDetails();
         final NCuboidLayout layout = df.getCubePlan().getCuboidLayout(layoutId);
         final int dimNum = layout.getOrderedDimensions().size();

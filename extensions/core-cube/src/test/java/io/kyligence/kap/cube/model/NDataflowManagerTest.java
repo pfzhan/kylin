@@ -44,6 +44,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
 
     @Before
     public void setUp() throws Exception {
@@ -58,7 +59,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCached() {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         Assert.assertTrue(df.isCachedAndShared());
@@ -76,7 +77,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testImmutableCachedObj() {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         try {
@@ -99,14 +100,14 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCRUD() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
-        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
         ProjectManager projMgr = ProjectManager.getInstance(testConfig);
 
         final String name = UUID.randomUUID().toString();
         final String owner = "test_owner";
-        final ProjectInstance proj = projMgr.getProject("default");
-        final NCubePlan cube = cubeMgr.getCubePlan("ncube_basic");
+        final ProjectInstance proj = projMgr.getProject(projectDefault);
+        final NCubePlan cube = cubeMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
 
         // create
         int cntBeforeCreate = mgr.listAllDataflows().size();
@@ -138,7 +139,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateSegment() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         NDataSegment newSeg = mgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
@@ -278,7 +279,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateCuboid() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         // test cuboid remove

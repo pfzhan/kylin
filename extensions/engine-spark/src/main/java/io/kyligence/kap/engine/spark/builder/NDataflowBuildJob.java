@@ -73,11 +73,12 @@ public class NDataflowBuildJob extends NDataflowJob {
     protected void execute(OptionsHelper optionsHelper) throws Exception {
         super.execute(optionsHelper);
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
         Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
 
         try {
-            NDataflowManager dfMgr = NDataflowManager.getInstance(config);
+            NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
             NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
             Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds);
             nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
@@ -166,7 +167,7 @@ public class NDataflowBuildJob extends NDataflowJob {
 
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
         update.setToAddOrUpdateCuboids(dataCuboid);
-        NDataflowManager.getInstance(config).updateDataflow(update);
+        NDataflowManager.getInstance(config, project).updateDataflow(update);
     }
 
     public static void fillCuboid(NDataCuboid cuboid) throws IOException {

@@ -58,8 +58,11 @@ public class NKapQueryTest extends NKylinTestBase {
         joinType = "left";
 
         NKylinTestBase.setupAll();
-        KylinConfig.getInstanceFromEnv().setProperty("kap.storage.columnar.hdfs-dir",
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        kylinConfig.setProperty("kap.storage.columnar.hdfs-dir",
                 NLocalFileMetadataTestCase.tempMetadataDirectory.getAbsolutePath() + "/parquet/");
+        kylinConfig.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
+//        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
     }
 
     @AfterClass

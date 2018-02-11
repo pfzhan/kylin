@@ -39,7 +39,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -223,8 +222,6 @@ public class NCuboidProposer extends NAbstractCubeProposer {
         }
 
         private int[] suggestShardBy(Collection<Integer> dimIds) {
-            TableMetadataManager tableMetadataManager = TableMetadataManager
-                    .getInstance(context.getSmartContext().getKylinConfig());
             List<Integer> shardBy = Lists.newArrayList();
             for (int dimId : dimIds) {
                 TblColRef colRef = model.getEffectiveColsMap().get(dimId);

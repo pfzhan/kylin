@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -39,26 +41,28 @@ import io.kyligence.kap.cube.model.NDataflow;
 /**
  */
 public class NSparkCubingJob extends DefaultChainedExecutable {
-
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingJob.class);
+
+    public NSparkCubingJob() {
+    }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter) {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
         Preconditions.checkArgument(submitter != null);
 
+        NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
+        job.setProject(df.getProject());
         job.setSubmitter(submitter);
-
         job.addSparkCubingStep(segments, layouts);
-
         job.addUpdateAfterBuildStep();
 
         return job;
     }
 
-    public NSparkCubingStep getSparkCubingStep() {
+    NSparkCubingStep getSparkCubingStep() {
         return (NSparkCubingStep) getTasks().get(0);
     }
 
@@ -67,6 +71,8 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         NDataflow df = segments.iterator().next().getDataflow();
         KylinConfigExt config = df.getConfig();
 
+        step.setProject(getProject());
+        step.setProjectParam();
         step.setDataflowName(df.getName());
         step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
@@ -76,7 +82,13 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
     }
 
     private void addUpdateAfterBuildStep() {
-        this.addTask(new NSparkCubingUpdateAfterBuildStep());
+        NSparkCubingUpdateAfterBuildStep step = new NSparkCubingUpdateAfterBuildStep();
+        step.setProject(getProject());
+        this.addTask(step);
     }
 
+    @Override
+    protected ExecutableManager getManager() {
+        return NExecutableManager.getInstance(getConfig(), getProject());
+    }
 }

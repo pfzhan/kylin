@@ -37,10 +37,11 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dict.DictionaryInfo;
-import org.apache.kylin.dict.DictionaryManager;
 import org.apache.kylin.dict.GlobalDictionaryBuilder2;
 import org.apache.kylin.dict.IDictionaryBuilder;
 import org.apache.kylin.dict.IterableDictionaryValueEnumerator;
+import org.apache.kylin.dict.NDictionaryInfo;
+import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -82,7 +83,8 @@ public class NDictionaryBuilder implements Serializable {
         Map<TblColRef, Dictionary<String>> dictionaryMap = Maps.newHashMap();
 
         for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
-            DictionaryInfo dictInfo = new DictionaryInfo(col.getColumnDesc(), col.getDatatype(), null);
+            DictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
+                    seg.getProject());
             String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
             Dictionary<String> existing = seg.getDictionary(col);
             if (existing != null)
@@ -123,7 +125,7 @@ public class NDictionaryBuilder implements Serializable {
                         col.getIdentity(), count);
             }
 
-            dictionaryMap.put(col, DictionaryManager.buildDictionary(col, dictInfo, dictionaryBuilderClass,
+            dictionaryMap.put(col, NDictionaryManager.buildDictionary(col, dictInfo, dictionaryBuilderClass,
                     new IterableDictionaryValueEnumerator(new Iterable<String>() {
                         @Override
                         public Iterator<String> iterator() {
@@ -158,7 +160,8 @@ public class NDictionaryBuilder implements Serializable {
         try {
             NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
             update.setToUpdateSegs(segCopy);
-            NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig()).updateDataflow(update);
+            NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), dataflow.getProject())
+                    .updateDataflow(update);
             return updatedDataflow.getSegment(seg.getId());
         } catch (IOException e) {
             throw new RuntimeException("Failed to deal with the request: " + e.getLocalizedMessage());
@@ -179,9 +182,11 @@ public class NDictionaryBuilder implements Serializable {
             signature.setLastModifiedTime(System.currentTimeMillis());
             signature.setPath(String.format("streaming_%s_%s", startOffset, endOffset));
             signature.setSize(endOffset - startOffset);
-            DictionaryInfo dictInfo = new DictionaryInfo(tblColRef.getColumnDesc(), tblColRef.getDatatype(), signature);
+            NDictionaryInfo dictInfo = new NDictionaryInfo(tblColRef.getColumnDesc(), tblColRef.getDatatype(),
+                    signature, seg.getProject());
             logger.info("writing dictionary for TblColRef:" + tblColRef.toString());
-            DictionaryManager dictionaryManager = DictionaryManager.getInstance(segment.getConfig());
+            NDictionaryManager dictionaryManager = NDictionaryManager.getInstance(segment.getConfig(),
+                    segment.getProject());
             try {
                 DictionaryInfo realDict = dictionaryManager.trySaveNewDict(dictionary, dictInfo);
                 segCopy.putDictResPath(tblColRef, realDict.getResourcePath());

@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.QueryRunnerFactory;
+import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 
 public class NSQLAnalysisProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NSQLAnalysisProposer.class);
@@ -40,7 +40,7 @@ public class NSQLAnalysisProposer extends NAbstractProposer {
 
     @Override
     void propose() {
-        try (AbstractQueryRunner extractor = QueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
                 context.getSqls(), 1, context.getProject())) {
             extractor.execute();
             context.setOlapContexts(extractor.getOlapContextsMap());

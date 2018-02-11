@@ -330,6 +330,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.metadata.data-model-manager-impl", null);
     }
 
+    public String getProjectManagerImpl() {
+        return getOptional("kylin.metadata.project-manager-impl", null);
+    }
+
     public String[] getRealizationProviders() {
         return getOptionalStringArray("kylin.metadata.realization-providers", //
                 new String[] { "org.apache.kylin.cube.CubeManager", "org.apache.kylin.storage.hybrid.HybridManager" });

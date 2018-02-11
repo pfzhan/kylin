@@ -48,53 +48,56 @@ public class FederatedResourceStoreTest extends LocalFileMetadataTestCase {
         final ResourceStore base = ResourceStore.getKylinMetaStore(config);
         final File deleDir = File.createTempFile("FederatedResourceStoreTest", "tmp");
         final String delePath = "/delegate";
+        final String project = "testprj";
+
+        String projectPath = "/" + project;
+        String delegateDirectory = projectPath + delePath;
+        String resPath = delegateDirectory + "/test.json";
+
         deleDir.delete(); // we need a dir, not a file
-        
+
         try {
             ResourceStore deleStore = HDFSResourceStore.newLocalStore(config, deleDir);
             FederatedResourceStore fed = new FederatedResourceStore(base, ImmutableMap.of(delePath, deleStore));
-            
-            // at the beginning, no deleted resource
-            Assert.assertTrue(fed.listResources("/").contains(delePath) == false);
-            Assert.assertTrue(fed.listResources(delePath) == null);
-            
+
+            // no delegated resource at first
+            Assert.assertFalse(fed.listResources("/").contains(delegateDirectory));
+            Assert.assertNull(fed.listResources(delegateDirectory));
+
             // add a delegated resource, check it is on disk
-            fed.putResource(delePath + "/test", new StringEntity("some text"), StringEntity.serializer);
-            Assert.assertTrue(base.exists(delePath + "/test") == false);
-            Assert.assertTrue(deleStore.exists(delePath + "/test"));
-            Assert.assertTrue(new File(deleDir, delePath.substring(1) + "/test").exists());
-            
+            fed.putResource(resPath, new StringEntity("{some text}"), StringEntity.serializer);
+            Assert.assertTrue(!base.exists(resPath));
+            Assert.assertTrue(deleStore.exists(resPath));
+            Assert.assertTrue(new File(deleDir, resPath.substring(1)).exists());
+
             // check listing reflects delegated resource
-            Assert.assertTrue(fed.listResources("/").contains(delePath));
-            Assert.assertTrue(fed.listResources(delePath).size() == 1);
-            Assert.assertTrue(fed.listResources(delePath).contains(delePath + "/test"));
-            
+            Assert.assertTrue(fed.listResources(projectPath).contains(delegateDirectory));
+            Assert.assertTrue(fed.listResources(delegateDirectory).size() == 1);
+            Assert.assertTrue(fed.listResources(delegateDirectory).contains(resPath));
+
             // test read
-            StringEntity entity = fed.getResource(delePath + "/test", StringEntity.class, StringEntity.serializer);
-            Assert.assertTrue(entity.toString().equals("some text"));
-            
+            StringEntity entity = fed.getResource(resPath, StringEntity.class, StringEntity.serializer);
+            Assert.assertTrue(entity.toString().equals("{some text}"));
+
             // delete and check it is gone on disk
-            fed.deleteResource(delePath + "/test");
-            Assert.assertTrue(deleStore.exists(delePath + "/test") == false);
-            Assert.assertTrue(new File(deleDir, delePath.substring(1) + "/test").exists() == false);
-            new File(deleDir, delePath.substring(1)).delete();
-            Assert.assertTrue(fed.listResources("/").contains(delePath) == false);
-            Assert.assertTrue(fed.listResources(delePath) == null);
+            fed.deleteResource(resPath);
+            Assert.assertFalse(deleStore.exists(resPath));
+            Assert.assertFalse(new File(deleDir, resPath.substring(1)).exists());
+
+            // delete the path
+            new File(deleDir, delegateDirectory).delete();
+            Assert.assertFalse(fed.listResources("/").contains(delegateDirectory));
+            Assert.assertNull(fed.listResources(delegateDirectory));
 
             // delegated resource in base is not visible
-            base.putResource(delePath + "/test", new StringEntity("some text"), StringEntity.serializer);
-            Assert.assertTrue(fed.listResources("/").contains(delePath) == false);
-            Assert.assertTrue(fed.listResources(delePath) == null);
-            
-            // non-delegated resource in deleStore is not visible
-            deleStore.putResource("non-dele/test", new StringEntity("some text"), StringEntity.serializer);
-            Assert.assertTrue(fed.listResources("/").contains("non-dele") == false);
-            Assert.assertTrue(fed.listResources("non-dele") == null);
-            
+            base.putResource(resPath, new StringEntity("{some text}"), StringEntity.serializer);
+            Assert.assertFalse(fed.listResources("/").contains(delePath));
+            Assert.assertNull(fed.listResources(delePath));
+
         } finally {
-           FileUtils.forceDelete(deleDir);
+            FileUtils.forceDelete(deleDir);
         }
-        
+
     }
-    
+
 }

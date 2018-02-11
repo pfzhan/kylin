@@ -48,7 +48,6 @@ import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -57,7 +56,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -75,9 +73,9 @@ import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.IKapEngineAware;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 @SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKeep {
     public static final String CUBE_PLAN_RESOURCE_ROOT = "/cube_plan";
 
@@ -119,6 +117,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private List<NDictionaryDesc> dictionaries;
     // computed fields below
 
+    private String project;
     private KylinConfigExt config = null;
     private NDataModel model = null;
 
@@ -142,20 +141,18 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
-        List<ProjectInstance> ownerPrj = ProjectManager.getInstance(config).findProjects(NDataflow.REALIZATION_TYPE,
-                name);
+        this.model = (NDataModel) NDataModelManager.getInstance(config, project).getDataModelDesc(modelName);
+        ProjectInstance ownerPrj = ProjectManager.getInstance(config).getProject(project);
 
         // cube inherit the project override props
-        if (ownerPrj.size() == 1) {
-            Map<String, String> prjOverrideProps = ownerPrj.get(0).getOverrideKylinProps();
-            for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
-                if (!overrideProps.containsKey(entry.getKey())) {
-                    overrideProps.put(entry.getKey(), entry.getValue());
-                }
+        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
+        for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
+            if (!overrideProps.containsKey(entry.getKey())) {
+                overrideProps.put(entry.getKey(), entry.getValue());
             }
         }
         this.config = KylinConfigExt.createInstance(config, overrideProps);
-        this.model = (NDataModel) DataModelManager.getInstance(config).getDataModelDesc(modelName);
+
         checkNotNull(getModel(), "NDataModel(%s) not found", modelName);
 
         initAllCuboids();
@@ -237,7 +234,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     }
 
     public NCubePlan copy() {
-        return NCubePlanManager.getInstance(config).copy(this);
+        return NCubePlanManager.getInstance(config, project).copy(this);
     }
 
     public NSpanningTree getSpanningTree() {
@@ -272,7 +269,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return this.errors;
     }
 
-    public String getErrorMsg() {
+    String getErrorMsg() {
         return Joiner.on(" ").join(errors);
     }
 
@@ -281,7 +278,16 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     }
 
     public String getResourcePath() {
-        return concatResourcePath(name);
+        return new StringBuilder().append("/").append(project).append(CUBE_PLAN_RESOURCE_ROOT).append("/")
+                .append(getName()).append(MetadataConstants.FILE_SURFIX).toString();
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String projectName) {
+        this.project = projectName;
     }
 
     public NDataModel getModel() {
@@ -325,7 +331,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return result;
     }
 
-    public boolean isUsingDictionary(String encodingName) {
+    private boolean isUsingDictionary(String encodingName) {
         return DictionaryDimEnc.ENCODING_NAME.equals(encodingName);
     }
 
@@ -351,7 +357,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     /**
      * A column may reuse dictionary of another column, find the dict column, return same col if there's no reuse column
      */
-    public TblColRef getDictionaryReuseColumn(TblColRef col) {
+    TblColRef getDictionaryReuseColumn(TblColRef col) {
         if (dictionaries == null) {
             return col;
         }
@@ -378,7 +384,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return null;
     }
 
-    public NCuboidDesc getLastCuboidDesc() {
+    NCuboidDesc getLastCuboidDesc() {
         List<NCuboidDesc> existing = cuboids;
         if (existing.isEmpty()) {
             return null;
@@ -395,7 +401,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return allColumnDescs;
     }
 
-    public Set<TblColRef> listDimensionColumnsIncludingDerived() {
+    Set<TblColRef> listDimensionColumnsIncludingDerived() {
         return model.getEffectiveColsMap().values();
     }
 

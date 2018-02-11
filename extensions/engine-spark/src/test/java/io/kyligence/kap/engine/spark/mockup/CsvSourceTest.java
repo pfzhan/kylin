@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.mockup;
 
 import java.util.Set;
 
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -45,6 +44,7 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 @SuppressWarnings("serial")
@@ -52,8 +52,8 @@ public class CsvSourceTest extends NLocalSparkWithMetaTest {
 
     @Test
     public void testGetTable() {
-        TableMetadataManager tableMgr = TableMetadataManager.getInstance(getTestConfig());
-        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT", "default");
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
 
         NSparkCubingSource cubingSource = new CsvSource().adaptToBuildEngine(NSparkCubingSource.class);
         Dataset<Row> df = cubingSource.getSourceData(fact, ss);
@@ -71,7 +71,7 @@ public class CsvSourceTest extends NLocalSparkWithMetaTest {
     @Test
     public void testGetFlatTable() {
         System.out.println(getTestConfig().getMetadataUrl());
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig());
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataModel model = (NDataModel) df.getModel();
 

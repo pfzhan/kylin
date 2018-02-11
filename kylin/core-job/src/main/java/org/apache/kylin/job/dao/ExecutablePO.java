@@ -45,12 +45,22 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("params")
     private Map<String, String> params = Maps.newHashMap();
 
+    private String project;
+
     public String getName() {
         return name;
     }
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public List<ExecutablePO> getTasks() {

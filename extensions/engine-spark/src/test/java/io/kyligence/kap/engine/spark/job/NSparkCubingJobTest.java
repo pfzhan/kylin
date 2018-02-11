@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.ParseException;
@@ -75,6 +76,7 @@ import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
+import io.kyligence.kap.job.execution.NExecutableManager;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
@@ -83,8 +85,8 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        DefaultScheduler scheduler = DefaultScheduler.getInstance();
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
+        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
@@ -128,7 +130,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
 
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         NDataflow df = dsMgr.getDataflow("ncube_basic");
 
         NDataSegment seg = df.copy().getLastSegment();
@@ -148,8 +150,11 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
-        ExecutableManager execMgr = ExecutableManager.getInstance(config);
+        config.setProperty("kylin.job.scheduler.provider.110",
+                "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");
+        config.setProperty("kylin.job.scheduler.default", "110");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, "default");
 
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
@@ -218,7 +223,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 
         NDataflow df = dsMgr.getDataflow("ncube_basic");
@@ -289,7 +294,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     private void validate(int segmentId) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment seg = df.getSegment(segmentId);
         NDataSegDetails segCuboids = seg.getSegDetails();

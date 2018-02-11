@@ -758,6 +758,11 @@ public class DataModelDesc extends RootPersistentEntity {
         return ProjectManager.getInstance(getConfig()).getProjectOfModel(this.getName()).getName();
     }
 
+    /// ====== ether
+    public void setProject(String projectName) {
+
+    }
+
     public ProjectInstance getProjectInstance() {
         return ProjectManager.getInstance(getConfig()).getProjectOfModel(this.getName());
     }

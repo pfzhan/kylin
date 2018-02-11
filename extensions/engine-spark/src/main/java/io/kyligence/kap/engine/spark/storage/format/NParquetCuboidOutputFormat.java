@@ -158,10 +158,11 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             int segmentID = Integer.valueOf(context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID));
+            String projectName = context.getConfiguration().get(BatchConstants.CFG_PROJECT_NAME);
             long cuboidLayoutId = Long
                     .valueOf(context.getConfiguration().get(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID));
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
-            dataflow = NDataflowManager.getInstance(kylinConfig).getDataflow(cubeName);
+            dataflow = NDataflowManager.getInstance(kylinConfig, projectName).getDataflow(cubeName);
             cubePlan = dataflow.getCubePlan();
             dataSegment = dataflow.getSegment(segmentID);
             cuboidLayout = cubePlan.getSpanningTree().getCuboidLayout(cuboidLayoutId);

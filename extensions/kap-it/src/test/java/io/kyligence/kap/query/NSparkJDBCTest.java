@@ -28,6 +28,7 @@ import java.io.File;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
@@ -41,13 +42,16 @@ import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 
 public class NSparkJDBCTest extends NLocalSparkWithMetaTest {
+
     @Test
     public void testSparkJDBC() throws SQLException {
+        // Init kylin config firstly to apply some configuration
+        KylinConfig kylinConfig = getTestConfig();
         Assert.assertNotNull(QueryConnection.getConnection(ProjectInstance.DEFAULT_PROJECT_NAME));
         System.setProperty("kap.storage.columnar.hdfs-dir",
                 NLocalFileMetadataTestCase.tempMetadataDirectory.getAbsolutePath() + "/parquet/");
 
-        File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, getTestConfig());
+        File olapTmp = OLAPSchemaFactory.createTempOLAPJson(ProjectInstance.DEFAULT_PROJECT_NAME, kylinConfig);
         Properties prop = new Properties();
         prop.put("model", olapTmp.getAbsolutePath());
         String formatSql = NSparkCubingUtil.formatSQL("select count(*) as CNT from test_kylin_fact");

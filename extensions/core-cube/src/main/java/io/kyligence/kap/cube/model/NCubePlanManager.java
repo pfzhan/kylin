@@ -35,8 +35,8 @@ import org.apache.kylin.cube.model.validation.ValidateContext;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,18 +52,19 @@ public class NCubePlanManager implements IKeepNames {
     public static final int CUBOID_DESC_ID_STEP = 1000;
     public static final int CUBOID_LAYOUT_ID_STEP = 1;
 
-    public static NCubePlanManager getInstance(KylinConfig config) {
-        return config.getManager(NCubePlanManager.class);
+    public static NCubePlanManager getInstance(KylinConfig config, String project) {
+        return config.getManager(project, NCubePlanManager.class);
     }
 
     // called by reflection
-    static NCubePlanManager newInstance(KylinConfig config) throws IOException {
-        return new NCubePlanManager(config);
+    static NCubePlanManager newInstance(KylinConfig config, String project) throws IOException {
+        return new NCubePlanManager(config, project);
     }
 
     // ============================================================================
 
     private KylinConfig config;
+    private String project;
 
     // name ==> NCubePlan
     private CaseInsensitiveStringCache<NCubePlan> cubePlanMap;
@@ -73,15 +74,17 @@ public class NCubePlanManager implements IKeepNames {
     // writing an entity in the middle of reloading it (dirty read)
     private AutoReadWriteLock cubePlanMapLock = new AutoReadWriteLock();
 
-    private NCubePlanManager(KylinConfig cfg) throws IOException {
+    private NCubePlanManager(KylinConfig cfg, final String project) throws IOException {
         logger.info("Initializing NCubePlanManager with config " + config);
         this.config = cfg;
+        this.project = project;
         this.cubePlanMap = new CaseInsensitiveStringCache<>(config, "cube_plan");
-        this.crud = new CachedCrudAssist<NCubePlan>(getStore(), NCubePlan.CUBE_PLAN_RESOURCE_ROOT, NCubePlan.class,
-                cubePlanMap) {
+        String resourceRootPath = "/" + project + NCubePlan.CUBE_PLAN_RESOURCE_ROOT;
+        this.crud = new CachedCrudAssist<NCubePlan>(getStore(), resourceRootPath, NCubePlan.class, cubePlanMap) {
             @Override
             protected NCubePlan initEntityAfterReload(NCubePlan cubePlan, String resourceName) {
                 try {
+                    cubePlan.setProject(project);
                     cubePlan.initAfterReload(config);
                 } catch (Exception e) {
                     logger.warn("Broken NCubePlan " + resourceName, e);
@@ -101,7 +104,7 @@ public class NCubePlanManager implements IKeepNames {
 
         @Override
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
-            for (IRealization real : ProjectManager.getInstance(config).listAllRealizations(project)) {
+            for (IRealization real : NProjectManager.getInstance(config).listAllRealizations(project)) {
                 if (real instanceof NDataflow) {
                     String planName = ((NDataflow) real).getCubePlanName();
                     try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
@@ -125,7 +128,7 @@ public class NCubePlanManager implements IKeepNames {
                     crud.reloadQuietly(planName);
             }
 
-            for (ProjectInstance prj : ProjectManager.getInstance(config).findProjectsByModel(modelName)) {
+            for (ProjectInstance prj : NProjectManager.getInstance(config).findProjectsByModel(modelName)) {
                 broadcaster.notifyProjectSchemaUpdate(prj.getName());
             }
         }
@@ -174,7 +177,10 @@ public class NCubePlanManager implements IKeepNames {
                 throw new IllegalArgumentException(cubePlan.getErrorMsg());
             }
 
-            return crud.save(cubePlan);
+            NCubePlan saved = crud.save(cubePlan);
+
+//            NProjectManager.getInstance(config).moveRealizationToProject()
+            return saved;
         }
     }
 

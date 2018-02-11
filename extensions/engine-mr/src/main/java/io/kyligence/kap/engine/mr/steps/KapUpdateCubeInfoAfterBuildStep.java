@@ -47,21 +47,21 @@ public class KapUpdateCubeInfoAfterBuildStep extends UpdateCubeInfoAfterBuildSte
         ExecuteResult result = super.doWork(context);
         if (!result.succeed())
             return result;
-        
+
         final MPCubeManager mpMgr = MPCubeManager.getInstance(context.getConfig());
         final CubeManager cubeManager = CubeManager.getInstance(context.getConfig());
         final CubeInstance cube = cubeManager.getCube(CubingExecutableUtil.getCubeName(this.getParams()));
-        
+
         if (!mpMgr.isMPCube(cube))
             return result;
-        
+
         // For MP cube, we keep all MP cubes DISABLED and turn its master to READY.
         // By keeping all MP cubes DISABLED, they are ignored by query naturally, and let the master represent.
         CubeInstance master = mpMgr.convertToMPMasterIfNeeded(cube.getName());
         try {
             // disable MP Cube
             cubeManager.updateCubeStatus(cube, RealizationStatusEnum.DISABLED);
-            
+
             // enable MP Master
             if (master.getStatus() == RealizationStatusEnum.DISABLED) {
                 cubeManager.updateCubeStatus(master, RealizationStatusEnum.READY);
@@ -70,7 +70,7 @@ public class KapUpdateCubeInfoAfterBuildStep extends UpdateCubeInfoAfterBuildSte
             logger.error("Failed to update MP master " + master + " status to ready", e);
             return new ExecuteResult(ExecuteResult.State.ERROR, e.getLocalizedMessage());
         }
-        
+
         return result;
     }
 }

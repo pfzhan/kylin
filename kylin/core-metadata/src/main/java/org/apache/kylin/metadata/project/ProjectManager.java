@@ -32,6 +32,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -59,23 +61,32 @@ public class ProjectManager {
 
     // called by reflection
     static ProjectManager newInstance(KylinConfig config) throws IOException {
-        return new ProjectManager(config);
+        try {
+            String cls = StringUtil.noBlank(config.getProjectManagerImpl(), ProjectManager.class.getName());
+            Class<? extends ProjectManager> clz = ClassUtil.forName(cls, ProjectManager.class);
+            return clz.getConstructor(KylinConfig.class).newInstance(config);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to init ProjectManager from " + config, e);
+        }
     }
 
     // ============================================================================
 
     private KylinConfig config;
     private ProjectL2Cache l2Cache;
-    
+
     // project name => ProjrectInstance
     private CaseInsensitiveStringCache<ProjectInstance> projectMap;
     private CachedCrudAssist<ProjectInstance> crud;
-    
+
     // protects concurrent operations around the cached map, to avoid for example
     // writing an entity in the middle of reloading it (dirty read)
     private AutoReadWriteLock prjMapLock = new AutoReadWriteLock();
 
-    private ProjectManager(KylinConfig config) throws IOException {
+    public ProjectManager() {
+    }
+
+    public ProjectManager(KylinConfig config) throws IOException {
         logger.info("Initializing ProjectManager with metadata url " + config);
         this.config = config;
         this.projectMap = new CaseInsensitiveStringCache<ProjectInstance>(config, "project");
@@ -237,7 +248,7 @@ public class ProjectManager {
                 throw new IllegalArgumentException("Project " + newProjectName + " does not exist.");
             }
             prj.addModel(modelName);
-            
+
             return save(prj);
         }
     }
@@ -251,8 +262,8 @@ public class ProjectManager {
         }
     }
 
-    public ProjectInstance moveRealizationToProject(String realizationType, String realizationName, String newProjectName,
-            String owner) throws IOException {
+    public ProjectInstance moveRealizationToProject(String realizationType, String realizationName,
+            String newProjectName, String owner) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             removeRealizationsFromProjects(realizationType, realizationName);
             return addRealizationToProject(realizationType, realizationName, newProjectName, owner);
@@ -346,7 +357,7 @@ public class ProjectManager {
             save(projectInstance);
         }
     }
-    
+
     private ProjectInstance save(ProjectInstance prj) throws IOException {
         crud.save(prj);
         clearL2Cache();

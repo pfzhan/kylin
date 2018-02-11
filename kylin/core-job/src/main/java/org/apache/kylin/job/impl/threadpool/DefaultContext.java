@@ -48,11 +48,11 @@ public class DefaultContext implements ExecutableContext {
         return kylinConfig;
     }
 
-    void addRunningJob(Executable executable) {
+    public void addRunningJob(Executable executable) {
         runningJobs.put(executable.getId(), executable);
     }
 
-    void removeRunningJob(Executable executable) {
+    public void removeRunningJob(Executable executable) {
         runningJobs.remove(executable.getId());
     }
 

@@ -59,6 +59,10 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
 
+    protected void setProjectParam() {
+        this.setParam(NBatchConstants.P_PROJECT_NAME, getProject());
+    }
+
     protected void setSparkSubmitClassName(String className) {
         this.setParam(NBatchConstants.P_CLASS_NAME, className);
     }

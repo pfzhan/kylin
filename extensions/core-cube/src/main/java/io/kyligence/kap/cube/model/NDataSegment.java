@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dict.DictionaryInfo;
-import org.apache.kylin.dict.DictionaryManager;
+import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -92,7 +92,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private transient Map<Long, NDataCuboid> cuboidsMap = Collections.emptyMap(); // transient, not required by spark cubing
 
     void initAfterReload() {
-        segDetails = NDataSegDetailsManager.getInstance(getConfig()).getForSegment(this);
+        segDetails = NDataSegDetailsManager.getInstance(getConfig(), dataflow.getProject()).getForSegment(this);
         if (segDetails == null) {
             segDetails = NDataSegDetails.newSegDetails(dataflow, id);
         }
@@ -193,7 +193,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         TblColRef reuseCol = getCubePlan().getDictionaryReuseColumn(col);
         DictionaryInfo info = null;
         try {
-            DictionaryManager dictMgr = DictionaryManager.getInstance(getConfig());
+            NDictionaryManager dictMgr = NDictionaryManager.getInstance(getConfig(), this.dataflow.getProject());
             String dictResPath = this.getDictResPath(reuseCol);
             if (dictResPath == null)
                 return null;
@@ -316,6 +316,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void setSourceCount(long sourceCount) {
         checkIsNotCachedAndShared();
         this.sourceCount = sourceCount;
+    }
+
+    public String getProject() {
+        return this.dataflow.getProject();
     }
 
     // ============================================================================

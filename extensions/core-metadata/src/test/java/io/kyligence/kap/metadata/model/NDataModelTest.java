@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.model;
 
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,7 +48,7 @@ public class NDataModelTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        DataModelManager mgr = DataModelManager.getInstance(getTestConfig());
+        NDataModelManager mgr = NDataModelManager.getInstance(getTestConfig(), "default");
         NDataModel model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
 
         ImmutableBiMap<Integer, TblColRef> dimMap = model.getEffectiveColsMap();
@@ -66,5 +65,6 @@ public class NDataModelTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("GMV_SUM", m.getName());
         Assert.assertEquals("SUM", m.getFunction().getExpression());
         Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameter().getColRef());
+        Assert.assertEquals("default", model.getProject());
     }
 }

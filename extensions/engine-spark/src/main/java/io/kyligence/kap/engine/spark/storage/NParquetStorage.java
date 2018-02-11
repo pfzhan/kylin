@@ -107,6 +107,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         Configuration jobConf = new Configuration(ctx.hadoopConfiguration());
         jobConf.set(BatchConstants.CFG_CUBE_NAME, cuboid.getSegDetails().getDataflowName());
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
+        jobConf.set(BatchConstants.CFG_PROJECT_NAME, cuboid.getSegDetails().getDataflow().getProject());
         JavaPairRDD<Text, Text> batchRDD = ctx.newAPIHadoopFile(path, NParquetCuboidInputFormat.class, Text.class,
                 Text.class, jobConf);
         JavaRDD<Row> rows = batchRDD.map(new org.apache.spark.api.java.function.Function<Tuple2<Text, Text>, Row>() {
@@ -114,7 +115,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
 
             @Override
             public Row call(Tuple2<Text, Text> tuple) throws Exception {
-                if (initialized == false) {
+                if (!initialized) {
                     synchronized (NParquetStorage.class) {
                         KylinConfig.setKylinConfigThreadLocal(config);
                         initialized = true;
@@ -126,7 +127,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
                 byte[] values = tuple._1.getBytes();
 
                 int i = 0;
-                int offset = 0, length = 0;
+                int offset = 0, length;
                 for (Map.Entry<Integer, TblColRef> dimEntry : orderedDimensions.entrySet()) {
                     length = rowKeyColumnIO.getColumnLength(dimEntry.getValue());
                     cells[i++] = ByteArray.copyOf(values, offset, length).array();
@@ -187,6 +188,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
         jobConf.set(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID, Long.toString(cuboid.getCuboidLayoutId()));
         jobConf.set(NBatchConstants.P_DIST_META_URL, cuboid.getConfig().getMetadataUrl().toString());
+        jobConf.set(BatchConstants.CFG_PROJECT_NAME, cuboid.getSegDetails().getDataflow().getProject());
 
         data.javaRDD().mapToPair(new PairFunction<Row, Text, Text>() {
             byte[] buffer = new byte[dimBufSize + measureBufSize];

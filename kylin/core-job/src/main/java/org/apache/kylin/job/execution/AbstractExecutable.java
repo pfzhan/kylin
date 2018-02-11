@@ -47,8 +47,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected static final String SUBMITTER = "submitter";
     protected static final String NOTIFY_LIST = "notify_list";
     protected static final String START_TIME = "startTime";
-    protected static final String END_TIME = "endTime";
-    protected static final String INTERRUPT_TIME = "interruptTime";
+    public static final String END_TIME = "endTime";
+    public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
@@ -58,12 +58,13 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private String name;
     private String id;
     private Map<String, String> params = Maps.newHashMap();
+    private String project;
 
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
     }
     
-    protected void initConfig(KylinConfig config) {
+    public void initConfig(KylinConfig config) {
         Preconditions.checkState(this.config == null || this.config == config);
         this.config = config;
     }
@@ -322,6 +323,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     
     public final String getSubmitter() {
         return getParam(SUBMITTER);
+    }
+
+    public final String getProject() {
+        return project;
+    }
+
+    public final void setProject(String project) {
+        this.project = project;
     }
 
     @Override

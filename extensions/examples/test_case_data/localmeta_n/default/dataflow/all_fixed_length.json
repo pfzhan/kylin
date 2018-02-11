@@ -1,0 +1,42 @@
+{
+  "uuid" : "0aeb985d-aec5-488a-a9b7-a5a564004433",
+  "last_modified" : 1509805113773,
+  "version" : "2.3.0.20500",
+  "name" : "all_fixed_length",
+  "description" : "test_description",
+  "owner" : "test_owner",
+  "mp_values" : null,
+  "cube_plan" : "62b3c058-5514-436b-b6b5-6240a8d900af",
+  "create_time_utc" : 1509791792901,
+  "status" : "DISABLED",
+  "cost" : 50,
+  "segments" : [ {
+    "id" : 0,
+    "name" : "20171104141833_20171105141833",
+    "create_time_utc" : 1509805113772,
+    "status" : "READY",
+    "segRangeStart" : "1309891513770",
+    "segRangeEnd" : "1509891513770",
+    "tsRangeStart" : 1309891513770,
+    "tsRangeEnd" : 1509891513770,
+    "source_partition_offset_start" : null,
+    "source_partition_offset_end" : null,
+    "dictionaries" : null,
+    "snapshots" : null,
+    "column_stats" : null,
+    "last_build_time" : 0,
+    "last_build_job_id" : 0,
+    "additionalInfo" : { }
+  } ],
+  "cuboids" : [ {
+    "cuboid_layout_id" : 1,
+    "status" : "NEW"
+  }, {
+    "cuboid_layout_id" : 1001,
+    "status" : "NEW"
+  }, {
+    "cuboid_layout_id" : 1002,
+    "status" : "NEW"
+  } ],
+  "storage_location_identifier" : null
+}

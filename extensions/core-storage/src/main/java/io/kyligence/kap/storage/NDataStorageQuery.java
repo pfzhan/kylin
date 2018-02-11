@@ -442,7 +442,7 @@ public class NDataStorageQuery implements IStorageQuery {
 
     @SuppressWarnings("unchecked")
     protected LookupStringTable getLookupStringTableForDerived(TblColRef derived, DeriveInfo hostInfo) {
-        NDataflowManager dfManager = NDataflowManager.getInstance(dataflow.getConfig());
+        NDataflowManager dfManager = NDataflowManager.getInstance(dataflow.getConfig(), dataflow.getProject());
         NDataSegment lastSeg = dataflow.getLastSegment();
         return dfManager.getLookupTable(lastSeg, hostInfo.join);
     }

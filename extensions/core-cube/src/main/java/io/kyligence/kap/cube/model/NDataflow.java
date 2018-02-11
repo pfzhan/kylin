@@ -33,6 +33,7 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -66,6 +67,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
         df.config = (KylinConfigExt) plan.getConfig();
         df.setName(name);
+        df.setProject(plan.getProject());
         df.setCubePlanName(plan.getName());
         df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<NDataSegment>());
@@ -107,6 +109,8 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     @JsonProperty("storage_location_identifier")
     private String storageLocationIdentifier; // maybe useful in some cases..
 
+    private String project;
+
     // ================================================================
 
     void initAfterReload(KylinConfigExt config) {
@@ -121,7 +125,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     }
 
     public NDataflow copy() {
-        return NDataflowManager.getInstance(config).copy(this);
+        return NDataflowManager.getInstance(config, project).copy(this);
     }
 
     @Override
@@ -130,7 +134,8 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     }
 
     public String getResourcePath() {
-        return concatResourcePath(name);
+        return new StringBuilder().append("/").append(project).append(DATAFLOW_RESOURCE_ROOT).append("/").append(name)
+                .append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     public Set<String> collectPrecalculationResource() {
@@ -156,7 +161,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     }
 
     public NCubePlan getCubePlan() {
-        return NCubePlanManager.getInstance(config).getCubePlan(cubePlanName);
+        return NCubePlanManager.getInstance(config, project).getCubePlan(cubePlanName);
     }
 
     @Override
@@ -281,6 +286,14 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     void setName(String name) {
         checkIsNotCachedAndShared();
         this.name = name;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public String getDescription() {

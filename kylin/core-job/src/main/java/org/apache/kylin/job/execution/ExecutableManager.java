@@ -65,7 +65,7 @@ public class ExecutableManager {
     private final KylinConfig config;
     private final ExecutableDao executableDao;
 
-    private ExecutableManager(KylinConfig config) {
+    protected ExecutableManager(KylinConfig config) {
         logger.info("Using metadata url: " + config);
         this.config = config;
         this.executableDao = ExecutableDao.getInstance(config);
@@ -74,6 +74,7 @@ public class ExecutableManager {
     private static ExecutablePO parse(AbstractExecutable executable) {
         ExecutablePO result = new ExecutablePO();
         result.setName(executable.getName());
+        result.setProject(executable.getProject());
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
@@ -503,6 +504,7 @@ public class ExecutableManager {
             result.initConfig(config);
             result.setId(executablePO.getUuid());
             result.setName(executablePO.getName());
+            result.setProject(executablePO.getProject());
             result.setParams(executablePO.getParams());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {

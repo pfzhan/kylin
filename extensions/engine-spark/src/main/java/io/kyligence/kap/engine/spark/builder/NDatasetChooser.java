@@ -151,7 +151,7 @@ public class NDatasetChooser {
             segCopy.setSourceCount(count);
             NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
             update.setToUpdateSegs(segCopy);
-            NDataflow updated = NDataflowManager.getInstance(config).updateDataflow(update);
+            NDataflow updated = NDataflowManager.getInstance(config, seg.getDataflow().getProject()).updateDataflow(update);
             seg = updated.getSegment(seg.getId());
 
         } else if (seg.getSourceCount() != count) {

@@ -26,7 +26,7 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 
-import org.apache.kylin.metadata.project.ProjectManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,12 +38,12 @@ import io.kyligence.kap.metadata.model.NDataModel;
 public class NCubePlanSelectProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanSelectProposer.class);
 
-    private final ProjectManager projectManager;
+    private final NProjectManager projectManager;
 
     public NCubePlanSelectProposer(NSmartContext context) {
         super(context);
 
-        projectManager = ProjectManager.getInstance(context.getKylinConfig());
+        projectManager = NProjectManager.getInstance(context.getKylinConfig());
     }
 
     @Override

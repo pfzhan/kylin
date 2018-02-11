@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class NDataSegDetailsManagerTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
 
     @Before
     public void setUp() throws Exception {
@@ -50,8 +51,8 @@ public class NDataSegDetailsManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(testConfig);
-        NDataSegDetailsManager mgr = NDataSegDetailsManager.getInstance(testConfig);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataSegDetailsManager mgr = NDataSegDetailsManager.getInstance(testConfig, projectDefault);
 
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment segment = df.getLastSegment();

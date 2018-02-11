@@ -97,7 +97,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String dataGen;
 
-    private String project;
+    protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
     private boolean isBorrowedFromGlobal = false;

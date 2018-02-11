@@ -33,4 +33,5 @@ public interface NBatchConstants {
     String P_CLASS_NAME = "className";
     String P_JARS = "jars";
     String P_DIST_META_URL = "distMetaUrl";
+    String P_PROJECT_NAME = "project";
 }

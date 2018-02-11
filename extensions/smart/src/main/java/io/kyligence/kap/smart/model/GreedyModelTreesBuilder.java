@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.model;
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,7 +36,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -55,7 +55,7 @@ public class GreedyModelTreesBuilder {
     private final Map<String, TableDesc> tableMap;
 
     public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project) {
-        this.tableMap = TableMetadataManager.getInstance(kylinConfig).getAllTablesMap(project);
+        this.tableMap = NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(project);
     }
 
     public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,

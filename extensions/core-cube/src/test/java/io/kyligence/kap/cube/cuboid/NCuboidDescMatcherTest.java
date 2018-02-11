@@ -35,6 +35,8 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 
 public class NCuboidDescMatcherTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
@@ -47,7 +49,7 @@ public class NCuboidDescMatcherTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        NCubePlan cube = NCubePlanManager.getInstance(getTestConfig()).getCubePlan("ncube_basic");
+        NCubePlan cube = NCubePlanManager.getInstance(getTestConfig(), projectDefault).getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();

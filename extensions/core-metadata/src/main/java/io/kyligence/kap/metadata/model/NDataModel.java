@@ -39,8 +39,10 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
@@ -72,7 +74,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 
 @SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class NDataModel extends DataModelDesc {
     public static final int MEASURE_ID_BASE = 1000;
 
@@ -133,6 +134,7 @@ public class NDataModel extends DataModelDesc {
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
 
     // computed fields below
+    private String project;
     private List<TblColRef> allCols; // including DELETED cols
     private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
@@ -142,6 +144,16 @@ public class NDataModel extends DataModelDesc {
     // don't use unless you're sure, for jackson only
     public NDataModel() {
         super();
+    }
+
+    @Override
+    public String getProject() {
+        return project;
+    }
+
+    @Override
+    public void setProject(String project) {
+        this.project = project;
     }
 
     @Override
@@ -490,8 +502,9 @@ public class NDataModel extends DataModelDesc {
 
     public static NDataModel getCopyOf(NDataModel orig) {
         NDataModel copy = (NDataModel) DataModelDesc.copy(orig, new NDataModel());
-        copy.setDimensions(Lists.<ModelDimensionDesc>newArrayList());
+        copy.setDimensions(Lists.<ModelDimensionDesc> newArrayList());
         copy.setMetrics(new String[0]);
+        copy.setProject(orig.getProject());
         copy.computedColumnDescs = orig.computedColumnDescs;
         copy.allCols = orig.allCols;
         copy.allMeasures = orig.allMeasures;
@@ -502,4 +515,9 @@ public class NDataModel extends DataModelDesc {
         return copy;
     }
 
+    @Override
+    public String getResourcePath() {
+        return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
+                .append("/").append(getName()).append(MetadataConstants.FILE_SURFIX).toString();
+    }
 }

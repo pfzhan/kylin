@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.cube.model;
 
+import java.util.Set;
+
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
@@ -37,6 +39,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCubePlanTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
 
     @Before
     public void setUp() throws Exception {
@@ -50,8 +53,8 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig());
-        NCubePlan cube = mgr.getCubePlan("ncube_basic");
+        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        NCubePlan cube = mgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
         Assert.assertNotNull(cube);
         Assert.assertSame(getTestConfig(), cube.getConfig().base());
         Assert.assertEquals(getTestConfig(), cube.getConfig());
@@ -84,5 +87,25 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3001, cuboidLayout.getId());
         Assert.assertEquals(4, cuboidLayout.getOrderedDimensions().size());
         Assert.assertEquals(1, cuboidLayout.getDimensionCFs().length);
+    }
+
+    @Test
+    public void testGetAllColumnsHaveDictionary() {
+        NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        Set<TblColRef> tblCols = cubePlan.getAllColumnsHaveDictionary();
+        Assert.assertEquals(4, tblCols.size());
+
+        NCubePlan cubePlan2 = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d900af");
+        Set<TblColRef> tblCols2 = cubePlan2.getAllColumnsHaveDictionary();
+        Assert.assertEquals(0, tblCols2.size());
+    }
+
+    @Test
+    public void testGetAllColumnsNeedDictionaryBuilt() {
+        NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        Set<TblColRef> tblCols = cubePlan.getAllColumnsNeedDictionaryBuilt();
+        Assert.assertEquals(4, tblCols.size());
     }
 }

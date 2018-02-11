@@ -28,6 +28,10 @@ import org.apache.kylin.common.KylinConfig;
 
 public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.LocalFileMetadataTestCase {
 
+    static {
+        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
+    }
+
     @Override
     public void createTestMetadata() {
         staticCreateTestMetadata();

@@ -36,6 +36,7 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class NDataflowTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
 
     @Before
     public void setUp() throws Exception {
@@ -49,7 +50,7 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasic() throws IOException {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig());
+        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NCubePlan cube = df.getCubePlan();
 

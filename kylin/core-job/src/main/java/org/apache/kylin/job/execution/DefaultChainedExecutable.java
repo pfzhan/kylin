@@ -37,7 +37,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         super();
     }
 
-    protected void initConfig(KylinConfig config) {
+    public void initConfig(KylinConfig config) {
         super.initConfig(config);
         for (AbstractExecutable sub : subTasks) {
             sub.initConfig(config);

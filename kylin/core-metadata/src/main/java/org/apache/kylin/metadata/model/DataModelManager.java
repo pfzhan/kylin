@@ -75,6 +75,10 @@ public class DataModelManager {
     // writing an entity in the middle of reloading it (dirty read)
     private AutoReadWriteLock modelMapLock = new AutoReadWriteLock();
 
+    public DataModelManager() {
+        
+    }
+
     public DataModelManager(KylinConfig config) throws IOException {
         init(config);
     }

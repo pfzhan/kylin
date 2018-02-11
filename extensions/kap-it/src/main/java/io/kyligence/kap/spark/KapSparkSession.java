@@ -81,6 +81,10 @@ public class KapSparkSession extends SparkSession {
 
     public void prepareKylinConfig() {
         String metadataUrl = System.getProperty(KylinConfig.KYLIN_CONF);
+        prepareKylinConfig(metadataUrl);
+    }
+
+    private void prepareKylinConfig(String metadataUrl) {
         Preconditions.checkNotNull(metadataUrl);
         KylinConfig.destroyInstance();
 
@@ -91,14 +95,15 @@ public class KapSparkSession extends SparkSession {
 
         // make sure a local working directory
         File workingDir = new File(metadataUrl, "working-dir");
-        workingDir.mkdirs();
-        String path = workingDir.getAbsolutePath();
-        if (!path.startsWith("/"))
-            path = "/" + path;
-        if (!path.endsWith("/"))
-            path = path + "/";
-        path = path.replace("\\", "/");
-        config.setProperty("kylin.env.hdfs-working-dir", "file:" + path);
+        if (workingDir.mkdirs()) {
+            String path = workingDir.getAbsolutePath();
+            if (!path.startsWith("/"))
+                path = "/" + path;
+            if (!path.endsWith("/"))
+                path = path + "/";
+            path = path.replace("\\", "/");
+            config.setProperty("kylin.env.hdfs-working-dir", "file:" + path);
+        }
     }
 
     public void use(String project) throws Exception {
@@ -198,13 +203,13 @@ public class KapSparkSession extends SparkSession {
         kylinConfig.clearManagers();
         ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
         ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
 
         for (IRealization realization : projectManager.listAllRealizations(proj)) {
             NDataflow df = (NDataflow) realization;
             Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
-            NDataSegment oneSeg = null;
-            List<NCuboidLayout> layouts = null;
+            NDataSegment oneSeg;
+            List<NCuboidLayout> layouts;
             if (readySegments.isEmpty()) {
                 oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
                 layouts = df.getCubePlan().getAllCuboidLayouts();

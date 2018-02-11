@@ -33,6 +33,7 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,7 @@ public class NDataSegDetails extends RootPersistentEntity {
         entity.setUuid(UUID.randomUUID().toString());
         entity.setSegmentId(segId);
         entity.setDataflowName(df.getName());
+        entity.setProject(df.getProject());
 
         List<NDataCuboid> cuboids = new ArrayList<>();
         entity.setCuboids(cuboids);
@@ -85,9 +87,7 @@ public class NDataSegDetails extends RootPersistentEntity {
     @JsonIgnore
     private KylinConfigExt config;
 
-    public String getResourcePath() {
-        return NDataSegDetailsManager.getResourcePathForSegment(dataflowName, segmentId);
-    }
+    private String project;
 
     public KylinConfigExt getConfig() {
         return config;
@@ -98,7 +98,7 @@ public class NDataSegDetails extends RootPersistentEntity {
     }
 
     public NDataflow getDataflow() {
-        return NDataflowManager.getInstance(getConfig()).getDataflow(dataflowName);
+        return NDataflowManager.getInstance(getConfig(), project).getDataflow(dataflowName);
     }
 
     public NDataSegment getDataSegment() {
@@ -124,6 +124,14 @@ public class NDataSegDetails extends RootPersistentEntity {
     public void setDataflowName(String dfName) {
         checkIsNotCachedAndShared();
         this.dataflowName = dfName;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public int getSegmentId() {
@@ -266,4 +274,9 @@ public class NDataSegDetails extends RootPersistentEntity {
         return "NDataSegDetails [" + dataflowName + "." + segmentId + "]";
     }
 
+    @Override
+    public String getResourcePath() {
+        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + segmentId
+            + MetadataConstants.FILE_SURFIX;
+    }
 }

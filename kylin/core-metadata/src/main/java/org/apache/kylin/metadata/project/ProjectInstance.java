@@ -298,7 +298,7 @@ public class ProjectInstance extends RootPersistentEntity {
         return overrideKylinProps;
     }
 
-    void setOverrideKylinProps(LinkedHashMap<String, String> overrideKylinProps) {
+    public void setOverrideKylinProps(LinkedHashMap<String, String> overrideKylinProps) {
         if (overrideKylinProps == null) {
             overrideKylinProps = new LinkedHashMap<>();
         }

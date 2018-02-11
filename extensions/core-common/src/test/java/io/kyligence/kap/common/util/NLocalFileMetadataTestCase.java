@@ -39,7 +39,7 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
     public void createTestMetadata() {
         staticCreateTestMetadata();
     }
-    
+
     @Override
     public void cleanupTestMetadata() {
         try {
@@ -59,6 +59,12 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
 
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
+    }
+
+    public static KylinConfig getTestConfig() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
+        return config;
     }
 
 }

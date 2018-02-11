@@ -90,7 +90,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         config.setProperty("kylin.engine.mr.job-jar",
                 "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
 
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 
         // ready dataflow, segment, cuboid layout
@@ -161,7 +161,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
                 "/Users/wangcheng/Developments/KAP/extensions/assembly/target/kap-assembly-3.0.0-SNAPSHOT-job.jar");
         config.setProperty("kap.storage.columnar.shard-size-mb", "16");
 
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 
         NDataflow df = dsMgr.getDataflow("ssb");

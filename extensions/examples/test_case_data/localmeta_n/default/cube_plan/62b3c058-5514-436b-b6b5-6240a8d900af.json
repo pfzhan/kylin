@@ -1,0 +1,229 @@
+{
+  "uuid": "62b3c058-5514-436b-b6b5-6240a8d900af",
+  "last_modified": 1509531215483,
+  "version": "2.3.0.20500",
+  "model_name": "nmodel_basic",
+  "name": "62b3c058-5514-436b-b6b5-6240a8d900af",
+  "description": "test_description",
+  "dimensions": [
+    {
+      "id": 0,
+      "encoding": {
+        "name": "fixed_length:32",
+        "version": "1"
+      }
+    },
+    {
+      "id": 1,
+      "encoding": {
+        "name": "fixed_length:32",
+        "version": "1"
+      }
+    },
+    {
+      "id": 2,
+      "encoding": {
+        "name": "fixed_length:32",
+        "version": "1"
+      }
+    },
+    {
+      "id": 3,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 4,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 5,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    }
+  ],
+  "cuboids": [
+    {
+      "id": 0,
+      "dimensions": [
+        0,
+        1
+      ],
+      "measures": [
+        1000,
+        1003
+      ],
+      "layouts": [
+        {
+          "id": 1,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1003
+              ]
+            }
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 2,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            },
+            {
+              "name": "M2",
+              "columns": [
+                1003
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 1000,
+      "dimensions": [
+        0,
+        1,
+        2
+      ],
+      "measures": [
+        1000
+      ],
+      "layouts": [
+        {
+          "id": 1001,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            }
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 1002,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    }
+  ],
+  "override_properties": {},
+  "segment_range_start": 0,
+  "segment_range_end": 9223372036854775807,
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "notify_list": null,
+  "status_need_notify": [],
+  "engine_type": 0
+}

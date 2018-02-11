@@ -23,59 +23,78 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
+import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
+
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 /**
  * Able to delegate a few FIRST LEVEL directories to other resource stores.
  */
 public class FederatedResourceStore extends ResourceStore {
-    
+
     final ResourceStore base;
     final Map<String, ResourceStore> delegates;
-    
+    final List<String> reservedNonTopDir = ImmutableList.of(ResourceStore.METASTORE_UUID_TAG,
+            ResourceStore.PROJECT_RESOURCE_ROOT, "/kylin.properties");
+
     public FederatedResourceStore(ResourceStore baseStore, Map<String, ResourceStore> delegates) {
         super(baseStore.kylinConfig, baseStore.storageUrl);
         this.base = baseStore;
         this.delegates = ImmutableMap.copyOf(delegates);
     }
-    
+
     public ResourceStore getBase() {
         return base;
     }
-    
+
     public Map<String, ResourceStore> getDelegates() {
         return delegates;
     }
 
-    private boolean isRoot(String normPath) {
-        return "/".equals(normPath);
+    /**
+     * We name directories contains both metadata directories and storage directories as TopDir
+     * A TopDir should be something like: "/" or "/{project}"
+     *
+     * @param normPath
+     * @return
+     */
+    private boolean isTopDir(String normPath) {
+        return !reservedNonTopDir.contains(normPath) && StringUtils.countMatches(normPath, "/") == 1;
     }
-    
-    private ResourceStore select(String nonRootPath) {
-        // cut first level path
-        String firstLevel;
-        int cut = nonRootPath.indexOf("/", 1);
-        if (cut < 0) {
-            firstLevel = nonRootPath;
-        } else {
-            firstLevel = nonRootPath.substring(0, cut);
+
+    /**
+     *
+     * @param nonTopDir should be like /project/xxx or /{project}/xxx/yyy
+     * @return
+     */
+    private ResourceStore select(String nonTopDir) {
+        // remove the first level directory
+        String category = nonTopDir;
+        String[] directories = nonTopDir.split("/");
+        if (directories.length > 2) {
+            category = "/" + directories[2];
         }
-        
-        // decide delegate based on first level path
-        ResourceStore r = delegates.get(firstLevel);
+
+        // decide delegate based on the category
+        ResourceStore r = delegates.get(category);
         return r == null ? base : r;
     }
-    
+
     @Override
     protected NavigableSet<String> listResourcesImpl(String folderPath) throws IOException {
-        if (isRoot(folderPath)) {
-            NavigableSet<String> result = base.listResourcesImpl("/");
-            for (String firstLevel : delegates.keySet()) {
-                result.remove(firstLevel); // ensures delegated content only comes from delegated store
-                NavigableSet<String> subResult = delegates.get(firstLevel).listResourcesImpl("/");
-                if (subResult.contains(firstLevel))
-                    result.add(firstLevel);
+        if (isTopDir(folderPath)) {
+            NavigableSet<String> result = base.listResourcesImpl(folderPath);
+            for (ResourceStore store : delegates.values()) {
+                NavigableSet<String> subResult = store.listResourcesImpl(folderPath);
+                if (null != subResult) {
+                    if (null == result) {
+                        result = new TreeSet<>();
+                    }
+                    result.addAll(subResult);
+                }
             }
             return result;
         } else {
@@ -85,7 +104,7 @@ public class FederatedResourceStore extends ResourceStore {
 
     @Override
     protected boolean existsImpl(String resPath) throws IOException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             return false;
         else
             return select(resPath).existsImpl(resPath);
@@ -94,15 +113,15 @@ public class FederatedResourceStore extends ResourceStore {
     @Override
     protected List<RawResource> getAllResourcesImpl(String folderPath, long timeStart, long timeEndExclusive)
             throws IOException {
-        if (isRoot(folderPath))
+        if (isTopDir(folderPath))
             throw new IllegalArgumentException();
-            
+
         return select(folderPath).getAllResourcesImpl(folderPath, timeStart, timeEndExclusive);
     }
 
     @Override
     protected RawResource getResourceImpl(String resPath) throws IOException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             return null;
         else
             return select(resPath).getResourceImpl(resPath);
@@ -110,7 +129,7 @@ public class FederatedResourceStore extends ResourceStore {
 
     @Override
     protected long getResourceTimestampImpl(String resPath) throws IOException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             return 0;
         else
             return select(resPath).getResourceTimestampImpl(resPath);
@@ -118,26 +137,26 @@ public class FederatedResourceStore extends ResourceStore {
 
     @Override
     protected void putResourceImpl(String resPath, InputStream content, long ts) throws IOException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             throw new IllegalArgumentException();
-        
+
         select(resPath).putResourceImpl(resPath, content, ts);
     }
 
     @Override
     protected long checkAndPutResourceImpl(String resPath, byte[] content, long oldTS, long newTS)
             throws IOException, IllegalStateException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             throw new IllegalArgumentException();
-        
+
         return select(resPath).checkAndPutResourceImpl(resPath, content, oldTS, newTS);
     }
 
     @Override
     protected void deleteResourceImpl(String resPath) throws IOException {
-        if (isRoot(resPath))
+        if (isTopDir(resPath))
             throw new IllegalArgumentException();
-        
+
         select(resPath).deleteResourceImpl(resPath);
     }
 

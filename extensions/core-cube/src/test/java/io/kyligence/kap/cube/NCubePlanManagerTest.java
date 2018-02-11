@@ -39,6 +39,7 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
 
 public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
+    private String projectDefault = "default";
 
     @Before
     public void setUp() throws Exception {
@@ -52,7 +53,7 @@ public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCRUD() throws IOException {
-        NCubePlanManager manager = NCubePlanManager.getInstance(getTestConfig());
+        NCubePlanManager manager = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
         final String cubeName = UUID.randomUUID().toString();
 
         // create
@@ -62,6 +63,7 @@ public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
         cube.setModelName("nmodel_basic");
         cube.setUuid(UUID.randomUUID().toString());
         cube.setDescription("test_description");
+        cube.setProject(projectDefault);
         Assert.assertNotNull(manager.createCubePlan(cube));
 
         // list

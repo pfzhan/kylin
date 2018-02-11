@@ -135,7 +135,7 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
         kylinConfig.clearManagers();
         ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
         ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
-        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
 
         List<NSparkCubingJob> jobs = Lists.newArrayList();
         for (IRealization realization : projectManager.listAllRealizations(proj)) {

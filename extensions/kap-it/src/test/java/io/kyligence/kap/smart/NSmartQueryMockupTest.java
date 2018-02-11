@@ -34,7 +34,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -54,6 +53,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -241,6 +241,14 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
         smartMaster.runAll();
 
         fillTestDataflow();
+
+        // Sleep 0.5s to ensure all changes take effect
+        try {
+            Thread.sleep(500);
+        } catch (Exception e) {
+            // do not catch
+        }
+
         for (String sql : sqls)
             verifySQLs(sql);
     }
@@ -262,8 +270,8 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
     }
 
     private void fillTestDataflow() throws IOException {
-        NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig());
-        ProjectManager pm = ProjectManager.getInstance(getTestConfig());
+        NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), PROJ_NAME);
+        NProjectManager pm = NProjectManager.getInstance(getTestConfig());
         for (IRealization real : pm.listAllRealizations(PROJ_NAME)) {
             if (real instanceof NDataflow) {
                 NDataflow copy = dfMgr.getDataflow(real.getName()).copy();
