@@ -97,6 +97,10 @@ public class QueryScopeProposer extends AbstractModelProposer {
                             useAsMeasure = false;
                             break;
                         }
+                        if (colRef.getType().isDate()) {
+                            useAsMeasure = false;
+                            break;
+                        }
                     }
                 }
 
@@ -151,7 +155,7 @@ public class QueryScopeProposer extends AbstractModelProposer {
 
     private static void addCandidate(Map<String, Set<String>> tblColMap, String table, String column) {
         if (tblColMap.get(table) == null) {
-            tblColMap.put(table, Sets.<String> newHashSet());
+            tblColMap.put(table, Sets.<String>newHashSet());
         }
         tblColMap.get(table).add(column);
     }

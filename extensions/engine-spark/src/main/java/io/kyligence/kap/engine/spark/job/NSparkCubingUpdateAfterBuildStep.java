@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -73,23 +74,30 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         // the config from distributed metadata
         KylinConfig distConfig = KylinConfig.createKylinConfig(config);
         distConfig.setMetadataUrl(cubingStep.getDistMetaUrl());
+        String flowName = cubingStep.getDataflowName();
+        Set<Integer> segmentIds = cubingStep.getSegmentIds();
+        Set<Long> layoutIds = cubingStep.getCuboidLayoutIds();
+        fillUpdate(distConfig, flowName, segmentIds, layoutIds, update);
+    }
 
+    public static void fillUpdate(KylinConfig distConfig, String flowName, Set<Integer> segmentIds,
+            Set<Long> layoutIds, NDataflowUpdate update) {
         NDataflowManager distMgr = NDataflowManager.getInstance(distConfig);
-        String dfName = cubingStep.getDataflowName();
+        String dfName = flowName;
         NDataflow distDataflow = distMgr.getDataflow(dfName).copy(); // avoid changing cached objects
 
         List<NDataSegment> toUpdateSegments = new ArrayList<>();
         List<NDataCuboid> toAddCuboids = new ArrayList<>();
         List<NDataSegment> toRemoveSegments = new ArrayList<>();
 
-        for (int segId : cubingStep.getSegmentIds()) {
+        for (int segId : segmentIds) {
             NDataSegment seg = distDataflow.getSegment(segId);
             if (seg.getStatus() == SegmentStatusEnum.NEW)
                 seg.setStatus(SegmentStatusEnum.READY);
             toUpdateSegments.add(seg);
             toRemoveSegments.addAll(getToRemoveSegs(distDataflow, seg));
 
-            for (long layoutId : cubingStep.getCuboidLayoutIds()) {
+            for (long layoutId : layoutIds) {
                 toAddCuboids.add(seg.getCuboid(layoutId));
             }
         }
@@ -99,7 +107,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         update.setStatus(RealizationStatusEnum.READY);
     }
 
-    private List<NDataSegment> getToRemoveSegs(NDataflow dataflow, NDataSegment segment) {
+    public static List<NDataSegment> getToRemoveSegs(NDataflow dataflow, NDataSegment segment) {
         Segments tobe = dataflow.calculateToBeSegments(segment);
 
         if (!tobe.contains(segment))

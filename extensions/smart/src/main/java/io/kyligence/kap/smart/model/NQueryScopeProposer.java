@@ -73,6 +73,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (isMaxMin && colRef.getType().isStringFamily()) {
                 return false;
             }
+
+            if (isMaxMin && colRef.getType().isDateTimeFamily()) {
+                return false;
+            }
         }
 
         return true;

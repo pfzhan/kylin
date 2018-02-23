@@ -67,10 +67,10 @@ import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
-    
+
     private static final Logger logger = LoggerFactory.getLogger(KapSparkSession.class);
     private static Boolean isRegister = false;
-    
+
     private Properties prop;
     private String project;
 
@@ -124,42 +124,43 @@ public class KapSparkSession extends SparkSession {
     public Dataset<Row> sql(String sqlText) {
         if (sqlText == null)
             throw new RuntimeException("Sorry your SQL is null...");
-        
-        if (isQuery(sqlText)) {
-            // try cube first
-            try {
-                logger.info("Try to query from cube....");
-                long startTs = System.currentTimeMillis();
-                Dataset<Row> dataset = queryCube(sqlText);
-                logger.info("Cool! This sql hits cube...");
-                logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
-                return dataset;
-            } catch (Throwable e) {
-                logger.error("There is no cube can be used for query [{}]", sqlText);
-                logger.error("Reasons:", e);
-            }
 
-            // collect bad query
-            try {
-                logger.info("Collect a bad query: {}", sqlText);
-                collectBadQuery(sqlText);
-            } catch (Throwable e) {
-                logger.error("Collect bad query error", e);
-            }
+        try {
+            logger.info("Try to query from cube....");
+            long startTs = System.currentTimeMillis();
+            Dataset<Row> dataset = queryCube(sqlText);
+            logger.info("Cool! This sql hits cube...");
+            logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
+            return dataset;
+        } catch (Throwable e) {
+            logger.error("There is no cube can be used for query [{}]", sqlText);
+            logger.error("Reasons:", e);
         }
 
-        // pushdown to spark
+        return null;
+
+    }
+
+    public Dataset<Row> queryFromCube(String sqlText) {
+        return sql(sqlText);
+    }
+
+    public Dataset<Row> querySparkSql(String sqlText) {
         logger.info("Fallback this sql to original engine...");
         long startTs = System.currentTimeMillis();
         Dataset<Row> r = super.sql(sqlText);
         logger.info("Duration(ms): {}", (System.currentTimeMillis() - startTs));
         return r;
-
     }
 
-    private boolean isQuery(String sqlText) {
-        String str = sqlText.trim().toLowerCase();
-        return str.startsWith("select") || str.startsWith("with") && str.contains("select");
+    public void collectQueries(String sqlText) {
+        // collect queries
+        try {
+            logger.info("Collect a bad query: {}", sqlText);
+            collectBadQuery(sqlText);
+        } catch (Throwable e) {
+            logger.error("Collect bad query error", e);
+        }
     }
 
     private void collectBadQuery(String sql) throws IOException {
@@ -205,7 +206,6 @@ public class KapSparkSession extends SparkSession {
         ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig);
 
-        List<NSparkCubingJob> jobs = Lists.newArrayList();
         for (IRealization realization : projectManager.listAllRealizations(proj)) {
             NDataflow df = (NDataflow) realization;
             Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
@@ -228,24 +228,17 @@ public class KapSparkSession extends SparkSession {
                 NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts),
                         "ADMIN");
                 execMgr.addJob(job);
-                jobs.add(job);
-            }
-        }
-
-        while (true) {
-            Thread.sleep(500);
-            boolean hasRunning = false;
-            for (NSparkCubingJob job : jobs) {
-                ExecutableState status = job.getStatus();
-                if (status.isReadyOrRunning()) {
-                    hasRunning = true;
-                } else if (status == ExecutableState.ERROR) {
-                    throw new IllegalStateException("Failed to execute job. " + job);
+                while (true) {
+                    Thread.sleep(500);
+                    ExecutableState status = job.getStatus();
+                    if (!status.isReadyOrRunning()) {
+                        if (status == ExecutableState.ERROR) {
+                            throw new IllegalStateException("Failed to execute job. " + job);
+                        } else
+                            break;
+                    }
                 }
             }
-
-            if (!hasRunning)
-                break;
         }
     }
 }
