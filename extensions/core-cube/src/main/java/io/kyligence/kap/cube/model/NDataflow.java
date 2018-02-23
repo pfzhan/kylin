@@ -115,7 +115,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
             seg.initAfterReload();
         }
     }
-    
+
     public KylinConfigExt getConfig() {
         return config;
     }
@@ -123,7 +123,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     public NDataflow copy() {
         return NDataflowManager.getInstance(config).copy(this);
     }
-    
+
     @Override
     public String resourceName() {
         return name;
@@ -228,6 +228,10 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
                 return seg;
         }
         return null;
+    }
+
+    public Segments<NDataSegment> getMergingSegments(NDataSegment mergedSegment) {
+        return segments.getMergingSegments(mergedSegment);
     }
 
     public Segments<NDataSegment> getSegments(SegmentStatusEnum status) {
@@ -361,7 +365,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     }
 
     // ============================================================================
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;

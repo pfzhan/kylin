@@ -50,6 +50,20 @@ public class NSparkCubingEngine implements NCubingEngine, IKeep {
         return null;
     }
 
+    /**
+     * To merge the segments that are contained in the given mergedSegment
+     *
+     * @param mergedSegment, new segment that expect to merge, which should contains a couple of ready segments.
+     * @param layouts, user is allowed to specify the cuboids to merge. By default, it is null and merge all
+     *                 the ready cuboids in the segments.
+     */
+    @Override
+    public DefaultChainedExecutable createMergingJob(NDataSegment mergedSegment, Set<NCuboidLayout> layouts,
+            String submitter) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
     @Override
     public Class<?> getSourceInterface() {
         return NSparkCubingSource.class;

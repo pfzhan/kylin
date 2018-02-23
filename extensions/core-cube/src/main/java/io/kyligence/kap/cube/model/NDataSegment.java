@@ -68,7 +68,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private SegmentStatusEnum status;
 
     @JsonProperty("segRangeStart")
-    private String segRangeStart;
+    private String segRangeStart;//used for segment partition
     @JsonProperty("segRangeEnd")
     private String segRangeEnd;
     @JsonProperty("tsRangeStart")
@@ -379,6 +379,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void checkIsNotCachedAndShared() {
         if (isCachedAndShared())
             throw new IllegalStateException();
+    }
+
+    public void putSnapshotResPath(String table, String snapshotResPath) {
+        getSnapshots().put(table, snapshotResPath);
     }
 
     @Override

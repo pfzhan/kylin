@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Arrays;
 import java.util.Set;
 
+import io.kyligence.kap.engine.spark.builder.NDataflowMergeJob;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,16 +35,12 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.builder.NDataflowBuildJob;
 
-/**
- */
-public class NSparkCubingStep extends NSparkExecutable {
-
+public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
 
-    public NSparkCubingStep() {
-        this.setSparkSubmitClassName(NDataflowBuildJob.class.getName());
+    public NSparkMergingStep() {
+        this.setSparkSubmitClassName(NDataflowMergeJob.class.getName());
     }
 
     @Override
@@ -64,12 +61,12 @@ public class NSparkCubingStep extends NSparkExecutable {
         return this.getParam(NBatchConstants.P_DATAFLOW_NAME);
     }
 
-    void setSegmentIds(Set<Integer> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, NSparkCubingUtil.ids2Str(segmentIds));
+    void setSegmentId(int segmentId) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, String.valueOf(segmentId));
     }
 
-    public Set<Integer> getSegmentIds() {
-        return NSparkCubingUtil.str2Ints(this.getParam(NBatchConstants.P_SEGMENT_IDS));
+    public int getSegmentIds() {
+        return Integer.parseInt(this.getParam(NBatchConstants.P_SEGMENT_IDS));
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {
@@ -82,7 +79,7 @@ public class NSparkCubingStep extends NSparkExecutable {
 
     public static class Mockup {
         public static void main(String[] args) {
-            logger.info(Mockup.class + ".main() invoked, args: " + Arrays.toString(args));
+            logger.info(NSparkMergingStep.Mockup.class + ".main() invoked, args: " + Arrays.toString(args));
         }
     }
 }

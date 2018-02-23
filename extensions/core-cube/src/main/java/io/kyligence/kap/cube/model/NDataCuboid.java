@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.cube.model;
 
+import java.io.Serializable;
+
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
@@ -33,12 +35,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.Longs;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NDataCuboid {
+public class NDataCuboid implements Serializable {
 
     public static NDataCuboid newDataCuboid(NDataflow df, int segId, long cuboidLayoutId) {
         return newDataCuboid(NDataSegDetails.newSegDetails(df, segId), cuboidLayoutId);
     }
-    
+
     public static NDataCuboid newDataCuboid(NDataSegDetails segDetails, long cuboidLayoutId) {
         NDataCuboid r = new NDataCuboid();
         r.setSegDetails(segDetails);
@@ -78,7 +80,7 @@ public class NDataCuboid {
     public NCuboidLayout getCuboidLayout() {
         return segDetails.getDataflow().getCubePlan().getSpanningTree().getCuboidLayout(cuboidLayoutId);
     }
-    
+
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
@@ -91,7 +93,7 @@ public class NDataCuboid {
         checkIsNotCachedAndShared();
         this.segDetails = segDetails;
     }
-    
+
     public long getCuboidLayoutId() {
         return cuboidLayoutId;
     }
@@ -169,7 +171,7 @@ public class NDataCuboid {
     public boolean isCachedAndShared() {
         if (segDetails == null || segDetails.isCachedAndShared() == false)
             return false;
-        
+
         for (NDataCuboid cached : segDetails.getCuboids()) {
             if (cached == this)
                 return true;
@@ -181,7 +183,7 @@ public class NDataCuboid {
         if (isCachedAndShared())
             throw new IllegalStateException();
     }
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;

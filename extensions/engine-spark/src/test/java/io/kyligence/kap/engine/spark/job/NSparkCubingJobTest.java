@@ -24,10 +24,17 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
@@ -40,6 +47,7 @@ import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -61,6 +69,7 @@ import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
@@ -88,6 +97,30 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
     }
 
     @Test
+    public void testMergeBasics() throws IOException {
+        final String dataJson1 = "0,1,3,1000\n0,2,2,1000";
+        final String dataJson2 = "0,1,2,2000";
+
+        File dataFile1 = File.createTempFile("tmp1", ".csv");
+        FileUtils.writeStringToFile(dataFile1, dataJson1, Charset.defaultCharset());
+        Dataset<Row> dataset1 = ss.read().csv(dataFile1.getAbsolutePath());
+        Assert.assertEquals(2, dataset1.count());
+        dataset1.show();
+
+        File dataFile2 = File.createTempFile("tmp2", ".csv");
+        FileUtils.writeStringToFile(dataFile2, dataJson2, Charset.defaultCharset());
+        Dataset<Row> dataset2 = ss.read().csv(dataFile2.getAbsolutePath());
+        Assert.assertEquals(1, dataset2.count());
+        dataset2.show();
+
+        Dataset<Row> dataset3 = dataset2.union(dataset1);
+        Assert.assertEquals(3, dataset3.count());
+        dataset3.show();
+        dataFile1.delete();
+        dataFile2.delete();
+    }
+
+    @Test
     public void testBuildDictionary() throws Exception {
         KylinConfig config = getTestConfig();
         System.out.println(getTestConfig().getMetadataUrl());
@@ -109,7 +142,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
     }
 
     @Test
-    public void test() throws Exception {
+    public void testBuildJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
@@ -174,14 +207,89 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
         status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        validate();
+        validate(1);
     }
 
-    private void validate() {
+    @Test
+    public void testMergeJob() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config);
+        ExecutableManager execMgr = ExecutableManager.getInstance(config);
+
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+
+        // ready dataflow, segment, cuboid layout
+
+        long start = dateToLong("2011/01/01");
+        long end = dateToLong("2013/01/01");
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment firstSeg = dsMgr.appendSegment(df, new SegmentRange(start, end));
+        df = dsMgr.getDataflow("ncube_basic");
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+
+        // Round1. Build first segment
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(firstSeg), Sets.newLinkedHashSet(layouts),
+                "ADMIN");
+        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        /**
+         * Round2. Build second segment
+         */
+
+        //update seg
+        start = dateToLong("2013/01/01");
+        end = dateToLong("2014/01/02");
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment secondSeg = dsMgr.appendSegment(df, new SegmentRange(start, end));
+
+        job = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(job);
+
+        // wait job done
+        status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        /**
+         * Round3. Merge two segments
+         */
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment mergeSeg = dsMgr.mergeSegments(df,
+                new SegmentRange(dateToLong("2011/01/01"), dateToLong("2015/01/02")), false);
+
+        NSparkMergingJob mergeJob = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(mergeJob);
+
+        // wait job done
+        status = wait(mergeJob);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        validate(2);
+    }
+
+    private void validate(int segmentId) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config);
         NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment seg = df.getSegment(1);
+        NDataSegment seg = df.getSegment(segmentId);
         NDataSegDetails segCuboids = seg.getSegDetails();
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, 1);
         NCuboidLayout layout = dataCuboid.getCuboidLayout();
@@ -244,5 +352,19 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
                 return status;
             }
         }
+    }
+
+    private long dateToLong(String dateString) {
+        Date date = null;
+        String format = "yyyy/MM/dd";
+        SimpleDateFormat sdf = new SimpleDateFormat(format);
+        try {
+            date = sdf.parse(dateString);
+        } catch (ParseException e) {
+            System.out.println("Failed to parse string to date.");
+        }
+        if (date == null)
+            return 0L;
+        return date.getTime();
     }
 }

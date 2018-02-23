@@ -30,30 +30,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.AbstractApplication;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -65,60 +59,28 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 
-public class NDataflowBuilder extends AbstractApplication {
-    protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuilder.class);
-
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_DATAFLOW_NAME = OptionBuilder.withArgName(NBatchConstants.P_DATAFLOW_NAME)
-            .hasArg().isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_DATAFLOW_NAME);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
-            .isRequired(true).withDescription("Segment indexes").create(NBatchConstants.P_SEGMENT_IDS);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_LAYOUT_IDS = OptionBuilder.withArgName(NBatchConstants.P_CUBOID_LAYOUT_IDS)
-            .hasArg().isRequired(true).withDescription("Layout indexes").create(NBatchConstants.P_CUBOID_LAYOUT_IDS);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
-            .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);
-
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_JOB_ID = OptionBuilder.withArgName(NBatchConstants.P_JOB_ID).hasArg()
-            .isRequired(true).withDescription("Current job id").create(NBatchConstants.P_JOB_ID);
-
-    private volatile KylinConfig config;
-    private volatile NSpanningTree nSpanningTree;
-    private volatile String jobId;
-    private volatile List<NBuildSourceInfo> sources = new ArrayList<>();
-    private SparkSession ss;
+public class NDataflowBuildJob extends NDataflowJob {
+    protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuildJob.class);
+    protected volatile NSpanningTree nSpanningTree;
+    protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
 
     @Override
     protected Options getOptions() {
-        Options options = new Options();
-        options.addOption(OPTION_DATAFLOW_NAME);
-        options.addOption(OPTION_SEGMENT_IDS);
-        options.addOption(OPTION_LAYOUT_IDS);
-        options.addOption(OPTION_META_URL);
-        options.addOption(OPTION_JOB_ID);
-        return options;
+        return super.getOptions();
     }
 
     @Override
     protected void execute(OptionsHelper optionsHelper) throws Exception {
+        super.execute(optionsHelper);
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
-        String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
-        jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
-
-        config = AbstractHadoopJob.loadKylinConfigFromHdfs(hdfsMetalUrl);
-        KylinConfig.setKylinConfigThreadLocal(config);
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config);
             NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
             Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds);
             nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
-            ss = SparkSession.builder().enableHiveSupport().getOrCreate();
 
             for (int segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
@@ -168,7 +130,7 @@ public class NDataflowBuilder extends AbstractApplication {
         Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate().persist();
         long cuboidRowCnt = afterAgg.count();
 
-        int partition = estimatePartitions(afterAgg);
+        int partition = estimatePartitions(afterAgg, config);
         Set<Integer> meas = cuboid.getOrderedMeasures().keySet();
         for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
             Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
@@ -207,7 +169,7 @@ public class NDataflowBuilder extends AbstractApplication {
         NDataflowManager.getInstance(config).updateDataflow(update);
     }
 
-    private void fillCuboid(NDataCuboid cuboid) throws IOException {
+    public static void fillCuboid(NDataCuboid cuboid) throws IOException {
         String strPath = NSparkCubingUtil.getStoragePath(cuboid);
         FileSystem fs = new Path(strPath).getFileSystem(HadoopUtil.getCurrentConfiguration());
         if (fs.exists(new Path(strPath))) {
@@ -220,7 +182,7 @@ public class NDataflowBuilder extends AbstractApplication {
         }
     }
 
-    private int estimatePartitions(Dataset<Row> ds) {
+    public static int estimatePartitions(Dataset<Row> ds, KylinConfig config) {
         int sizeMB = (int) (NSizeEstimator.estimate(ds, 0.1f) / (1024 * 1024));
         int partition = sizeMB / KapConfig.wrap(config).getParquetStorageShardSize();
         if (partition == 0)
@@ -229,7 +191,7 @@ public class NDataflowBuilder extends AbstractApplication {
     }
 
     public static void main(String[] args) {
-        NDataflowBuilder nDataflowBuilder = new NDataflowBuilder();
-        nDataflowBuilder.execute(args);
+        NDataflowBuildJob nDataflowBuildJob = new NDataflowBuildJob();
+        nDataflowBuildJob.execute(args);
     }
 }

@@ -25,12 +25,15 @@
 package io.kyligence.kap.cube.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,6 +135,14 @@ public class NDataSegDetails extends RootPersistentEntity {
         this.segmentId = segmentId;
     }
 
+    public long getSizeKB() {
+        long sizeKB = 0L;
+        for (NDataCuboid cuboid : getCuboids()) {
+            sizeKB += cuboid.getSizeKB();
+        }
+        return sizeKB;
+    }
+
     public List<NDataCuboid> getCuboids() {
         return isCachedAndShared() ? ImmutableList.copyOf(cuboids) : cuboids;
     }
@@ -162,6 +173,53 @@ public class NDataSegDetails extends RootPersistentEntity {
     public void removeCuboid(NDataCuboid cuboid) {
         checkIsNotCachedAndShared();
         cuboids.remove(cuboid);
+    }
+
+    public List<NDataCuboid> getCuboidByStatus(SegmentStatusEnum status) {
+        List<NDataCuboid> expectedList = Lists.newArrayList();
+        for (NDataCuboid cuboid : getCuboids()) {
+            if (cuboid.getStatus() == status)
+                expectedList.add(cuboid);
+        }
+        return expectedList;
+    }
+
+    public boolean checkCuboidsBeforeMerge(NDataSegDetails another) {
+
+        if (another == this)
+            return false;
+
+        List<NDataCuboid> currentSortedCuboids = getSortedCuboids(getCuboids());
+        List<NDataCuboid> anotherSortedCuboids = another.getSortedCuboids(another.getCuboids());
+        int size = currentSortedCuboids.size();
+        if (size != anotherSortedCuboids.size())
+            return false;
+
+        if (size == 0)
+            return true;
+
+        for (int i = 0; i < size; i++) {
+            if (currentSortedCuboids.get(i).getCuboidLayoutId() != anotherSortedCuboids.get(i).getCuboidLayoutId())
+                return false;
+
+            if (currentSortedCuboids.get(i).getStatus() != anotherSortedCuboids.get(i).getStatus())
+                return false;
+        }
+
+        if (getCuboidByStatus(SegmentStatusEnum.READY).size() < 1)
+            return false;
+
+        return true;
+    }
+
+    public static List<NDataCuboid> getSortedCuboids(List<NDataCuboid> cuboids) {
+        Collections.sort(cuboids, new Comparator<NDataCuboid>() {
+            @Override
+            public int compare(NDataCuboid o1, NDataCuboid o2) {
+                return (int) (o1.getCuboidLayoutId() - o2.getCuboidLayoutId());
+            }
+        });
+        return cuboids;
     }
 
     // ============================================================================

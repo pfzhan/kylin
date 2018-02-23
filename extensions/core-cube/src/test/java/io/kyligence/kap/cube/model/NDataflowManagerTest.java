@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -88,7 +90,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         } catch (IllegalStateException ex) {
             // expected
         }
-        
+
         df.copy().setStatus(RealizationStatusEnum.DISABLED);
     }
 
@@ -148,6 +150,46 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(1, df.getSegments().size());
+    }
+
+    @Test
+    public void testMergeSegments() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange(0, 1));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg1);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+
+        NDataSegment seg2 =mgr.appendSegment(df, new SegmentRange(1, 2));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg2);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        NDataSegment mergedSeg = mgr.mergeSegments(df, new SegmentRange(0, 2), true);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+
+        Assert.assertTrue(mergedSeg.getSegRange().contains(seg1.getSegRange()));
+        Assert.assertTrue(mergedSeg.getSegRange().contains(seg2.getSegRange()));
     }
 
     @Test

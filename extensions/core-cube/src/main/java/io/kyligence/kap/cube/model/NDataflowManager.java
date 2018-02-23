@@ -294,6 +294,82 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
+    public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force) throws IOException {
+
+        NDataflow dataflowCopy = dataflow.copy();
+
+        if (dataflowCopy.getSegments().isEmpty())
+            throw new IllegalArgumentException(dataflow + " has no segments");
+
+        Preconditions.checkArgument(segRange != null);
+
+        checkBuildingSegment(dataflowCopy);
+        checkCubeIsPartitioned(dataflowCopy);
+
+        NDataSegment newSegment = newSegment(dataflowCopy, segRange);
+
+        Segments<NDataSegment> mergingSegments = dataflowCopy.getMergingSegments(newSegment);
+
+        if (mergingSegments.size() <= 1)
+            throw new IllegalArgumentException("Range " + newSegment.getSegRange()
+                    + " must contain at least 2 segments, but there is " + mergingSegments.size());
+
+        NDataSegment first = mergingSegments.get(0);
+        NDataSegDetails firstSegDetails = first.getSegDetails();
+
+        for (int i = 1; i < mergingSegments.size(); i++) {
+            NDataSegment dataSegment = mergingSegments.get(i);
+            NDataSegDetails details = dataSegment.getSegDetails();
+            if (firstSegDetails.checkCuboidsBeforeMerge(details) == false)
+                throw new IllegalArgumentException(first + " and " + dataSegment + " has different layout status");
+        }
+
+        NDataSegment last = mergingSegments.get(mergingSegments.size() - 1);
+        if (force == false) {
+            for (int i = 0; i < mergingSegments.size() - 1; i++) {
+                if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
+                    throw new IllegalStateException("Merging segments must not have gaps between "
+                            + mergingSegments.get(i) + " and " + mergingSegments.get(i + 1));
+            }
+        }
+
+        newSegment.setSourcePartitionOffsetStart(first.getSourcePartitionOffsetStart());
+        newSegment.setSourcePartitionOffsetEnd(last.getSourcePartitionOffsetEnd());
+
+        newSegment.setTsRangeStart(first.getTsRangeStart());
+        newSegment.setTsRangeEnd(last.getTsRangeEnd());
+
+        if (force == false) {
+            List<String> emptySegment = Lists.newArrayList();
+            for (NDataSegment seg : mergingSegments) {
+                if (seg.getSegDetails().getSizeKB() == 0) {
+                    emptySegment.add(seg.getName());
+                }
+            }
+
+            if (emptySegment.size() > 0) {
+                throw new IllegalArgumentException(
+                        "Empty cube segment found, couldn't merge unless 'forceMergeEmptySegment' set to true: "
+                                + emptySegment);
+            }
+        }
+
+        validateNewSegments(dataflowCopy, newSegment);
+
+        NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getName());
+        update.setToAddSegs(newSegment);
+        updateDataflow(update);
+
+        return newSegment;
+    }
+
+    private void checkCubeIsPartitioned(NDataflow dataflow) {
+        if (dataflow.getModel().getPartitionDesc().isPartitioned() == false) {
+            throw new IllegalStateException(
+                    "there is no partition date column specified, only full build is supported");
+        }
+    }
+
     private void checkBuildingSegment(NDataflow df) {
         int maxBuldingSeg = df.getConfig().getMaxBuildingSegments();
         if (df.getBuildingSegments().size() >= maxBuldingSeg) {
@@ -492,5 +568,4 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
         return holes;
     }
-
 }
