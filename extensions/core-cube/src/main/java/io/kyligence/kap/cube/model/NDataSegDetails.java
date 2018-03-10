@@ -135,12 +135,20 @@ public class NDataSegDetails extends RootPersistentEntity {
         this.segmentId = segmentId;
     }
 
-    public long getSizeKB() {
+    public long getTotalCuboidSizeKB() {
         long sizeKB = 0L;
         for (NDataCuboid cuboid : getCuboids()) {
             sizeKB += cuboid.getSizeKB();
         }
         return sizeKB;
+    }
+
+    public long getTotalCuboidRowCount() {
+        long count = 0L;
+        for (NDataCuboid cuboid : getCuboids()) {
+            count += cuboid.getRows();
+        }
+        return count;
     }
 
     public List<NDataCuboid> getCuboids() {
@@ -206,7 +214,8 @@ public class NDataSegDetails extends RootPersistentEntity {
                 return false;
         }
 
-        if (getCuboidByStatus(SegmentStatusEnum.READY).size() < 1)
+        // All cuboids must be READY, or fail
+        if (getCuboidByStatus(SegmentStatusEnum.READY).size() != size)
             return false;
 
         return true;

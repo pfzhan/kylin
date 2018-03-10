@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.cube.model;
 
+import static org.junit.Assert.fail;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -153,7 +155,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testMergeSegments() throws IOException {
+    public void testMergeSegmentsSuccess() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
         NDataflow df = mgr.getDataflow("ncube_basic");
@@ -174,7 +176,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(1, df.getSegments().size());
 
-        NDataSegment seg2 =mgr.appendSegment(df, new SegmentRange(1, 2));
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange(1, 2));
         seg2.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg2);
@@ -190,6 +192,87 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(mergedSeg.getSegRange().contains(seg1.getSegRange()));
         Assert.assertTrue(mergedSeg.getSegRange().contains(seg2.getSegRange()));
+    }
+
+    @Test
+    public void testMergeSegmentsFail() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange(0, 1));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg1);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange(1, 2));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg2);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(2, df.getSegments().size());
+
+        NDataSegment seg3 = mgr.appendSegment(df, new SegmentRange(5, 6));
+        seg3.setStatus(SegmentStatusEnum.READY);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg3);
+        mgr.updateDataflow(update);
+
+        df = mgr.getDataflow("ncube_basic");
+        Assert.assertEquals(3, df.getSegments().size());
+
+        try {
+            mgr.mergeSegments(df, new SegmentRange(0, 2), false);
+            fail("No exception thrown.");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalArgumentException);
+            Assert.assertTrue(e.getMessage().contains("Empty cube segment found"));
+        }
+
+        try {
+            mgr.mergeSegments(df, new SegmentRange(0, 6), false);
+            fail("No exception thrown.");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalStateException);
+            Assert.assertTrue(e.getMessage().contains("Merging segments must not have gaps between"));
+        }
+
+        // Set seg1's cuboid-0's status to NEW
+        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg1.getDataflow(), seg1.getId(), 0);
+        dataCuboid.setStatus(SegmentStatusEnum.NEW);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(seg1);
+        update.setToAddOrUpdateCuboids(dataCuboid);
+        mgr.updateDataflow(update);
+
+        try {
+            mgr.mergeSegments(df, new SegmentRange(0, 1), true);
+            fail("No exception thrown.");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalArgumentException);
+            Assert.assertTrue(e.getMessage().contains("must contain at least 2 segments, but there is 1"));
+        }
+
+        try {
+            mgr.mergeSegments(df, new SegmentRange(0, 2), true);
+            fail("No exception thrown.");
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof IllegalArgumentException);
+            Assert.assertTrue(e.getMessage().contains("has different layout status"));
+        }
     }
 
     @Test

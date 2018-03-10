@@ -342,7 +342,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (force == false) {
             List<String> emptySegment = Lists.newArrayList();
             for (NDataSegment seg : mergingSegments) {
-                if (seg.getSegDetails().getSizeKB() == 0) {
+                if (seg.getSegDetails().getTotalCuboidRowCount() == 0) {
                     emptySegment.add(seg.getName());
                 }
             }

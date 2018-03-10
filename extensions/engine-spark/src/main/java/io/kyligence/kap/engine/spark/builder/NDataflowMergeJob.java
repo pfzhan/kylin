@@ -153,10 +153,6 @@ public class NDataflowMergeJob extends NDataflowJob {
             for (NDataCuboid cuboid : seg.getSegDetails().getCuboidByStatus(SegmentStatusEnum.READY)) {
                 long layoutId = cuboid.getCuboidLayoutId();
 
-                // Only merge the cuboids that specified by users.
-                if (specifiedCuboids != null && !specifiedCuboids.contains(layoutId))
-                    continue;
-
                 NLayoutMergeAssist assist = mergeCuboidsAsssit.get(layoutId);
                 if (assist == null) {
                     assist = new NLayoutMergeAssist();
