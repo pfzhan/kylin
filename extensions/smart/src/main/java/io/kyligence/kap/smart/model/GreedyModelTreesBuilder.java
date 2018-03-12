@@ -111,7 +111,7 @@ public class GreedyModelTreesBuilder {
         TableDesc rootFact;
         TableAliasGenerator.TableAliasDict dict;
 
-        Map<String, Collection<OLAPContext>> contexts = Maps.newHashMap();
+        Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
         Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
         Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
 

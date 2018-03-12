@@ -62,10 +62,10 @@ public class NCubeMasterTest extends NTestBase {
             Assert.assertNotNull(cubePlan);
             List<NDimensionDesc> dims = cubePlan.getDimensions();
             Assert.assertFalse(dims.isEmpty());
-            Assert.assertEquals("integer:8", dims.get(0).getEncoding().getName());
-            Assert.assertEquals("date", dims.get(1).getEncoding().getName());
-            Assert.assertEquals("dict", dims.get(2).getEncoding().getName());
-            Assert.assertEquals("dict", dims.get(3).getEncoding().getName());
+            Assert.assertEquals("dict", dims.get(0).getEncoding().getName());
+            Assert.assertEquals("dict", dims.get(1).getEncoding().getName());
+            Assert.assertEquals("date", dims.get(2).getEncoding().getName());
+            Assert.assertEquals("integer:8", dims.get(3).getEncoding().getName());
         }
 
         // propose again, should return same result
@@ -86,10 +86,6 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c11 = c.getLayouts().get(0);
                     Assert.assertSame(c11.getCuboidDesc(), c);
                     Assert.assertEquals(2, c11.getRowkeyColumns().length);
-                    Set<String> indexes = Sets.newHashSet();
-                    indexes.add(c11.getRowkeyColumns()[0].getIndex());
-                    indexes.add(c11.getRowkeyColumns()[1].getIndex());
-                    Assert.assertEquals(2, indexes.size());
                     Assert.assertEquals(1, c11.getDimensionCFs().length);
                     Assert.assertEquals(2, c11.getDimensionCFs()[0].getColumns().length);
                     Assert.assertEquals(1, c11.getMeasureCFs().length);
@@ -98,6 +94,10 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c12 = c.getLayouts().get(1);
                     Assert.assertSame(c12.getCuboidDesc(), c);
                     Assert.assertEquals(2, c12.getRowkeyColumns().length);
+                    Set<String> indexes = Sets.newHashSet();
+                    indexes.add(c12.getRowkeyColumns()[0].getIndex());
+                    indexes.add(c12.getRowkeyColumns()[1].getIndex());
+                    Assert.assertEquals(2, indexes.size());
                     Assert.assertEquals(1, c12.getDimensionCFs().length);
                     Assert.assertEquals(2, c12.getDimensionCFs()[0].getColumns().length);
                     Assert.assertEquals(1, c12.getMeasureCFs().length);
@@ -111,7 +111,7 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c21 = c.getLayouts().get(0);
                     Assert.assertSame(c21.getCuboidDesc(), c);
                     Assert.assertEquals(1, c21.getRowkeyColumns().length);
-                    Assert.assertEquals(1, c21.getRowkeyColumns()[0].getDimensionId());
+                    Assert.assertEquals(2, c21.getRowkeyColumns()[0].getDimensionId());
                     Assert.assertEquals("eq", c21.getRowkeyColumns()[0].getIndex());
                     Assert.assertEquals(1, c21.getDimensionCFs().length);
                     Assert.assertEquals(1, c21.getDimensionCFs()[0].getColumns().length);

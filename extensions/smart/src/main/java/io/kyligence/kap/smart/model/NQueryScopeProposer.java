@@ -129,7 +129,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             ctx.fixModel(nDataModel, matchingAlias);
 
             // collect names columns
-            Set<TblColRef> allColumns = Sets.newHashSet(ctx.allColumns);
+            Set<TblColRef> allColumns = Sets.newLinkedHashSet(ctx.allColumns);
             if (allColumns == null || allColumns.size() == 0) {
                 allColumns = new HashSet<>();
                 for (OLAPTableScan tableScan : ctx.allTableScans) {
