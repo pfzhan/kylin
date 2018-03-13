@@ -108,13 +108,16 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         ModelTree modelTree = modelContext.getModelTree();
 
         // column_identity <====> NamedColumn
-        Map<String, NDataModel.NamedColumn> columnsCandidate = Maps.newHashMap();
+        Map<String, NDataModel.NamedColumn> namedColsCandidate = Maps.newHashMap();
         Map<FunctionDesc, NDataModel.Measure> measureCandidate = Maps.newHashMap();
+        
+        Map<String, NDataModel.NamedColumn> dimensionCandidate = Maps.newHashMap();
+        Set<TblColRef> defaultDimensionCandidate = Sets.newHashSet();
 
         // Load from old model
         int maxColId = -1, maxMeasureId = NDataModel.MEASURE_ID_BASE - 1;
         for (NDataModel.NamedColumn namedColumn : nDataModel.getAllNamedColumns()) {
-            columnsCandidate.put(namedColumn.aliasDotColumn, namedColumn);
+            namedColsCandidate.put(namedColumn.aliasDotColumn, namedColumn);
             maxColId = Math.max(maxColId, namedColumn.id);
         }
         for (NDataModel.Measure measure : nDataModel.getAllMeasures()) {
@@ -128,19 +131,22 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             Map<String, String> matchingAlias = RealizationChooser.matches(nDataModel, ctx);
             ctx.fixModel(nDataModel, matchingAlias);
 
+            Set<TblColRef> allTableColumns = Sets.newHashSet();
+            for (OLAPTableScan tableScan : ctx.allTableScans) {
+                allTableColumns.addAll(tableScan.getTableRef().getColumns());
+            }
+            defaultDimensionCandidate.addAll(allTableColumns);
+            
             // collect names columns
             Set<TblColRef> allColumns = Sets.newLinkedHashSet(ctx.allColumns);
             if (allColumns == null || allColumns.size() == 0) {
-                allColumns = new HashSet<>();
-                for (OLAPTableScan tableScan : ctx.allTableScans) {
-                    allColumns.addAll(tableScan.getTableRef().getColumns());
-                }
+                allColumns = allTableColumns;
             }
             if (ctx.subqueryJoinParticipants != null)
                 allColumns.addAll(ctx.subqueryJoinParticipants);
 
             for (TblColRef tblColRef : allColumns) {
-                if (columnsCandidate.containsKey(tblColRef.getIdentity()))
+                if (namedColsCandidate.containsKey(tblColRef.getIdentity()))
                     continue;
 
                 int newId = maxColId + 1;
@@ -149,7 +155,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 col.aliasDotColumn = tblColRef.getIdentity();
                 col.id = newId;
 
-                columnsCandidate.put(tblColRef.getIdentity(), col);
+                namedColsCandidate.put(tblColRef.getIdentity(), col);
                 maxColId = newId;
             }
 
@@ -172,6 +178,36 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
             ctx.unfixModel();
         }
+        
+        /*
+         *  FIXME work around empty dimension case, all used columns are in measures
+         */
+        dimensionCandidate.putAll(namedColsCandidate);
+        for (FunctionDesc agg : measureCandidate.keySet()) {
+            if (!checkFunctionDesc(agg) || agg.getParameter() == null || agg.getParameter().getColRef() == null) {
+                continue;
+            }
+            String measureColName = agg.getParameter().getColRef().getIdentity();
+            NDataModel.NamedColumn measureCol = dimensionCandidate.remove(measureColName);
+        }
+        if (dimensionCandidate.isEmpty()) {
+            // dim place holder for none
+            for (TblColRef candidate : defaultDimensionCandidate) {
+                if (namedColsCandidate.containsKey(candidate.getIdentity())) {
+                    continue;
+                }
+                NDataModel.NamedColumn newNamedCol = new NDataModel.NamedColumn();
+                newNamedCol.name = candidate.getIdentity();
+                newNamedCol.aliasDotColumn = candidate.getIdentity();
+                newNamedCol.id = ++maxColId;
+                dimensionCandidate.put(candidate.getIdentity(), newNamedCol);
+                break;
+            }
+            namedColsCandidate.putAll(dimensionCandidate);
+        }
+        if (dimensionCandidate.isEmpty()) {
+            throw new RuntimeException("Suggest no dimension");
+        }
 
         FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(nDataModel);
         if (!measureCandidate.containsKey(countStar)) {
@@ -182,7 +218,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             maxMeasureId = Math.max(measure.id, maxMeasureId);
         }
 
-        List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(columnsCandidate.values());
+        List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(namedColsCandidate.values());
         Collections.sort(namedColumns, new Comparator<NDataModel.NamedColumn>() {
             @Override
             public int compare(NDataModel.NamedColumn o1, NDataModel.NamedColumn o2) {

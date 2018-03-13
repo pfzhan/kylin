@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +88,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
             ctx.fixModel(model, aliasMap);
-            suggester.ingest(ctx);
+            suggester.ingest(ctx, model);
             ctx.unfixModel();
         }
 
@@ -288,11 +289,31 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                     && Arrays.equals(l1.getSortByColumns(), l2.getSortByColumns());
         }
 
-        void ingest(OLAPContext ctx) {
+        void ingest(OLAPContext ctx, NDataModel model) {
             final BitSet dimBitSet = new BitSet();
             final BitSet measureBitSet = new BitSet();
 
             final Map<Integer, Double> dimScores = getDimScores(ctx);
+            
+            // FIXME work around empty dimension case
+            if (dimScores.isEmpty()) {
+                Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
+                for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
+                    dimensionCandidate.put(namedColumn.name, namedColumn);
+                }
+                for (NDataModel.Measure measure : model.getAllMeasures()) {
+                    FunctionDesc agg = measure.getFunction();
+                    if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType() ) {
+                        continue;
+                    }
+                    dimensionCandidate.remove(agg.getParameter().getValue());
+                }
+                if (dimensionCandidate.isEmpty()) {
+                    throw new RuntimeException("Suggest no dimension");
+                }
+                dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
+             }
+            
             for (int dimId : dimScores.keySet())
                 dimBitSet.set(dimId);
 
