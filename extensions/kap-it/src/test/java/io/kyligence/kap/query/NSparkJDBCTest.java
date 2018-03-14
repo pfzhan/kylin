@@ -53,5 +53,6 @@ public class NSparkJDBCTest extends NLocalSparkWithMetaTest {
         String formatSql = NSparkCubingUtil.formatSQL("select count(*) as CNT from test_kylin_fact");
         Dataset<Row> ret = ss.read().jdbc("jdbc:calcite:", formatSql, prop);
         ret.show(10);
+        System.clearProperty("kap.storage.columnar.hdfs-dir");
     }
 }

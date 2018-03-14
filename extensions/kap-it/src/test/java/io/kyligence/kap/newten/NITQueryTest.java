@@ -69,7 +69,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
     private static final String DEFAULT_PROJECT = "newten";
     private static final String IT_SQL_BASE_DIR = "../../kylin/kylin-it/src/test/resources/query";
-    private static final String[] EXCLUDE_SQL_LIST = { "select sum(price) as GMV" };
+    private static final String[] EXCLUDE_SQL_LIST = {};
 
     @Before
     public void setup() throws Exception {
@@ -82,6 +82,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
         }
         kylinConfig = getTestConfig();
         kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
+        kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
     }
 
     @After
@@ -108,7 +109,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
 
         // Step1. Auto modeling and cubing
         //String[] queries = retrieveAllQueries(IT_SQL_BASE_DIR);
-        String[] queries = fetchPartialQueries("sql", 0, 38);
+        String[] queries = fetchPartialQueries("sql", 0, 3);
         kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
         for (String query : queries) {

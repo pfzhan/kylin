@@ -294,7 +294,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             final BitSet measureBitSet = new BitSet();
 
             final Map<Integer, Double> dimScores = getDimScores(ctx);
-            
+
             // FIXME work around empty dimension case
             if (dimScores.isEmpty()) {
                 Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
@@ -303,7 +303,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                 }
                 for (NDataModel.Measure measure : model.getAllMeasures()) {
                     FunctionDesc agg = measure.getFunction();
-                    if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType() ) {
+                    if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
                         continue;
                     }
                     dimensionCandidate.remove(agg.getParameter().getValue());
@@ -312,8 +312,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                     throw new RuntimeException("Suggest no dimension");
                 }
                 dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
-             }
-            
+            }
+
             for (int dimId : dimScores.keySet())
                 dimBitSet.set(dimId);
 

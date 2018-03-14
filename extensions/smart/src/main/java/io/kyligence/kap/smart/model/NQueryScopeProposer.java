@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.model;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -110,7 +109,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         // column_identity <====> NamedColumn
         Map<String, NDataModel.NamedColumn> namedColsCandidate = Maps.newHashMap();
         Map<FunctionDesc, NDataModel.Measure> measureCandidate = Maps.newHashMap();
-        
+
         Map<String, NDataModel.NamedColumn> dimensionCandidate = Maps.newHashMap();
         Set<TblColRef> defaultDimensionCandidate = Sets.newHashSet();
 
@@ -136,7 +135,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 allTableColumns.addAll(tableScan.getTableRef().getColumns());
             }
             defaultDimensionCandidate.addAll(allTableColumns);
-            
+
             // collect names columns
             Set<TblColRef> allColumns = Sets.newLinkedHashSet(ctx.allColumns);
             if (allColumns == null || allColumns.size() == 0) {
@@ -178,7 +177,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
             ctx.unfixModel();
         }
-        
+
         /*
          *  FIXME work around empty dimension case, all used columns are in measures
          */
