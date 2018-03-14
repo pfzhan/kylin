@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -31,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -137,7 +140,15 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             defaultDimensionCandidate.addAll(allTableColumns);
 
             // collect names columns
-            Set<TblColRef> allColumns = Sets.newLinkedHashSet(ctx.allColumns);
+            TblColRef[] colArray = ctx.allColumns.toArray(new TblColRef[0]);
+            Arrays.sort(colArray, new Comparator<TblColRef>() {
+                @Override
+                public int compare(TblColRef o1, TblColRef o2) {
+                    return o1.getIdentity().compareTo(o2.getIdentity());
+                }
+            });
+            Set<TblColRef> allColumns = Sets.newLinkedHashSet(Arrays.asList(colArray));
+
             if (allColumns == null || allColumns.size() == 0) {
                 allColumns = allTableColumns;
             }

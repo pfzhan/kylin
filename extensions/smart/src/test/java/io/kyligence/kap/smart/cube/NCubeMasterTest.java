@@ -63,8 +63,8 @@ public class NCubeMasterTest extends NTestBase {
             List<NDimensionDesc> dims = cubePlan.getDimensions();
             Assert.assertFalse(dims.isEmpty());
             Assert.assertEquals("dict", dims.get(0).getEncoding().getName());
-            Assert.assertEquals("dict", dims.get(1).getEncoding().getName());
-            Assert.assertEquals("date", dims.get(2).getEncoding().getName());
+            Assert.assertEquals("date", dims.get(1).getEncoding().getName());
+            Assert.assertEquals("dict", dims.get(2).getEncoding().getName());
             Assert.assertEquals("integer:8", dims.get(3).getEncoding().getName());
         }
 
@@ -111,7 +111,7 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c21 = c.getLayouts().get(0);
                     Assert.assertSame(c21.getCuboidDesc(), c);
                     Assert.assertEquals(1, c21.getRowkeyColumns().length);
-                    Assert.assertEquals(2, c21.getRowkeyColumns()[0].getDimensionId());
+                    Assert.assertEquals(1, c21.getRowkeyColumns()[0].getDimensionId());
                     Assert.assertEquals("eq", c21.getRowkeyColumns()[0].getIndex());
                     Assert.assertEquals(1, c21.getDimensionCFs().length);
                     Assert.assertEquals(1, c21.getDimensionCFs()[0].getColumns().length);
