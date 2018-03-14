@@ -31,7 +31,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
@@ -108,10 +107,10 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, cube.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L), null, null, null);
+        CubeSegment seg1 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(0L, 1000L));
         mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
-        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L), null, null, null);
+        CubeSegment seg2 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(1000L, 2000L));
         mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
         cube = mgr.getCube(cube.getName());
@@ -132,26 +131,31 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         // no segment at first
         assertEquals(0, cube.getSegments().size());
 
-        Map m1 = Maps.newHashMap();
+        Map<Integer, Long> m1 = Maps.newHashMap();
         m1.put(1, 1000L);
-        Map m2 = Maps.newHashMap();
+        Map<Integer, Long> m2 = Maps.newHashMap();
         m2.put(1, 2000L);
-        Map m3 = Maps.newHashMap();
+        Map<Integer, Long> m3 = Maps.newHashMap();
         m3.put(1, 3000L);
-        Map m4 = Maps.newHashMap();
+        Map<Integer, Long> m4 = Maps.newHashMap();
         m4.put(1, 4000L);
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, null, new SegmentRange(0L, 1000L), null, m1);
+        CubeSegment seg1 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1000L, null, m1));
         mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
-        CubeSegment seg2 = mgr.appendSegment(cube, null, new SegmentRange(1000L, 2000L), m1, m2);
+        CubeSegment seg2 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(1000L, 2000L, m1, m2));
         mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
-        CubeSegment seg3 = mgr.mergeSegments(cube, null, new SegmentRange(0L, 2000L), true);
+        CubeSegment seg3 = mgr.mergeSegments(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 2000L, null, null), true);
         //seg3.setStatus(SegmentStatusEnum.NEW);
 
-        CubeSegment seg4 = mgr.appendSegment(cube, null, new SegmentRange(2000L, 3000L), m2, m3);
+        CubeSegment seg4 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(2000L, 3000L, m2, m3));
+
         seg4.setStatus(SegmentStatusEnum.NEW);
         seg4.setLastBuildJobID("test");
         seg4.setStorageLocationIdentifier("test");
@@ -159,7 +163,8 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         update.setToUpdateSegs(seg4);
         mgr.updateCube(update);
 
-        CubeSegment seg5 = mgr.appendSegment(cube, null, new SegmentRange(3000L, 4000L), m3, m4);
+        CubeSegment seg5 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(3000L, 4000L, m3, m4));
         mgr.updateCubeSegStatus(seg5, SegmentStatusEnum.READY);
 
         mgr.promoteNewlyBuiltSegments(cube, seg4);
@@ -188,34 +193,40 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
 
         // no segment at first
         assertEquals(0, cube.getSegments().size());
-        Map m1 = Maps.newHashMap();
+        Map<Integer, Long> m1 = Maps.newHashMap();
         m1.put(1, 1000L);
-        Map m2 = Maps.newHashMap();
+        Map<Integer, Long> m2 = Maps.newHashMap();
         m2.put(1, 2000L);
-        Map m3 = Maps.newHashMap();
+        Map<Integer, Long> m3 = Maps.newHashMap();
         m3.put(1, 3000L);
-        Map m4 = Maps.newHashMap();
+        Map<Integer, Long> m4 = Maps.newHashMap();
         m4.put(1, 4000L);
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, null, new SegmentRange(0L, 1000L), null, m1);
+        CubeSegment seg1 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 1000L, null, m1));
         mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
-        CubeSegment seg2 = mgr.appendSegment(cube, null, new SegmentRange(1000L, 2000L), m1, m2);
+        CubeSegment seg2 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(1000L, 2000L, m1, m2));
         mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
-        CubeSegment seg3 = mgr.appendSegment(cube, null, new SegmentRange(2000L, 3000L), m2, m3);
+        CubeSegment seg3 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(2000L, 3000L, m2, m3));
         mgr.updateCubeSegStatus(seg3, SegmentStatusEnum.READY);
 
-        CubeSegment seg4 = mgr.appendSegment(cube, null, new SegmentRange(3000L, 4000L), m3, m4);
+        CubeSegment seg4 = mgr.appendSegment(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(3000L, 4000L, m3, m4));
         mgr.updateCubeSegStatus(seg4, SegmentStatusEnum.READY);
 
-        CubeSegment merge1 = mgr.mergeSegments(cube, null, new SegmentRange(0L, 2000L), true);
+        CubeSegment merge1 = mgr.mergeSegments(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(0L, 2000L, null, null), true);
         merge1.setStatus(SegmentStatusEnum.NEW);
         merge1.setLastBuildJobID("test");
         merge1.setStorageLocationIdentifier("test");
 
-        CubeSegment merge2 = mgr.mergeSegments(cube, null, new SegmentRange(2000L, 4000L), true);
+        CubeSegment merge2 = mgr.mergeSegments(cube,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(2000L, 4000L, null, null), true);
         merge2.setStatus(SegmentStatusEnum.NEW);
         merge2.setLastBuildJobID("test");
         merge2.setStorageLocationIdentifier("test");
@@ -267,10 +278,10 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         assertEquals(0, cube.getSegments().size());
 
         // append first
-        CubeSegment seg1 = mgr.appendSegment(cube, new TSRange(0L, 1000L));
+        CubeSegment seg1 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(0L, 1000L));
         mgr.updateCubeSegStatus(seg1, SegmentStatusEnum.READY);
 
-        CubeSegment seg3 = mgr.appendSegment(cube, new TSRange(2000L, 4000L));
+        CubeSegment seg3 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(2000L, 4000L));
         mgr.updateCubeSegStatus(seg3, SegmentStatusEnum.READY);
 
         cube = mgr.getCube(cube.getName());
@@ -282,7 +293,7 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
 
         // append a new seg which will be merged
 
-        CubeSegment seg4 = mgr.appendSegment(cube, new TSRange(4000L, 8000L));
+        CubeSegment seg4 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(4000L, 8000L));
         mgr.updateCubeSegStatus(seg4, SegmentStatusEnum.READY);
 
         cube = mgr.getCube(cube.getName());
@@ -291,11 +302,11 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         mergedSeg = cube.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
-        assertTrue((Long) mergedSeg.start.v == 2000 && (Long) mergedSeg.end.v == 8000);
+        assertTrue((Long) mergedSeg.getStart() == 2000 && (Long) mergedSeg.getEnd() == 8000);
 
         // fill the gap
 
-        CubeSegment seg2 = mgr.appendSegment(cube, new TSRange(1000L, 2000L));
+        CubeSegment seg2 = mgr.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(1000L, 2000L));
         mgr.updateCubeSegStatus(seg2, SegmentStatusEnum.READY);
 
         cube = mgr.getCube(cube.getName());
@@ -304,7 +315,7 @@ public class CubeManagerTest extends LocalFileMetadataTestCase {
         mergedSeg = cube.autoMergeCubeSegments();
 
         assertTrue(mergedSeg != null);
-        assertTrue((Long) mergedSeg.start.v == 0 && (Long) mergedSeg.end.v == 8000);
+        assertTrue((Long) mergedSeg.getStart() == 0 && (Long) mergedSeg.getEnd() == 8000);
     }
 
     @Test

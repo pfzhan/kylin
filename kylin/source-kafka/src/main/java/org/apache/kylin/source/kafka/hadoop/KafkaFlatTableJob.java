@@ -135,8 +135,8 @@ public class KafkaFlatTableJob extends AbstractHadoopJob {
 
     private void setupMapper(CubeSegment cubeSeg) throws IOException {
         // set the segment's offset info to job conf
-        Map<Integer, Long> offsetStart = cubeSeg.getSourcePartitionOffsetStart();
-        Map<Integer, Long> offsetEnd = cubeSeg.getSourcePartitionOffsetEnd();
+        Map<Integer, Long> offsetStart = cubeSeg._getSourcePartitionOffsetStart();
+        Map<Integer, Long> offsetEnd = cubeSeg._getSourcePartitionOffsetEnd();
 
         Integer minPartition = Collections.min(offsetStart.keySet());
         Integer maxPartition = Collections.max(offsetStart.keySet());

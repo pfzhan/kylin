@@ -36,8 +36,8 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -116,7 +116,7 @@ public class UpdateCubeInfoAfterBuildStep extends AbstractExecutable {
 
         logger.info("updateTimeRange step. minValue:" + minValue + " maxValue:" + maxValue);
         if (minValue != timeMinValue && maxValue != timeMaxValue) {
-            segment.setTSRange(new TSRange(minValue, maxValue + 1));
+            segment.setTSRange(new TimeRange(minValue, maxValue + 1));
         }
     }
 }

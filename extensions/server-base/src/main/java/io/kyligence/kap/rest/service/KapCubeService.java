@@ -44,7 +44,6 @@ import org.apache.kylin.cube.model.RowKeyColDesc;
 import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -125,8 +124,8 @@ public class KapCubeService extends BasicService implements InitializingBean {
         RawTableInstance raw = rawTableManager.getAccompanyRawTable(segment.getCubeInstance());
 
         ColumnarResponse columnarResp = new ColumnarResponse();
-        columnarResp.setDateRangeStart(segment.getTSRange().start.v);
-        columnarResp.setDateRangeEnd(segment.getTSRange().end.v);
+        columnarResp.setDateRangeStart(segment.getTSRange().getStart());
+        columnarResp.setDateRangeEnd(segment.getTSRange().getEnd());
 
         FileSystem fs = new Path(segStoragePath).getFileSystem(HadoopUtil.getCurrentConfiguration());
         if (fs.exists(new Path(segStoragePath))) {
@@ -244,13 +243,8 @@ public class KapCubeService extends BasicService implements InitializingBean {
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
 
-        if (first.isOffsetCube()) {
-            SegmentRange range = new SegmentRange(first.getSegRange().start, last.getSegRange().end);
-            return jobService.submitJob(cube, null, range, null, null, CubeBuildTypeEnum.MERGE, force, submitter);
-        } else {
-            TSRange range = new TSRange(first.getTSRange().start.v, last.getTSRange().end.v);
-            return jobService.submitJob(cube, range, null, null, null, CubeBuildTypeEnum.MERGE, force, submitter);
-        }
+        SegmentRange range = first.getSegRange().coverWith(last.getSegRange());
+        return jobService.submitJob(cube, range, CubeBuildTypeEnum.MERGE, force, submitter);
     }
 
     public List<JobInstance> refreshSegments(String cubeName, List<String> selectedSegments) throws IOException {
@@ -263,13 +257,7 @@ public class KapCubeService extends BasicService implements InitializingBean {
                 // make sure work on the latest cube
                 CubeInstance cube = getCubeManager().getCube(cubeName);
                 JobInstance job;
-                if (exist.isOffsetCube()) {
-                    job = jobService.submitJob(cube, null, exist.getSegRange(), null, null, CubeBuildTypeEnum.REFRESH,
-                            true, submitter);
-                } else {
-                    job = jobService.submitJob(cube, exist.getTSRange(), null, null, null, CubeBuildTypeEnum.REFRESH,
-                            true, submitter);
-                }
+                job = jobService.submitJob(cube, exist.getSegRange(), CubeBuildTypeEnum.REFRESH, true, submitter);
                 ret.add(job);
             }
         }

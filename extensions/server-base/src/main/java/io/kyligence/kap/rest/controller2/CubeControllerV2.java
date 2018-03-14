@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.base.Preconditions;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
@@ -48,7 +49,6 @@ import org.apache.kylin.metadata.draft.Draft;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.controller.BasicController;
@@ -88,7 +88,6 @@ import io.kyligence.kap.rest.request.SegmentMgmtRequest;
 import io.kyligence.kap.rest.response.KapCubeResponse;
 import io.kyligence.kap.rest.service.BatchSyncAdvisor;
 import io.kyligence.kap.rest.service.BatchSyncAdvisor.KapJobBuildRequest;
-
 import io.kyligence.kap.rest.service.KapCubeService;
 
 /**
@@ -387,10 +386,11 @@ public class CubeControllerV2 extends BasicController {
 
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
 
-        TSRange range = new TSRange(req.getStartTime(), req.getEndTime());
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                req.getStartTime(), req.getEndTime());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                buildInternal(cubeName, range, null, null, null, req.getBuildType(), req.isForce()), "");
+                buildInternal(cubeName, range, req.getBuildType(), req.isForce()), "");
     }
 
     /** Build/Rebuild a cube segment by source offset */
@@ -438,8 +438,7 @@ public class CubeControllerV2 extends BasicController {
         List<EnvelopeResponse> responseList = Lists.newArrayList();
         for (KapJobBuildRequest jobReq : jobBuildReqs) {
             try {
-                JobInstance job = buildInternal(jobReq.getCubeName(), jobReq.getTsRange(), null, null, null,
-                        jobReq.getBuildType(), true);
+                JobInstance job = buildInternal(jobReq.getCubeName(), jobReq.getTsRange(), jobReq.getBuildType(), true);
                 responseList.add(new EnvelopeResponse(ResponseCode.CODE_SUCCESS, job, ""));
             } catch (Exception e) {
                 responseList.add(new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, e.getMessage()));
@@ -463,16 +462,14 @@ public class CubeControllerV2 extends BasicController {
 
         cubeName = convertToMPCubeIfNeeded(cubeName, new String[] { req.getMpValues() });
 
-        SegmentRange range = new SegmentRange(req.getSourceOffsetStart(), req.getSourceOffsetEnd());
+        SegmentRange range = new SegmentRange.KafkaOffsetPartitionedSegmentRange(req.getSourceOffsetStart(),
+                req.getSourceOffsetEnd(), req.getSourcePartitionOffsetStart(), req.getSourcePartitionOffsetEnd());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                buildInternal(cubeName, null, range, req.getSourcePartitionOffsetStart(),
-                        req.getSourcePartitionOffsetEnd(), req.getBuildType(), req.isForce()),
-                "");
+                buildInternal(cubeName, range, req.getBuildType(), req.isForce()), "");
     }
 
-    private JobInstance buildInternal(String cubeName, TSRange tsRange, SegmentRange segRange, //
-            Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd,
+    private JobInstance buildInternal(String cubeName, SegmentRange segRange, //
             String buildType, boolean force) throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -485,8 +482,7 @@ public class CubeControllerV2 extends BasicController {
         if (cube.getDescriptor().isDraft()) {
             throw new BadRequestException(msg.getBUILD_DRAFT_CUBE());
         }
-        return jobService.submitJob(cube, tsRange, segRange, sourcePartitionOffsetStart, sourcePartitionOffsetEnd,
-                CubeBuildTypeEnum.valueOf(buildType), force, submitter);
+        return jobService.submitJob(cube, segRange, CubeBuildTypeEnum.valueOf(buildType), force, submitter);
     }
 
     @RequestMapping(value = "/{cubeName}/purge", method = { RequestMethod.PUT }, produces = {
@@ -552,13 +548,18 @@ public class CubeControllerV2 extends BasicController {
         }
 
         for (CubeSegment hole : holes) {
+
+            // The code snippet requires refactoring when copying to newten!!!
+            // we don't like buildStreaming() and build() at same time
             if (hole.isOffsetCube()) {
+                Preconditions.checkState(hole.getSegRange() instanceof SegmentRange.KafkaOffsetPartitionedSegmentRange);
+                SegmentRange.KafkaOffsetPartitionedSegmentRange ksr = (SegmentRange.KafkaOffsetPartitionedSegmentRange) hole.getSegRange();
                 KapStreamingBuildRequest request = new KapStreamingBuildRequest();
                 request.setBuildType(CubeBuildTypeEnum.BUILD.toString());
-                request.setSourceOffsetStart((Long) hole.getSegRange().start.v);
-                request.setSourceOffsetEnd((Long) hole.getSegRange().end.v);
-                request.setSourcePartitionOffsetStart(hole.getSourcePartitionOffsetStart());
-                request.setSourcePartitionOffsetEnd(hole.getSourcePartitionOffsetEnd());
+                request.setSourceOffsetStart(ksr.getStart());
+                request.setSourceOffsetEnd(ksr.getEnd());
+                request.setSourcePartitionOffsetStart(ksr.getSourcePartitionOffsetStart());
+                request.setSourcePartitionOffsetEnd(ksr.getSourcePartitionOffsetStart());
                 try {
                     JobInstance job = (JobInstance) buildStreaming(cubeName, request).data;
                     jobs.add(job);
@@ -569,9 +570,11 @@ public class CubeControllerV2 extends BasicController {
                 }
             } else {
                 KapBuildRequest request = new KapBuildRequest();
+                Preconditions.checkState(hole.getSegRange() instanceof SegmentRange.TimePartitionedSegmentRange);
+                SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) hole.getSegRange();
                 request.setBuildType(CubeBuildTypeEnum.BUILD.toString());
-                request.setStartTime(hole.getTSRange().start.v);
-                request.setEndTime(hole.getTSRange().end.v);
+                request.setStartTime(tsr.getStart());
+                request.setEndTime(tsr.getEnd());
 
                 try {
                     JobInstance job = (JobInstance) build(cubeName, request).data;

@@ -28,6 +28,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Preconditions;
 
 /**
  */
@@ -191,20 +192,11 @@ public class PartitionDesc implements Serializable {
         @Override
         public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
 
-            long startInclusive;
-            long endExclusive;
-            if (segRange.start.v instanceof String && segRange.end.v instanceof String) {
-                try {
-                    startInclusive = Long.parseLong((String) segRange.start.v);
-                    endExclusive = Long.parseLong((String) segRange.end.v);
-                } catch (NumberFormatException e) {
-                    //TODO: should support diverse partition type, currently it is only long
-                    throw new IllegalArgumentException("The segRange is not a date.");
-                }
-            } else {
-                startInclusive = (Long) segRange.start.v;
-                endExclusive = (Long) segRange.end.v;
-            }
+            Preconditions.checkState(segRange instanceof SegmentRange.TimePartitionedSegmentRange);
+            SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segRange;
+
+            long startInclusive = tsr.getStart();
+            long endExclusive = tsr.getEnd();
 
             TblColRef partitionDateColumn = partDesc.getPartitionDateColumnRef();
             TblColRef partitionTimeColumn = partDesc.getPartitionTimeColumnRef();
@@ -315,8 +307,11 @@ public class PartitionDesc implements Serializable {
 
         @Override
         public String buildDateRangeCondition(PartitionDesc partDesc, ISegment seg, SegmentRange segRange) {
-            long startInclusive = (Long) segRange.start.v;
-            long endExclusive = (Long) segRange.end.v;
+            Preconditions.checkState(segRange instanceof SegmentRange.TimePartitionedSegmentRange);
+            SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segRange;
+
+            long startInclusive = tsr.getStart();
+            long endExclusive = tsr.getEnd();
 
             TblColRef partitionColumn = partDesc.getPartitionDateColumnRef();
             String tableAlias = partitionColumn.getTableAlias();

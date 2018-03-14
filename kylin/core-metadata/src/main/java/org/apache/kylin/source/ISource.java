@@ -19,6 +19,7 @@
 package org.apache.kylin.source;
 
 import org.apache.kylin.metadata.model.IBuildable;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 
 /**
@@ -41,13 +42,13 @@ public interface ISource {
      * Return a ReadableTable that can iterate through the rows of given table.
      */
     IReadableTable createReadableTable(TableDesc tableDesc);
-    
+
     /**
      * Give the source a chance to enrich a SourcePartition before build start.
      * Particularly, Kafka source use this chance to define start/end offsets within each partition.
      */
-    SourcePartition enrichSourcePartitionBeforeBuild(IBuildable buildable, SourcePartition srcPartition);
-    
+    SegmentRange enrichSourcePartitionBeforeBuild(IBuildable buildable, SegmentRange segmentRange);
+
     /**
      * Return an object that is responsible for deploying sample (CSV) data to the source database.
      * For testing purpose.

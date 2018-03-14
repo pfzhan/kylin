@@ -29,9 +29,8 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +49,8 @@ public class MergeOffsetStep extends AbstractExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         final CubeManager cubeManager = CubeManager.getInstance(context.getConfig());
-        final CubeInstance cubeCopy = cubeManager.getCube(CubingExecutableUtil.getCubeName(this.getParams())).latestCopyForWrite();
+        final CubeInstance cubeCopy = cubeManager.getCube(CubingExecutableUtil.getCubeName(this.getParams()))
+                .latestCopyForWrite();
         final String segmentId = CubingExecutableUtil.getSegmentId(this.getParams());
         final CubeSegment segCopy = cubeCopy.getSegmentById(segmentId);
 
@@ -63,11 +63,8 @@ public class MergeOffsetStep extends AbstractExecutable {
         final CubeSegment first = mergingSegs.get(0);
         final CubeSegment last = mergingSegs.get(mergingSegs.size() - 1);
 
-        segCopy.setSegRange(new SegmentRange(first.getSegRange().start, last.getSegRange().end));
-        segCopy.setSourcePartitionOffsetStart(first.getSourcePartitionOffsetStart());
-        segCopy.setSourcePartitionOffsetEnd(last.getSourcePartitionOffsetEnd());
-
-        segCopy.setTSRange(new TSRange(mergingSegs.getTSStart(), mergingSegs.getTSEnd()));
+        segCopy.setSegRange(first.getSegRange().coverWith(last.getSegRange()));
+        segCopy.setTSRange(new TimeRange(mergingSegs.getTSStart(), mergingSegs.getTSEnd()));
 
         CubeUpdate update = new CubeUpdate(cubeCopy);
         update.setToUpdateSegs(segCopy);

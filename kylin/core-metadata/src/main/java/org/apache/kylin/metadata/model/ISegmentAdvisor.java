@@ -18,18 +18,15 @@
 
 package org.apache.kylin.metadata.model;
 
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
-
 public interface ISegmentAdvisor {
-    
-    boolean isOffsetCube();
-    
-    SegmentRange getSegRange();
-    
-    void setSegRange(SegmentRange range);
-    
-    TSRange getTSRange();
-    
-    void setTSRange(TSRange range);
-}
 
+    boolean isOffsetCube();
+
+    SegmentRange getSegRange();
+
+    void setSegRange(SegmentRange range);
+
+    TimeRange getTSRange();
+
+    void setTSRange(TimeRange range);
+}

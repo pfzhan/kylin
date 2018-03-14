@@ -20,7 +20,6 @@ package org.apache.kylin.metadata.model;
 
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,12 +51,13 @@ public class DefaultPartitionConditionBuilderTest extends LocalFileMetadataTestC
         partitionDesc.setPartitionDateColumnRef(col);
         partitionDesc.setPartitionDateColumn(col.getCanonicalName());
         partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
-        TSRange range = new TSRange(DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23'",
                 condition);
 
-        range = new TSRange(0L, 0L);
+        range = new SegmentRange.TimePartitionedSegmentRange(0L, 0L);
         condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals("1=1", condition);
     }
@@ -69,7 +69,7 @@ public class DefaultPartitionConditionBuilderTest extends LocalFileMetadataTestC
         partitionDesc.setPartitionTimeColumnRef(col);
         partitionDesc.setPartitionTimeColumn(col.getCanonicalName());
         partitionDesc.setPartitionTimeFormat("HH");
-        TSRange range = new TSRange(DateFormat.stringToMillis("2016-02-22 00:00:00"),
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2016-02-22 00:00:00"),
                 DateFormat.stringToMillis("2016-02-23 01:00:00"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals("UNKNOWN_ALIAS.HOUR_COLUMN >= '00' AND UNKNOWN_ALIAS.HOUR_COLUMN < '01'", condition);
@@ -86,7 +86,7 @@ public class DefaultPartitionConditionBuilderTest extends LocalFileMetadataTestC
         partitionDesc.setPartitionTimeColumnRef(col2);
         partitionDesc.setPartitionTimeColumn(col2.getCanonicalName());
         partitionDesc.setPartitionTimeFormat("H");
-        TSRange range = new TSRange(DateFormat.stringToMillis("2016-02-22 00:00:00"),
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(DateFormat.stringToMillis("2016-02-22 00:00:00"),
                 DateFormat.stringToMillis("2016-02-23 01:00:00"));
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals(

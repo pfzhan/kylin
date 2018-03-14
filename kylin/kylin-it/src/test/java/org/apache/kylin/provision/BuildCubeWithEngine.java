@@ -54,7 +54,7 @@ import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.job.StorageCleanupJob;
 import org.apache.kylin.storage.hbase.HBaseConnection;
 import org.apache.kylin.storage.hbase.util.HBaseRegionSizeCalculator;
@@ -102,7 +102,7 @@ public class BuildCubeWithEngine {
     public static void beforeClass() throws Exception {
         beforeClass(HBaseMetadataTestCase.SANDBOX_TEST_DATA);
     }
-    
+
     public static void beforeClass(String confDir) throws Exception {
         logger.info("Adding to classpath: " + new File(confDir).getAbsolutePath());
         ClassUtil.addClasspath(new File(confDir).getAbsolutePath());
@@ -126,7 +126,8 @@ public class BuildCubeWithEngine {
         System.setProperty("SPARK_HOME", "/usr/local/spark"); // need manually create and put spark to this folder on Jenkins
         System.setProperty("kylin.hadoop.conf.dir", confDir);
         if (StringUtils.isEmpty(System.getProperty("hdp.version"))) {
-            throw new RuntimeException("No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
+            throw new RuntimeException(
+                    "No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
         }
 
         HBaseMetadataTestCase.staticCreateTestMetadata(confDir);
@@ -141,7 +142,10 @@ public class BuildCubeWithEngine {
                 throw new IOException("mkdir fails");
             }
         } catch (IOException e) {
-            throw new RuntimeException("failed to create kylin.env.hdfs-working-dir, Please make sure the user has right to access " + KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(), e);
+            throw new RuntimeException(
+                    "failed to create kylin.env.hdfs-working-dir, Please make sure the user has right to access "
+                            + KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(),
+                    e);
         }
     }
 
@@ -330,7 +334,8 @@ public class BuildCubeWithEngine {
     }
 
     private Boolean mergeSegment(String cubeName, long startDate, long endDate) throws Exception {
-        CubeSegment segment = cubeManager.mergeSegments(cubeManager.getCube(cubeName), new TSRange(startDate, endDate), null, true);
+        CubeSegment segment = cubeManager.mergeSegments(cubeManager.getCube(cubeName),
+                new SegmentRange.TimePartitionedSegmentRange(startDate, endDate), true);
         DefaultChainedExecutable job = EngineFactory.createBatchMergeJob(segment, "TEST");
         jobService.addJob(job);
         ExecutableState state = waitForJob(job.getId());
@@ -339,7 +344,8 @@ public class BuildCubeWithEngine {
 
     private Boolean buildSegment(String cubeName, long startDate, long endDate) throws Exception {
         CubeInstance cubeInstance = cubeManager.getCube(cubeName);
-        CubeSegment segment = cubeManager.appendSegment(cubeInstance, new TSRange(0L, endDate));
+        CubeSegment segment = cubeManager.appendSegment(cubeInstance,
+                new SegmentRange.TimePartitionedSegmentRange(0L, endDate));
         DefaultChainedExecutable job = EngineFactory.createBatchCubingJob(segment, "TEST");
         jobService.addJob(job);
         ExecutableState state = waitForJob(job.getId());

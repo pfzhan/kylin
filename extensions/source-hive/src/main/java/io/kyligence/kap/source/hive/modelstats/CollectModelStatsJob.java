@@ -58,6 +58,8 @@ import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.cube.model.DataModelStatsFlatTableDesc;
 import io.kyligence.kap.source.hive.tablestats.HiveTableExtSampleJob;
 
@@ -170,8 +172,13 @@ public class CollectModelStatsJob extends CubingJob {
 
             ModelStatsManager modelStatsManager = ModelStatsManager.getInstance(config);
             ModelStats modelStats = modelStatsManager.getModelStats(modelName);
-            modelStats.setStartTime(segRange == null ? 0L : (Long) segRange.start.v);
-            modelStats.setEndTime(segRange == null ? 0L : (Long) segRange.end.v);
+
+            //TODO: currently model stats seems only support TimePartitionedSegmentRange, not KafkaOffsetPartitionedSegmentRange
+            Preconditions.checkState(segRange instanceof SegmentRange.TimePartitionedSegmentRange);
+            SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segRange;
+
+            modelStats.setStartTime(segRange == null ? 0L : tsr.getStart());
+            modelStats.setEndTime(segRange == null ? 0L : tsr.getEnd());
             modelStats.setJodID(getId());
             modelStatsManager.saveModelStats(modelStats);
         }

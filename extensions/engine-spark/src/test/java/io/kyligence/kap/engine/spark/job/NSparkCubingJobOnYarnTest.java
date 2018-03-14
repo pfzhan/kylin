@@ -36,6 +36,7 @@ import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -94,7 +95,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment oneSeg = dsMgr.appendSegment(df);
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = new ArrayList<>();
         round1.add(layouts.get(4));
@@ -164,7 +165,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         ExecutableManager execMgr = ExecutableManager.getInstance(config);
 
         NDataflow df = dsMgr.getDataflow("ssb");
-        NDataSegment oneSeg = dsMgr.appendSegment(df);
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
 
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");

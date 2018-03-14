@@ -33,7 +33,7 @@ import java.util.Map;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.exception.JobException;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.controller.BasicController;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -126,10 +126,10 @@ public class KapModelController extends BasicController {
         KapMessage msg = KapMsgPicker.getMsg();
 
         String submitter = SecurityContextHolder.getContext().getAuthentication().getName();
-        TSRange tsRange = null;
+        SegmentRange.TimePartitionedSegmentRange tsRange = null;
         try {
             tsRange = (req.getStartTime() == 0L && req.getEndTime() == 0L) ? null
-                    : new TSRange(req.getStartTime(), req.getEndTime());
+                    : new SegmentRange.TimePartitionedSegmentRange(req.getStartTime(), req.getEndTime());
         } catch (IllegalStateException e) {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, null, msg.getTSRANGE_ERROR());
         }

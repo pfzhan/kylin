@@ -40,6 +40,7 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.badquery.BadQueryHistory;
 import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectManager;
@@ -143,7 +144,7 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
             NDataSegment oneSeg = null;
             List<NCuboidLayout> layouts = null;
             if (readySegments.isEmpty()) {
-                oneSeg = dataflowManager.appendSegment(df);
+                oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
                 layouts = df.getCubePlan().getAllCuboidLayouts();
             } else {
                 oneSeg = readySegments.getFirstSegment();

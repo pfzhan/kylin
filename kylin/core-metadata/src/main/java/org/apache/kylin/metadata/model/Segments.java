@@ -29,8 +29,6 @@ import java.util.TimeZone;
 
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.model.SegmentRange.Endpoint;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,7 +73,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         long startTime = Long.MAX_VALUE;
         for (ISegment seg : readySegs) {
-            startTime = Math.min(startTime, seg.getTSRange().start.v);
+            startTime = Math.min(startTime, seg.getTSRange().start);
         }
 
         return startTime;
@@ -86,7 +84,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         long endTime = Long.MIN_VALUE;
         for (ISegment seg : readySegs) {
-            endTime = Math.max(endTime, seg.getTSRange().end.v);
+            endTime = Math.max(endTime, seg.getTSRange().end);
         }
 
         return endTime;
@@ -98,7 +96,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             T seg = this.get(i);
             if (seg.getStatus() != SegmentStatusEnum.READY)
                 continue;
-            if (latest == null || latest.getTSRange().end.v < seg.getTSRange().end.v) {
+            if (latest == null || latest.getTSRange().end < seg.getTSRange().end) {
                 latest = seg;
             }
         }
@@ -207,27 +205,29 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
             for (int s = 0; s < readySegs.size(); s++) {
                 ISegment seg = readySegs.get(s);
-                TSRange tsRange = new TSRange(seg.getTSRange().start.v, seg.getTSRange().start.v + toMergeRange);
+                TimeRange range = new TimeRange(seg.getTSRange().start, seg.getTSRange().start + toMergeRange);
                 Pair<T, T> p = readySegs.getSubList(s, readySegs.size()) //
-                        .findMergeOffsetsByDateRange(tsRange, toMergeRange);
-                if (p != null && p.getSecond().getTSRange().end.v - p.getFirst().getTSRange().start.v >= toMergeRange)
-                    return new SegmentRange(p.getFirst().getSegRange().start.v, p.getSecond().getSegRange().end.v);
+                        .findMergeOffsetsByDateRange(range, toMergeRange);
+                if (p != null && p.getSecond().getTSRange().end - p.getFirst().getTSRange().start >= toMergeRange)
+                    return p.getFirst().getSegRange().coverWith(p.getSecond().getSegRange());
             }
         }
 
         return null;
     }
 
-    public Pair<T, T> findMergeOffsetsByDateRange(TSRange tsRange, long skipSegDateRangeCap) {
+    public Pair<T, T> findMergeOffsetsByDateRange(TimeRange range, long skipSegDateRangeCap) {
         // must be offset cube
         Segments result = new Segments();
         for (ISegment seg : this) {
 
+            TimeRange timeRange = seg.getTSRange();
+
             // include if date range overlaps
-            if (tsRange.overlaps(seg.getTSRange())) {
+            if (range.getStart() < timeRange.end && timeRange.start < range.getEnd()) {
 
                 // reject too big segment
-                if (seg.getTSRange().duration() > skipSegDateRangeCap)
+                if (timeRange.duration() > skipSegDateRangeCap)
                     break;
 
                 // reject holes
@@ -250,9 +250,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
      * - Favors new segments over the old
      * - Favors big segments over the small
      */
-    public Segments calculateToBeSegments(ISegment newSegment) {
+    public Segments<T> calculateToBeSegments(T newSegment) {
 
-        Segments tobe = (Segments) this.clone();
+        Segments<T> tobe = (Segments<T>) this.clone();
         if (newSegment != null && !tobe.contains(newSegment)) {
             tobe.add(newSegment);
         }
@@ -433,15 +433,15 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
         ISegment first = this.get(0);
         ISegment last = this.get(this.size() - 1);
-        Endpoint start = newOne.getSegRange().start;
-        Endpoint end = newOne.getSegRange().end;
         boolean startFit = false;
         boolean endFit = false;
         for (ISegment sss : this) {
             if (sss == newOne)
                 continue;
-            startFit = startFit || (start.equals(sss.getSegRange().start) || start.equals(sss.getSegRange().end));
-            endFit = endFit || (end.equals(sss.getSegRange().start) || end.equals(sss.getSegRange().end));
+            startFit = startFit || (newOne.getSegRange().shareStart(sss.getSegRange())
+                    || newOne.getSegRange().shareEnd(sss.getSegRange()));
+            endFit = endFit || (newOne.getSegRange().shareStart(sss.getSegRange())
+                    || newOne.getSegRange().shareEnd((sss.getSegRange())));
         }
         if (!startFit && endFit && newOne == first)
             startFit = true;
@@ -466,18 +466,19 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return true;
     }
 
-    public static String makeSegmentName(TSRange tsRange, SegmentRange segRange) {
-        if (tsRange == null && segRange == null) {
+    public static String makeSegmentName(SegmentRange segRange) {
+        if (segRange == null || segRange.isInfinite()) {
             return "FULL_BUILD";
         }
 
-        if (segRange != null) {
-            return segRange.start.v + "_" + segRange.end.v;
+        if (segRange instanceof SegmentRange.TimePartitionedSegmentRange) {
+            // using time
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            return dateFormat.format(segRange.getStart()) + "_" + dateFormat.format(segRange.getEnd());
+        } else {
+            return segRange.getStart() + "_" + segRange.getEnd();
         }
 
-        // using time
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return dateFormat.format(tsRange.start.v) + "_" + dateFormat.format(tsRange.end.v);
     }
 }

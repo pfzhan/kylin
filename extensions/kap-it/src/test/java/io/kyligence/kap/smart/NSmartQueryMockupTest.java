@@ -32,6 +32,7 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -271,8 +272,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 segment.setName("TEST");
                 segment.setDataflow(copy);
                 segment.setStatus(SegmentStatusEnum.READY);
-                segment.setSegRangeStart("0");
-                segment.setSegRangeEnd(String.valueOf(Long.MAX_VALUE));
+                segment.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
                 NDataflowUpdate update = new NDataflowUpdate(copy.getName());
                 update.setToAddSegs(segment);

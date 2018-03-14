@@ -21,12 +21,12 @@ package org.apache.kylin.source.hive;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.engine.mr.IMRInput;
 import org.apache.kylin.metadata.model.IBuildable;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourcePartition;
 
 //used by reflection
 public class HiveSource implements ISource {
@@ -53,7 +53,7 @@ public class HiveSource implements ISource {
         if (tableDesc.isView()) {
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             String tableName = tableDesc.getMaterializedName();
-            
+
             tableDesc = new TableDesc();
             tableDesc.setDatabase(config.getHiveDatabaseForIntermediateTable());
             tableDesc.setName(tableName);
@@ -62,12 +62,8 @@ public class HiveSource implements ISource {
     }
 
     @Override
-    public SourcePartition enrichSourcePartitionBeforeBuild(IBuildable buildable, SourcePartition srcPartition) {
-        SourcePartition result = SourcePartition.getCopyOf(srcPartition);
-        if (srcPartition.getTSRange() != null) {
-            result.setSegRange(null);
-        }
-        return result;
+    public SegmentRange enrichSourcePartitionBeforeBuild(IBuildable buildable, SegmentRange srcPartition) {
+        return srcPartition;
     }
 
     @Override

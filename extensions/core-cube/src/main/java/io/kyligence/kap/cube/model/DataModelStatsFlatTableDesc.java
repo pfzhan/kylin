@@ -36,6 +36,7 @@ import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,7 +158,7 @@ public class DataModelStatsFlatTableDesc implements IJoinedFlatTableDesc {
         }
 
         @Override
-        public SegmentRange.TSRange getTSRange() {
+        public TimeRange getTSRange() {
             return null;
         }
 

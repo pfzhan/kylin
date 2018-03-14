@@ -33,7 +33,7 @@ import java.net.URLClassLoader;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +88,7 @@ public class BuildCubeWithEngine extends org.apache.kylin.provision.BuildCubeWit
         String modelName = "ci_inner_join_model";
         logger.info("Start testing model stats: {}", modelName);
         DefaultChainedExecutable job = new CollectModelStatsJob("default", modelName, "TEST",
-                new TSRange(0L, Long.MAX_VALUE), 1, 7, false).build();
+                new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE), 1, 7, false).build();
         jobService.addJob(job);
         ExecutableState state = waitForJob(job.getId());
         return Boolean.valueOf(ExecutableState.SUCCEED == state);

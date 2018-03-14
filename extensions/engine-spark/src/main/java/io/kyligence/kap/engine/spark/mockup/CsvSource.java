@@ -36,6 +36,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IBuildable;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -44,7 +45,6 @@ import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourcePartition;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
@@ -133,7 +133,7 @@ public class CsvSource implements ISource {
     }
 
     @Override
-    public SourcePartition enrichSourcePartitionBeforeBuild(IBuildable buildable, SourcePartition srcPartition) {
+    public SegmentRange enrichSourcePartitionBeforeBuild(IBuildable buildable, SegmentRange srcPartition) {
         throw new UnsupportedOperationException();
     }
 

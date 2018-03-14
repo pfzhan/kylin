@@ -55,7 +55,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -64,7 +63,6 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.source.SourcePartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -204,12 +202,10 @@ public class JobService extends BasicService implements InitializingBean {
         }
     }
 
-    public JobInstance submitJob(CubeInstance cube, TSRange tsRange, SegmentRange segRange, //
-            Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd,
+    public JobInstance submitJob(CubeInstance cube, SegmentRange segRange, //
             CubeBuildTypeEnum buildType, boolean force, String submitter) throws IOException {
         aclEvaluate.checkProjectOperationPermission(cube);
-        JobInstance jobInstance = submitJobInternal(cube, tsRange, segRange, sourcePartitionOffsetStart,
-                sourcePartitionOffsetEnd, buildType, force, submitter);
+        JobInstance jobInstance = submitJobInternal(cube, segRange, buildType, force, submitter);
 
         accessService.init(jobInstance, null);
         accessService.inherit(jobInstance, cube);
@@ -217,8 +213,7 @@ public class JobService extends BasicService implements InitializingBean {
         return jobInstance;
     }
 
-    public JobInstance submitJobInternal(CubeInstance cube, TSRange tsRange, SegmentRange segRange, //
-            Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd, //
+    public JobInstance submitJobInternal(CubeInstance cube, SegmentRange segRange, //
             CubeBuildTypeEnum buildType, boolean force, String submitter) throws IOException {
         Message msg = MsgPicker.getMsg();
 
@@ -233,16 +228,14 @@ public class JobService extends BasicService implements InitializingBean {
         try {
             if (buildType == CubeBuildTypeEnum.BUILD) {
                 ISource source = SourceFactory.getSource(cube);
-                SourcePartition src = new SourcePartition(tsRange, segRange, sourcePartitionOffsetStart,
-                        sourcePartitionOffsetEnd);
-                src = source.enrichSourcePartitionBeforeBuild(cube, src);
-                newSeg = getCubeManager().appendSegment(cube, src);
+                segRange = source.enrichSourcePartitionBeforeBuild(cube, segRange);
+                newSeg = getCubeManager().appendSegment(cube, segRange);
                 job = EngineFactory.createBatchCubingJob(newSeg, submitter);
             } else if (buildType == CubeBuildTypeEnum.MERGE) {
-                newSeg = getCubeManager().mergeSegments(cube, tsRange, segRange, force);
+                newSeg = getCubeManager().mergeSegments(cube, segRange, force);
                 job = EngineFactory.createBatchMergeJob(newSeg, submitter);
             } else if (buildType == CubeBuildTypeEnum.REFRESH) {
-                newSeg = getCubeManager().refreshSegment(cube, tsRange, segRange);
+                newSeg = getCubeManager().refreshSegment(cube, segRange);
                 job = EngineFactory.createBatchCubingJob(newSeg, submitter);
             } else {
                 throw new BadRequestException(String.format(msg.getINVALID_BUILD_TYPE(), buildType));
@@ -343,7 +336,8 @@ public class JobService extends BasicService implements InitializingBean {
         final String segmentIds = job.getRelatedSegment();
         for (String segmentId : StringUtils.split(segmentIds)) {
             final CubeSegment segment = cubeInstance.getSegmentById(segmentId);
-            if (segment != null && (segment.getStatus() == SegmentStatusEnum.NEW || segment.getTSRange().end.v == 0)) {
+            if (segment != null
+                    && (segment.getStatus() == SegmentStatusEnum.NEW || segment.getTSRange().getEnd() == 0)) {
                 // Remove this segment
                 getCubeManager().updateCubeDropSegments(cubeInstance, segment);
             }

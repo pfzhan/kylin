@@ -30,9 +30,9 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.draft.Draft;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.response.CubeInstanceResponse;
 
@@ -106,7 +106,7 @@ public class KapCubeResponse extends CubeInstanceResponse {
         result.add(seg);
 
         seg.setCubeInstance(cube);
-        SegmentRange.TSRange tsRange = new SegmentRange.TSRange(cube.getDescriptor().getPartitionDateStart(),
+        TimeRange tsRange = new TimeRange(cube.getDescriptor().getPartitionDateStart(),
                 cube.getDescriptor().getPartitionDateStart());
         seg.setTSRange(tsRange);
         return result;

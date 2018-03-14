@@ -27,20 +27,22 @@ package io.kyligence.kap.cube.raw;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ISegmentAdvisor;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.TimeRange;
+
+import com.google.common.base.Preconditions;
 
 public class RawTableSegmentAdvisor implements ISegmentAdvisor {
 
     private final RawTableSegment seg;
 
     // these are just cache of segment attributes, all changes must write through to 'seg'
-    private TSRange tsRange;
+    private TimeRange tsRange;
     private SegmentRange segRange;
 
     public RawTableSegmentAdvisor(ISegment segment) {
         this.seg = (RawTableSegment) segment;
     }
-    
+
     @Override
     public boolean isOffsetCube() {
         return seg._getSourceOffsetStart() != 0 || seg._getSourceOffsetEnd() != 0;
@@ -53,8 +55,9 @@ public class RawTableSegmentAdvisor implements ISegmentAdvisor {
 
         // backward compatible with pre-streaming metadata, TSRange can imply SegmentRange
         segRange = isOffsetCube() //
-                ? new SegmentRange(seg._getSourceOffsetStart(), seg._getSourceOffsetEnd()) //
-                : getTSRange();
+                ? new SegmentRange.KafkaOffsetPartitionedSegmentRange(seg._getSourceOffsetStart(),
+                        seg._getSourceOffsetEnd(), null, null) //
+                : new SegmentRange.TimePartitionedSegmentRange(seg._getDateRangeStart(), seg._getDateRangeEnd());
 
         return segRange;
     }
@@ -62,33 +65,41 @@ public class RawTableSegmentAdvisor implements ISegmentAdvisor {
     @Override
     public void setSegRange(SegmentRange range) {
         // backward compatible with pre-streaming metadata, TSRange can imply SegmentRange
-        if (range == null) {
-            seg._setSourceOffsetStart(0);
-            seg._setSourceOffsetEnd(0);
+        Preconditions.checkNotNull(range);
+
+        if (range instanceof SegmentRange.TimePartitionedSegmentRange) {
+            SegmentRange.TimePartitionedSegmentRange tpsr = (SegmentRange.TimePartitionedSegmentRange) range;
+            seg._setDateRangeStart(tpsr.getStart());
+            seg._setDateRangeEnd(tpsr.getEnd());
+        } else if (range instanceof SegmentRange.KafkaOffsetPartitionedSegmentRange) {
+            SegmentRange.KafkaOffsetPartitionedSegmentRange kpsr = (SegmentRange.KafkaOffsetPartitionedSegmentRange) range;
+            seg._setSourceOffsetStart(kpsr.getStart());
+            seg._setSourceOffsetEnd(kpsr.getEnd());
+            //            seg._setSourcePartitionOffsetStart(kpsr.getSourcePartitionOffsetStart());
+            //            seg._setSourcePartitionOffsetEnd(kpsr.getSourcePartitionOffsetEnd());
         } else {
-            seg._setSourceOffsetStart((Long) range.start.v);
-            seg._setSourceOffsetEnd((Long) range.end.v);
+            throw new IllegalArgumentException();
         }
         clear();
     }
 
     @Override
-    public TSRange getTSRange() {
+    public TimeRange getTSRange() {
         if (tsRange != null)
             return tsRange;
-        
-        tsRange = new TSRange(seg._getDateRangeStart(), seg._getDateRangeEnd());
+
+        tsRange = new TimeRange(seg._getDateRangeStart(), seg._getDateRangeEnd());
         return tsRange;
     }
 
     @Override
-    public void setTSRange(TSRange range) {
+    public void setTSRange(TimeRange range) {
         if (range == null) {
             seg._setDateRangeStart(0);
             seg._setDateRangeEnd(0);
         } else {
-            seg._setDateRangeStart(range.start.v);
-            seg._setDateRangeEnd(range.end.v);
+            seg._setDateRangeStart(range.getStart());
+            seg._setDateRangeEnd(range.getEnd());
         }
         clear();
     }

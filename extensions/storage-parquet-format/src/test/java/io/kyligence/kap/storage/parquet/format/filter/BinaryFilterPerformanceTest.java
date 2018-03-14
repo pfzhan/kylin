@@ -62,7 +62,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
         CubeInstance cube = mgr.getCube("test_kylin_cube_without_slr_empty");
         cube.getModel().setPartitionDesc(new PartitionDesc());
-        CubeSegment seg = mgr.appendSegment(cube);
+        CubeSegment seg = mgr.appendSegment(cube, null);
         CubeDesc desc = seg.getCubeDesc();
         GTInfo gtInfo = GridTables.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
@@ -108,7 +108,7 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
         CubeManager mgr = CubeManager.getInstance(getTestConfig());
         CubeInstance cube = mgr.getCube("test_kylin_cube_without_slr_empty");
         cube.getModel().setPartitionDesc(new PartitionDesc());
-        CubeSegment seg = mgr.appendSegment(cube);
+        CubeSegment seg = mgr.appendSegment(cube, null);
 
         GTInfo gtInfo = GridTables.newGTInfo(Cuboid.findById(seg, 0xffL), new CubeDimEncMap(seg));
         final GTRecord gtRecord = new GTRecord(gtInfo);
@@ -119,11 +119,13 @@ public class BinaryFilterPerformanceTest extends LocalFileMetadataTestCase {
                 Lists.newArrayList(new byte[] { 0x01, 0x02, 0x03 }), 0, 3);
         for (int i = 0; i < 1000 * 10000; i++) {
             if (random.nextInt(100) == 1) {
-                byte[] value = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f };
+                byte[] value = new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c,
+                        0x0d, 0x0e, 0x0f };
                 filter.isMatch(new ByteArray(value));
                 gtRecord.loadColumns(Lists.newArrayList(0, 1, 2, 3, 4, 5, 6, 7), ByteBuffer.wrap(value));
             } else {
-                filter.isMatch(new ByteArray(new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f }));
+                filter.isMatch(new ByteArray(new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+                        0x0b, 0x0c, 0x0d, 0x0e, 0x0f }));
             }
         }
 

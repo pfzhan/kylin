@@ -40,9 +40,9 @@ import org.apache.kylin.dict.DictionaryManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.TimeRange;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -67,18 +67,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("status")
     private SegmentStatusEnum status;
 
-    @JsonProperty("segRangeStart")
-    private String segRangeStart;//used for segment partition
-    @JsonProperty("segRangeEnd")
-    private String segRangeEnd;
-    @JsonProperty("tsRangeStart")
-    private long tsRangeStart = 0;
-    @JsonProperty("tsRangeEnd")
-    private long tsRangeEnd = Long.MAX_VALUE;
-    @JsonProperty("source_partition_offset_start")
-    private Map<Integer, Long> sourcePartitionOffsetStart = Maps.newHashMap();
-    @JsonProperty("source_partition_offset_end")
-    private Map<Integer, Long> sourcePartitionOffsetEnd = Maps.newHashMap();
+    @JsonProperty("segRange")
+    private SegmentRange segmentRange;
+
+    @JsonProperty("timeRange")
+    private TimeRange timeRange;
 
     @JsonProperty("dictionaries")
     private Map<String, String> dictionaries; // table/column ==> dictionary resource path
@@ -120,17 +113,33 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @Override
     public boolean isOffsetCube() {
-        return true; // all dataflow are segmented by offset now, TSRange only represents the timestamp range and have no other meaning
+        return segmentRange instanceof SegmentRange.KafkaOffsetPartitionedSegmentRange;
     }
 
     @Override
     public SegmentRange getSegRange() {
-        return new SegmentRange<>(segRangeStart, segRangeEnd);
+        return segmentRange;
     }
 
     @Override
-    public TSRange getTSRange() {
-        return new SegmentRange.TSRange(tsRangeStart, tsRangeEnd);
+    public TimeRange getTSRange() {
+        if (timeRange != null) {
+            return timeRange;
+        } else if (segmentRange instanceof SegmentRange.TimePartitionedSegmentRange) {
+            SegmentRange.TimePartitionedSegmentRange tsr = (SegmentRange.TimePartitionedSegmentRange) segmentRange;
+            return new TimeRange(tsr.getStart(), tsr.getEnd());
+        }
+        return null;
+    }
+
+    public void setSegmentRange(SegmentRange segmentRange) {
+        checkIsNotCachedAndShared();
+        this.segmentRange = segmentRange;
+    }
+
+    public void setTimeRange(TimeRange timeRange) {
+        checkIsNotCachedAndShared();
+        this.timeRange = timeRange;
     }
 
     public NDataSegDetails getSegDetails() {
@@ -251,60 +260,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.lastBuildTime = lastBuildTime;
     }
 
-    public String getSegRangeStart() {
-        return segRangeStart;
-    }
-
-    public void setSegRangeStart(String segRangeStart) {
-        checkIsNotCachedAndShared();
-        this.segRangeStart = segRangeStart;
-    }
-
-    public String getSegRangeEnd() {
-        return segRangeEnd;
-    }
-
-    public void setSegRangeEnd(String segRangeEnd) {
-        checkIsNotCachedAndShared();
-        this.segRangeEnd = segRangeEnd;
-    }
-
-    public long getTsRangeStart() {
-        return tsRangeStart;
-    }
-
-    public void setTsRangeStart(long tsRangeStart) {
-        checkIsNotCachedAndShared();
-        this.tsRangeStart = tsRangeStart;
-    }
-
-    public long getTsRangeEnd() {
-        return tsRangeEnd;
-    }
-
-    public void setTsRangeEnd(long tsRangeEnd) {
-        checkIsNotCachedAndShared();
-        this.tsRangeEnd = tsRangeEnd;
-    }
-
-    public Map<Integer, Long> getSourcePartitionOffsetStart() {
-        return isCachedAndShared() ? ImmutableMap.copyOf(sourcePartitionOffsetStart) : sourcePartitionOffsetStart;
-    }
-
-    public void setSourcePartitionOffsetStart(Map<Integer, Long> sourcePartitionOffsetStart) {
-        checkIsNotCachedAndShared();
-        this.sourcePartitionOffsetStart = sourcePartitionOffsetStart;
-    }
-
-    public Map<Integer, Long> getSourcePartitionOffsetEnd() {
-        return isCachedAndShared() ? ImmutableMap.copyOf(sourcePartitionOffsetEnd) : sourcePartitionOffsetEnd;
-    }
-
-    public void setSourcePartitionOffsetEnd(Map<Integer, Long> sourcePartitionOffsetEnd) {
-        checkIsNotCachedAndShared();
-        this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd;
-    }
-
     public Map<String, String> getDictionaries() {
         if (dictionaries == null)
             dictionaries = new ConcurrentHashMap<String, String>();
@@ -387,17 +342,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @Override
     public int compareTo(ISegment other) {
-        if (this.getSegRange() == null && other.getSegRange() == null)
-            return 0;
-
-        if (this.getSegRange().isInfinite() && other.getSegRange().isInfinite())
-            return 0;
-
-        int comp = this.getSegRange().start.compareTo(other.getSegRange().start);
-        if (comp != 0)
-            return comp;
-
-        return this.getSegRange().end.compareTo(other.getSegRange().end);
+        SegmentRange<?> x = this.getSegRange();
+        return x.compareTo(other.getSegRange());
     }
 
     @Override

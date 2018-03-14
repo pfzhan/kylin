@@ -31,7 +31,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -47,12 +46,12 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.source.SourcePartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +80,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private CaseInsensitiveStringCache<NDataflow> dataflowMap;
     private CachedCrudAssist<NDataflow> crud;
 
-    // protects concurrent operations around the dataflowMap, 
+    // protects concurrent operations around the dataflowMap,
     // to avoid, for example, writing a dataflow in the middle of reloading it (dirty read)
     private AutoReadWriteLock dfMapLock = new AutoReadWriteLock();
 
@@ -220,34 +219,16 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
-    // append a full build segment
-    public NDataSegment appendSegment(NDataflow df) throws IOException {
-        return appendSegment(df, null, null, null);
-    }
-
     public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) throws IOException {
-        return appendSegment(df, segRange, null, null);
-    }
-
-    public NDataSegment appendSegment(NDataflow df, SourcePartition src) throws IOException {
-        Preconditions.checkArgument(src.getTSRange() == null);
-        return appendSegment(df, src.getSegRange(), src.getSourcePartitionOffsetStart(),
-                src.getSourcePartitionOffsetEnd());
-    }
-
-    NDataSegment appendSegment(NDataflow df, SegmentRange segRange, Map<Integer, Long> sourcePartitionOffsetStart,
-            Map<Integer, Long> sourcePartitionOffsetEnd) throws IOException {
         try (AutoLock lock = dfMapLock.lockForWrite()) {
             checkBuildingSegment(df);
 
-            // case of full build
-            if (!df.getModel().getPartitionDesc().isPartitioned()) {
-                segRange = null;
-            }
+            //            // case of full build
+            //            if (!df.getModel().getPartitionDesc().isPartitioned()) {
+            //                segRange = null;
+            //            }
 
             NDataSegment newSegment = newSegment(df, segRange);
-            newSegment.setSourcePartitionOffsetStart(sourcePartitionOffsetStart);
-            newSegment.setSourcePartitionOffsetEnd(sourcePartitionOffsetEnd);
             validateNewSegments(df, newSegment);
 
             NDataflowUpdate upd = new NDataflowUpdate(df.getName());
@@ -264,7 +245,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataSegment newSegment = newSegment(df, segRange);
 
             Pair<Boolean, Boolean> pair = df.getSegments().fitInSegments(newSegment);
-            if (pair.getFirst() == false || pair.getSecond() == false)
+            if (!pair.getFirst() || !pair.getSecond())
                 throw new IllegalArgumentException("The new refreshing segment " + newSegment
                         + " does not match any existing segment in NDataflow " + df);
 
@@ -282,8 +263,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                             "For streaming NDataflow, only one segment can be refreshed at one time");
                 }
 
-                newSegment.setSourcePartitionOffsetStart(toRefreshSeg.getSourcePartitionOffsetStart());
-                newSegment.setSourcePartitionOffsetEnd(toRefreshSeg.getSourcePartitionOffsetEnd());
+                newSegment.setSegmentRange(toRefreshSeg.getSegRange());
             }
 
             NDataflowUpdate upd = new NDataflowUpdate(df.getName());
@@ -320,12 +300,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         for (int i = 1; i < mergingSegments.size(); i++) {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
-            if (firstSegDetails.checkCuboidsBeforeMerge(details) == false)
+            if (!firstSegDetails.checkCuboidsBeforeMerge(details))
                 throw new IllegalArgumentException(first + " and " + dataSegment + " has different layout status");
         }
 
         NDataSegment last = mergingSegments.get(mergingSegments.size() - 1);
-        if (force == false) {
+        if (!force) {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
                     throw new IllegalStateException("Merging segments must not have gaps between "
@@ -333,13 +313,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             }
         }
 
-        newSegment.setSourcePartitionOffsetStart(first.getSourcePartitionOffsetStart());
-        newSegment.setSourcePartitionOffsetEnd(last.getSourcePartitionOffsetEnd());
+        newSegment.setSegmentRange(first.getSegRange().coverWith(last.getSegRange()));
+        newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
 
-        newSegment.setTsRangeStart(first.getTsRangeStart());
-        newSegment.setTsRangeEnd(last.getTsRangeEnd());
-
-        if (force == false) {
+        if (!force) {
             List<String> emptySegment = Lists.newArrayList();
             for (NDataSegment seg : mergingSegments) {
                 if (seg.getSegDetails().getTotalCuboidRowCount() == 0) {
@@ -364,7 +341,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     private void checkCubeIsPartitioned(NDataflow dataflow) {
-        if (dataflow.getModel().getPartitionDesc().isPartitioned() == false) {
+        if (!dataflow.getModel().getPartitionDesc().isPartitioned()) {
             throw new IllegalStateException(
                     "there is no partition date column specified, only full build is supported");
         }
@@ -379,17 +356,17 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     private NDataSegment newSegment(NDataflow df, SegmentRange segRange) {
+        // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
+        Preconditions.checkNotNull(segRange);
+
         NDataSegment lastSeg = df.getLastSegment();
         NDataSegment segment = new NDataSegment();
         segment.setId(lastSeg == null ? 0 : lastSeg.getId() + 1);
-        segment.setName(Segments.makeSegmentName(null, segRange));
+        segment.setName(Segments.makeSegmentName(segRange));
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setDataflow(df);
         segment.setStatus(SegmentStatusEnum.NEW);
-        if (segRange != null) {
-            segment.setSegRangeStart(segRange.start.v.toString());
-            segment.setSegRangeEnd(segRange.end.v.toString());
-        }
+        segment.setSegmentRange(segRange);
         segment.validate();
         return segment;
     }
@@ -500,7 +477,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     df.setCost(update.getCost());
                 }
 
-                // NDataCuboid updates are idempotent, safe to re-do (retry) many times 
+                // NDataCuboid updates are idempotent, safe to re-do (retry) many times
                 try {
                     NDataSegDetailsManager.getInstance(df.getConfig()).updateDataflow(df, update);
                 } catch (IOException e) {
@@ -551,18 +528,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             if (first.getSegRange().apartBefore(second.getSegRange())) {
                 NDataSegment hole = new NDataSegment();
                 hole.setDataflow(df);
+
                 // TODO: fix segment
-                if (first.isOffsetCube()) {
-                    hole.setSegRangeStart(first.getSegRangeEnd());
-                    hole.setSegRangeEnd(second.getSegRangeStart());
-                    hole.setSourcePartitionOffsetStart(first.getSourcePartitionOffsetEnd());
-                    hole.setSourcePartitionOffsetEnd(second.getSourcePartitionOffsetStart());
-                    hole.setName(Segments.makeSegmentName(null, hole.getSegRange()));
-                } else {
-                    hole.setTsRangeStart(first.getTsRangeEnd());
-                    hole.setTsRangeStart(second.getTsRangeStart());
-                    hole.setName(Segments.makeSegmentName(hole.getTSRange(), null));
-                }
+                hole.setSegmentRange(first.getSegRange().gapTill(second.getSegRange()));
+                hole.setTimeRange(new TimeRange(first.getTSRange().getEnd(), second.getTSRange().getStart()));
+                hole.setName(Segments.makeSegmentName(hole.getSegRange()));
+
                 holes.add(hole);
             }
         }

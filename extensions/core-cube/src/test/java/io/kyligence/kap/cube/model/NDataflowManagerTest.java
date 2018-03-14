@@ -141,7 +141,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
-        NDataSegment newSeg = mgr.appendSegment(df);
+        NDataSegment newSeg = mgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
 
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(2, df.getSegments().size());
@@ -167,7 +167,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(0, df.getSegments().size());
 
-        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange(0, 1));
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         seg1.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg1);
@@ -176,7 +176,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(1, df.getSegments().size());
 
-        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange(1, 2));
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
         seg2.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg2);
@@ -185,7 +185,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
-        NDataSegment mergedSeg = mgr.mergeSegments(df, new SegmentRange(0, 2), true);
+        NDataSegment mergedSeg = mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 2L), true);
 
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(3, df.getSegments().size());
@@ -207,7 +207,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(0, df.getSegments().size());
 
-        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange(0, 1));
+        NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         seg1.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg1);
@@ -216,7 +216,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(1, df.getSegments().size());
 
-        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange(1, 2));
+        NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
         seg2.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg2);
@@ -225,7 +225,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
-        NDataSegment seg3 = mgr.appendSegment(df, new SegmentRange(5, 6));
+        NDataSegment seg3 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(5L, 6L));
         seg3.setStatus(SegmentStatusEnum.READY);
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg3);
@@ -235,7 +235,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(3, df.getSegments().size());
 
         try {
-            mgr.mergeSegments(df, new SegmentRange(0, 2), false);
+            mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 2L), false);
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof IllegalArgumentException);
@@ -243,7 +243,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         }
 
         try {
-            mgr.mergeSegments(df, new SegmentRange(0, 6), false);
+            mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 6L), false);
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof IllegalStateException);
@@ -259,7 +259,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         mgr.updateDataflow(update);
 
         try {
-            mgr.mergeSegments(df, new SegmentRange(0, 1), true);
+            mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L), true);
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof IllegalArgumentException);
@@ -267,7 +267,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         }
 
         try {
-            mgr.mergeSegments(df, new SegmentRange(0, 2), true);
+            mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 2L), true);
             fail("No exception thrown.");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof IllegalArgumentException);

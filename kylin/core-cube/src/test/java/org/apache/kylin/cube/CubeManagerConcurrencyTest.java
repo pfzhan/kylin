@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Before;
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 public class CubeManagerConcurrencyTest extends LocalFileMetadataTestCase {
 
     private static final Logger logger = LoggerFactory.getLogger(CubeManagerConcurrencyTest.class);
-    
+
     @Before
     public void setUp() throws Exception {
         System.setProperty("kylin.cube.max-building-segments", "10000");
@@ -108,7 +108,8 @@ public class CubeManagerConcurrencyTest extends LocalFileMetadataTestCase {
                         for (int i = 0; i < updatesPerCube; i++) {
                             CubeManager mgr = CubeManager.getInstance(config);
                             CubeInstance cube = mgr.getCube(cubeName);
-                            mgr.appendSegment(cube, new TSRange((long) i, (long) i + 1));
+                            mgr.appendSegment(cube,
+                                    new SegmentRange.TimePartitionedSegmentRange((long) i, (long) i + 1));
                             Thread.sleep(rand.nextInt(1));
                         }
                     } catch (Exception ex) {
@@ -126,7 +127,7 @@ public class CubeManagerConcurrencyTest extends LocalFileMetadataTestCase {
         }
         runningFlag.incrementAndGet();
         reloadThread.join();
-        
+
         // check result and error
         if (exceptions.isEmpty() == false) {
             logger.error(exceptions.size() + " exceptions encountered, see logs above");

@@ -63,7 +63,6 @@ import org.apache.kylin.metadata.streaming.StreamingManager;
 import org.apache.kylin.rest.job.StorageCleanupJob;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.kylin.source.SourcePartition;
 import org.apache.kylin.source.kafka.KafkaConfigManager;
 import org.apache.kylin.source.kafka.config.BrokerConfig;
 import org.apache.kylin.source.kafka.config.KafkaConfig;
@@ -232,7 +231,8 @@ public class BuildCubeWithStream {
         for (int i = 0; i < futures.size(); i++) {
             ExecutableState result = futures.get(i).get(20, TimeUnit.MINUTES);
             logger.info("Checking building task " + i + " whose state is " + result);
-            Assert.assertTrue(result == null || result == ExecutableState.SUCCEED || result == ExecutableState.DISCARDED);
+            Assert.assertTrue(
+                    result == null || result == ExecutableState.SUCCEED || result == ExecutableState.DISCARDED);
             if (result == ExecutableState.SUCCEED)
                 succeedBuild++;
         }
@@ -242,9 +242,11 @@ public class BuildCubeWithStream {
         Assert.assertTrue(segments.size() == succeedBuild);
 
         if (fastBuildMode == false) {
-            long endOffset = (Long) segments.get(segments.size() - 1).getSegRange().end.v;
+
+            SegmentRange segmentRange = segments.get(0).getSegRange()
+                    .coverWith(segments.get(segments.size() - 1).getSegRange());
             //merge
-            ExecutableState result = mergeSegment(cubeName, new SegmentRange(0L, endOffset));
+            ExecutableState result = mergeSegment(cubeName, segmentRange);
             Assert.assertTrue(result == ExecutableState.SUCCEED);
 
             segments = cubeManager.getCube(cubeName).getSegments();
@@ -261,7 +263,7 @@ public class BuildCubeWithStream {
     }
 
     private ExecutableState mergeSegment(String cubeName, SegmentRange segRange) throws Exception {
-        CubeSegment segment = cubeManager.mergeSegments(cubeManager.getCube(cubeName), null, segRange, false);
+        CubeSegment segment = cubeManager.mergeSegments(cubeManager.getCube(cubeName), segRange, false);
         DefaultChainedExecutable job = EngineFactory.createBatchMergeJob(segment, "TEST");
         jobService.addJob(job);
         waitForJob(job.getId());
@@ -269,7 +271,7 @@ public class BuildCubeWithStream {
     }
 
     private String refreshSegment(String cubeName, SegmentRange segRange) throws Exception {
-        CubeSegment segment = cubeManager.refreshSegment(cubeManager.getCube(cubeName), null, segRange);
+        CubeSegment segment = cubeManager.refreshSegment(cubeManager.getCube(cubeName), segRange);
         DefaultChainedExecutable job = EngineFactory.createBatchCubingJob(segment, "TEST");
         jobService.addJob(job);
         waitForJob(job.getId());
@@ -279,8 +281,9 @@ public class BuildCubeWithStream {
     protected ExecutableState buildSegment(String cubeName, long startOffset, long endOffset) throws Exception {
         CubeInstance cubeInstance = cubeManager.getCube(cubeName);
         ISource source = SourceFactory.getSource(cubeInstance);
-        SourcePartition partition = source.enrichSourcePartitionBeforeBuild(cubeInstance, new SourcePartition(null, new SegmentRange(startOffset, endOffset), null, null));
-        CubeSegment segment = cubeManager.appendSegment(cubeManager.getCube(cubeName), partition);
+        SegmentRange sr = source.enrichSourcePartitionBeforeBuild(cubeInstance,
+                new SegmentRange.KafkaOffsetPartitionedSegmentRange(startOffset, endOffset, null, null));
+        CubeSegment segment = cubeManager.appendSegment(cubeManager.getCube(cubeName), sr);
         DefaultChainedExecutable job = EngineFactory.createBatchCubingJob(segment, "TEST");
         jobService.addJob(job);
         waitForJob(job.getId());
@@ -298,7 +301,8 @@ public class BuildCubeWithStream {
         ClassUtil.addClasspath(new File(HBaseMetadataTestCase.SANDBOX_TEST_DATA).getAbsolutePath());
         System.setProperty(KylinConfig.KYLIN_CONF, HBaseMetadataTestCase.SANDBOX_TEST_DATA);
         if (StringUtils.isEmpty(System.getProperty("hdp.version"))) {
-            throw new RuntimeException("No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
+            throw new RuntimeException(
+                    "No hdp.version set; Please set hdp.version in your jvm option, for example: -Dhdp.version=2.4.0.0-169");
         }
         HBaseMetadataTestCase.staticCreateTestMetadata(HBaseMetadataTestCase.SANDBOX_TEST_DATA);
     }
@@ -325,7 +329,8 @@ public class BuildCubeWithStream {
     protected void waitForJob(String jobId) {
         while (true) {
             AbstractExecutable job = jobService.getJob(jobId);
-            if (job.getStatus() == ExecutableState.SUCCEED || job.getStatus() == ExecutableState.ERROR || job.getStatus() == ExecutableState.DISCARDED) {
+            if (job.getStatus() == ExecutableState.SUCCEED || job.getStatus() == ExecutableState.ERROR
+                    || job.getStatus() == ExecutableState.DISCARDED) {
                 break;
             } else {
                 try {
@@ -362,7 +367,7 @@ public class BuildCubeWithStream {
         } catch (Throwable e) {
             logger.error("error", e);
             exitCode = 1;
-        } finally{
+        } finally {
             if (buildCubeWithStream != null) {
                 buildCubeWithStream.after();
                 buildCubeWithStream.cleanup();

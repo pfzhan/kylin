@@ -184,21 +184,23 @@ public class HybridCubeCLI extends AbstractApplication {
             throw new RuntimeException("Hybrid needs at least 2 cubes");
         long lastOffset = -1;
         for (RealizationEntry entry : realizationEntries) {
-            if (entry.getType() != CubeInstance.REALIZATION_TYPE) {
+            if (!entry.getType().equals(CubeInstance.REALIZATION_TYPE)) {
                 throw new RuntimeException("Wrong realization type: " + entry.getType() + ", only cube supported. ");
             }
 
             CubeInstance cubeInstance = cubeManager.getCube(entry.getRealization());
             CubeSegment segment = cubeInstance.getLastSegment();
+
+            //TODO: hard cast
             if (segment == null)
                 continue;
             if (lastOffset == -1) {
-                lastOffset = (Long) segment.getSegRange().end.v;
+                lastOffset = (Long) segment.getSegRange().getEnd();
             } else {
-                if (lastOffset > (Long) segment.getSegRange().start.v) {
-                    throw new RuntimeException("Segments has overlap, could not hybrid. Last Segment End: " + lastOffset + ", Next Segment Start: " + segment.getSegRange().start.v);
+                if (lastOffset > (Long) segment.getSegRange().getStart()) {
+                    throw new RuntimeException("Segments has overlap, could not hybrid. Last Segment End: " + lastOffset + ", Next Segment Start: " + segment.getSegRange().getStart());
                 }
-                lastOffset = (Long) segment.getSegRange().end.v;
+                lastOffset = (Long) segment.getSegRange().getEnd();
             }
         }
     }

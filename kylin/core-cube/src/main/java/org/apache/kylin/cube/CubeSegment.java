@@ -41,10 +41,10 @@ import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ISegmentAdvisor;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.realization.IRealization;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -132,23 +132,21 @@ public class CubeSegment implements IBuildable, ISegment, Serializable {
         return getCubeInstance().getCuboidScheduler();
     }
 
-    public static String makeSegmentName(TSRange tsRange, SegmentRange segRange, DataModelDesc modelDesc) {
-        if (tsRange == null && segRange == null) {
+    public static String makeSegmentName(SegmentRange segRange, DataModelDesc modelDesc) {
+        if (segRange == null || segRange.isInfinite()) {
             return "FULL_BUILD";
         }
 
-        if (segRange != null) {
-            return segRange.start.v + "_" + segRange.end.v;
+        if (segRange instanceof SegmentRange.TimePartitionedSegmentRange
+                && modelDesc.isStandardPartitionedDateColumn()) {
+            // using time
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+            dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+            return dateFormat.format(segRange.getStart()) + "_" + dateFormat.format(segRange.getEnd());
+        } else {
+            return segRange.getStart() + "_" + segRange.getEnd();
         }
 
-        if (!modelDesc.isStandardPartitionedDateColumn()) {
-            return tsRange.start.v + "_" + tsRange.end.v;
-        }
-
-        // using time
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-        return dateFormat.format(tsRange.start.v) + "_" + dateFormat.format(tsRange.end.v);
     }
 
     // ============================================================================
@@ -362,6 +360,22 @@ public class CubeSegment implements IBuildable, ISegment, Serializable {
         this.sourceOffsetEnd = sourceOffsetEnd;
     }
 
+    public Map<Integer, Long> _getSourcePartitionOffsetEnd() {
+        return sourcePartitionOffsetEnd;
+    }
+
+    public void _setSourcePartitionOffsetEnd(Map<Integer, Long> sourcePartitionOffsetEnd) {
+        this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd;
+    }
+
+    public Map<Integer, Long> _getSourcePartitionOffsetStart() {
+        return sourcePartitionOffsetStart;
+    }
+
+    public void _setSourcePartitionOffsetStart(Map<Integer, Long> sourcePartitionOffsetStart) {
+        this.sourcePartitionOffsetStart = sourcePartitionOffsetStart;
+    }
+
     @Override
     public SegmentRange getSegRange() {
         return getAdvisor().getSegRange();
@@ -372,11 +386,11 @@ public class CubeSegment implements IBuildable, ISegment, Serializable {
     }
 
     @Override
-    public TSRange getTSRange() {
+    public TimeRange getTSRange() {
         return getAdvisor().getTSRange();
     }
 
-    public void setTSRange(TSRange range) {
+    public void setTSRange(TimeRange range) {
         getAdvisor().setTSRange(range);
     }
 
@@ -406,11 +420,8 @@ public class CubeSegment implements IBuildable, ISegment, Serializable {
 
     @Override
     public int compareTo(ISegment other) {
-        int comp = this.getSegRange().start.compareTo(other.getSegRange().start);
-        if (comp != 0)
-            return comp;
-
-        return this.getSegRange().end.compareTo(other.getSegRange().end);
+        SegmentRange<?> x = this.getSegRange();
+        return x.compareTo(other.getSegRange());
     }
 
     @Override
@@ -560,19 +571,4 @@ public class CubeSegment implements IBuildable, ISegment, Serializable {
         this.additionalInfo = additionalInfo;
     }
 
-    public Map<Integer, Long> getSourcePartitionOffsetEnd() {
-        return sourcePartitionOffsetEnd;
-    }
-
-    public void setSourcePartitionOffsetEnd(Map<Integer, Long> sourcePartitionOffsetEnd) {
-        this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd;
-    }
-
-    public Map<Integer, Long> getSourcePartitionOffsetStart() {
-        return sourcePartitionOffsetStart;
-    }
-
-    public void setSourcePartitionOffsetStart(Map<Integer, Long> sourcePartitionOffsetStart) {
-        this.sourcePartitionOffsetStart = sourcePartitionOffsetStart;
-    }
 }

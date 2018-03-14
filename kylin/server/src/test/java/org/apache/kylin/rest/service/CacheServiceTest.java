@@ -40,7 +40,7 @@ import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
@@ -240,7 +240,7 @@ public class CacheServiceTest extends LocalFileMetadataTestCase {
         CubeInstance cube = cubeManager.getCube(cubeName);
         assertEquals(0, cube.getSegments().size());
         assertEquals(0, cubeManagerB.getCube(cubeName).getSegments().size());
-        CubeSegment segment = cubeManager.appendSegment(cube, new TSRange(0L, 1000L));
+        CubeSegment segment = cubeManager.appendSegment(cube, new SegmentRange.TimePartitionedSegmentRange(0L, 1000L));
         //one for cube update
         assertEquals(1, broadcaster.getCounterAndClear());
         waitForCounterAndClear(1);

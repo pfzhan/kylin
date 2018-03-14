@@ -238,7 +238,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         return segments.getSegments(status);
     }
 
-    public Segments calculateToBeSegments(NDataSegment newSegment) {
+    public Segments<NDataSegment> calculateToBeSegments(NDataSegment newSegment) {
         return segments.calculateToBeSegments(newSegment);
     }
 

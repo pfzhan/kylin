@@ -153,18 +153,18 @@ public class ExtendCubeToHybridCLI {
         CubeSegment currentSeg = null;
         while (segmentIterator.hasNext()) {
             currentSeg = segmentIterator.next();
-            if (partitionDateStr != null && (currentSeg.getTSRange().start.v >= partitionDate
-                    || currentSeg.getTSRange().end.v > partitionDate)) {
+            if (partitionDateStr != null && (currentSeg.getTSRange().getStart() >= partitionDate
+                    || currentSeg.getTSRange().getEnd() > partitionDate)) {
                 segmentIterator.remove();
                 logger.info("CubeSegment[" + currentSeg + "] was removed.");
             }
         }
-        if (partitionDateStr != null && partitionDate != currentSeg.getTSRange().end.v) {
+        if (partitionDateStr != null && partitionDate != currentSeg.getTSRange().getEnd()) {
             logger.error("PartitionDate must be end date of one segment.");
             return;
         }
         if (currentSeg != null && partitionDateStr == null)
-            partitionDate = currentSeg.getTSRange().end.v;
+            partitionDate = currentSeg.getTSRange().getEnd();
 
         cubeManager.createCube(newCubeInstance, projectName, owner);
         logger.info("CubeInstance was saved at: " + newCubeInstance.getResourcePath());
@@ -211,7 +211,7 @@ public class ExtendCubeToHybridCLI {
 
     private void verify() {
         kylinConfig.clearManagers();
-        
+
         CubeDescManager.getInstance(kylinConfig);
         CubeManager.getInstance(kylinConfig);
         ProjectManager.getInstance(kylinConfig);

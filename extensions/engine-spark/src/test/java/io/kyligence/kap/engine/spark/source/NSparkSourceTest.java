@@ -78,7 +78,7 @@ public class NSparkSourceTest extends NLocalSparkWithCSVDataTest {
         NDataModel model = (NDataModel) df.getModel();
 
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(),
-                new SegmentRange<>(0L, System.currentTimeMillis()));
+                new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()));
         Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
         ds.show(10);
 

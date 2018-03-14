@@ -33,12 +33,12 @@ import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.metadata.model.ISegmentAdvisor;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kylin.metadata.model.TimeRange;
 
 /**
  * RawTableSegment has a 1-1 relationship to CubeSegment. Their linkage is the identical 'uuid' attribute.
@@ -202,11 +202,11 @@ public class RawTableSegment implements IBuildable, ISegment, Serializable {
     }
 
     @Override
-    public TSRange getTSRange() {
+    public TimeRange getTSRange() {
         return getAdvisor().getTSRange();
     }
     
-    public void setTSRange(TSRange range) {
+    public void setTSRange(TimeRange range) {
         getAdvisor().setTSRange(range);
     }
     
@@ -249,11 +249,8 @@ public class RawTableSegment implements IBuildable, ISegment, Serializable {
 
     @Override
     public int compareTo(ISegment other) {
-        int comp = this.getSegRange().start.compareTo(other.getSegRange().start);
-        if (comp != 0)
-            return comp;
-
-        return this.getSegRange().end.compareTo(other.getSegRange().end);
+        SegmentRange<?> x = this.getSegRange();
+        return x.compareTo(other.getSegRange());
     }
 
     @Override

@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +37,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -46,7 +44,6 @@ import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -170,7 +167,7 @@ public class RawTableManager implements IRealizationProvider {
     public String getRealizationType() {
         return REALIZATION_TYPE;
     }
-    
+
     @Override
     public IRealization getRealization(String name) {
         return getRawTableInstance(name);
@@ -189,18 +186,6 @@ public class RawTableManager implements IRealizationProvider {
     public List<RawTableInstance> listAllRawTables() {
         try (AutoLock lock = rawTableMapLock.lockForRead()) {
             return new ArrayList<RawTableInstance>(rawTableMap.values());
-        }
-    }
-
-    public List<RawTableSegment> getRawtableSegmentByTSRange(RawTableInstance raw, TSRange tsRange) {
-        try (AutoLock lock = rawTableMapLock.lockForRead()) {
-            LinkedList<RawTableSegment> result = Lists.newLinkedList();
-            for (RawTableSegment seg : raw.getSegments()) {
-                if (tsRange.contains(seg.getTSRange())) {
-                    result.add(seg);
-                }
-            }
-            return result;
         }
     }
 
@@ -423,35 +408,40 @@ public class RawTableManager implements IRealizationProvider {
         }
     }
 
-    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, TSRange tsRange,
-            SegmentRange segRange, boolean force) throws IOException {
+    public RawTableSegment mergeSegments(RawTableInstance raw, String cubeSegUuid, SegmentRange segRange, boolean force)
+            throws IOException {
+
         try (AutoLock lock = rawTableMapLock.lockForWrite()) {
             if (raw.getSegments().isEmpty())
                 throw new IllegalArgumentException("RawTable " + raw + " has no segments");
 
-            checkInputRanges(tsRange, segRange);
             checkNoBuildingSegment(raw);
             checkCubeIsPartitioned(raw);
 
             if (raw.getSegments().getFirstSegment().isOffsetCube()) {
-                // offset cube, merge by date range?
-                if (segRange == null && tsRange != null) {
-                    Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY)
-                            .findMergeOffsetsByDateRange(tsRange, Long.MAX_VALUE);
-                    if (pair == null)
-                        throw new IllegalArgumentException(
-                                "Find no segments to merge by " + tsRange + " for raw table " + raw);
-                    segRange = new SegmentRange(pair.getFirst().getSegRange().start,
-                            pair.getSecond().getSegRange().end);
-                }
-                tsRange = null;
-                Preconditions.checkArgument(segRange != null);
-            } else {
-                segRange = null;
-                Preconditions.checkArgument(tsRange != null);
-            }
+                // offset cube, merge by date range.
+                // Such case should be triggered by auto merge
+                if (segRange instanceof SegmentRange.TimePartitionedSegmentRange) {
 
-            RawTableSegment newSegment = newSegment(raw, cubeSegUuid, tsRange, segRange);
+                    // offset cube, merge by date range.
+                    // Such case should be triggered by auto merge
+                    // this case should no longer exists after analysis
+                    throw new IllegalArgumentException("segRange " + segRange + " is TimePartitionedSegmentRange");
+
+                    //
+                    //                    Pair<RawTableSegment, RawTableSegment> pair = raw.getSegments(SegmentStatusEnum.READY)
+                    //                            .findMergeOffsetsByDateRange((SegmentRange.TimePartitionedSegmentRange) segRange,
+                    //                                    Long.MAX_VALUE);
+                    //                    if (pair == null)
+                    //                        throw new IllegalArgumentException(
+                    //                                "Find no segments to merge by " + segRange + " for raw table " + raw);
+                    //
+                    //                    segRange = pair.getFirst().getSegRange().coverWith(pair.getSecond().getSegRange());
+                }
+            }
+            Preconditions.checkArgument(segRange != null);
+
+            RawTableSegment newSegment = newSegment(raw, cubeSegUuid, segRange);
 
             Segments<RawTableSegment> mergingSegments = raw.getMergingSegments(newSegment);
             if (mergingSegments.size() <= 1)
@@ -460,13 +450,9 @@ public class RawTableManager implements IRealizationProvider {
 
             RawTableSegment first = mergingSegments.get(0);
             RawTableSegment last = mergingSegments.get(mergingSegments.size() - 1);
-            if (first.isOffsetCube()) {
-                newSegment.setSegRange(new SegmentRange(first.getSegRange().start, last.getSegRange().end));
-                newSegment.setTSRange(null);
-            } else {
-                newSegment.setTSRange(new TSRange(mergingSegments.getTSStart(), mergingSegments.getTSEnd()));
-                newSegment.setSegRange(null);
-            }
+
+            newSegment.setSegRange(first.getSegRange().coverWith(first.getSegRange().coverWith(last.getSegRange())));
+
 
             if (force == false) {
                 List<String> emptySegment = Lists.newArrayList();
@@ -493,26 +479,20 @@ public class RawTableManager implements IRealizationProvider {
         }
     }
 
-    private void checkInputRanges(TSRange tsRange, SegmentRange segRange) {
-        if (tsRange != null && segRange != null) {
-            throw new IllegalArgumentException(
-                    "Build or refresh cube segment either by TSRange or by SegmentRange, not both.");
-        }
-    }
-
-    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, TSRange tsRange,
-            SegmentRange segRange) {
+    private RawTableSegment newSegment(RawTableInstance raw, String cubeSegUuid, SegmentRange segRange) {
         RawTableSegment segment = new RawTableSegment(raw);
         segment.setUuid(null == cubeSegUuid ? UUID.randomUUID().toString() : cubeSegUuid);
-        segment.setName(CubeSegment.makeSegmentName(tsRange, segRange, raw.getModel()));
+        segment.setName(CubeSegment.makeSegmentName(segRange, raw.getModel()));
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setRawTableInstance(raw);
 
-        // let full build range be backward compatible
-        if (tsRange == null && segRange == null)
-            tsRange = new TSRange(0L, Long.MAX_VALUE);
+        // take care of legacy
+        if (segRange == null) {
+            // let full build range be backward compatible
+            // for streaming cube, input segRange should never be null
+            segRange = new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE);
+        }
 
-        segment.setTSRange(tsRange);
         segment.setSegRange(segRange);
         segment.setStatus(SegmentStatusEnum.NEW);
         segment.validate();

@@ -544,11 +544,11 @@ public class CubeService extends BasicService implements InitializingBean {
                 return;
 
             List<CubeSegment> toRemoveSegs = Lists.newArrayList();
-            long tail = readySegs.get(readySegs.size() - 1).getTSRange().end.v;
+            long tail = readySegs.get(readySegs.size() - 1).getTSRange().getEnd();
             long head = tail - desc.getRetentionRange();
             for (CubeSegment seg : readySegs) {
-                if (seg.getTSRange().end.v > 0) { // for streaming cube its initial value is 0
-                    if (seg.getTSRange().end.v <= head) {
+                if (seg.getTSRange().getEnd() > 0) { // for streaming cube its initial value is 0
+                    if (seg.getTSRange().getEnd() <= head) {
                         toRemoveSegs.add(seg);
                     }
                 }
@@ -574,7 +574,7 @@ public class CubeService extends BasicService implements InitializingBean {
                 cube = getCubeManager().getCube(cubeName);
                 SegmentRange offsets = cube.autoMergeCubeSegments();
                 if (offsets != null) {
-                    CubeSegment newSeg = getCubeManager().mergeSegments(cube, null, offsets, true);
+                    CubeSegment newSeg = getCubeManager().mergeSegments(cube, offsets, true);
                     logger.debug("Will submit merge job on " + newSeg);
                     DefaultChainedExecutable job = EngineFactory.createBatchMergeJob(newSeg, "SYSTEM");
                     getExecutableManager().addJob(job);

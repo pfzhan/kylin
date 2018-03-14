@@ -28,7 +28,7 @@ import org.apache.kylin.dimension.AbstractDateDimEnc;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ISegment;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.TimeRange;
 
 public class SegmentGTStartAndEnd {
     private ISegment segment;
@@ -44,18 +44,18 @@ public class SegmentGTStartAndEnd {
     }
 
     public Pair<ByteArray, ByteArray> getSegmentStartAndEnd(int index) {
-        TSRange tsRange = segment.getTSRange();
-        
+        TimeRange tsRange = segment.getTSRange();
+
         ByteArray start;
-        if (!tsRange.start.isMin) {
-            start = encodeTime(tsRange.start.v, index, 1);
+        if (tsRange.getStart() != 0L) {
+            start = encodeTime(tsRange.getStart(), index, 1);
         } else {
             start = new ByteArray();
         }
 
         ByteArray end;
-        if (!tsRange.end.isMax) {
-            end = encodeTime(tsRange.end.v, index, -1);
+        if (tsRange.getEnd() != Long.MAX_VALUE) {
+            end = encodeTime(tsRange.getEnd(), index, -1);
         } else {
             end = new ByteArray();
         }

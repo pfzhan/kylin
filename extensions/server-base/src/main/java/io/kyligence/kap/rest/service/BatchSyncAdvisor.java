@@ -34,9 +34,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.model.CubeBuildTypeEnum;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedSegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -49,7 +51,7 @@ public class BatchSyncAdvisor {
     public static List<KapJobBuildRequest> buildJobBuildRequests(String cubeName, List<KapSyncRequest> reqList)
             throws IOException {
 
-        Map<String, Set<TSRange>> combinedRangeMap = combineBuildRanges(reqList);
+        Map<String, Set<TimePartitionedSegmentRange>> combinedRangeMap = combineBuildRanges(reqList);
 
         List<KapJobBuildRequest> kapJobList = buildKapJobRequests(cubeName, combinedRangeMap);
 
@@ -57,23 +59,25 @@ public class BatchSyncAdvisor {
     }
 
     private static List<KapJobBuildRequest> buildKapJobRequests(String cubeName,
-            Map<String, Set<TSRange>> combinedRangeMap) throws IOException {
+            Map<String, Set<TimePartitionedSegmentRange>> combinedRangeMap) throws IOException {
         List<KapJobBuildRequest> kapJobList = Lists.newArrayList();
 
-        for (Map.Entry<String, Set<TSRange>> entry : combinedRangeMap.entrySet()) {
+        for (Map.Entry<String, Set<TimePartitionedSegmentRange>> entry : combinedRangeMap.entrySet()) {
             CubeInstance cube = MPCubeManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .convertToMPCubeIfNeeded(cubeName, new String[] { entry.getKey() });
             Segments<CubeSegment> segments = cube.getSegments();
-            List<TSRange> existingRanges = Lists.newArrayList();
+            List<TimePartitionedSegmentRange> existingRanges = Lists.newArrayList();
             for (CubeSegment seg : segments) {
-                existingRanges.add(seg.getTSRange());
+                SegmentRange segRange = seg.getSegRange();
+                Preconditions.checkState(segRange instanceof TimePartitionedSegmentRange);
+                existingRanges.add((TimePartitionedSegmentRange) segRange);
             }
 
-            List<TSRange> inputRanges = Lists.newArrayList(entry.getValue());
+            List<TimePartitionedSegmentRange> inputRanges = Lists.newArrayList(entry.getValue());
 
-            List<TSRange> toSyncRanges = matchWithExistingRanges(inputRanges, existingRanges);
+            List<TimePartitionedSegmentRange> toSyncRanges = matchWithExistingRanges(inputRanges, existingRanges);
 
-            for (TSRange sRange : toSyncRanges) {
+            for (TimePartitionedSegmentRange sRange : toSyncRanges) {
                 boolean isExisting = existingRanges.contains(sRange);
                 CubeBuildTypeEnum buildType = isExisting ? CubeBuildTypeEnum.REFRESH : CubeBuildTypeEnum.BUILD;
                 kapJobList.add(new KapJobBuildRequest(cube.getName(), sRange, buildType.toString()));
@@ -83,12 +87,13 @@ public class BatchSyncAdvisor {
         return kapJobList;
     }
 
-    private static Map<String, Set<TSRange>> combineBuildRanges(List<KapSyncRequest> reqList) {
-        Map<String, Set<TSRange>> csMap = Maps.newHashMap();
+    private static Map<String, Set<TimePartitionedSegmentRange>> combineBuildRanges(List<KapSyncRequest> reqList) {
+        Map<String, Set<TimePartitionedSegmentRange>> csMap = Maps.newHashMap();
 
         for (KapSyncRequest kapSyncReq : reqList) {
-            Set<TSRange> mergeSet = mergePointAndRange(kapSyncReq.getPointList(), kapSyncReq.getRangeList());
-            Set<TSRange> csSet = csMap.get(kapSyncReq.getMpValues());
+            Set<TimePartitionedSegmentRange> mergeSet = mergePointAndRange(kapSyncReq.getPointList(),
+                    kapSyncReq.getRangeList());
+            Set<TimePartitionedSegmentRange> csSet = csMap.get(kapSyncReq.getMpValues());
             csSet = resetRanges(mergeSet, csSet);
             csMap.put(kapSyncReq.getMpValues(), csSet);
         }
@@ -96,60 +101,62 @@ public class BatchSyncAdvisor {
         return csMap;
     }
 
-    private static Set<TSRange> mergePointAndRange(List<Long> pointList, List<Long[]> rangeList) {
-        Set<TSRange> pointSegSet = pointToSegRange(pointList);
-        Set<TSRange> rangeSegSet = rangeToSegRange(rangeList);
+    private static Set<TimePartitionedSegmentRange> mergePointAndRange(List<Long> pointList, List<Long[]> rangeList) {
+        Set<TimePartitionedSegmentRange> pointSegSet = pointToSegRange(pointList);
+        Set<TimePartitionedSegmentRange> rangeSegSet = rangeToSegRange(rangeList);
         pointSegSet.addAll(rangeSegSet);
         return pointSegSet;
     }
 
-    private static Set<TSRange> pointToSegRange(List<Long> pointList) {
-        Set<TSRange> rangeSet = Sets.newHashSet();
+    private static Set<TimePartitionedSegmentRange> pointToSegRange(List<Long> pointList) {
+        Set<TimePartitionedSegmentRange> rangeSet = Sets.newHashSet();
         for (Long point : pointList) {
-            TSRange range = new TSRange(point, point + 1);
+            TimePartitionedSegmentRange range = new TimePartitionedSegmentRange(point, point + 1);
             rangeSet.add(range);
         }
         return rangeSet;
     }
 
-    private static Set<TSRange> rangeToSegRange(List<Long[]> rangeList) {
-        Set<TSRange> rangeSet = Sets.newHashSet();
+    private static Set<TimePartitionedSegmentRange> rangeToSegRange(List<Long[]> rangeList) {
+        Set<TimePartitionedSegmentRange> rangeSet = Sets.newHashSet();
         for (Long[] rg : rangeList) {
-            TSRange range = new TSRange(rg[0], rg[1] + 1);
+            TimePartitionedSegmentRange range = new TimePartitionedSegmentRange(rg[0], rg[1] + 1);
             rangeSet.add(range);
         }
         return rangeSet;
     }
 
-    private static Set<TSRange> resetRanges(Set<TSRange> mergeSet, Set<TSRange> rgSet) {
+    private static Set<TimePartitionedSegmentRange> resetRanges(Set<TimePartitionedSegmentRange> mergeSet,
+            Set<TimePartitionedSegmentRange> rgSet) {
         if (rgSet == null) {
             rgSet = Sets.newHashSet();
         }
-        for (TSRange range : mergeSet) {
+        for (TimePartitionedSegmentRange range : mergeSet) {
             resetRange(range, rgSet);
         }
 
         return rgSet;
     }
 
-    private static Set<TSRange> resetRange(TSRange range, Set<TSRange> rgSet) {
+    private static Set<TimePartitionedSegmentRange> resetRange(TimePartitionedSegmentRange range,
+            Set<TimePartitionedSegmentRange> rgSet) {
 
-        Set<TSRange> mergeRangeSet = Sets.newHashSet();
+        Set<TimePartitionedSegmentRange> mergeRangeSet = Sets.newHashSet();
 
-        List<TSRange> rangeList = Lists.newArrayList(rgSet);
+        List<TimePartitionedSegmentRange> rangeList = Lists.newArrayList(rgSet);
         Collections.sort(rangeList);
 
         int point = 0;
-        TSRange pointer = null;
+        TimePartitionedSegmentRange pointer = null;
         while (point < rgSet.size()) {
             pointer = rangeList.get(point);
             if (range.overlaps(pointer)) {
                 if (range.contains(pointer)) {
                     point++;
-                } else if (range.start.compareTo(pointer.start) < 0) {
-                    range = new TSRange(range.start.v, pointer.end.v);
-                } else if (range.start.compareTo(pointer.start) > 0) {
-                    range = new TSRange(pointer.start.v, range.end.v);
+                } else if (range.getStart().compareTo(pointer.getStart()) < 0) {
+                    range = new TimePartitionedSegmentRange(range.getStart(), pointer.getEnd());
+                } else if (range.getStart().compareTo(pointer.getStart()) > 0) {
+                    range = new TimePartitionedSegmentRange(pointer.getStart(), range.getEnd());
                     point++;
                 }
             } else {
@@ -166,8 +173,9 @@ public class BatchSyncAdvisor {
         return rgSet;
     }
 
-    private static List<TSRange> matchWithExistingRanges(List<TSRange> inputRanges, List<TSRange> existingRanges) {
-        List<TSRange> toSyncRanges = Lists.newArrayList();
+    private static List<TimePartitionedSegmentRange> matchWithExistingRanges(
+            List<TimePartitionedSegmentRange> inputRanges, List<TimePartitionedSegmentRange> existingRanges) {
+        List<TimePartitionedSegmentRange> toSyncRanges = Lists.newArrayList();
 
         if (existingRanges.isEmpty()) {
             toSyncRanges = inputRanges;
@@ -180,8 +188,8 @@ public class BatchSyncAdvisor {
 
         int inPointer = 0;
         int existingPointer = 0;
-        TSRange inRange = null;
-        TSRange existingRange = null;
+        TimePartitionedSegmentRange inRange = null;
+        TimePartitionedSegmentRange existingRange = null;
 
         // like merge sort, match two sorted list
         while (inPointer < inputRanges.size()) {
@@ -200,22 +208,23 @@ public class BatchSyncAdvisor {
                     toSyncRanges.add(existingRange);
                 }
 
-                if (inRange.start.compareTo(existingRange.start) < 0) {
-                    toSyncRanges.add(new TSRange(inRange.start.v, existingRange.start.v));
+                if (inRange.getStart().compareTo(existingRange.getStart()) < 0) {
+                    toSyncRanges.add(new TimePartitionedSegmentRange(inRange.getStart(), existingRange.getStart()));
                 }
 
-                int endComp = inRange.end.compareTo(existingRange.end);
+                int endComp = inRange.getEnd().compareTo(existingRange.getEnd());
                 if (endComp < 0) {
                     inPointer++;
                 } else if (endComp == 0) {
                     inPointer++;
                     existingPointer++;
                 } else {
-                    inputRanges.set(inPointer, new TSRange(existingRange.end.v, inRange.end.v));
+                    inputRanges.set(inPointer,
+                            new TimePartitionedSegmentRange(existingRange.getEnd(), inRange.getEnd()));
                     existingPointer++;
                 }
             } else {
-                if (inRange.start.compareTo(existingRange.start) < 0) {
+                if (inRange.getStart().compareTo(existingRange.getStart()) < 0) {
                     toSyncRanges.add(inRange);
                     inPointer++;
                 } else {
@@ -231,21 +240,21 @@ public class BatchSyncAdvisor {
 
         private String cubeName;
 
-        private TSRange tsRange;
+        private TimePartitionedSegmentRange tsRange;
 
         private String buildType;
 
-        public KapJobBuildRequest(String cubeName, TSRange tsRange, String buildType) {
+        public KapJobBuildRequest(String cubeName, TimePartitionedSegmentRange tsRange, String buildType) {
             this.cubeName = cubeName;
             this.tsRange = tsRange;
             this.buildType = buildType;
         }
 
-        public TSRange getTsRange() {
+        public TimePartitionedSegmentRange getTsRange() {
             return tsRange;
         }
 
-        public void setTsRange(TSRange tsRange) {
+        public void setTsRange(TimePartitionedSegmentRange tsRange) {
             this.tsRange = tsRange;
         }
 

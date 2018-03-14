@@ -19,7 +19,6 @@
 package org.apache.kylin.metadata.model;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentRange.TSRange;
 
 public interface ISegment extends Comparable<ISegment> {
 
@@ -31,7 +30,7 @@ public interface ISegment extends Comparable<ISegment> {
     
     public SegmentRange getSegRange();
     
-    public TSRange getTSRange();
+    public TimeRange getTSRange();
 
     public DataModelDesc getModel();
 

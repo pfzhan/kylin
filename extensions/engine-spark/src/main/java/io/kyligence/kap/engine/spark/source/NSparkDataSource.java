@@ -24,16 +24,16 @@
 
 package io.kyligence.kap.engine.spark.source;
 
-import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.kylin.metadata.model.IBuildable;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.kylin.source.SourcePartition;
 import org.apache.spark.sql.SparkSession;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkDataSource implements ISource, IKeepNames {
@@ -63,10 +63,8 @@ public class NSparkDataSource implements ISource, IKeepNames {
     }
 
     @Override
-    public SourcePartition enrichSourcePartitionBeforeBuild(IBuildable buildable, SourcePartition srcPartition) {
-        SourcePartition result = SourcePartition.getCopyOf(srcPartition);
-        result.setSegRange(null);
-        return result;
+    public SegmentRange enrichSourcePartitionBeforeBuild(IBuildable buildable, SegmentRange srcPartition) {
+        return srcPartition;
     }
 
     @Override

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Sets;
@@ -41,6 +42,7 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
 
+@Ignore
 public class NCubeMasterTest extends NTestBase {
     @Test
     public void test() throws IOException {
