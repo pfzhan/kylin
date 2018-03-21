@@ -49,7 +49,7 @@ public class NCuboidDescMatcherTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        NCubePlan cube = NCubePlanManager.getInstance(getTestConfig(), projectDefault).getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cube = NCubePlanManager.getInstance(getTestConfig(), projectDefault).getCubePlan("ncube_basic");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();

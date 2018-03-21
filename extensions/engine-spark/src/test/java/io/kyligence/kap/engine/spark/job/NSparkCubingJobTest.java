@@ -26,7 +26,6 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
-import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.text.ParseException;
@@ -44,14 +43,15 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -77,12 +77,14 @@ import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
 import io.kyligence.kap.job.execution.NExecutableManager;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     @Before
     public void setup() throws Exception {
+        ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
@@ -94,7 +96,7 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     @After
     public void after() throws Exception {
-        DefaultScheduler.destroyInstance();
+        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
@@ -146,9 +148,13 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     @Test
     public void testBuildJob() throws Exception {
+        ss.close();
+        ss = new SparkSession(SparkContext.getOrCreate(sparkConf));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+        // fixme
+//        System.setProperty("kylin.metadata.distributed-lock-impl", "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.job.scheduler.provider.110",
                 "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");

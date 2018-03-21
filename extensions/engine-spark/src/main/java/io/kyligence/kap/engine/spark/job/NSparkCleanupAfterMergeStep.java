@@ -55,7 +55,7 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
         String name = getParam(NBatchConstants.P_DATAFLOW_NAME);
         Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(getParam(NBatchConstants.P_SEGMENT_IDS));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflow dataflow = NDataflowManager.getInstance(config).getDataflow(name);
+        NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);
         String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
 
         for (Integer segmentId : segmentIds) {

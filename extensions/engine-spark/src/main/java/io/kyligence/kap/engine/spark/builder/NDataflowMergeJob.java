@@ -34,7 +34,7 @@ import java.util.Set;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.dict.DictionaryInfo;
-import org.apache.kylin.dict.DictionaryManager;
+import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
@@ -79,7 +79,7 @@ public class NDataflowMergeJob extends NDataflowJob {
     }
 
     private void mergeDictionary(String dataflowName, int segmentId) {
-        final NDataflowManager mgr = NDataflowManager.getInstance(config);
+        final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
@@ -104,7 +104,7 @@ public class NDataflowMergeJob extends NDataflowJob {
 
     private void makeDictForNewSegment(NDataflow dataflow, NDataSegment newSeg, List<NDataSegment> mergingSegments)
             throws IOException {
-        DictionaryManager dictMgr = DictionaryManager.getInstance(config);
+        NDictionaryManager dictMgr = NDictionaryManager.getInstance(config, project);
         NCubePlan cubePlan = dataflow.getCubePlan();
 
         for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
@@ -124,7 +124,7 @@ public class NDataflowMergeJob extends NDataflowJob {
         }
     }
 
-    private DictionaryInfo mergeDictionaries(DictionaryManager dictMgr, NDataSegment seg, List<DictionaryInfo> dicts,
+    private DictionaryInfo mergeDictionaries(NDictionaryManager dictMgr, NDataSegment seg, List<DictionaryInfo> dicts,
             TblColRef col) throws IOException {
         DictionaryInfo dictInfo = dictMgr.mergeDictionary(dicts);
         if (dictInfo != null) {
@@ -142,7 +142,7 @@ public class NDataflowMergeJob extends NDataflowJob {
     }
 
     private void mergeSegments(String dataflowName, int segmentId, Set<Long> specifiedCuboids) throws IOException {
-        final NDataflowManager mgr = NDataflowManager.getInstance(config);
+        final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
@@ -204,7 +204,7 @@ public class NDataflowMergeJob extends NDataflowJob {
 
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
         update.setToAddOrUpdateCuboids(dataCuboid);
-        NDataflowManager.getInstance(config).updateDataflow(update);
+        NDataflowManager.getInstance(config, project).updateDataflow(update);
     }
 
     public static void main(String[] args) {

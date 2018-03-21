@@ -54,7 +54,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasics() {
         NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cube = mgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cube = mgr.getCubePlan("ncube_basic");
         Assert.assertNotNull(cube);
         Assert.assertSame(getTestConfig(), cube.getConfig().base());
         Assert.assertEquals(getTestConfig(), cube.getConfig());
@@ -92,11 +92,11 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetAllColumnsHaveDictionary() {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsHaveDictionary();
         Assert.assertEquals(4, tblCols.size());
 
-        NCubePlan cubePlan2 = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d900af");
+        NCubePlan cubePlan2 = cubeDefaultMgr.getCubePlan("all_fixed_length");
         Set<TblColRef> tblCols2 = cubePlan2.getAllColumnsHaveDictionary();
         Assert.assertEquals(0, tblCols2.size());
     }
@@ -104,7 +104,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetAllColumnsNeedDictionaryBuilt() {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsNeedDictionaryBuilt();
         Assert.assertEquals(4, tblCols.size());
     }

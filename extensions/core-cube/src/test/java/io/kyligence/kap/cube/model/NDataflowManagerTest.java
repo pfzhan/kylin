@@ -107,7 +107,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         final String name = UUID.randomUUID().toString();
         final String owner = "test_owner";
         final ProjectInstance proj = projMgr.getProject(projectDefault);
-        final NCubePlan cube = cubeMgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        final NCubePlan cube = cubeMgr.getCubePlan("ncube_basic");
 
         // create
         int cntBeforeCreate = mgr.listAllDataflows().size();
@@ -158,7 +158,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMergeSegmentsSuccess() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
@@ -198,7 +198,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMergeSegmentsFail() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig);
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         NDataflowUpdate update = new NDataflowUpdate(df.getName());

@@ -50,7 +50,7 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         NSparkMergingStep mergeStep = parent.getSparkCubingStep();
         String dataflowName = mergeStep.getDataflowName();
 
-        NDataflowManager mgr = NDataflowManager.getInstance(context.getConfig());
+        NDataflowManager mgr = NDataflowManager.getInstance(context.getConfig(), getProject());
         NDataflowUpdate update = new NDataflowUpdate(dataflowName);
 
         fillUpdateFromMergingStep(context.getConfig(), mergeStep, update);
@@ -69,7 +69,7 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         KylinConfig distConfig = KylinConfig.createKylinConfig(config);
         distConfig.setMetadataUrl(mergingStep.getDistMetaUrl());
 
-        NDataflowManager distMgr = NDataflowManager.getInstance(distConfig);
+        NDataflowManager distMgr = NDataflowManager.getInstance(distConfig, getProject());
         String dfName = mergingStep.getDataflowName();
         NDataflow distDataflow = distMgr.getDataflow(dfName).copy(); // avoid changing cached objects
 

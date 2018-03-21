@@ -55,7 +55,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() {
         NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cube = mgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cube = mgr.getCubePlan("ncube_basic");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();
@@ -93,7 +93,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTransverse() {
         NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cube = mgr.getCubePlan("62b3c058-5514-436b-b6b5-6240a8d91108");
+        NCubePlan cube = mgr.getCubePlan("ncube_basic");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();

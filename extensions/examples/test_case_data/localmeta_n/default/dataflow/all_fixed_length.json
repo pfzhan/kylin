@@ -6,7 +6,7 @@
   "description" : "test_description",
   "owner" : "test_owner",
   "mp_values" : null,
-  "cube_plan" : "62b3c058-5514-436b-b6b5-6240a8d900af",
+  "cube_plan" : "all_fixed_length",
   "create_time_utc" : 1509791792901,
   "status" : "DISABLED",
   "cost" : 50,

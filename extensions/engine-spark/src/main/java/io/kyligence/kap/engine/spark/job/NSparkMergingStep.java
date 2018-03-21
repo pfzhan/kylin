@@ -45,7 +45,7 @@ public class NSparkMergingStep extends NSparkExecutable {
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
-        NDataflow df = NDataflowManager.getInstance(config).getDataflow(getDataflowName());
+        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowName());
         return df.collectPrecalculationResource();
     }
 

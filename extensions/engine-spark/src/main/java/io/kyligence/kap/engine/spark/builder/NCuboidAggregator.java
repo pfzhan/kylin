@@ -61,7 +61,7 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCuboidAggregator {
-    protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuildJob.class);
+    protected static final Logger logger = LoggerFactory.getLogger(NCuboidAggregator.class);
     private SparkSession ss;
     private Dataset<Row> dataSet;
     private Set<Integer> dimensions;
