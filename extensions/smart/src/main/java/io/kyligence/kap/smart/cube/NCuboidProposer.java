@@ -311,10 +311,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                 dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
             }
 
-            for (int dimId : dimScores.keySet())
-                dimBitSet.set(dimId);
-
             SortedSet<Integer> measureIds = Sets.newTreeSet();
+            measureIds.add(NDataModel.MEASURE_ID_BASE);
             if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
                 for (FunctionDesc aggFunc : ctx.aggregations) {
                     Integer measureId = aggFuncIdMap.get(aggFunc);
@@ -333,6 +331,9 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                     }
                 }
             }
+
+            for (int dimId : dimScores.keySet())
+                dimBitSet.set(dimId);
 
             if (dimScores.isEmpty() && measureIds.isEmpty())
                 return;

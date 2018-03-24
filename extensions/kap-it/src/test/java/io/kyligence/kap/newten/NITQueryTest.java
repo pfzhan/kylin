@@ -32,6 +32,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -41,6 +42,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.query.routing.Candidate;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -51,28 +53,33 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
 import io.kyligence.kap.spark.KapSparkSession;
 
-public class NITQueryTest extends NLocalSparkWithCSVDataTest {
-    private KylinConfig kylinConfig;
-    private KapSparkSession kapSparkSession;
+public class NITQueryTest extends NLocalSparkWithMetaTest {
+    private static final Logger logger = LoggerFactory.getLogger(NITQueryTest.class);
+    private static KylinConfig kylinConfig;
+    private static KapSparkSession kapSparkSession;
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
     private static final String DEFAULT_PROJECT = "newten";
     private static final String IT_SQL_BASE_DIR = "../../kylin/kylin-it/src/test/resources/query";
-    private static final String[] EXCLUDE_SQL_LIST = { "query54.sql", "query55.sql", "query56.sql", "query57.sql",
-            "query58.sql", "query67.sql" };
+    private static final String[] EXCLUDE_SQL_LIST = {};
+
+    enum CompareLevel {
+        UNAVAILABLE, AVAILABLE, COMPARABLE
+    }
 
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");
-        super.setUp();
         DefaultScheduler scheduler = DefaultScheduler.getInstance();
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
@@ -87,32 +94,245 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
     public void after() throws Exception {
         Candidate.restorePriorities();
 
-        if (kapSparkSession != null)
-            kapSparkSession.close();
+        //if (kapSparkSession != null)
+            //kapSparkSession.close();
 
         DefaultScheduler.destroyInstance();
-        super.tearDown();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("org.xerial.snappy.lib.name");
     }
 
-    /**
-     *
-     * This test has only finished partial IT queries, because auto modeling can not handle all the queries yet.
-     * it should be capable to process all the IT queries.
-     *
-     **/
+    @Test
+    public void testBasic() throws Exception {
+        testScenario("sql", CompareLevel.COMPARABLE);
+    }
 
     @Test
-    public void runITQueries() throws Exception {
+    public void testCache() throws Exception {
+        testScenario("sql_cache", CompareLevel.COMPARABLE);
+    }
 
-        // Step1. Auto modeling and cubing
-        Map<String, String> queries = fetchPartialQueries("sql", 60, 70);
+    @Test
+    public void testCasewhen() throws Exception {
+        testScenario("sql_casewhen", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testDatetime() throws Exception {
+        testScenario("sql_datetime", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testDerived() throws Exception {
+        testScenario("sql_derived", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testDistinct() throws Exception {
+        testScenario("sql_distinct", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testDistinctDim() throws Exception {
+        testScenario("sql_distinct_dim", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testDistinctPrecisely() throws Exception {
+        testScenario("sql_distinct_precisely", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testDynamic() throws Exception {
+        testScenario("sql_dynamic", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testExtendedColumn() throws Exception {
+        testScenario("sql_extended_column", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testGrouping() throws Exception {
+        testScenario("sql_grouping", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testH2Uncapable() throws Exception {
+        testScenario("sql_h2_uncapable", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testHive() throws Exception {
+        testScenario("sql_hive", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testIntersectCount() throws Exception {
+        testScenario("sql_intersect_count", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testInvalid() throws Exception {
+        testScenario("sql_invalid", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testJoin() throws Exception {
+        testScenario("sql_join", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testLike() throws Exception {
+        testScenario("sql_like", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testLimit() throws Exception {
+        testScenario("sql_limit", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testLookup() throws Exception {
+        testScenario("sql_lookup", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testMassin() throws Exception {
+        testScenario("sql_massin", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testMassinDistinct() throws Exception {
+        testScenario("sql_massin_distinct", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testMultiModel() throws Exception {
+        testScenario("sql_multi_model", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testOrderBy() throws Exception {
+        testScenario("sql_orderby", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testPercentile() throws Exception {
+        testScenario("sql_percentile", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testRaw() throws Exception {
+        testScenario("sql_raw", CompareLevel.UNAVAILABLE);
+    }
+
+    // The strict join condition cause records lost.
+    @Test
+    public void testSnowFlake() throws Exception {
+        testScenario("sql_snowflake", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testStreaming() throws Exception {
+        testScenario("sql_streaming", CompareLevel.UNAVAILABLE);
+    }
+
+    // Automodeling problem, Yifan focus on it.
+    @Test
+    public void testSubQuery() throws Exception {
+        testScenario("sql_subquery", CompareLevel.AVAILABLE);
+    }
+
+    // different results
+    @Test
+    public void testTableau() throws Exception {
+        testScenario("sql_tableau", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testTimeout() throws Exception {
+        testScenario("sql_timeout", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testTopn() throws Exception {
+        testScenario("sql_topn", CompareLevel.COMPARABLE);
+    }
+
+    // not supported
+    @Test
+    public void testUnion() throws Exception {
+        testScenario("sql_union", CompareLevel.COMPARABLE);
+    }
+
+    @Test
+    public void testVerifyContent() throws Exception {
+        testScenario("sql_verifyContent", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testVerifyCount() throws Exception {
+        testScenario("sql_verifyCount", CompareLevel.UNAVAILABLE);
+    }
+
+    @Test
+    public void testWindow() throws Exception {
+        testScenario("sql_window", CompareLevel.AVAILABLE);
+    }
+
+    @Test
+    public void testTableauProbing() throws Exception {
+        testScenario("tableau_probing", CompareLevel.UNAVAILABLE);
+    }
+
+    private void testScenario(String name, CompareLevel compareLevel) throws Exception {
+
+        switch (compareLevel) {
+        case UNAVAILABLE:
+            break;
+        case AVAILABLE:
+            availabilityTest(name);
+            break;
+        case COMPARABLE:
+            comparisonTest(name);
+        default:
+            break;
+        }
+    }
+
+    private void availabilityTest(String name) throws Exception {
+        Map<String, String> queries = fetchPartialQueries(name, 0, 0);
+        Assert.assertTrue(queries.size() > 0);
         kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
         for (String query : queries.values()) {
             kapSparkSession.collectQueries(query);
         }
+
+        kapSparkSession.speedUp();
+
+        // Step2. Query cube and query SparkSQL respectively
+        kapSparkSession.close();
+        kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+
+        // Query from Cube
+        for (String query : queries.values()) {
+            Dataset<Row> ret = kapSparkSession.queryFromCube(query);
+            ret.show();
+        }
+    }
+
+    private void comparisonTest(String name) throws Exception {
+        Map<String, String> queries = fetchPartialQueries(name, 60, 61);
+        Assert.assertTrue(queries.size() > 0);
+        kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+        for (String query : queries.values()) {
+            kapSparkSession.collectQueries(query);
+        }
+
         kapSparkSession.speedUp();
 
         // Step2. Query cube and query SparkSQL respectively
@@ -124,23 +344,30 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
         List<Dataset> resultsOfCube = Lists.newArrayList();
         for (String query : queries.values()) {
             Dataset<Row> ret = kapSparkSession.queryFromCube(query);
-            ret.show();
             resultsOfCube.add(ret);
         }
 
         // Query from SparkSQL
-        /*prepareBeforeSparkSql();
+        prepareBeforeSparkSql();
         List<Dataset> resultsOfSparkSql = Lists.newArrayList();
         for (String sql : queries.values()) {
+            for (String converterName : kylinConfig.getPushDownConverterClassNames()) {
+                IPushDownConverter converter = (IPushDownConverter) ClassUtil.newInstance(converterName);
+                String converted = converter.convert(sql, DEFAULT_PROJECT, "DEFAULT", false);
+                if (!sql.equals(converted)) {
+                    logger.info("the query is converted to {} after applying converter {}", converted, converterName);
+                    sql = converted;
+                }
+            }
             // Table schema comes from csv and DATABASE.TABLE is not supported.
-            String sqlForSpark = sql.replaceAll("edw.", "").replaceAll("default.", "");
+            String sqlForSpark = sql.replaceAll("edw.", "").replaceAll("default.", "").replaceAll("EDW.", "")
+                    .replaceAll("DEFAULT", "");
             Dataset<Row> ret = kapSparkSession.querySparkSql(sqlForSpark);
             resultsOfSparkSql.add(ret);
         }
 
         // Step3. Validate results between sparksql and cube
         compareResults(resultsOfSparkSql, resultsOfCube);
-        */
 
     }
 
@@ -177,7 +404,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
 
     private DataType convertType(org.apache.kylin.metadata.datatype.DataType type) {
         if (type.isDateTimeFamily())
-            return DataTypes.DateType;
+            return DataTypes.StringType;
 
         if (type.isIntegerFamily())
             return DataTypes.LongType;
@@ -195,15 +422,20 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
         File sqlFile = new File(IT_SQL_BASE_DIR + File.separator + folder);
         Map<String, String> originalSqls = retrieveITSqls(sqlFile);
         Map<String, String> partials = Maps.newLinkedHashMap();
-        for (int i = start; i < end; i++) {
-            StringBuilder key = new StringBuilder();
-            key.append("query");
-            if (i < 10)
-                key.append("0");
-            key.append(i).append(".sql");
-            String sqlContext = originalSqls.get(key.toString());
-            if (sqlContext != null)
-                partials.put(key.toString(), sqlContext);
+
+        if (end - start <= 0)
+            partials = originalSqls;
+        else {
+            for (int i = start; i < end; i++) {
+                StringBuilder key = new StringBuilder();
+                key.append("query");
+                if (i < 10)
+                    key.append("0");
+                key.append(i).append(".sql");
+                String sqlContext = originalSqls.get(key.toString());
+                if (sqlContext != null)
+                    partials.put(key.toString(), sqlContext);
+            }
         }
         doFilter(partials);
         return partials;
@@ -217,10 +449,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
                 sqlFiles = new File(baseDir).listFiles(new FilenameFilter() {
                     @Override
                     public boolean accept(File dir, String name) {
-                        if (name.startsWith("sql_")) {
-                            return true;
-                        }
-                        return false;
+                        return name.startsWith("sql_");
                     }
                 });
             }
@@ -241,10 +470,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
                 sqlFiles = file.listFiles(new FilenameFilter() {
                     @Override
                     public boolean accept(File dir, String name) {
-                        if (name.endsWith(".sql")) {
-                            return true;
-                        }
-                        return false;
+                        return name.endsWith(".sql");
                     }
                 });
             }

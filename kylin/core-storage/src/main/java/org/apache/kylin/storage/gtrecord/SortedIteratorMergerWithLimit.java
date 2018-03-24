@@ -126,11 +126,12 @@ public class SortedIteratorMergerWithLimit<E extends Cloneable> extends SortedIt
                 throw new IllegalStateException("Should hasNext() before next()");
             }
 
-            //TODO: remove this check when validated
-            if (last != null) {
+            //TODO: remove this check when validated, in NEWTEN it should respect layout rowkey's order
+            /*if (last != null) {
                 if (comparator.compare(last, fetched) > 0)
                     throw new IllegalStateException("Not sorted! last: " + last + " fetched: " + fetched);
             }
+            */
 
             last = fetched;
             nextFetched = false;
