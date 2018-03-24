@@ -30,20 +30,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
-import org.apache.kylin.metadata.badquery.BadQueryHistory;
-import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.spark.SparkContext;
@@ -164,13 +164,13 @@ public class KapSparkSession extends SparkSession {
 
     private void collectBadQuery(String sql) throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        final BadQueryHistoryManager bqhManager = BadQueryHistoryManager.getInstance(config);
-        BadQueryHistory history = bqhManager.getBadQueriesForProject(project);
+        final NBadQueryHistoryManager bqhManager = NBadQueryHistoryManager.getInstance(config, project);
+        NBadQueryHistory history = bqhManager.getBadQueriesForProject();
         BadQueryEntry queryEntry = new BadQueryEntry();
         queryEntry.setSql(sql);
         queryEntry.setAdj(BadQueryEntry.ADJ_PUSHDOWN);
         history.getEntries().add(queryEntry);
-        bqhManager.upsertToProject(history, project);
+        bqhManager.upsertToProject(history);
     }
 
     private Dataset<Row> queryCube(String sql) throws Exception {
@@ -183,7 +183,7 @@ public class KapSparkSession extends SparkSession {
 
     public void speedUp() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        DefaultScheduler scheduler = DefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
         scheduler.init(new JobEngineConfig(config), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -194,15 +194,15 @@ public class KapSparkSession extends SparkSession {
         logger.info("Auto modeling done. Starts to build......");
         buildAllCubes(config, project);
 
-        DefaultScheduler.destroyInstance();
+        NDefaultScheduler.destroyInstance();
         use(project);
         logger.info("Job finished. Come on! Query me!");
     }
 
     private void buildAllCubes(KylinConfig kylinConfig, String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();
-        ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
-        ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
 
         for (IRealization realization : projectManager.listAllRealizations(proj)) {

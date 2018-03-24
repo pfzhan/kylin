@@ -30,20 +30,20 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
-import org.apache.kylin.metadata.badquery.BadQueryHistory;
-import org.apache.kylin.metadata.badquery.BadQueryHistoryManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.routing.Candidate;
@@ -76,7 +76,7 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         super.setUp();
-        DefaultScheduler scheduler = DefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -89,7 +89,7 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
     public void after() throws Exception {
         Candidate.restorePriorities();
 
-        DefaultScheduler.destroyInstance();
+        NDefaultScheduler.destroyInstance();
         super.tearDown();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
@@ -97,15 +97,15 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
     @Test
     public void testSSB() throws IOException, InterruptedException, SQLException, DatabaseUnitException {
         final String projectName = "ssb";
-        final BadQueryHistoryManager bqhManager = BadQueryHistoryManager.getInstance(kylinConfig);
+        final NBadQueryHistoryManager bqhManager = NBadQueryHistoryManager.getInstance(kylinConfig, projectName);
 
-        BadQueryHistory history = bqhManager.getBadQueriesForProject(projectName);
+        NBadQueryHistory history = bqhManager.getBadQueriesForProject();
         List<BadQueryEntry> allEntries = Lists.newArrayList(history.getEntries());
 
         // Round 1 - Use 6 sqls to run e2e scenario
         List<BadQueryEntry> subEntries = allEntries.subList(0, 8);
         history.setEntries(Sets.newTreeSet(subEntries));
-        bqhManager.upsertToProject(history, projectName);
+        bqhManager.upsertToProject(history);
 
         // create model and cubes
         NSmartController.optimizeFromPushdown(kylinConfig, projectName);
@@ -117,9 +117,9 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
         queryBadQueries(projectName, subEntries);
 
         // Round 2 - Use all sqls to run e2e scenario
-        history = bqhManager.getBadQueriesForProject(projectName);
+        history = bqhManager.getBadQueriesForProject();
         history.setEntries(Sets.newTreeSet(allEntries));
-        bqhManager.upsertToProject(history, projectName);
+        bqhManager.upsertToProject(history);
 
         // create model and cubes
         NSmartController.optimizeFromPushdown(kylinConfig, projectName);
@@ -133,8 +133,8 @@ public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
 
     private void rebuildAllCubes(String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();
-        ProjectManager projectManager = ProjectManager.getInstance(kylinConfig);
-        ExecutableManager execMgr = ExecutableManager.getInstance(kylinConfig);
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);
         NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
 
         List<NSparkCubingJob> jobs = Lists.newArrayList();

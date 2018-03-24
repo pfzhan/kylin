@@ -52,7 +52,12 @@ public class DataModelManager {
         return config.getManager(DataModelManager.class);
     }
 
+    public static DataModelManager getInstance(String prj, KylinConfig config) {
+        return config.getManager(prj, DataModelManager.class);
+    }
+
     // called by reflection
+    @SuppressWarnings("unused")
     static DataModelManager newInstance(KylinConfig conf) {
         try {
             String cls = StringUtil.noBlank(conf.getDataModelManagerImpl(), DataModelManager.class.getName());
@@ -63,6 +68,16 @@ public class DataModelManager {
         }
     }
 
+    @SuppressWarnings("unused")
+    static DataModelManager newInstance(KylinConfig conf, String project) {
+        try {
+            String cls = StringUtil.noBlank(conf.getDataModelManagerImpl(), DataModelManager.class.getName());
+            Class<? extends DataModelManager> clz = ClassUtil.forName(cls, DataModelManager.class);
+            return clz.getConstructor(KylinConfig.class, String.class).newInstance(conf, project);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to init DataModelManager from " + conf, e);
+        }
+    }
     // ============================================================================
 
     private KylinConfig config;

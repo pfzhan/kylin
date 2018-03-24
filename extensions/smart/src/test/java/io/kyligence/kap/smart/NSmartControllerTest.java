@@ -26,7 +26,6 @@ package io.kyligence.kap.smart;
 
 import java.io.IOException;
 
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,6 +33,7 @@ import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NSmartControllerTest extends NLocalFileMetadataTestCase {
 
@@ -51,7 +51,7 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
     public void testSSB() throws IOException {
         final String project = "ssb";
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        ProjectManager projectManager = ProjectManager.getInstance(getTestConfig());
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
         Assert.assertTrue(!dataModelManager.getModels().isEmpty());
@@ -60,7 +60,7 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
         getTestConfig().clearManagers();
 
         dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
-        projectManager = ProjectManager.getInstance(getTestConfig());
+        projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertFalse(projectManager.listAllRealizations(project).isEmpty());
         Assert.assertFalse(dataModelManager.getModels().isEmpty());

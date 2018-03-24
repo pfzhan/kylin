@@ -36,13 +36,10 @@ import javax.annotation.Nullable;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
@@ -61,6 +58,9 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class NITQueryTest extends NLocalSparkWithCSVDataTest {
@@ -74,8 +74,9 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
         super.setUp();
-        DefaultScheduler scheduler = DefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -92,7 +93,7 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
         if (kapSparkSession != null)
             kapSparkSession.close();
 
-        DefaultScheduler.destroyInstance();
+        NDefaultScheduler.destroyInstance();
         super.tearDown();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
@@ -161,10 +162,10 @@ public class NITQueryTest extends NLocalSparkWithCSVDataTest {
     }
 
     private void prepareBeforeSparkSql() {
-        ProjectInstance projectInstance = ProjectManager.getInstance(kylinConfig).getProject(DEFAULT_PROJECT);
+        ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(DEFAULT_PROJECT);
         Preconditions.checkArgument(projectInstance != null);
         for (String table : projectInstance.getTables()) {
-            TableDesc tableDesc = TableMetadataManager.getInstance(kylinConfig).getTableDesc(table, DEFAULT_PROJECT);
+            TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, DEFAULT_PROJECT).getTableDesc(table);
             ColumnDesc[] columns = tableDesc.getColumns();
             StructType schema = new StructType();
             for (int i = 0; i < columns.length; i++) {

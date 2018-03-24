@@ -54,7 +54,6 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -74,6 +73,7 @@ import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.IKapEngineAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @SuppressWarnings("serial")
 public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKeep {
@@ -142,7 +142,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
         this.model = (NDataModel) NDataModelManager.getInstance(config, project).getDataModelDesc(modelName);
-        ProjectInstance ownerPrj = ProjectManager.getInstance(config).getProject(project);
+        ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
 
         // cube inherit the project override props
         Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();

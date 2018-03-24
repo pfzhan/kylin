@@ -92,7 +92,7 @@ public class ColumnTupleFilter extends TupleFilter {
     @Override
     public void serialize(IFilterCodeSystem<?> cs, ByteBuffer buffer) {
         TableRef tableRef = columnRef.getTableRef();
-        
+
         if (tableRef == null) {
             // un-qualified column
             String table = columnRef.getTable();
@@ -112,7 +112,10 @@ public class ColumnTupleFilter extends TupleFilter {
             
             String model = tableRef.getModel().getName();
             BytesUtil.writeUTFString(model, buffer);
-            
+
+            String prj = tableRef.getModel().getProject();
+            BytesUtil.writeUTFString(prj, buffer);
+
             String alias = tableRef.getAlias();
             BytesUtil.writeUTFString(alias, buffer);
             
@@ -130,11 +133,12 @@ public class ColumnTupleFilter extends TupleFilter {
         if (_QUALIFIED_.equals(tableName)) {
             // qualified column (from model)
             String model = BytesUtil.readUTFString(buffer);
+            String prj = BytesUtil.readUTFString(buffer);
             String alias = BytesUtil.readUTFString(buffer);
             String col = BytesUtil.readUTFString(buffer);
             
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            DataModelDesc modelDesc = DataModelManager.getInstance(config).getDataModelDesc(model);
+            DataModelDesc modelDesc = DataModelManager.getInstance(prj, config).getDataModelDesc(model);
             this.columnRef = modelDesc.findColumn(alias, col);
             
         } else {

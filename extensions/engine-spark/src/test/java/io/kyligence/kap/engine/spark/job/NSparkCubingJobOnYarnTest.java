@@ -34,7 +34,6 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.impl.threadpool.DefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
@@ -53,6 +52,7 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 
 @Ignore("This is a convenient way to submit newten spark cubing to yarn.")
 public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
@@ -61,7 +61,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        DefaultScheduler scheduler = DefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         System.setProperty("kylin.hadoop.conf.dir",
                 "/Users/wangcheng/Developments/KAP/extensions/examples/test_case_data/sandbox");
@@ -73,7 +73,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
     @After
     public void after() throws Exception {
-        DefaultScheduler.destroyInstance();
+        NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }

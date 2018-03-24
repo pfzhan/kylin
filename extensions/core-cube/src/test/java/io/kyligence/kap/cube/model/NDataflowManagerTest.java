@@ -30,11 +30,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
@@ -102,7 +102,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NCubePlanManager cubeMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
-        ProjectManager projMgr = ProjectManager.getInstance(testConfig);
+        NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
         final String name = UUID.randomUUID().toString();
         final String owner = "test_owner";

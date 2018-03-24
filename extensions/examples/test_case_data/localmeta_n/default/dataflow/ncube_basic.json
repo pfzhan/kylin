@@ -23,9 +23,9 @@
       },
       "timeRange": null,
       "dictionaries": {
-        "TEST_KYLIN_FACT.TRANS_ID": "/dict/DEFAULT.TEST_KYLIN_FACT/TRANS_ID/8f8d7611-45c1-492b-a23b-82dc14c37f68.dict",
-        "TEST_KYLIN_FACT.CAL_DT": "/dict/DEFAULT.TEST_KYLIN_FACT/CAL_DT/05928137-3e2e-458d-855d-a06608a92871.dict",
-        "TEST_SITES.SITE_NAME": "/dict/EDW.TEST_SITES/SITE_NAME/e42c2751-a896-4fdd-ad02-82691a9634ce.dict"
+        "TEST_KYLIN_FACT.TRANS_ID": "/default/dict/DEFAULT.TEST_KYLIN_FACT/TRANS_ID/8f8d7611-45c1-492b-a23b-82dc14c37f68.dict",
+        "TEST_KYLIN_FACT.CAL_DT": "/default/dict/DEFAULT.TEST_KYLIN_FACT/CAL_DT/05928137-3e2e-458d-855d-a06608a92871.dict",
+        "TEST_SITES.SITE_NAME": "/default/dict/EDW.TEST_SITES/SITE_NAME/e42c2751-a896-4fdd-ad02-82691a9634ce.dict"
       },
       "snapshots": null,
       "column_stats": null,

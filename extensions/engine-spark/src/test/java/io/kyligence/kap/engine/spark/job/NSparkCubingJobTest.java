@@ -48,10 +48,8 @@ import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -148,13 +146,9 @@ public class NSparkCubingJobTest extends NLocalSparkWithCSVDataTest {
 
     @Test
     public void testBuildJob() throws Exception {
-        ss.close();
-        ss = new SparkSession(SparkContext.getOrCreate(sparkConf));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
-        // fixme
-//        System.setProperty("kylin.metadata.distributed-lock-impl", "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.job.scheduler.provider.110",
                 "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");

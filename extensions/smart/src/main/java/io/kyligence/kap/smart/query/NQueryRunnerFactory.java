@@ -32,11 +32,11 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.project.RealizationEntry;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.cube.domain.ModelDomainBuilder;
 
 public final class NQueryRunnerFactory {
@@ -64,7 +64,7 @@ public final class NQueryRunnerFactory {
 
     public static AbstractQueryRunner createForCubeSQLValid(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
             CubeDesc cubeDesc) {
-        ProjectManager projectManager = ProjectManager.getInstance(srcKylinConfig);
+        NProjectManager projectManager = NProjectManager.getInstance(srcKylinConfig);
         CubeDescManager cubeDescManager = CubeDescManager.getInstance(srcKylinConfig);
         List<CubeDesc> cubeDescs = Lists.newArrayList();
         for (RealizationEntry entry : projectManager.getProject(cubeDesc.getProject()).getRealizationEntries()) {
