@@ -93,10 +93,6 @@ public class NITQueryTest extends NLocalSparkWithMetaTest {
     @After
     public void after() throws Exception {
         Candidate.restorePriorities();
-
-        //if (kapSparkSession != null)
-            //kapSparkSession.close();
-
         DefaultScheduler.destroyInstance();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("org.xerial.snappy.lib.name");
@@ -159,7 +155,7 @@ public class NITQueryTest extends NLocalSparkWithMetaTest {
 
     @Test
     public void testH2Uncapable() throws Exception {
-        testScenario("sql_h2_uncapable", CompareLevel.COMPARABLE);
+        testScenario("sql_h2_uncapable", CompareLevel.AVAILABLE);
     }
 
     @Test
@@ -174,7 +170,7 @@ public class NITQueryTest extends NLocalSparkWithMetaTest {
 
     @Test
     public void testInvalid() throws Exception {
-        testScenario("sql_invalid", CompareLevel.COMPARABLE);
+        testScenario("sql_invalid", CompareLevel.AVAILABLE);
     }
 
     @Test
@@ -325,7 +321,7 @@ public class NITQueryTest extends NLocalSparkWithMetaTest {
     }
 
     private void comparisonTest(String name) throws Exception {
-        Map<String, String> queries = fetchPartialQueries(name, 60, 61);
+        Map<String, String> queries = fetchPartialQueries(name, 0, 0);
         Assert.assertTrue(queries.size() > 0);
         kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
