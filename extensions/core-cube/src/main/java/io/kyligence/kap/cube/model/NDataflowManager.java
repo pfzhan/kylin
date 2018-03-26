@@ -38,13 +38,13 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
 import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -307,28 +307,22 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force) throws IOException {
-
         NDataflow dataflowCopy = dataflow.copy();
-
         if (dataflowCopy.getSegments().isEmpty())
             throw new IllegalArgumentException(dataflow + " has no segments");
-
         Preconditions.checkArgument(segRange != null);
 
         checkBuildingSegment(dataflowCopy);
         checkCubeIsPartitioned(dataflowCopy);
 
         NDataSegment newSegment = newSegment(dataflowCopy, segRange);
-
         Segments<NDataSegment> mergingSegments = dataflowCopy.getMergingSegments(newSegment);
-
         if (mergingSegments.size() <= 1)
             throw new IllegalArgumentException("Range " + newSegment.getSegRange()
                     + " must contain at least 2 segments, but there is " + mergingSegments.size());
 
         NDataSegment first = mergingSegments.get(0);
         NDataSegDetails firstSegDetails = first.getSegDetails();
-
         for (int i = 1; i < mergingSegments.size(); i++) {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
@@ -336,26 +330,19 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 throw new IllegalArgumentException(first + " and " + dataSegment + " has different layout status");
         }
 
-        NDataSegment last = mergingSegments.get(mergingSegments.size() - 1);
         if (!force) {
             for (int i = 0; i < mergingSegments.size() - 1; i++) {
                 if (!mergingSegments.get(i).getSegRange().connects(mergingSegments.get(i + 1).getSegRange()))
                     throw new IllegalStateException("Merging segments must not have gaps between "
                             + mergingSegments.get(i) + " and " + mergingSegments.get(i + 1));
             }
-        }
 
-        newSegment.setSegmentRange(first.getSegRange().coverWith(last.getSegRange()));
-        newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
-
-        if (!force) {
             List<String> emptySegment = Lists.newArrayList();
             for (NDataSegment seg : mergingSegments) {
                 if (seg.getSegDetails().getTotalCuboidRowCount() == 0) {
                     emptySegment.add(seg.getName());
                 }
             }
-
             if (emptySegment.size() > 0) {
                 throw new IllegalArgumentException(
                         "Empty cube segment found, couldn't merge unless 'forceMergeEmptySegment' set to true: "
@@ -363,12 +350,14 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             }
         }
 
+        NDataSegment last = mergingSegments.get(mergingSegments.size() - 1);
+        newSegment.setSegmentRange(first.getSegRange().coverWith(last.getSegRange()));
+        newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
         validateNewSegments(dataflowCopy, newSegment);
 
         NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getName());
         update.setToAddSegs(newSegment);
         updateDataflow(update);
-
         return newSegment;
     }
 
@@ -391,7 +380,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
         Preconditions.checkNotNull(segRange);
 
-        NDataSegment lastSeg = df.getLastSegment();
+        NDataSegment lastSeg = df.getSegmentWithMaxId();
         NDataSegment segment = new NDataSegment();
         segment.setId(lastSeg == null ? 0 : lastSeg.getId() + 1);
         segment.setName(Segments.makeSegmentName(segRange));

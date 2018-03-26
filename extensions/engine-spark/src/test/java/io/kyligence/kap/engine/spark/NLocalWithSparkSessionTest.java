@@ -27,10 +27,12 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -38,6 +40,7 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -50,8 +53,10 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
 
@@ -61,12 +66,19 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
+import io.kyligence.kap.job.execution.NExecutableManager;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 @SuppressWarnings("serial")
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
+
+    public static final String DEFAULT_PROJECT = "default";
 
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
@@ -196,4 +208,24 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         }
     }
 
+    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
+            throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflow df = dsMgr.getDataflow(cubeName);
+
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange);
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN");
+        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // launch the job
+        execMgr.addJob(job);
+
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+    }
 }

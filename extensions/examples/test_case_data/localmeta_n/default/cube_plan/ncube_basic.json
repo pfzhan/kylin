@@ -752,6 +752,12 @@
       ]
     }
   ],
+  "dictionaries": [
+    {
+      "id": 26,
+      "builder": "org.apache.kylin.dict.GlobalDictionaryBuilder2"
+    }
+  ],
   "override_properties": {},
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,

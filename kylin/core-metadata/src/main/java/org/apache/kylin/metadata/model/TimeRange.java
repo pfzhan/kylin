@@ -17,11 +17,12 @@
  */
 package org.apache.kylin.metadata.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-public class TimeRange {
+public class TimeRange implements Serializable {
     long start;
     long end;
 

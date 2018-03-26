@@ -27,10 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -222,7 +219,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    //    @Ignore("the build process is tested in manual & auto test, no need to build again")
     public void testBuildJob() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
@@ -302,7 +298,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("the build process is tested in NMeasuresTest, no need to build again")
     public void testMeasuresFullBuild() throws Exception {
         String cubeName = "ncube_full_measure_test";
-        builCuboid(cubeName);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflow df = dsMgr.getDataflow(cubeName);
+        builCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                Sets.<NCuboidLayout> newLinkedHashSet(df.getCubePlan().getAllCuboidLayouts()));
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
                 NDataflowManager.getInstance(config, DEFAULT_PROJECT).getDataflow(cubeName).getSegment(1), 1);
         for (Object[] row : resultFromLayout) {
@@ -310,17 +309,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 Assert.assertEquals("4", row[1].toString());// COUNT(*)
                 Assert.assertEquals("40000000632", row[2].toString());// SUM(ID1)
                 Assert.assertEquals(Double.valueOf("2637.703"), Double.valueOf(row[3].toString()), 0.000001);// SUM(PRICE2)
-                //                Assert.assertEquals(Double.valueOf("478.63"), Double.valueOf(row[4].toString()), 0.000001);// SUM(PRICE3)
-                //                Assert.assertEquals("2044.28", row[7].toString());// MAX(PRICE3)
                 Assert.assertEquals("10000000158", row[10].toString());// MIN(ID1)
                 Assert.assertEquals(10000000158.0, ((TopNCounter) row[11]).getCounters()[0], 0.000001);// TOPN(ID1)
                 Assert.assertEquals("3", row[15].toString());// HLL(NAME1)
                 Assert.assertEquals("4", row[16].toString());
                 Assert.assertEquals(4, ((PercentileCounter) row[21]).getRegisters().size());// percentile(PRICE1)
                 Assert.assertEquals("478.63", row[25].toString());// HLL(NAME1, PRICCE1)
-
             }
-
             // verify the all null value aggregate
             if (row[0].equals("10000000162")) {
                 Assert.assertEquals("3", row[1].toString());// COUNT(*)
@@ -328,18 +323,16 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
                 Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row[4].toString()), 0.000001);// SUM(PRICE3)
                 Assert.assertEquals("0", row[5].toString());// MAX(PRICE3)
                 Assert.assertEquals("10000000162", row[6].toString());// MIN(ID1)
-                //                Assert.assertEquals(3.000000048, ((TopNCounter) row[7]).getCounters()[0], 0.000001);// TOPN(ID1)
                 Assert.assertEquals("0", row[15].toString());// HLL(NAME1)
                 Assert.assertEquals("0", row[16].toString());// HLL(NAME2)
                 Assert.assertEquals(0, ((PercentileCounter) row[21]).getRegisters().size());// percentile(PRICE1)
                 Assert.assertEquals("0.0", row[25].toString());// HLL(NAME1, PRICE1)
-
             }
         }
     }
 
-    @Ignore
     @Test
+    @Ignore("the build process is tested in manual & auto test, no need to build again")
     public void testMergeJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
@@ -355,92 +348,61 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
-
-        // ready dataflow, segment, cuboid layout
-
-        long start = dateToLong("2011/01/01");
-        long end = dateToLong("2013/01/01");
-        df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment firstSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
-        df = dsMgr.getDataflow("ncube_basic");
+        /**
+         * Round1. Build 4 segment
+         */
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
-
-        // Round1. Build first segment
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(firstSeg), Sets.newLinkedHashSet(layouts),
-                "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
-        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
-
-        // launch the job
-        execMgr.addJob(job);
-
-        // wait job done
-        ExecutableState status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-        /**
-         * Round2. Build second segment
-         */
-
-        //update seg
-        start = dateToLong("2013/01/01");
-        end = dateToLong("2014/01/02");
-        df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment secondSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
-
-        job = NSparkCubingJob.create(Sets.newHashSet(secondSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
-        execMgr.addJob(job);
-
-        // wait job done
-        status = wait(job);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
+        long start = SegmentRange.dateToLong("2011-01-01");
+        long end = SegmentRange.dateToLong("2012-06-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2012-06-01");
+        end = SegmentRange.dateToLong("2013-01-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2013-01-01");
+        end = SegmentRange.dateToLong("2013-06-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2013-06-01");
+        end = SegmentRange.dateToLong("2015-01-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
 
         /**
-         * Round3. Merge two segments
+         * Round2. Merge two segments
          */
         df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment mergeSeg = dsMgr.mergeSegments(df,
-                new SegmentRange.TimePartitionedSegmentRange(dateToLong("2011/01/01"), dateToLong("2015/01/02")),
-                false);
-
-        NSparkMergingJob mergeJob = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
-        execMgr.addJob(mergeJob);
-
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(firstMergeJob);
         // wait job done
-        status = wait(mergeJob);
-        Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        validateCube(2);
-    }
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
 
-    private void builCuboid(String cubeName) throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
-        NDataflow df = dsMgr.getDataflow(cubeName);
-
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-
-        // ready dataflow, segment, cuboid layout
-        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<NCuboidLayout> toBuildLayouts = Lists.newArrayList(df.getCubePlan().getAllCuboidLayouts().get(0));
-
-        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(toBuildLayouts),
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
+        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
                 "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
-        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+        execMgr.addJob(secondMergeJob);
+        // wait job done
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
 
-        // launch the job
-        execMgr.addJob(job);
-
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+        /**
+         * validate cube segment info
+         */
+        NDataSegment firstSegment = dsMgr.getDataflow("ncube_basic").getSegment(4);
+        NDataSegment secondSegment = dsMgr.getDataflow("ncube_basic").getSegment(5);
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2011-01-01"),
+                SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
+                SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
+        Assert.assertEquals(19, firstSegment.getDictionaries().size());
+        Assert.assertEquals(19, secondSegment.getDictionaries().size());
+        Assert.assertEquals(7, firstSegment.getSnapshots().size());
+        Assert.assertEquals(7, secondSegment.getSnapshots().size());
     }
 
     private void validateCube(int segmentId) {
@@ -489,24 +451,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(seg, 1000000001);
         // The table index cuboid should sort by column 0, assert it's order.
-        //todo need to bugfix for the next 2 Assert
         Assert.assertEquals("Australia", resultFromLayout.get(0)[1].toString());
         Assert.assertEquals("Australia", resultFromLayout.get(1)[1].toString());
         Assert.assertEquals("英国", resultFromLayout.get(9998)[1].toString());
         Assert.assertEquals("英国", resultFromLayout.get(9999)[1].toString());
-    }
-
-    private long dateToLong(String dateString) {
-        Date date = null;
-        String format = "yyyy/MM/dd";
-        SimpleDateFormat sdf = new SimpleDateFormat(format);
-        try {
-            date = sdf.parse(dateString);
-        } catch (ParseException e) {
-            System.out.println("Failed to parse string to date.");
-        }
-        if (date == null)
-            return 0L;
-        return date.getTime();
     }
 }

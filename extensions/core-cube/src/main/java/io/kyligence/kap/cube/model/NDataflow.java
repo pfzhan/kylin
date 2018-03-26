@@ -261,6 +261,22 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         }
     }
 
+    //get the segment with max id
+    public NDataSegment getSegmentWithMaxId() {
+        List<NDataSegment> existing = getSegments();
+        if (existing.isEmpty()) {
+            return null;
+        } else {
+            int maxIndex = 0;
+            for (int i = 1; i < existing.size(); i++) {
+                if (existing.get(maxIndex).getId() < existing.get(i).getId())
+                    maxIndex = i;
+            }
+            return existing.get(maxIndex);
+        }
+    }
+
+
     @Override
     public boolean supportsLimitPushDown() {
         return true; // TODO: storage_type defined on cuboid level, which will decide whether to support

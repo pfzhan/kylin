@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -170,13 +171,20 @@ public class NDataflowMergeJob extends NDataflowJob {
         for (NLayoutMergeAssist assist : mergeCuboidsAsssit.values()) {
             Dataset<Row> afterMerge = assist.merge();
             NCuboidLayout layout = assist.getLayout();
-            Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
-            Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterMerge, layout.getOrderedDimensions().keySet(),
-                    layout.getOrderedMeasures()).aggregate();
-            long count = afterAgg.count();
-            int partition = NDataflowBuildJob.estimatePartitions(afterAgg, config);
-            Dataset<Row> afterSort = afterAgg.repartition(partition).sortWithinPartitions(dimsCols);
-            saveAndUpdateCuboid(afterSort, count, mergedSeg, layout, assist);
+            if (layout.getCuboidDesc().getId() > NCuboidDesc.TABLE_INDEX_START_ID) {
+                int partition = NDataflowBuildJob.estimatePartitions(afterMerge, config);
+                Dataset<Row> afterSort = afterMerge.repartition(partition)
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
+                saveAndUpdateCuboid(afterSort, afterMerge.count(), mergedSeg, layout, assist);
+            } else {
+                Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
+                Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterMerge, layout.getOrderedDimensions().keySet(),
+                        layout.getOrderedMeasures()).aggregate();
+                long count = afterAgg.count();
+                int partition = NDataflowBuildJob.estimatePartitions(afterAgg, config);
+                Dataset<Row> afterSort = afterAgg.repartition(partition).sortWithinPartitions(dimsCols);
+                saveAndUpdateCuboid(afterSort, count, mergedSeg, layout, assist);
+            }
         }
     }
 

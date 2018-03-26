@@ -48,9 +48,8 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
-
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
@@ -67,6 +66,7 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
 import io.kyligence.kap.job.execution.NExecutableManager;
 import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
@@ -283,45 +283,12 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         if (true) {
-            NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-            NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
 
-            Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-            // ready dataflow, segment, cuboid layout
-            NDataflow df = dsMgr.getDataflow("ncube_basic");
-
-            // cleanup all segments first
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
-            update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-            dsMgr.updateDataflow(update);
-            df = dsMgr.getDataflow("ncube_basic");
-
-            NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-            List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
-
-            NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(layouts, df.getName());
-            for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
-                NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
-                        rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-                Assert.assertEquals(null, layout);
+            if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
+                fullBuildBasic();
+            } else {
+                buildAndMergeCube();
             }
-
-            // Build new segment
-            NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts),
-                    "ADMIN");
-            NSparkCubingStep sparkStep = job.getSparkCubingStep();
-            StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
-            Assert.assertEquals("hdfs", distMetaUrl.getScheme());
-            Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
-
-            // launch the job
-            execMgr.addJob(job);
-
-            // wait job done
-            ExecutableState status = wait(job);
-            Assert.assertEquals(ExecutableState.SUCCEED, status);
-
-            validate("ncube_basic", 1, "left");
         }
 
         // build is done, start to test query
@@ -331,7 +298,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
-
         // Validate results between sparksql and cube
         populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
 
@@ -519,4 +485,104 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         //        Assert.assertEquals(1, actualMax);
     }
 
+    public void buildAndMergeCube() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        /**
+         * Round1. Build 4 segment
+         */
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2012-06-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2012-06-01");
+        end = SegmentRange.dateToLong("2013-01-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2013-01-01");
+        end = SegmentRange.dateToLong("2013-06-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2013-06-01");
+        end = SegmentRange.dateToLong("2015-01-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+
+        /**
+         * Round2. Merge two segments
+         */
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(firstMergeJob);
+        // wait job done
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
+        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
+                "ADMIN");
+        execMgr.addJob(secondMergeJob);
+        // wait job done
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
+
+        /**
+         * validate cube segment info
+         */
+        NDataSegment firstSegment = dsMgr.getDataflow("ncube_basic").getSegment(4);
+        NDataSegment secondSegment = dsMgr.getDataflow("ncube_basic").getSegment(5);
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
+                SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
+        Assert.assertEquals(19, firstSegment.getDictionaries().size());
+        Assert.assertEquals(19, secondSegment.getDictionaries().size());
+        Assert.assertEquals(7, firstSegment.getSnapshots().size());
+        Assert.assertEquals(7, secondSegment.getSnapshots().size());
+
+        // build is done, start to test query
+        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+        existingCxt.stop();
+    }
+
+    private void fullBuildBasic() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+        // ready dataflow, segment, cuboid layout
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow("ncube_basic");
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
+        builCuboid("ncube_basic", SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                Sets.<NCuboidLayout> newLinkedHashSet(round1));
+        //        validate("ncube_basic", 1);
+        // build is done, start to test query
+        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+        existingCxt.stop();
+    }
 }

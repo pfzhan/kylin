@@ -21,6 +21,8 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Map;
 
+import org.apache.kylin.common.util.DateFormat;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
@@ -262,9 +264,9 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset,
                 Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd) {
             super(startOffset, endOffset);
-            this.sourcePartitionOffsetStart = sourcePartitionOffsetStart == null ? Maps.<Integer, Long> newHashMap()
+            this.sourcePartitionOffsetStart = sourcePartitionOffsetStart == null ? Maps.<Integer, Long>newHashMap()
                     : sourcePartitionOffsetStart;
-            this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd == null ? Maps.<Integer, Long> newHashMap()
+            this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd == null ? Maps.<Integer, Long>newHashMap()
                     : sourcePartitionOffsetEnd;
         }
 
@@ -332,6 +334,10 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         public void setEnd(Long end) {
             this.end = end;
         }
+    }
+
+    public static Long dateToLong(String dateString) {
+        return DateFormat.stringToMillis(dateString);
     }
 
     public static void main(String[] args) {
