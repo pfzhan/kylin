@@ -41,6 +41,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.service.CubeService;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -235,6 +236,7 @@ public class CubeControllerTest extends ServiceTestBase {
     }
 
     @Test
+    @Ignore
     public void testBatchSync() throws IOException, InterruptedException {
         String cubeName = "ci_left_join_cube";
         String[] mps = { "ORDER_ID" };
