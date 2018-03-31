@@ -64,102 +64,23 @@ import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCuboidLayoutChooser {
 
-    public static NLayoutCandidate selectLayoutForQuery(NDataSegment segment, ImmutableSet<TblColRef> allCols, ImmutableSet<TblColRef> dimensions,
-                                                        ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics, boolean isRawQuery) {
+    public static NLayoutCandidate selectLayoutForQuery(NDataSegment segment, ImmutableSet<TblColRef> allCols,
+            ImmutableSet<TblColRef> dimensions, ImmutableSet<TblColRef> filterColumns,
+            ImmutableSet<FunctionDesc> metrics, boolean isRawQuery) {
+
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
-        NSpanningTree.ISpanningTreeVisitor visitor = null;
-        if (isRawQuery) {
-            visitor = new NQuerySpanningTreeVisitorForTableIndex(segment, allCols, filterColumns);
-        } else {
-            visitor = new NQuerySpanningTreeVisitor(segment, dimensions, filterColumns, metrics);
-        }
+        NSpanningTree.ISpanningTreeVisitor visitor = new NQuerySpanningTreeVisitor(segment, allCols, dimensions,
+                filterColumns, metrics, isRawQuery);
         spanningTree.acceptVisitor(visitor);
         return visitor.getBestLayoutCandidate();
     }
 
     public static NCuboidLayout selectLayoutForBuild(NDataSegment segment, Set<Integer> dimensions,
-                                                     Set<Integer> measures) {
+            Set<Integer> measures) {
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
         NStorageSpanningTreeVisitor visitor = new NStorageSpanningTreeVisitor(segment, dimensions, measures);
         spanningTree.acceptVisitor(visitor);
         return visitor.getBestLayout();
-    }
-
-    private static class NQuerySpanningTreeVisitorForTableIndex implements NSpanningTree.ISpanningTreeVisitor {
-        final ImmutableBitSet measureBitSet;
-
-        final NDataSegment segment;
-        final NDataModel model;
-        final ImmutableSet<TblColRef> allCols;
-
-        //according to the ordering, the smaller wins
-        Ordering<NLayoutCandidate> ordering;
-        NLayoutCandidate bestLayoutCandidate = null;
-
-        private NQuerySpanningTreeVisitorForTableIndex(final NDataSegment segment, ImmutableSet<TblColRef> allCols, ImmutableSet<TblColRef> filterColumns) {
-            this.segment = segment;
-            this.model = (NDataModel) segment.getModel();
-            this.allCols = allCols;
-            BitSet measureSet = new BitSet();
-            measureBitSet = new ImmutableBitSet(measureSet);
-            ordering = Ordering.natural().onResultOf(L1Comparator(segment)).compound(L2Comparator(filterColumns));
-        }
-
-        @Override
-        public boolean visit(final NCuboidDesc cuboidDesc) {
-            // ========== check cuboid_desc from here ==========
-
-            final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
-            Set<TblColRef> unmatchedCols = Sets.newHashSet(this.allCols);
-            unmatchedCols.removeAll(cuboidDesc.getDimensionSet());
-
-            goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedCols, (NDataModel) segment.getModel());
-            if (!unmatchedCols.isEmpty()) {
-                return false;
-            }
-
-            TreeSet<NLayoutCandidate> availableCandidates = new TreeSet<>(ordering);
-            FluentIterable<NLayoutCandidate> transform = FluentIterable.from(cuboidDesc.getLayouts())
-                    .filter(new Predicate<NCuboidLayout>() {
-                        @Override
-                        public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null || !isTableIndexCubiod(input.getId())) {
-                                return false;
-                            }
-
-                            NDataCuboid cuboid = segment.getCuboid(input.getId());
-                            return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
-                        }
-                    }).transform(new Function<NCuboidLayout, NLayoutCandidate>() {
-                        @Override
-                        public NLayoutCandidate apply(NCuboidLayout input) {
-                            NLayoutCandidate candidate = new NLayoutCandidate(input);
-                            if (!needDerive.isEmpty()) {
-                                candidate.setDerivedToHostMap(needDerive);
-                            }
-                            return candidate;
-                        }
-                    });
-
-
-            Iterables.addAll(availableCandidates, transform);
-
-            if (availableCandidates.isEmpty()) {
-                return true;
-            }
-
-            // ========== compare matched cuboid layout from here ==========
-            // every time add the existed best layout
-            if (bestLayoutCandidate != null) {
-                availableCandidates.add(bestLayoutCandidate);
-            }
-            bestLayoutCandidate = availableCandidates.first();
-            return true;
-        }
-
-        public NLayoutCandidate getBestLayoutCandidate() {
-            return bestLayoutCandidate;
-        }
     }
 
     private static class NQuerySpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
@@ -169,20 +90,27 @@ public class NCuboidLayoutChooser {
 
         final NDataSegment segment;
         final NDataModel model;
-        final ImmutableSet<TblColRef> dimensions;
+        final ImmutableSet<TblColRef> cols;
         final ImmutableSet<TblColRef> filterColumns;
         final ImmutableSet<FunctionDesc> metrics;
+        final boolean isRawQuery;
 
         Ordering<NLayoutCandidate> ordering;//according to the ordering, the smaller wins
         NLayoutCandidate bestLayoutCandidate = null;
 
-        private NQuerySpanningTreeVisitor(final NDataSegment segment, ImmutableSet<TblColRef> dimensions,
-                                          ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
+        private NQuerySpanningTreeVisitor(final NDataSegment segment, ImmutableSet<TblColRef> allCols,
+                ImmutableSet<TblColRef> dimensions, ImmutableSet<TblColRef> filterColumns,
+                ImmutableSet<FunctionDesc> metrics, boolean isRawQuery) {
             this.segment = segment;
             this.model = (NDataModel) segment.getModel();
-            this.dimensions = dimensions;
+            if (isRawQuery) {
+                this.cols = allCols;
+            } else {
+                this.cols = dimensions;
+            }
             this.filterColumns = filterColumns;
             this.metrics = metrics;
+            this.isRawQuery = isRawQuery;
 
             BitSet measureSet = new BitSet();
             for (FunctionDesc funcDesc : metrics) {
@@ -211,7 +139,7 @@ public class NCuboidLayoutChooser {
             // ========== check cuboid_desc from here ==========
 
             final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
-            Set<TblColRef> unmatchedDims = Sets.newHashSet(this.dimensions);
+            Set<TblColRef> unmatchedDims = Sets.newHashSet(this.cols);
             unmatchedDims.removeAll(cuboidDesc.getDimensionSet());
 
             goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedDims, this.model);
@@ -230,7 +158,7 @@ public class NCuboidLayoutChooser {
                     .filter(new Predicate<NCuboidLayout>() {
                         @Override
                         public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null || isTableIndexCubiod(input.getId())) {
+                            if (input == null || filterCuboid(isRawQuery, input.getId())) {
                                 return false;
                             }
 
@@ -247,7 +175,6 @@ public class NCuboidLayoutChooser {
                             return candidate;
                         }
                     });
-
 
             Iterables.addAll(availableCandidates, transform);
 
@@ -268,12 +195,22 @@ public class NCuboidLayoutChooser {
         }
     }
 
+    private static boolean filterCuboid(boolean isRawQuery, long id) {
+        if (isRawQuery) {
+            // filter cube
+            return !isTableIndexCubiod(id);
+        } else {
+            // filter table index
+            return isTableIndexCubiod(id);
+        }
+    }
+
     private static boolean isTableIndexCubiod(long id) {
         return id >= 1000000000L;
     }
 
-    private static void goThruUnmatchedDims(final NCuboidDesc cuboidDesc, Map<TblColRef, DeriveInfo> needDeriveCollector,
-                                            Set<TblColRef> unmatchedDims, NDataModel model) {
+    private static void goThruUnmatchedDims(final NCuboidDesc cuboidDesc,
+            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
@@ -286,15 +223,15 @@ public class NCuboidLayoutChooser {
                 if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
                     TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
                     if (cuboidDesc.dimensionsDerive(relatedCol)) {
-                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK,
-                                joinByPKSide, new TblColRef[] { relatedCol }, true));
+                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
+                                new TblColRef[] { relatedCol }, true));
                         unmatchedDimItr.remove();
                         continue;
                     }
                 } else {
                     if (cuboidDesc.dimensionsDerive(foreignKeyColumns)) {
-                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP,
-                                joinByPKSide, foreignKeyColumns, false));
+                        needDeriveCollector.put(unmatchedDim,
+                                new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, joinByPKSide, foreignKeyColumns, false));
                         unmatchedDimItr.remove();
                         continue;
                     }

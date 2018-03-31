@@ -49,7 +49,7 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore
+    @Ignore("keep for debug.")
     public void testQuery() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -63,8 +63,7 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(config, DEFAULT_PROJECT, ksc);
 
         List<Pair<String, String>> queries = new ArrayList<>();
-//        String[] joinTypes = new String[] { "left", "inner" };
-        String[] joinTypes = new String[]{"left"};
+        String[] joinTypes = new String[] { "left", "inner" };
 
         for (String joinType : joinTypes) {
             //ITKapKylinQueryTest.testCommonQuery
