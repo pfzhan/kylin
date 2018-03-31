@@ -1,0 +1,272 @@
+{
+  "uuid": "9799a868-f7c2-4e38-9108-80811455021f",
+  "last_modified": 1509531215483,
+  "version": "2.3.0.20500",
+  "name": "test_encoding",
+  "model_name": "test_encoding",
+  "description": "test_description",
+  "dimensions": [
+    {
+      "id": 0,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 1,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 2,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 3,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 4,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 5,
+      "encoding": {
+        "name": "boolean",
+        "version": "1"
+      }
+    },
+    {
+      "id": 6,
+      "encoding": {
+        "name": "boolean",
+        "version": "1"
+      }
+    },
+    {
+      "id": 7,
+      "encoding": {
+        "name": "boolean",
+        "version": "1"
+      }
+    },
+    {
+      "id": 8,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 9,
+      "encoding": {
+        "name": "fixed_length_hex:6",
+        "version": "1"
+      }
+    },
+    {
+      "id": 10,
+      "encoding": {
+        "name": "integer:2",
+        "version": "1"
+      }
+    },
+    {
+      "id": 11,
+      "encoding": {
+        "name": "integer:2",
+        "version": "1"
+      }
+    },
+    {
+      "id": 12,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 13,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 14,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 15,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 16,
+      "encoding": {
+        "name": "time",
+        "version": "1"
+      }
+    }
+  ],
+  "cuboids": [
+    {
+      "id": 0,
+      "dimensions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16
+      ],
+      "measures": [
+        1000
+      ],
+      "layouts": [
+        {
+          "id": 1,
+          "rowkeys": [
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 3,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 4,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 5,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 6,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 7,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 8,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 9,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 10,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 11,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 12,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 13,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 14,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 15,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 16,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                10,
+                11,
+                12,
+                13,
+                14,
+                15,
+                16
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    }
+  ],
+  "override_properties": {},
+  "segment_range_start": 0,
+  "segment_range_end": 9223372036854775807,
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "notify_list": null,
+  "status_need_notify": [],
+  "engine_type": 0
+}

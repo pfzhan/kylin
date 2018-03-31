@@ -38,7 +38,10 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
+import org.apache.kylin.dict.lookup.SnapshotManager;
+import org.apache.kylin.dict.lookup.SnapshotTable;
+import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
@@ -46,11 +49,11 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +104,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     df.initAfterReload((KylinConfigExt) plan.getConfig());
                 } catch (Exception e) {
                     logger.warn("Broken NDataflow " + resourceName, e);
-                    df.setStatus(RealizationStatusEnum.DESCBROKEN);
+                    //TODO: vialate checkIsNotCachedAndShared
+                    //df.setStatus(RealizationStatusEnum.DESCBROKEN);
                 }
                 return df;
             }
@@ -144,9 +148,34 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
-    public LookupStringTable getLookupTable(NDataSegment lastSeg, JoinDesc join) {
-        throw new UnsupportedOperationException("derived not support yet.");
+
+    public LookupStringTable getLookupTable(NDataSegment cubeSegment, JoinDesc join) {
+        long ts = System.currentTimeMillis();
+
+        TableMetadataManager metaMgr = TableMetadataManager.getInstance(cubeSegment.getConfig());
+        SnapshotManager snapshotMgr = SnapshotManager.getInstance(cubeSegment.getConfig());
+
+        String tableName = join.getPKSide().getTableIdentity();
+        String[] pkCols = join.getPrimaryKey();
+        String snapshotResPath = cubeSegment.getSnapshots().get(tableName);
+        if (snapshotResPath == null)
+            throw new IllegalStateException(
+                    "No snaphot for table '" + tableName + "' found on cube segment " + cubeSegment.getName());
+
+        try {
+            SnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
+            TableDesc tableDesc = metaMgr.getTableDesc(tableName, cubeSegment.getCubePlan().getModel().getProject());
+            LookupStringTable enhancedStringLookupTable = new LookupStringTable(tableDesc, pkCols,
+                    snapshot);
+            logger.info("Time to get lookup up table for {} is {} ", join.getPKSide().getTableName(),
+                    (System.currentTimeMillis() - ts));
+            return enhancedStringLookupTable;
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
+        }
     }
+
 
     @Override
     public String getRealizationType() {

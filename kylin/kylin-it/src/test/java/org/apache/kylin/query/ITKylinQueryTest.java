@@ -48,6 +48,7 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 @Ignore("KylinQueryTest is contained by ITCombinationTest")
@@ -84,7 +85,8 @@ public class ITKylinQueryTest extends KylinTestBase {
         try {
 
             Map<String, String> toggles = Maps.newHashMap();
-            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR, StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
+            toggles.put(BackdoorToggles.DEBUG_TOGGLE_COPROCESSOR_BEHAVIOR,
+                    StorageSideBehavior.SCAN_FILTER_AGGR_CHECKMEM_WITHDELAY.toString());//delay 10ms for every scan
             BackdoorToggles.setToggles(toggles);
 
             KylinConfig.getInstanceFromEnv().setProperty("kylin.storage.hbase.coprocessor-timeout-seconds", "3");
@@ -106,12 +108,13 @@ public class ITKylinQueryTest extends KylinTestBase {
     }
 
     protected void runTimeoutQueries() throws Exception {
-        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_timeout"), ".sql");
+        List<File> sqlFiles = getFilesFromFolder(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_timeout"), ".sql");
         for (File sqlFile : sqlFiles) {
             try {
                 runSQL(sqlFile, false, false);
             } catch (SQLException e) {
-                if (findRoot(e) instanceof KylinTimeoutException) {
+                if (Throwables.getRootCause(e) instanceof KylinTimeoutException) {
                     //expected
                     continue;
                 }
@@ -166,7 +169,7 @@ public class ITKylinQueryTest extends KylinTestBase {
 
     //h2 cannot run these queries
     @Test
-    public void testH2Uncapable() throws Exception {
+    public void batchExecuteQuerytestH2Uncapable() throws Exception {
         batchExecuteQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_h2_uncapable");
     }
 
@@ -206,14 +209,14 @@ public class ITKylinQueryTest extends KylinTestBase {
             Map<String, String> toggles = Maps.newHashMap();
             toggles.put(BackdoorToggles.DEBUG_TOGGLE_PREPARE_ONLY, "true");
             BackdoorToggles.setToggles(toggles);
-            
+
             verifyResultRowColCount(getQueryFolderPrefix() + "src/test/resources/query/sql_verifyCount");
-            
+
         } finally {
             BackdoorToggles.cleanToggles();
         }
     }
-    
+
     @Test
     public void testVerifyContentQuery() throws Exception {
         verifyResultContent(getQueryFolderPrefix() + "src/test/resources/query/sql_verifyContent");
@@ -356,7 +359,8 @@ public class ITKylinQueryTest extends KylinTestBase {
 
     @Test
     public void testLimitEnabled() throws Exception {
-        List<File> sqlFiles = getFilesFromFolder(new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit"), ".sql");
+        List<File> sqlFiles = getFilesFromFolder(
+                new File(getQueryFolderPrefix() + "src/test/resources/query/sql_limit"), ".sql");
         for (File sqlFile : sqlFiles) {
             runSQL(sqlFile, false, false);
             assertTrue(checkFinalPushDownLimit());

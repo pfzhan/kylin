@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -61,7 +62,7 @@ public class NSequentialTupleIterator implements ITupleIterator {
     private int scanCount;
     private int scanCountDelta;
 
-    public NSequentialTupleIterator(List<NDataSegScanner> scanners, NCuboidLayout cuboid,
+    public NSequentialTupleIterator(List<NDataSegScanner> scanners, NLayoutCandidate layoutCandidate,
             Set<TblColRef> selectedDimensions, //
             Set<TblColRef> groups, Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context,
             SQLDigest sqlDigest) {
@@ -70,7 +71,7 @@ public class NSequentialTupleIterator implements ITupleIterator {
 
         segmentCubeTupleIterators = Lists.newArrayList();
         for (NDataSegScanner scanner : scanners) {
-            segmentCubeTupleIterators.add(new NSegmentCubeTupleIterator(scanner, cuboid, selectedDimensions,
+            segmentCubeTupleIterators.add(new NSegmentCubeTupleIterator(scanner, layoutCandidate, selectedDimensions,
                     selectedMetrics, returnTupleInfo, context));
         }
 
@@ -80,7 +81,7 @@ public class NSequentialTupleIterator implements ITupleIterator {
             Iterator<Iterator<ITuple>> transformed = (Iterator<Iterator<ITuple>>) (Iterator<?>) segmentCubeTupleIterators
                     .iterator();
             tupleIterator = new SortedIteratorMergerWithLimit<ITuple>(transformed, context.getFinalPushDownLimit(),
-                    getTupleDimensionComparator(cuboid, groups, returnTupleInfo)).getIterator();
+                    getTupleDimensionComparator(layoutCandidate.getCuboidLayout(), groups, returnTupleInfo)).getIterator();
         } else {
             //normal case
             logger.info("Using Iterators.concat to merge segment results");
@@ -121,6 +122,7 @@ public class NSequentialTupleIterator implements ITupleIterator {
 
                     if (index == -1) {
                         //TODO:
+                        // From KYLIN
                         continue;
                     }
 

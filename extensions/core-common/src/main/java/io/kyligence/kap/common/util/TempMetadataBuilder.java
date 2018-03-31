@@ -47,22 +47,22 @@ public class TempMetadataBuilder {
     private static final Logger logger = LoggerFactory.getLogger(TempMetadataBuilder.class);
 
     public static String prepareLocalTempMetadata() {
-        return prepareLocalTempMetadata(false);
+        return prepareLocalTempMetadata(true);
     }
 
     public static String prepareLocalTempMetadata(boolean debug, String... extraMetaOverlays) {
         ArrayList<String> list = new ArrayList<>();
         list.add(KYLIN_META_TEST_DATA);
         list.add(KAP_META_TEST_DATA);
-        
+
         if (Boolean.parseBoolean(System.getProperty("sparder.enabled"))) {
             list.add(KAP_SPARDER_META_TEST_DATA);
         }
-        
+
         if (extraMetaOverlays != null) {
             list.addAll(Arrays.asList(extraMetaOverlays));
         }
-        
+
         return new TempMetadataBuilder(debug, (String[]) list.toArray(new String[list.size()])).build();
     }
 
@@ -73,7 +73,7 @@ public class TempMetadataBuilder {
     public static String prepareNLocalTempMetadata(boolean debug) {
         return new TempMetadataBuilder(debug, N_KAP_META_TEST_DATA).build();
     }
-    
+
     // ============================================================================
 
     private String[] metaSrcs = null;
@@ -83,7 +83,7 @@ public class TempMetadataBuilder {
         this.metaSrcs = metaSrcs;
         this.debug = debug;
     }
-    
+
     public String build() {
         try {
             if (debug) {
@@ -95,7 +95,7 @@ public class TempMetadataBuilder {
             }
 
             FileUtils.deleteDirectory(new File(TEMP_TEST_METADATA));
-            
+
             // KAP files will overwrite Kylin files
             for (String metaSrc : metaSrcs) {
                 FileUtils.copyDirectory(new File(metaSrc), new File(TEMP_TEST_METADATA));
@@ -127,7 +127,7 @@ public class TempMetadataBuilder {
 
     private void appendKylinProperties(String tempMetadataDir) throws IOException {
         File propsFile = new File(tempMetadataDir, "kylin.properties");
-        
+
         // append kylin.properties
         File appendFile = new File(tempMetadataDir, "kylin.properties.append");
         if (appendFile.exists()) {

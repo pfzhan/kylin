@@ -283,14 +283,14 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         // test cuboid remove
-        Assert.assertEquals(4, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(9, df.getSegment(0).getCuboidsMap().size());
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveCuboids(df.getSegment(0).getCuboid(1001L));
         mgr.updateDataflow(update);
 
         // verify after remove
         df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(3, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(8, df.getSegment(0).getCuboidsMap().size());
 
         // test cuboid add
         NDataSegment seg = df.getSegment(0);
@@ -302,6 +302,6 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         mgr.updateDataflow(update);
 
         df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(4, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(9, df.getSegment(0).getCuboidsMap().size());
     }
 }

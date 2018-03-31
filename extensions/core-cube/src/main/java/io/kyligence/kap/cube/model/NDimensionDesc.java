@@ -26,8 +26,13 @@ package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
 
+import org.apache.kylin.dimension.DateDimEnc;
+import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.DimensionEncoding;
 import org.apache.kylin.dimension.DimensionEncodingFactory;
+import org.apache.kylin.dimension.TimeDimEnc;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -48,6 +53,11 @@ public class NDimensionDesc implements Serializable, IKeep {
     public NDimensionDesc() {
     }
 
+    public void init(NCubePlan nCubePlan) {
+        TblColRef colRef = nCubePlan.getModel().getEffectiveColsMap().get(id);
+        encoding.init(colRef);
+    }
+
     public int getId() {
         return id;
     }
@@ -57,7 +67,6 @@ public class NDimensionDesc implements Serializable, IKeep {
     }
 
     public NEncodingDesc getEncoding() {
-        encoding.init();
         return encoding;
     }
 
@@ -78,13 +87,25 @@ public class NDimensionDesc implements Serializable, IKeep {
         public NEncodingDesc() {
         }
 
-        public void init() {
+        public void init(TblColRef colRef) {
             Object[] encodingConf = DimensionEncoding.parseEncodingConf(this.name);
             encodingName = (String) encodingConf[0];
             encodingArgs = (String[]) encodingConf[1];
             if (!DimensionEncodingFactory.isValidEncoding(this.encodingName))
                 throw new IllegalArgumentException("Not supported row key col encoding: '" + this.name + "'");
-            //TODO: refer RowKeyColDesc.init()
+            // convert date/time dictionary on date/time column to DimensionEncoding implicitly
+            // however date/time dictionary on varchar column is still required
+            DataType type = colRef.getType();
+            if (DictionaryDimEnc.ENCODING_NAME.equals(encodingName)) {
+                if (type.isDate()) {
+                    name = encodingName = DateDimEnc.ENCODING_NAME;
+                }
+                if (type.isTimeFamily()) {
+                    name = encodingName = TimeDimEnc.ENCODING_NAME;
+                }
+            }
+
+            encodingArgs = DateDimEnc.replaceEncodingArgs(encodingName, encodingArgs, encodingName, type);
         }
 
         public String getEncodingName() {

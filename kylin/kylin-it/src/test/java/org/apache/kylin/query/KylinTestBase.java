@@ -740,15 +740,4 @@ public class KylinTestBase {
         return "";
     }
 
-    protected Throwable findRoot(Throwable throwable) {
-        while (true) {
-            if (throwable.getCause() != null) {
-                throwable = throwable.getCause();
-            } else {
-                break;
-            }
-        }
-        return throwable;
-    }
-
 }

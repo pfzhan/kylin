@@ -63,7 +63,6 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
 
     public static KylinConfig getTestConfig() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
         return config;
     }
 

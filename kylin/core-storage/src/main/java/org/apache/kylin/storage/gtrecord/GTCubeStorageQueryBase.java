@@ -33,7 +33,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.RawQueryLastHacker;
 import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.filter.CaseTupleFilter;

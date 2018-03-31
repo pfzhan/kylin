@@ -23,16 +23,19 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import java.util.Arrays;
+
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
-import java.util.Arrays;
+public class NSparkTableReaderTest extends NLocalWithSparkSessionTest {
 
-public class NSparkTableReaderTest extends NLocalSparkWithCSVDataTest {
     @Test
     public void testReadData() throws Exception {
+
+        populateSSWithCSVData(getTestConfig(), "default", ss);
         NSparkTableReader sparkTableReader = new NSparkTableReader("default", "test_kylin_fact");
         Assert.assertTrue(sparkTableReader.next());
         int i = 1;

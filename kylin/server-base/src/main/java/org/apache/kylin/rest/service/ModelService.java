@@ -81,7 +81,7 @@ public class ModelService extends BasicService {
         if (StringUtils.isEmpty(modelName) || !StringUtils.containsOnly(modelName, VALID_MODELNAME)) {
             return false;
         }
-        for (DataModelDesc model : getDataModelManager().listDataModels()) {
+        for (DataModelDesc model : getDataModelManager().listModels()) {
             if (modelName.equalsIgnoreCase(model.getName())) {
                 return false;
             }
@@ -96,10 +96,10 @@ public class ModelService extends BasicService {
 
         if (null == project) {
             aclEvaluate.checkIsGlobalAdmin();
-            models = getDataModelManager().listDataModels();
+            models = getDataModelManager().listModels();
         } else {
             aclEvaluate.hasProjectReadPermission(project);
-            models = getDataModelManager().getModels(projectName);
+            models = getDataModelManager().listModels(projectName);
         }
 
         List<DataModelDesc> filterModels = new ArrayList<DataModelDesc>();
@@ -292,7 +292,7 @@ public class ModelService extends BasicService {
         StringBuilder checkRet = new StringBuilder();
         if (cubes != null && cubes.size() != 0 && !historyModels.isEmpty()) {
             dataModelDesc.init(getConfig(), getTableManager().getAllTablesMap(project),
-                    getDataModelManager().listDataModels(), false);
+                    getDataModelManager().listModels(), false);
 
             List<String> curModelDims = getModelCols(dataModelDesc);
             List<String> curModelMeasures = getModelMeasures(dataModelDesc);

@@ -6,15 +6,15 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.common;
 
@@ -66,14 +66,14 @@ public class KylinConfig extends KylinConfigBase {
     static {
         /*
          * Make Calcite to work with Unicode.
-         * 
+         *
          * Sets default char set for string literals in SQL and row types of
          * RelNode. This is more a label used to compare row type equality. For
          * both SQL string and row record, they are passed to Calcite in String
          * object and does not require additional codec.
-         * 
+         *
          * Ref SaffronProperties.defaultCharset
-         * Ref SqlUtil.translateCharacterSetName() 
+         * Ref SqlUtil.translateCharacterSetName()
          * Ref NlsString constructor()
          */
         // copied from org.apache.calcite.util.ConversionUtil.NATIVE_UTF16_CHARSET_NAME
@@ -87,6 +87,7 @@ public class KylinConfig extends KylinConfigBase {
         synchronized (KylinConfig.class) {
             KylinConfig config = THREAD_ENV_INSTANCE.get();
             if (config != null) {
+                logger.info("Using thread local KylinConfig");
                 return config;
             }
 
@@ -111,15 +112,15 @@ public class KylinConfig extends KylinConfigBase {
         synchronized (KylinConfig.class) {
             if (new File(localMetaDir, "kylin.properties").exists() == false)
                 throw new IllegalArgumentException(localMetaDir + " is not a valid local meta dir");
-            
+
             destroyInstance();
             logger.info("Setting KylinConfig to " + localMetaDir);
-            
+
             System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
-    
+
             KylinConfig config = KylinConfig.getInstanceFromEnv();
             config.setMetadataUrl(localMetaDir);
-    
+
             // make sure a local working directory
             File workingDir = new File(localMetaDir, "working-dir");
             workingDir.mkdirs();
@@ -132,7 +133,7 @@ public class KylinConfig extends KylinConfigBase {
             config.setProperty("kylin.env.hdfs-working-dir", "file:" + path);
         }
     }
-    
+
     // Only used in test cases!!!
     public static void destroyInstance() {
         synchronized (KylinConfig.class) {
@@ -201,9 +202,14 @@ public class KylinConfig extends KylinConfigBase {
 
     public static KylinConfig createInstanceFromUri(String uri) {
         /**
-         * --hbase: 1. PROPERTIES_FILE: path to kylin.properties 2. REST_ADDR:
-         * rest service resource, format: user:password@host:port --local: 1.
-         * LOCAL_FOLDER: path to resource folder
+         * --hbase:
+         *
+         * 1. PROPERTIES_FILE: path to kylin.properties
+         * 2. REST_ADDR: rest service resource, format: user:password@host:port
+         *
+         * --local:
+         *
+         * 1.  LOCAL_FOLDER: path to resource folder
          */
         UriType uriType = decideUriType(uri);
 
@@ -460,7 +466,6 @@ public class KylinConfig extends KylinConfigBase {
             return base.getManager(project, clz);
 
         ConcurrentHashMap<String, Object> mgrMap = (null == managersByPrjCache) ? null : managersByPrjCache.get(clz);
-        System.out.println("-----  " + project + " ---  " + clz);
         Object mgr = (null == mgrMap) ? null : mgrMap.get(project);
         if (mgr != null)
             return (T) mgr;
@@ -490,14 +495,14 @@ public class KylinConfig extends KylinConfigBase {
         }
         return (T) mgr;
     }
-    
+
     public void clearManagers() {
         KylinConfig base = base();
         if (base != this) {
             base.clearManagers();
             return;
         }
-        
+
         if (managersCache != null)
             managersCache.clear();
     }
@@ -534,7 +539,7 @@ public class KylinConfig extends KylinConfigBase {
     public String exportToString() throws IOException {
         return exportToString(null); // null means to export all
     }
-    
+
     public String exportToString(Collection<String> propertyKeys) throws IOException {
         Properties filteredProps = getProperties(propertyKeys);
         OrderedProperties orderedProperties = KylinConfig.buildSiteOrderedProps();
@@ -567,7 +572,7 @@ public class KylinConfig extends KylinConfigBase {
     public synchronized void reloadFromSiteProperties() {
         reloadKylinConfig(buildSiteProperties());
     }
-    
+
     public KylinConfig base() {
         return this;
     }

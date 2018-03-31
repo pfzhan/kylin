@@ -24,25 +24,9 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import javax.annotation.Nullable;
-
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.storage.StorageFactory;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
@@ -56,6 +40,19 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.storage.StorageFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 public class NDatasetChooser {
     protected static final Logger logger = LoggerFactory.getLogger(NDatasetChooser.class);
@@ -84,7 +81,7 @@ public class NDatasetChooser {
 
     public void decideSources() throws Exception {
         for (NCuboidDesc rootCuboid : toBuildTree.getRootCuboidDescs()) {
-            final NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(seg,
+            final NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(seg,
                     rootCuboid.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(rootCuboid));
 
             if (layout != null) {
@@ -105,8 +102,11 @@ public class NDatasetChooser {
                     foundSource.get(0).addCuboid(rootCuboid);
                 }
             } else {
-                if (flatTableSource == null)
+                if (flatTableSource == null) {
+                    NSnapshotBuilder snapshotBuilder = new NSnapshotBuilder(seg, ss);
+                    seg = snapshotBuilder.buildSnapshot();
                     flatTableSource = getFlatTableAfterEncode();
+                }
                 flatTableSource.getToBuildCuboids().add(rootCuboid);
             }
         }
@@ -130,6 +130,7 @@ public class NDatasetChooser {
     }
 
     private NBuildSourceInfo getFlatTableAfterEncode() throws Exception {
+
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(seg.getCubePlan(), seg.getSegRange());
         Dataset<Row> afterJoin = NJoinedFlatTable.generateDataset(flatTable, ss).persist();
         long sourceSize = NSizeEstimator.estimate(afterJoin, KapConfig.wrap(config).getSampleDatasetSizeRatio());

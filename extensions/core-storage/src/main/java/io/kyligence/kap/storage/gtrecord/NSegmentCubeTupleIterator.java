@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.UnmodifiableIterator;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.storage.NDataStorageQuery;
@@ -75,10 +76,11 @@ public class NSegmentCubeTupleIterator implements ITupleIterator {
     private int advMeasureRowsRemaining;
     private int advMeasureRowIndex;
 
-    public NSegmentCubeTupleIterator(NDataSegScanner scanner, NCuboidLayout cuboid, Set<TblColRef> selectedDimensions, //
+    public NSegmentCubeTupleIterator(NDataSegScanner scanner, NLayoutCandidate layoutCandidate,
+            Set<TblColRef> selectedDimensions, //
             Set<FunctionDesc> selectedMetrics, TupleInfo returnTupleInfo, StorageContext context) {
         this.scanner = scanner;
-        this.cuboid = cuboid;
+        this.cuboid = layoutCandidate.getCuboidLayout();
         this.selectedDimensions = selectedDimensions;
         this.selectedMetrics = selectedMetrics;
         this.tupleInfo = returnTupleInfo;
@@ -95,7 +97,7 @@ public class NSegmentCubeTupleIterator implements ITupleIterator {
 
         this.gtValues = getGTValuesIterator(scanner.iterator(), scanner.getScanRequest(), gtDimsIdx, gtMetricsIdx);
         this.cubeTupleConverter = ((NDataStorageQuery) context.getStorageQuery()).newCubeTupleConverter(
-                scanner.dataSegment, cuboid, selectedDimensions, selectedMetrics, gtColIdx, tupleInfo);
+                scanner.dataSegment, layoutCandidate, selectedDimensions, selectedMetrics, gtColIdx, tupleInfo);
     }
 
     private Iterator<Object[]> getGTValuesIterator(final Iterator<GTRecord> records, final GTScanRequest scanRequest,

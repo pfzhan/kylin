@@ -168,7 +168,7 @@ public class KapModelService extends BasicService {
 
     public void removeJobIdFromModelStats(String jobId) {
         ModelStatsManager msManager = ModelStatsManager.getInstance(getConfig());
-        for (DataModelDesc desc : getDataModelManager().listDataModels()) {
+        for (DataModelDesc desc : getDataModelManager().listModels()) {
             try {
                 ModelStats stats = msManager.getModelStats(desc.getName());
                 String statsJobId = stats.getJodID();
@@ -192,7 +192,7 @@ public class KapModelService extends BasicService {
             dataModelDesc.updateRandomUuid();
 
         dataModelDesc.init(getConfig(), getTableManager().getAllTablesMap(project),
-                getDataModelManager().listDataModels(), false);
+                getDataModelManager().listModels(), false);
 
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
 

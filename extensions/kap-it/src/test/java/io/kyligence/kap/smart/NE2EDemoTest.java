@@ -65,12 +65,16 @@ import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 
 @Ignore("Failed in maven")
-public class NE2EDemoTest extends NLocalSparkWithCSVDataTest {
+public class NE2EDemoTest extends NLocalWithSparkSessionTest {
     private KylinConfig kylinConfig;
+
+    protected boolean needPopulateSSWithCSVData() {
+        return true;
+    }
 
     @Before
     public void setup() throws Exception {

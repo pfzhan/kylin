@@ -71,7 +71,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
-        for (DataModelDesc model : modelManager.getModels()) {
+        for (DataModelDesc model : modelManager.listModels()) {
             if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
                 List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
                 TableRef factTblRef = null;

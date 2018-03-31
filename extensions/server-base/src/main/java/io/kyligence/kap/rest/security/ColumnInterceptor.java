@@ -126,7 +126,7 @@ public class ColumnInterceptor extends QueryInterceptor implements IKeep {
     }
 
     private DataModelDesc getModel(String project, String ccName) {
-        List<DataModelDesc> models = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv()).getModels(project);
+        List<DataModelDesc> models = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv()).listModels(project);
         for (DataModelDesc modelDesc : models) {
             KapModel model = (KapModel) modelDesc;
             Set<String> computedColumnNames = model.getComputedColumnNames();

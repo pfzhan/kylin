@@ -18,37 +18,37 @@
 
 package org.apache.kylin.source.adhocquery;
 
+import org.junit.Assert;
 import org.junit.Test;
 
-import junit.framework.TestCase;
-
-public class HivePushDownConverterTest extends TestCase {
+public class HivePushDownConverterTest {
     @Test
     public void testStringReplace() {
         String originString = "select count(*) as cnt from test_kylin_fact where char_length(lstg_format_name) < 10";
         String replacedString = HivePushDownConverter.replaceString(originString, "char_length", "length");
-        assertEquals("select count(*) as cnt from test_kylin_fact where length(lstg_format_name) < 10", replacedString);
+        Assert.assertEquals("select count(*) as cnt from test_kylin_fact where length(lstg_format_name) < 10",
+                replacedString);
     }
 
     @Test
     public void testExtractReplace() {
         String originString = "ignore EXTRACT(YEAR FROM KYLIN_CAL_DT.CAL_DT) ignore";
         String replacedString = HivePushDownConverter.extractReplace(originString);
-        assertEquals("ignore YEAR(KYLIN_CAL_DT.CAL_DT) ignore", replacedString);
+        Assert.assertEquals("ignore YEAR(KYLIN_CAL_DT.CAL_DT) ignore", replacedString);
     }
 
     @Test
     public void testCastReplace() {
         String originString = "ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS INTEGER)) ignore";
         String replacedString = HivePushDownConverter.castReplace(originString);
-        assertEquals("ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS int)) ignore", replacedString);
+        Assert.assertEquals("ignore EXTRACT(YEAR FROM CAST(KYLIN_CAL_DT.CAL_DT AS int)) ignore", replacedString);
     }
 
     @Test
     public void testSubqueryReplace1() {
         String originString = "select seller_id,lstg_format_name,sum(price) from (select * from test_kylin_fact where (lstg_format_name='FP-GTC') limit 20) group by seller_id,lstg_format_name";
         String replacedString = HivePushDownConverter.subqueryReplace(originString);
-        assertEquals(
+        Assert.assertEquals(
                 "select seller_id,lstg_format_name,sum(price) from (select * from test_kylin_fact where (lstg_format_name='FP-GTC') limit 20) as alias group by seller_id,lstg_format_name",
                 replacedString);
     }
@@ -57,14 +57,14 @@ public class HivePushDownConverterTest extends TestCase {
     public void testSubqueryReplace2() {
         String originString = "select count(*) from ( select test_kylin_fact.lstg_format_name from test_kylin_fact where test_kylin_fact.lstg_format_name='FP-GTC' group by test_kylin_fact.lstg_format_name ) t ";
         String replacedString = HivePushDownConverter.subqueryReplace(originString);
-        assertEquals(originString, replacedString);
+        Assert.assertEquals(originString, replacedString);
     }
 
     @Test
     public void testSubqueryReplace3() {
         String originString = "select fact.lstg_format_name from (select * from test_kylin_fact where cal_dt > date'2010-01-01' ) as fact group by fact.lstg_format_name order by CASE WHEN fact.lstg_format_name IS NULL THEN 'sdf' ELSE fact.lstg_format_name END ";
         String replacedString = HivePushDownConverter.subqueryReplace(originString);
-        assertEquals(originString, replacedString);
+        Assert.assertEquals(originString, replacedString);
     }
 
     @Test
@@ -74,14 +74,33 @@ public class HivePushDownConverterTest extends TestCase {
                 + "        on s.BUYER_ID = a.ACCOUNT_ID inner join TEST_COUNTRY c on c.COUNTRY = a.ACCOUNT_COUNTRY\n"
                 + "    )t\n" + "LIMIT 50000";
         String replacedString = HivePushDownConverter.subqueryReplace(originString);
-        assertEquals(originString, replacedString);
+        Assert.assertEquals(originString, replacedString);
     }
 
     @Test
-    public void testConcatReplace() {
-        String originString = "select count(*) as cnt from test_kylin_fact where lstg_format_name||'a'='ABINa'";
+    public void testConcatReplace1() {
+        String originString = "select count(*) as cnt from test_kylin_fact where 'abc' ||lstg_format_name|| 'a'|| 'b' ||'c'='abcABINabc'";
         String replacedString = HivePushDownConverter.concatReplace(originString);
-        assertEquals("select count(*) as cnt from test_kylin_fact where concat(lstg_format_name,'a')='ABINa'",
+        Assert.assertEquals(
+                "select count(*) as cnt from test_kylin_fact where concat('abc',lstg_format_name,'a','b','c')='abcABINabc'",
+                replacedString);
+    }
+
+    @Test
+    public void testConcatReplace2() {
+        String originString = "select count(*) as cnt from test_kylin_fact where lstg_format_name = 'A' || 'B' || 'IN' and lstg_format_name = 'AB' || 'IN'";
+        String replacedString = HivePushDownConverter.concatReplace(originString);
+        Assert.assertEquals(
+                "select count(*) as cnt from test_kylin_fact where lstg_format_name = concat('A','B','IN') and lstg_format_name = concat('AB','IN')",
+                replacedString);
+    }
+
+    @Test
+    public void testConcatReplace3() {
+        String originString = "select count(*) as cnt from test_kylin_fact where ('abc') ||lstg_format_name|| (('a'|| 'b') ||'c')='abcABINabc'";
+        String replacedString = HivePushDownConverter.concatReplace(originString);
+        Assert.assertEquals(
+                "select count(*) as cnt from test_kylin_fact where concat('abc',lstg_format_name,'a','b','c')='abcABINabc'",
                 replacedString);
     }
 
@@ -92,6 +111,18 @@ public class HivePushDownConverterTest extends TestCase {
                 + "        on s.BUYER_ID = a.ACCOUNT_ID inner join TEST_COUNTRY c on c.COUNTRY = a.ACCOUNT_COUNTRY\n"
                 + "     limit 10000)t\n";
         String replacedString = HivePushDownConverter.addLimit(originString);
-        assertEquals(originString.concat(" limit 1"), replacedString);
+        Assert.assertEquals(originString.concat(" limit 1"), replacedString);
     }
+
+    @Test
+    public void testGroupingSets() {
+        String originString = "select sum(price) as GMV group by \n"
+                + "grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));\n";
+        String replacedString = HivePushDownConverter.groupingSetsReplace(originString);
+        Assert.assertEquals(
+                "select sum(price) as GMV group by \n"
+                        + "lstg_format_name,cal_dt,slr_segment_cd grouping sets((lstg_format_name, cal_dt, slr_segment_cd), (cal_dt, slr_segment_cd), (lstg_format_name, slr_segment_cd));\n",
+                replacedString);
+    }
+
 }

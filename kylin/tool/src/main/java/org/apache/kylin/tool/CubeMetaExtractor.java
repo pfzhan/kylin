@@ -242,7 +242,7 @@ public class CubeMetaExtractor extends AbstractInfoExtractor {
         for (RealizationEntry realizationEntry : realizationEntries) {
             retrieveResourcePath(getRealization(realizationEntry));
         }
-        List<DataModelDesc> modelDescs = metadataManager.getModels(projectInstance.getName());
+        List<DataModelDesc> modelDescs = metadataManager.listModels(projectInstance.getName());
         for (DataModelDesc modelDesc : modelDescs) {
             addRequired(DataModelDesc.concatResourcePath(modelDesc.getName()));
         }

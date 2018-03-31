@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.Scheduler;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -239,10 +240,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
         executableManager = NExecutableManager.getInstance(jobEngineConfig.getConfig(), null);
         //load all executable, set them to a consistent status
-        fetcherPool = Executors.newScheduledThreadPool(1);
+        fetcherPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NDefaultSchedulerFetchPool"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
-                new SynchronousQueue<Runnable>());
+                new SynchronousQueue<Runnable>(), new NamedThreadFactory("NDefaultSchedulerJobPool"));
         context = new DefaultContext(Maps.<String, Executable> newConcurrentMap(), jobEngineConfig.getConfig());
 
         executableManager.resumeAllRunningJobs();

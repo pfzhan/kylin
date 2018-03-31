@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.metadata.model;
 
+import java.io.IOException;
+
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
 import org.junit.Assert;
@@ -66,5 +68,19 @@ public class NDataModelTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("SUM", m.getFunction().getExpression());
         Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameter().getColRef());
         Assert.assertEquals("default", model.getProject());
+    }
+
+    @Test
+    public void getAllNamedColumns_changeToTomb_lessEffectiveCols() throws IOException {
+        NDataModelManager mgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
+        int size = model.getEffectiveColsMap().size();
+
+        model.getAllNamedColumns().get(0).tomb = true;
+        mgr.updateDataModelDesc(model);
+        model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
+        int size2 = model.getEffectiveColsMap().size();
+
+        Assert.assertEquals(size - 1, size2);
     }
 }

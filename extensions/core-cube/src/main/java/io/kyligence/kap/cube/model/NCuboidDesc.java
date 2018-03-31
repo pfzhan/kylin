@@ -26,7 +26,6 @@ package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -34,9 +33,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -47,6 +44,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -56,6 +54,12 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCuboidDesc implements Serializable, IKeep {
+    /**
+     * Here suppose cuboid's number is not bigger than 1000000, so if the id is bigger than 1000000*1000
+     * means it should be a table index cuboid.
+     */
+    public static long TABLE_INDEX_START_ID = 1000000000L;
+    public static long RULE_BASED_CUBOID_START_ID = 900000000L;
 
     @JsonBackReference
     private NCubePlan cubePlan;
@@ -75,54 +79,54 @@ public class NCuboidDesc implements Serializable, IKeep {
     private NDataModel model;
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures;
-    private ImmutableBitSet dimensionSet = null;
-    private ImmutableBitSet measureSet = null;
+    private ImmutableBitSet dimensionBitset = null;
+    private ImmutableBitSet measureBitset = null;
+    private ImmutableSet<TblColRef> dimensionSet = null;
+    private ImmutableSet<NDataModel.Measure> measureSet = null;
 
     public NCuboidDesc() {
     }
 
     void init() {
-        this.model = cubePlan.getModel();
-        this.dimensionSet = ImmutableBitSet.valueOf(dimensions);
-        this.measureSet = ImmutableBitSet.valueOf(measures);
+        this.model = getModel();
+        this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
+        this.measureBitset = ImmutableBitSet.valueOf(measures);
 
         this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(), new Predicate<Integer>() {
             @Override
             public boolean apply(@Nullable Integer input) {
-                return input != null && dimensionSet.get(input);
+                return input != null && dimensionBitset.get(input);
             }
         });
+
+        this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
 
         // all layouts' measure order follow cuboid_desc's define
         ImmutableBiMap.Builder<Integer, NDataModel.Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
             measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
         }
-        orderedMeasures = measuresBuilder.build();
+        this.orderedMeasures = measuresBuilder.build();
+        this.measureSet = orderedMeasures.values();
     }
 
-    public ImmutableBitSet getEffectiveDimBitSetIncludingDerived() {
-        BitSet bitSet = new BitSet();
-        bitSet.or(dimensionSet.mutable());
-
-        for (Map.Entry<TableRef, BitSet> derivedColsEntry : model.getEffectiveDerivedColsMap().entrySet()) {
-            JoinDesc joinDesc = model.getJoinByPKSide(derivedColsEntry.getKey());
-            TblColRef[] fkColRefs = joinDesc.getForeignKeyColumns();
-            if (effectiveDimCols.values().containsAll(Arrays.asList(fkColRefs))) {
-                bitSet.or(derivedColsEntry.getValue());
+    public boolean dimensionsDerive(TblColRef... dimensions) {
+        Map<TblColRef, Integer> colIdMap = getEffectiveDimCols().inverse();
+        for (TblColRef fk : dimensions) {
+            if (!colIdMap.containsKey(fk)) {
+                return false;
             }
         }
-
-        return new ImmutableBitSet(bitSet);
+        return true;
     }
 
     public boolean dimensionDerive(NCuboidDesc child) {
-        return child.getDimensionSet().andNot(getDimensionSet()).isEmpty();
+        return child.getDimensionBitset().andNot(getDimensionBitset()).isEmpty();
     }
 
     public boolean fullyDerive(NCuboidDesc child) {
-        return child.getDimensionSet().andNot(getDimensionSet()).isEmpty()
-                && child.getMeasureSet().andNot(getMeasureSet()).isEmpty();
+        return child.getDimensionBitset().andNot(getDimensionBitset()).isEmpty()
+                && child.getMeasureBitset().andNot(getMeasureBitset()).isEmpty();
     }
 
     public List<MeasureDesc> getMeasureDescs() {
@@ -149,11 +153,19 @@ public class NCuboidDesc implements Serializable, IKeep {
         return orderedMeasures;
     }
 
-    public ImmutableBitSet getDimensionSet() {
+    public ImmutableBitSet getDimensionBitset() {
+        return dimensionBitset;
+    }
+
+    public ImmutableBitSet getMeasureBitset() {
+        return measureBitset;
+    }
+
+    public ImmutableSet<TblColRef> getDimensionSet() {
         return dimensionSet;
     }
 
-    public ImmutableBitSet getMeasureSet() {
+    public ImmutableSet<NDataModel.Measure> getMeasureSet() {
         return measureSet;
     }
 
@@ -163,6 +175,10 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     public NCubePlan getCubePlan() {
         return cubePlan;
+    }
+
+    public NDataModel getModel() {
+        return cubePlan.getModel();
     }
 
     public void setCubePlan(NCubePlan cubePlan) {
@@ -207,12 +223,22 @@ public class NCuboidDesc implements Serializable, IKeep {
     }
 
     public boolean isCachedAndShared() {
-        return cubePlan == null ? false : cubePlan.isCachedAndShared();
+        return cubePlan != null && cubePlan.isCachedAndShared();
     }
 
     public void checkIsNotCachedAndShared() {
         if (cubePlan != null)
             cubePlan.checkIsNotCachedAndShared();
+    }
+
+    public boolean bothTableIndexOrNot(NCuboidDesc another) {
+        if (id >= TABLE_INDEX_START_ID && another.getId() >= TABLE_INDEX_START_ID)
+            return true;
+
+        if (id < TABLE_INDEX_START_ID && another.getId() < TABLE_INDEX_START_ID)
+            return true;
+
+        return false;
     }
 
 }

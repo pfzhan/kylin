@@ -76,6 +76,8 @@ public class NDictionaryBuilder implements Serializable {
 
     public NDataSegment buildDictionary() throws Exception {
 
+        logger.info("building dictionaries for seg {}", seg);
+
         final NDataflow dataflow = seg.getDataflow();
         final NCubePlan cubePlan = dataflow.getCubePlan();
 
@@ -86,6 +88,7 @@ public class NDictionaryBuilder implements Serializable {
             DictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
                     seg.getProject());
             String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
+            //TODO: what if dict changed?
             Dictionary<String> existing = seg.getDictionary(col);
             if (existing != null)
                 continue;
@@ -100,6 +103,9 @@ public class NDictionaryBuilder implements Serializable {
                         .mapToPair(new PairFunction<Row, String, String>() {
                             @Override
                             public Tuple2<String, String> call(Row row) throws Exception {
+                                if (row.get(0) == null)
+                                    return new Tuple2<>(null, null);
+
                                 return new Tuple2<>(row.get(0).toString(), row.get(0).toString());
                             }
                         }).partitionBy(new NHashPartitioner(partitions)).collectAsMap().values();
@@ -108,7 +114,7 @@ public class NDictionaryBuilder implements Serializable {
                 final List<String> ret = afterDistinct.toJavaRDD().map(new Function<Row, String>() {
                     @Override
                     public String call(Row value) throws Exception {
-                        return value.get(0).toString();
+                        return value.get(0) == null ? null : value.get(0).toString();
                     }
                 }).collect();
                 rows.addAll(ret);

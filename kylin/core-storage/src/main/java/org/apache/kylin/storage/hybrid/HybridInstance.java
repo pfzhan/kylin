@@ -26,6 +26,8 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.cube.CubeInstance;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -62,7 +64,7 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
 
         return hybridInstance;
     }
-    
+
     // ============================================================================
 
     @JsonIgnore
@@ -90,7 +92,7 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
     public String resourceName() {
         return name;
     }
-    
+
     public List<RealizationEntry> getRealizationEntries() {
         return realizationEntries;
     }
@@ -217,7 +219,7 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
         }
         return c;
     }
-    
+
     @Override
     public String getType() {
         return REALIZATION_TYPE;
@@ -280,6 +282,16 @@ public class HybridInstance extends RootPersistentEntity implements IRealization
     @Override
     public boolean hasPrecalculatedFields() {
         return true;
+    }
+
+    @Override
+    public LookupStringTable getLookupTable(String lookupTableName) {
+        final IRealization latestRealization = this.getLatestRealization();
+        if (!(latestRealization instanceof CubeInstance)) {
+            throw new IllegalStateException();
+        }
+
+        return latestRealization.getLookupTable(lookupTableName);
     }
 
     public void setConfig(KylinConfig config) {

@@ -176,7 +176,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         }
 
         if (!this.hasSubQuery) {
-//            this.context.allColumns.clear();
+            //            this.context.allColumns.clear();
 
             // build JoinDesc
             Preconditions.checkState(this.getCondition() instanceof RexCall, "Cartesian Join is not supported.");
@@ -335,6 +335,9 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
         if (this.isTopJoin && RewriteImplementor.needRewrite(this.context)) {
             if (this.context.hasPrecalculatedFields()) {
+
+
+                //seems not necessary to do so in JOIN REL???
 
                 // find missed rewrite fields
                 int paramIndex = this.rowType.getFieldList().size();

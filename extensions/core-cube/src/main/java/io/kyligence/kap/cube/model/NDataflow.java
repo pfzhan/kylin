@@ -34,8 +34,10 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -134,8 +136,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     }
 
     public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(DATAFLOW_RESOURCE_ROOT).append("/").append(name)
-                .append(MetadataConstants.FILE_SURFIX).toString();
+        return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
     }
 
     public Set<String> collectPrecalculationResource() {
@@ -186,7 +187,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     @Override
     public Set<TblColRef> getAllColumns() {
-        return getCubePlan().listAllColumns();
+        return getCubePlan().listAllTblColRefs();
     }
 
     @Override
@@ -268,6 +269,16 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     @Override
     public boolean hasPrecalculatedFields() {
         return true;
+    }
+
+    @Override
+    public LookupStringTable getLookupTable(String lookupTableName) {
+        //lookupTableName is assumed to be in this model for sure
+
+        TableRef table = getModel().findTable(lookupTableName);
+        JoinDesc joinByPKSide = getModel().getJoinByPKSide(table);
+        return NDataflowManager.getInstance(getConfig(), getProject()).getLookupTable(this.getLastSegment(),
+                joinByPKSide);
     }
 
     @Override

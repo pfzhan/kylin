@@ -1,0 +1,383 @@
+{
+  "uuid": "2cd53915-6ec7-4c62-9d42-dcef44de2dbf",
+  "last_modified": 1509531215483,
+  "version": "2.3.0.20500",
+  "name": "ut_inner_join_cube_partial",
+  "model_name": "nmodel_basic_inner",
+  "description": "refer to ut_inner_join_cube_partial in pre-newten, it's a converted version",
+  "dimensions": [
+    {
+      "id": 9,
+      "encoding": {
+        "name": "int:4",
+        "version": "1"
+      }
+    },
+    {
+      "id": 13,
+      "encoding": {
+        "name": "int:4",
+        "version": "1"
+      }
+    },
+    {
+      "id": 2,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 8,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 5,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 6,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 7,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 3,
+      "encoding": {
+        "name": "fixed_length:12",
+        "version": "1"
+      }
+    },
+    {
+      "id": 4,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 16,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 15,
+      "encoding": {
+        "name": "time",
+        "version": "1"
+      }
+    },
+    {
+      "id": 14,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 17,
+      "encoding": {
+        "name": "int:4",
+        "version": "1"
+      }
+    },
+    {
+      "id": 22,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 23,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 24,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 25,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 18,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 19,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 20,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 21,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    }
+  ],
+  "rule_based_cuboids": {
+    "dimensions": [
+      9,
+      13,
+      2,
+      8,
+      5,
+      6,
+      7,
+      3,
+      4,
+      16,
+      15,
+      14,
+      17,
+      22,
+      23,
+      24,
+      25,
+      18,
+      19,
+      20,
+      21
+    ],
+    "measures": [
+      1000
+    ],
+    "rowkeys": [
+      {
+        "dimension_id": 9,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 13,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 2,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 8,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 5,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 6,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 7,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 3,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 4,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 16,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 15,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 14,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 17,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 22,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 23,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 24,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 25,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 18,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 19,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 20,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 21,
+        "index": "eq"
+      }
+    ],
+    "measure_cf": [
+      {
+        "name": "M1",
+        "columns": [
+          1000
+        ]
+      }
+    ],
+    "aggregation_groups": [
+      {
+        "includes": [
+          "TEST_KYLIN_FACT.CAL_DT",
+          "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+          "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+          "TEST_KYLIN_FACT.LSTG_SITE_ID",
+          "TEST_KYLIN_FACT.SLR_SEGMENT_CD",
+          "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME"
+        ],
+        "select_rule": {
+          "hierarchy_dims": [
+            [
+              "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+              "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+            ]
+          ],
+          "mandatory_dims": [],
+          "joint_dims": [
+            [
+              "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+              "TEST_KYLIN_FACT.LSTG_SITE_ID",
+              "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+            ]
+          ],
+          "dim_cap": 3
+        }
+      },
+      {
+        "includes": [
+          "TEST_KYLIN_FACT.CAL_DT",
+          "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+          "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+          "TEST_KYLIN_FACT.LSTG_SITE_ID",
+          "TEST_KYLIN_FACT.SLR_SEGMENT_CD",
+          "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+          "TEST_KYLIN_FACT.SELLER_ID",
+          "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+          "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+          "SELLER_ACCOUNT.ACCOUNT_COUNTRY",
+          "SELLER_COUNTRY.NAME",
+          "TEST_KYLIN_FACT.ORDER_ID",
+          "TEST_ORDER.TEST_DATE_ENC",
+          "TEST_ORDER.TEST_TIME_ENC",
+          "TEST_ORDER.BUYER_ID",
+          "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+          "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+          "BUYER_ACCOUNT.ACCOUNT_COUNTRY",
+          "BUYER_COUNTRY.NAME"
+        ],
+        "select_rule": {
+          "hierarchy_dims": [],
+          "mandatory_dims": [
+            "TEST_KYLIN_FACT.CAL_DT"
+          ],
+          "joint_dims": [
+            [
+              "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+              "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+            ],
+            [
+              "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+              "TEST_KYLIN_FACT.LSTG_SITE_ID",
+              "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+            ],
+            [
+              "TEST_KYLIN_FACT.SELLER_ID",
+              "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+              "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+              "SELLER_ACCOUNT.ACCOUNT_COUNTRY",
+              "SELLER_COUNTRY.NAME"
+            ],
+            [
+              "TEST_KYLIN_FACT.ORDER_ID",
+              "TEST_ORDER.TEST_DATE_ENC",
+              "TEST_ORDER.TEST_TIME_ENC",
+              "TEST_ORDER.BUYER_ID",
+              "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+              "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+              "BUYER_ACCOUNT.ACCOUNT_COUNTRY",
+              "BUYER_COUNTRY.NAME"
+            ]
+          ],
+          "dim_cap": 3
+        }
+      }
+    ],
+    "storage_type": 20
+  },
+  "override_properties": {},
+  "segment_range_start": 0,
+  "segment_range_end": 9223372036854775807,
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "notify_list": null,
+  "status_need_notify": [],
+  "engine_type": 0
+}

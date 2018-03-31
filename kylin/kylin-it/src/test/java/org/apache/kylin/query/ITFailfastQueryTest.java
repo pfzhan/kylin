@@ -35,6 +35,7 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 public class ITFailfastQueryTest extends KylinTestBase {
@@ -81,7 +82,7 @@ public class ITFailfastQueryTest extends KylinTestBase {
             try {
                 runSQL(sqlFile, false, false);
             } catch (Exception e) {
-                if (findRoot(e) instanceof ResourceLimitExceededException) {
+                if (Throwables.getRootCause(e) instanceof ResourceLimitExceededException) {
                     //expected
                     meetExpectedException = true;
                 } else {
@@ -125,7 +126,7 @@ public class ITFailfastQueryTest extends KylinTestBase {
             try {
                 runSQL(sqlFile, false, false);
             } catch (Exception e) {
-                if (findRoot(e) instanceof ResourceLimitExceededException) {
+                if (Throwables.getRootCause(e) instanceof ResourceLimitExceededException) {
                     //expected
                     meetExpectedException = true;
                 } else {

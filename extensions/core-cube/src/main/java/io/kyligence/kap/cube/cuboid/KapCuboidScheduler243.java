@@ -54,7 +54,7 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
     private final Set<Long> allCuboidIds;
     private final Map<Long, List<Long>> parent2child;
 
-    public KapCuboidScheduler243(CubeDesc cubeDesc) {
+    KapCuboidScheduler243(CubeDesc cubeDesc) {
         super(cubeDesc);
 
         int size = this.cubeDesc.getRowkey().getRowKeyColumns().length;
@@ -78,7 +78,7 @@ public class KapCuboidScheduler243 extends CuboidScheduler {
 
         List<Long> spanning = parent2child.get(cuboid);
         if (spanning == null) {
-            return Collections.EMPTY_LIST;
+            return Lists.newArrayList();
         }
         return spanning;
     }

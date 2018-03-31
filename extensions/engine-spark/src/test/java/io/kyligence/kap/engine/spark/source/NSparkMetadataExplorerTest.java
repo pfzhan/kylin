@@ -32,10 +32,11 @@ import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 
-public class NSparkMetadataExplorerTest extends NLocalSparkWithCSVDataTest {
+public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
+
     @Test
     public void testListDatabases() throws Exception {
         NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
@@ -52,6 +53,8 @@ public class NSparkMetadataExplorerTest extends NLocalSparkWithCSVDataTest {
 
     @Test
     public void testGetTableDesc() throws Exception {
+        populateSSWithCSVData(getTestConfig(), "ssb", ss);
+
         NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
         Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
                 "p_lineorder", "ssb");

@@ -72,7 +72,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             }
 
             DataModelManager metadataManager = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv());
-            List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
+            List<DataModelDesc> dataModelDescs = metadataManager.listModels(project);
 
             List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
             Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>

@@ -190,7 +190,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public Dictionary<String> getDictionary(TblColRef col) {
-        TblColRef reuseCol = getCubePlan().getDictionaryReuseColumn(col);
+        NCubePlan cubePlan = getCubePlan();
+        TblColRef reuseCol = cubePlan.getDictionaryReuseColumn(col);
         DictionaryInfo info = null;
         try {
             NDictionaryManager dictMgr = NDictionaryManager.getInstance(getConfig(), this.dataflow.getProject());

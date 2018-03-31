@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
@@ -33,39 +34,40 @@ public interface IRealization extends IStorageAware {
     /**
      * Given the features of a query, check how capable the realization is to answer the query.
      */
-    public CapabilityResult isCapable(SQLDigest digest);
+    CapabilityResult isCapable(SQLDigest digest);
 
     /**
      * Get whether this specific realization is a cube or InvertedIndex
      */
-    public String getType();
+    String getType();
 
-    public KylinConfig getConfig();
+    KylinConfig getConfig();
 
-    public DataModelDesc getModel();
+    DataModelDesc getModel();
 
-    public Set<TblColRef> getAllColumns();
+    Set<TblColRef> getAllColumns();
 
-    public Set<ColumnDesc> getAllColumnDescs();
+    Set<ColumnDesc> getAllColumnDescs();
 
-    public List<TblColRef> getAllDimensions();
+    List<TblColRef> getAllDimensions();
 
-    public List<MeasureDesc> getMeasures();
+    List<MeasureDesc> getMeasures();
 
-    public boolean isReady();
+    boolean isReady();
 
-    public String getName();
+    String getName();
 
-    public String getCanonicalName();
+    String getCanonicalName();
 
-    public long getDateRangeStart();
+    long getDateRangeStart();
 
-    public long getDateRangeEnd();
+    long getDateRangeEnd();
 
-    public boolean supportsLimitPushDown();
+    boolean supportsLimitPushDown();
 
-    public int getCost();
-    
-    public boolean hasPrecalculatedFields();
+    int getCost();
 
+    boolean hasPrecalculatedFields();
+
+    LookupStringTable getLookupTable(String lookupTableName);
 }

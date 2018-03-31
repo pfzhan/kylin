@@ -83,7 +83,6 @@ public class DateStrDictionary extends Dictionary<String> {
         return pattern.length();
     }
 
-
     @Override
     final protected int getIdFromValueImpl(String value, int roundFlag) {
         Date date = stringToDate(value, pattern);

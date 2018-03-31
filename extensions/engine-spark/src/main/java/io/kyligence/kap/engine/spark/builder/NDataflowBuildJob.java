@@ -58,6 +58,7 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Preconditions;
 
 public class NDataflowBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuildJob.class);
@@ -125,24 +126,43 @@ public class NDataflowBuildJob extends NDataflowJob {
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
             Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
 
-        Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
-        Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndexes, measures.keySet());
-        Dataset<Row> afterPrj = parent.select(selectedColumns);
-        Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate().persist();
-        long cuboidRowCnt = afterAgg.count();
+        if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
+            Preconditions.checkArgument(cuboid.getMeasures().length == 0);
+            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
+            Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
+            long cuboidRowCnt = afterPrj.count();
+            // TODO: shard number should respect the shard column defined in cuboid
+            int partition = estimatePartitions(afterPrj, config);
+            for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
+                Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
+                Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
+                        .repartition(partition)
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
+                saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
+            }
+            for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
+                recursiveBuildCuboid(seg, child, afterPrj, measures, nSpanningTree);
+            }
+        } else {
+            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
+            Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndexes, measures.keySet());
+            Dataset<Row> afterPrj = parent.select(selectedColumns);
+            Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate().persist();
+            long cuboidRowCnt = afterAgg.count();
 
-        int partition = estimatePartitions(afterAgg, config);
-        Set<Integer> meas = cuboid.getOrderedMeasures().keySet();
-        for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
-            Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
-            Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas)).repartition(partition)
-                    .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
-            saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
+            int partition = estimatePartitions(afterAgg, config);
+            Set<Integer> meas = cuboid.getOrderedMeasures().keySet();
+            for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
+                Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
+                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
+                        .repartition(partition).sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
+                saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
+            }
+            for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
+                recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
+            }
+            afterAgg.unpersist();
         }
-        for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
-            recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
-        }
-        afterAgg.unpersist();
     }
 
     private void saveAndUpdateCuboid(Dataset<Row> dataset, long cuboidRowCnt, NDataSegment seg, NCuboidLayout layout)

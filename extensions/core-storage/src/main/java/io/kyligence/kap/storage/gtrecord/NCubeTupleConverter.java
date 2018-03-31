@@ -24,22 +24,23 @@
 
 package io.kyligence.kap.storage.gtrecord;
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.dict.lookup.LookupStringTable;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureType.IAdvMeasureFiller;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.metadata.tuple.TupleInfo;
-import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.storage.gtrecord.ITupleConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,8 +48,10 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflowManager;
 
 /**
  * Convert Object[] (decoded GTRecord) to tuple
@@ -71,10 +74,11 @@ public class NCubeTupleConverter implements ITupleConverter {
 
     private final int nSelectedDims;
 
-    public NCubeTupleConverter(NDataSegment dataSegment, NCuboidLayout cuboidLayout, //
-                               Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, int[] gtColIdx, TupleInfo returnTupleInfo) {
+    public NCubeTupleConverter(NDataSegment dataSegment, NLayoutCandidate layoutCandidate, //
+            Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, int[] gtColIdx,
+            TupleInfo returnTupleInfo) {
         this.dataSegment = dataSegment;
-        this.cuboidLayout = cuboidLayout;
+        this.cuboidLayout = layoutCandidate.getCuboidLayout();
         this.gtColIdx = gtColIdx;
         this.tupleInfo = returnTupleInfo;
         this.derivedColFillers = Lists.newArrayList();
@@ -110,7 +114,8 @@ public class NCubeTupleConverter implements ITupleConverter {
 
             MeasureType<?> measureType = metric.getMeasureType();
             if (measureType.needAdvancedTupleFilling()) {
-                Map<TblColRef, Dictionary<String>> dictionaryMap = buildDictionaryMap(measureType.getColumnsNeedDictionary(metric));
+                Map<TblColRef, Dictionary<String>> dictionaryMap = buildDictionaryMap(
+                        measureType.getColumnsNeedDictionary(metric));
                 advMeasureFillers.add(measureType.getAdvancedTupleFiller(metric, returnTupleInfo, dictionaryMap));
                 advMeasureIndexInGTValues.add(i);
             } else {
@@ -118,19 +123,62 @@ public class NCubeTupleConverter implements ITupleConverter {
             }
 
             i++;
+
         }
 
-        // prepare derived columns and filler
-//        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedInfo = cuboidLayout.getCubeDesc().getHostToDerivedInfo(cuboidLayout.getColumns(), null);
-//        for (Entry<Array<TblColRef>, List<DeriveInfo>> entry : hostToDerivedInfo.entrySet()) {
-//            TblColRef[] hostCols = entry.getKey().data;
-//            for (DeriveInfo deriveInfo : entry.getValue()) {
-//                IDerivedColumnFiller filler = newDerivedColumnFiller(hostCols, deriveInfo);
-//                if (filler != null) {
-//                    derivedColFillers.add(filler);
-//                }
-//            }
-//        }
+        //prepare derived columns and filler
+
+        Map<TblColRef, DeriveInfo> derivedToHostMap = layoutCandidate.getDerivedToHostMap();
+        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedInfo = makeHostToDerivedMap(derivedToHostMap);
+
+        for (Map.Entry<Array<TblColRef>, List<DeriveInfo>> entry : hostToDerivedInfo.entrySet()) {
+            TblColRef[] hostCols = entry.getKey().data;
+            for (DeriveInfo deriveInfo : entry.getValue()) {
+                IDerivedColumnFiller filler = newDerivedColumnFiller(hostCols, deriveInfo);
+                if (filler != null) {
+                    derivedColFillers.add(filler);
+                }
+            }
+        }
+    }
+
+    private Map<Array<TblColRef>, List<DeriveInfo>> makeHostToDerivedMap(Map<TblColRef, DeriveInfo> derivedToHostMap) {
+        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedMap = Maps.newHashMap();
+
+        for (Map.Entry<TblColRef, DeriveInfo> entry : derivedToHostMap.entrySet()) {
+
+            TblColRef derCol = entry.getKey();
+            TblColRef[] hostCols = entry.getValue().columns;
+            DeriveInfo.DeriveType type = entry.getValue().type;
+            JoinDesc join = entry.getValue().join;
+
+            Array<TblColRef> hostColArray = new Array<>(hostCols);
+            List<DeriveInfo> infoList = hostToDerivedMap.get(hostColArray);
+            if (infoList == null) {
+                infoList = new ArrayList<DeriveInfo>();
+                hostToDerivedMap.put(hostColArray, infoList);
+            }
+
+            // Merged duplicated derived column
+            boolean merged = false;
+            for (DeriveInfo existing : infoList) {
+                if (existing.type == type && existing.join.getPKSide().equals(join.getPKSide())) {
+                    if (ArrayUtils.contains(existing.columns, derCol)) {
+                        merged = true;
+                        break;
+                    }
+                    if (type == DeriveInfo.DeriveType.LOOKUP) {
+                        existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged)
+                infoList.add(new DeriveInfo(type, join, new TblColRef[] { derCol }, false));
+        }
+
+        return hostToDerivedMap;
     }
 
     // load only needed dictionaries
@@ -183,76 +231,78 @@ public class NCubeTupleConverter implements ITupleConverter {
         public void fillDerivedColumns(Object[] gtValues, Tuple tuple);
     }
 
-//    private IDerivedColumnFiller newDerivedColumnFiller(TblColRef[] hostCols, final DeriveInfo deriveInfo) {
-//        boolean allHostsPresent = true;
-//        final int[] hostTmpIdx = new int[hostCols.length];
-//        for (int i = 0; i < hostCols.length; i++) {
-//            hostTmpIdx[i] = indexOnTheGTValues(hostCols[i]);
-//            allHostsPresent = allHostsPresent && hostTmpIdx[i] >= 0;
-//        }
-//
-//        boolean needCopyDerived = false;
-//        final int[] derivedTupleIdx = new int[deriveInfo.columns.length];
-//        for (int i = 0; i < deriveInfo.columns.length; i++) {
-//            TblColRef col = deriveInfo.columns[i];
-//            derivedTupleIdx[i] = tupleInfo.hasColumn(col) ? tupleInfo.getColumnIndex(col) : -1;
-//            needCopyDerived = needCopyDerived || derivedTupleIdx[i] >= 0;
-//        }
-//
-//        if ((allHostsPresent && needCopyDerived) == false)
-//            return null;
-//
-//        switch (deriveInfo.type) {
-//        case LOOKUP:
-//            return new IDerivedColumnFiller() {
-//                LookupStringTable lookupTable = getLookupTable(dataSegment, deriveInfo.join);
-//                int[] derivedColIdx = initDerivedColIdx();
-//                Array<String> lookupKey = new Array<String>(new String[hostTmpIdx.length]);
-//
-//                private int[] initDerivedColIdx() {
-//                    int[] idx = new int[deriveInfo.columns.length];
-//                    for (int i = 0; i < idx.length; i++) {
-//                        idx[i] = deriveInfo.columns[i].getColumnDesc().getZeroBasedIndex();
-//                    }
-//                    return idx;
-//                }
-//
-//                @Override
-//                public void fillDerivedColumns(Object[] gtValues, Tuple tuple) {
-//                    for (int i = 0; i < hostTmpIdx.length; i++) {
-//                        lookupKey.data[i] = NCubeTupleConverter.toString(gtValues[hostTmpIdx[i]]);
-//                    }
-//
-//                    String[] lookupRow = lookupTable.getRow(lookupKey);
-//
-//                    if (lookupRow != null) {
-//                        for (int i = 0; i < derivedTupleIdx.length; i++) {
-//                            if (derivedTupleIdx[i] >= 0) {
-//                                String value = lookupRow[derivedColIdx[i]];
-//                                tuple.setDimensionValue(derivedTupleIdx[i], value);
-//                            }
-//                        }
-//                    } else {
-//                        for (int i = 0; i < derivedTupleIdx.length; i++) {
-//                            if (derivedTupleIdx[i] >= 0) {
-//                                tuple.setDimensionValue(derivedTupleIdx[i], null);
-//                            }
-//                        }
-//                    }
-//                }
-//            };
-//        case PK_FK:
-//            return new IDerivedColumnFiller() {
-//                @Override
-//                public void fillDerivedColumns(Object[] gtValues, Tuple tuple) {
-//                    // composite keys are split, so only copy [0] is enough, see CubeDesc.initDimensionColumns()
-//                    tuple.setDimensionValue(derivedTupleIdx[0], NCubeTupleConverter.toString(gtValues[hostTmpIdx[0]]));
-//                }
-//            };
-//        default:
-//            throw new IllegalArgumentException();
-//        }
-//    }
+    private IDerivedColumnFiller newDerivedColumnFiller(TblColRef[] hostCols, final DeriveInfo deriveInfo) {
+        boolean allHostsPresent = true;
+        final int[] hostTmpIdx = new int[hostCols.length];
+        for (int i = 0; i < hostCols.length; i++) {
+            hostTmpIdx[i] = indexOnTheGTValues(hostCols[i]);
+            allHostsPresent = allHostsPresent && hostTmpIdx[i] >= 0;
+        }
+
+        boolean needCopyDerived = false;
+        final int[] derivedTupleIdx = new int[deriveInfo.columns.length];
+        for (int i = 0; i < deriveInfo.columns.length; i++) {
+            TblColRef col = deriveInfo.columns[i];
+            derivedTupleIdx[i] = tupleInfo.hasColumn(col) ? tupleInfo.getColumnIndex(col) : -1;
+            needCopyDerived = needCopyDerived || derivedTupleIdx[i] >= 0;
+        }
+
+        if (!(allHostsPresent && needCopyDerived))
+            return null;
+
+        switch (deriveInfo.type) {
+        case LOOKUP:
+            return new IDerivedColumnFiller() {
+                LookupStringTable lookupTable = NDataflowManager
+                        .getInstance(dataSegment.getConfig(), dataSegment.getProject())
+                        .getLookupTable(dataSegment, deriveInfo.join);
+                int[] derivedColIdx = initDerivedColIdx();
+                Array<String> lookupKey = new Array<String>(new String[hostTmpIdx.length]);
+
+                private int[] initDerivedColIdx() {
+                    int[] idx = new int[deriveInfo.columns.length];
+                    for (int i = 0; i < idx.length; i++) {
+                        idx[i] = deriveInfo.columns[i].getColumnDesc().getZeroBasedIndex();
+                    }
+                    return idx;
+                }
+
+                @Override
+                public void fillDerivedColumns(Object[] gtValues, Tuple tuple) {
+                    for (int i = 0; i < hostTmpIdx.length; i++) {
+                        lookupKey.data[i] = NCubeTupleConverter.toString(gtValues[hostTmpIdx[i]]);
+                    }
+
+                    String[] lookupRow = lookupTable.getRow(lookupKey);
+
+                    if (lookupRow != null) {
+                        for (int i = 0; i < derivedTupleIdx.length; i++) {
+                            if (derivedTupleIdx[i] >= 0) {
+                                String value = lookupRow[derivedColIdx[i]];
+                                tuple.setDimensionValue(derivedTupleIdx[i], value);
+                            }
+                        }
+                    } else {
+                        for (int i = 0; i < derivedTupleIdx.length; i++) {
+                            if (derivedTupleIdx[i] >= 0) {
+                                tuple.setDimensionValue(derivedTupleIdx[i], null);
+                            }
+                        }
+                    }
+                }
+            };
+        case PK_FK:
+            return new IDerivedColumnFiller() {
+                @Override
+                public void fillDerivedColumns(Object[] gtValues, Tuple tuple) {
+                    // composite keys are split, so only copy [0] is enough, see CubeDesc.initDimensionColumns()
+                    tuple.setDimensionValue(derivedTupleIdx[0], NCubeTupleConverter.toString(gtValues[hostTmpIdx[0]]));
+                }
+            };
+        default:
+            throw new IllegalArgumentException();
+        }
+    }
 
     private int indexOnTheGTValues(TblColRef col) {
         List<TblColRef> cuboidDims = cuboidLayout.getColumns();
@@ -262,42 +312,6 @@ public class NCubeTupleConverter implements ITupleConverter {
                 return i;
         }
         return -1;
-    }
-
-    //    public LookupStringTable getLookupTable(CubeSegment cubeSegment, JoinDesc join) {
-    //        long ts = System.currentTimeMillis();
-    //
-    //        TableMetadataManager metaMgr = TableMetadataManager.getInstance(dataSegment.getCubeInstance().getConfig());
-    //        SnapshotManager snapshotMgr = SnapshotManager.getInstance(dataSegment.getCubeInstance().getConfig());
-    //
-    //        String tableName = join.getPKSide().getTableIdentity();
-    //        String[] pkCols = join.getPrimaryKey();
-    //        String snapshotResPath = cubeSegment.getSnapshotResPath(tableName);
-    //        if (snapshotResPath == null)
-    //            throw new IllegalStateException("No snaphot for table '" + tableName + "' found on cube segment" + cubeSegment.getCubeInstance().getName() + "/" + cubeSegment);
-    //
-    //        try {
-    //            SnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
-    //            TableDesc tableDesc = metaMgr.getTableDesc(tableName, cubeSegment.getProject());
-    //            EnhancedStringLookupTable enhancedStringLookupTable = new EnhancedStringLookupTable(tableDesc, pkCols, snapshot);
-    //            logger.info("Time to get lookup up table for {} is {} ", join.getPKSide().getTableName(), (System.currentTimeMillis() - ts));
-    //            return enhancedStringLookupTable;
-    //        } catch (IOException e) {
-    //            throw new IllegalStateException("Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
-    //        }
-    //    }
-
-    private static class EnhancedStringLookupTable extends LookupStringTable {
-
-        public EnhancedStringLookupTable(TableDesc tableDesc, String[] keyColumns, IReadableTable table) throws IOException {
-            super(tableDesc, keyColumns, table);
-        }
-
-        @Override
-        protected void init() throws IOException {
-            this.data = new HashMap<>();
-            super.init();
-        }
     }
 
     private static String toString(Object o) {

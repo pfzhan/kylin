@@ -154,7 +154,7 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
                     committer.getCommittedTaskPath(context));
 
             kylinConfig = AbstractHadoopJob
-                    .loadKylinConfigFromHdfs(context.getConfiguration().get(NBatchConstants.P_DIST_META_URL));
+                    .loadKylinConfigFromHdfsIfNeeded(context.getConfiguration().get(NBatchConstants.P_DIST_META_URL));
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             int segmentID = Integer.valueOf(context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID));

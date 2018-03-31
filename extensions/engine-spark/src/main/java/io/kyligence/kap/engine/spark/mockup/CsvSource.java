@@ -24,13 +24,7 @@
 
 package io.kyligence.kap.engine.spark.mockup;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
-
+import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -49,7 +43,12 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 public class CsvSource implements ISource {
 
@@ -103,17 +102,14 @@ public class CsvSource implements ISource {
     @SuppressWarnings("unchecked")
     @Override
     public <I> I adaptToBuildEngine(Class<I> engineInterface) {
-        // this is only meant to be used in UT
-        final String utMetaDir = System.getProperty(KylinConfig.KYLIN_CONF);
-        if (utMetaDir == null || utMetaDir.startsWith("../example") == false)
-            throw new IllegalStateException();
+
 
         if (engineInterface == NSparkCubingSource.class) {
             return (I) new NSparkCubingSource() {
 
                 @Override
                 public Dataset<Row> getSourceData(TableDesc table, SparkSession ss) {
-                    String path = new File(utMetaDir, "data/" + table.getIdentity() + ".csv").getAbsolutePath();
+                    String path = new File(getUtMetaDir(), "data/" + table.getIdentity() + ".csv").getAbsolutePath();
 
                     ColumnDesc[] columnDescs = table.getColumns();
                     String[] colNames = new String[columnDescs.length];
@@ -129,7 +125,7 @@ public class CsvSource implements ISource {
 
     @Override
     public IReadableTable createReadableTable(TableDesc tableDesc) {
-        throw new UnsupportedOperationException();
+        return new CsvTable(getUtMetaDir(), tableDesc);
     }
 
     @Override
@@ -142,4 +138,11 @@ public class CsvSource implements ISource {
         throw new UnsupportedOperationException();
     }
 
+    private String getUtMetaDir() {
+        // this is only meant to be used in UT
+        final String utMetaDir = System.getProperty(KylinConfig.KYLIN_CONF);
+        if (utMetaDir == null || !utMetaDir.startsWith("../example"))
+            throw new IllegalStateException();
+        return utMetaDir;
+    }
 }

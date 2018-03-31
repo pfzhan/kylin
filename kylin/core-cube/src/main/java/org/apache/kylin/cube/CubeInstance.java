@@ -35,6 +35,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.cube.cuboid.CuboidScheduler;
 import org.apache.kylin.cube.cuboid.TreeCuboidScheduler;
 import org.apache.kylin.cube.model.CubeDesc;
+import org.apache.kylin.cube.model.DimensionDesc;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.IBuildable;
@@ -127,13 +129,13 @@ public class CubeInstance extends RootPersistentEntity implements IRealization, 
     // default constructor for jackson
     public CubeInstance() {
     }
-    
+
     public CubeInstance latestCopyForWrite() {
         CubeManager mgr = CubeManager.getInstance(config);
         CubeInstance latest = mgr.getCube(name); // in case this object is out-of-date
         return mgr.copyForWrite(latest);
     }
-    
+
     void init(KylinConfig config) {
         CubeDesc cubeDesc = CubeDescManager.getInstance(config).getCubeDesc(descName);
         checkNotNull(cubeDesc, "cube descriptor '%s' (for cube '%s') not found", descName, name);
@@ -204,7 +206,7 @@ public class CubeInstance extends RootPersistentEntity implements IRealization, 
         return (getStatus() == RealizationStatusEnum.DISABLED || getStatus() == RealizationStatusEnum.DESCBROKEN)
                 && segments.isEmpty();
     }
-    
+
     @Override
     public String resourceName() {
         return name;
@@ -233,6 +235,17 @@ public class CubeInstance extends RootPersistentEntity implements IRealization, 
     @Override
     public boolean hasPrecalculatedFields() {
         return true;
+    }
+
+    @Override
+    public LookupStringTable getLookupTable(String lookupTableName) {
+        DimensionDesc dim = getDescriptor().findDimensionByTable(lookupTableName);
+        if (dim == null)
+            throw new IllegalStateException("No dimension with derived columns found for lookup table "
+                    + lookupTableName + ", cube desc " + getDescriptor());
+
+        CubeManager cubeMgr = CubeManager.getInstance(getConfig());
+        return cubeMgr.getLookupTable(getLatestReadySegment(), dim.getJoin());
     }
 
     void setConfig(KylinConfigExt config) {

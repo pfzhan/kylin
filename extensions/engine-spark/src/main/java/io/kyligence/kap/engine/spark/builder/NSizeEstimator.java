@@ -65,7 +65,7 @@ public class NSizeEstimator {
                 long size = 0;
                 if (count % frequency == 0) {
                     for (int i = 0; i < value.size(); i++) {
-                        size += value.get(i).toString().getBytes().length;
+                        size += value.get(i) == null ? 0 : value.get(i).toString().getBytes().length;
                     }
                 }
                 count++;

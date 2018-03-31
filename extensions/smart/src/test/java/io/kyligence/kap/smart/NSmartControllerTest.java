@@ -54,7 +54,7 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertTrue(!dataModelManager.getModels().isEmpty());
+        Assert.assertTrue(!dataModelManager.listModels().isEmpty());
         NSmartController.optimizeFromPushdown(getTestConfig(), project);
 
         getTestConfig().clearManagers();
@@ -63,6 +63,6 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
         projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertFalse(projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertFalse(dataModelManager.getModels().isEmpty());
+        Assert.assertFalse(dataModelManager.listModels().isEmpty());
     }
 }

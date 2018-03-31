@@ -26,7 +26,7 @@ import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.kv.RowKeyColumnOrder;
 import org.apache.kylin.metadata.model.DeriveInfo;
-import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;

@@ -1,0 +1,19 @@
+{
+  "uuid" : "48adeadc-389e-4742-becc-dc3393d199cb",
+  "last_modified" : 1509805113773,
+  "version" : "2.3.0.20500",
+  "name" : "ut_inner_join_cube_partial",
+  "description" : "this is ut_inner_join_cube_partial",
+  "owner" : "test_owner",
+  "mp_values" : null,
+  "cube_plan" : "ut_inner_join_cube_partial",
+  "create_time_utc" : 1509791792901,
+  "status" : "DISABLED",
+  "cost" : 50,
+  "segments" : [],
+  "cuboids" : [{
+    "cuboid_layout_id" : 1,
+    "status" : "NEW"
+  }],
+  "storage_location_identifier" : null
+}

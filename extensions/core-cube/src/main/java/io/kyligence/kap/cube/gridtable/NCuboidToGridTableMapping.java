@@ -77,9 +77,7 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
         // column blocks of metrics
         ArrayList<BitSet> metricsColBlocks = Lists.newArrayList();
         for (NColumnFamilyDesc.MeasureCF familyDesc : cuboidLayout.getMeasureCFs()) {
-            for (int i = 0; i < familyDesc.getColumns().length; i++) {
-                metricsColBlocks.add(new BitSet());
-            }
+            metricsColBlocks.add(new BitSet());
         }
 
         // metrics
@@ -98,8 +96,8 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
                     if (measureId == measure.id) {
                         metricsColBlocks.get(cbIdx).set(gtColIdx);
                     }
-                    cbIdx++;
                 }
+                cbIdx++;
             }
 
             gtColIdx++;

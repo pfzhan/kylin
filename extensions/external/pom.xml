@@ -68,6 +68,7 @@
                                 <argument>clean</argument>
                                 <argument>install</argument>
                                 <argument>-DskipTests</argument>
+
                             </arguments>
                             <workingDirectory>${project.basedir}/../../
                             </workingDirectory>
@@ -89,6 +90,7 @@
                                 <argument>clean</argument>
                                 <argument>install</argument>
                                 <argument>-DskipTests</argument>
+
                             </arguments>
                             <workingDirectory>
                                 ${project.basedir}/../../
@@ -111,6 +113,7 @@
                                 <argument>clean</argument>
                                 <argument>install</argument>
                                 <argument>-DskipTests</argument>
+
                             </arguments>
                             <workingDirectory>
                                 ${project.basedir}/../../
@@ -133,6 +136,7 @@
                                 <argument>clean</argument>
                                 <argument>install</argument>
                                 <argument>-DskipTests</argument>
+
                             </arguments>
                             <workingDirectory>
                                 ${project.basedir}/../../

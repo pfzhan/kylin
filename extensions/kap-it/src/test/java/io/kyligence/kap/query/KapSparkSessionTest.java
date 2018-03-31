@@ -37,9 +37,9 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
-public class KapSparkSessionTest extends NLocalSparkWithMetaTest {
+public class KapSparkSessionTest extends NLocalWithSparkSessionTest {
     protected static SparkConf sparkConf;
     protected static KapSparkSession ss;
 

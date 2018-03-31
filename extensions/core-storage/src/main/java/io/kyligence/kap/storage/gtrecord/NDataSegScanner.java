@@ -45,6 +45,7 @@ import org.apache.kylin.storage.gtrecord.CubeSegmentScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -59,17 +60,17 @@ public class NDataSegScanner implements IGTScanner {
 
     final GTScanRequest scanRequest;
 
-    public NDataSegScanner(NDataSegment dataSegment, NCuboidLayout cuboidLayout, Set<TblColRef> dimensions,
+    public NDataSegScanner(NDataSegment dataSegment, NLayoutCandidate nLayoutCandidate, Set<TblColRef> dimensions,
             Set<TblColRef> groups, //
             Collection<FunctionDesc> metrics, TupleFilter originalfilter, TupleFilter havingFilter,
             StorageContext context) {
         logger.info("Init NDataSegScanner for segment {}", dataSegment.getName());
 
-        this.cuboidLayout = cuboidLayout;
+        this.cuboidLayout = nLayoutCandidate.getCuboidLayout();
         this.dataSegment = dataSegment;
 
         //the filter might be changed later in this NDataSegScanner (In ITupleFilterTransformer)
-        //to avoid issues like in https://issues.apache.org/jira/browse/KYLIN-1954, make sure each CubeSegmentScanner
+        //to avoid issues like in https://issues.apache.org/jira/browse/KYLIN-1954, make sure each NDataSegScanner
         //is working on its own copy
         byte[] serialize = TupleFilterSerializer.serialize(originalfilter, StringCodeSystem.INSTANCE);
         TupleFilter filter = TupleFilterSerializer.deserialize(serialize, StringCodeSystem.INSTANCE);
@@ -80,7 +81,7 @@ public class NDataSegScanner implements IGTScanner {
 
         NDataflowScanRangePlanner scanRangePlanner;
         try {
-            scanRangePlanner = new NDataflowScanRangePlanner(dataSegment, cuboidLayout, filter, dimensions, groups,
+            scanRangePlanner = new NDataflowScanRangePlanner(dataSegment, nLayoutCandidate, filter, dimensions, groups,
                     metrics, havingFilter, context);
         } catch (RuntimeException e) {
             throw e;

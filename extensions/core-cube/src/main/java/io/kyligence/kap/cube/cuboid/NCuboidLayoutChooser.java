@@ -29,20 +29,33 @@ import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 
+import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -51,47 +64,81 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCuboidLayoutChooser {
-    public static NCuboidLayout selectCuboidLayout(NDataSegment segment, Set<TblColRef> dimensions,
-            Set<TblColRef> filterColumns, Set<FunctionDesc> metrics) {
+
+    public static NLayoutCandidate selectLayoutForQuery(NDataSegment segment, ImmutableSet<TblColRef> dimensions,
+            ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
-        return spanningTree.findBestMatching(new NQueryMatchVisitor(segment, dimensions, filterColumns, metrics));
+        NQuerySpanningTreeVisitor visitor = new NQuerySpanningTreeVisitor(segment, dimensions, filterColumns, metrics);
+        spanningTree.acceptVisitor(visitor);
+        return visitor.getBestLayoutCandidate();
     }
 
-    public static NCuboidLayout selectCuboidLayout(NDataSegment segment, Set<Integer> dimensions,
+    public static NCuboidLayout selectLayoutForBuild(NDataSegment segment, Set<Integer> dimensions,
             Set<Integer> measures) {
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
-        return spanningTree.findBestMatching(new NStorageMatchVisitor(segment, dimensions, measures));
+        NStorageSpanningTreeVisitor visitor = new NStorageSpanningTreeVisitor(segment, dimensions, measures);
+        spanningTree.acceptVisitor(visitor);
+        return visitor.getBestLayout();
     }
 
-    private static class NQueryMatchVisitor implements NSpanningTree.ICuboidTreeVisitor {
-        final Comparator<NCuboidLayout> l1Comparator; // compare cuboid rows
-        final Comparator<NCuboidLayout> l2Comparator; // compare cuboid layout
-        final ImmutableBitSet dimensionBitSet;
+    private static class NQuerySpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
+        //final ImmutableBitSet dimensionBitSet;
+        //final ImmutableBitSet filterBitSet;
         final ImmutableBitSet measureBitSet;
-        final ImmutableBitSet filterBitSet;
+
         final NDataSegment segment;
+        final NDataModel model;
+        final ImmutableSet<TblColRef> dimensions;
+        final ImmutableSet<TblColRef> filterColumns;
+        final ImmutableSet<FunctionDesc> metrics;
 
-        NCuboidLayout bestCuboidLayout = null;
+        Ordering<NLayoutCandidate> ordering;//according to the ordering, the smaller wins
+        NLayoutCandidate bestLayoutCandidate = null;
 
-        private NQueryMatchVisitor(NDataSegment segment, Set<TblColRef> dimensions, Set<TblColRef> filterColumns,
-                Set<FunctionDesc> metrics) {
+        private NQuerySpanningTreeVisitor(final NDataSegment segment, ImmutableSet<TblColRef> dimensions,
+                ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
             this.segment = segment;
+            this.model = (NDataModel) segment.getModel();
+            this.dimensions = dimensions;
+            this.filterColumns = filterColumns;
+            this.metrics = metrics;
+            //
+            //            Map<TblColRef, Integer> colIdMap = model.getEffectiveColsMap().inverse();
+            //            BitSet dimSet = new BitSet();
+            //            BitSet filterSet = new BitSet();
+            //            for (TblColRef dimColRef : dimensions) {
+            //                Integer dimId = colIdMap.get(dimColRef);
+            //
+            //                if (dimId == null) {
+            //                    //TODO: some layout need derive, some layout does not
+            //                    // in case not defined as a normal dimension, a lookup table columna could be automatically derived
+            //                    if (model.isLookupTable(dimColRef.getTableRef())) {
+            //                        JoinDesc joinByPKSide = model.getJoinByPKSide(dimColRef.getTableRef());
+            //                        Preconditions.checkNotNull(joinByPKSide);
+            //                        TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
+            //                        for (TblColRef fk : foreignKeyColumns) {
+            //                            Integer fkId = colIdMap.get(fk);
+            //                            Preconditions.checkNotNull(fkId,
+            //                                    "To query derived columns on lookup table, you need to add FK to dimension: " + fk);
+            //                            dimSet.set(fkId);
+            //                            if (filterColumns.contains(dimColRef)) {
+            //                                filterSet.set(fkId);
+            //                            }
+            //                        }
+            //                    } else {
+            //                        throw new IllegalStateException(String.format("Dimensions Column %s not defined on model %s",
+            //                                dimColRef, model.getName()));
+            //                    }
+            //                } else {
+            //                    dimSet.set(dimId);
+            //                    if (filterColumns.contains(dimColRef)) {
+            //                        filterSet.set(dimId);
+            //                    }
+            //                }
+            //            }
 
-            NDataModel model = (NDataModel) segment.getModel();
-            Map<TblColRef, Integer> colIdMap = model.getEffectiveColsMap().inverse();
-            BitSet dimSet = new BitSet();
-            BitSet filterSet = new BitSet();
-            for (TblColRef dimColRef : dimensions) {
-                Integer dimId = colIdMap.get(dimColRef);
-                Preconditions.checkNotNull(dimId, "Dimensions Column %s not found on model %s. ", dimColRef,
-                        model.getName());
-                dimSet.set(dimId);
-                if (filterColumns.contains(dimColRef)) {
-                    filterSet.set(dimId);
-                }
-            }
-            dimensionBitSet = new ImmutableBitSet(dimSet);
-            filterBitSet = new ImmutableBitSet(filterSet);
+            //dimensionBitSet = new ImmutableBitSet(dimSet);
+            //filterBitSet = new ImmutableBitSet(filterSet);
 
             BitSet measureSet = new BitSet();
             for (FunctionDesc funcDesc : metrics) {
@@ -107,17 +154,48 @@ public class NCuboidLayoutChooser {
                         model.getName());
                 measureSet.set(measureId);
             }
+
             measureBitSet = new ImmutableBitSet(measureSet);
 
-            l1Comparator = NCuboidLayoutComparators.scored(segment.getSegDetails().getCuboidRowsMap());
-            l2Comparator = NCuboidLayoutComparators.matchQueryPattern(dimensionBitSet, filterBitSet, measureBitSet);
+            ordering = Ordering.natural().onResultOf(new Function<NLayoutCandidate, Comparable>() {
+                //l1 comparator, compare cuboid rows
+                @Nullable
+                @Override
+                public Comparable apply(@Nullable NLayoutCandidate input) {
+                    return segment.getSegDetails().getCuboidRowsMap()
+                            .get(Objects.requireNonNull(input).getCuboidLayout().getId()).doubleValue();
+                }
+            }).compound(
+                    //l2 comparator, compare cuboid layout
+                    NLayoutCandidateComparators.matchQueryPattern(dimensions, filterColumns, metrics));
         }
 
         @Override
-        public boolean visit(NCuboidDesc cuboidDesc) {
+        //TODO: revisit to check perf
+        //TODO: add UT for chooser
+
+        //TODO: should prefer layouts without derived
+        public boolean visit(final NCuboidDesc cuboidDesc) {
             // ========== check cuboid_desc from here ==========
-            Collection<NCuboidLayout> availableLayouts = Collections2.filter(cuboidDesc.getLayouts(),
-                    new Predicate<NCuboidLayout>() {
+
+            final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
+            Set<TblColRef> unmatchedDims = Sets.newHashSet(this.dimensions);
+            unmatchedDims.removeAll(cuboidDesc.getDimensionSet());
+
+            goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedDims);
+
+            if (!unmatchedDims.isEmpty()) {
+                return false;
+            }
+
+            // ensure all measure exists
+            if (!measureBitSet.andNot(cuboidDesc.getMeasureBitset()).isEmpty()) {
+                return true;
+            }
+
+            TreeSet<NLayoutCandidate> availableCandidates = new TreeSet<>(ordering);
+            FluentIterable<NLayoutCandidate> transform = FluentIterable.from(cuboidDesc.getLayouts())
+                    .filter(new Predicate<NCuboidLayout>() {
                         @Override
                         public boolean apply(@Nullable NCuboidLayout input) {
                             if (input == null)
@@ -126,41 +204,86 @@ public class NCuboidLayoutChooser {
                             NDataCuboid cuboid = segment.getCuboid(input.getId());
                             return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
                         }
+                    }).transform(new Function<NCuboidLayout, NLayoutCandidate>() {
+                        @Override
+                        public NLayoutCandidate apply(NCuboidLayout input) {
+                            NLayoutCandidate candidate = new NLayoutCandidate(input);
+                            if (!needDerive.isEmpty()) {
+                                candidate.setDerivedToHostMap(needDerive);
+                            }
+                            return candidate;
+                        }
                     });
 
-            if (availableLayouts.isEmpty()) {
+
+            Iterables.addAll(availableCandidates, transform);
+
+            if (availableCandidates.isEmpty()) {
                 return true;
-            }
-
-            // ensure all dimension column exists, TODO: consider dimension as measure
-            if (!dimensionBitSet.andNot(cuboidDesc.getEffectiveDimBitSetIncludingDerived()).isEmpty()) {
-                return false;
-            }
-
-            // ensure all measure exists
-            if (!measureBitSet.andNot(cuboidDesc.getMeasureSet()).isEmpty()) {
-                return false;
             }
 
             // ========== compare matched cuboid layout from here ==========
-
-            if (bestCuboidLayout != null
-                    && l1Comparator.compare(bestCuboidLayout, Iterables.get(availableLayouts, 0)) >= 0) {
-                // input cuboid_desc has more rows than bestCuboidLayout, then skip all layouts under input cuboid_desc
-                return true;
+            if (bestLayoutCandidate != null) {
+                availableCandidates.add(bestLayoutCandidate);
             }
-
-            bestCuboidLayout = Collections.max(cuboidDesc.getLayouts(), l2Comparator);
+            bestLayoutCandidate = availableCandidates.first();
             return true;
         }
 
-        @Override
-        public NCuboidLayout getMatched() {
-            return bestCuboidLayout;
+        private void goThruUnmatchedDims(final NCuboidDesc cuboidDesc, Map<TblColRef, DeriveInfo> needDeriveCollector,
+                Set<TblColRef> unmatchedDims) {
+            Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
+            while (unmatchedDimItr.hasNext()) {
+                TblColRef unmatchedDim = unmatchedDimItr.next();
+                if (model.isLookupTable(unmatchedDim.getTableRef())) {
+                    JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
+                    Preconditions.checkNotNull(joinByPKSide);
+                    TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
+                    TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
+
+                    if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
+                        TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
+                        if (cuboidDesc.dimensionsDerive(relatedCol)) {
+                            needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK,
+                                    joinByPKSide, new TblColRef[] { relatedCol }, true));
+                            unmatchedDimItr.remove();
+                            continue;
+                        }
+                    } else {
+                        if (cuboidDesc.dimensionsDerive(foreignKeyColumns)) {
+                            needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP,
+                                    joinByPKSide, foreignKeyColumns, false));
+                            unmatchedDimItr.remove();
+                            continue;
+                        }
+                    }
+                }
+
+                // in some rare cases, FK needs to be derived from PK
+                ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
+                Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, new Predicate<TblColRef>() {
+                    @Override
+                    public boolean apply(@Nullable TblColRef input) {
+                        return cuboidDesc.dimensionsDerive(input);
+                    }
+                });
+                TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
+                if (pk != null) {
+                    JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
+                    Preconditions.checkNotNull(joinByPKSide);
+                    needDeriveCollector.put(unmatchedDim,
+                            new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[] { pk }, true));
+                    unmatchedDimItr.remove();
+                }
+            }
+        }
+
+        NLayoutCandidate getBestLayoutCandidate() {
+            return bestLayoutCandidate;
         }
     }
 
-    private static class NStorageMatchVisitor implements NSpanningTree.ICuboidTreeVisitor {
+    private static class NStorageSpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
         final Comparator<NCuboidLayout> smalllestComparator;
         final ImmutableBitSet dimensionBitSet;
         final ImmutableBitSet measureBitSet;
@@ -168,7 +291,7 @@ public class NCuboidLayoutChooser {
 
         NCuboidLayout bestCuboidLayout = null;
 
-        private NStorageMatchVisitor(NDataSegment segment, Set<Integer> dimensions, Set<Integer> measures) {
+        private NStorageSpanningTreeVisitor(NDataSegment segment, Set<Integer> dimensions, Set<Integer> measures) {
             this.segment = segment;
             BitSet dimSet = new BitSet();
             BitSet measureSet = new BitSet();
@@ -180,18 +303,23 @@ public class NCuboidLayoutChooser {
                 measureSet.set(id);
             }
             measureBitSet = new ImmutableBitSet(measureSet);
-            smalllestComparator = NCuboidLayoutComparators.cheapest();
+            smalllestComparator = new Comparator<NCuboidLayout>() {
+                @Override
+                public int compare(NCuboidLayout o1, NCuboidLayout o2) {
+                    return o1.getOrderedDimensions().size() - o2.getOrderedDimensions().size();
+                }
+            };
         }
 
         @Override
         public boolean visit(NCuboidDesc cuboidDesc) {
             // ensure all dimension column exists, TODO: consider dimension as measure
-            if (!dimensionBitSet.andNot(cuboidDesc.getEffectiveDimBitSetIncludingDerived()).isEmpty()) {
+            if (!dimensionBitSet.andNot(cuboidDesc.getDimensionBitset()).isEmpty()) {
                 return false;
             }
 
             // if dimensions match but measures not, try to find from its children.
-            if (!measureBitSet.andNot(cuboidDesc.getMeasureSet()).isEmpty()) {
+            if (!measureBitSet.andNot(cuboidDesc.getMeasureBitset()).isEmpty()) {
                 return true;
             }
 
@@ -208,7 +336,7 @@ public class NCuboidLayoutChooser {
                     });
 
             if (availableLayouts.isEmpty()) {
-                return false;
+                return false;// ?? TODO: why false
             }
 
             if (bestCuboidLayout != null) {
@@ -220,8 +348,7 @@ public class NCuboidLayoutChooser {
             return true;
         }
 
-        @Override
-        public NCuboidLayout getMatched() {
+        NCuboidLayout getBestLayout() {
             return bestCuboidLayout;
         }
     }

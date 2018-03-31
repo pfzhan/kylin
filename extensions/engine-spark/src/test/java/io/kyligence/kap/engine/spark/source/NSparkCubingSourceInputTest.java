@@ -32,11 +32,12 @@ import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NLocalSparkWithCSVDataTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 
-public class NSparkCubingSourceInputTest extends NLocalSparkWithCSVDataTest {
+public class NSparkCubingSourceInputTest extends NLocalWithSparkSessionTest {
+
     @Test
     public void testGetSourceData() {
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");

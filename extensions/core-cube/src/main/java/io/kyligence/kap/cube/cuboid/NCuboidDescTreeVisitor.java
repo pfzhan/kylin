@@ -27,39 +27,50 @@ package io.kyligence.kap.cube.cuboid;
 import java.util.Comparator;
 import java.util.SortedSet;
 
+import javax.annotation.Nullable;
+
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 
-public class NCuboidDescTreeVisitor implements NSpanningTree.ICuboidTreeVisitor {
+public class NCuboidDescTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
     public static NCuboidDescTreeVisitor create(NCuboidDesc target) {
         return new NCuboidDescTreeVisitor(target);
     }
 
     private final NCuboidDesc target;
-    private final Comparator<NCuboidLayout> comparator;
-    private final SortedSet<NCuboidLayout> results;
+    private final Comparator<NLayoutCandidate> comparator;
+    private final SortedSet<NLayoutCandidate> results;
 
     private NCuboidDescTreeVisitor(NCuboidDesc target) {
         this.target = target;
 
-        comparator = NCuboidLayoutComparators.simple(); //TODO: use scored() to leverage cuboid stats
+        comparator = NLayoutCandidateComparators.simple(); //TODO: use scored() to leverage cuboid stats
         results = Sets.newTreeSet(comparator);
     }
 
     @Override
     public boolean visit(NCuboidDesc cuboidDesc) {
         if (target.fullyDerive(cuboidDesc)) {
-            results.addAll(cuboidDesc.getLayouts());
+            results.addAll(
+                    Collections2.transform(cuboidDesc.getLayouts(), new Function<NCuboidLayout, NLayoutCandidate>() {
+                        @Override
+                        public NLayoutCandidate apply(@Nullable NCuboidLayout input) {
+                            Preconditions.checkNotNull(input);
+                            return new NLayoutCandidate(input);
+                        }
+                    }));
             return true;
         }
 
         return false;
     }
 
-    @Override
-    public NCuboidLayout getMatched() {
+    public NLayoutCandidate getMatched() {
         return results.first();
     }
 }

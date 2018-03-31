@@ -45,7 +45,7 @@ import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DictionaryDesc;
 import org.apache.kylin.dict.DictionaryInfo;
 import org.apache.kylin.dict.DictionaryManager;
-import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -370,6 +370,7 @@ public class CubeManager implements IRealizationProvider {
 
         //this is a duplicate call to take care of scenarios where REST cache service unavailable
         ProjectManager.getInstance(cube.getConfig()).clearL2Cache();
+
 
         return crud.reload(cube.resourceName());
     }
@@ -907,21 +908,25 @@ public class CubeManager implements IRealizationProvider {
         }
 
         public LookupStringTable getLookupTable(CubeSegment cubeSegment, JoinDesc join) {
+            long ts = System.currentTimeMillis();
+
+            TableMetadataManager metaMgr = TableMetadataManager.getInstance(cubeSegment.getConfig());
+            SnapshotManager snapshotMgr = SnapshotManager.getInstance(cubeSegment.getConfig());
 
             String tableName = join.getPKSide().getTableIdentity();
             String[] pkCols = join.getPrimaryKey();
             String snapshotResPath = cubeSegment.getSnapshotResPath(tableName);
             if (snapshotResPath == null)
-                throw new IllegalStateException("No snapshot for table '" + tableName + "' found on cube segment"
-                        + cubeSegment.getCubeInstance().getName() + "/" + cubeSegment);
+                throw new IllegalStateException("No snapshot for table '" + tableName + "' found on cube segment" + cubeSegment.getCubeInstance().getName() + "/" + cubeSegment);
 
             try {
-                SnapshotTable snapshot = getSnapshotManager().getSnapshotTable(snapshotResPath);
-                TableDesc tableDesc = getTableManager().getTableDesc(tableName, cubeSegment.getProject());
-                return new LookupStringTable(tableDesc, pkCols, snapshot);
+                SnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
+                TableDesc tableDesc = metaMgr.getTableDesc(tableName, cubeSegment.getProject());
+                LookupStringTable enhancedStringLookupTable = new LookupStringTable(tableDesc, pkCols, snapshot);
+                logger.info("Time to get lookup up table for {} is {} ", join.getPKSide().getTableName(), (System.currentTimeMillis() - ts));
+                return enhancedStringLookupTable;
             } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
+                throw new IllegalStateException("Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
             }
         }
 

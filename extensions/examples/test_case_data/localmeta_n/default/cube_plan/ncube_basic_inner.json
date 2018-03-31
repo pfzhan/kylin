@@ -1,0 +1,916 @@
+{
+  "uuid": "84e5fd14-09ce-41bc-9364-5d8d46e6481a",
+  "last_modified": 1509531215483,
+  "version": "2.3.0.20500",
+  "name": "ncube_basic_inner",
+  "model_name": "nmodel_basic_inner",
+  "description": "test_description",
+  "dimensions": [
+    {
+      "id": 0,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 1,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 2,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 3,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 4,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 5,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 6,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 7,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 8,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 9,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 11,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 12,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 13,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 13,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 14,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 15,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 16,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 17,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 18,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 19,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 20,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 21,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 22,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 23,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 24,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 25,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    }
+  ],
+  "rule_based_cuboids": {
+    "dimensions": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25
+    ],
+    "measures": [
+      1000,
+      1001,
+      1002,
+      1003,
+      1004,
+      1005,
+      1007,
+      1008,
+      1009,
+      1010,
+      1011
+    ],
+    "rowkeys": [
+      {
+        "dimension_id": 0,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 1,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 2,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 3,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 4,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 5,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 6,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 7,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 8,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 9,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 13,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 14,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 15,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 16,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 17,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 18,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 19,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 20,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 21,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 22,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 23,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 24,
+        "index": "eq"
+      },
+      {
+        "dimension_id": 25,
+        "index": "eq"
+      }
+    ],
+    "measure_cf": [
+      {
+        "name": "M1",
+        "columns": [
+          1000,
+          1001,
+          1002,
+          1003,
+          1004,
+          1005,
+          1007,
+          1008,
+          1009,
+          1010,
+          1011
+        ]
+      }
+    ],
+    "aggregation_groups": [
+      {
+        "includes": [
+          "TEST_KYLIN_FACT.CAL_DT",
+          "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+          "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+          "TEST_KYLIN_FACT.LSTG_SITE_ID",
+          "TEST_KYLIN_FACT.SLR_SEGMENT_CD",
+          "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME"
+        ],
+        "select_rule": {
+          "hierarchy_dims": [
+            [
+              "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+              "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+            ]
+          ],
+          "mandatory_dims": [],
+          "joint_dims": [
+            [
+              "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+              "TEST_KYLIN_FACT.LSTG_SITE_ID",
+              "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+            ]
+          ],
+          "dim_cap": 1
+        }
+      },
+      {
+        "includes": [
+          "TEST_KYLIN_FACT.CAL_DT",
+          "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+          "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+          "TEST_KYLIN_FACT.LSTG_SITE_ID",
+          "TEST_KYLIN_FACT.SLR_SEGMENT_CD",
+          "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+          "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+          "TEST_KYLIN_FACT.SELLER_ID",
+          "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+          "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+          "SELLER_ACCOUNT.ACCOUNT_COUNTRY",
+          "SELLER_COUNTRY.NAME",
+          "TEST_KYLIN_FACT.ORDER_ID",
+          "TEST_ORDER.TEST_DATE_ENC",
+          "TEST_ORDER.TEST_TIME_ENC",
+          "TEST_ORDER.BUYER_ID",
+          "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+          "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+          "BUYER_ACCOUNT.ACCOUNT_COUNTRY",
+          "BUYER_COUNTRY.NAME"
+        ],
+        "select_rule": {
+          "hierarchy_dims": [],
+          "mandatory_dims": [
+            "TEST_KYLIN_FACT.CAL_DT"
+          ],
+          "joint_dims": [
+            [
+              "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+              "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+              "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+            ],
+            [
+              "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+              "TEST_KYLIN_FACT.LSTG_SITE_ID",
+              "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+            ],
+            [
+              "TEST_KYLIN_FACT.SELLER_ID",
+              "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+              "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+              "SELLER_ACCOUNT.ACCOUNT_COUNTRY",
+              "SELLER_COUNTRY.NAME"
+            ],
+            [
+              "TEST_KYLIN_FACT.ORDER_ID",
+              "TEST_ORDER.TEST_DATE_ENC",
+              "TEST_ORDER.TEST_TIME_ENC",
+              "TEST_ORDER.BUYER_ID",
+              "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+              "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+              "BUYER_ACCOUNT.ACCOUNT_COUNTRY",
+              "BUYER_COUNTRY.NAME"
+            ]
+          ],
+          "dim_cap": 1
+        }
+      }
+    ],
+    "storage_type": 20
+  },
+  "cuboids": [
+    {
+      "id": 1000000,
+      "dimensions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25
+      ],
+      "measures": [
+        1000,
+        1001,
+        1002,
+        1003,
+        1004,
+        1005,
+        1007,
+        1008,
+        1009,
+        1010,
+        1011
+      ],
+      "layouts": [
+        {
+          "id": 1000001,
+          "rowkeys": [
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 3,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 4,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 5,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 6,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 7,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 8,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 9,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 13,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 14,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 15,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 16,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 17,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 18,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 19,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 20,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 21,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 22,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 23,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 24,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 25,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7,
+                8,
+                9,
+                13,
+                14,
+                15,
+                16,
+                17,
+                18,
+                19,
+                20,
+                21,
+                22,
+                23,
+                24,
+                25
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1001,
+                1002,
+                1003,
+                1004,
+                1005,
+                1007,
+                1008,
+                1009,
+                1010,
+                1011
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 0,
+      "dimensions": [
+        0,
+        1
+      ],
+      "measures": [
+        1000,
+        1003
+      ],
+      "layouts": [
+        {
+          "id": 1,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1003
+              ]
+            }
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 2,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            },
+            {
+              "name": "M2",
+              "columns": [
+                1003
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 1000,
+      "dimensions": [
+        0,
+        1,
+        2
+      ],
+      "measures": [
+        1000
+      ],
+      "layouts": [
+        {
+          "id": 1001,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            }
+          ],
+          "storage_type": 20
+        },
+        {
+          "id": 1002,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 2000,
+      "dimensions": [
+        0,
+        1,
+        2
+      ],
+      "measures": [
+        1000,
+        1003
+      ],
+      "layouts": [
+        {
+          "id": 2001,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1003
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    },
+    {
+      "id": 3000,
+      "dimensions": [
+        0,
+        1,
+        2,
+        4
+      ],
+      "measures": [
+        1000,
+        1003,
+        1005
+      ],
+      "layouts": [
+        {
+          "id": 3001,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 0,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 4,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                0,
+                1,
+                2,
+                4
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1003,
+                1005
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    }
+  ],
+  "override_properties": {},
+  "segment_range_start": 0,
+  "segment_range_end": 9223372036854775807,
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "notify_list": null,
+  "status_need_notify": [],
+  "engine_type": 0
+}

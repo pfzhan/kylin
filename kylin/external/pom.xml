@@ -65,6 +65,7 @@
                                 <argument>clean</argument>
                                 <argument>install</argument>
                                 <argument>-DskipTests</argument>
+
                             </arguments>
                             <workingDirectory>${project.basedir}/..
                             </workingDirectory>

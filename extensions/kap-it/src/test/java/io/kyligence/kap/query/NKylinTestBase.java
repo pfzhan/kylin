@@ -28,7 +28,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.QueryConnection;
-import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,24 +48,13 @@ public class NKylinTestBase extends KylinTestBase {
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
         cubeConnection = QueryConnection.getConnection(project);
-
-        //setup h2
-        //        h2Connection = DriverManager.getConnection("jdbc:h2:mem:db" + (h2InstanceCount++) + ";CACHE_SIZE=32072", "sa",
-        //                "");
-        // Load H2 Tables (inner join)
-        //        H2Database h2DB = new H2Database(h2Connection, config, project);
-        //        h2DB.loadAllTables();
     }
 
     protected static void clean() {
         if (cubeConnection != null)
             closeConnection(cubeConnection);
-        if (h2Connection != null)
-            closeConnection(h2Connection);
 
         NLocalFileMetadataTestCase.staticCleanupTestMetadata();
-        RemoveBlackoutRealizationsRule.blackList.clear();
-
     }
 
 }

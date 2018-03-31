@@ -42,13 +42,13 @@ import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 @SuppressWarnings("serial")
-public class CsvSourceTest extends NLocalSparkWithMetaTest {
+public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testGetTable() {

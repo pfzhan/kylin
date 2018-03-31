@@ -169,7 +169,7 @@ public class MetadataChecker implements IKeep {
                 targets.add(prj.getName());
             break;
         case MODEL:
-            for (DataModelDesc model : ((DataModelManager) manager).listDataModels())
+            for (DataModelDesc model : ((DataModelManager) manager).listModels())
                 targets.add(model.getName());
             break;
         case CUBEDESC:

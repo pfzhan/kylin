@@ -49,6 +49,7 @@ import org.apache.kylin.gridtable.GTScanRequestBuilder;
 import org.apache.kylin.gridtable.GTUtil;
 import org.apache.kylin.gridtable.IGTComparator;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageContext;
@@ -59,6 +60,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -78,7 +80,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
 
     protected StorageContext context;
 
-    public NDataflowScanRangePlanner(NDataSegment dataSegment, NCuboidLayout cuboid, TupleFilter filter,
+    public NDataflowScanRangePlanner(NDataSegment dataSegment, NLayoutCandidate candidate, TupleFilter filter,
             Set<TblColRef> dimensions, Set<TblColRef> groupByDims, //
             Collection<FunctionDesc> metrics, TupleFilter havingFilter, StorageContext context) {
         this.context = context;
@@ -88,7 +90,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
 
         this.dataSegment = dataSegment;
         this.cubePlan = dataSegment.getCubePlan();
-        this.cuboid = cuboid;
+        this.cuboid = candidate.getCuboidLayout();
 
         Set<TblColRef> filterDims = Sets.newHashSet();
         TupleFilter.collectColumns(filter, filterDims);
@@ -112,7 +114,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
 
         this.gtDimensions = mapping.makeGridTableColumns(dimensions);
         //        this.gtAggrGroups = mapping.makeGridTableColumns(replaceDerivedColumns(groupByPushDown, cubePlan));
-        this.gtAggrGroups = mapping.makeGridTableColumns(groupByPushDown); // TODO: seems no need to replaceDerived, need verify
+        this.gtAggrGroups = mapping.makeGridTableColumns(replaceDerivedColumns(groupByPushDown, candidate));
         this.gtAggrMetrics = mapping.makeGridTableColumns(metrics);
         this.gtAggrFuncs = mapping.makeAggrFuncs(metrics);
 
@@ -125,6 +127,19 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
                 this.gtPartitionCol = gtInfo.colRef(index);
             }
         }
+    }
+
+    private Set<TblColRef> replaceDerivedColumns(Set<TblColRef> input, NLayoutCandidate layoutCandidate) {
+        Set<TblColRef> ret = Sets.newHashSet();
+        for (TblColRef col : input) {
+            DeriveInfo hostInfo = layoutCandidate.getDerivedToHostMap().get(col);
+            if (hostInfo != null) {
+                Collections.addAll(ret, hostInfo.columns);
+            } else {
+                ret.add(col);
+            }
+        }
+        return ret;
     }
 
     /**
@@ -162,6 +177,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
                     .setAggCacheMemThreshold(dataSegment.getConfig().getQueryCoprocessorMemGB()).//
                     setStoragePushDownLimit(context.getFinalPushDownLimit())
                     .setStorageLimitLevel(context.getStorageLimitLevel()).setHavingFilterPushDown(havingFilter)
+                    .setTimeout(dataSegment.getConfig().getQueryTimeoutSeconds() * 1000)
                     .createGTScanRequest();
         } else {
             scanRequest = null;
@@ -338,6 +354,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
         }
 
         // TODO: check the distance between range and merge the large distance range
+        // From KYLIN
         List<GTScanRange> result = new ArrayList<GTScanRange>(1);
         GTScanRange mergedRange = mergeKeyRange(ranges);
         result.add(mergedRange);

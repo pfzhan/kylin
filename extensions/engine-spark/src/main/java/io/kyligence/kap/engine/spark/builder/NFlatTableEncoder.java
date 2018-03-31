@@ -234,8 +234,8 @@ public class NFlatTableEncoder implements Serializable {
             for (TblColRef tblColRef : nDataSegment.getCubePlan().getEffectiveDimCols().values()) {
                 int len = colIO.getColumnLength(tblColRef);
                 byte[] col = new byte[len];
-                colIO.writeColumn(tblColRef, row.get(flatTableDesc.getColumnIndex(tblColRef)).toString(), 0,
-                        DimensionEncoding.NULL, col, 0);
+                Object o = row.get(flatTableDesc.getColumnIndex(tblColRef));
+                colIO.writeColumn(tblColRef, o == null ? null : o.toString(), 0, DimensionEncoding.NULL, col, 0);
                 output.add(col);
             }
 
@@ -254,11 +254,12 @@ public class NFlatTableEncoder implements Serializable {
             ParameterDesc param = function.getParameter();
             for (int i = 0; i < paramCount; i++, param = param.getNextParameter()) {
                 String value;
+                //TODO: change to suit #3824
                 if (function.isCount()) {
                     value = "1";
                 } else if (param.isColumnType()) {
                     int index = flatTableDesc.getColumnIndex(param.getColRef());
-                    value = row.get(index).toString();
+                    value = row.get(index) == null ? null : row.get(index).toString();
                 } else {
                     value = param.getValue();
                 }

@@ -142,6 +142,7 @@ public class ProjectManager {
     }
 
     public ProjectInstance getProject(String projectName) {
+
         try (AutoLock lock = prjMapLock.lockForRead()) {
             return projectMap.get(projectName);
         }

@@ -91,7 +91,7 @@ public class DataModelManager {
     private AutoReadWriteLock modelMapLock = new AutoReadWriteLock();
 
     public DataModelManager() {
-        
+
     }
 
     public DataModelManager(KylinConfig config) throws IOException {
@@ -107,7 +107,7 @@ public class DataModelManager {
             protected DataModelDesc initEntityAfterReload(DataModelDesc model, String resourceName) {
                 String prj = ProjectManager.getInstance(config).getProjectOfModel(model.getName()).getName();
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(prj), listDataModels(), true);
+                    model.init(config, getAllTablesMap(prj), listModels(), true);
                 }
                 return model;
             }
@@ -126,7 +126,7 @@ public class DataModelManager {
             //clean up the current project's table desc
             TableMetadataManager.getInstance(config).resetProjectSpecificTableDesc(project);
 
-            try (AutoLock lock = modelMapLock.lockForWrite()) {
+            try (AutoLock ignored = modelMapLock.lockForWrite()) {
                 for (String model : ProjectManager.getInstance(config).getProject(project).getModels()) {
                     crud.reloadQuietly(model);
                 }
@@ -136,7 +136,7 @@ public class DataModelManager {
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
                 throws IOException {
-            try (AutoLock lock = modelMapLock.lockForWrite()) {
+            try (AutoLock ignored = modelMapLock.lockForWrite()) {
                 if (event == Event.DROP)
                     dataModelDescMap.removeLocal(cacheKey);
                 else
@@ -173,25 +173,25 @@ public class DataModelManager {
     }
 
     public List<DataModelDesc> listDataModels() {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
             return Lists.newArrayList(dataModelDescMap.values());
         }
     }
 
     public DataModelDesc getDataModelDesc(String name) {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
             return dataModelDescMap.get(name);
         }
     }
 
-    public List<DataModelDesc> getModels() {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
+    public List<DataModelDesc> listModels() {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
             return new ArrayList<>(dataModelDescMap.values());
         }
     }
 
-    public List<DataModelDesc> getModels(String projectName) {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
+    public List<DataModelDesc> listModels(String projectName) {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
             ProjectInstance projectInstance = ProjectManager.getInstance(config).getProject(projectName);
             ArrayList<DataModelDesc> ret = new ArrayList<>();
 
@@ -212,9 +212,9 @@ public class DataModelManager {
 
     // within a project, find models that use the specified table
     public List<String> getModelsUsingTable(TableDesc table, String project) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
             List<String> models = new ArrayList<>();
-            for (DataModelDesc modelDesc : getModels(project)) {
+            for (DataModelDesc modelDesc : listModels(project)) {
                 if (modelDesc.containsTable(table))
                     models.add(modelDesc.getName());
             }
@@ -223,8 +223,8 @@ public class DataModelManager {
     }
 
     public boolean isTableInAnyModel(TableDesc table) {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            for (DataModelDesc modelDesc : getModels()) {
+        try (AutoLock ignored = modelMapLock.lockForRead()) {
+            for (DataModelDesc modelDesc : listModels()) {
                 if (modelDesc.containsTable(table))
                     return true;
             }
@@ -233,13 +233,13 @@ public class DataModelManager {
     }
 
     public DataModelDesc reloadDataModel(String modelName) {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
+        try (AutoLock ignored = modelMapLock.lockForWrite()) {
             return crud.reload(modelName);
         }
     }
 
     public DataModelDesc dropModel(DataModelDesc desc) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
+        try (AutoLock ignored = modelMapLock.lockForWrite()) {
             crud.delete(desc);
             // delete model from project
             ProjectManager.getInstance(config).removeModelFromProjects(desc.getName());
@@ -248,7 +248,7 @@ public class DataModelManager {
     }
 
     public DataModelDesc createDataModelDesc(DataModelDesc desc, String projectName, String owner) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
+        try (AutoLock ignored = modelMapLock.lockForWrite()) {
             String name = desc.getName();
             if (dataModelDescMap.containsKey(name))
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
@@ -278,7 +278,7 @@ public class DataModelManager {
     }
 
     public DataModelDesc updateDataModelDesc(DataModelDesc desc) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
+        try (AutoLock ignored = modelMapLock.lockForWrite()) {
             String name = desc.getName();
             if (!dataModelDescMap.containsKey(name)) {
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
@@ -292,7 +292,7 @@ public class DataModelManager {
         String prj = ProjectManager.getInstance(config).getProjectOfModel(dataModelDesc.getName()).getName();
 
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(prj), listDataModels(), true);
+            dataModelDesc.init(config, this.getAllTablesMap(prj), listModels(), true);
 
         crud.save(dataModelDesc);
 

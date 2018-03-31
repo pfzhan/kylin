@@ -44,7 +44,7 @@ public final class NQueryRunnerFactory {
     public static AbstractQueryRunner createForCubeSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
             String projectName) {
         DataModelManager metadataManager = DataModelManager.getInstance(srcKylinConfig);
-        List<DataModelDesc> modelDescs = metadataManager.getModels(projectName);
+        List<DataModelDesc> modelDescs = metadataManager.listModels(projectName);
         List<CubeDesc> mockupCubes = Lists.newArrayListWithExpectedSize(modelDescs.size());
 
         KylinConfig config = KylinConfig.createKylinConfig(srcKylinConfig);
@@ -82,7 +82,7 @@ public final class NQueryRunnerFactory {
     public static AbstractQueryRunner createForModelSQLValid(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
             DataModelDesc modelDesc) {
         DataModelManager metadataManager = DataModelManager.getInstance(srcKylinConfig);
-        List<DataModelDesc> modelDescs = metadataManager.getModels(modelDesc.getProject());
+        List<DataModelDesc> modelDescs = metadataManager.listModels(modelDesc.getProject());
         List<CubeDesc> mockupCubes = Lists.newArrayListWithExpectedSize(modelDescs.size());
 
         KylinConfig config = KylinConfig.createKylinConfig(srcKylinConfig);

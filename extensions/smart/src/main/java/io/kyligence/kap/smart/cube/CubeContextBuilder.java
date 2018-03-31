@@ -151,7 +151,7 @@ public class CubeContextBuilder {
                 logger.error("Failed to execute query stats. ", e);
             }
         } else {
-            List<DataModelDesc> models = modelManager.getModels(project);
+            List<DataModelDesc> models = modelManager.listModels(project);
             for (DataModelDesc m : models) {
                 if (m == null || m.getName().equals(model)) {
                     modelQueryStats.put(m.getName(), null);
@@ -164,7 +164,7 @@ public class CubeContextBuilder {
     private Map<String, CubeContext> internalBuildContexts(String project, Map<String, QueryStats> modelQueryStats,
             List<SQLResult> queryResults) {
         Map<String, CubeContext> result = Maps.newHashMapWithExpectedSize(modelQueryStats.size());
-        List<DataModelDesc> models = modelManager.getModels(project);
+        List<DataModelDesc> models = modelManager.listModels(project);
         for (DataModelDesc model : models) {
             QueryStats qs = modelQueryStats.get(model.getName());
             CubeContext ctx = internalBuild(model, qs, queryResults);

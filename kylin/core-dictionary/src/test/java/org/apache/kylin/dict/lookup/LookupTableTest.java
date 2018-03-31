@@ -29,6 +29,8 @@ import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dict.TrieDictionaryForest;
 import org.apache.kylin.metadata.TableMetadataManager;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupTable;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
 import org.junit.Assert;

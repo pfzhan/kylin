@@ -30,14 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -56,10 +55,8 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private long id;
     @JsonProperty("rowkeys")
     private NRowkeyColumnDesc[] rowkeys = new NRowkeyColumnDesc[0];
-    @JsonManagedReference
     @JsonProperty("dim_cf")
     private NColumnFamilyDesc.DimensionCF[] dimensionCFs = new NColumnFamilyDesc.DimensionCF[0];
-    @JsonManagedReference
     @JsonProperty("measure_cf")
     private NColumnFamilyDesc.MeasureCF[] measureCFs = new NColumnFamilyDesc.MeasureCF[0];
     @JsonProperty("shard_by_columns")
@@ -116,55 +113,12 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         }
     }
 
-    public Map<Integer, Integer> getDimensionPosMap() {
-        if (dimensionPosMap != null)
-            return dimensionPosMap;
-
-        synchronized (this) {
-            if (dimensionPosMap != null)
-                return dimensionPosMap;
-
-            dimensionPosMap = Maps.newHashMapWithExpectedSize(rowkeys.length);
-            int i = 0;
-            for (NRowkeyColumnDesc rowkey : rowkeys) {
-                dimensionPosMap.put(rowkey.getDimensionId(), i++);
-            }
-            return dimensionPosMap;
-        }
+    public Integer getDimensionPos(TblColRef tblColRef) {
+        return getOrderedDimensions().inverse().get(tblColRef);
     }
 
     public List<TblColRef> getColumns() {
         return Lists.newArrayList(getOrderedDimensions().values());
-    }
-
-    public DeriveInfo getDeriveInfo(TblColRef col) {
-        int colId = getModel().getColId(col);
-        if (cuboidDesc.getDimensionSet().get(colId))
-            return null;
-
-        DeriveInfo deriveInfo = getModel().getDerivedHost(col); // TODO: more check if col exists on this cuboid needed?
-        if (deriveInfo != null) {
-            for (TblColRef colRef : deriveInfo.columns) {
-                if (!cuboidDesc.getDimensionSet().get(getModel().getColId(colRef))) {
-                    return null;
-                }
-            }
-            return deriveInfo;
-        }
-
-        return null;
-    }
-
-    public boolean hasHostColumn(TblColRef col) {
-        return getDeriveInfo(col) != null;
-    }
-
-    public boolean isDerived(TblColRef column) {
-        int colId = getModel().getColId(column);
-        if (!cuboidDesc.getDimensionSet().get(colId)) {
-            return true;
-        }
-        return false;
     }
 
     public boolean isExtendedColumn(TblColRef tblColRef) {
@@ -268,4 +222,8 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
             cuboidDesc.checkIsNotCachedAndShared();
     }
 
+    @Override
+    public String toString() {
+        return Objects.toStringHelper(this).add("id", id).toString();
+    }
 }

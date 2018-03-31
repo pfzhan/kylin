@@ -36,10 +36,10 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 
 public abstract class NSpanningTree {
-    final protected Map<NCuboidDesc, Object> cuboids;
+    final protected Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids;
     final protected String cacheKey;
 
-    public NSpanningTree(Map<NCuboidDesc, Object> cuboids, String cacheKey) {
+    public NSpanningTree(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
         this.cuboids = cuboids;
         this.cacheKey = cacheKey;
     }
@@ -66,12 +66,10 @@ public abstract class NSpanningTree {
 
     abstract public Collection<NCuboidDesc> getAllCuboidDescs();
 
-    abstract public NCuboidLayout findBestMatching(ICuboidTreeVisitor matcher);
+    abstract public void acceptVisitor(ISpanningTreeVisitor matcher);
 
-    public static interface ICuboidTreeVisitor {
+    public interface ISpanningTreeVisitor {
         boolean visit(NCuboidDesc cuboidDesc);
-
-        NCuboidLayout getMatched();
     }
 
     public String getCuboidCacheKey() {
@@ -87,11 +85,9 @@ public abstract class NSpanningTree {
 
         int totalNum = 0;
         cuboidsByLayer = Lists.newArrayList();
-
         cuboidsByLayer.add(getRootCuboidDescs());
-        totalNum++;
-
         Collection<NCuboidDesc> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
+        totalNum += lastLayer.size();
         while (!lastLayer.isEmpty()) {
             List<NCuboidDesc> newLayer = Lists.newArrayList();
             for (NCuboidDesc parent : lastLayer) {

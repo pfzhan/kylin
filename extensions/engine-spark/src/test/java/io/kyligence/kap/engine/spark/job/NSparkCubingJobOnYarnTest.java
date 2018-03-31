@@ -103,7 +103,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
 
         NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
-            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+            NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
                     rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
             Assert.assertEquals(null, layout);
         }
@@ -135,7 +135,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
         nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round2, df.getName());
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
-            NCuboidLayout layout = NCuboidLayoutChooser.selectCuboidLayout(oneSeg,
+            NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
                     rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
             Assert.assertTrue(layout != null);
         }

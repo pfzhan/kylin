@@ -78,7 +78,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
 
             DataModelManager metadataManager = DataModelManager.getInstance(KylinConfig.getInstanceFromEnv());
-            List<DataModelDesc> dataModelDescs = metadataManager.getModels(project);
+            List<DataModelDesc> dataModelDescs = metadataManager.listModels(project);
 
             List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
             QueryAliasMatcher queryAliasMatcher = new QueryAliasMatcher(project, defaultSchema);

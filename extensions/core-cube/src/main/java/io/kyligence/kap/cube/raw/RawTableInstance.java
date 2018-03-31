@@ -37,6 +37,7 @@ import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.CubeManager;
 import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -363,6 +364,11 @@ public class RawTableInstance extends RootPersistentEntity implements IRealizati
     @Override
     public boolean hasPrecalculatedFields() {
         return false;
+    }
+
+    @Override
+    public LookupStringTable getLookupTable(String lookupTableName) {
+        throw new UnsupportedOperationException();
     }
 
     public boolean needAutoMerge() {

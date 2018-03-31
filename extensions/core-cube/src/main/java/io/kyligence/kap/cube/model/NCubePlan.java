@@ -27,6 +27,7 @@ package io.kyligence.kap.cube.model;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -40,6 +41,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -50,8 +52,10 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IEngineAware;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -68,9 +72,11 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.cube.cuboid.NCuboidScheduler;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.model.IKapEngineAware;
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -93,6 +99,9 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private String description;
     @JsonProperty("dimensions")
     private List<NDimensionDesc> dimensions = Lists.newArrayList();
+    @JsonManagedReference
+    @JsonProperty("rule_based_cuboids")
+    private NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
     @JsonManagedReference
     @JsonProperty("cuboids")
     private List<NCuboidDesc> cuboids = Lists.newArrayList();
@@ -125,9 +134,12 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private transient BiMap<Integer, NDataModel.Measure> effectiveMeasures; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
 
+    //TODO: should move allColumns and allColumnDescs to model? no need to exist in cubeplan
     private LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
     private LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
     private Map<Integer, NDimensionDesc.NEncodingDesc> dimEncodingMap = Maps.newLinkedHashMap();
+
+    private List<NCuboidDesc> ruleBasedCuboids = Lists.newArrayList();
 
     /**
      * Error messages during resolving json metadata
@@ -137,7 +149,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     public NCubePlan() {
     }
 
-    void initAfterReload(KylinConfig config) {
+    public void initAfterReload(KylinConfig config) {
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
@@ -155,11 +167,78 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
         checkNotNull(getModel(), "NDataModel(%s) not found", modelName);
 
+        initRuleBasedCuboids();
         initAllCuboids();
         initDimensionAndMeasures();
         initAllColumns();
         initDimEncodings();
         initDictionaryDesc();
+    }
+
+    private void initRuleBasedCuboids() {
+        if (nRuleBasedCuboidsDesc == null) {
+            return;
+        }
+
+        nRuleBasedCuboidsDesc.init();
+        NCuboidScheduler initialCuboidScheduler = nRuleBasedCuboidsDesc.getInitialCuboidScheduler();
+        List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
+
+        long ruleBasedNCubuoidIdStart = NCuboidDesc.RULE_BASED_CUBOID_START_ID;
+
+        //convert all legacy cuboids generated from rules to NCuboidDesc & NCuboidLayout
+        for (int i = 0; i < allCuboidIds.size(); i++) {
+            long cuboidId = allCuboidIds.get(i);
+
+            long nCuboidId = ruleBasedNCubuoidIdStart + 1000 * i;
+            long nlayoutId = nCuboidId + 1;
+
+            //mock a NCuboidLayout for one legacy cuboid
+            NCuboidLayout layout = new NCuboidLayout();
+            layout.setId(nlayoutId);
+            layout.setRowkeyColumns(tailor(nRuleBasedCuboidsDesc.getRowkeys(), cuboidId));
+            NColumnFamilyDesc.DimensionCF dimensionCF = new NColumnFamilyDesc.DimensionCF();
+            dimensionCF.setName("D1");
+            dimensionCF.setColumns(ArrayUtils.toPrimitive(//
+                    tailor(ArrayUtils.toObject(nRuleBasedCuboidsDesc.getDimensions()), cuboidId)));
+            layout.setDimensionCFs(new NColumnFamilyDesc.DimensionCF[] { dimensionCF });
+            layout.setMeasureCFs(nRuleBasedCuboidsDesc.getMeasureCFs());
+            layout.setStorageType(IKapStorageAware.ID_NDATA_STORAGE);
+
+            //mock a NCuboidDesc for one legacy cuboid
+            NCuboidDesc nCuboidDesc = new NCuboidDesc();
+            layout.setCuboidDesc(nCuboidDesc);
+            nCuboidDesc.setId(nCuboidId);
+            nCuboidDesc.setLayouts(Lists.newArrayList(layout));
+            nCuboidDesc.setDimensions(ArrayUtils.toPrimitive(//
+                    tailor(ArrayUtils.toObject(nRuleBasedCuboidsDesc.getDimensions()), cuboidId)));
+            nCuboidDesc.setMeasures(nRuleBasedCuboidsDesc.getMeasures());
+            nCuboidDesc.setCubePlan(this);
+            nCuboidDesc.init();
+
+            ruleBasedCuboids.add(nCuboidDesc);
+        }
+    }
+
+    private <T> T[] tailor(T[] complete, long cuboidId) {
+
+        int bitCount = Long.bitCount(cuboidId);
+
+        @SuppressWarnings("unchecked")
+        T[] ret = (T[]) Array.newInstance(complete.getClass().getComponentType(), bitCount);
+
+        int next = 0;
+        for (int i = 0; i < complete.length; i++) {
+            int shift = complete.length - i - 1;
+            if ((cuboidId & (1L << shift)) != 0) {
+                ret[next++] = complete[i];
+            }
+        }
+
+        if (ret[ret.length - 1] == null) {
+            System.out.println();
+        }
+        return ret;
     }
 
     private void initAllCuboids() {
@@ -172,8 +251,8 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         final BitSet dimBitSet = new BitSet();
         final BitSet measureBitSet = new BitSet();
         for (NCuboidDesc cuboid : cuboids) {
-            dimBitSet.or(cuboid.getDimensionSet().mutable());
-            measureBitSet.or(cuboid.getMeasureSet().mutable());
+            dimBitSet.or(cuboid.getDimensionBitset().mutable());
+            measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }
 
         this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(), new Predicate<Integer>() {
@@ -193,14 +272,17 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private void initAllColumns() {
         allColumns.clear();
         allColumnDescs.clear();
+
         allColumns.addAll(effectiveDimCols.values());
         for (NDataModel.Measure measure : effectiveMeasures.values()) {
             allColumns.addAll(measure.getFunction().getParameter().getColRefs());
         }
         for (JoinTableDesc join : model.getJoinTables()) {
             CollectionUtils.addAll(allColumns, join.getJoin().getForeignKeyColumns());
-            CollectionUtils.addAll(allColumns, join.getJoin().getPrimaryKeyColumns());
+            //all lookup tables are automatically derived
+            allColumns.addAll(join.getTableRef().getColumns());
         }
+
         for (TblColRef colRef : allColumns) {
             allColumnDescs.add(colRef.getColumnDesc());
         }
@@ -221,6 +303,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private void initDimEncodings() {
         dimEncodingMap.clear();
         for (NDimensionDesc dimensionDesc : dimensions) {
+            dimensionDesc.init(this);
             dimEncodingMap.put(dimensionDesc.getId(), dimensionDesc.getEncoding());
         }
 
@@ -384,29 +467,16 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return null;
     }
 
-    NCuboidDesc getLastCuboidDesc() {
-        List<NCuboidDesc> existing = cuboids;
-        if (existing.isEmpty()) {
-            return null;
-        } else {
-            return existing.get(existing.size() - 1);
-        }
-    }
-
-    public Set<TblColRef> listAllColumns() {
-        return allColumns;
-    }
-
     public Set<ColumnDesc> listAllColumnDescs() {
         return allColumnDescs;
     }
 
-    Set<TblColRef> listDimensionColumnsIncludingDerived() {
-        return model.getEffectiveColsMap().values();
+    public Set<TblColRef> listAllTblColRefs() {
+        return allColumns;
     }
 
     public List<FunctionDesc> listAllFunctions() {
-        List<FunctionDesc> functions = new ArrayList<FunctionDesc>();
+        List<FunctionDesc> functions = new ArrayList<>();
         for (MeasureDesc m : effectiveMeasures.values()) {
             functions.add(m.getFunction());
         }
@@ -415,18 +485,66 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
     public List<NCuboidLayout> getAllCuboidLayouts() {
         List<NCuboidLayout> r = new ArrayList<>();
-        for (NCuboidDesc cd : cuboids) {
+
+        for (NCuboidDesc cd : getCuboids()) {
             r.addAll(cd.getLayouts());
         }
         return r;
+    }
+
+    public Set<TblColRef> listDimensionColumnsIncludingDerived(NCuboidDesc cuboidDesc) {
+        Set<TblColRef> ret = Sets.newHashSet();
+        ret.addAll(effectiveDimCols.values());
+
+        for (TblColRef col : effectiveDimCols.values()) {
+            if (cuboidDesc != null && !cuboidDesc.dimensionsDerive(col)) {
+                continue;
+            }
+            ret.add(col);
+        }
+
+        for (TableRef tableRef : getModel().getLookupTables()) {
+
+            if (cuboidDesc != null) {
+                JoinDesc joinByPKSide = getModel().getJoinByPKSide(tableRef);
+                TblColRef[] fks = joinByPKSide.getForeignKeyColumns();
+                if (!cuboidDesc.dimensionsDerive(fks)) {
+                    continue;
+                }
+            }
+
+            ret.addAll(tableRef.getColumns());
+        }
+        return ret;
+    }
+
+    public Set<TblColRef> listDimensionColumnsExcludingDerived(NCuboidDesc cuboidDesc) {
+        Set<TblColRef> ret = Sets.newHashSet();
+        ret.addAll(effectiveDimCols.values());
+
+        for (TblColRef col : effectiveDimCols.values()) {
+            if (cuboidDesc != null && !cuboidDesc.dimensionsDerive(col)) {
+                continue;
+            }
+            ret.add(col);
+        }
+
+        return ret;
     }
 
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
+    public NRuleBasedCuboidsDesc getnRuleBasedCuboidsDesc() {
+        return nRuleBasedCuboidsDesc;
+    }
+
     public List<NCuboidDesc> getCuboids() {
-        return isCachedAndShared ? ImmutableList.copyOf(cuboids) : cuboids;
+        List<NCuboidDesc> ret = Lists.newArrayList();
+        ret.addAll(cuboids);
+        ret.addAll(ruleBasedCuboids);
+        return ret;
     }
 
     public void setCuboids(List<NCuboidDesc> cuboids) {

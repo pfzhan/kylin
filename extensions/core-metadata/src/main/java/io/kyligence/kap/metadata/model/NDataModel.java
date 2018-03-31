@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -46,13 +45,12 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.DataModelDesc;
-import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +64,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -85,11 +84,17 @@ public class NDataModel extends DataModelDesc {
         public String name;
         @JsonProperty("column")
         public String aliasDotColumn;
+        @JsonProperty("tomb")
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public boolean tomb = false;
     }
 
     public static class Measure extends MeasureDesc implements IKeep {
         @JsonProperty("id")
         public int id;
+        @JsonProperty("tomb")
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public boolean tomb = false;
     }
 
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
@@ -108,8 +113,6 @@ public class NDataModel extends DataModelDesc {
 
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
-
-    private static final String DEL_MARK = "[DELETED]";
 
     // ============================================================================
 
@@ -138,7 +141,8 @@ public class NDataModel extends DataModelDesc {
     private List<TblColRef> allCols; // including DELETED cols
     private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
     private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
-    private Map<TableRef, BitSet> effectiveDerivedCols;
+    //private Map<TableRef, BitSet> effectiveDerivedCols;
+    private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
     private TblColRef[] mpCols;
 
     // don't use unless you're sure, for jackson only
@@ -179,23 +183,7 @@ public class NDataModel extends DataModelDesc {
         initMultilevelPartitionCols();
         initAllNamedColumns();
         initAllMeasures();
-        initDerivedCols();
-    }
-
-    private void initDerivedCols() {
-        Map<TableRef, BitSet> effectiveDerivedCols = Maps.newLinkedHashMap();
-        for (Map.Entry<Integer, TblColRef> colEntry : effectiveCols.entrySet()) {
-            TableRef tblRef = colEntry.getValue().getTableRef();
-            if (isLookupTable(tblRef)) {
-                BitSet cols = effectiveDerivedCols.get(tblRef);
-                if (cols == null) {
-                    cols = new BitSet();
-                    effectiveDerivedCols.put(tblRef, cols);
-                }
-                cols.set(colEntry.getKey());
-            }
-        }
-        this.effectiveDerivedCols = effectiveDerivedCols;
+        initFk2Pk();
     }
 
     private void initAllNamedColumns() {
@@ -206,13 +194,14 @@ public class NDataModel extends DataModelDesc {
             d.aliasDotColumn = col.getIdentity();
             all.add(col);
 
-            if (!d.name.startsWith(DEL_MARK)) {
+            if (!d.tomb) {
                 mapBuilder.put(d.id, col);
             }
         }
 
         this.allCols = all;
         this.effectiveCols = mapBuilder.build();
+
         checkNoDup(effectiveCols);
     }
 
@@ -238,7 +227,7 @@ public class NDataModel extends DataModelDesc {
             func.init(this);
             all.add(m);
 
-            if (!m.getName().startsWith(DEL_MARK)) {
+            if (!m.tomb) {
                 mapBuilder.put(m.id, m);
             }
         }
@@ -246,6 +235,20 @@ public class NDataModel extends DataModelDesc {
         this.allMeasures = all;
         this.effectiveMeasures = mapBuilder.build();
         checkNoDupAndEffective(effectiveMeasures);
+    }
+
+    private void initFk2Pk() {
+        ImmutableMultimap.Builder<TblColRef, TblColRef> builder = ImmutableMultimap.builder();
+        for (JoinTableDesc joinTable : this.getJoinTables()) {
+            JoinDesc join = joinTable.getJoin();
+            int n = join.getForeignKeyColumns().length;
+            for (int i = 0; i < n; i++) {
+                TblColRef pk = join.getPrimaryKeyColumns()[i];
+                TblColRef fk = join.getForeignKeyColumns()[i];
+                builder.put(fk, pk);
+            }
+        }
+        this.fk2Pk = builder.build();
     }
 
     private void checkNoDupAndEffective(ImmutableBiMap<Integer, Measure> effectiveMeasures) {
@@ -281,30 +284,22 @@ public class NDataModel extends DataModelDesc {
         return allMeasures;
     }
 
-    /** returns TableRef ===> DimensionIds */
-    public Map<TableRef, BitSet> getEffectiveDerivedColsMap() {
-        return effectiveDerivedCols;
-    }
-
-    /** returns ID <==> TblColRef */
+    /**
+     * returns ID <==> TblColRef
+     */
     public ImmutableBiMap<Integer, TblColRef> getEffectiveColsMap() {
         return effectiveCols;
     }
 
-    /** returns ID <==> Measure */
+    /**
+     * returns ID <==> Measure
+     */
     public ImmutableBiMap<Integer, Measure> getEffectiveMeasureMap() {
         return effectiveMeasures;
     }
 
-    public DeriveInfo getDerivedHost(TblColRef col) {
-        TableRef pkTblRef = col.getTableRef();
-        Preconditions.checkState(effectiveDerivedCols.containsKey(pkTblRef), "Column %s cannot be derived.",
-                col.getIdentity());
-        JoinDesc joinDesc = getJoinByPKSide(pkTblRef);
-        return new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, joinDesc, joinDesc.getForeignKeyColumns(), false);
-    }
-
-    public int getColId(TblColRef colRef) {
+    //TODO: !!! check the returned
+    public @Nullable Integer getColId(TblColRef colRef) {
         return effectiveCols.inverse().get(colRef);
     }
 
@@ -334,7 +329,7 @@ public class NDataModel extends DataModelDesc {
 
     private void checkMPColsBelongToModel(TblColRef[] tcr) {
         Set<TblColRef> refSet = effectiveCols.values();
-        if (refSet.containsAll(Sets.newHashSet(tcr)) == false) {
+        if (!refSet.containsAll(Sets.newHashSet(tcr))) {
             throw new IllegalStateException("Primary partition column should inside of this model.");
         }
     }
@@ -480,6 +475,10 @@ public class NDataModel extends DataModelDesc {
 
     void setColCorrs(List<ColumnCorrelation> colCorrs) {
         this.colCorrs = colCorrs;
+    }
+
+    public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
+        return fk2Pk;
     }
 
     public int getColumnIdByColumnName(String aliasDotName) {

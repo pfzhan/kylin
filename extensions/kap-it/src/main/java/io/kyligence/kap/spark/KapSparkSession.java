@@ -173,7 +173,7 @@ public class KapSparkSession extends SparkSession {
         bqhManager.upsertToProject(history);
     }
 
-    private Dataset<Row> queryCube(String sql) throws Exception {
+    public Dataset<Row> queryCube(String sql) throws Exception {
         return read().jdbc("jdbc:calcite:", NSparkCubingUtil.formatSQL(sql), prop);
     }
 

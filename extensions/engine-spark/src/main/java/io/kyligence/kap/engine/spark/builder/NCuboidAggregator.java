@@ -77,6 +77,7 @@ public class NCuboidAggregator {
 
     public Dataset<Row> aggregate() {
         CuboidAggregateUdf udf = new CuboidAggregateUdf(measures.values());
+        //TODO: when concurrent, udf conflict?
         ss.udf().register(NBatchConstants.P_CUBOID_AGG_UDF, udf);
         Dataset<Row> afterAgg = dataSet.groupBy(NSparkCubingUtil.getColumns(dimensions))
                 .agg(callUDF(NBatchConstants.P_CUBOID_AGG_UDF, NSparkCubingUtil.getColumns(measures.keySet())));

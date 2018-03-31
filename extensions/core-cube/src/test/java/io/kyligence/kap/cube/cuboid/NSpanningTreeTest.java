@@ -64,7 +64,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(cube.getCuboids().size(), spanningTree.getCuboidCount());
         Assert.assertEquals(cube.getCuboids().size(), spanningTree.getAllCuboidDescs().size());
-        Assert.assertEquals(3, spanningTree.getBuildLevel());
+        Assert.assertEquals(4, spanningTree.getBuildLevel());
         Assert.assertEquals(cube.getName(), spanningTree.getCuboidCacheKey());
 
         NCuboidDesc cuboidDesc = spanningTree.getCuboidDesc(1000L);
@@ -78,15 +78,19 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
         NCuboidDesc childCuboid1 = spanningTree.getCuboidDesc(0L);
         NCuboidDesc childCuboid2 = spanningTree.getCuboidDesc(1000L);
-        NCuboidDesc childCuboid3 = spanningTree.getCuboidDesc(2000L);
         NCuboidDesc rootCuboid = spanningTree.getCuboidDesc(3000L);
+        NCuboidDesc cubeCuboidRoot = spanningTree.getCuboidDesc(1000000L);
+        NCuboidDesc tableIndexCuboidRoot = spanningTree.getCuboidDesc(1000000000L);
 
-        Assert.assertEquals(1, spanningTree.getRootCuboidDescs().size());
-        Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(rootCuboid));
-        Assert.assertSame(rootCuboid, spanningTree.getRootCuboidDesc(childCuboid1));
+        Assert.assertEquals(2, spanningTree.getRootCuboidDescs().size());
+        Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(tableIndexCuboidRoot));
+        Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(cubeCuboidRoot));
+        Assert.assertSame(cubeCuboidRoot, spanningTree.getRootCuboidDesc(childCuboid1));
+        Assert.assertSame(cubeCuboidRoot, spanningTree.getParentCuboidDesc(rootCuboid));
         Assert.assertSame(rootCuboid, spanningTree.getParentCuboidDesc(childCuboid2));
-        Assert.assertSame(null, spanningTree.getParentCuboidDesc(rootCuboid));
-        Assert.assertEquals(4, spanningTree.retrieveAllMeasures(rootCuboid).size());
+        Assert.assertSame(null, spanningTree.getParentCuboidDesc(cubeCuboidRoot));
+        Assert.assertEquals(3, spanningTree.retrieveAllMeasures(rootCuboid).size());
+        Assert.assertEquals(11, spanningTree.retrieveAllMeasures(cubeCuboidRoot).size());
         Assert.assertTrue(spanningTree.getSpanningCuboidDescs(rootCuboid).contains(childCuboid2));
     }
 
@@ -98,12 +102,14 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
         NSpanningTree spanningTree = cube.getSpanningTree();
         CounterTreeVisitor visitor = new CounterTreeVisitor();
-        NCuboidLayout matched = spanningTree.findBestMatching(visitor);
+        spanningTree.acceptVisitor(visitor);
+        NCuboidLayout matched = visitor.getMatched();
+
         Assert.assertEquals(spanningTree.getCuboidCount(), visitor.getCnt());
         Assert.assertNotNull(matched);
     }
 
-    private static class CounterTreeVisitor implements NSpanningTree.ICuboidTreeVisitor {
+    private static class CounterTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
         int cnt = 0;
         List<NCuboidLayout> matched = Lists.newLinkedList();
 
@@ -114,7 +120,6 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
             return true;
         }
 
-        @Override
         public NCuboidLayout getMatched() {
             return matched.get(0);
         }

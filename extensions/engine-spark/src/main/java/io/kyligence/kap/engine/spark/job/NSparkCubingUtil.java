@@ -115,6 +115,16 @@ public class NSparkCubingUtil {
         return ret;
     }
 
+    public static Column[] getColumns(int[] indexes) {
+        Column[] ret = new Column[indexes.length];
+        int index = 0;
+        for (Integer i : indexes) {
+            ret[index] = new Column(String.valueOf(i));
+            index++;
+        }
+        return ret;
+    }
+
     public static String formatSQL(String sql) {
         return String.format("(%s) t", sql);
     }

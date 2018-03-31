@@ -38,6 +38,7 @@ import org.spark_project.guava.base.Preconditions;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -57,6 +58,10 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
     public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<NCuboidLayout> layouts, String submitter) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
+
+        if (layouts == null) {
+            layouts = Sets.newHashSet(mergedSegment.getDataflow().getCubePlan().getAllCuboidLayouts());
+        }
 
         NSparkMergingJob job = new NSparkMergingJob();
         job.setSubmitter(submitter);

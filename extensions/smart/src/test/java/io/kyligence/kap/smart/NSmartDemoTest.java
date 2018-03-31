@@ -124,8 +124,8 @@ public class NSmartDemoTest {
         smartMaster.runAll();
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
-        Assert.assertFalse(dataModelManager.getModels().isEmpty());
-        System.out.println("Number of models: " + dataModelManager.getModels().size());
+        Assert.assertFalse(dataModelManager.listModels().isEmpty());
+        System.out.println("Number of models: " + dataModelManager.listModels().size());
 
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
         Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());

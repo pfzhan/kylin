@@ -24,16 +24,11 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.calcite.linq4j.Enumerator;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.cube.model.DimensionDesc;
-import org.apache.kylin.dict.lookup.LookupStringTable;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.schema.OLAPTable;
-import org.apache.kylin.storage.hybrid.HybridInstance;
 
 /**
  */
@@ -44,33 +39,13 @@ public class LookupTableEnumerator implements Enumerator<Object[]> {
     private final Object[] current;
     private Iterator<String[]> iterator;
 
-    public LookupTableEnumerator(OLAPContext olapContext) {
-
-        //TODO: assuming LookupTableEnumerator is handled by a cube
-        CubeInstance cube = null;
-
-        if (olapContext.realization instanceof CubeInstance)
-            cube = (CubeInstance) olapContext.realization;
-        else if (olapContext.realization instanceof HybridInstance) {
-            final HybridInstance hybridInstance = (HybridInstance) olapContext.realization;
-            final IRealization latestRealization = hybridInstance.getLatestRealization();
-            if (latestRealization instanceof CubeInstance) {
-                cube = (CubeInstance) latestRealization;
-            } else {
-                throw new IllegalStateException();
-            }
-        }
-
+    LookupTableEnumerator(OLAPContext olapContext) {
         String lookupTableName = olapContext.firstTableScan.getTableName();
-        DimensionDesc dim = cube.getDescriptor().findDimensionByTable(lookupTableName);
-        if (dim == null)
-            throw new IllegalStateException("No dimension with derived columns found for lookup table " + lookupTableName + ", cube desc " + cube.getDescriptor());
+        LookupStringTable table = olapContext.realization.getLookupTable(lookupTableName);
 
-        CubeManager cubeMgr = CubeManager.getInstance(cube.getConfig());
-        LookupStringTable table = cubeMgr.getLookupTable(cube.getLatestReadySegment(), dim.getJoin());
         this.allRows = table.getAllRows();
 
-        OLAPTable olapTable = (OLAPTable) olapContext.firstTableScan.getOlapTable();
+        OLAPTable olapTable = olapContext.firstTableScan.getOlapTable();
         this.colDescs = olapTable.getSourceColumns();
         this.current = new Object[colDescs.size()];
 

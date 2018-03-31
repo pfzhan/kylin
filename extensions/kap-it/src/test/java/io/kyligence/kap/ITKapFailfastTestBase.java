@@ -170,7 +170,7 @@ public class ITKapFailfastTestBase extends KapTestBase {
             try {
                 runSQL(sqlFile, false, false);
             } catch (Exception e) {
-                if (findRoot(e) instanceof ResourceLimitExceededException) {
+                if (Throwables.getRootCause(e) instanceof ResourceLimitExceededException) {
                     //expected
                     meetExpectedException = true;
                 } else {

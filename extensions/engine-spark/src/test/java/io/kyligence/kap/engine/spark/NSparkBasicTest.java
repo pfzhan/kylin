@@ -42,7 +42,7 @@ import com.google.common.collect.Lists;
 
 @Ignore("convenient trial tool for dev")
 @SuppressWarnings("unused")
-public class NSparkBasicTest extends NLocalSparkWithMetaTest {
+public class NSparkBasicTest extends NLocalWithSparkSessionTest {
     @Test
     public void testToRdd() throws IOException {
         final String dataJson = "0,1,2,1000\n0,1,2,1\n3,4,5,2";

@@ -40,19 +40,19 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 
 public class NSpanningTreeFactory {
     public static NSpanningTree fromCubePlan(NCubePlan cubePlan) {
-        Map<NCuboidDesc, Object> descLayouts = Maps.newHashMap();
+        Map<NCuboidDesc, Collection<NCuboidLayout>> descLayouts = Maps.newHashMap();
         for (NCuboidDesc nCuboidDesc : cubePlan.getCuboids()) {
             descLayouts.put(nCuboidDesc, nCuboidDesc.getLayouts());
         }
         return newInstance(KapConfig.wrap(cubePlan.getConfig()), descLayouts, cubePlan.getName());
     }
 
-    public static NSpanningTree fromCuboidDescs(Map<NCuboidDesc, Object> cuboids, String cacheKey) {
+    public static NSpanningTree fromCuboidDescs(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
         return newInstance(KapConfig.getInstanceFromEnv(), cuboids, cacheKey);
     }
 
     public static NSpanningTree fromCuboidLayouts(Collection<NCuboidLayout> cuboidLayouts, String cacheKey) {
-        Map<NCuboidDesc, Object> descLayouts = Maps.newHashMap();
+        Map<NCuboidDesc, Collection<NCuboidLayout>> descLayouts = Maps.newHashMap();
         for (NCuboidLayout layout : cuboidLayouts) {
             NCuboidDesc cuboidDesc = layout.getCuboidDesc();
             if (descLayouts.get(cuboidDesc) == null) {
@@ -60,13 +60,14 @@ public class NSpanningTreeFactory {
                 layouts.add(layout);
                 descLayouts.put(cuboidDesc, layouts);
             } else {
-                ((Collection<NCuboidLayout>) descLayouts.get(cuboidDesc)).add(layout);
+                descLayouts.get(cuboidDesc).add(layout);
             }
         }
         return fromCuboidDescs(descLayouts, cacheKey);
     }
 
-    private static NSpanningTree newInstance(KapConfig kapConfig, Map<NCuboidDesc, Object> cuboids, String cacheKey) {
+    private static NSpanningTree newInstance(KapConfig kapConfig, Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids,
+            String cacheKey) {
         try {
             String clzName = kapConfig.getCuboidSpanningTree();
             Class<? extends NSpanningTree> clz = ClassUtil.forName(clzName, NSpanningTree.class);

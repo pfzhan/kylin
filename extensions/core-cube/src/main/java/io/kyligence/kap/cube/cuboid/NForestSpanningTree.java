@@ -62,7 +62,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         }
     };
 
-    public NForestSpanningTree(Map<NCuboidDesc, Object> cuboids, String cacheKey) {
+    public NForestSpanningTree(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
         super(cuboids, cacheKey);
         init();
     }
@@ -134,15 +134,14 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     @Override
-    public NCuboidLayout findBestMatching(ICuboidTreeVisitor matcher) {
+    public void acceptVisitor(ISpanningTreeVisitor matcher) {
         Queue<TreeNode> queue = Lists.newLinkedList(roots);
         while (!queue.isEmpty()) {
             TreeNode head = queue.poll();
-            matcher.visit(head.cuboidDesc);
-            queue.addAll(head.children);
-
+            boolean shouldContinue = matcher.visit(head.cuboidDesc);
+            if (shouldContinue)
+                queue.addAll(head.children);
         }
-        return matcher.getMatched();
     }
 
     private void collectMeasures(Set<Integer> measures, NCuboidDesc parent) {
@@ -211,6 +210,9 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
                 return null;
             }
 
+            if (!cuboid.bothTableIndexOrNot(parent.cuboidDesc))
+                return null;
+
             List<TreeNode> candidates = Lists.newArrayList();
             for (TreeNode child : parent.children) {
                 TreeNode candidate = doFindBestParent(cuboid, child);
@@ -226,7 +228,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
                 @Override
                 public int compare(TreeNode o1, TreeNode o2) {
                     return o1.cuboidDesc.getDimensions().length - o2.cuboidDesc.getDimensions().length; // TODO: compare
-                                                                                                        // with row size
+                    // with row size
                 }
             });
         }

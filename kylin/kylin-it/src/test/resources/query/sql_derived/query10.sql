@@ -21,8 +21,8 @@ SELECT
  ,test_category_groupings.meta_categ_name 
  ,test_category_groupings.upd_user 
  ,test_category_groupings.upd_date 
- ,test_kylin_fact.leaf_categ_id 
- ,test_category_groupings.leaf_categ_id 
+ ,test_kylin_fact.leaf_categ_id  as aa
+ ,test_category_groupings.leaf_categ_id  as bb
  ,test_kylin_fact.lstg_site_id 
  ,test_category_groupings.site_id 
  ,sum(price) as GMV, count(*) as TRANS_CNT 

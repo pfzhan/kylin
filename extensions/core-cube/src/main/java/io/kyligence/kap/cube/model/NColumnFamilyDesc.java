@@ -26,14 +26,11 @@ package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.model.NDataModel;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -43,9 +40,6 @@ public abstract class NColumnFamilyDesc implements Serializable, IKeep {
 
     @JsonProperty("columns")
     protected int[] columns;
-
-    @JsonBackReference
-    protected NCuboidLayout layout;
 
     @Override
     public boolean equals(Object o) {
@@ -73,26 +67,6 @@ public abstract class NColumnFamilyDesc implements Serializable, IKeep {
 
     public static class MeasureCF extends NColumnFamilyDesc {
         private Boolean isMemoryHungry = null;
-
-        public boolean isMemoryHungry() {
-            if (isMemoryHungry != null)
-                return isMemoryHungry;
-
-            synchronized (this) {
-                if (isMemoryHungry != null)
-                    return isMemoryHungry;
-
-                isMemoryHungry = false;
-                Map<Integer, NDataModel.Measure> measuresMap = layout.getCuboidDesc().getOrderedMeasures();
-                for (int col : columns) {
-                    if (measuresMap.get(col).getFunction().getMeasureType().isMemoryHungry()) {
-                        isMemoryHungry = true;
-                        break;
-                    }
-                }
-                return isMemoryHungry;
-            }
-        }
     }
 
     public String getName() {

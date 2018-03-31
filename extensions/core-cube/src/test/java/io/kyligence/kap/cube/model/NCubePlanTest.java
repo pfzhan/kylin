@@ -37,6 +37,7 @@ import com.google.common.collect.BiMap;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Iterables;
 
 public class NCubePlanTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -59,33 +60,33 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertSame(getTestConfig(), cube.getConfig().base());
         Assert.assertEquals(getTestConfig(), cube.getConfig());
         Assert.assertEquals(getTestConfig().hashCode(), cube.getConfig().hashCode());
-        Assert.assertEquals(4, cube.getCuboids().size());
+        Assert.assertEquals(7, cube.getCuboids().size());
         Assert.assertEquals("test_description", cube.getDescription());
 
         NDataModel model = cube.getModel();
         Assert.assertNotNull(cube.getModel());
 
         BiMap<Integer, TblColRef> effectiveDimCols = cube.getEffectiveDimCols();
-        Assert.assertEquals(4, effectiveDimCols.size());
+        Assert.assertEquals(24, effectiveDimCols.size());
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
-        Assert.assertEquals(4, effectiveMeasures.size());
+        Assert.assertEquals(11, effectiveMeasures.size());
 
         MeasureDesc m = effectiveMeasures.get(1000);
         Assert.assertEquals("TRANS_CNT", m.getName());
         Assert.assertEquals("COUNT", m.getFunction().getExpression());
         Assert.assertEquals("1", m.getFunction().getParameter().getValue());
 
-        NCuboidDesc cuboidDesc = cube.getLastCuboidDesc();
+        NCuboidDesc cuboidDesc = Iterables.getLast(cube.getCuboids(), null);
         Assert.assertNotNull(cuboidDesc);
-        Assert.assertEquals(3000, cuboidDesc.getId());
+        Assert.assertEquals(1000001000, cuboidDesc.getId());
         Assert.assertEquals(1, cuboidDesc.getLayouts().size());
 
         NCuboidLayout cuboidLayout = cuboidDesc.getLastLayout();
         Assert.assertNotNull(cuboidLayout);
-        Assert.assertEquals(3001, cuboidLayout.getId());
-        Assert.assertEquals(4, cuboidLayout.getOrderedDimensions().size());
+        Assert.assertEquals(1000001001, cuboidLayout.getId());
+        Assert.assertEquals(3, cuboidLayout.getOrderedDimensions().size());
         Assert.assertEquals(1, cuboidLayout.getDimensionCFs().length);
     }
 
@@ -94,7 +95,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
         NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsHaveDictionary();
-        Assert.assertEquals(4, tblCols.size());
+        Assert.assertEquals(20, tblCols.size());
 
         NCubePlan cubePlan2 = cubeDefaultMgr.getCubePlan("all_fixed_length");
         Set<TblColRef> tblCols2 = cubePlan2.getAllColumnsHaveDictionary();
@@ -106,6 +107,6 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
         NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsNeedDictionaryBuilt();
-        Assert.assertEquals(4, tblCols.size());
+        Assert.assertEquals(20, tblCols.size());
     }
 }

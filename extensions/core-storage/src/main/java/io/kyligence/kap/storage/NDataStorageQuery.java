@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.storage;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -34,7 +35,6 @@ import java.util.Set;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.dict.lookup.LookupStringTable;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.filter.CaseTupleFilter;
@@ -42,6 +42,7 @@ import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -61,16 +62,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NRawQueryLastHacker;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.storage.gtrecord.NCubeTupleConverter;
 import io.kyligence.kap.storage.gtrecord.NDataSegScanner;
@@ -81,7 +85,7 @@ public class NDataStorageQuery implements IStorageQuery {
 
     private NDataflow dataflow;
 
-    public NDataStorageQuery(NDataflow dataflow) {
+    NDataStorageQuery(NDataflow dataflow) {
         this.dataflow = dataflow;
     }
 
@@ -96,7 +100,7 @@ public class NDataStorageQuery implements IStorageQuery {
         context.setStorageQuery(this);
 
         //cope with queries with no aggregations
-        //        RawQueryLastHacker.hackNoAggregations(sqlDigest, cubeDesc, returnTupleInfo);
+        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow, returnTupleInfo);
 
         // Customized measure taking effect: e.g. allow custom measures to help raw queries
         notifyBeforeStorageQuery(sqlDigest);
@@ -107,8 +111,8 @@ public class NDataStorageQuery implements IStorageQuery {
         TupleFilter.collectColumns(filter, filterColumns);
 
         // build dimension & metrics
-        Set<TblColRef> dimensions = new LinkedHashSet<TblColRef>();
-        Set<FunctionDesc> metrics = new LinkedHashSet<FunctionDesc>();
+        Set<TblColRef> dimensions = new LinkedHashSet<>();
+        Set<FunctionDesc> metrics = new LinkedHashSet<>();
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
         // all dimensions = groups + other(like filter) dimensions
@@ -116,24 +120,28 @@ public class NDataStorageQuery implements IStorageQuery {
         otherDims.removeAll(groups);
 
         // TODO: in future, segment's cuboid may differ
-        NCuboidLayout cuboidLayout = selectCuboid(dataSegments.get(0), dimensions, filterColumns, metrics);
+        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(dataSegments.get(0),
+                ImmutableSet.copyOf(dimensions), ImmutableSet.copyOf(filterColumns), ImmutableSet.copyOf(metrics));
+        logger.info("");
+        NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
+
         Preconditions.checkNotNull(cuboidLayout, "cuboid not found"); // TODO: throw no realization found exception?
         context.setCuboidId(cuboidLayout.getId());
 
         // expand derived (xxxD means contains host columns only, derived columns were translated)
         Set<TblColRef> derivedPostAggregation = Sets.newHashSet();
-        Set<TblColRef> groupsD = expandDerived(cuboidLayout, groups, derivedPostAggregation);
-        Set<TblColRef> otherDimsD = expandDerived(cuboidLayout, otherDims, derivedPostAggregation);
+        Set<TblColRef> groupsD = expandDerived(layoutCandidate, groups, derivedPostAggregation);
+        Set<TblColRef> otherDimsD = expandDerived(layoutCandidate, otherDims, derivedPostAggregation);
         otherDimsD.removeAll(groupsD);
 
         // identify cuboid
-        Set<TblColRef> dimensionsD = new LinkedHashSet<TblColRef>();
+        Set<TblColRef> dimensionsD = new LinkedHashSet<>();
         dimensionsD.addAll(groupsD);
         dimensionsD.addAll(otherDimsD);
 
         // TODO: move following part to each segment level, and create new context for each segment
         // set whether to aggr at storage
-        Set<TblColRef> singleValuesD = findSingleValueColumns(cuboidLayout, filter);
+        Set<TblColRef> singleValuesD = findSingleValueColumns(layoutCandidate, filter);
         context.setNeedStorageAggregation(isNeedStorageAggregation(cuboidLayout, groupsD, singleValuesD));
 
         // exactAggregation mean: needn't aggregation at storage and query engine both.
@@ -144,7 +152,7 @@ public class NDataStorageQuery implements IStorageQuery {
         // replace derived columns in filter with host columns; columns on loosened condition must be added to group by
         Set<TblColRef> loosenedColumnD = Sets.newHashSet();
         Set<TblColRef> filterColumnD = Sets.newHashSet();
-        TupleFilter filterD = translateDerived(cuboidLayout, filter, loosenedColumnD);
+        TupleFilter filterD = translateDerived(layoutCandidate, filter, loosenedColumnD);
         groupsD.addAll(loosenedColumnD);
         TupleFilter.collectColumns(filterD, filterColumnD);
 
@@ -175,19 +183,14 @@ public class NDataStorageQuery implements IStorageQuery {
                 continue;
             }
 
-            scanner = new NDataSegScanner(dataSeg, cuboidLayout, dimensionsD, groupsD, metrics, filterD, havingFilter,
-                    context);
+            scanner = new NDataSegScanner(dataSeg, layoutCandidate, dimensionsD, groupsD, metrics, filterD,
+                    havingFilter, context);
             if (!scanner.isSegmentSkipped())
                 scanners.add(scanner);
         }
 
-        return new NSequentialTupleIterator(scanners, cuboidLayout, dimensionsD, groupsD, metrics, returnTupleInfo,
+        return new NSequentialTupleIterator(scanners, layoutCandidate, dimensionsD, groupsD, metrics, returnTupleInfo,
                 context, sqlDigest);
-    }
-
-    private NCuboidLayout selectCuboid(NDataSegment segment, Set<TblColRef> dimensions, Set<TblColRef> filterColumns,
-            Set<FunctionDesc> metrics) {
-        return NCuboidLayoutChooser.selectCuboidLayout(segment, dimensions, filterColumns, metrics);
     }
 
     public String getGTStorage(NCuboidLayout cuboidLayout) {
@@ -200,13 +203,13 @@ public class NDataStorageQuery implements IStorageQuery {
         }
     }
 
-    protected void notifyBeforeStorageQuery(SQLDigest sqlDigest) {
+    private void notifyBeforeStorageQuery(SQLDigest sqlDigest) {
         Map<String, List<MeasureDesc>> map = Maps.newHashMap();
         for (MeasureDesc measure : dataflow.getMeasures()) {
             MeasureType<?> measureType = measure.getFunction().getMeasureType();
 
             String key = measureType.getClass().getCanonicalName();
-            List<MeasureDesc> temp = null;
+            List<MeasureDesc> temp;
             if ((temp = map.get(key)) != null) {
                 temp.add(measure);
             } else {
@@ -219,7 +222,7 @@ public class NDataStorageQuery implements IStorageQuery {
         }
     }
 
-    protected void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
+    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
             Collection<FunctionDesc> metrics) {
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric()) {
@@ -247,15 +250,15 @@ public class NDataStorageQuery implements IStorageQuery {
         return aggrFunc;
     }
 
-    protected Set<TblColRef> expandDerived(NCuboidLayout cuboidLayout, Collection<TblColRef> cols,
+    private Set<TblColRef> expandDerived(NLayoutCandidate layoutCandidate, Collection<TblColRef> cols,
             Set<TblColRef> derivedPostAggregation) {
         Set<TblColRef> expanded = Sets.newHashSet();
         for (TblColRef col : cols) {
-            if (cuboidLayout.hasHostColumn(col)) {
-                DeriveInfo hostInfo = cuboidLayout.getDeriveInfo(col);
+            DeriveInfo hostInfo = layoutCandidate.getDerivedToHostMap().get(col);
+            if (hostInfo != null) {
                 for (TblColRef hostCol : hostInfo.columns) {
                     expanded.add(hostCol);
-                    if (hostInfo.isOneToOne == false)
+                    if (!hostInfo.isOneToOne)
                         derivedPostAggregation.add(hostCol);
                 }
             } else {
@@ -266,22 +269,20 @@ public class NDataStorageQuery implements IStorageQuery {
     }
 
     @SuppressWarnings("unchecked")
-    protected Set<TblColRef> findSingleValueColumns(NCuboidLayout cuboidLayout, TupleFilter filter) {
+    private Set<TblColRef> findSingleValueColumns(NLayoutCandidate candidate, TupleFilter filter) {
         Set<CompareTupleFilter> compareTupleFilterSet = findSingleValuesCompFilters(filter);
 
         // expand derived
         Set<TblColRef> resultD = Sets.newHashSet();
         for (CompareTupleFilter compFilter : compareTupleFilterSet) {
             TblColRef tblColRef = compFilter.getColumn();
-            if (cuboidLayout.isExtendedColumn(tblColRef)) {
+            if (candidate.getCuboidLayout().isExtendedColumn(tblColRef)) {
                 throw new CubeDesc.CannotFilterExtendedColumnException(tblColRef);
             }
-            if (cuboidLayout.isDerived(compFilter.getColumn())) {
-                DeriveInfo hostInfo = cuboidLayout.getDeriveInfo(tblColRef);
+            DeriveInfo hostInfo = candidate.getDerivedToHostMap().get(tblColRef);
+            if (hostInfo != null) {
                 if (hostInfo.isOneToOne) {
-                    for (TblColRef hostCol : hostInfo.columns) {
-                        resultD.add(hostCol);
-                    }
+                    resultD.addAll(Arrays.asList(hostInfo.columns));
                 }
                 //if not one2one, it will be pruned
             } else {
@@ -292,14 +293,14 @@ public class NDataStorageQuery implements IStorageQuery {
     }
 
     // FIXME should go into nested AND expression
-    protected Set<CompareTupleFilter> findSingleValuesCompFilters(TupleFilter filter) {
+    private Set<CompareTupleFilter> findSingleValuesCompFilters(TupleFilter filter) {
         Collection<? extends TupleFilter> toCheck;
         if (filter instanceof CompareTupleFilter) {
             toCheck = Collections.singleton(filter);
         } else if (filter instanceof LogicalTupleFilter && filter.getOperator() == TupleFilter.FilterOperatorEnum.AND) {
             toCheck = filter.getChildren();
         } else {
-            return (Set<CompareTupleFilter>) Collections.EMPTY_SET;
+            return Collections.emptySet();
         }
 
         Set<CompareTupleFilter> result = Sets.newHashSet();
@@ -316,7 +317,7 @@ public class NDataStorageQuery implements IStorageQuery {
         return result;
     }
 
-    public boolean isNeedStorageAggregation(NCuboidLayout cuboid, Collection<TblColRef> groupD,
+    private boolean isNeedStorageAggregation(NCuboidLayout cuboid, Collection<TblColRef> groupD,
             Collection<TblColRef> singleValueD) {
         HashSet<TblColRef> temp = Sets.newHashSet();
         temp.addAll(groupD);
@@ -344,14 +345,14 @@ public class NDataStorageQuery implements IStorageQuery {
         }
 
         // derived aggregation is bad, unless expanded columns are already in group by
-        if (groups.containsAll(derivedPostAggregation) == false) {
+        if (!groups.containsAll(derivedPostAggregation)) {
             logger.info("exactAggregation is false because derived column require post aggregation: "
                     + derivedPostAggregation);
             return false;
         }
 
         // other columns (from filter) is bad, unless they are ensured to have single value
-        if (singleValuesD.containsAll(othersD) == false) {
+        if (!singleValuesD.containsAll(othersD)) {
             logger.info("exactAggregation is false because some column not on group by: " + othersD //
                     + " (single value column: " + singleValuesD + ")");
             return false;
@@ -380,30 +381,31 @@ public class NDataStorageQuery implements IStorageQuery {
     }
 
     @SuppressWarnings("unchecked")
-    protected TupleFilter translateDerived(NCuboidLayout cuboidLayout, TupleFilter filter, Set<TblColRef> collector) {
+    private TupleFilter translateDerived(NLayoutCandidate layoutCandidate, TupleFilter filter,
+            Set<TblColRef> collector) {
         if (filter == null)
-            return filter;
+            return null;
 
         if (filter instanceof CompareTupleFilter) {
-            return translateDerivedInCompare(cuboidLayout, (CompareTupleFilter) filter, collector);
+            return translateDerivedInCompare(layoutCandidate, (CompareTupleFilter) filter, collector);
         }
 
         List<TupleFilter> children = (List<TupleFilter>) filter.getChildren();
         List<TupleFilter> newChildren = Lists.newArrayListWithCapacity(children.size());
         boolean modified = false;
         for (TupleFilter child : children) {
-            TupleFilter translated = translateDerived(cuboidLayout, child, collector);
+            TupleFilter translated = translateDerived(layoutCandidate, child, collector);
             newChildren.add(translated);
             if (child != translated)
                 modified = true;
         }
         if (modified) {
-            filter = replaceChildren(cuboidLayout, filter, newChildren);
+            filter = replaceChildren(filter, newChildren);
         }
         return filter;
     }
 
-    private TupleFilter replaceChildren(NCuboidLayout cuboidLayout, TupleFilter filter, List<TupleFilter> newChildren) {
+    private TupleFilter replaceChildren(TupleFilter filter, List<TupleFilter> newChildren) {
         if (filter instanceof LogicalTupleFilter) {
             LogicalTupleFilter r = new LogicalTupleFilter(filter.getOperator());
             r.addChildren(newChildren);
@@ -417,20 +419,22 @@ public class NDataStorageQuery implements IStorageQuery {
         }
     }
 
-    private TupleFilter translateDerivedInCompare(NCuboidLayout cuboidLayout, CompareTupleFilter compf,
+    private TupleFilter translateDerivedInCompare(NLayoutCandidate layoutCandidate, CompareTupleFilter compf,
             Set<TblColRef> collector) {
         if (compf.getColumn() == null)
             return compf;
 
         TblColRef derived = compf.getColumn();
-        if (cuboidLayout.isExtendedColumn(derived)) {
+        if (layoutCandidate.getCuboidLayout().isExtendedColumn(derived)) {
             throw new CubeDesc.CannotFilterExtendedColumnException(derived);
         }
-        if (cuboidLayout.isDerived(derived) == false)
-            return compf;
+        DeriveInfo hostInfo = layoutCandidate.getDerivedToHostMap().get(derived);
 
-        DeriveInfo hostInfo = cuboidLayout.getDeriveInfo(derived);
-        LookupStringTable lookup = getLookupStringTableForDerived(derived, hostInfo);
+        if (hostInfo == null) {
+            return compf;
+        }
+
+        LookupStringTable lookup = getLookupStringTableForDerived(hostInfo);
         Pair<TupleFilter, Boolean> translated = DerivedFilterTranslator.translate(lookup, hostInfo, compf);
         TupleFilter translatedFilter = translated.getFirst();
         boolean loosened = translated.getSecond();
@@ -440,8 +444,7 @@ public class NDataStorageQuery implements IStorageQuery {
         return translatedFilter;
     }
 
-    @SuppressWarnings("unchecked")
-    protected LookupStringTable getLookupStringTableForDerived(TblColRef derived, DeriveInfo hostInfo) {
+    private LookupStringTable getLookupStringTableForDerived(DeriveInfo hostInfo) {
         NDataflowManager dfManager = NDataflowManager.getInstance(dataflow.getConfig(), dataflow.getProject());
         NDataSegment lastSeg = dataflow.getLastSegment();
         return dfManager.getLookupTable(lastSeg, hostInfo.join);
@@ -570,8 +573,9 @@ public class NDataStorageQuery implements IStorageQuery {
         return havingFilter;
     }
 
-    public ITupleConverter newCubeTupleConverter(NDataSegment dataSegment, NCuboidLayout cuboid,
+    public ITupleConverter newCubeTupleConverter(NDataSegment dataSegment, NLayoutCandidate layoutCandidate,
             Set<TblColRef> selectedDimensions, Set<FunctionDesc> selectedMetrics, int[] gtColIdx, TupleInfo tupleInfo) {
-        return new NCubeTupleConverter(dataSegment, cuboid, selectedDimensions, selectedMetrics, gtColIdx, tupleInfo);
+        return new NCubeTupleConverter(dataSegment, layoutCandidate, selectedDimensions, selectedMetrics, gtColIdx,
+                tupleInfo);
     }
 }

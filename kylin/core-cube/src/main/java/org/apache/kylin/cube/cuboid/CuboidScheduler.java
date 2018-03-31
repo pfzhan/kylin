@@ -59,7 +59,7 @@ abstract public class CuboidScheduler {
     abstract public int getCuboidCount();
     
     /** Returns the child cuboids of a parent. */
-    abstract public List<Long> getSpanningCuboid(long parentCuboid);
+    abstract public List getSpanningCuboid(long parentCuboid);
     
     /** Returns a valid cuboid that best matches the request cuboid. */
     abstract public long findBestMatchCuboid(long requestCuboid);

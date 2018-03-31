@@ -43,6 +43,8 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Throwables;
+
 import io.grpc.StatusRuntimeException;
 import io.kyligence.kap.junit.SparkTestRunner;
 
@@ -84,7 +86,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
 
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
+                Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
             }
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
@@ -108,7 +110,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 throw new SQLException();
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
+                Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
             }
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
@@ -132,7 +134,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 throw new SQLException();
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
+                Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
             }
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
@@ -156,7 +158,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 throw new SQLException();
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
+                Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
             }
 
             kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,
@@ -181,7 +183,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 throw new SQLException();
             } catch (SQLException e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(RoutingIndicatorException.class, findRoot(e).getClass());
+                Assert.assertEquals(RoutingIndicatorException.class, Throwables.getRootCause(e).getClass());
             } finally {
                 System.clearProperty("kap.query.calcite-join-threshold");
             }
@@ -262,7 +264,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 throw new SQLException();
             } catch (Exception e) {
                 logger.debug("stacktrace for the SQLException: ", e);
-                Assert.assertEquals(StatusRuntimeException.class, findRoot(e).getClass());
+                Assert.assertEquals(StatusRuntimeException.class, Throwables.getRootCause(e).getClass());
             }
         }
     }
@@ -280,7 +282,7 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                     runSQL(sqlFile, true, false);
                 } catch (Exception e) {
                     logger.debug("stacktrace for the SQLException: ", e);
-                    Assert.assertEquals(NoRealizationFoundException.class, findRoot(e).getClass());
+                    Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
                 }
 
                 kylinConfig.setProperty(PUSHDOWN_RUNNER_KEY,

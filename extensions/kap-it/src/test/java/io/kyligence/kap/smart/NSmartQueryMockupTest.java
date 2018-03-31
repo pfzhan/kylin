@@ -40,6 +40,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.base.Preconditions;
@@ -58,6 +59,7 @@ import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 
+@Ignore
 public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
     private static final String[] SQL_EXTS = { "sql" };
     private static final String PROJ_NAME = "smart";
@@ -179,6 +181,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
     }
 
     // FIXME: count(seller_id) not supported in query[18,19,20].sql
+    // COPY
     @Test
     public void testTableauQuery() throws Exception {
         testRoundTrip(KYLIN_QUERY_DIR + "sql_tableau");

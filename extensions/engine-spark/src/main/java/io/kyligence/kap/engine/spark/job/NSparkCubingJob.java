@@ -62,7 +62,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         return job;
     }
 
-    NSparkCubingStep getSparkCubingStep() {
+    public NSparkCubingStep getSparkCubingStep() {
         return (NSparkCubingStep) getTasks().get(0);
     }
 

@@ -31,7 +31,6 @@ import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
@@ -87,7 +86,6 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         final IDimensionEncodingMap dimEncMap = new NCubeDimEncMap(cuboid.getSegDetails().getDataSegment());
         final RowKeyColumnIO rowKeyColumnIO = new RowKeyColumnIO(dimEncMap);
         final MeasureCodec measureCodec = new MeasureCodec(orderedMeasures.values().toArray(new MeasureDesc[0]));
-        final KylinConfig config = cuboid.getConfig();
 
         StructType schema = new StructType();
         for (Map.Entry<Integer, TblColRef> dimEntry : orderedDimensions.entrySet()) {
@@ -96,6 +94,14 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
 
         for (Map.Entry<Integer, NDataModel.Measure> measureEntry : orderedMeasures.entrySet()) {
             schema = schema.add(String.valueOf(measureEntry.getKey()), DataTypes.BinaryType);
+        }
+
+        final int[] rowKeyColumnLens = new int[orderedDimensions.size()];
+        int i = 0;
+        for (TblColRef tblColRef : orderedDimensions.values()) {
+            int length = rowKeyColumnIO.getColumnLength(tblColRef);
+            rowKeyColumnLens[i] = length;
+            i++;
         }
 
         String path = getCuboidStoragePath(cuboid);
@@ -110,28 +116,22 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         jobConf.set(BatchConstants.CFG_PROJECT_NAME, cuboid.getSegDetails().getDataflow().getProject());
         JavaPairRDD<Text, Text> batchRDD = ctx.newAPIHadoopFile(path, NParquetCuboidInputFormat.class, Text.class,
                 Text.class, jobConf);
+
+        //TODO: serialize RowKeyColumnIO will serialize NCubeDimEncMap -> NCubePlan -> NCuboidDesc -> NRuleBasedCuboidsDesc -> NCuboidScheduler, too many?
         JavaRDD<Row> rows = batchRDD.map(new org.apache.spark.api.java.function.Function<Tuple2<Text, Text>, Row>() {
             private volatile transient boolean initialized = false;
 
             @Override
             public Row call(Tuple2<Text, Text> tuple) throws Exception {
-                if (!initialized) {
-                    synchronized (NParquetStorage.class) {
-                        KylinConfig.setKylinConfigThreadLocal(config);
-                        initialized = true;
-                    }
-                }
-
                 Object[] cells = new Object[orderedDimensions.size() + orderedMeasures.size()];
 
                 byte[] values = tuple._1.getBytes();
 
                 int i = 0;
-                int offset = 0, length;
-                for (Map.Entry<Integer, TblColRef> dimEntry : orderedDimensions.entrySet()) {
-                    length = rowKeyColumnIO.getColumnLength(dimEntry.getValue());
-                    cells[i++] = ByteArray.copyOf(values, offset, length).array();
-                    offset += length;
+                int offset = 0;
+                for (int l : rowKeyColumnLens) {
+                    cells[i++] = ByteArray.copyOf(values, offset, l).array();
+                    offset += l;
                 }
 
                 ByteBuffer measureBuf = ByteBuffer.wrap(values);
@@ -153,9 +153,9 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         final NCuboidDesc cuboidDesc = layout.getCuboidDesc();
 
         final int columns = data.schema().length();
-        Preconditions.checkArgument(
-                columns == cuboidDesc.getEffectiveDimCols().size() + cuboidDesc.getOrderedMeasures().size(),
-                "Dataset schema not match with cuboid layout.");
+        boolean expression = columns == cuboidDesc.getEffectiveDimCols().size()
+                + cuboidDesc.getOrderedMeasures().size();
+        Preconditions.checkArgument(expression, "Dataset schema not match with cuboid layout.");
 
         final Map<Integer, TblColRef> dimensions = Maps.newLinkedHashMap(layout.getOrderedDimensions());
         final Map<Integer, NDataModel.Measure> measures = Maps.newLinkedHashMap(cuboidDesc.getOrderedMeasures());
@@ -187,8 +187,8 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         jobConf.set(BatchConstants.CFG_CUBE_NAME, cuboid.getSegDetails().getDataflowName());
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
         jobConf.set(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID, Long.toString(cuboid.getCuboidLayoutId()));
-        jobConf.set(NBatchConstants.P_DIST_META_URL, cuboid.getConfig().getMetadataUrl().toString());
         jobConf.set(BatchConstants.CFG_PROJECT_NAME, cuboid.getSegDetails().getDataflow().getProject());
+        jobConf.set(NBatchConstants.P_DIST_META_URL, cuboid.getConfig().getMetadataUrl().toString());
 
         data.javaRDD().mapToPair(new PairFunction<Row, Text, Text>() {
             byte[] buffer = new byte[dimBufSize + measureBufSize];

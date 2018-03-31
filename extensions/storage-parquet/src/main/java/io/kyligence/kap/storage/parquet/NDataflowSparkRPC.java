@@ -99,6 +99,7 @@ public class NDataflowSparkRPC implements IGTStorage {
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
+        //TODO: IMPORTANT: scanRequest's timeout is set value here
         scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
 
         logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());

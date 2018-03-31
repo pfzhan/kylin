@@ -47,7 +47,6 @@ import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,8 +55,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
-public class NDataModelManager extends DataModelManager{
+public class NDataModelManager extends DataModelManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataModelManager.class);
 
     public static NDataModelManager getInstance(KylinConfig config, String project) {
@@ -104,7 +104,7 @@ public class NDataModelManager extends DataModelManager{
             protected DataModelDesc initEntityAfterReload(DataModelDesc model, String resourceName) {
                 model.setProject(project);
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), getModels(), true);
+                    model.init(config, getAllTablesMap(), listModels(), true);
                 }
                 return model;
             }
@@ -171,7 +171,7 @@ public class NDataModelManager extends DataModelManager{
     public List<DataModelDesc> listAllDataModels() {
         List<DataModelDesc> ret = Lists.newArrayList();
         for (ProjectInstance projectInstance : getProjectManager().listAllProjects()) {
-            ret.addAll(getInstance(config, projectInstance.getName()).getModels());
+            ret.addAll(getInstance(config, projectInstance.getName()).listModels());
         }
         return ret;
     }
@@ -182,7 +182,7 @@ public class NDataModelManager extends DataModelManager{
         }
     }
 
-    public List<DataModelDesc> getModels() {
+    public List<DataModelDesc> listModels() {
         try (AutoLock lock = modelMapLock.lockForRead()) {
             return new ArrayList<>(dataModelDescMap.values());
         }
@@ -192,7 +192,7 @@ public class NDataModelManager extends DataModelManager{
     public List<String> getModelsUsingTable(TableDesc table) throws IOException {
         try (AutoLock lock = modelMapLock.lockForRead()) {
             List<String> models = new ArrayList<>();
-            for (DataModelDesc modelDesc : getModels()) {
+            for (DataModelDesc modelDesc : listModels()) {
                 if (modelDesc.containsTable(table))
                     models.add(modelDesc.getName());
             }
@@ -202,7 +202,7 @@ public class NDataModelManager extends DataModelManager{
 
     public boolean isTableInAnyModel(TableDesc table) {
         try (AutoLock lock = modelMapLock.lockForRead()) {
-            for (DataModelDesc model : getModels()) {
+            for (DataModelDesc model : listModels()) {
                 if (model.containsTable(table))
                     return true;
             }
@@ -230,8 +230,8 @@ public class NDataModelManager extends DataModelManager{
             desc.setProject(project);
         }
         String name = desc.getName();
-        Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s",
-                name, desc.getProject(), project);
+        Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s", name,
+                desc.getProject(), project);
         try (AutoLock lock = modelMapLock.lockForWrite()) {
             if (dataModelDescMap.containsKey(name))
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
@@ -273,7 +273,7 @@ public class NDataModelManager extends DataModelManager{
 
     private DataModelDesc saveDataModelDesc(DataModelDesc dataModelDesc) throws IOException {
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(), getModels(), true);
+            dataModelDesc.init(config, this.getAllTablesMap(), listModels(), true);
 
         crud.save(dataModelDesc);
 
@@ -298,7 +298,7 @@ public class NDataModelManager extends DataModelManager{
         }
     }
 
-    public static String resourcePath(String project, String modelName) {
+    private static String resourcePath(String project, String modelName) {
         return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
                 .append("/").append(modelName).append(MetadataConstants.FILE_SURFIX).toString();
     }

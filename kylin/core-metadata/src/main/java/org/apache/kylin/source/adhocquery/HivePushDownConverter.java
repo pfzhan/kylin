@@ -17,12 +17,17 @@
 */
 package org.apache.kylin.source.adhocquery;
 
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,12 +46,15 @@ public class HivePushDownConverter implements IPushDownConverter {
     private static final Pattern ALIAS_PATTERN = Pattern.compile("\\s*([`'_a-z0-9A-Z]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern CAST_PATTERN = Pattern.compile("CAST\\((.*?) (?i)AS\\s*(.*?)\\s*\\)",
             Pattern.CASE_INSENSITIVE);
-    private static final Pattern CONCAT_PATTERN = Pattern.compile("(['_a-z0-9A-Z]+)\\|\\|(['_a-z0-9A-Z]+)",
+    private static final Pattern CONCAT_PATTERN = Pattern.compile("(['_a-z0-9A-Z()]*)\\s*\\|\\|\\s*(['_a-z0-9A-Z()]+)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern TIMESTAMP_ADD_DIFF_PATTERN = Pattern
             .compile("timestamp(add|diff)\\s*\\(\\s*(.*?)\\s*,", Pattern.CASE_INSENSITIVE);
     private static final Pattern SELECT_PATTERN = Pattern.compile("^select", Pattern.CASE_INSENSITIVE);
     private static final Pattern LIMIT_PATTERN = Pattern.compile("(limit\\s+[0-9;]+)$", Pattern.CASE_INSENSITIVE);
+    private static final Pattern GROUPING_SETS_PATTERN = Pattern
+            .compile("group\\s+by\\s+(grouping\\s+sets\\s*\\(([`_a-z0-9A-Z(),\\s]+)\\))", Pattern.CASE_INSENSITIVE);
+    private static final Pattern COLUMN_NAME_PATTERN = Pattern.compile("[`_a-z0-9A-Z]+", Pattern.CASE_INSENSITIVE);
     private static final ImmutableSet<String> sqlKeyWordsExceptAS = ImmutableSet.of("A", "ABS", "ABSOLUTE", "ACTION",
             "ADA", "ADD", "ADMIN", "AFTER", "ALL", "ALLOCATE", "ALLOW", "ALTER", "ALWAYS", "AND", "ANY", "APPLY", "ARE",
             "ARRAY", "ARRAY_MAX_CARDINALITY", "ASC", "ASENSITIVE", "ASSERTION", "ASSIGNMENT", "ASYMMETRIC", "AT",
@@ -231,12 +239,51 @@ public class HivePushDownConverter implements IPushDownConverter {
     public static String concatReplace(String originString) {
         Matcher concatMatcher = CONCAT_PATTERN.matcher(originString);
         String replacedString = originString;
+        Deque<Pair<Integer, String>> concatQueue = new LinkedList<>();
+        String concatToBeReplaced = "";
 
         while (concatMatcher.find()) {
+            if (concatQueue.size() > 0) {
+                int lastIdx = concatQueue.peekLast().getFirst();
+
+                if (concatMatcher.start() > lastIdx) {
+                    String replaceWithConcat = "concat(";
+                    while (concatQueue.size() > 0) {
+                        Pair<Integer, String> pair = concatQueue.pollFirst();
+                        replaceWithConcat += pair.getSecond();
+                        if (concatQueue.size() > 0) {
+                            replaceWithConcat += ",";
+                        }
+                    }
+                    replaceWithConcat += ")";
+                    replacedString = replaceString(replacedString, concatToBeReplaced, replaceWithConcat);
+                    concatToBeReplaced = "";
+                }
+            }
+
+            concatToBeReplaced += concatMatcher.group();
             String leftString = concatMatcher.group(1);
             String rightString = concatMatcher.group(2);
-            replacedString = replaceString(replacedString, leftString + "||" + rightString,
-                    "concat(" + leftString + "," + rightString + ")");
+            if (leftString.length() > 0) {
+                concatQueue.addLast(new Pair<>(concatMatcher.start(), StringUtils.removePattern(leftString, "[()]")));
+            }
+
+            if (rightString.length() > 0) {
+                concatQueue.addLast(new Pair<>(concatMatcher.end(), StringUtils.removePattern(rightString, "[()]")));
+            }
+        }
+
+        if (concatQueue.size() > 0 && concatToBeReplaced.length() > 0) {
+            String replaceWithConcat = "concat(";
+            while (concatQueue.size() > 0) {
+                Pair<Integer, String> pair = concatQueue.pollFirst();
+                replaceWithConcat += pair.getSecond();
+                if (concatQueue.size() > 0) {
+                    replaceWithConcat += ",";
+                }
+            }
+            replaceWithConcat += ")";
+            replacedString = replaceString(replacedString, concatToBeReplaced, replaceWithConcat);
         }
 
         return replacedString;
@@ -253,6 +300,31 @@ public class HivePushDownConverter implements IPushDownConverter {
             }
 
             replacedString = replacedString.concat(" limit 1");
+        }
+
+        return replacedString;
+    }
+
+    public static String groupingSetsReplace(String originString) {
+        Matcher groupingSetsMatcher = GROUPING_SETS_PATTERN.matcher(originString);
+        String replacedString = originString;
+
+        if (groupingSetsMatcher.find()) {
+            String toBeReplaced = groupingSetsMatcher.group(1);
+            String allColumns = "";
+            String columns = groupingSetsMatcher.group(2);
+            Matcher columnMatcher = COLUMN_NAME_PATTERN.matcher(columns);
+            LinkedHashSet<String> columnSet = new LinkedHashSet<>();
+
+            while (columnMatcher.find()) {
+                columnSet.add(columnMatcher.group());
+            }
+            for (String column : columnSet) {
+                allColumns += (column + ",");
+            }
+
+            replacedString = replacedString.replace(toBeReplaced,
+                    StringUtils.substringBeforeLast(allColumns, ",") + " " + toBeReplaced);
         }
 
         return replacedString;
@@ -289,6 +361,9 @@ public class HivePushDownConverter implements IPushDownConverter {
         if (isPrepare) {
             convertedSql = addLimit(convertedSql);
         }
+
+        // Step10.Support grouping sets with none group by
+        convertedSql = groupingSetsReplace(convertedSql);
 
         return convertedSql;
     }

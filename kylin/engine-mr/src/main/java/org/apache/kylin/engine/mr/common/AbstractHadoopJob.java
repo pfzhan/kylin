@@ -465,6 +465,10 @@ public abstract class AbstractHadoopJob extends Configured implements Tool {
         KylinConfig config;
         try {
             config = KylinConfig.getInstanceFromEnv();
+            //In some case, the KylinConfig from env is not the expected one.
+            String uriFromEnv = config.getMetadataUrl().toString();
+            if (!uriFromEnv.equalsIgnoreCase(uri))
+                throw new KylinConfigCannotInitException("Not the expected KylinConfig");
         } catch (KylinConfigCannotInitException e) {
             logger.warn("No available KylinConfig in environment, fetch it from URI.");
             config = loadKylinConfigFromHdfs(uri);

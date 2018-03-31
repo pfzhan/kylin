@@ -64,10 +64,10 @@ import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NLocalSparkWithMetaTest;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
 @SuppressWarnings("serial")
-public class NParquetStorageTest extends NLocalSparkWithMetaTest implements Serializable {
+public class NParquetStorageTest extends NLocalWithSparkSessionTest implements Serializable {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
@@ -137,7 +137,11 @@ public class NParquetStorageTest extends NLocalSparkWithMetaTest implements Seri
                         ret[i] = buf;
                     } else {
                         ByteBuffer buf = ByteBuffer.wrap(new byte[256]);
-                        measureCodec.encode(i - dimNum, Long.parseLong(value.getString(i)), buf);
+                        try {
+                            measureCodec.encode(i - dimNum, Long.parseLong(value.getString(i)), buf);
+                        }catch (Exception e){
+                            System.out.println();
+                        }
                         ret[i] = new ByteArray(buf.array(), 0, buf.position()).toBytes();
                     }
                 }

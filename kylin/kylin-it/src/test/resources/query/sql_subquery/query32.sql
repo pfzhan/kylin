@@ -17,7 +17,7 @@
 --
 
 
-  select  (case when '1'='1' then test_cal_dt.week_beg_dt when '1'='2' then test_kylin_fact.lstg_site_id else test_kylin_fact.leaf_categ_id end) as xxx , sum(price) as sum_price
+  select  (case when '1'='1' then test_category_groupings.USER_DEFINED_FIELD1 when '1'='2' then test_category_groupings.USER_DEFINED_FIELD3 else test_category_groupings.GROUPINGS_CRE_DATE end) as xxx , sum(price) as sum_price
   from test_kylin_fact
   inner JOIN edw.test_cal_dt as test_cal_dt
   ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt
@@ -28,5 +28,5 @@
   
   where case when '1'='1' then test_kylin_fact.cal_dt < date'2012-04-01' when '1'='2' then  test_cal_dt.week_beg_dt > date'2012-04-01' else  test_kylin_fact.lstg_site_id is not null end and lstg_format_name='FP-GTC' 
   
-  group by case when '1'='1' then test_cal_dt.week_beg_dt when '1'='2' then test_kylin_fact.lstg_site_id else test_kylin_fact.leaf_categ_id end
+  group by  (case when '1'='1' then test_category_groupings.USER_DEFINED_FIELD1 when '1'='2' then test_category_groupings.USER_DEFINED_FIELD3 else test_category_groupings.GROUPINGS_CRE_DATE end)
  

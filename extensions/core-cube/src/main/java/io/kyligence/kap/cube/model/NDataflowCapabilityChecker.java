@@ -73,7 +73,7 @@ public class NDataflowCapabilityChecker {
 
             if (!unmatchedAggregations.isEmpty()) {
                 tryDimensionAsMeasures(unmatchedAggregations, result,
-                        dataflow.getCubePlan().listDimensionColumnsIncludingDerived());
+                        dataflow.getCubePlan().listDimensionColumnsIncludingDerived(null));
             }
         } else {
             //for non query-on-facttable
@@ -174,7 +174,7 @@ public class NDataflowCapabilityChecker {
 
     private static Set<TblColRef> unmatchedDimensions(Collection<TblColRef> dimensionColumns, NDataflow dataflow) {
         HashSet<TblColRef> result = Sets.newHashSet(dimensionColumns);
-        result.removeAll(dataflow.getCubePlan().listDimensionColumnsIncludingDerived());
+        result.removeAll(dataflow.getCubePlan().listDimensionColumnsIncludingDerived(null));
         return result;
     }
 

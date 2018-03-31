@@ -77,6 +77,7 @@ public class NExecutableManager extends ExecutableManager {
 
     // called by reflection
     static NExecutableManager newInstance(KylinConfig config, String project) throws IOException {
+        System.out.println();
         return new NExecutableManager(config, project);
     }
 
