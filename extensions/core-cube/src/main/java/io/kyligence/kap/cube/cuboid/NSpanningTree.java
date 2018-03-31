@@ -70,6 +70,8 @@ public abstract class NSpanningTree {
 
     public interface ISpanningTreeVisitor {
         boolean visit(NCuboidDesc cuboidDesc);
+
+        NLayoutCandidate getBestLayoutCandidate();
     }
 
     public String getCuboidCacheKey() {

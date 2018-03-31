@@ -105,7 +105,6 @@ public class NDataStorageQuery implements IStorageQuery {
         // Customized measure taking effect: e.g. allow custom measures to help raw queries
         notifyBeforeStorageQuery(sqlDigest);
 
-        Collection<TblColRef> groups = sqlDigest.groupbyColumns;
         TupleFilter filter = sqlDigest.filter;
         Set<TblColRef> filterColumns = Sets.newHashSet();
         TupleFilter.collectColumns(filter, filterColumns);
@@ -115,15 +114,30 @@ public class NDataStorageQuery implements IStorageQuery {
         Set<FunctionDesc> metrics = new LinkedHashSet<>();
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
 
+        // TODO: in future, segment's cuboid may differ
+        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
+                dataSegments.get(0) //
+                , ImmutableSet.copyOf(sqlDigest.allColumns) //
+                , ImmutableSet.copyOf(dimensions) //
+                , ImmutableSet.copyOf(filterColumns) //
+                , ImmutableSet.copyOf(metrics) //
+                , sqlDigest.isRawQuery); //
+
+        Preconditions.checkNotNull(layoutCandidate);
+        NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
+        System.out.println("Choose dataflow:" + cuboidLayout.getCuboidDesc().getModel().getName());
+        System.out.println("Choose cuboid layout ID:" + cuboidLayout.getId());
+        return searchCube(context, sqlDigest, returnTupleInfo, dataSegments, filter, dimensions, metrics,
+                layoutCandidate, cuboidLayout);
+    }
+
+    private ITupleIterator searchCube(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo,
+            Segments<NDataSegment> dataSegments, TupleFilter filter, Set<TblColRef> dimensions,
+            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate, NCuboidLayout cuboidLayout) {
         // all dimensions = groups + other(like filter) dimensions
+        Collection<TblColRef> groups = sqlDigest.groupbyColumns;
         Set<TblColRef> otherDims = Sets.newHashSet(dimensions);
         otherDims.removeAll(groups);
-
-        // TODO: in future, segment's cuboid may differ
-        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(dataSegments.get(0),
-                ImmutableSet.copyOf(dimensions), ImmutableSet.copyOf(filterColumns), ImmutableSet.copyOf(metrics));
-        logger.info("");
-        NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
 
         Preconditions.checkNotNull(cuboidLayout, "cuboid not found"); // TODO: throw no realization found exception?
         context.setCuboidId(cuboidLayout.getId());
@@ -506,6 +520,30 @@ public class NDataStorageQuery implements IStorageQuery {
                 storageLimitLevel = StorageLimitLevel.NO_LIMIT;
                 logger.debug("storageLimitLevel set to NO_LIMIT because {} isDimensionAsMetric ", functionDesc);
             }
+        }
+
+        context.applyLimitPushDown(dataflow, storageLimitLevel);
+    }
+
+    private void enableStorageLimitIfPossible(SQLDigest sqlDigest, TupleFilter filter, StorageContext context) {
+        StorageLimitLevel storageLimitLevel = StorageLimitLevel.LIMIT_ON_SCAN;
+
+        boolean isRaw = sqlDigest.isRawQuery;
+        if (!isRaw && !sqlDigest.limitPrecedesAggr) {
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because it's after aggreNSparkCubingJobTestgation");
+        }
+
+        boolean goodFilter = filter == null || TupleFilter.isEvaluableRecursively(filter);
+        if (!goodFilter) {
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because the filter is unevaluatable");
+        }
+
+        boolean goodSort = !context.hasSort();
+        if (!goodSort) {
+            storageLimitLevel = StorageLimitLevel.NO_LIMIT;
+            logger.info("storageLimitLevel set to NO_LIMIT because the query has order by");
         }
 
         context.applyLimitPushDown(dataflow, storageLimitLevel);

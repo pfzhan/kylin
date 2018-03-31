@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.SortedSet;
 
 import org.apache.kylin.metadata.model.DeriveInfo;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +50,7 @@ public class NLayoutCandidateComparators {
         };
     }
 
-    public static Comparator<NLayoutCandidate> matchQueryPattern(final ImmutableSet<TblColRef> dimensions,
-            final ImmutableSet<TblColRef> filters, final ImmutableSet<FunctionDesc> measures) {
+    public static Comparator<NLayoutCandidate> matchQueryPattern(final ImmutableSet<TblColRef> filters) {
         return new Comparator<NLayoutCandidate>() {
 
             @Override

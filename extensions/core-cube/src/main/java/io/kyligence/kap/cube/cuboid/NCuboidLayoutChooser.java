@@ -31,7 +31,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -65,20 +64,102 @@ import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCuboidLayoutChooser {
 
-    public static NLayoutCandidate selectLayoutForQuery(NDataSegment segment, ImmutableSet<TblColRef> dimensions,
-            ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
+    public static NLayoutCandidate selectLayoutForQuery(NDataSegment segment, ImmutableSet<TblColRef> allCols, ImmutableSet<TblColRef> dimensions,
+                                                        ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics, boolean isRawQuery) {
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
-        NQuerySpanningTreeVisitor visitor = new NQuerySpanningTreeVisitor(segment, dimensions, filterColumns, metrics);
+        NSpanningTree.ISpanningTreeVisitor visitor = null;
+        if (isRawQuery) {
+            visitor = new NQuerySpanningTreeVisitorForTableIndex(segment, allCols, filterColumns);
+        } else {
+            visitor = new NQuerySpanningTreeVisitor(segment, dimensions, filterColumns, metrics);
+        }
         spanningTree.acceptVisitor(visitor);
         return visitor.getBestLayoutCandidate();
     }
 
     public static NCuboidLayout selectLayoutForBuild(NDataSegment segment, Set<Integer> dimensions,
-            Set<Integer> measures) {
+                                                     Set<Integer> measures) {
         NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
         NStorageSpanningTreeVisitor visitor = new NStorageSpanningTreeVisitor(segment, dimensions, measures);
         spanningTree.acceptVisitor(visitor);
         return visitor.getBestLayout();
+    }
+
+    private static class NQuerySpanningTreeVisitorForTableIndex implements NSpanningTree.ISpanningTreeVisitor {
+        final ImmutableBitSet measureBitSet;
+
+        final NDataSegment segment;
+        final NDataModel model;
+        final ImmutableSet<TblColRef> allCols;
+
+        //according to the ordering, the smaller wins
+        Ordering<NLayoutCandidate> ordering;
+        NLayoutCandidate bestLayoutCandidate = null;
+
+        private NQuerySpanningTreeVisitorForTableIndex(final NDataSegment segment, ImmutableSet<TblColRef> allCols, ImmutableSet<TblColRef> filterColumns) {
+            this.segment = segment;
+            this.model = (NDataModel) segment.getModel();
+            this.allCols = allCols;
+            BitSet measureSet = new BitSet();
+            measureBitSet = new ImmutableBitSet(measureSet);
+            ordering = Ordering.natural().onResultOf(L1Comparator(segment)).compound(L2Comparator(filterColumns));
+        }
+
+        @Override
+        public boolean visit(final NCuboidDesc cuboidDesc) {
+            // ========== check cuboid_desc from here ==========
+
+            final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
+            Set<TblColRef> unmatchedCols = Sets.newHashSet(this.allCols);
+            unmatchedCols.removeAll(cuboidDesc.getDimensionSet());
+
+            goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedCols, (NDataModel) segment.getModel());
+            if (!unmatchedCols.isEmpty()) {
+                return false;
+            }
+
+            TreeSet<NLayoutCandidate> availableCandidates = new TreeSet<>(ordering);
+            FluentIterable<NLayoutCandidate> transform = FluentIterable.from(cuboidDesc.getLayouts())
+                    .filter(new Predicate<NCuboidLayout>() {
+                        @Override
+                        public boolean apply(@Nullable NCuboidLayout input) {
+                            if (input == null || !isTableIndexCubiod(input.getId())) {
+                                return false;
+                            }
+
+                            NDataCuboid cuboid = segment.getCuboid(input.getId());
+                            return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
+                        }
+                    }).transform(new Function<NCuboidLayout, NLayoutCandidate>() {
+                        @Override
+                        public NLayoutCandidate apply(NCuboidLayout input) {
+                            NLayoutCandidate candidate = new NLayoutCandidate(input);
+                            if (!needDerive.isEmpty()) {
+                                candidate.setDerivedToHostMap(needDerive);
+                            }
+                            return candidate;
+                        }
+                    });
+
+
+            Iterables.addAll(availableCandidates, transform);
+
+            if (availableCandidates.isEmpty()) {
+                return true;
+            }
+
+            // ========== compare matched cuboid layout from here ==========
+            // every time add the existed best layout
+            if (bestLayoutCandidate != null) {
+                availableCandidates.add(bestLayoutCandidate);
+            }
+            bestLayoutCandidate = availableCandidates.first();
+            return true;
+        }
+
+        public NLayoutCandidate getBestLayoutCandidate() {
+            return bestLayoutCandidate;
+        }
     }
 
     private static class NQuerySpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
@@ -96,49 +177,12 @@ public class NCuboidLayoutChooser {
         NLayoutCandidate bestLayoutCandidate = null;
 
         private NQuerySpanningTreeVisitor(final NDataSegment segment, ImmutableSet<TblColRef> dimensions,
-                ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
+                                          ImmutableSet<TblColRef> filterColumns, ImmutableSet<FunctionDesc> metrics) {
             this.segment = segment;
             this.model = (NDataModel) segment.getModel();
             this.dimensions = dimensions;
             this.filterColumns = filterColumns;
             this.metrics = metrics;
-            //
-            //            Map<TblColRef, Integer> colIdMap = model.getEffectiveColsMap().inverse();
-            //            BitSet dimSet = new BitSet();
-            //            BitSet filterSet = new BitSet();
-            //            for (TblColRef dimColRef : dimensions) {
-            //                Integer dimId = colIdMap.get(dimColRef);
-            //
-            //                if (dimId == null) {
-            //                    //TODO: some layout need derive, some layout does not
-            //                    // in case not defined as a normal dimension, a lookup table columna could be automatically derived
-            //                    if (model.isLookupTable(dimColRef.getTableRef())) {
-            //                        JoinDesc joinByPKSide = model.getJoinByPKSide(dimColRef.getTableRef());
-            //                        Preconditions.checkNotNull(joinByPKSide);
-            //                        TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
-            //                        for (TblColRef fk : foreignKeyColumns) {
-            //                            Integer fkId = colIdMap.get(fk);
-            //                            Preconditions.checkNotNull(fkId,
-            //                                    "To query derived columns on lookup table, you need to add FK to dimension: " + fk);
-            //                            dimSet.set(fkId);
-            //                            if (filterColumns.contains(dimColRef)) {
-            //                                filterSet.set(fkId);
-            //                            }
-            //                        }
-            //                    } else {
-            //                        throw new IllegalStateException(String.format("Dimensions Column %s not defined on model %s",
-            //                                dimColRef, model.getName()));
-            //                    }
-            //                } else {
-            //                    dimSet.set(dimId);
-            //                    if (filterColumns.contains(dimColRef)) {
-            //                        filterSet.set(dimId);
-            //                    }
-            //                }
-            //            }
-
-            //dimensionBitSet = new ImmutableBitSet(dimSet);
-            //filterBitSet = new ImmutableBitSet(filterSet);
 
             BitSet measureSet = new BitSet();
             for (FunctionDesc funcDesc : metrics) {
@@ -156,24 +200,12 @@ public class NCuboidLayoutChooser {
             }
 
             measureBitSet = new ImmutableBitSet(measureSet);
-
-            ordering = Ordering.natural().onResultOf(new Function<NLayoutCandidate, Comparable>() {
-                //l1 comparator, compare cuboid rows
-                @Nullable
-                @Override
-                public Comparable apply(@Nullable NLayoutCandidate input) {
-                    return segment.getSegDetails().getCuboidRowsMap()
-                            .get(Objects.requireNonNull(input).getCuboidLayout().getId()).doubleValue();
-                }
-            }).compound(
-                    //l2 comparator, compare cuboid layout
-                    NLayoutCandidateComparators.matchQueryPattern(dimensions, filterColumns, metrics));
+            ordering = Ordering.natural().onResultOf(L1Comparator(segment)).compound(L2Comparator(filterColumns));
         }
 
         @Override
         //TODO: revisit to check perf
         //TODO: add UT for chooser
-
         //TODO: should prefer layouts without derived
         public boolean visit(final NCuboidDesc cuboidDesc) {
             // ========== check cuboid_desc from here ==========
@@ -182,7 +214,7 @@ public class NCuboidLayoutChooser {
             Set<TblColRef> unmatchedDims = Sets.newHashSet(this.dimensions);
             unmatchedDims.removeAll(cuboidDesc.getDimensionSet());
 
-            goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedDims);
+            goThruUnmatchedDims(cuboidDesc, needDerive, unmatchedDims, this.model);
 
             if (!unmatchedDims.isEmpty()) {
                 return false;
@@ -198,8 +230,9 @@ public class NCuboidLayoutChooser {
                     .filter(new Predicate<NCuboidLayout>() {
                         @Override
                         public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null)
+                            if (input == null || isTableIndexCubiod(input.getId())) {
                                 return false;
+                            }
 
                             NDataCuboid cuboid = segment.getCuboid(input.getId());
                             return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
@@ -230,57 +263,79 @@ public class NCuboidLayoutChooser {
             return true;
         }
 
-        private void goThruUnmatchedDims(final NCuboidDesc cuboidDesc, Map<TblColRef, DeriveInfo> needDeriveCollector,
-                Set<TblColRef> unmatchedDims) {
-            Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
-            while (unmatchedDimItr.hasNext()) {
-                TblColRef unmatchedDim = unmatchedDimItr.next();
-                if (model.isLookupTable(unmatchedDim.getTableRef())) {
-                    JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
-                    Preconditions.checkNotNull(joinByPKSide);
-                    TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
-                    TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
-
-                    if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
-                        TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
-                        if (cuboidDesc.dimensionsDerive(relatedCol)) {
-                            needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK,
-                                    joinByPKSide, new TblColRef[] { relatedCol }, true));
-                            unmatchedDimItr.remove();
-                            continue;
-                        }
-                    } else {
-                        if (cuboidDesc.dimensionsDerive(foreignKeyColumns)) {
-                            needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP,
-                                    joinByPKSide, foreignKeyColumns, false));
-                            unmatchedDimItr.remove();
-                            continue;
-                        }
-                    }
-                }
-
-                // in some rare cases, FK needs to be derived from PK
-                ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
-                Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, new Predicate<TblColRef>() {
-                    @Override
-                    public boolean apply(@Nullable TblColRef input) {
-                        return cuboidDesc.dimensionsDerive(input);
-                    }
-                });
-                TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
-                if (pk != null) {
-                    JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
-                    Preconditions.checkNotNull(joinByPKSide);
-                    needDeriveCollector.put(unmatchedDim,
-                            new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[] { pk }, true));
-                    unmatchedDimItr.remove();
-                }
-            }
-        }
-
-        NLayoutCandidate getBestLayoutCandidate() {
+        public NLayoutCandidate getBestLayoutCandidate() {
             return bestLayoutCandidate;
         }
+    }
+
+    private static boolean isTableIndexCubiod(long id) {
+        return id >= 1000000000L;
+    }
+
+    private static void goThruUnmatchedDims(final NCuboidDesc cuboidDesc, Map<TblColRef, DeriveInfo> needDeriveCollector,
+                                            Set<TblColRef> unmatchedDims, NDataModel model) {
+        Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
+        while (unmatchedDimItr.hasNext()) {
+            TblColRef unmatchedDim = unmatchedDimItr.next();
+            if (model.isLookupTable(unmatchedDim.getTableRef())) {
+                JoinDesc joinByPKSide = model.getJoinByPKSide(unmatchedDim.getTableRef());
+                Preconditions.checkNotNull(joinByPKSide);
+                TblColRef[] foreignKeyColumns = joinByPKSide.getForeignKeyColumns();
+                TblColRef[] primaryKeyColumns = joinByPKSide.getPrimaryKeyColumns();
+
+                if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
+                    TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
+                    if (cuboidDesc.dimensionsDerive(relatedCol)) {
+                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK,
+                                joinByPKSide, new TblColRef[] { relatedCol }, true));
+                        unmatchedDimItr.remove();
+                        continue;
+                    }
+                } else {
+                    if (cuboidDesc.dimensionsDerive(foreignKeyColumns)) {
+                        needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.LOOKUP,
+                                joinByPKSide, foreignKeyColumns, false));
+                        unmatchedDimItr.remove();
+                        continue;
+                    }
+                }
+            }
+
+            // in some rare cases, FK needs to be derived from PK
+            ImmutableCollection<TblColRef> pks = model.getFk2Pk().get(unmatchedDim);
+            Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, new Predicate<TblColRef>() {
+                @Override
+                public boolean apply(@Nullable TblColRef input) {
+                    return cuboidDesc.dimensionsDerive(input);
+                }
+            });
+            TblColRef pk = Iterables.getFirst(pksOnCuboid, null);
+            if (pk != null) {
+                JoinDesc joinByPKSide = model.getJoinByPKSide(pk.getTableRef());
+                Preconditions.checkNotNull(joinByPKSide);
+                needDeriveCollector.put(unmatchedDim,
+                        new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide, new TblColRef[] { pk }, true));
+                unmatchedDimItr.remove();
+            }
+        }
+    }
+
+    private static Function<NLayoutCandidate, Comparable> L1Comparator(final NDataSegment segment) {
+        return new Function<NLayoutCandidate, Comparable>() {
+            //L1 comparator, compare cuboid rows
+            @Nullable
+            @Override
+            public Comparable apply(@Nullable NLayoutCandidate input) {
+                Preconditions.checkNotNull(input);
+                long id = input.getCuboidLayout().getId();
+                return segment.getSegDetails().getCuboidRowsMap().get(id).doubleValue();
+            }
+        };
+    }
+
+    private static Comparator<NLayoutCandidate> L2Comparator(ImmutableSet<TblColRef> filterColumns) {
+        //L2 comparator, compare cuboid layout
+        return NLayoutCandidateComparators.matchQueryPattern(filterColumns);
     }
 
     private static class NStorageSpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
@@ -346,6 +401,11 @@ public class NCuboidLayoutChooser {
 
             bestCuboidLayout = Collections.min(availableLayouts, smalllestComparator);
             return true;
+        }
+
+        @Override
+        public NLayoutCandidate getBestLayoutCandidate() {
+            return null;
         }
 
         NCuboidLayout getBestLayout() {

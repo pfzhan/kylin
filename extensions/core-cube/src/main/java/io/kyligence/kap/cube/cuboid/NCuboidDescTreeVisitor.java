@@ -70,7 +70,8 @@ public class NCuboidDescTreeVisitor implements NSpanningTree.ISpanningTreeVisito
         return false;
     }
 
-    public NLayoutCandidate getMatched() {
+    @Override
+    public NLayoutCandidate getBestLayoutCandidate() {
         return results.first();
     }
 }

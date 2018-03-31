@@ -415,6 +415,14 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         //ITKapKylinQueryTest.testLimitCorrectness
         queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
         NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
+
+        //ITKapKylinQueryTest.testCommonQuery
+        queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_raw");
+        NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, joinType);
+
+        //ITKapKylinQueryTest.testCommonQuery
+        queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_rawtable");
+        NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, joinType);
     }
 
     private void validate(String dataflow, int id, String joinType) {
