@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.dict.lookup.SnapshotManager;
-import org.apache.kylin.dict.lookup.SnapshotTable;
+import org.apache.kylin.dict.lookup.NSnapshotManager;
+import org.apache.kylin.dict.lookup.NSnapshotTable;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
@@ -67,7 +67,7 @@ public class NSnapshotBuilder {
 
             if (isLookupTable && seg.getSnapshots().get(tableDesc.getIdentity()) == null) {
                 IReadableTable readableTable = SourceFactory.createReadableTable(tableDesc);
-                SnapshotTable snapshot = SnapshotManager.getInstance(KylinConfig.getInstanceFromEnv())
+                NSnapshotTable snapshot = NSnapshotManager.getInstance(KylinConfig.getInstanceFromEnv(),this.seg.getProject())
                         .buildSnapshot(readableTable, tableDesc);
                 newSnapMap.put(tableDesc.getIdentity(), snapshot.getResourcePath());
             }

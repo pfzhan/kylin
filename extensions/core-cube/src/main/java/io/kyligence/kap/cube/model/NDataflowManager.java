@@ -38,9 +38,8 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.dict.lookup.SnapshotManager;
-import org.apache.kylin.dict.lookup.SnapshotTable;
-import org.apache.kylin.metadata.TableMetadataManager;
+import org.apache.kylin.dict.lookup.NSnapshotManager;
+import org.apache.kylin.dict.lookup.NSnapshotTable;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
@@ -61,6 +60,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
@@ -148,12 +148,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
-
     public LookupStringTable getLookupTable(NDataSegment cubeSegment, JoinDesc join) {
         long ts = System.currentTimeMillis();
 
-        TableMetadataManager metaMgr = TableMetadataManager.getInstance(cubeSegment.getConfig());
-        SnapshotManager snapshotMgr = SnapshotManager.getInstance(cubeSegment.getConfig());
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(cubeSegment.getConfig(),
+                cubeSegment.getProject());
+        NSnapshotManager snapshotMgr = NSnapshotManager.getInstance(cubeSegment.getConfig(), cubeSegment.getProject());
 
         String tableName = join.getPKSide().getTableIdentity();
         String[] pkCols = join.getPrimaryKey();
@@ -163,10 +163,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     "No snaphot for table '" + tableName + "' found on cube segment " + cubeSegment.getName());
 
         try {
-            SnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
-            TableDesc tableDesc = metaMgr.getTableDesc(tableName, cubeSegment.getCubePlan().getModel().getProject());
-            LookupStringTable enhancedStringLookupTable = new LookupStringTable(tableDesc, pkCols,
-                    snapshot);
+            NSnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
+            TableDesc tableDesc = metaMgr.getTableDesc(tableName);
+            LookupStringTable enhancedStringLookupTable = new LookupStringTable(tableDesc, pkCols, snapshot);
             logger.info("Time to get lookup up table for {} is {} ", join.getPKSide().getTableName(),
                     (System.currentTimeMillis() - ts));
             return enhancedStringLookupTable;
@@ -175,7 +174,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                     "Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
         }
     }
-
 
     @Override
     public String getRealizationType() {
@@ -245,7 +243,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             crud.save(df);
 
             // add to project
-            NProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), df.getName(), projectName, owner);
+            NProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), df.getName(),
+                    projectName, owner);
 
             return df;
         }
