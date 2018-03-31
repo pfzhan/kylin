@@ -67,7 +67,8 @@ public class NSnapshotBuilder {
 
             if (isLookupTable && seg.getSnapshots().get(tableDesc.getIdentity()) == null) {
                 IReadableTable readableTable = SourceFactory.createReadableTable(tableDesc);
-                NSnapshotTable snapshot = NSnapshotManager.getInstance(KylinConfig.getInstanceFromEnv(),this.seg.getProject())
+                NSnapshotTable snapshot = NSnapshotManager
+                        .getInstance(KylinConfig.getInstanceFromEnv(), this.seg.getProject())
                         .buildSnapshot(readableTable, tableDesc);
                 newSnapMap.put(tableDesc.getIdentity(), snapshot.getResourcePath());
             }
