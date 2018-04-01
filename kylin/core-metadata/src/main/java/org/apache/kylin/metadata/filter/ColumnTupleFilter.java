@@ -138,7 +138,10 @@ public class ColumnTupleFilter extends TupleFilter {
             String col = BytesUtil.readUTFString(buffer);
             
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            DataModelDesc modelDesc = DataModelManager.getInstance(prj, config).getDataModelDesc(model);
+
+            //TODO: NDataModelManager mix with DataModelManager, worked aournd in org.apache.kylin.common.KylinConfig.getManager(java.lang.String, java.lang.Class<T>)
+            DataModelManager instance = DataModelManager.getInstance(prj, config);
+            DataModelDesc modelDesc = instance.getDataModelDesc(model);
             this.columnRef = modelDesc.findColumn(alias, col);
             
         } else {
