@@ -103,11 +103,7 @@ public class NCuboidLayoutChooser {
                 ImmutableSet<FunctionDesc> metrics, boolean isRawQuery) {
             this.segment = segment;
             this.model = (NDataModel) segment.getModel();
-            if (isRawQuery) {
-                this.cols = allCols;
-            } else {
-                this.cols = dimensions;
-            }
+            this.cols = isRawQuery ? allCols : dimensions;
             this.filterColumns = filterColumns;
             this.metrics = metrics;
             this.isRawQuery = isRawQuery;
