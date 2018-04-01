@@ -93,7 +93,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
-    //@Ignore
+    @Ignore("passed")
     @Test
     public void testAutoSingleModel() throws Exception {
         
@@ -217,7 +217,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         kapSparkSession.close();
     }
     
-    @Ignore
+    @Ignore("passed")
     @Test
     public void testAutoMultipleModel() throws Exception {
 
@@ -227,9 +227,9 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Map<String, NCubePlan> cubePlanOfParts = new HashMap<>();
         Map<String, NCubePlan> cubePlanOfAll = new HashMap<>();
         
-        // 1. 
+        // 1. Feed queries part1
         {
-            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 1, 2, "default");
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 2, "default");
             List<String> sqlList = new ArrayList<>();
             for (Pair<String, String> queryPair : queries) {
                 sqlList.add(queryPair.getSecond());
@@ -248,7 +248,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         }
         
 
-        // 2. 
+        // 2. Feed queried part2
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 2, 4, "default");
             List<String> sqlList = new ArrayList<>();
@@ -268,9 +268,9 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             }
         }
 
-        // 3. 
+        // 3. Retry all queries
         {
-            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 1, 4, "default");
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 4, "default");
             List<String> sqlList = new ArrayList<>();
             for (Pair<String, String> queryPair : queries) {
                 sqlList.add(queryPair.getSecond());
@@ -288,6 +288,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             }
         }
         
+        // 4. Suggested cuboids should be consistent no matter modeling with partial or full queries
         {
             Assert.assertEquals(cubePlanOfParts.size(), cubePlanOfAll.size());
             for (NCubePlan actual : cubePlanOfAll.values()) {
@@ -312,272 +313,273 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
  */
 
 
-//    @Ignore("failing")
-//    @Test
-//    public void testCommonQuery() throws Exception {
-//        testScenario("sql", CompareLevel.SAME);
-//    }
-//    
-//    @Ignore("auto model will suggest lookup table as fact, not fit in this case")
-//    @Test
-//    public void testLookupQuery() throws Exception {
-//        testScenario("sql_lookup", CompareLevel.SAME);
-//    }
-//    
-//    @Ignore("passed")
-//    @Test
-//    public void testCasewhen() throws Exception {
-//        testScenario("sql_casewhen", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("failing")
-//    @Test
-//    public void testLikeQuery() throws Exception {
-//        testScenario("sql_like", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testCachedQuery() throws Exception {
-//        testScenario("sql_cache", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("failing")
-//    @Test
-//    public void testDerived() throws Exception {
-//        testScenario("sql_derived", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testDatetime() throws Exception {
-//        testScenario("sql_datetime", CompareLevel.SAME);
-//    }
-//    
-//    @Ignore("failing")
-//    // different results due to limited disorder, just check result size
-//    @Test
-//    public void testTableau() throws Exception {
-//        testScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testDistinct() throws Exception {
-//        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-//        testScenario("sql_distinct", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("failing")
-//    @Test
-//    public void testDistinctDim() throws Exception {
-//        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-//        testScenario("sql_distinct_dim", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testDistinctPrecisely() throws Exception {
-//        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-//        testScenario("sql_distinct_precisely", CompareLevel.SAME, "left");
-//    }
-//
-//
-//    @Ignore("no query found")
-//    @Test
-//    public void testTimestamp() throws Exception {
-//        testScenario("sql_timestamp", CompareLevel.NONE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testMultiModel() throws Exception {
-//        testScenario("sql_multi_model", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testOrderBy() throws Exception {
-//        testScenario("sql_orderby", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("failing")
-//    // The strict join condition cause records lost.
-//    @Test
-//    public void testSnowFlake() throws Exception {
-//        testScenario("sql_snowflake", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testTopn() throws Exception {
-//        testScenario("sql_topn", CompareLevel.SAME, "left");
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testJoin() throws Exception {
-//        testScenario("sql_join", CompareLevel.SAME);
-//    }
-//    
-//    @Ignore("failing")
-//    @Test
-//    public void testUnion() throws Exception {
-//        testScenario("sql_union", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("not storage query, skip")
-//    @Test
-//    public void testTableauProbing() throws Exception {
-//        testScenario("tableau_probing", CompareLevel.NONE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testWindow() throws Exception {
-//        testScenario("sql_window", CompareLevel.NONE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testH2Uncapable() throws Exception {
-//        testScenario("sql_h2_uncapable", CompareLevel.NONE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testGrouping() throws Exception {
-//        testScenario("sql_grouping", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testHive() throws Exception {
-//        testScenario("sql_hive", CompareLevel.SAME);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testIntersectCount() throws Exception {
-//        testScenario("sql_intersect_count", CompareLevel.NONE, "left");
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testPercentile() throws Exception {
-//        testScenario("sql_percentile", CompareLevel.NONE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testPowerBiQuery() throws Exception {
-//        testScenario("sql_powerbi", CompareLevel.SAME, true);
-//    }
-//    
-//    @Ignore("failing")
-//    @Test
-//    public void testLimitCorrectness() throws Exception {
-//        List<Pair<String, String>> queries = fetchPartialQueries("sql", false, 0, 0, JOIN_TYPE);
-//        buildCube(queries);
-//        NExecAndComp.execLimitAndValidate(queries, kapSparkSession, JOIN_TYPE);
-//    }
-//
-//    @Ignore("passed")
-//    @Test
-//    public void testRaw() throws Exception {
-//        testScenario("sql_raw", CompareLevel.SAME);
-//    }
-//    
-//    @Ignore("failing")
-//    @Test
-//    public void testRawTable() throws Exception {
-//        testScenario("sql_rawtable", CompareLevel.SAME, true, 0, 0, JOIN_TYPE);
-//    }
-//
-//    @Ignore("failing")
-//    // Automodeling problem, Yifan focus on it.
-//    @Test
-//    public void testSubQuery() throws Exception {
-//        //System.setProperty("calcite.debug", "true");
-//        testScenario("sql_subquery", CompareLevel.SAME);// , 16, 17);
-//    }
-//    
-//    /****************
-//     * Following cased are not in Newten M1 scope
-//     */
-//    
-//    @Ignore
-//    @Test
-//    public void testDynamic() throws Exception {
-//        testScenario("sql_dynamic", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testExtendedColumn() throws Exception {
-//        testScenario("sql_extended_column", CompareLevel.SAME);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testInvalid() throws Exception {
-//        testScenario("sql_invalid", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testLimit() throws Exception {
-//        testScenario("sql_limit", CompareLevel.NONE);
-//    }
-//
-//
-//    @Ignore
-//    @Test
-//    public void testMassin() throws Exception {
-//        testScenario("sql_massin", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testMassinDistinct() throws Exception {
-//        testScenario("sql_massin_distinct", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testStreaming() throws Exception {
-//        testScenario("sql_streaming", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testTimeout() throws Exception {
-//        testScenario("sql_timeout", CompareLevel.NONE);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testVerifyContent() throws Exception {
-//        testScenario("sql_verifyContent", CompareLevel.SAME);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testVerifyCount() throws Exception {
-//        testScenario("sql_verifyCount", CompareLevel.SAME_ROWCOUNT);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testTimeStampAdd() throws Exception {
-//        testScenario("sql_current_date", CompareLevel.SAME, true);
-//    }
-//
-//    @Ignore
-//    @Test
-//    public void testPercentileQuery() throws Exception {
-//        testScenario("sql_percentile", CompareLevel.SAME, false);
-//    }
+    @Ignore("passed")
+    @Test
+    public void testCommonQuery() throws Exception {
+        testScenario("sql", CompareLevel.SAME);
+    }
+    
+    @Ignore("auto model will suggest lookup table as fact, not fit in this case")
+    @Test
+    public void testLookupQuery() throws Exception {
+        testScenario("sql_lookup", CompareLevel.SAME);
+    }
+    
+    @Ignore("passed")
+    @Test
+    public void testCasewhen() throws Exception {
+        testScenario("sql_casewhen", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testLikeQuery() throws Exception {
+        testScenario("sql_like", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testCachedQuery() throws Exception {
+        testScenario("sql_cache", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testDerived() throws Exception {
+        testScenario("sql_derived", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testDatetime() throws Exception {
+        testScenario("sql_datetime", CompareLevel.SAME);
+    }
+    
+    @Ignore("passed")
+    // different results due to limited disorder, just check result size
+    @Test
+    public void testTableau() throws Exception {
+        testScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testDistinct() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        testScenario("sql_distinct", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testDistinctDim() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        testScenario("sql_distinct_dim", CompareLevel.SAME, 0, 2);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testDistinctPrecisely() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        testScenario("sql_distinct_precisely", CompareLevel.SAME, "left");
+    }
+
+
+    @Ignore("no query found")
+    @Test
+    public void testTimestamp() throws Exception {
+        testScenario("sql_timestamp", CompareLevel.NONE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testMultiModel() throws Exception {
+        testScenario("sql_multi_model", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testOrderBy() throws Exception {
+        testScenario("sql_orderby", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testSnowFlake() throws Exception {
+        testScenario("sql_snowflake", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testTopn() throws Exception {
+        testScenario("sql_topn", CompareLevel.SAME, "left");
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testJoin() throws Exception {
+        testScenario("sql_join", CompareLevel.SAME);
+    }
+    
+    @Ignore("passed")
+    @Test
+    public void testUnion() throws Exception {
+        testScenario("sql_union", CompareLevel.SAME);
+    }
+
+    @Ignore("not storage query, skip")
+    @Test
+    public void testTableauProbing() throws Exception {
+        testScenario("tableau_probing", CompareLevel.NONE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testWindow() throws Exception {
+        testScenario("sql_window", CompareLevel.NONE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testH2Uncapable() throws Exception {
+        testScenario("sql_h2_uncapable", CompareLevel.NONE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testGrouping() throws Exception {
+        testScenario("sql_grouping", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testHive() throws Exception {
+        testScenario("sql_hive", CompareLevel.SAME);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testIntersectCount() throws Exception {
+        testScenario("sql_intersect_count", CompareLevel.NONE, "left");
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testPercentile() throws Exception {
+        testScenario("sql_percentile", CompareLevel.NONE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testPowerBiQuery() throws Exception {
+        testScenario("sql_powerbi", CompareLevel.SAME, true);
+    }
+    
+    @Ignore("passed")
+    @Test
+    public void testLimitCorrectness() throws Exception {
+        List<Pair<String, String>> queries = fetchPartialQueries("sql", false, 0, 0, JOIN_TYPE);
+        buildCube(queries);
+        kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+        populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+        NExecAndComp.execLimitAndValidate(queries, kapSparkSession, JOIN_TYPE);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testRaw() throws Exception {
+        testScenario("sql_raw", CompareLevel.SAME);
+    }
+    
+    @Ignore("passed")
+    @Test
+    public void testRawTable() throws Exception {
+        testScenario("sql_rawtable", CompareLevel.SAME, true);
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testSubQuery() throws Exception {
+        //System.setProperty("calcite.debug", "true");
+        testScenario("sql_subquery", CompareLevel.SAME);
+    }
+    
+    /****************
+     * Following cased are not in Newten M1 scope
+     */
+    
+    @Ignore
+    @Test
+    public void testDynamic() throws Exception {
+        testScenario("sql_dynamic", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testExtendedColumn() throws Exception {
+        testScenario("sql_extended_column", CompareLevel.SAME);
+    }
+
+    @Ignore
+    @Test
+    public void testInvalid() throws Exception {
+        testScenario("sql_invalid", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testLimit() throws Exception {
+        testScenario("sql_limit", CompareLevel.NONE);
+    }
+
+
+    @Ignore
+    @Test
+    public void testMassin() throws Exception {
+        testScenario("sql_massin", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testMassinDistinct() throws Exception {
+        testScenario("sql_massin_distinct", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testStreaming() throws Exception {
+        testScenario("sql_streaming", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testTimeout() throws Exception {
+        testScenario("sql_timeout", CompareLevel.NONE);
+    }
+
+    @Ignore
+    @Test
+    public void testVerifyContent() throws Exception {
+        testScenario("sql_verifyContent", CompareLevel.SAME);
+    }
+
+    @Ignore
+    @Test
+    public void testVerifyCount() throws Exception {
+        testScenario("sql_verifyCount", CompareLevel.SAME_ROWCOUNT);
+    }
+
+    @Ignore
+    @Test
+    public void testTimeStampAdd() throws Exception {
+        testScenario("sql_current_date", CompareLevel.SAME, true);
+    }
+
+    @Ignore
+    @Test
+    public void testPercentileQuery() throws Exception {
+        testScenario("sql_percentile", CompareLevel.SAME, false);
+    }
 
     private void testScenario(String name, CompareLevel compareLevel) throws Exception {
         testScenario(name, compareLevel, false, 0, 0, "default");
@@ -607,6 +609,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // Validate results between sparksql and cube
         populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
         NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, joinType);
+        kapSparkSession.close();
     }
     
     private void buildCube(List<Pair<String, String>> queries) throws Exception {

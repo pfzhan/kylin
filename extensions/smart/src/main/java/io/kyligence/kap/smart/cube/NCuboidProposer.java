@@ -58,6 +58,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.model.ModelTree;
 
@@ -158,7 +159,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
 
     class DimensionCFClusterer {
         NColumnFamilyDesc.DimensionCF[] cluster(Collection<Integer> dimIds) {
-            // TODO: because of limitation of GTRecord, currently only support all dimensions in one column family
+            // TODO: because of limitation of GTRecord, currently only support
+            // all dimensions in one column family
             NColumnFamilyDesc.DimensionCF[] dimCFs = new NColumnFamilyDesc.DimensionCF[1];
             dimCFs[0] = new NColumnFamilyDesc.DimensionCF();
             dimCFs[0].setName("ALL_DIM");
@@ -288,7 +290,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
         }
 
         private boolean compareLayouts(NCuboidLayout l1, NCuboidLayout l2) {
-            // TODO: currently it's exact equals, we should tolerate some order and cf inconsistency
+            // TODO: currently it's exact equals, we should tolerate some order
+            // and cf inconsistency
             return Arrays.equals(l1.getRowkeyColumns(), l2.getRowkeyColumns())
                     && Arrays.equals(l1.getDimensionCFs(), l2.getDimensionCFs())
                     && Arrays.equals(l1.getMeasureCFs(), l2.getMeasureCFs())
@@ -302,7 +305,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
 
             final Map<Integer, Double> dimScores = getDimScores(ctx);
             SortedSet<Integer> measureIds = Sets.newTreeSet();
-            
+
             boolean useTableIndex = ctx.getSQLDigest().isRawQuery;
 
             if (!useTableIndex) {
@@ -325,6 +328,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                     dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
                 }
 
+                //measureIds.add(NDataModel.MEASURE_ID_BASE);
                 if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
                     for (FunctionDesc aggFunc : ctx.aggregations) {
                         Integer measureId = aggFuncIdMap.get(aggFunc);
@@ -347,6 +351,9 @@ public class NCuboidProposer extends NAbstractCubeProposer {
                 // FIXME use better table index flag
                 int tableIndexFlag = Integer.MAX_VALUE;
                 dimBitSet.set(tableIndexFlag);
+                for (NamedColumn column : model.getAllNamedColumns()) {
+                    dimScores.put(column.id, -1D);
+                }
             }
 
             for (int dimId : dimScores.keySet())
@@ -419,7 +426,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             long maxId = NCuboidDesc.TABLE_INDEX_START_ID - NCubePlanManager.CUBOID_DESC_ID_STEP;
             for (NCuboidDesc cuboidDesc : cuboidDescs) {
                 long cuboidId = cuboidDesc.getId();
-                if (cuboidId < NCuboidDesc.TABLE_INDEX_START_ID ) {
+                if (cuboidId < NCuboidDesc.TABLE_INDEX_START_ID) {
                     continue;
                 }
                 maxId = Math.max(maxId, cuboidId);
@@ -429,7 +436,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             long maxId = 0 - NCubePlanManager.CUBOID_DESC_ID_STEP;
             for (NCuboidDesc cuboidDesc : cuboidDescs) {
                 long cuboidId = cuboidDesc.getId();
-                if (cuboidId >= NCuboidDesc.TABLE_INDEX_START_ID ) {
+                if (cuboidId >= NCuboidDesc.TABLE_INDEX_START_ID) {
                     continue;
                 }
                 maxId = Math.max(maxId, cuboidId);

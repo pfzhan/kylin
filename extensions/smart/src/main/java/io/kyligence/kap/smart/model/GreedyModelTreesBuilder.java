@@ -128,20 +128,22 @@ public class GreedyModelTreesBuilder {
      * @return
      */
     boolean matchContext(OLAPContext ctx, OLAPContext anotherCtx) {
-        if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
-            return false;
+        List<JoinDesc> joins = Lists.newArrayList();
+        if (ctx != null && ctx.joins != null) {
+            joins.addAll(ctx.joins);
         }
 
-        if (anotherCtx == null || anotherCtx.joins == null || anotherCtx.joins.size() == 0) {
-            return false;
+        List<JoinDesc> anotherJoins = Lists.newArrayList();
+        if (anotherCtx != null && anotherCtx.joins != null) {
+            anotherJoins.addAll(anotherCtx.joins);
         }
 
 //        if (ctx.getSQLDigest().isRawQuery != anotherCtx.getSQLDigest().isRawQuery) {
 //            return false;
 //        }
 
-        JoinsTree tree = new JoinsTree(ctx.firstTableScan.getTableRef(), ctx.joins);
-        JoinsTree anotherTree = new JoinsTree(anotherCtx.firstTableScan.getTableRef(), anotherCtx.joins);
+        JoinsTree tree = new JoinsTree(ctx.firstTableScan.getTableRef(), joins);
+        JoinsTree anotherTree = new JoinsTree(anotherCtx.firstTableScan.getTableRef(), anotherJoins);
         return matchJoinTree(tree, anotherTree);
     }
     
@@ -192,12 +194,18 @@ public class GreedyModelTreesBuilder {
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();
             for (OLAPContext ctx : inputCtxs) {
-                if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
+                if (ctx == null) {
                     usedCtxs.add(ctx);
                     continue;
                 }
                 
                 if (!matchContext(usedCtxs, ctx)) {
+                    // ctx not fit current tree
+                    continue;
+                }
+                
+                if (ctx.joins == null || ctx.joins.size() == 0) {
+                    usedCtxs.add(ctx);
                     continue;
                 }
 

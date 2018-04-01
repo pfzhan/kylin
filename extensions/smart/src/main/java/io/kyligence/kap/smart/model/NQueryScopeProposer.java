@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -152,6 +153,11 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
             if (ctx.subqueryJoinParticipants != null)
                 allColumns.addAll(ctx.subqueryJoinParticipants);
+            
+            for (JoinTableDesc join : nDataModel.getJoinTables()) {
+                TblColRef[] fks = join.getJoin().getForeignKeyColumns();
+                allColumns.addAll(Arrays.asList(fks));
+            }
 
             for (TblColRef tblColRef : allColumns) {
                 if (namedColsCandidate.containsKey(tblColRef.getIdentity()))
