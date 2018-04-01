@@ -196,4 +196,8 @@ public class SmartConfig {
     public String getModelScopeStrategy() {
         return getOptional("model.scope.strategy", strategy.getModelScopeStrategy());
     }
+
+    public String getMeasureCountDistinctType() {
+        return getOptional("measure.count-distinct.return-type", strategy.getMeasureCountDistinctType());
+    }
 }

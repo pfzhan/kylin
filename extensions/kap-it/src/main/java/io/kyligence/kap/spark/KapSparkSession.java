@@ -30,11 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import io.kyligence.kap.job.execution.NExecutableManager;
-import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
-import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
-import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -64,6 +59,11 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.job.execution.NExecutableManager;
+import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
+import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
@@ -199,7 +199,7 @@ public class KapSparkSession extends SparkSession {
         logger.info("Job finished. Come on! Query me!");
     }
 
-    private void buildAllCubes(KylinConfig kylinConfig, String proj) throws IOException, InterruptedException {
+    public void buildAllCubes(KylinConfig kylinConfig, String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();
         NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, proj);

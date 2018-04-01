@@ -147,4 +147,8 @@ public class DefaultSmartStrategy implements ISmartStrategy {
     public int getQueryDryRunThreads() {
         return 12;
     }
+
+    public String getMeasureCountDistinctType() {
+        return "hllc(10)";
+    }
 }

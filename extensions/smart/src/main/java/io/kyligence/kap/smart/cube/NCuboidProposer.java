@@ -234,6 +234,16 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             return ArrayUtils.toPrimitive(shardBy.toArray(new Integer[0]));
         }
 
+        private int[] suggestSortBy(Collection<Integer> dimIds, boolean isTableIndex) {
+            if (isTableIndex && (!dimIds.isEmpty())) {
+                // TODO choose reasonable sort key(s)
+                Integer[] dimArray = dimIds.toArray(new Integer[0]);
+                return new int[] { dimArray[0] };
+            } else {
+                return new int[0]; // not used for normal cuboid.
+            }
+        }
+
         private Map<Integer, Double> getDimScores(OLAPContext ctx) {
             final Map<Integer, Double> dimScores = Maps.newHashMap();
 
@@ -291,45 +301,52 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             final BitSet measureBitSet = new BitSet();
 
             final Map<Integer, Double> dimScores = getDimScores(ctx);
-
-            // FIXME work around empty dimension case
-            if (dimScores.isEmpty()) {
-                Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
-                for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
-                    dimensionCandidate.put(namedColumn.name, namedColumn);
-                }
-                for (NDataModel.Measure measure : model.getAllMeasures()) {
-                    FunctionDesc agg = measure.getFunction();
-                    if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
-                        continue;
-                    }
-                    dimensionCandidate.remove(agg.getParameter().getValue());
-                }
-                if (dimensionCandidate.isEmpty()) {
-                    throw new RuntimeException("Suggest no dimension");
-                }
-                dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
-            }
-
             SortedSet<Integer> measureIds = Sets.newTreeSet();
-            measureIds.add(NDataModel.MEASURE_ID_BASE);
-            if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
-                for (FunctionDesc aggFunc : ctx.aggregations) {
-                    Integer measureId = aggFuncIdMap.get(aggFunc);
-                    if (measureId == null) {
-                        // dimension as measure, put cols to rowkey tail
-                        if (aggFunc.getParameter() != null) {
-                            for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
-                                int colId = colIdMap.get(colRef);
-                                if (!dimScores.containsKey(colId))
-                                    dimScores.put(colId, -1D);
-                            }
+            
+            boolean useTableIndex = ctx.getSQLDigest().isRawQuery;
+
+            if (!useTableIndex) {
+                // FIXME work around empty dimension case
+                if (dimScores.isEmpty()) {
+                    Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
+                    for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
+                        dimensionCandidate.put(namedColumn.name, namedColumn);
+                    }
+                    for (NDataModel.Measure measure : model.getAllMeasures()) {
+                        FunctionDesc agg = measure.getFunction();
+                        if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
+                            continue;
                         }
-                    } else {
-                        measureIds.add(measureId);
-                        measureBitSet.set(measureId);
+                        dimensionCandidate.remove(agg.getParameter().getValue());
+                    }
+                    if (dimensionCandidate.isEmpty()) {
+                        throw new RuntimeException("Suggest no dimension");
+                    }
+                    dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
+                }
+
+                if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
+                    for (FunctionDesc aggFunc : ctx.aggregations) {
+                        Integer measureId = aggFuncIdMap.get(aggFunc);
+                        if (measureId == null) {
+                            // dimension as measure, put cols to rowkey tail
+                            if (aggFunc.getParameter() != null) {
+                                for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
+                                    int colId = colIdMap.get(colRef);
+                                    if (!dimScores.containsKey(colId))
+                                        dimScores.put(colId, -1D);
+                                }
+                            }
+                        } else {
+                            measureIds.add(measureId);
+                            measureBitSet.set(measureId);
+                        }
                     }
                 }
+            } else {
+                // FIXME use better table index flag
+                int tableIndexFlag = Integer.MAX_VALUE;
+                dimBitSet.set(tableIndexFlag);
             }
 
             for (int dimId : dimScores.keySet())
@@ -342,13 +359,13 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             NColumnFamilyDesc.DimensionCF[] dimCFs = new DimensionCFClusterer().cluster(dimScores.keySet());
             NColumnFamilyDesc.MeasureCF[] measureCFS = new MeasureCFClusterer().cluster(measureIds);
             int[] shardBy = suggestShardBy(dimScores.keySet());
-            int[] sortBy = new int[0]; // TODO: used for table index.
+            int[] sortBy = suggestSortBy(dimScores.keySet(), useTableIndex);
 
             Pair<BitSet, BitSet> cuboidKey = new Pair<>(dimBitSet, measureBitSet);
 
             NCuboidDesc cuboidDesc = collector.get(cuboidKey);
             if (cuboidDesc == null) {
-                cuboidDesc = createCuboidDesc(dimScores.keySet(), measureIds);
+                cuboidDesc = createCuboidDesc(dimScores.keySet(), measureIds, useTableIndex);
                 collector.put(cuboidKey, cuboidDesc);
             }
 
@@ -370,9 +387,9 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             cuboidLayoutIds.add(layout.getId());
         }
 
-        private NCuboidDesc createCuboidDesc(Set<Integer> dimIds, Set<Integer> measureIds) {
+        private NCuboidDesc createCuboidDesc(Set<Integer> dimIds, Set<Integer> measureIds, boolean isTableIndex) {
             NCuboidDesc cuboidDesc = new NCuboidDesc();
-            cuboidDesc.setId(suggestDescId());
+            cuboidDesc.setId(suggestDescId(isTableIndex));
             cuboidDesc.setDimensions(ArrayUtils.toPrimitive(dimIds.toArray(new Integer[0])));
             cuboidDesc.setMeasures(ArrayUtils.toPrimitive(measureIds.toArray(new Integer[0])));
             cuboidDesc.setCubePlan(cubePlan);
@@ -382,8 +399,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             return cuboidDesc;
         }
 
-        private long suggestDescId() {
-            return findLargestCuboidDescId(collector.values()) + NCubePlanManager.CUBOID_DESC_ID_STEP;
+        private long suggestDescId(boolean isTableIndex) {
+            return findLargestCuboidDescId(collector.values(), isTableIndex) + NCubePlanManager.CUBOID_DESC_ID_STEP;
         }
 
         private long suggestLayoutId(NCuboidDesc cuboidDesc) {
@@ -397,10 +414,27 @@ public class NCuboidProposer extends NAbstractCubeProposer {
 
     }
 
-    private long findLargestCuboidDescId(Collection<NCuboidDesc> cuboidDescs) {
-        long cuboidId = 0 - NCubePlanManager.CUBOID_DESC_ID_STEP;
-        for (NCuboidDesc cuboidDesc : cuboidDescs)
-            cuboidId = Math.max(cuboidId, cuboidDesc.getId());
-        return cuboidId;
+    private long findLargestCuboidDescId(Collection<NCuboidDesc> cuboidDescs, boolean isTableIndex) {
+        if (isTableIndex) {
+            long maxId = NCuboidDesc.TABLE_INDEX_START_ID - NCubePlanManager.CUBOID_DESC_ID_STEP;
+            for (NCuboidDesc cuboidDesc : cuboidDescs) {
+                long cuboidId = cuboidDesc.getId();
+                if (cuboidId < NCuboidDesc.TABLE_INDEX_START_ID ) {
+                    continue;
+                }
+                maxId = Math.max(maxId, cuboidId);
+            }
+            return maxId;
+        } else {
+            long maxId = 0 - NCubePlanManager.CUBOID_DESC_ID_STEP;
+            for (NCuboidDesc cuboidDesc : cuboidDescs) {
+                long cuboidId = cuboidDesc.getId();
+                if (cuboidId >= NCuboidDesc.TABLE_INDEX_START_ID ) {
+                    continue;
+                }
+                maxId = Math.max(maxId, cuboidId);
+            }
+            return maxId;
+        }
     }
 }

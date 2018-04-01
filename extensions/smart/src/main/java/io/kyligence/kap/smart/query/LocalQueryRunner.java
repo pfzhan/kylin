@@ -76,6 +76,7 @@ class LocalQueryRunner extends AbstractQueryRunner {
         config.setProperty("kylin.query.transformers", StringUtils.join(srcKylinConfig.getQueryTransformers(), ','));
         config.setProperty("kap.query.security.row-acl-enabled", "false");
         config.setProperty("kap.query.security.column-acl-enabled", "false");
+        config.setProperty("kylin.query.schema-factory", srcKylinConfig.getSchemaFactory());
         return config;
     }
 

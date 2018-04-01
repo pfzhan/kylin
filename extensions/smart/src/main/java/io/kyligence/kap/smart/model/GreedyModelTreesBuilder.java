@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.model;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -42,6 +43,7 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.JoinsTree.Chain;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
@@ -106,6 +108,60 @@ public class GreedyModelTreesBuilder {
         }
         return results;
     }
+    
+
+
+    boolean matchContext(List<OLAPContext> ctxs, OLAPContext anotherCtx) {
+        for (OLAPContext olapContext : ctxs) {
+            if (!matchContext(olapContext, anotherCtx)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Strictly check contexts' consistency
+     * 
+     * @param ctx
+     * @param anotherCtx
+     * @return
+     */
+    boolean matchContext(OLAPContext ctx, OLAPContext anotherCtx) {
+        if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
+            return false;
+        }
+
+        if (anotherCtx == null || anotherCtx.joins == null || anotherCtx.joins.size() == 0) {
+            return false;
+        }
+
+//        if (ctx.getSQLDigest().isRawQuery != anotherCtx.getSQLDigest().isRawQuery) {
+//            return false;
+//        }
+
+        JoinsTree tree = new JoinsTree(ctx.firstTableScan.getTableRef(), ctx.joins);
+        JoinsTree anotherTree = new JoinsTree(anotherCtx.firstTableScan.getTableRef(), anotherCtx.joins);
+        return matchJoinTree(tree, anotherTree);
+    }
+    
+    public static boolean matchJoinTree(JoinsTree tree, JoinsTree anotherTree) {
+        List<Chain> chains = tree.unmatchedChain(anotherTree, Collections.<String, String>emptyMap());
+        for (Chain chain : chains) {
+            if (!chain.getJoin().isLeftJoin()) {
+                return false;
+            }
+        }
+
+        chains = anotherTree.unmatchedChain(tree, Collections.<String, String>emptyMap());
+        for (Chain chain : chains) {
+            if (!chain.getJoin().isLeftJoin()) {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private class TreeBuilder {
         TableDesc rootFact;
@@ -138,6 +194,10 @@ public class GreedyModelTreesBuilder {
             for (OLAPContext ctx : inputCtxs) {
                 if (ctx == null || ctx.joins == null || ctx.joins.size() == 0) {
                     usedCtxs.add(ctx);
+                    continue;
+                }
+                
+                if (!matchContext(usedCtxs, ctx)) {
                     continue;
                 }
 

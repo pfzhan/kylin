@@ -49,8 +49,8 @@ import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
 
-    public static final int CUBOID_DESC_ID_STEP = 1000;
-    public static final int CUBOID_LAYOUT_ID_STEP = 1;
+    public static final long CUBOID_DESC_ID_STEP = 1000L;
+    public static final long CUBOID_LAYOUT_ID_STEP = 1L;
 
     public static NCubePlanManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NCubePlanManager.class);

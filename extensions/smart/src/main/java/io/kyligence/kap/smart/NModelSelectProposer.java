@@ -40,6 +40,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 
 public class NModelSelectProposer extends NAbstractProposer {
@@ -49,7 +50,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     public NModelSelectProposer(NSmartContext context) {
         super(context);
 
-        modelManager = (NDataModelManager) NDataModelManager.getInstance(context.getKylinConfig(),
+        modelManager = NDataModelManager.getInstance(context.getKylinConfig(),
                 context.getProject());
     }
 
@@ -91,8 +92,9 @@ public class NModelSelectProposer extends NAbstractProposer {
                     }
                 }
                 JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
-                Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
-                if (matching != null)
+                //Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
+                //if (matching != null)
+                if (GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree))
                     return (NDataModel) model;
             }
         }

@@ -332,7 +332,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         }
     }
 
-    public NCuboidDesc getCuboidDesc(int cuboidDescId) {
+    public NCuboidDesc getCuboidDesc(long cuboidDescId) {
         return getSpanningTree().getCuboidDesc(cuboidDescId);
     }
 

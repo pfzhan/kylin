@@ -105,11 +105,11 @@ public class JoinDescUtil {
         for (JoinDesc joinDesc : joins) {
             TableRef table = joinDesc.getPKSide();
             String tableAlias = table.getAlias();
-            if (fkTables.containsKey(tableAlias)) {
-                tableKindByJoins.add(TableKind.FACT);
-            } else {
+//            if (fkTables.containsKey(tableAlias)) {
+//                tableKindByJoins.add(TableKind.FACT);
+//            } else {
                 tableKindByJoins.add(TableKind.LOOKUP); // set to FACT if want to bypass dup-key on lookup table
-            }
+//            }
         }
         return tableKindByJoins;
     }

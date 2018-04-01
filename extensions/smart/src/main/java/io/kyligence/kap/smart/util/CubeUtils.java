@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.model.AggregationGroup;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.cube.model.DimensionDesc;
@@ -47,6 +48,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.KapModel;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.query.Utils;
 
 public class CubeUtils {
@@ -124,7 +126,7 @@ public class CubeUtils {
             returnType = "bigint";
             break;
         case FunctionDesc.FUNC_COUNT_DISTINCT:
-            returnType = "hllc(10)";
+            returnType = SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType(); //"hllc(10)";
             break;
         case FunctionDesc.FUNC_PERCENTILE:
             returnType = "percentile(100)";

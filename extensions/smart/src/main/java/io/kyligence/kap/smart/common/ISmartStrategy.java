@@ -80,4 +80,6 @@ interface ISmartStrategy {
     String getModelScopeStrategy();
 
     int getQueryDryRunThreads();
+
+    String getMeasureCountDistinctType();
 }

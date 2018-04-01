@@ -121,7 +121,7 @@ public class NExecAndComp {
         return kapSparkSession.querySparkSql(afterConvert);
     }
 
-    private static String changeJoinType(String sql, String targetType) {
+    public static String changeJoinType(String sql, String targetType) {
 
         if (targetType.equalsIgnoreCase("default"))
             return sql;

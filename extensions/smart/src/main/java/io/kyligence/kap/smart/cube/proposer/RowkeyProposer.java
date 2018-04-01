@@ -44,7 +44,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
+//import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -61,9 +61,9 @@ public class RowkeyProposer extends AbstractCubeProposer {
     @Override
     public void doPropose(CubeDesc workCubeDesc) {
         int rowkeySize = workCubeDesc.getRowkey().getRowKeyColumns().length;
-        Preconditions.checkState(rowkeySize < 64, String.format(
-                "Too many rowkeys (%s) in CubeDesc, please try to reduce dimension number or adopt derived dimensions",
-                rowkeySize));
+//        Preconditions.checkState(rowkeySize < 64, String.format(
+//                "Too many rowkeys (%s) in CubeDesc, please try to reduce dimension number or adopt derived dimensions",
+//                rowkeySize));
 
         Utils.removeLargeRowkeySizeConf(workCubeDesc.getOverrideKylinProps());
         updateRowKeyOrder(workCubeDesc);
