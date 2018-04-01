@@ -36,12 +36,11 @@ import java.util.NoSuchElementException;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.dict.DictionaryInfo;
-import org.apache.kylin.dict.GlobalDictionaryBuilder2;
-import org.apache.kylin.dict.IDictionaryBuilder;
+import org.apache.kylin.dict.INDictionaryBuilder;
 import org.apache.kylin.dict.IterableDictionaryValueEnumerator;
 import org.apache.kylin.dict.NDictionaryInfo;
 import org.apache.kylin.dict.NDictionaryManager;
+import org.apache.kylin.dict.NGlobalDictionaryBuilder2;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -85,7 +84,7 @@ public class NDictionaryBuilder implements Serializable {
         Map<TblColRef, Dictionary<String>> dictionaryMap = Maps.newHashMap();
 
         for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
-            DictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
+            NDictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
                     seg.getProject());
             String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
             //TODO: what if dict changed?
@@ -194,7 +193,7 @@ public class NDictionaryBuilder implements Serializable {
             NDictionaryManager dictionaryManager = NDictionaryManager.getInstance(segment.getConfig(),
                     segment.getProject());
             try {
-                DictionaryInfo realDict = dictionaryManager.trySaveNewDict(dictionary, dictInfo);
+                NDictionaryInfo realDict = dictionaryManager.trySaveNewDict(dictionary, dictInfo);
                 segCopy.putDictResPath(tblColRef, realDict.getResourcePath());
             } catch (IOException e) {
                 throw new RuntimeException("error save dictionary for column:" + tblColRef, e);
@@ -208,8 +207,8 @@ public class NDictionaryBuilder implements Serializable {
             return false;
         }
 
-        IDictionaryBuilder builder = (IDictionaryBuilder) ClassUtil.newInstance(dictBuildClz);
-        if (builder instanceof GlobalDictionaryBuilder2)
+        INDictionaryBuilder builder = (INDictionaryBuilder) ClassUtil.newInstance(dictBuildClz);
+        if (builder instanceof NGlobalDictionaryBuilder2)
             return true;
 
         return false;

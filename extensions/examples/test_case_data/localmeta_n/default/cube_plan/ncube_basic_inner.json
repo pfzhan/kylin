@@ -1183,7 +1183,7 @@
   "dictionaries": [
     {
       "id": 26,
-      "builder": "org.apache.kylin.dict.GlobalDictionaryBuilder2"
+      "builder": "org.apache.kylin.dict.NGlobalDictionaryBuilder2"
     }
   ],
   "override_properties": {},

@@ -33,7 +33,7 @@ import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.dict.DictionaryInfo;
+import org.apache.kylin.dict.NDictionaryInfo;
 import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -71,6 +71,8 @@ public class NDataflowMergeJob extends NDataflowJob {
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         int newSegmentId = Integer.parseInt(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
+        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
+
 
         // Step1: merge dictionary
         mergeDictionary(dfName, newSegmentId);
@@ -109,11 +111,11 @@ public class NDataflowMergeJob extends NDataflowJob {
         NCubePlan cubePlan = dataflow.getCubePlan();
 
         for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
-            List<DictionaryInfo> dictInfos = new ArrayList<DictionaryInfo>();
+            List<NDictionaryInfo> dictInfos = new ArrayList<NDictionaryInfo>();
             for (NDataSegment segment : mergingSegments) {
                 logger.info("Including fact table dictionary of segment : " + segment);
                 if (segment.getDictResPath(col) != null) {
-                    DictionaryInfo dictInfo = dictMgr.getDictionaryInfo(segment.getDictResPath(col));
+                    NDictionaryInfo dictInfo = dictMgr.getDictionaryInfo(segment.getDictResPath(col));
                     if (dictInfo != null && !dictInfos.contains(dictInfo)) {
                         dictInfos.add(dictInfo);
                     } else {
@@ -125,9 +127,9 @@ public class NDataflowMergeJob extends NDataflowJob {
         }
     }
 
-    private DictionaryInfo mergeDictionaries(NDictionaryManager dictMgr, NDataSegment seg, List<DictionaryInfo> dicts,
+    private NDictionaryInfo mergeDictionaries(NDictionaryManager dictMgr, NDataSegment seg, List<NDictionaryInfo> dicts,
             TblColRef col) throws IOException {
-        DictionaryInfo dictInfo = dictMgr.mergeDictionary(dicts);
+        NDictionaryInfo dictInfo = dictMgr.mergeDictionary(dicts);
         if (dictInfo != null) {
             seg.putDictResPath(col, dictInfo.getResourcePath());
         }

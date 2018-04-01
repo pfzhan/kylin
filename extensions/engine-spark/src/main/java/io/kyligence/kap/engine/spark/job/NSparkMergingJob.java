@@ -30,8 +30,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -64,6 +66,7 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         }
 
         NSparkMergingJob job = new NSparkMergingJob();
+        job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
         job.addSparkMergingStep(mergedSegment, layouts);
         job.addUpdateAfterMergeStep();
@@ -80,6 +83,8 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         NSparkMergingStep step = new NSparkMergingStep();
         NDataflow df = mergedSegment.getDataflow();
         KylinConfigExt config = df.getConfig();
+        step.setProject(getProject());
+        step.setProjectParam();
         step.setDataflowName(df.getName());
         step.setSegmentId(mergedSegment.getId());
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
@@ -89,7 +94,9 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
     }
 
     private void addUpdateAfterMergeStep() {
-        this.addTask(new NSparkCubingUpdateAfterMergeStep());
+        NSparkCubingUpdateAfterMergeStep executable = new NSparkCubingUpdateAfterMergeStep();
+        executable.setProject(getProject());
+        this.addTask(executable);
     }
 
     private void addCleanupStep(NDataSegment mergedSegment) {
@@ -108,8 +115,15 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         segmentIds.addAll(ids);
 
         NSparkCleanupAfterMergeStep step = new NSparkCleanupAfterMergeStep();
+        step.setProject(getProject());
         step.setDataflowName(name);
         step.setSegmentIds(segmentIds);
         this.addTask(step);
+    }
+
+
+    @Override
+    protected ExecutableManager getManager() {
+        return NExecutableManager.getInstance(getConfig(), getProject());
     }
 }

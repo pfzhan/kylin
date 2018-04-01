@@ -50,7 +50,7 @@ public class NDictionaryManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NDictionaryManager.class);
 
-    private static final DictionaryInfo NONE_INDICATOR = new DictionaryInfo();
+    private static final NDictionaryInfo NONE_INDICATOR = new NDictionaryInfo();
 
     public static NDictionaryManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NDictionaryManager.class);
@@ -65,25 +65,25 @@ public class NDictionaryManager {
 
     private KylinConfig config;
     private String project;
-    private LoadingCache<String, DictionaryInfo> dictCache; // resource
+    private LoadingCache<String, NDictionaryInfo> dictCache; // resource
 
     private NDictionaryManager(KylinConfig config, String project) {
         this.config = config;
         this.project = project;
         this.dictCache = CacheBuilder.newBuilder()//
                 .softValues()//
-                .removalListener(new RemovalListener<String, DictionaryInfo>() {
+                .removalListener(new RemovalListener<String, NDictionaryInfo>() {
                     @Override
-                    public void onRemoval(RemovalNotification<String, DictionaryInfo> notification) {
+                    public void onRemoval(RemovalNotification<String, NDictionaryInfo> notification) {
                         NDictionaryManager.logger.info("Dict with resource path " + notification.getKey()
                                 + " is removed due to " + notification.getCause());
                     }
                 })//
                 .maximumSize(config.getCachedDictMaxEntrySize())//
-                .expireAfterWrite(1, TimeUnit.DAYS).build(new CacheLoader<String, DictionaryInfo>() {
+                .expireAfterWrite(1, TimeUnit.DAYS).build(new CacheLoader<String, NDictionaryInfo>() {
                     @Override
-                    public DictionaryInfo load(String key) throws Exception {
-                        DictionaryInfo dictInfo = NDictionaryManager.this.load(key, true);
+                    public NDictionaryInfo load(String key) throws Exception {
+                        NDictionaryInfo dictInfo = NDictionaryManager.this.load(key, true);
                         if (dictInfo == null) {
                             return NONE_INDICATOR;
                         } else {
@@ -94,13 +94,13 @@ public class NDictionaryManager {
     }
 
     public Dictionary<String> getDictionary(String resourcePath) throws IOException {
-        DictionaryInfo dictInfo = getDictionaryInfo(resourcePath);
+        NDictionaryInfo dictInfo = getDictionaryInfo(resourcePath);
         return dictInfo == null ? null : dictInfo.getDictionaryObject();
     }
 
-    public DictionaryInfo getDictionaryInfo(final String resourcePath) throws IOException {
+    public NDictionaryInfo getDictionaryInfo(final String resourcePath) throws IOException {
         try {
-            DictionaryInfo result = dictCache.get(resourcePath);
+            NDictionaryInfo result = dictCache.get(resourcePath);
             if (result == NONE_INDICATOR) {
                 return null;
             } else {
@@ -115,7 +115,7 @@ public class NDictionaryManager {
      * Save the dictionary as it is.
      * More often you should consider using its alternative trySaveNewDict to save dict space
      */
-    public DictionaryInfo forceSave(Dictionary<String> newDict, DictionaryInfo newDictInfo) throws IOException {
+    public NDictionaryInfo forceSave(Dictionary<String> newDict, NDictionaryInfo newDictInfo) throws IOException {
         initDictInfo(newDict, newDictInfo);
         logger.info("force to save dict directly");
         return saveNewDict(newDictInfo);
@@ -125,13 +125,13 @@ public class NDictionaryManager {
      * @return may return another dict that is a super set of the input
      * @throws IOException
      */
-    public DictionaryInfo trySaveNewDict(Dictionary<String> newDict, DictionaryInfo newDictInfo) throws IOException {
+    public NDictionaryInfo trySaveNewDict(Dictionary<String> newDict, NDictionaryInfo newDictInfo) throws IOException {
 
         initDictInfo(newDict, newDictInfo);
 
         if (config.isGrowingDictEnabled()) {
             logger.info("Growing dict is enabled, merge with largest dictionary");
-            DictionaryInfo largestDictInfo = findLargestDictInfo(newDictInfo);
+            NDictionaryInfo largestDictInfo = findLargestDictInfo(newDictInfo);
             if (largestDictInfo != null) {
                 largestDictInfo = getDictionaryInfo(largestDictInfo.getResourcePath());
                 Dictionary<String> largestDictObject = largestDictInfo.getDictionaryObject();
@@ -161,7 +161,7 @@ public class NDictionaryManager {
         }
     }
 
-    private String checkDupByContent(DictionaryInfo dictInfo, Dictionary<String> dict) throws IOException {
+    private String checkDupByContent(NDictionaryInfo dictInfo, Dictionary<String> dict) throws IOException {
         ResourceStore store = getStore();
         NavigableSet<String> existings = store.listResources(dictInfo.getResourceDir());
         if (existings == null)
@@ -173,7 +173,7 @@ public class NDictionaryManager {
         }
 
         for (String existing : existings) {
-            DictionaryInfo existingInfo = getDictionaryInfo(existing);
+            NDictionaryInfo existingInfo = getDictionaryInfo(existing);
             if (existingInfo != null && dict.equals(existingInfo.getDictionaryObject())) {
                 return existing;
             }
@@ -182,13 +182,13 @@ public class NDictionaryManager {
         return null;
     }
 
-    private void initDictInfo(Dictionary<String> newDict, DictionaryInfo newDictInfo) {
+    private void initDictInfo(Dictionary<String> newDict, NDictionaryInfo newDictInfo) {
         newDictInfo.setCardinality(newDict.getSize());
         newDictInfo.setDictionaryObject(newDict);
         newDictInfo.setDictionaryClass(newDict.getClass().getName());
     }
 
-    private DictionaryInfo saveNewDict(DictionaryInfo newDictInfo) throws IOException {
+    private NDictionaryInfo saveNewDict(NDictionaryInfo newDictInfo) throws IOException {
 
         save(newDictInfo);
         dictCache.put(newDictInfo.getResourcePath(), newDictInfo);
@@ -196,7 +196,7 @@ public class NDictionaryManager {
         return newDictInfo;
     }
 
-    public DictionaryInfo mergeDictionary(List<DictionaryInfo> dicts) throws IOException {
+    public NDictionaryInfo mergeDictionary(List<NDictionaryInfo> dicts) throws IOException {
 
         if (dicts.size() == 0)
             return null;
@@ -208,15 +208,15 @@ public class NDictionaryManager {
          * AppendTrieDictionary needn't merge
          * more than one AppendTrieDictionary will generate when user use {@link SegmentAppendTrieDictBuilder}
          */
-        for (DictionaryInfo dict : dicts) {
+        for (NDictionaryInfo dict : dicts) {
             if (dict.getDictionaryClass().equals(AppendTrieDictionary.class.getName())) {
                 return dict;
             }
         }
 
-        DictionaryInfo firstDictInfo = null;
+        NDictionaryInfo firstDictInfo = null;
         int totalSize = 0;
-        for (DictionaryInfo info : dicts) {
+        for (NDictionaryInfo info : dicts) {
             // check
             if (firstDictInfo == null) {
                 firstDictInfo = info;
@@ -235,7 +235,7 @@ public class NDictionaryManager {
         }
 
         //identical
-        DictionaryInfo newDictInfo = new DictionaryInfo(firstDictInfo);
+        NDictionaryInfo newDictInfo = new NDictionaryInfo(firstDictInfo);
         TableSignature signature = newDictInfo.getInput();
         signature.setSize(totalSize);
         signature.setLastModifiedTime(System.currentTimeMillis());
@@ -260,24 +260,24 @@ public class NDictionaryManager {
             logger.info("Use one of the merging dictionaries directly");
             return dicts.get(0);
         } else {
-            Dictionary<String> newDict = DictionaryGenerator
+            Dictionary<String> newDict = NDictionaryGenerator
                     .mergeDictionaries(DataType.getType(newDictInfo.getDataType()), dicts);
             return trySaveNewDict(newDict, newDictInfo);
         }
     }
 
-    public DictionaryInfo buildDictionary(TblColRef col, IReadableTable inpTable) throws IOException {
+    public NDictionaryInfo buildDictionary(TblColRef col, IReadableTable inpTable) throws IOException {
         return buildDictionary(col, inpTable, null);
     }
 
-    public DictionaryInfo buildDictionary(TblColRef col, IReadableTable inpTable, String builderClass)
+    public NDictionaryInfo buildDictionary(TblColRef col, IReadableTable inpTable, String builderClass)
             throws IOException {
         if (inpTable.exists() == false)
             return null;
 
         logger.info("building dictionary for " + col);
 
-        DictionaryInfo dictInfo = createDictionaryInfo(col, inpTable);
+        NDictionaryInfo dictInfo = createDictionaryInfo(col, inpTable);
         String dupInfo = checkDupByInfo(dictInfo);
         if (dupInfo != null) {
             logger.info(
@@ -292,7 +292,7 @@ public class NDictionaryManager {
         return trySaveNewDict(dictionary, dictInfo);
     }
 
-    private Dictionary<String> buildDictFromReadableTable(IReadableTable inpTable, DictionaryInfo dictInfo,
+    private Dictionary<String> buildDictFromReadableTable(IReadableTable inpTable, NDictionaryInfo dictInfo,
             String builderClass, TblColRef col) throws IOException {
         Dictionary<String> dictionary;
         IDictionaryValueEnumerator columnValueEnumerator = null;
@@ -303,8 +303,8 @@ public class NDictionaryManager {
                 dictionary = DictionaryGenerator.buildDictionary(DataType.getType(dictInfo.getDataType()),
                         columnValueEnumerator);
             } else {
-                IDictionaryBuilder builder = (IDictionaryBuilder) ClassUtil.newInstance(builderClass);
-                dictionary = DictionaryGenerator.buildDictionary(builder, dictInfo, columnValueEnumerator);
+                INDictionaryBuilder builder = (INDictionaryBuilder) ClassUtil.newInstance(builderClass);
+                dictionary = NDictionaryGenerator.buildDictionary(builder, dictInfo, columnValueEnumerator);
             }
         } catch (Exception ex) {
             throw new RuntimeException("Failed to create dictionary on " + col, ex);
@@ -315,15 +315,15 @@ public class NDictionaryManager {
         return dictionary;
     }
 
-    public static Dictionary<String> buildDictionary(TblColRef col, DictionaryInfo DictionaryInfo, String builderClass,
+    public static Dictionary<String> buildDictionary(TblColRef col, NDictionaryInfo DictionaryInfo, String builderClass,
             IterableDictionaryValueEnumerator enumerator) throws IOException {
         Dictionary<String> dictionary;
         try {
             if (builderClass == null) {
-                dictionary = DictionaryGenerator.buildDictionary(col.getType(), enumerator);
+                dictionary = NDictionaryGenerator.buildDictionary(col.getType(), enumerator);
             } else {
-                IDictionaryBuilder builder = (IDictionaryBuilder) ClassUtil.newInstance(builderClass);
-                dictionary = DictionaryGenerator.buildDictionary(builder, DictionaryInfo, enumerator);
+                INDictionaryBuilder builder = (INDictionaryBuilder) ClassUtil.newInstance(builderClass);
+                dictionary = NDictionaryGenerator.buildDictionary(builder, DictionaryInfo, enumerator);
             }
         } catch (Exception ex) {
             throw new RuntimeException("Failed to create dictionary on " + col, ex);
@@ -331,9 +331,9 @@ public class NDictionaryManager {
         return dictionary;
     }
 
-    public DictionaryInfo saveDictionary(TblColRef col, IReadableTable inpTable, Dictionary<String> dictionary)
+    public NDictionaryInfo saveDictionary(TblColRef col, IReadableTable inpTable, Dictionary<String> dictionary)
             throws IOException {
-        DictionaryInfo dictInfo = createDictionaryInfo(col, inpTable);
+        NDictionaryInfo dictInfo = createDictionaryInfo(col, inpTable);
         String dupInfo = checkDupByInfo(dictInfo);
         if (dupInfo != null) {
             logger.info(
@@ -344,16 +344,16 @@ public class NDictionaryManager {
         return trySaveNewDict(dictionary, dictInfo);
     }
 
-    private DictionaryInfo createDictionaryInfo(TblColRef col, IReadableTable inpTable) throws IOException {
+    private NDictionaryInfo createDictionaryInfo(TblColRef col, IReadableTable inpTable) throws IOException {
         TableSignature inputSig = inpTable.getSignature();
         if (inputSig == null) // table does not exists
             throw new IllegalStateException("Input table does not exist: " + inpTable);
 
-        DictionaryInfo dictInfo = new DictionaryInfo(col.getColumnDesc(), col.getDatatype(), inputSig);
+        NDictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), inputSig, project);
         return dictInfo;
     }
 
-    private String checkDupByInfo(DictionaryInfo dictInfo) throws IOException {
+    private String checkDupByInfo(NDictionaryInfo dictInfo) throws IOException {
         final ResourceStore store = getStore();
         final List<DictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(), DictionaryInfo.class,
                 DictionaryInfoSerializer.INFO_SERIALIZER);
@@ -368,13 +368,13 @@ public class NDictionaryManager {
         return null;
     }
 
-    private DictionaryInfo findLargestDictInfo(DictionaryInfo dictInfo) throws IOException {
+    private NDictionaryInfo findLargestDictInfo(NDictionaryInfo dictInfo) throws IOException {
         final ResourceStore store = getStore();
-        final List<DictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(), DictionaryInfo.class,
-                DictionaryInfoSerializer.INFO_SERIALIZER);
+        final List<NDictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(),
+                NDictionaryInfo.class, NDictionaryInfoSerializer.INFO_SERIALIZER);
 
-        DictionaryInfo largestDict = null;
-        for (DictionaryInfo DictionaryInfo : allResources) {
+        NDictionaryInfo largestDict = null;
+        for (NDictionaryInfo DictionaryInfo : allResources) {
             if (largestDict == null) {
                 largestDict = DictionaryInfo;
                 continue;
@@ -408,14 +408,14 @@ public class NDictionaryManager {
             removeDictionary(existing);
     }
 
-    void save(DictionaryInfo dict) throws IOException {
+    void save(NDictionaryInfo dict) throws IOException {
         ResourceStore store = getStore();
         String path = dict.getResourcePath();
         logger.info("Saving dictionary at " + path);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         DataOutputStream dout = new DataOutputStream(buf);
-        DictionaryInfoSerializer.FULL_SERIALIZER.serialize(dict, dout);
+        NDictionaryInfoSerializer.FULL_SERIALIZER.serialize(dict, dout);
         dout.close();
         buf.close();
 
@@ -424,7 +424,7 @@ public class NDictionaryManager {
         inputStream.close();
     }
 
-    DictionaryInfo load(String resourcePath, boolean loadDictObj) throws IOException {
+    NDictionaryInfo load(String resourcePath, boolean loadDictObj) throws IOException {
         ResourceStore store = getStore();
 
         logger.info("DictionaryManager(" + System.identityHashCode(this) + ") loading DictionaryInfo(loadDictObj:"

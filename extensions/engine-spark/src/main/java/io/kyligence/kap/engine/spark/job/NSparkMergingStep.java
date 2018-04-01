@@ -27,14 +27,16 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Arrays;
 import java.util.Set;
 
-import io.kyligence.kap.engine.spark.builder.NDataflowMergeJob;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.builder.NDataflowMergeJob;
+import io.kyligence.kap.job.execution.NExecutableManager;
 
 public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
@@ -81,5 +83,10 @@ public class NSparkMergingStep extends NSparkExecutable {
         public static void main(String[] args) {
             logger.info(NSparkMergingStep.Mockup.class + ".main() invoked, args: " + Arrays.toString(args));
         }
+    }
+
+    @Override
+    protected ExecutableManager getManager() {
+        return NExecutableManager.getInstance(getConfig(), getProject());
     }
 }

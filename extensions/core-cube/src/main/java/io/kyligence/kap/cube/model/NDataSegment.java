@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.dict.DictionaryInfo;
+import org.apache.kylin.dict.NDictionaryInfo;
 import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.ISegment;
@@ -192,7 +192,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public Dictionary<String> getDictionary(TblColRef col) {
         NCubePlan cubePlan = getCubePlan();
         TblColRef reuseCol = cubePlan.getDictionaryReuseColumn(col);
-        DictionaryInfo info = null;
+        NDictionaryInfo info = null;
         try {
             NDictionaryManager dictMgr = NDictionaryManager.getInstance(getConfig(), this.dataflow.getProject());
             String dictResPath = this.getDictResPath(reuseCol);

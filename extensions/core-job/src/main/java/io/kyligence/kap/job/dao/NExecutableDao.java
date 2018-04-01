@@ -73,11 +73,11 @@ public class NExecutableDao {
         return pathOfJob(job.getUuid(), job.getProject());
     }
 
-    public static String pathOfJob(String uuid, String project) {
+    private static String pathOfJob(String uuid, String project) {
         return "/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + uuid;
     }
 
-    public static String pathOfJobOutput(String uuid, String project) {
+    private static String pathOfJobOutput(String uuid, String project) {
         return "/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT + "/" + uuid;
     }
 

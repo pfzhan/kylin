@@ -27,10 +27,12 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.job.execution.NExecutableManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -91,5 +93,11 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         update.setToAddOrUpdateCuboids(
                 (NDataCuboid[]) toUpdateCuboids.toArray(new NDataCuboid[toUpdateCuboids.size()]));
         update.setStatus(RealizationStatusEnum.READY);
+    }
+
+
+    @Override
+    protected ExecutableManager getManager() {
+        return NExecutableManager.getInstance(getConfig(), getProject());
     }
 }

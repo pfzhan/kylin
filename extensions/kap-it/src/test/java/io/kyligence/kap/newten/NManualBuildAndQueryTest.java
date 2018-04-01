@@ -83,11 +83,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         System.setProperty("noBuild", "false");
-        System.setProperty("isDeveloperMode", "true");
+        System.setProperty("isDeveloperMode", "false");
         if (Boolean.valueOf(System.getProperty("noBuild"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
-            fullBuildBasic("ncube_basic");
+            //fullBuildBasic("ncube_basic");
             fullBuildBasic("ncube_basic_inner");
         } else {
             buildAndMergeCube("ncube_basic");
@@ -239,7 +239,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
 
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataflow df = dsMgr.getDataflow(dfName);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
         // cleanup all segments first
@@ -258,6 +258,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         end = SegmentRange.dateToLong("2013-01-01");
         builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
         builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
@@ -279,6 +280,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
 
         df = dsMgr.getDataflow(dfName);
+
         NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
         NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
@@ -296,8 +298,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
                 SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
-        Assert.assertEquals(19, firstSegment.getDictionaries().size());
-        Assert.assertEquals(19, secondSegment.getDictionaries().size());
+        Assert.assertEquals(21, firstSegment.getDictionaries().size());
+        Assert.assertEquals(21, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
 
