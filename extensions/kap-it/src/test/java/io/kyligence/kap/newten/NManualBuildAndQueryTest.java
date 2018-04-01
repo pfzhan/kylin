@@ -37,7 +37,6 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
@@ -54,7 +53,6 @@ import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
 
-@Ignore
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     public static final String DEFAULT_PROJECT = "default";
@@ -85,7 +83,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         System.setProperty("noBuild", "false");
-        //System.setProperty("isDeveloperMode", "true");
+        System.setProperty("isDeveloperMode", "true");
         if (Boolean.valueOf(System.getProperty("noBuild"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
@@ -230,7 +228,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
         //ITKapKylinQueryTest.testMultiModelQuery
         queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_multi_model");
-        NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
     }
 
     public void buildAndMergeCube(String dfName) throws Exception {
@@ -303,9 +301,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
 
-        // build is done, start to test query
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
     }
 
     private void fullBuildBasic(String dfName) throws Exception {
@@ -328,8 +323,5 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
         builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                 Sets.<NCuboidLayout> newLinkedHashSet(round1));
-        // build is done, start to test query
-        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-        existingCxt.stop();
     }
 }

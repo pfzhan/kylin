@@ -55,9 +55,7 @@ public class NExecAndComp {
 
     public enum CompareLevel {
         SAME, // exec and compare
-        SAME_ROWCOUNT,
-        SUBSET,
-        NONE // batch execute
+        SAME_ROWCOUNT, SUBSET, NONE // batch execute
     }
 
     static void execLimitAndValidate(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
@@ -89,7 +87,7 @@ public class NExecAndComp {
             CompareLevel compareLevel, String joinType) {
 
         for (Pair<String, String> query : queries) {
-            logger.info("Exec and compare query: " + query.getFirst());
+            logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
 
             String sql = changeJoinType(query.getSecond(), joinType);
 

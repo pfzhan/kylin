@@ -294,6 +294,79 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         validateTableIndex(0);
     }
 
+    @Ignore
+    @Test
+    //should it test merge case?
+    public void testRuleBasedCube() throws Exception {
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+
+        NDataflow df = dsMgr.getDataflow("rule_based_cube");
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow("rule_based_cube");
+
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
+
+        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertEquals(null, layout);
+        }
+
+        // Round1. Build new segment
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
+        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
+        Assert.assertEquals("hdfs", distMetaUrl.getScheme());
+        Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
+
+        // launch the job
+        execMgr.addJob(job);
+
+        // wait job done
+        ExecutableState status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        /**
+         * Round2. Build new layouts, should reuse the data from already existing cuboid.
+         * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
+         */
+        List<NCuboidLayout> round2 = new ArrayList<>();
+        round2.add(layouts.get(4));
+        round2.add(layouts.get(5));
+        round2.add(layouts.get(6));
+        round2.add(layouts.get(8));
+
+        //update seg
+        oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
+        nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round2, df.getName());
+        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
+            NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
+                    rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
+            Assert.assertTrue(layout != null);
+        }
+
+        job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
+        execMgr.addJob(job);
+
+        // wait job done
+        status = wait(job);
+        Assert.assertEquals(ExecutableState.SUCCEED, status);
+
+        validateCube(0);
+        validateTableIndex(0);
+    }
+
     @Test
     @Ignore("the build process is tested in NMeasuresTest, no need to build again")
     public void testMeasuresFullBuild() throws Exception {
