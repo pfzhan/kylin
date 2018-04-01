@@ -87,7 +87,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (Boolean.valueOf(System.getProperty("noBuild"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
-            //fullBuildBasic("ncube_basic");
+            fullBuildBasic("ncube_basic");
             fullBuildBasic("ncube_basic_inner");
         } else {
             buildAndMergeCube("ncube_basic");
@@ -108,6 +108,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         String[] joinTypes = new String[] { "left", "inner" };
 
         for (String joinType : joinTypes) {
+
             //ITKapKylinQueryTest.testCommonQuery
             queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
             NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
@@ -137,6 +138,10 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
 
             //ITKapKylinQueryTest.testSubQuery
+            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_subquery");
+            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
+
+            //ITKapKylinQueryTest.testTableauQuery
             queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_tableau");
             NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME_ROWCOUNT, joinType);
 
