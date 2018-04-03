@@ -200,4 +200,8 @@ public class SmartConfig {
     public String getMeasureCountDistinctType() {
         return getOptional("measure.count-distinct.return-type", strategy.getMeasureCountDistinctType());
     }
+
+    public boolean enableModelInnerJoinExactlyMatch() {
+        return getOptional("model.inner-join.exactly-match", strategy.enableModelInnerJoinExactlyMatch());
+    }
 }

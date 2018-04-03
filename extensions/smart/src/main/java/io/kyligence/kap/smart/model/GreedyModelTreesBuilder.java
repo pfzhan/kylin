@@ -49,14 +49,17 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
 
 public class GreedyModelTreesBuilder {
     private final Map<String, TableDesc> tableMap;
+    KylinConfig kylinConfig;
 
     public GreedyModelTreesBuilder(KylinConfig kylinConfig, String project) {
+        this.kylinConfig = kylinConfig;
         this.tableMap = NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(project);
     }
 
@@ -189,6 +192,8 @@ public class GreedyModelTreesBuilder {
         }
 
         ModelTree buildOne(List<OLAPContext> inputCtxs) {
+            SmartConfig smartConfig = SmartConfig.wrap(kylinConfig);
+
             Map<String, JoinTableDesc> joinTables = new HashMap<>();
             Map<TableRef, String> tableAliasMap = correctedTableAlias;
             List<OLAPContext> usedCtxs = Lists.newArrayList();
@@ -199,7 +204,7 @@ public class GreedyModelTreesBuilder {
                     continue;
                 }
                 
-                if (!matchContext(usedCtxs, ctx)) {
+                if (smartConfig.enableModelInnerJoinExactlyMatch() && !matchContext(usedCtxs, ctx)) {
                     // ctx not fit current tree
                     continue;
                 }

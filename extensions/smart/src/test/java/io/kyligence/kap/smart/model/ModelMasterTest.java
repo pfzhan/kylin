@@ -65,7 +65,7 @@ public class ModelMasterTest {
                 TEST_META_BASE + "learn_kylin/sql");
         Assert.assertNull(modelDesc.getPartitionDesc().getPartitionDateFormat());
         Assert.assertNull(modelDesc.getPartitionDesc().getPartitionTimeFormat());
-        Assert.assertEquals(DataModelDesc.TableKind.FACT, modelDesc.getJoinTables()[0].getKind());
+        Assert.assertEquals(DataModelDesc.TableKind.LOOKUP, modelDesc.getJoinTables()[0].getKind());
         Assert.assertEquals(DataModelDesc.TableKind.LOOKUP, modelDesc.getJoinTables()[1].getKind());
     }
 

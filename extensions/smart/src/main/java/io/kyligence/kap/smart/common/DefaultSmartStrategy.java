@@ -151,4 +151,8 @@ public class DefaultSmartStrategy implements ISmartStrategy {
     public String getMeasureCountDistinctType() {
         return "hllc(10)";
     }
+    
+    public boolean enableModelInnerJoinExactlyMatch() {
+        return false;
+    }
 }

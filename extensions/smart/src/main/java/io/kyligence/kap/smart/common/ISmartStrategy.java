@@ -82,4 +82,6 @@ interface ISmartStrategy {
     int getQueryDryRunThreads();
 
     String getMeasureCountDistinctType();
+
+    boolean enableModelInnerJoinExactlyMatch();
 }
