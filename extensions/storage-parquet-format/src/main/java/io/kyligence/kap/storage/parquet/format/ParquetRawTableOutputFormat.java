@@ -40,9 +40,8 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTInfo;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -90,7 +89,7 @@ public class ParquetRawTableOutputFormat extends FileOutputFormat<ByteArrayListW
 
             logger.info("tmp output dir: {}", outputDir);
 
-            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            kylinConfig = KylinConfig.loadKylinPropsAndMetadata();
 
             String rawName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);

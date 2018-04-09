@@ -37,8 +37,6 @@ import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.relnode.OLAPWindowRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 
 /**
  */
@@ -53,11 +51,6 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
     @Override
     public Window copy(RelTraitSet traitSet, List<RelNode> inputs) {
         return new KapWindowRel(getCluster(), traitSet, inputs.get(0), constants, rowType, groups);
-    }
-
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        //List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-        throw new IllegalStateException();
     }
 
     @Override

@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.List;
-
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -35,10 +33,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.query.relnode.OLAPSortRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 public class KapSortRel extends OLAPSortRel implements KapRel {
     public KapSortRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RelCollation collation,
@@ -57,9 +51,4 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
         return super.computeSelfCost(planner, mq);
     }
 
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-        return SparderRuntime$.MODULE$.sort(childDatasets, this);
-
-    }
 }

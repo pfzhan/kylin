@@ -35,7 +35,7 @@ import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
-import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -61,7 +61,6 @@ import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.engine.mr.common.KapBatchConstants;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.engine.spark.storage.format.NParquetCuboidInputFormat;
@@ -186,7 +185,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         logger.debug("Write Cuboid Dataset to path: {}", path);
         jobConf.set(BatchConstants.CFG_CUBE_NAME, cuboid.getSegDetails().getDataflowName());
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
-        jobConf.set(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID, Long.toString(cuboid.getCuboidLayoutId()));
+        jobConf.set(BatchConstants.KYLIN_CUBOID_LAYOUT_ID, Long.toString(cuboid.getCuboidLayoutId()));
         jobConf.set(BatchConstants.CFG_PROJECT_NAME, cuboid.getSegDetails().getDataflow().getProject());
         jobConf.set(NBatchConstants.P_DIST_META_URL, cuboid.getConfig().getMetadataUrl().toString());
 

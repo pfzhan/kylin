@@ -49,8 +49,7 @@ import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.cube.kv.RowKeyColumnIO;
 import org.apache.kylin.dict.DateStrDictionary;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -72,7 +71,6 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.mr.common.KapBatchConstants;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.storage.parquet.format.ParquetOrderedFileWriter;
 import io.kyligence.kap.storage.parquet.format.file.ParquetRawWriter;
@@ -153,14 +151,13 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
             logger.info("Attempt output dir: {}, Task output dir: {}", outputDir,
                     committer.getCommittedTaskPath(context));
 
-            kylinConfig = AbstractHadoopJob
+            kylinConfig = KylinConfig
                     .loadKylinConfigFromHdfsIfNeeded(context.getConfiguration().get(NBatchConstants.P_DIST_META_URL));
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             int segmentID = Integer.valueOf(context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID));
             String projectName = context.getConfiguration().get(BatchConstants.CFG_PROJECT_NAME);
-            long cuboidLayoutId = Long
-                    .valueOf(context.getConfiguration().get(KapBatchConstants.KYLIN_CUBOID_LAYOUT_ID));
+            long cuboidLayoutId = Long.valueOf(context.getConfiguration().get(BatchConstants.KYLIN_CUBOID_LAYOUT_ID));
             logger.info("cubeName is " + cubeName + " and segmentID is " + segmentID);
             dataflow = NDataflowManager.getInstance(kylinConfig, projectName).getDataflow(cubeName);
             cubePlan = dataflow.getCubePlan();

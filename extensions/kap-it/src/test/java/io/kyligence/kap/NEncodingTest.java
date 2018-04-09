@@ -85,7 +85,7 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);

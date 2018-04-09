@@ -20,14 +20,6 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-engine-spark</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
-        </dependency>
-        <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-cube</artifactId>
         </dependency>

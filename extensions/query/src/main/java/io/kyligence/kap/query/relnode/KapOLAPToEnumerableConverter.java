@@ -27,12 +27,6 @@ import java.util.List;
 
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
-import org.apache.calcite.adapter.enumerable.JavaRowFormat;
-import org.apache.calcite.adapter.enumerable.PhysType;
-import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
-import org.apache.calcite.linq4j.tree.BlockBuilder;
-import org.apache.calcite.linq4j.tree.Expression;
-import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
@@ -42,7 +36,6 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
@@ -51,14 +44,12 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.kylin.query.security.QueryInterceptor;
 import org.apache.kylin.query.security.QueryInterceptorUtil;
 import org.apache.kylin.storage.hybrid.HybridInstance;
-import org.apache.spark.sql.common.SparderContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
-import io.kyligence.kap.query.runtime.SparderMethod;
 
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
@@ -122,37 +113,38 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         }
 
         if (!sparderEnabled) {
-            if (SparderContext.isAsyncQuery()) {
-                throw new NoRealizationFoundException("export data must enable sparder,routing to pushdown");
-            }
+            //            if (SparderContext.isAsyncQuery()) {
+            //                throw new NoRealizationFoundException("export data must enable sparder,routing to pushdown");
+            //            }
             OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
             EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
             this.replaceInput(0, inputAsEnum);
             return impl.visitChild(this, 0, inputAsEnum, pref);
         } else {
-
-            final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
-                    pref.preferCustom());
-            final BlockBuilder list = new BlockBuilder();
-
-            KapContext.setKapRel((KapRel) getInput());
-            KapContext.setRowType(getRowType());
-            if (SparderContext.isAsyncQuery()) {
-                Expression enumerable = list.append("enumerable",
-                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-                return enumImplementor.result(physType, list.toBlock());
-            }
-            if (physType.getFormat() == JavaRowFormat.SCALAR) {
-                Expression enumerable = list.append("enumerable",
-                        Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-            } else {
-                Expression enumerable = list.append("enumerable",
-                        Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
-                list.add(Expressions.return_(null, enumerable));
-            }
-            return enumImplementor.result(physType, list.toBlock());
+            throw new IllegalStateException();
+            //
+            //            final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
+            //                    pref.preferCustom());
+            //            final BlockBuilder list = new BlockBuilder();
+            //
+            //            KapContext.setKapRel((KapRel) getInput());
+            //            KapContext.setRowType(getRowType());
+            //            if (SparderContext.isAsyncQuery()) {
+            //                Expression enumerable = list.append("enumerable",
+            //                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
+            //                list.add(Expressions.return_(null, enumerable));
+            //                return enumImplementor.result(physType, list.toBlock());
+            //            }
+            //            if (physType.getFormat() == JavaRowFormat.SCALAR) {
+            //                Expression enumerable = list.append("enumerable",
+            //                        Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
+            //                list.add(Expressions.return_(null, enumerable));
+            //            } else {
+            //                Expression enumerable = list.append("enumerable",
+            //                        Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
+            //                list.add(Expressions.return_(null, enumerable));
+            //            }
+            //            return enumImplementor.result(physType, list.toBlock());
         }
     }
 
@@ -220,8 +212,6 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         }
         return sparderEnabled;
     }
-
-    
 
     private boolean isCFAndStorageType(boolean sparderEnabled, OLAPContext olapContext) {
         CubeInstance cube;

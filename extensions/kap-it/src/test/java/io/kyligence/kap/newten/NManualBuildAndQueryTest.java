@@ -80,10 +80,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     public void test_ncube_basic() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
+
         if (Boolean.valueOf(System.getProperty("noBuild"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
@@ -239,7 +240,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     public void buildAndMergeCube(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
@@ -313,7 +314,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     private void fullBuildBasic(String dfName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
 

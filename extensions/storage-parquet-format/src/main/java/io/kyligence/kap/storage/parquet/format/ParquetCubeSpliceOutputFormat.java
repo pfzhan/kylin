@@ -48,8 +48,7 @@ import org.apache.kylin.cube.CubeSegment;
 import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.cube.model.HBaseColumnDesc;
 import org.apache.kylin.cube.model.HBaseColumnFamilyDesc;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
@@ -98,13 +97,13 @@ public class ParquetCubeSpliceOutputFormat extends FileOutputFormat<Text, Text> 
 
             if ("SparkOnYarn".equals(jobType)) {
                 String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
-                kylinConfig = AbstractHadoopJob.loadKylinConfigFromHdfsIfNeeded(metaUrl);
+                kylinConfig = KylinConfig.loadKylinConfigFromHdfsIfNeeded(metaUrl);
             } else if ("SparkLocal".equalsIgnoreCase(jobType)) {
                 String metaUrl = context.getConfiguration().get(BatchConstants.CFG_SPARK_META_URL);
                 kylinConfig = KylinConfig.createInstanceFromUri(metaUrl);
                 KylinConfig.setKylinConfigThreadLocal(kylinConfig);
             } else
-                kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+                kylinConfig = KylinConfig.loadKylinPropsAndMetadata();
 
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);

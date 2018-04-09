@@ -56,15 +56,11 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-storage-hbase</artifactId>
+            <artifactId>kap-smart</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-storage-parquet</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
@@ -80,17 +76,8 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-tool</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-server-base</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>atopcalcite</artifactId>
@@ -112,10 +99,6 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-storage-hbase</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
@@ -157,12 +140,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-assembly</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-query</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
@@ -190,12 +167,6 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-storage-hbase</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

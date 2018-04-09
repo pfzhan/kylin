@@ -31,7 +31,7 @@ echo "copy lib file"
 rm -rf build/lib build/tool
 mkdir build/lib build/tool
 cp assembly/target/kylin-assembly-${version}-job.jar build/lib/kylin-job-${version}.jar
-cp storage-hbase/target/kylin-storage-hbase-${version}-coprocessor.jar build/lib/kylin-coprocessor-${version}.jar
+#cp storage-hbase/target/kylin-storage-hbase-${version}-coprocessor.jar build/lib/kylin-coprocessor-${version}.jar
 cp jdbc/target/kylin-jdbc-${version}.jar build/lib/kylin-jdbc-${version}.jar
 cp tool-assembly/target/kylin-tool-assembly-${version}-assembly.jar build/tool/kylin-tool-${version}.jar
 

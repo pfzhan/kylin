@@ -24,43 +24,8 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.List;
-
-import org.apache.calcite.DataContext;
-import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.query.relnode.OLAPRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import com.google.common.collect.Lists;
 
 public interface KapRel extends OLAPRel {
 
-    Dataset<Row> implementSpark(SparderImplementor implementor);
-
-    class SparderImplementor {
-        private DataContext dataContext;
-
-        public SparderImplementor(DataContext dataContext) {
-            this.dataContext = dataContext;
-        }
-
-        public DataContext getDataContext() {
-            return dataContext;
-        }
-
-        public List<Dataset<Row>> getChildrenDatasets(List<RelNode> inputs) {
-            List<Dataset<Row>> datasets = Lists.newArrayListWithCapacity(inputs.size());
-
-            for (RelNode input : inputs) {
-                KapRel kapRel = (KapRel) input;
-                datasets.add(visitChild(kapRel));
-            }
-            return datasets;
-        }
-
-        public Dataset<Row> visitChild(KapRel rel) {
-            return rel.implementSpark(this);
-        }
-    }
 }

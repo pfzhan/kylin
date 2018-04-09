@@ -60,8 +60,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.storage.parquet.NDataflowSparkRPC;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.RDDPartitionResult;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;

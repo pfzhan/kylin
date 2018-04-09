@@ -88,7 +88,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         config = getTestConfig();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
     }
 
     @After
@@ -143,7 +143,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         KylinConfig config = getTestConfig();
         System.out.println(getTestConfig().getMetadataUrl());
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         NDataflow df = dsMgr.getDataflow("ncube_basic");
@@ -162,7 +162,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testBuildWithEncoding() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.job.scheduler.provider.110",
                 "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");
@@ -409,7 +409,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testMergeJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.MockedDistributedLock$MockedFactory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);

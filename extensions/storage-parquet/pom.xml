@@ -35,16 +35,8 @@
             <artifactId>kap-core-cube</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-engine-mr</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-sparder</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
@@ -152,13 +144,6 @@
             <artifactId>scalatest_2.11</artifactId>
             <version>3.0.0</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-sparder</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-            <type>test-jar</type>
         </dependency>
     </dependencies>
 

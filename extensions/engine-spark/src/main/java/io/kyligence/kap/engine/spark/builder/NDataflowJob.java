@@ -30,7 +30,6 @@ import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.AbstractApplication;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +81,7 @@ public class NDataflowJob extends AbstractApplication {
         String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
         jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
         ss = SparkSession.builder().enableHiveSupport().getOrCreate();
-        config = AbstractHadoopJob.loadKylinConfigFromHdfs(hdfsMetalUrl);
+        config = KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl);
         KylinConfig.setKylinConfigThreadLocal(config);
     }
 }

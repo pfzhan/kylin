@@ -452,22 +452,18 @@ public class NProjectManager extends ProjectManager {
         }
     }
 
-    @Override
     public Set<IRealization> listAllRealizations(String project) {
         return l2Cache.listAllRealizations(project);
     }
 
-    @Override
     public Set<IRealization> getRealizationsByTable(String project, String tableName) {
         return l2Cache.getRealizationsByTable(project, tableName.toUpperCase());
     }
 
-    @Override
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String factTable) {
         return l2Cache.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), true);
     }
 
-    @Override
     public List<MeasureDesc> listEffectiveMeasures(String project, String factTable) {
         return l2Cache.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), false);
     }

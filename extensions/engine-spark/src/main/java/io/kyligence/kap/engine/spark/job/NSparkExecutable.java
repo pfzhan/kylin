@@ -38,11 +38,11 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.StringUtil;
-import org.apache.kylin.engine.mr.common.JobRelatedMetaUtil;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -231,7 +231,7 @@ public class NSparkExecutable extends AbstractExecutable {
         tmpDir.mkdirs();
 
         // dump metadata
-        JobRelatedMetaUtil.dumpResources(config, tmpDir, dumpList);
+        ResourceStore.dumpResources(config, tmpDir, dumpList);
 
         // write kylin.properties
         Properties props = config.exportToProperties();

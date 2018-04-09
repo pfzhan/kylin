@@ -43,9 +43,8 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTInfo;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.parquet.io.api.Binary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,7 +98,7 @@ public class ParquetRawTableInputFormat extends FileInputFormat<ByteArrayListWri
 
             logger.info("shard file path: {}", shardPath.toString());
             
-            kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            kylinConfig = KylinConfig.loadKylinPropsAndMetadata();
             String rawName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             logger.info("RawTableName is " + rawName);
             rawTableInstance = RawTableManager.getInstance(kylinConfig).getRawTableInstance(rawName);

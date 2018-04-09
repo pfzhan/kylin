@@ -59,9 +59,8 @@ import org.apache.kylin.cube.kv.RowConstants;
 import org.apache.kylin.cube.model.HBaseColumnDesc;
 import org.apache.kylin.cube.model.HBaseColumnFamilyDesc;
 import org.apache.kylin.dimension.DimensionEncoding;
-import org.apache.kylin.engine.mr.common.AbstractHadoopJob;
-import org.apache.kylin.engine.mr.common.BatchConstants;
 import org.apache.kylin.gridtable.GTScanRequest;
+import org.apache.kylin.job.constant.BatchConstants;
 import org.apache.kylin.measure.MeasureCodec;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
@@ -144,7 +143,7 @@ public class ParquetSpliceTarballFileMergeInputFormat extends FileInputFormat<Te
 
             logger.info("tarball file: {}", path);
 
-            this.kylinConfig = AbstractHadoopJob.loadKylinPropsAndMetadata();
+            this.kylinConfig = KylinConfig.loadKylinPropsAndMetadata();
             String cubeName = context.getConfiguration().get(BatchConstants.CFG_CUBE_NAME);
             String segmentID = context.getConfiguration().get(BatchConstants.CFG_CUBE_SEGMENT_ID);
 

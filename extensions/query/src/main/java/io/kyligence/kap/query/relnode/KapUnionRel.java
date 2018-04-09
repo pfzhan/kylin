@@ -34,10 +34,6 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.SetOp;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.kylin.query.relnode.OLAPUnionRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 /**
  */
@@ -57,8 +53,4 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
         return super.computeSelfCost(planner, mq);
     }
 
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-        return SparderRuntime$.MODULE$.union(childDatasets, this);
-    }
 }

@@ -33,10 +33,17 @@
     </parent>
 
     <dependencies>
-
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-engine-mr</artifactId>
+            <artifactId>kylin-core-metadata</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-cube</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kylin-core-job</artifactId>
         </dependency>
 
         <!-- Env & Test -->

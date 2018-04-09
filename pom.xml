@@ -69,21 +69,10 @@
         <module>extensions/core-cube</module>
         <module>extensions/core-job</module>
         <module>extensions/core-storage</module>
-        <module>extensions/engine-mr</module>
         <module>extensions/engine-spark</module>
-        <module>extensions/storage-hbase</module>
-        <module>extensions/sparder</module>
         <module>extensions/storage-parquet</module>
         <module>extensions/storage-parquet-format</module>
-        <module>extensions/source-hive</module>
-        <module>extensions/source-kafka</module>
         <module>extensions/query</module>
-        <module>extensions/server-base</module>
-        <module>extensions/server</module>
-        <module>extensions/server-rest-doc-gen</module>
-        <module>extensions/assembly</module>
-        <module>extensions/tool</module>
-        <module>extensions/tool-assembly</module>
         <module>extensions/kap-it</module>
         <module>extensions/smart</module>
         <module>extensions/tomcat-ext</module>
@@ -109,6 +98,11 @@
             </dependency>
 
             <!-- KAP, same order with modules -->
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-external</artifactId>
+                <version>${project.version}</version>
+            </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-core-common</artifactId>
@@ -141,27 +135,12 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-engine-mr</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-engine-spark</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-source-hive</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-source-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-storage-hbase</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -176,11 +155,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-sparder</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -191,22 +165,7 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-server-base</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-server</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-assembly</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-tool</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -252,12 +211,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-storage-hbase</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-storage-parquet</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
@@ -273,12 +226,6 @@
                 <artifactId>mssql-jdbc</artifactId>
                 <version>${mssql-jdbc.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-sparder</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
             </dependency>
 
 

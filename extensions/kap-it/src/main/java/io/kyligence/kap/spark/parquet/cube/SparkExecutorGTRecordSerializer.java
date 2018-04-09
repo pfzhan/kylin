@@ -22,32 +22,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.relnode;
+package io.kyligence.kap.spark.parquet.cube;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexNode;
-import org.apache.kylin.query.relnode.OLAPFilterRel;
+import javax.annotation.Nullable;
 
-public class KapFilterRel extends OLAPFilterRel implements KapRel {
+import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.gridtable.GTRecord;
+import org.apache.kylin.gridtable.GTScanRequest;
 
-    public KapFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
-        super(cluster, traits, child, condition);
+//not thread safe!
+public class SparkExecutorGTRecordSerializer implements com.google.common.base.Function<GTRecord, ByteArray> {
+    private ImmutableBitSet columns;
+    private ByteArray buffer;//shared
+
+    public SparkExecutorGTRecordSerializer(GTScanRequest gtScanRequest, ImmutableBitSet columns) {
+        this.columns = columns;
+        this.buffer = ByteArray.allocate(gtScanRequest.getInfo().getMaxLength());
     }
 
+    @Nullable
     @Override
-    public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
-        return new KapFilterRel(getCluster(), traitSet, input, condition);
+    public ByteArray apply(@Nullable GTRecord input) {
+        input.exportColumns(columns, buffer);
+        return buffer;
     }
-
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
-    }
-
 }

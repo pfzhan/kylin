@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
@@ -41,10 +40,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
 import org.apache.kylin.query.relnode.OLAPJoinRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 public class KapJoinRel extends OLAPJoinRel implements KapRel {
 
@@ -74,14 +69,4 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         }
     }
 
-    @Override
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        context.setReturnTupleInfo(rowType, columnRowType);
-
-        if (this.hasSubQuery) {
-            List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-            return SparderRuntime$.MODULE$.join(childDatasets, this);
-        }
-        return SparderRuntime$.MODULE$.createOlapTable(this, implementor.getDataContext());
-    }
 }

@@ -21,33 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.spark.parquet.cube;
 
-package io.kyligence.kap.query.relnode;
+import java.io.Serializable;
 
-import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.core.Filter;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rex.RexNode;
-import org.apache.kylin.query.relnode.OLAPFilterRel;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
 
-public class KapFilterRel extends OLAPFilterRel implements KapRel {
 
-    public KapFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
-        super(cluster, traits, child, condition);
+public class KryoTraceInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
+    public final long traceId;
+    public final long spanId;
+
+    public KryoTraceInfo(long traceId, long spanId) {
+        this.traceId = traceId;
+        this.spanId = spanId;
     }
 
     @Override
-    public Filter copy(RelTraitSet traitSet, RelNode input, RexNode condition) {
-        return new KapFilterRel(getCluster(), traitSet, input, condition);
+    public String toString() {
+        return "KryoTraceInfo(traceId=" + traceId + ", spanId=" + spanId + ")";
     }
 
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
+    public TraceInfo toTraceInfo() {
+        return new TraceInfo(traceId, spanId);
+    }
+
+    public static KryoTraceInfo fromTraceInfo(TraceInfo traceInfo) {
+        return new KryoTraceInfo(traceInfo.traceId, traceInfo.spanId);
     }
 
 }

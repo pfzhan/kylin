@@ -37,10 +37,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.kylin.query.relnode.OLAPAggregateRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 /**
  */
@@ -69,12 +65,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         } catch (InvalidRelException e) {
             throw new IllegalStateException("Can't create OLAPAggregateRel!", e);
         }
-    }
-
-    @Override
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-        return SparderRuntime$.MODULE$.agg(childDatasets, this);
     }
 
 }

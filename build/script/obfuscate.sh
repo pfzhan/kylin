@@ -110,9 +110,9 @@ rm -rf tmp_war
 obfuscate extensions/assembly/ $BUILD_LIB_DIR 1 1 kylin-job-kap-${release_version}-obf kylin-job-kap-${release_version}.jar
 mv $BUILD_LIB_DIR/kylin-job-kap-${release_version}-obf.jar tmp/
 
-# obfuscate coprocessor jar
-obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 1 kylin-coprocessor-kap-${release_version}-obf kylin-coprocessor-kap-${release_version}.jar
-mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
+## obfuscate coprocessor jar
+#obfuscate extensions/storage-hbase/ $BUILD_LIB_DIR 1 1 kylin-coprocessor-kap-${release_version}-obf kylin-coprocessor-kap-${release_version}.jar
+#mv $BUILD_LIB_DIR/kylin-coprocessor-kap-${release_version}-obf.jar tmp/
 
 # obfuscate storage parquet jar
 obfuscate extensions/storage-parquet/ $BUILD_LIB_DIR 1 1 kylin-storage-parquet-kap-${release_version}-obf kylin-storage-parquet-kap-${release_version}.jar

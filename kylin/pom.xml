@@ -199,6 +199,11 @@
             <!-- Kylin -->
             <dependency>
                 <groupId>org.apache.kylin</groupId>
+                <artifactId>kylin-external</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>atopcalcite</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -234,27 +239,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-engine-mr</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-engine-spark</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-source-hive</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-source-kafka</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-storage-hbase</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -284,11 +269,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-tool</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-tool-assembly</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -306,12 +286,6 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-storage</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.kylin</groupId>
-                <artifactId>kylin-storage-hbase</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -580,6 +554,7 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-databind</artifactId>
@@ -1118,20 +1093,10 @@
         <module>core-cube</module>
         <module>core-job</module>
         <module>core-storage</module>
-        <module>engine-mr</module>
-        <module>engine-spark</module>
         <module>source-hive</module>
-        <module>source-kafka</module>
-        <module>storage-hbase</module>
         <module>query</module>
-        <module>server-base</module>
-        <module>server</module>
         <module>jdbc</module>
-        <module>assembly</module>
-        <module>tool</module>
-        <module>tool-assembly</module>
         <module>kylin-it</module>
-        <module>tomcat-ext</module>
     </modules>
 
     <reporting>

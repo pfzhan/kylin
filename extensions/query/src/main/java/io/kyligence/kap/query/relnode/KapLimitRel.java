@@ -38,10 +38,6 @@ import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.query.relnode.OLAPLimitRel;
 import org.apache.kylin.query.relnode.OLAPRel;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 public class KapLimitRel extends OLAPLimitRel implements KapRel {
     public KapLimitRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode offset, RexNode fetch) {
@@ -68,8 +64,4 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         return EnumerableLimit.create(input, localOffset, localFetch);
     }
 
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        List<Dataset<Row>> childDatasets = implementor.getChildrenDatasets(getInputs());
-        return SparderRuntime$.MODULE$.limit(childDatasets, this);
-    }
 }

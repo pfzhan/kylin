@@ -31,18 +31,12 @@ import java.io.InputStream;
 import java.util.List;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.storage.gtrecord.DummyPartitionStreamer;
-import org.apache.kylin.storage.gtrecord.StorageResponseGTScatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +46,6 @@ import com.google.common.collect.UnmodifiableIterator;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.IStorageVisitResponseStreamer;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient;
-import io.kyligence.kap.storage.parquet.cube.spark.rpc.generated.SparkJobProtos;
-import io.kyligence.kap.storage.parquet.protocol.shaded.com.google.protobuf.ByteString;
 
 public class NDataflowSparkRPC implements IGTStorage {
 
@@ -66,7 +56,7 @@ public class NDataflowSparkRPC implements IGTStorage {
     protected GTInfo info;
     protected StorageContext context;
 
-    private SparkDriverClient client;
+    //private SparkDriverClient client;
 
     public NDataflowSparkRPC(ISegment segment, NCuboidLayout cuboid, GTInfo info, StorageContext context) {
         this.dataSegment = (NDataSegment) segment;
@@ -79,7 +69,7 @@ public class NDataflowSparkRPC implements IGTStorage {
 
     protected void init() {
         try {
-            client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
+            //client = new SparkDriverClient(KapConfig.getInstanceFromEnv());
         } catch (Exception e) {
             logger.error("error is " + e.getLocalizedMessage());
             throw e;
@@ -99,39 +89,40 @@ public class NDataflowSparkRPC implements IGTStorage {
     @Override
     public IGTScanner getGTScanner(GTScanRequest scanRequest) throws IOException {
 
-        //TODO: IMPORTANT: scanRequest's timeout is set value here
-        scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
-
-        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
-        logger.info("Filter: {}", scanRequest.getFilterPushDown());
-
-        String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
-
-        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
-                .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).setGtScanRequestId(scanReqId)
-                .setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
-                .setRealizationId(dataSegment.getDataflow().getUuid())
-                .setSegmentId(Integer.toString(dataSegment.getId())).setDataFolderName(String.valueOf(cuboid.getId()))
-                .setMaxRecordLength(scanRequest.getInfo().getMaxLength())
-                .addAllParquetColumns(getRequiredParquetColumns(scanRequest))
-                .setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
-                .setRealizationType(dataSegment.getDataflow().getType()).setQueryId(QueryContext.current().getQueryId())
-                .setSpillEnabled(dataSegment.getConfig().getQueryCoprocessorSpillEnabled())
-                .setMaxScanBytes(dataSegment.getConfig().getPartitionMaxScanBytes())
-                .setStartTime(scanRequest.getStartTime()).setStorageType(cuboid.getStorageType()).build();
-
-        if (BackdoorToggles.getDumpedPartitionDir() != null) {
-            logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage",
-                    BackdoorToggles.getDumpedPartitionDir());
-            return new StorageResponseGTScatter(scanRequest,
-                    new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())),
-                    context);
-        }
-
-        logger.info("The scan {} for segment {} is ready to be submitted to spark client", scanReqId, dataSegment);
-        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload,
-                dataSegment.getConfig().getQueryMaxScanBytes());
-        return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
+        return null;
+        //        //TODO: IMPORTANT: scanRequest's timeout is set value here
+        //        scanRequest.setTimeout(KapConfig.getInstanceFromEnv().getSparkVisitTimeout());
+        //
+        //        logger.info("Spark visit timeout is set to " + scanRequest.getTimeout());
+        //        logger.info("Filter: {}", scanRequest.getFilterPushDown());
+        //
+        //        String scanReqId = Integer.toHexString(System.identityHashCode(scanRequest));
+        //
+        //        SparkJobProtos.SparkJobRequestPayload payload = SparkJobProtos.SparkJobRequestPayload.newBuilder()
+        //                .setGtScanRequest(ByteString.copyFrom(scanRequest.toByteArray())).setGtScanRequestId(scanReqId)
+        //                .setKylinProperties(KylinConfig.getInstanceFromEnv().exportToString())
+        //                .setRealizationId(dataSegment.getDataflow().getUuid())
+        //                .setSegmentId(Integer.toString(dataSegment.getId())).setDataFolderName(String.valueOf(cuboid.getId()))
+        //                .setMaxRecordLength(scanRequest.getInfo().getMaxLength())
+        //                .addAllParquetColumns(getRequiredParquetColumns(scanRequest))
+        //                .setUseII(KapConfig.getInstanceFromEnv().isUsingInvertedIndex())
+        //                .setRealizationType(dataSegment.getDataflow().getType()).setQueryId(QueryContext.current().getQueryId())
+        //                .setSpillEnabled(dataSegment.getConfig().getQueryCoprocessorSpillEnabled())
+        //                .setMaxScanBytes(dataSegment.getConfig().getPartitionMaxScanBytes())
+        //                .setStartTime(scanRequest.getStartTime()).setStorageType(cuboid.getStorageType()).build();
+        //
+        //        if (BackdoorToggles.getDumpedPartitionDir() != null) {
+        //            logger.info("debugging: use previously dumped partition from {} instead of real requesting from storage",
+        //                    BackdoorToggles.getDumpedPartitionDir());
+        //            return new StorageResponseGTScatter(scanRequest,
+        //                    new DummyPartitionStreamer(new PartitionIteratorFromDir(BackdoorToggles.getDumpedPartitionDir())),
+        //                    context);
+        //        }
+        //
+        //        logger.info("The scan {} for segment {} is ready to be submitted to spark client", scanReqId, dataSegment);
+        //        final IStorageVisitResponseStreamer storageVisitResponseStreamer = client.submit(scanRequest, payload,
+        //                dataSegment.getConfig().getQueryMaxScanBytes());
+        //        return new StorageResponseGTScatter(scanRequest, storageVisitResponseStreamer, context);
 
     }
 

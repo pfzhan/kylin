@@ -31,14 +31,18 @@ import java.net.URL;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -377,6 +381,60 @@ public class KylinConfig extends KylinConfigBase {
                 loadPropertiesFromInputStream(new FileInputStream(propOverrideFile), orderedProperties);
             }
             return orderedProperties;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    public static KylinConfig loadKylinPropsAndMetadata() throws IOException {
+        File metaDir = new File("meta");
+        if (!metaDir.getAbsolutePath().equals(System.getProperty(KylinConfig.KYLIN_CONF))) {
+            System.setProperty(KylinConfig.KYLIN_CONF, metaDir.getAbsolutePath());
+            logger.info("The absolute path for meta dir is " + metaDir.getAbsolutePath());
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+            Map<String, String> paramsMap = new HashMap<>();
+            paramsMap.put("path", metaDir.getAbsolutePath());
+            StorageURL storageURL = new StorageURL(kylinConfig.getMetadataUrl().getIdentifier(), "ifile", paramsMap);
+            kylinConfig.setMetadataUrl(storageURL.toString());
+            return kylinConfig;
+        } else {
+            return KylinConfig.getInstanceFromEnv();
+        }
+    }
+
+
+    public static KylinConfig loadKylinConfigFromHdfsIfNeeded(String uri) {
+        KylinConfig config;
+        try {
+            config = KylinConfig.getInstanceFromEnv();
+            //In some case, the KylinConfig from env is not the expected one.
+            String uriFromEnv = config.getMetadataUrl().toString();
+            if (!uriFromEnv.equalsIgnoreCase(uri))
+                throw new KylinConfigCannotInitException("Not the expected KylinConfig");
+        } catch (KylinConfigCannotInitException e) {
+            logger.warn("No available KylinConfig in environment, fetch it from URI.");
+            config = loadKylinConfigFromHdfs(uri);
+            KylinConfig.setKylinConfigThreadLocal(config);
+        }
+        return config;
+    }
+
+    public static KylinConfig loadKylinConfigFromHdfs(String uri) {
+        if (uri == null)
+            throw new IllegalArgumentException("StorageUrl should not be null");
+        if (!uri.contains("@hdfs"))
+            throw new IllegalArgumentException("StorageUrl should like @hdfs schema");
+        logger.info("Ready to load KylinConfig from uri: {}", uri);
+        StorageURL url = StorageURL.valueOf(uri);
+        String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
+        try {
+            FileSystem fs = HadoopUtil.getFileSystem(metaDir);
+            InputStream is = fs.open(new Path(metaDir));
+            Properties prop = KylinConfig.streamToProps(is);
+            KylinConfig config = KylinConfig.createKylinConfig(prop);
+            KylinConfig.setKylinConfigThreadLocal(config);
+            return config;
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

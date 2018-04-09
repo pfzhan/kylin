@@ -55,8 +55,6 @@ import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.schema.OLAPTable;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 
 import com.google.common.base.Preconditions;
 
@@ -69,7 +67,6 @@ import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
 import io.kyligence.kap.query.optrule.KapWindowRule;
-import io.kyligence.kap.query.runtime.SparderRuntime$;
 
 /**
  */
@@ -151,17 +148,4 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         return super.computeSelfCost(planner, mq);
     }
 
-    @Override
-    public Dataset<Row> implementSpark(SparderImplementor implementor) {
-        context.setReturnTupleInfo(rowType, columnRowType);
-
-        String func = genExecFunc();
-        if (func.equalsIgnoreCase("executeLookupTableQuery")) {
-            return SparderRuntime$.MODULE$.createLookupTable(this);
-        } else if (func.equalsIgnoreCase("executeOLAPQuery")) {
-            return SparderRuntime$.MODULE$.createOlapTable(this, implementor.getDataContext());
-        } else {
-            throw new IllegalStateException("");
-        }
-    }
 }
