@@ -285,9 +285,7 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
 
             return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
-        }
-
-        else if (filter instanceof MassInTupleFilter) {
+        } else if (filter instanceof MassInTupleFilter) {
             //            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
             //            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
             //            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();

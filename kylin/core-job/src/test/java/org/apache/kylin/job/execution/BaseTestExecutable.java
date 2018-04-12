@@ -24,8 +24,6 @@
 
 package org.apache.kylin.job.execution;
 
-import org.apache.kylin.job.execution.AbstractExecutable;
-
 /**
  */
 public abstract class BaseTestExecutable extends AbstractExecutable {
