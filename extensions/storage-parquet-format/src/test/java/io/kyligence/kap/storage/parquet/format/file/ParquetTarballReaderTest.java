@@ -47,7 +47,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
 
     @After
     public void cleanup() throws IOException {
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FileSystem fs = HadoopUtil.getFileSystem(tarballPath);
         if (fs.exists(tarballPath)) {
             fs.delete(tarballPath, true);
         }
@@ -73,7 +73,7 @@ public class ParquetTarballReaderTest extends AbstractParquetFormatTest {
 
     private void appendFile(long length) throws IOException {
         byte[] content = new byte[(int) length - 8];
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FileSystem fs = HadoopUtil.getFileSystem(tarballPath);
         FSDataOutputStream outs = fs.create(tarballPath);
         outs.writeLong(length);
         outs.write(content);

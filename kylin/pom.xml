@@ -102,6 +102,9 @@
         <commons-email.version>1.5</commons-email.version>
 
         <!-- Utility -->
+        <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
+        <mysql-connector.version>5.1.41</mysql-connector.version>
+        <commons-dbcp.version>1.4</commons-dbcp.version>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.21</slf4j.version>
         <xerces.version>2.11.0</xerces.version>
@@ -214,7 +217,17 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.kylin</groupId>
+                <artifactId>kap-core-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-metadata</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -225,6 +238,11 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-cube</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kap-core-cube</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -277,6 +295,8 @@
                 <artifactId>kylin-it</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
+            <!-- kylin test scope-->
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-core-common</artifactId>
@@ -310,6 +330,12 @@
             <dependency>
                 <groupId>org.apache.kylin</groupId>
                 <artifactId>kylin-assembly</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.kylin</groupId>
+                <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -462,6 +488,11 @@
                 <artifactId>commons-collections</artifactId>
                 <version>${commons-collections.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>commons-dbcp</groupId>
+                <artifactId>commons-dbcp</artifactId>
+                <version>${commons-dbcp.version}</version>
             </dependency>
 
             <!-- HBase2 dependencies -->
@@ -719,6 +750,18 @@
                 <artifactId>opensaml</artifactId>
                 <version>${opensaml.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.microsoft.sqlserver</groupId>
+                <artifactId>mssql-jdbc</artifactId>
+                <version>${mssql-jdbc.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql-connector.version}</version>
+                <scope>test</scope>
+            </dependency>
 
 
             <!-- Spring Core -->
@@ -778,7 +821,7 @@
                 <artifactId>spring-security-saml2-core</artifactId>
                 <version>${spring.framework.security.extensions.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.eclipse.jetty</groupId>
                 <artifactId>jetty-server</artifactId>
@@ -1089,8 +1132,11 @@
         <module>atopcalcite</module>
         <module>core-common</module>
         <module>core-metadata</module>
+        <module>kap-core-common</module>
+        <module>kap-core-metadata</module>
         <module>core-dictionary</module>
         <module>core-cube</module>
+        <module>kap-core-cube</module>
         <module>core-job</module>
         <module>core-storage</module>
         <module>source-hive</module>

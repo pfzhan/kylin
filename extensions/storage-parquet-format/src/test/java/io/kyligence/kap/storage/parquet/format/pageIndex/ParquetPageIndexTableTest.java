@@ -24,8 +24,27 @@
 
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.metadata.filter.ColumnTupleFilter;
+import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.metadata.filter.ConstantTupleFilter;
+import org.apache.kylin.metadata.filter.LogicalTupleFilter;
+import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -35,31 +54,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Set;
 
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.metadata.filter.ColumnTupleFilter;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.ConstantTupleFilter;
-import org.apache.kylin.metadata.filter.LogicalTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
-
-public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
+public class ParquetPageIndexTableTest {
     final static int dataSize = 50;
     final static int maxVal = dataSize * 2;
     final static int cardinality = dataSize;
@@ -70,23 +68,19 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
     static int[] data3;
     static int columnLength = 1 + (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal)) / Byte.SIZE;
 
-    static String[] columnName = { "odd", "even", "only" };
-    static boolean[] onlyEq = { false, false, true };
+    static String[] columnName = {"odd", "even", "only"};
+    static boolean[] onlyEq = {false, false, true};
     static TblColRef colRef1;
     static TblColRef colRef2;
     static TblColRef colRef3;
 
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
-        indexTable.close();
-        indexOrderedTable.close();
-    }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
+    private CleanMetadataHelper cleanMetadataHelper = null;
 
-        staticCreateTestMetadata();
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
 
         File indexFile = File.createTempFile("local", "inv");
         writeIndexFile(indexFile);
@@ -102,6 +96,15 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         colRef3 = TblColRef.mockup(null, 3, columnName[2], null);
     }
 
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
+
+        indexTable.close();
+        indexOrderedTable.close();
+    }
+
+
     private static void writeIndexFile(File indexFile) throws IOException {
         data1 = new int[dataSize];
         data2 = new int[dataSize];
@@ -111,8 +114,8 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
             data2[i] = 2 * i + 1;
             data3[i] = 2 * i + 1;
         }
-        int[] cardinalities = { cardinality, cardinality, cardinality };
-        int[] columnLengthes = { columnLength, columnLength, columnLength };
+        int[] cardinalities = {cardinality, cardinality, cardinality};
+        int[] columnLengthes = {columnLength, columnLength, columnLength};
         ColumnSpec[] specs = new ColumnSpec[3];
         for (int i = 0; i < 3; i++) {
             specs[0] = new ColumnSpec(columnName[i], columnLength, cardinality, onlyEq[i], i);
@@ -443,7 +446,7 @@ public class ParquetPageIndexTableTest extends LocalFileMetadataTestCase {
         filter.addChild(filter1);
         filter.addChild(filter2);
         ImmutableRoaringBitmap result = indexTable.lookup(filter);
-        assertArrayEquals(new int[] { 0, 5 }, result.toArray());
+        assertArrayEquals(new int[]{0, 5}, result.toArray());
     }
 
     @Test

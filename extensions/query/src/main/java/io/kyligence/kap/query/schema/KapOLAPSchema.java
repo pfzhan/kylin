@@ -30,10 +30,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.schema.Table;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.query.schema.OLAPSchema;
 
 public class KapOLAPSchema extends OLAPSchema {
@@ -62,7 +62,7 @@ public class KapOLAPSchema extends OLAPSchema {
     private Map<String, Table> buildTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
-        Collection<TableDesc> projectTables = ProjectManager.getInstance(config).listExposedTables(projectName,
+        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName,
                 exposeMore());
 
         for (TableDesc tableDesc : projectTables) {

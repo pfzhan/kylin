@@ -63,18 +63,18 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
     }
-    
+
     public void initConfig(KylinConfig config) {
         Preconditions.checkState(this.config == null || this.config == config);
         this.config = config;
     }
-    
+
     protected KylinConfig getConfig() {
         return config;
     }
-    
-    protected ExecutableManager getManager() {
-        return ExecutableManager.getInstance(config);
+
+    protected NExecutableManager getManager() {
+        return NExecutableManager.getInstance(config, project);
     }
 
     protected void onExecuteStart(ExecutableContext executableContext) {
@@ -204,7 +204,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     @Override
     public final ExecutableState getStatus() {
-        ExecutableManager manager = getManager();
+        NExecutableManager manager = getManager();
         return manager.getOutput(this.getId()).getState();
     }
 
@@ -232,7 +232,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public final void setParent(AbstractExecutable parent) {
         setParentId(parent.getId());
     }
-    
+
     public final void setParentId(String parentId) {
         setParam(PARENT_ID, parentId);
     }
@@ -316,11 +316,11 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public final String getParentId() {
         return getParam(PARENT_ID);
     }
-    
+
     public final AbstractExecutable getParent() {
         return getManager().getJob(getParam(PARENT_ID));
     }
-    
+
     public final String getSubmitter() {
         return getParam(SUBMITTER);
     }
@@ -349,7 +349,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static long getEndTime(Output output) {
         return getExtraInfoAsLong(output, END_TIME, 0L);
     }
-    
+
     public static long getInterruptTime(Output output) {
         return getExtraInfoAsLong(output, INTERRUPT_TIME, 0L);
     }
@@ -430,6 +430,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     @Override
     public String toString() {
-        return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus()).toString();
+        return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
+                .toString();
     }
 }

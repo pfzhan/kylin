@@ -87,7 +87,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
-        ExecutableManager mgr = getManager();
+        NExecutableManager mgr = getManager();
         
         if (isDiscarded()) {
             setEndTime(System.currentTimeMillis());

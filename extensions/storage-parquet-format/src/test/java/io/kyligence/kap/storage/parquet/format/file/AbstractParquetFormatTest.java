@@ -24,10 +24,7 @@
 
 package io.kyligence.kap.storage.parquet.format.file;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -40,11 +37,11 @@ import org.apache.parquet.schema.Type;
 import org.junit.After;
 import org.junit.Before;
 
-import com.google.common.collect.Lists;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
-
-public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCase {
+public abstract class AbstractParquetFormatTest {
     protected Path path, indexPath;
     protected static String tempFilePath;
     protected int groupSize = ParquetConfig.PagesPerGroup * ParquetConfig.RowsPerPage;
@@ -67,21 +64,19 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
     @After
     public void cleanup() throws IOException {
         cleanTestFile(path);
-        cleanAfterClass();
     }
 
     @Before
     public void setup() throws IOException {
-        createTestMetadata();
         cleanTestFile(path);
     }
 
     protected void writeRows(int rowCnt) throws Exception {
         ParquetRawWriter writer = new ParquetRawWriter.Builder().setConf(new Configuration()).setPath(path).setType(type).build();
         for (int i = 0; i < rowCnt; ++i) {
-            writer.writeRow(new byte[] { 1, 2, 3 }, 1, 2, new byte[] { 4, 5 }, new int[] { 1, 1 });
+            writer.writeRow(new byte[]{1, 2, 3}, 1, 2, new byte[]{4, 5}, new int[]{1, 1});
         }
-        
+
         // test save any bytes in parquet file
         writer.flush();
         writer.writeBytesAsDictionaryPage(mockupDictionaryPage());
@@ -94,11 +89,11 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         for (int i = 0; i < rowCnt; ++i) {
             List<Object> row = Lists.newArrayList();
             row.add(Binary.fromConstantByteArray(new Integer(i).toString().getBytes()));
-            row.add(Binary.fromConstantByteArray(new byte[] { 1 }));
-            row.add(Binary.fromConstantByteArray(new byte[] { 2 }));
+            row.add(Binary.fromConstantByteArray(new byte[]{1}));
+            row.add(Binary.fromConstantByteArray(new byte[]{2}));
             writer.writeRow(row);
         }
-        
+
         // test save any bytes in parquet file
         writer.flush();
         writer.writeBytesAsDictionaryPage(mockupDictionaryPage());
@@ -110,13 +105,14 @@ public abstract class AbstractParquetFormatTest extends LocalFileMetadataTestCas
         int colCnt = type.getColumns().size();
         BytesInput[] ret = new BytesInput[colCnt];
         for (int i = 0; i < colCnt; i++) {
-            ret[i] = BytesInput.from(new byte[] { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06 });
+            ret[i] = BytesInput.from(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, 0x06});
         }
         return ret;
     }
 
     protected void cleanTestFile(Path path) throws IOException {
-        FileSystem fs = HadoopUtil.getWorkingFileSystem();
+        FileSystem fs = HadoopUtil.getFileSystem(path);
+
         if (fs.exists(path)) {
             fs.delete(path, true);
         }

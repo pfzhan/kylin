@@ -24,46 +24,51 @@
 
 package io.kyligence.kap.storage.parquet.format.pageIndex;
 
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+public class ParquetPageIndexSpliceWriteReadTest {
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 
-public class ParquetPageIndexSpliceWriteReadTest extends LocalFileMetadataTestCase {
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
+
 
     @Test
     public void testReadWrite() throws IOException, ClassNotFoundException {
         File indexFile = File.createTempFile("local", "inv");
         FSDataOutputStream outputStream = new FSDataOutputStream(new FileOutputStream(indexFile));
         ParquetPageIndexSpliceWriter writer = new ParquetPageIndexSpliceWriter(outputStream);
-        writer.startDiv(0, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {0}, 1);
+        writer.startDiv(0, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});
+        writer.write(new byte[]{0}, 1);
         writer.endDiv();
-        writer.startDiv(1, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {1}, 0);
+        writer.startDiv(1, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});
+        writer.write(new byte[]{1}, 0);
         writer.endDiv();
-        writer.startDiv(0, new String[] {"name"}, new int[] {1}, new int[] {1}, new boolean[] {true});
-        writer.write(new byte[] {2}, 2);
+        writer.startDiv(0, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});
+        writer.write(new byte[]{2}, 2);
         writer.endDiv();
         writer.close();
 

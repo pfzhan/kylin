@@ -25,27 +25,30 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.dict.StringBytesConverter;
 import org.apache.kylin.dict.TrieDictionaryBuilder;
 import org.apache.kylin.metadata.filter.TupleFilter.FilterOperatorEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class ColumnValueRangeTest extends LocalFileMetadataTestCase {
+public class ColumnValueRangeTest {
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

@@ -20,13 +20,13 @@ package org.apache.kylin.storage;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -37,9 +37,9 @@ import org.apache.kylin.metadata.tuple.TupleInfo;
  */
 public class StorageMockUtils {
     
-    final DataModelDesc model;
+    final NDataModel model;
     
-    public StorageMockUtils(DataModelDesc model) {
+    public StorageMockUtils(NDataModel model) {
         this.model = model;
     }
     

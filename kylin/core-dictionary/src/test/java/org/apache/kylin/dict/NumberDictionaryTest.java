@@ -30,8 +30,8 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.kylin.common.util.Bytes;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.junit.After;
 import org.junit.Before;
@@ -43,19 +43,23 @@ import com.google.common.collect.Sets;
 
 /**
  */
-public class NumberDictionaryTest extends LocalFileMetadataTestCase {
+public class NumberDictionaryTest {
 
-    Number2BytesConverter.NumberBytesCodec codec = new Number2BytesConverter.NumberBytesCodec(MAX_DIGITS_BEFORE_DECIMAL_POINT);
+    Number2BytesConverter.NumberBytesCodec codec = new Number2BytesConverter.NumberBytesCodec(
+            MAX_DIGITS_BEFORE_DECIMAL_POINT);
     Random rand = new Random();
 
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
     @Before
-    public void setup() throws Exception {
-        createTestMetadata();
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
     @After
-    public void tearDown() {
-        cleanupTestMetadata();
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
@@ -78,7 +82,8 @@ public class NumberDictionaryTest extends LocalFileMetadataTestCase {
         String[] ints = new String[] { "", "0", "5", "100", "13" };
 
         // check "" is treated as NULL, not a code of dictionary
-        Dictionary<?> dict = DictionaryGenerator.buildDictionary(DataType.getType("integer"), new IterableDictionaryValueEnumerator(ints));
+        Dictionary<?> dict = DictionaryGenerator.buildDictionary(DataType.getType("integer"),
+                new IterableDictionaryValueEnumerator(ints));
         assertEquals(4, dict.getSize());
 
         final int id = ((NumberDictionary<String>) dict).getIdFromValue("");
@@ -95,7 +100,8 @@ public class NumberDictionaryTest extends LocalFileMetadataTestCase {
         //test resolved jira-1800
         checkCodec("-0.0045454354354354359999999999877218", "-9999999999999999999.9954545645645645640000000000122781;");
         checkCodec("-0.009999999999877218", "-9999999999999999999.990000000000122781;");
-        checkCodec("12343434372493274.438403840384023840253554345345345345", "00012343434372493274.438403840384023840253554345345345345");
+        checkCodec("12343434372493274.438403840384023840253554345345345345",
+                "00012343434372493274.438403840384023840253554345345345345");
         assertEquals("00000000000000000052.57", encodeNumber("52.5700"));
         assertEquals("00000000000000000000", encodeNumber("0.00"));
         assertEquals("00000000000000000000", encodeNumber("0.0"));
@@ -141,10 +147,10 @@ public class NumberDictionaryTest extends LocalFileMetadataTestCase {
 
         // test exact match
         NumberDictionary<String> dict = builder.build(0);
-//        for (int i = 0; i < sorted.size(); i++) {
-//            String dictNum = dict.getValueFromId(i);
-//            System.out.println(sorted.get(i) + "\t" + dictNum);
-//        }
+        //        for (int i = 0; i < sorted.size(); i++) {
+        //            String dictNum = dict.getValueFromId(i);
+        //            System.out.println(sorted.get(i) + "\t" + dictNum);
+        //        }
 
         for (int i = 0; i < sorted.size(); i++) {
             String dictNum = dict.getValueFromId(i);

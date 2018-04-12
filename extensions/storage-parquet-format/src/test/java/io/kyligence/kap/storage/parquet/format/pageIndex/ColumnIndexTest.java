@@ -33,29 +33,32 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexWriter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnSpec;
 
-public class ColumnIndexTest extends LocalFileMetadataTestCase {
+public class ColumnIndexTest {
     Path indexPath = new Path("/tmp/testkylin/a.inv");
 
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

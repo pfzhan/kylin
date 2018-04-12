@@ -28,7 +28,7 @@ import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,6 @@ import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.builder.NDataflowMergeJob;
-import io.kyligence.kap.job.execution.NExecutableManager;
 
 public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
@@ -86,7 +85,7 @@ public class NSparkMergingStep extends NSparkExecutable {
     }
 
     @Override
-    protected ExecutableManager getManager() {
+    protected NExecutableManager getManager() {
         return NExecutableManager.getInstance(getConfig(), getProject());
     }
 }

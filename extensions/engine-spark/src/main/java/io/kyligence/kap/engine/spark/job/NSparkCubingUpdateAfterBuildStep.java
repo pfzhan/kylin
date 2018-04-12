@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.job.execution.NExecutableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,9 +33,9 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecutableManager;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecuteResult.State;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -86,8 +85,8 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         fillUpdate(distConfig, flowName, segmentIds, layoutIds, update);
     }
 
-    public void fillUpdate(KylinConfig distConfig, String flowName, Set<Integer> segmentIds,
-            Set<Long> layoutIds, NDataflowUpdate update) {
+    public void fillUpdate(KylinConfig distConfig, String flowName, Set<Integer> segmentIds, Set<Long> layoutIds,
+            NDataflowUpdate update) {
         String dfName = flowName;
         NDataflowManager distMgr = NDataflowManager.getInstance(distConfig, getProject());
         NDataflow distDataflow = distMgr.getDataflow(dfName).copy(); // avoid changing cached objects
@@ -136,7 +135,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
     }
 
     @Override
-    protected ExecutableManager getManager() {
+    protected NExecutableManager getManager() {
         return NExecutableManager.getInstance(getConfig(), getProject());
     }
 

@@ -21,11 +21,9 @@ package org.apache.kylin.query.routing;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.storage.hybrid.HybridInstance;
 
 import com.google.common.collect.Maps;
 
@@ -35,8 +33,6 @@ public class Candidate implements Comparable<Candidate> {
     static Map<String, Integer> PRIORITIES = DEFAULT_PRIORITIES;
 
     static {
-        DEFAULT_PRIORITIES.put(HybridInstance.REALIZATION_TYPE, 0);
-        DEFAULT_PRIORITIES.put(CubeInstance.REALIZATION_TYPE, 1);
         DEFAULT_PRIORITIES.put("INVERTED_INDEX", 1);
         DEFAULT_PRIORITIES.put("NCUBE", 1);
     }

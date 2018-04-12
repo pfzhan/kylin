@@ -35,6 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.topn.TopNCounter;
@@ -66,8 +68,6 @@ import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.builder.NSnapshotBuilder;
-import io.kyligence.kap.job.execution.NExecutableManager;
-import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {

@@ -38,26 +38,29 @@ import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
+public class ParquetPageIndexWriteReadTest {
 
-public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
@@ -71,7 +74,8 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
         int cardinality1 = 50;
         int cardinality2 = 100;
 
-        int[] columnLength = { (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1) + 7) / 8, (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) + 7) / 8 };
+        int[] columnLength = { (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal1) + 7) / 8,
+                (Integer.SIZE - Integer.numberOfLeadingZeros(maxVal2) + 7) / 8 };
         int[] cardinality = { cardinality1, cardinality2 };
         String[] columnName = { "1", "2" };
         int[] data1 = new int[dataSize];
@@ -96,7 +100,8 @@ public class ParquetPageIndexWriteReadTest extends LocalFileMetadataTestCase {
 
         // write
         boolean[] onlyEq = { false, false };
-        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq, new FSDataOutputStream(new FileOutputStream(indexFile)));
+        ParquetPageIndexWriter writer = new ParquetPageIndexWriter(columnName, columnLength, cardinality, onlyEq,
+                new FSDataOutputStream(new FileOutputStream(indexFile)));
         for (int i = 0; i < dataSize; i++) {
             byte[] buffer1 = new byte[columnLength[0]];
             byte[] buffer2 = new byte[columnLength[1]];

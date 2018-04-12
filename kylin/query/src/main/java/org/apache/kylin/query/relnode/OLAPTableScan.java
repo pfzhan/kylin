@@ -67,7 +67,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
@@ -86,6 +85,8 @@ import org.apache.kylin.query.schema.OLAPTable;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.model.NDataModel;
 
 /**
  */
@@ -367,7 +368,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return getTableRef().makeFakeColumn(name);
     }
 
-    public void fixColumnRowTypeWithModel(DataModelDesc model, Map<String, String> aliasMap) {
+    public void fixColumnRowTypeWithModel(NDataModel model, Map<String, String> aliasMap) {
         String newAlias = aliasMap.get(this.alias);
         for (TblColRef col : columnRowType.getAllColumns()) {
             TblColRef.fixUnknownModel(model, newAlias, col);

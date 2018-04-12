@@ -41,7 +41,6 @@ import org.apache.kylin.metadata.filter.TupleFilterSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.storage.gtrecord.CubeSegmentScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +51,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.storage.NDataStorageQuery;
 
 public class NDataSegScanner implements IGTScanner {
-    private static final Logger logger = LoggerFactory.getLogger(CubeSegmentScanner.class);
+    private static final Logger logger = LoggerFactory.getLogger(NDataSegScanner.class);
 
     final NDataSegment dataSegment;
     final NScannerWorker scanner;

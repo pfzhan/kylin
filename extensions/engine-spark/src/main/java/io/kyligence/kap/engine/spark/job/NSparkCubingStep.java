@@ -24,12 +24,11 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.job.execution.NExecutableManager;
 import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.ExecutableManager;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,8 +49,7 @@ public class NSparkCubingStep extends NSparkExecutable {
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
-        NDataflow df = NDataflowManager.getInstance(config, getProject())
-                .getDataflow(getDataflowName());
+        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowName());
         return df.collectPrecalculationResource();
     }
 
@@ -90,7 +88,7 @@ public class NSparkCubingStep extends NSparkExecutable {
     }
 
     @Override
-    protected ExecutableManager getManager() {
+    protected NExecutableManager getManager() {
         return NExecutableManager.getInstance(getConfig(), getProject());
     }
 }

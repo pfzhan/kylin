@@ -52,7 +52,8 @@ public class KapQueryUtil {
             for (String clz : classes) {
                 try {
                     IQueryTransformer t = (IQueryTransformer) ClassUtil.newInstance(clz);
-                    if (t instanceof ConvertToComputedColumn || 
+                    if (
+                            //t instanceof ConvertToComputedColumn ||
                             t instanceof RowFilter ||
                             t instanceof HackSelectStarWithColumnACL) {
                         continue;

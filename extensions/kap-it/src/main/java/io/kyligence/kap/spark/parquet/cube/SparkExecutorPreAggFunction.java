@@ -31,14 +31,10 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner;
-import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner4Cube;
-import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner4Raw;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.htrace.HtraceInit;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.gridtable.GTRecord;
 import org.apache.kylin.gridtable.GTScanRequest;
 import org.apache.kylin.gridtable.IGTScanner;
@@ -57,14 +53,14 @@ import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.common.metric.JVMInfoCollector;
 import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.raw.RawTableInstance;
-import io.kyligence.kap.storage.parquet.format.ParquetRawTableFileInputFormat;
+import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner;
+import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics;
 import scala.Tuple2;
 
-public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult>{
+public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tuple2<Text, Text>>, RDDPartitionResult> {
     private static final Logger logger = LoggerFactory.getLogger(SparkExecutorPreAggFunction.class);
     static final long serialVersionUID = 1L;
     private final Accumulator<Long> scannedRecords;
@@ -107,7 +103,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
     @Override
     public Iterator<RDDPartitionResult> call(Iterator<Tuple2<Text, Text>> tuple2Iterator) throws Exception {
         String executorId = (SparkEnv.get() == null) ? Thread.currentThread().getName() : SparkEnv.get().executorId();
-        
+
         logger.info("Start to record executor's JVM Info");
         System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
         JVMInfoCollector.init(executorId);
@@ -136,7 +132,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
             StorageSideBehavior behavior = null;
 
             ParquetBytesGTScanner scanner;
-            if (CubeInstance.REALIZATION_TYPE.equals(realizationType) || NDataflow.REALIZATION_TYPE.equals(realizationType)) {
+            if (NDataflow.REALIZATION_TYPE.equals(realizationType)) {
                 if (isSplice) {
                     gtScanRequest = ParquetSpliceTarballFileInputFormat.ParquetTarballFileReader.gtScanRequestThreadLocal
                             .get();
@@ -146,11 +142,6 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
                 }
                 behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
                 scanner = new ParquetBytesGTScanner4Cube(gtScanRequest.getInfo(), iterator, gtScanRequest,
-                        maxScannedBytes, behavior.delayToggledOn());//in
-            } else if (RawTableInstance.REALIZATION_TYPE.equals(realizationType)) {
-                gtScanRequest = ParquetRawTableFileInputFormat.ParquetRawTableFileReader.gtScanRequestThreadLocal.get();
-                behavior = StorageSideBehavior.valueOf(gtScanRequest.getStorageBehavior());
-                scanner = new ParquetBytesGTScanner4Raw(gtScanRequest.getInfo(), iterator, gtScanRequest,
                         maxScannedBytes, behavior.delayToggledOn());//in
             } else {
                 throw new IllegalArgumentException("Unsupported realization type " + realizationType);

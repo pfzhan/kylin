@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.mockup;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.TableMetadataManager;
@@ -34,7 +35,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
@@ -56,7 +56,7 @@ public class CsvSource implements ISource {
     public ISourceMetadataExplorer getSourceMetadataExplorer() {
         return new ISourceMetadataExplorer() {
 
-            List<ProjectInstance> allProjects = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+            List<ProjectInstance> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .listAllProjects();
             TableMetadataManager mgr = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
 

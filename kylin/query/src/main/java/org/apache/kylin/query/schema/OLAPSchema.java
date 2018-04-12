@@ -26,10 +26,10 @@ import org.apache.calcite.schema.Table;
 import org.apache.calcite.schema.impl.AbstractSchema;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.cube.CubeManager;
-import org.apache.kylin.metadata.model.DataModelManager;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectManager;
+
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
  */
@@ -74,7 +74,7 @@ public class OLAPSchema extends AbstractSchema {
     private Map<String, Table> buildTableMap() {
         Map<String, Table> olapTables = new HashMap<String, Table>();
 
-        Collection<TableDesc> projectTables = ProjectManager.getInstance(config).listExposedTables(projectName,
+        Collection<TableDesc> projectTables = NProjectManager.getInstance(config).listExposedTables(projectName,
                 exposeMore);
 
         for (TableDesc tableDesc : projectTables) {
@@ -113,8 +113,8 @@ public class OLAPSchema extends AbstractSchema {
         return starSchemaPassword;
     }
 
-    public DataModelManager getMetadataManager() {
-        return DataModelManager.getInstance(config);
+    public NDataModelManager getMetadataManager() {
+        return NDataModelManager.getInstance(config, projectName);
     }
 
     public KylinConfig getConfig() {
@@ -123,10 +123,6 @@ public class OLAPSchema extends AbstractSchema {
 
     public String getProjectName() {
         return this.projectName;
-    }
-
-    public CubeManager getCubeManager() {
-        return CubeManager.getInstance(config);
     }
 
 }

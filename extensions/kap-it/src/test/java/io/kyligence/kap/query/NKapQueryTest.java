@@ -36,7 +36,6 @@ import org.apache.kylin.common.KylinVersion;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.gridtable.StorageSideBehavior;
-import org.apache.kylin.query.ITKylinQueryTest;
 import org.dbunit.database.DatabaseConnection;
 import org.dbunit.database.IDatabaseConnection;
 import org.dbunit.dataset.ITable;
@@ -61,7 +60,7 @@ import jersey.repackaged.com.google.common.collect.Lists;
  */
 public class NKapQueryTest extends NKylinTestBase {
 
-    private static final Logger logger = LoggerFactory.getLogger(ITKylinQueryTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(NKapQueryTest.class);
     protected static final String KYLIN_SQL_BASE_DIR = "../../kylin/kylin-it/src/test/resources/query";
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
 

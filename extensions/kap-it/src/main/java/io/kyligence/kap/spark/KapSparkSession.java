@@ -34,6 +34,8 @@ import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -59,12 +61,10 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.job.execution.NExecutableManager;
-import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
 import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartController;
+//import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -190,7 +190,7 @@ public class KapSparkSession extends SparkSession {
         }
 
         logger.info("Magic starts from here. Let's wait several minutes......");
-        NSmartController.optimizeFromPushdown(config, project);
+        //NSmartController.optimizeFromPushdown(config, project);
         logger.info("Auto modeling done. Starts to build......");
         buildAllCubes(config, project);
 

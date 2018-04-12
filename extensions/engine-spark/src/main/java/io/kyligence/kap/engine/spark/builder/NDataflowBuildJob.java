@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -58,7 +59,6 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Preconditions;
 
 public class NDataflowBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuildJob.class);

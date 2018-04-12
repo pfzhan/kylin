@@ -24,17 +24,16 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.cube.CubeInstance;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -63,7 +62,7 @@ public class RealizationChooser {
     }
 
     private static void attemptSelectRealization(OLAPContext context) {
-        Map<DataModelDesc, Set<IRealization>> modelMap = makeOrderedModelMap(context);
+        Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
 
         if (modelMap.size() == 0) {
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
@@ -71,8 +70,8 @@ public class RealizationChooser {
 
         //check all models to collect error message, just for check
         if (BackdoorToggles.getCheckAllModels()) {
-            for (Map.Entry<DataModelDesc, Set<IRealization>> entry : modelMap.entrySet()) {
-                final DataModelDesc model = entry.getKey();
+            for (Map.Entry<NDataModel, Set<IRealization>> entry : modelMap.entrySet()) {
+                final NDataModel model = entry.getKey();
                 final Map<String, String> aliasMap = matches(model, context);
                 if (aliasMap != null) {
                     context.fixModel(model, aliasMap);
@@ -82,8 +81,8 @@ public class RealizationChooser {
             }
         }
 
-        for (Map.Entry<DataModelDesc, Set<IRealization>> entry : modelMap.entrySet()) {
-            final DataModelDesc model = entry.getKey();
+        for (Map.Entry<NDataModel, Set<IRealization>> entry : modelMap.entrySet()) {
+            final NDataModel model = entry.getKey();
             final Map<String, String> aliasMap = matches(model, context);
             if (aliasMap != null) {
                 context.fixModel(model, aliasMap);
@@ -107,9 +106,9 @@ public class RealizationChooser {
     private static String toErrorMsg(OLAPContext ctx) {
         StringBuilder buf = new StringBuilder("OLAPContext");
         RealizationCheck checkResult = ctx.realizationCheck;
-        for (RealizationCheck.IncapableReason reason : checkResult.getCubeIncapableReasons().values()) {
-            buf.append(", ").append(reason);
-        }
+//        for (RealizationCheck.IncapableReason reason : checkResult.getCubeIncapableReasons().values()) {
+//            buf.append(", ").append(reason);
+//        }
         for (List<RealizationCheck.IncapableReason> reasons : checkResult.getModelIncapableReasons().values()) {
             for (RealizationCheck.IncapableReason reason : reasons) {
                 buf.append(", ").append(reason);
@@ -121,7 +120,7 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    public static Map<String, String> matches(DataModelDesc model, OLAPContext ctx) {
+    public static Map<String, String> matches(NDataModel model, OLAPContext ctx) {
         Map<String, String> result = Maps.newHashMap();
 
         TableRef firstTable = ctx.firstTableScan.getTableRef();
@@ -157,16 +156,16 @@ public class RealizationChooser {
         return result;
     }
 
-    private static Map<DataModelDesc, Set<IRealization>> makeOrderedModelMap(OLAPContext context) {
+    private static Map<NDataModel, Set<IRealization>> makeOrderedModelMap(OLAPContext context) {
         OLAPContext first = context;
         KylinConfig kylinConfig = first.olapSchema.getConfig();
         String projectName = first.olapSchema.getProjectName();
         String factTableName = first.firstTableScan.getOlapTable().getTableName();
-        Set<IRealization> realizations = ProjectManager.getInstance(kylinConfig).getRealizationsByTable(projectName,
+        Set<IRealization> realizations = NProjectManager.getInstance(kylinConfig).getRealizationsByTable(projectName,
                 factTableName);
 
-        final Map<DataModelDesc, Set<IRealization>> models = Maps.newHashMap();
-        final Map<DataModelDesc, RealizationCost> costs = Maps.newHashMap();
+        final Map<NDataModel, Set<IRealization>> models = Maps.newHashMap();
+        final Map<NDataModel, RealizationCost> costs = Maps.newHashMap();
 
         for (IRealization real : realizations) {
             if (real.isReady() == false) {
@@ -186,7 +185,7 @@ public class RealizationChooser {
             }
 
             RealizationCost cost = new RealizationCost(real);
-            DataModelDesc m = real.getModel();
+            NDataModel m = real.getModel();
             Set<IRealization> set = models.get(m);
             if (set == null) {
                 set = Sets.newHashSet();
@@ -202,9 +201,9 @@ public class RealizationChooser {
         }
 
         // order model by cheapest realization cost
-        TreeMap<DataModelDesc, Set<IRealization>> result = Maps.newTreeMap(new Comparator<DataModelDesc>() {
+        TreeMap<NDataModel, Set<IRealization>> result = Maps.newTreeMap(new Comparator<NDataModel>() {
             @Override
-            public int compare(DataModelDesc o1, DataModelDesc o2) {
+            public int compare(NDataModel o1, NDataModel o2) {
                 RealizationCost c1 = costs.get(o1);
                 RealizationCost c2 = costs.get(o2);
                 int comp = c1.compareTo(c2);
@@ -236,6 +235,11 @@ public class RealizationChooser {
     }
 
     private static class RealizationCost implements Comparable<RealizationCost> {
+
+        public static final int COST_WEIGHT_MEASURE = 1;
+        public static final int COST_WEIGHT_DIMENSION = 10;
+        public static final int COST_WEIGHT_INNER_JOIN = 100;
+
         final public int priority;
         final public int cost;
 
@@ -245,16 +249,16 @@ public class RealizationChooser {
 
             // ref CubeInstance.getCost()
             int countedDimensionNum;
-            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
-                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
-            } else {
+//            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
+//                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
+//            } else {
                 countedDimensionNum = real.getAllDimensions().size();
-            }
-            int c = countedDimensionNum * CubeInstance.COST_WEIGHT_DIMENSION
-                    + real.getMeasures().size() * CubeInstance.COST_WEIGHT_MEASURE;
+//            }
+            int c = countedDimensionNum * COST_WEIGHT_DIMENSION
+                    + real.getMeasures().size() * COST_WEIGHT_MEASURE;
             for (JoinTableDesc join : real.getModel().getJoinTables()) {
                 if (join.getJoin().isInnerJoin())
-                    c += CubeInstance.COST_WEIGHT_INNER_JOIN;
+                    c += COST_WEIGHT_INNER_JOIN;
             }
             this.cost = c;
         }

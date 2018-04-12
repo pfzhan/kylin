@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -34,7 +35,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
@@ -209,7 +209,7 @@ public class OLAPContext {
         }
     }
 
-    public void fixModel(DataModelDesc model, Map<String, String> aliasMap) {
+    public void fixModel(NDataModel model, Map<String, String> aliasMap) {
         if (fixedModel)
             return;
 

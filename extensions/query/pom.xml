@@ -21,7 +21,7 @@
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
@@ -128,13 +128,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-cube</artifactId>
         </dependency>
         <dependency>

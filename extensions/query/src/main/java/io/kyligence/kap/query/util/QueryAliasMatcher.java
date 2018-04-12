@@ -30,6 +30,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
@@ -48,7 +49,6 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
@@ -341,7 +341,7 @@ public class QueryAliasMatcher {
     //        return null;
     //    }
 
-    public QueryAliasMatchInfo match(DataModelDesc model, SqlSelect sqlSelect) throws SqlParseException {
+    public QueryAliasMatchInfo match(NDataModel model, SqlSelect sqlSelect) throws SqlParseException {
         if (sqlSelect.getFrom() == null || sqlSelect.getFrom().getKind().equals(SqlKind.VALUES)) {
             return null;
         }

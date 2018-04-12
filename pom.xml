@@ -64,9 +64,6 @@
     <modules>
         <module>kylin</module>
         <module>extensions/external</module>
-        <module>extensions/core-common</module>
-        <module>extensions/core-metadata</module>
-        <module>extensions/core-cube</module>
         <module>extensions/core-job</module>
         <module>extensions/core-storage</module>
         <module>extensions/engine-spark</module>
@@ -74,7 +71,6 @@
         <module>extensions/storage-parquet-format</module>
         <module>extensions/query</module>
         <module>extensions/kap-it</module>
-        <module>extensions/smart</module>
         <module>extensions/tomcat-ext</module>
         <module>extensions/udf</module>
     </modules>
@@ -104,17 +100,17 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-core-cube</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -170,11 +166,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-smart</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-tool-assembly</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -198,14 +189,8 @@
 
             <!--KAP test scope-->
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>org.apache.kylin</groupId>
                 <artifactId>kap-core-common</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

@@ -34,13 +34,29 @@ import org.junit.Test;
  * @author ysong1
  * 
  */
-public class SSHClientTest extends LocalFileMetadataTestCase {
+public class SSHClientTest {
 
     private boolean isRemote;
     private String hostname;
     private int port;
     private String username;
     private String password;
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
+
+        loadPropertiesFile();
+
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
+    }
 
     private void loadPropertiesFile() throws IOException {
 
@@ -51,17 +67,6 @@ public class SSHClientTest extends LocalFileMetadataTestCase {
         this.hostname = cfg.getRemoteHadoopCliHostname();
         this.username = cfg.getRemoteHadoopCliUsername();
         this.password = cfg.getRemoteHadoopCliPassword();
-    }
-
-    @Before
-    public void before() throws Exception {
-        this.createTestMetadata();
-        loadPropertiesFile();
-    }
-
-    @After
-    public void after() throws Exception {
-        this.cleanupTestMetadata();
     }
 
     @Test

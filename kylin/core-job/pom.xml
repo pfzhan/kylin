@@ -38,6 +38,10 @@
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-cube</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kap-core-cube</artifactId>
+        </dependency>
 
         <!-- Provided -->
         <dependency>
@@ -63,6 +67,12 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-common</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kylin</groupId>
+            <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

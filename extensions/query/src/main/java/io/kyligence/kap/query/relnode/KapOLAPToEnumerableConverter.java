@@ -33,23 +33,16 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.kylin.query.security.QueryInterceptor;
 import org.apache.kylin.query.security.QueryInterceptorUtil;
-import org.apache.kylin.storage.hybrid.HybridInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.raw.RawTableInstance;
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
@@ -149,88 +142,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
     }
 
     private boolean isSparderAppliable(List<OLAPContext> contexts) {
-        boolean sparderEnabled = true;
-        for (OLAPContext olapContext : contexts) {
-            CubeInstance cube = null;
-            if (olapContext.realization instanceof RawTableInstance) {
-                logger.debug("Current query cannot use Sparder due to rawtable");
-                sparderEnabled = false;
-                break;
-            }
-            if (olapContext.realization instanceof CubeInstance) {
-                if (!isCFAndStorageType(sparderEnabled, olapContext)) {
-                    sparderEnabled = false;
-                    break;
-                }
-            }
-            //Hybrid
-            if (olapContext.realization instanceof HybridInstance) {
-                HybridInstance hybridInstance = (HybridInstance) olapContext.realization;
-                IRealization[] realizations = hybridInstance.getRealizations();
-                for (IRealization realization : realizations) {
-                    if (realization instanceof RawTableInstance) {
-                        sparderEnabled = false;
-                        logger.debug("Current query cannot use Sparder due to rawtable");
-                        break;
-                    }
-                    if (olapContext.realization instanceof CubeInstance) {
-                        if (!isCFAndStorageType(sparderEnabled, olapContext)) {
-                            sparderEnabled = false;
-                            break;
-                        }
-                    }
-
-                }
-            }
-            if (!sparderEnabled) {
-                break;
-            }
-            //window
-            if (olapContext.hasWindow) {
-                logger.debug("Current query cannot use Sparder due to window function");
-                sparderEnabled = false;
-                break;
-            }
-
-            //needAdvancedTupleFilling
-            if (olapContext.involvedMeasure.size() > 0) {
-                logger.debug("Current query cannot use Sparder due to unsupported needAdvancedTupleFilling measure: "
-                        + olapContext.involvedMeasure);
-                sparderEnabled = false;
-                break;
-            }
-
-            for (SQLDigest.SQLCall sqlCall : olapContext.aggrSqlCalls) {
-                if (sqlCall.function.equalsIgnoreCase("intersect_count")
-                        || sqlCall.function.toUpperCase().contains("percentile".toUpperCase())) {
-                    logger.debug(
-                            "Current query cannot use Sparder due to unsupported udf function " + sqlCall.function);
-                    sparderEnabled = false;
-                    break;
-                }
-            }
-        }
-        return sparderEnabled;
-    }
-
-    private boolean isCFAndStorageType(boolean sparderEnabled, OLAPContext olapContext) {
-        CubeInstance cube;
-        cube = (CubeInstance) olapContext.realization;
-        CubeDesc cubeDesc = cube.getDescriptor();
-        //CF
-        if (cubeDesc.getHbaseMapping() != null
-                && cubeDesc.getHbaseMapping().getColumnFamily().length != cubeDesc.getMeasures().size()) {
-            logger.debug("Current query cannot use Sparder due to Column Family is used"
-                    + olapContext.realization.getCanonicalName());
-            sparderEnabled = false;
-        }
-        //storag type
-        if (cube.getDescriptor().getStorageType() != IKapStorageAware.ID_SPLICE_PARQUET) {
-            logger.debug("Current query cannot use Sparder due to unsupported storage type"
-                    + cube.getDescriptor().getStorageType());
-            sparderEnabled = false;
-        }
-        return sparderEnabled;
+        throw new UnsupportedOperationException();
     }
 
 }

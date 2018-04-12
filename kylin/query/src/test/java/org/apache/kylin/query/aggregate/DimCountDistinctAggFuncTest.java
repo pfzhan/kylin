@@ -20,7 +20,7 @@ package org.apache.kylin.query.aggregate;
 
 import static org.junit.Assert.assertEquals;
 
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.measure.dim.DimCountDistinctAggFunc;
 import org.apache.kylin.measure.dim.DimCountDistinctCounter;
 import org.junit.After;
@@ -29,18 +29,21 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-public class DimCountDistinctAggFuncTest extends LocalFileMetadataTestCase {
+public class DimCountDistinctAggFuncTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
     @Before
     public void setUp() throws Exception {
-        this.createTestMetadata();
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
     @After
     public void after() throws Exception {
-        this.cleanupTestMetadata();
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

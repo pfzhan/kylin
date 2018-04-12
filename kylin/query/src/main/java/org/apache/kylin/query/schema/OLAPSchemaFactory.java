@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaFactory;
 import org.apache.calcite.schema.SchemaPlus;
@@ -33,7 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.model.DatabaseDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +61,7 @@ public class OLAPSchemaFactory implements SchemaFactory {
 
     public static File createTempOLAPJson(String project, KylinConfig config) {
 
-        Collection<TableDesc> tables = ProjectManager.getInstance(config).listExposedTables(project, exposeMore());
+        Collection<TableDesc> tables = NProjectManager.getInstance(config).listExposedTables(project, exposeMore());
 
         // "database" in TableDesc correspond to our schema
         // the logic to decide which schema to be "default" in calcite:

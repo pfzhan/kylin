@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.cube.model.CubeDesc;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.filter.CaseTupleFilter;
@@ -55,7 +54,6 @@ import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.apache.kylin.storage.IStorageQuery;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.apache.kylin.storage.gtrecord.ITupleConverter;
 import org.apache.kylin.storage.translate.DerivedFilterTranslator;
 import org.slf4j.Logger;
@@ -81,7 +79,14 @@ import io.kyligence.kap.storage.gtrecord.NDataSegScanner;
 import io.kyligence.kap.storage.gtrecord.NSequentialTupleIterator;
 
 public class NDataStorageQuery implements IStorageQuery {
-    private static final Logger logger = LoggerFactory.getLogger(GTCubeStorageQueryBase.class);
+
+    public static class CannotFilterExtendedColumnException extends RuntimeException {
+        public CannotFilterExtendedColumnException(TblColRef tblColRef) {
+            super(tblColRef == null ? "null" : tblColRef.getCanonicalName());
+        }
+    }
+
+    private static final Logger logger = LoggerFactory.getLogger(NDataStorageQuery.class);
 
     private NDataflow dataflow;
 
@@ -291,7 +296,7 @@ public class NDataStorageQuery implements IStorageQuery {
         for (CompareTupleFilter compFilter : compareTupleFilterSet) {
             TblColRef tblColRef = compFilter.getColumn();
             if (candidate.getCuboidLayout().isExtendedColumn(tblColRef)) {
-                throw new CubeDesc.CannotFilterExtendedColumnException(tblColRef);
+                throw new CannotFilterExtendedColumnException(tblColRef);
             }
             DeriveInfo hostInfo = candidate.getDerivedToHostMap().get(tblColRef);
             if (hostInfo != null) {
@@ -440,7 +445,7 @@ public class NDataStorageQuery implements IStorageQuery {
 
         TblColRef derived = compf.getColumn();
         if (layoutCandidate.getCuboidLayout().isExtendedColumn(derived)) {
-            throw new CubeDesc.CannotFilterExtendedColumnException(derived);
+            throw new CannotFilterExtendedColumnException(derived);
         }
         DeriveInfo hostInfo = layoutCandidate.getDerivedToHostMap().get(derived);
 

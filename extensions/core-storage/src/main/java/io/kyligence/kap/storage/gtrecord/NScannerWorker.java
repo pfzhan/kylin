@@ -36,14 +36,13 @@ import org.apache.kylin.gridtable.IGTScanner;
 import org.apache.kylin.gridtable.IGTStorage;
 import org.apache.kylin.metadata.model.ISegment;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.storage.gtrecord.ScannerWorker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 
 public class NScannerWorker {
-    private static final Logger logger = LoggerFactory.getLogger(ScannerWorker.class);
+    private static final Logger logger = LoggerFactory.getLogger(NScannerWorker.class);
     private IGTScanner internal = null;
 
     public NScannerWorker(ISegment segment, NCuboidLayout cuboid, GTScanRequest scanRequest, String gtStorage,

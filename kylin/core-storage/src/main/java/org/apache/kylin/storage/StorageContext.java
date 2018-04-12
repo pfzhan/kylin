@@ -24,7 +24,6 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.gridtable.StorageLimitLevel;
 import org.apache.kylin.metadata.realization.IRealization;
-import org.apache.kylin.storage.gtrecord.GTCubeStorageQueryBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

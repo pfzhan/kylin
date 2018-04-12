@@ -37,7 +37,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.job.engine.NCubingEngine;
+import org.apache.kylin.job.engine.NCubingEngine;
 
 public class NSparkCubingEngine implements NCubingEngine, IKeep {
 

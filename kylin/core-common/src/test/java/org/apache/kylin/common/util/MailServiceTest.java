@@ -29,17 +29,19 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 @Ignore("convenient trial tool for dev")
-public class MailServiceTest extends LocalFileMetadataTestCase {
+public class MailServiceTest {
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
 
     @Before
-    public void setup() throws Exception {
-        this.createTestMetadata();
-
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
     @After
     public void after() throws Exception {
-        this.cleanupTestMetadata();
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

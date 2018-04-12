@@ -98,15 +98,16 @@ public class QueryRouter {
     }
 
     private static void collectIncapableReason(OLAPContext olapContext, List<Candidate> candidates) {
-        for (Candidate candidate : candidates) {
-            if (!candidate.getCapability().capable) {
-                RealizationCheck.IncapableReason reason = RealizationCheck.IncapableReason
-                        .create(candidate.getCapability().incapableCause);
-                if (reason != null)
-                    olapContext.realizationCheck.addIncapableCube(candidate.getRealization(), reason);
-            } else {
-                olapContext.realizationCheck.addCapableCube(candidate.getRealization());
-            }
-        }
+        //TODO
+//        for (Candidate candidate : candidates) {
+//            if (!candidate.getCapability().capable) {
+//                RealizationCheck.IncapableReason reason = RealizationCheck.IncapableReason
+//                        .create(candidate.getCapability().incapableCause);
+//                if (reason != null)
+//                    olapContext.realizationCheck.addIncapableCube(candidate.getRealization(), reason);
+//            } else {
+//                olapContext.realizationCheck.addCapableCube(candidate.getRealization());
+//            }
+//        }
     }
 }

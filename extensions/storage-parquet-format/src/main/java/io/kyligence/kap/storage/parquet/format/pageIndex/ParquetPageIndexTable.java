@@ -47,7 +47,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.filter.EvaluatableFunctionTupleFilter;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.ColumnIndexReader;
 import io.kyligence.kap.storage.parquet.format.raw.RawTableUtils;
 
@@ -60,7 +59,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
     private Path parquetIndexPath = null;
     private Pair<Integer, Integer> pageRange = null;
 
-    public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream, int startOffset) throws IOException {
+    public ParquetPageIndexTable(FileSystem fileSystem, Path parquetIndexPath, FSDataInputStream inputStream,
+            int startOffset) throws IOException {
         this.fileSystem = fileSystem;
         this.parquetIndexPath = parquetIndexPath;
         this.indexReader = new ParquetPageIndexReader(inputStream, startOffset);
@@ -75,7 +75,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
     // TODO: should use batch lookup
     MutableRoaringBitmap lookColumnIndex(int column, TupleFilter.FilterOperatorEnum compareOp, Set<ByteArray> vals) {
-        logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(), Iterables.getFirst(vals, null));
+        logger.info("lookColumnIndex: column: {}, op: {}, vals: {} - {}", column, compareOp, vals.size(),
+                Iterables.getFirst(vals, null));
         MutableRoaringBitmap result = null;
         ByteArray val = null;
         ColumnIndexReader columnIndexReader = null;
@@ -181,7 +182,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
 
         MutableRoaringBitmap ret = null;
         for (int i = 0; i <= val.length() - window; i++) {
-            MutableRoaringBitmap temp = lookupLikeWithNGram(column, RawTableUtils.shrink(new ByteArray(val.array(), i, window), fuzzyHashLength));
+            MutableRoaringBitmap temp = lookupLikeWithNGram(column,
+                    RawTableUtils.shrink(new ByteArray(val.array(), i, window), fuzzyHashLength));
             if (ret == null) {
                 ret = temp;
             } else {
@@ -283,25 +285,9 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
 
             return lookColumnIndex(col, compareTupleFilter.getOperator(), conditionVals);
-        } else if (filter instanceof EvaluatableFunctionTupleFilter) {
-            EvaluatableFunctionTupleFilter likeFunction = (EvaluatableFunctionTupleFilter) filter;
-            int col = likeFunction.getColumn().getColumnDesc().getZeroBasedIndex();
-            String pattern = likeFunction.getLikePattern();
-            if (pattern == null) {
-                logger.info("lookupChildFilter returning full bitmap because it's not a like function or it's NOT LIKE");
-                return getFullBitmap().toMutableRoaringBitmap();
-            }
+        }
 
-            pattern = pattern.replaceAll("%", "");
-            if (pattern.length() < 6) {
-                logger.info("The like pattern: " + pattern + " is too short, minimal length: " + 6);
-                return getFullBitmap().toMutableRoaringBitmap();
-            }
-
-            ByteArray patternBytes = new ByteArray(pattern.getBytes(), 0, pattern.getBytes().length);
-
-            return lookColumnIndex(col, likeFunction.getOperator(), Sets.newHashSet(patternBytes));
-        } else if (filter instanceof MassInTupleFilter) {
+        else if (filter instanceof MassInTupleFilter) {
             //            MassInTupleFilter massInTupleFilter = (MassInTupleFilter) filter;
             //            int col = massInTupleFilter.getColumn().getColumnDesc().getZeroBasedIndex();
             //            Set<ByteArray> conditionValues = (Set<ByteArray>) massInTupleFilter.getValues();
@@ -336,7 +322,8 @@ public class ParquetPageIndexTable extends AbstractParquetPageIndexTable {
             }
         }
 
-        logger.info("Columnar II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(), resultBitmap.getCardinality());
+        logger.info("Columnar II Metrics: TotalPageNum={}, ResultPageNum={}", getPageTotalNum(),
+                resultBitmap.getCardinality());
         return resultBitmap;
     }
 

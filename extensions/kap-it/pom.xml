@@ -43,20 +43,16 @@
         </dependency>
         <!--KAP-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-cube</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-query</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-smart</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
@@ -71,7 +67,7 @@
             <artifactId>kap-source-hive</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-common</artifactId>
         </dependency>
         <dependency>
@@ -133,7 +129,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

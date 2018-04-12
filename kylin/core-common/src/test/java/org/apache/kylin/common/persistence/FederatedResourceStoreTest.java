@@ -22,7 +22,7 @@ import java.io.File;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,21 +30,24 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-public class FederatedResourceStoreTest extends LocalFileMetadataTestCase {
+public class FederatedResourceStoreTest {
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
 
     @Before
-    public void setup() throws Exception {
-        this.createTestMetadata();
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
     @After
     public void after() throws Exception {
-        this.cleanupTestMetadata();
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
     public void testBasics() throws Exception {
-        final KylinConfig config = getTestConfig();
+        final KylinConfig config = KylinConfig.getInstanceFromEnv();
         final ResourceStore base = ResourceStore.getKylinMetaStore(config);
         final File deleDir = File.createTempFile("FederatedResourceStoreTest", "tmp");
         final String delePath = "/delegate";

@@ -25,23 +25,26 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.gridtable.memstore.GTSimpleMemStore;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
-public class SimpleGridTableTest extends LocalFileMetadataTestCase {
+public class SimpleGridTableTest {
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
@@ -85,7 +88,8 @@ public class SimpleGridTableTest extends LocalFileMetadataTestCase {
     }
 
     private IGTScanner scan(GridTable table) throws IOException {
-        GTScanRequest req = new GTScanRequestBuilder().setInfo(table.getInfo()).setRanges(null).setDimensions(null).setFilterPushDown(null).createGTScanRequest();
+        GTScanRequest req = new GTScanRequestBuilder().setInfo(table.getInfo()).setRanges(null).setDimensions(null)
+                .setFilterPushDown(null).createGTScanRequest();
         IGTScanner scanner = table.scan(req);
         for (GTRecord r : scanner) {
             Object[] v = r.getValues();
@@ -100,7 +104,9 @@ public class SimpleGridTableTest extends LocalFileMetadataTestCase {
     }
 
     private IGTScanner scanAndAggregate(GridTable table) throws IOException {
-        GTScanRequest req = new GTScanRequestBuilder().setInfo(table.getInfo()).setRanges(null).setDimensions(null).setAggrGroupBy(setOf(0, 2)).setAggrMetrics(setOf(3, 4)).setAggrMetricsFuncs(new String[] { "count", "sum" }).setFilterPushDown(null).createGTScanRequest();
+        GTScanRequest req = new GTScanRequestBuilder().setInfo(table.getInfo()).setRanges(null).setDimensions(null)
+                .setAggrGroupBy(setOf(0, 2)).setAggrMetrics(setOf(3, 4))
+                .setAggrMetricsFuncs(new String[] { "count", "sum" }).setFilterPushDown(null).createGTScanRequest();
         IGTScanner scanner = table.scan(req);
         int i = 0;
         for (GTRecord r : scanner) {

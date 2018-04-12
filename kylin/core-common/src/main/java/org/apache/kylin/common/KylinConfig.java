@@ -533,20 +533,8 @@ public class KylinConfig extends KylinConfigBase {
                 managersByPrjCache = new ConcurrentHashMap<>();
 
             mgrMap = managersByPrjCache.get(clz);
-            if (mgrMap == null) {
-
-                //TODO: this is just a workaournd for org.apache.kylin.metadata.filter.ColumnTupleFilter.deserialize()
-                for (Map.Entry<Class, ConcurrentHashMap<String, Object>> entry : managersByPrjCache.entrySet()) {
-                    Class exist = entry.getKey();
-                    if (clz.isAssignableFrom(exist)) {
-                        mgrMap = entry.getValue();
-                    }
-                }
-
-                if (mgrMap == null) {
-                    mgrMap = new ConcurrentHashMap<>();
-                }
-            }
+            if (mgrMap == null)
+                mgrMap = new ConcurrentHashMap<>();
 
             mgr = mgrMap.get(project);
             if (mgr != null)

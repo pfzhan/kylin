@@ -18,14 +18,10 @@
 
 package org.apache.kylin.cube.gridtable;
 
-import org.apache.kylin.cube.cuboid.Cuboid;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
 import org.apache.kylin.gridtable.GTInfo;
 
 public class GridTables {
-    public static GTInfo newGTInfo(Cuboid cuboid, IDimensionEncodingMap dimEncMap) {
-        return newGTInfo(cuboid.getCuboidToGridTableMapping(), dimEncMap);
-    }
 
     public static GTInfo newGTInfo(GridTableMapping mapping, IDimensionEncodingMap dimEncMap) {
         GTInfo.Builder builder = GTInfo.builder();

@@ -31,6 +31,8 @@ import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.topn.TopNCounter;
@@ -52,8 +54,6 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
-import io.kyligence.kap.job.execution.NExecutableManager;
-import io.kyligence.kap.job.impl.threadpool.NDefaultScheduler;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {

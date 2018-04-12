@@ -23,34 +23,39 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.measure.BufferedMeasureCodec;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
  *
  */
-public class MeasureCodecTest extends LocalFileMetadataTestCase {
-    @BeforeClass
-    public static void setUp() throws Exception {
-        staticCreateTestMetadata();
+public class MeasureCodecTest {
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
-    @AfterClass
-    public static void after() throws Exception {
-        cleanAfterClass();
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
     public void basicTest() {
-        MeasureDesc[] descs = new MeasureDesc[] { measure("double"), measure("long"), measure("decimal"), measure("HLLC16"), measure("bitmap") };
+        MeasureDesc[] descs = new MeasureDesc[] { measure("double"), measure("long"), measure("decimal"),
+                measure("HLLC16"), measure("bitmap") };
         BufferedMeasureCodec codec = new BufferedMeasureCodec(descs);
 
         Double d = new Double(1.0);

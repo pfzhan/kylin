@@ -14,33 +14,49 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.common;
+
+import com.google.common.collect.Lists;
+import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.junit.After;
+import org.junit.Before;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.List;
 import java.util.Properties;
-
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
-import org.junit.After;
-import org.junit.Before;
 
 /**
  * @author kangkaisen
  */
 
-public class HotLoadKylinPropertiesTestCase extends LocalFileMetadataTestCase {
+public class HotLoadKylinPropertiesTestCase {
+
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
     @Before
     public void setUp() throws Exception {
-        this.createTestMetadata();
+        cleanMetadataHelper = new CleanMetadataHelper();
+
+        List<String> properties = Lists.newArrayList(
+                "kylin.test.bcc.new.key=some-value",
+                "kylin.engine.mr.config-override.test1=test1",
+                "kylin.engine.mr.config-override.test2=test2",
+                "kylin.job.lock=org.apache.kylin.job.lock.MockJobLockDup",
+                "kylin.job.lock=org.apache.kylin.job.lock.MockJobLock"
+        );
+        cleanMetadataHelper.setUpWithSomeProperties(properties);
     }
 
     @After
     public void after() throws Exception {
-        this.cleanupTestMetadata();
+        cleanMetadataHelper.tearDown();
     }
+
 
     protected void updateProperty(String key, String value) {
         File propFile = KylinConfig.getSitePropertiesFile();

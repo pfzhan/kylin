@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlExplain;
 import org.apache.calcite.sql.SqlNode;
@@ -44,7 +45,6 @@ import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
-import org.apache.kylin.metadata.project.ProjectManager;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.query.util.QueryUtil;
 
@@ -148,7 +148,7 @@ public class HackSelectStarWithColumnACL implements QueryUtil.IQueryTransformer,
     }
 
     public static List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc) {
-        List<ColumnDesc> columns = ProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+        List<ColumnDesc> columns = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .listExposedColumns(project, tableDesc, OLAPSchemaFactory.exposeMore());
         
         Collections.sort(columns, new Comparator<ColumnDesc>() {

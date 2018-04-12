@@ -27,8 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -37,7 +35,7 @@ import com.google.common.collect.Lists;
 /**
  * Created by dongli on 12/16/15.
  */
-public class AggregationCacheSpillTest extends LocalFileMetadataTestCase {
+public class AggregationCacheSpillTest {
     final static int DATA_CARDINALITY = 40000;
     final static int DATA_REPLICATION = 2;
     final static List<GTRecord> TEST_DATA = Lists.newArrayListWithCapacity(DATA_CARDINALITY * DATA_REPLICATION);
@@ -46,17 +44,11 @@ public class AggregationCacheSpillTest extends LocalFileMetadataTestCase {
 
     @BeforeClass
     public static void beforeClass() {
-        staticCreateTestMetadata();
 
         INFO = UnitTestSupport.hllInfo();
         final List<GTRecord> data = UnitTestSupport.mockupHllData(INFO, DATA_CARDINALITY);
         for (int i = 0; i < DATA_REPLICATION; i++)
             TEST_DATA.addAll(data);
-    }
-
-    @AfterClass
-    public static void afterClass() throws Exception {
-        cleanAfterClass();
     }
 
     @Test
@@ -77,7 +69,11 @@ public class AggregationCacheSpillTest extends LocalFileMetadataTestCase {
             }
         };
 
-        GTScanRequest scanRequest = new GTScanRequestBuilder().setInfo(INFO).setRanges(null).setDimensions(new ImmutableBitSet(0, 3)).setAggrGroupBy(new ImmutableBitSet(0, 3)).setAggrMetrics(new ImmutableBitSet(3, 6)).setAggrMetricsFuncs(new String[] { "SUM", "SUM", "COUNT_DISTINCT" }).setFilterPushDown(null).setAggCacheMemThreshold(0.5).createGTScanRequest();
+        GTScanRequest scanRequest = new GTScanRequestBuilder().setInfo(INFO).setRanges(null)
+                .setDimensions(new ImmutableBitSet(0, 3)).setAggrGroupBy(new ImmutableBitSet(0, 3))
+                .setAggrMetrics(new ImmutableBitSet(3, 6))
+                .setAggrMetricsFuncs(new String[] { "SUM", "SUM", "COUNT_DISTINCT" }).setFilterPushDown(null)
+                .setAggCacheMemThreshold(0.5).createGTScanRequest();
 
         GTAggregateScanner scanner = new GTAggregateScanner(inputScanner, scanRequest);
 
@@ -114,7 +110,11 @@ public class AggregationCacheSpillTest extends LocalFileMetadataTestCase {
         };
 
         // all-in-mem testcase
-        GTScanRequest scanRequest = new GTScanRequestBuilder().setInfo(INFO).setRanges(null).setDimensions(new ImmutableBitSet(0, 3)).setAggrGroupBy(new ImmutableBitSet(1, 3)).setAggrMetrics(new ImmutableBitSet(3, 6)).setAggrMetricsFuncs(new String[] { "SUM", "SUM", "COUNT_DISTINCT" }).setFilterPushDown(null).setAggCacheMemThreshold(0.5).createGTScanRequest();
+        GTScanRequest scanRequest = new GTScanRequestBuilder().setInfo(INFO).setRanges(null)
+                .setDimensions(new ImmutableBitSet(0, 3)).setAggrGroupBy(new ImmutableBitSet(1, 3))
+                .setAggrMetrics(new ImmutableBitSet(3, 6))
+                .setAggrMetricsFuncs(new String[] { "SUM", "SUM", "COUNT_DISTINCT" }).setFilterPushDown(null)
+                .setAggCacheMemThreshold(0.5).createGTScanRequest();
 
         GTAggregateScanner scanner = new GTAggregateScanner(inputScanner, scanRequest);
 

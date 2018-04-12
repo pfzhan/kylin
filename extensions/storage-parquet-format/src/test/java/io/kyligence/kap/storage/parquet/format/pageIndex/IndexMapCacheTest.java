@@ -30,6 +30,7 @@ import java.util.List;
 
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.BytesUtil;
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.Pair;
 import org.junit.After;
 import org.junit.Before;
@@ -37,20 +38,23 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.util.LocalFileMetadataTestCase;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.IndexMapCache;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.key.IntEncoding;
 import io.kyligence.kap.storage.parquet.format.pageIndex.column.encoding.value.MutableRoaringBitmapEncoding;
 
-public class IndexMapCacheTest extends LocalFileMetadataTestCase {
+public class IndexMapCacheTest {
+
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
     @Before
-    public void setup() throws Exception {
-        createTestMetadata();
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
     }
 
     @After
     public void after() throws Exception {
-        cleanAfterClass();
+        cleanMetadataHelper.tearDown();
     }
 
     @Test
@@ -77,7 +81,8 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
         int columnLength = 8;
         int pageNum = 2;
 
-        IndexMapCache indexMapCache = new IndexMapCache("test", true, new IntEncoding(), new MutableRoaringBitmapEncoding(), true);
+        IndexMapCache indexMapCache = new IndexMapCache("test", true, new IntEncoding(),
+                new MutableRoaringBitmapEncoding(), true);
         for (int c = 0; c < 3; c++) {
             for (int i = 0; i < dataSize; i++) {
                 for (int j = 0; j < pageNum; j++) {
@@ -101,7 +106,7 @@ public class IndexMapCacheTest extends LocalFileMetadataTestCase {
         }
 
         assertEquals(num, dataSize);
-        
+
         indexMapCache.close();
     }
 }

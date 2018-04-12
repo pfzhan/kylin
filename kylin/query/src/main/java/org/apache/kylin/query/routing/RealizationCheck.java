@@ -14,7 +14,7 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.query.routing;
 
@@ -22,10 +22,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.cube.CubeInstance;
-import org.apache.kylin.cube.model.CubeDesc;
-import org.apache.kylin.metadata.model.DataModelDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
@@ -36,53 +34,35 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class RealizationCheck {
-    private Map<DataModelDesc, List<IncapableReason>> modelIncapableReasons = Maps.newHashMap();
-    private Map<CubeDesc, IncapableReason> cubeIncapableReasons = Maps.newHashMap();
-    private Map<CubeDesc, Boolean> cubeCapabilities = Maps.newHashMap();
-    private Map<DataModelDesc, Map<String, String>> capableModels = Maps.newHashMap();
+    private Map<NDataModel, List<IncapableReason>> modelIncapableReasons = Maps.newHashMap();
+    private Map<NDataModel, Map<String, String>> capableModels = Maps.newHashMap();
 
-    public Map<DataModelDesc, List<IncapableReason>> getModelIncapableReasons() {
+    public Map<NDataModel, List<IncapableReason>> getModelIncapableReasons() {
         return modelIncapableReasons;
     }
 
-    public Map<CubeDesc, IncapableReason> getCubeIncapableReasons() {
-        return cubeIncapableReasons;
-    }
-
-    public Map<CubeDesc, Boolean> getCubeCapabilities() {
-        return cubeCapabilities;
-    }
 
     public void addCapableCube(IRealization realization) {
-        if (realization instanceof CubeInstance) {
-            cubeCapabilities.put(((CubeInstance) realization).getDescriptor(), true);
-        }
+        throw new IllegalStateException();
     }
 
     public void addIncapableCube(IRealization realization) {
-        if (realization instanceof CubeInstance) {
-            cubeCapabilities.put(((CubeInstance) realization).getDescriptor(), false);
-        }
+        throw new IllegalStateException();
     }
 
     public void addIncapableCube(IRealization realization, IncapableReason incapableReason) {
-        if (realization instanceof CubeInstance) {
-            cubeCapabilities.put(((CubeInstance) realization).getDescriptor(), false);
-            cubeIncapableReasons.put(((CubeInstance) realization).getDescriptor(), incapableReason);
-        }
+        throw new IllegalStateException();
     }
 
     public void addCubeIncapableReason(IRealization realization, IncapableReason incapableReason) {
-        if (realization instanceof CubeInstance) {
-            cubeIncapableReasons.put(((CubeInstance) realization).getDescriptor(), incapableReason);
-        }
+        throw new IllegalStateException();
     }
 
-    public Map<DataModelDesc, Map<String, String>> getCapableModels() {
+    public Map<NDataModel, Map<String, String>> getCapableModels() {
         return capableModels;
     }
 
-    public void addModelIncapableReason(DataModelDesc modelDesc, IncapableReason reason) {
+    public void addModelIncapableReason(NDataModel modelDesc, IncapableReason reason) {
         if (!modelIncapableReasons.containsKey(modelDesc)) {
             List<IncapableReason> reasons = Lists.newArrayList(reason);
             modelIncapableReasons.put(modelDesc, reasons);
@@ -93,12 +73,12 @@ public class RealizationCheck {
         }
     }
 
-    public void addCapableModel(DataModelDesc modelDesc, Map<String, String> aliasMap) {
+    public void addCapableModel(NDataModel modelDesc, Map<String, String> aliasMap) {
         if (!this.capableModels.containsKey(modelDesc))
             this.capableModels.put(modelDesc, aliasMap);
     }
 
-    public void addModelIncapableReason(DataModelDesc modelDesc, List<IncapableReason> reasons) {
+    public void addModelIncapableReason(NDataModel modelDesc, List<IncapableReason> reasons) {
         modelIncapableReasons.put(modelDesc, reasons);
     }
 
@@ -107,13 +87,15 @@ public class RealizationCheck {
     }
 
     public boolean isCubeCapable() {
-        for (Boolean capability : cubeCapabilities.values()) {
-            if (capability) {
-                return true;
-            }
-        }
-        
-        return cubeIncapableReasons.isEmpty();
+        //TODO
+        return true;
+//        for (Boolean capability : cubeCapabilities.values()) {
+//            if (capability) {
+//                return true;
+//            }
+//        }
+//
+//        return cubeIncapableReasons.isEmpty();
     }
 
     public boolean isCapable() {
@@ -147,29 +129,29 @@ public class RealizationCheck {
             IncapableReason incapableReason = new IncapableReason();
             IncapableType incapableType = null;
             switch (incapableCause.getIncapableType()) {
-            case UNSUPPORT_MASSIN:
-                incapableType = IncapableType.CUBE_UN_SUPPORT_MASSIN;
-                break;
-            case UNMATCHED_DIMENSION:
-                incapableType = IncapableType.CUBE_UNMATCHED_DIMENSION;
-                break;
-            case LIMIT_PRECEDE_AGGR:
-                incapableType = IncapableType.CUBE_LIMIT_PRECEDE_AGGR;
-                break;
-            case UNMATCHED_AGGREGATION:
-                incapableType = IncapableType.CUBE_UNMATCHED_AGGREGATION;
-                break;
-            case UNSUPPORT_RAWQUERY:
-                incapableType = IncapableType.CUBE_UN_SUPPORT_RAWQUERY;
-                break;
-            case II_UNMATCHED_FACT_TABLE:
-                incapableType = IncapableType.MODEL_FACT_TABLE_NOT_FOUND;
-                break;
-            case II_MISSING_COLS:
-                incapableType = IncapableType.CUBE_NOT_CONTAIN_ALL_COLUMN;
-                break;
-            default:
-                break;
+                case UNSUPPORT_MASSIN:
+                    incapableType = IncapableType.CUBE_UN_SUPPORT_MASSIN;
+                    break;
+                case UNMATCHED_DIMENSION:
+                    incapableType = IncapableType.CUBE_UNMATCHED_DIMENSION;
+                    break;
+                case LIMIT_PRECEDE_AGGR:
+                    incapableType = IncapableType.CUBE_LIMIT_PRECEDE_AGGR;
+                    break;
+                case UNMATCHED_AGGREGATION:
+                    incapableType = IncapableType.CUBE_UNMATCHED_AGGREGATION;
+                    break;
+                case UNSUPPORT_RAWQUERY:
+                    incapableType = IncapableType.CUBE_UN_SUPPORT_RAWQUERY;
+                    break;
+                case II_UNMATCHED_FACT_TABLE:
+                    incapableType = IncapableType.MODEL_FACT_TABLE_NOT_FOUND;
+                    break;
+                case II_MISSING_COLS:
+                    incapableType = IncapableType.CUBE_NOT_CONTAIN_ALL_COLUMN;
+                    break;
+                default:
+                    break;
             }
             incapableReason.setIncapableType(incapableType);
             incapableReason.setUnmatchedDimensions(incapableCause.getUnmatchedDimensions());
