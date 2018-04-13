@@ -35,7 +35,6 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecuteResult.State;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -132,11 +131,6 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
                 + toRemoveSegs);
 
         return toRemoveSegs;
-    }
-
-    @Override
-    protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(getConfig(), getProject());
     }
 
 }

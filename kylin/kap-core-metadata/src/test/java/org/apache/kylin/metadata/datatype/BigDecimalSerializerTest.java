@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,7 +47,9 @@ import static org.junit.Assert.assertEquals;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 
-import org.junit.BeforeClass;
+import org.apache.kylin.common.util.CleanMetadataHelper;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 /**
@@ -57,9 +58,20 @@ public class BigDecimalSerializerTest {
 
     private static BigDecimalSerializer bigDecimalSerializer;
 
-    @BeforeClass
-    public static void beforeClass() {
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
+
         bigDecimalSerializer = new BigDecimalSerializer(DataType.getType("decimal"));
+
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

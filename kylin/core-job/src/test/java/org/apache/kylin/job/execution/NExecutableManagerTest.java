@@ -82,15 +82,21 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testDefaultChainedExecutable() throws Exception {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
-        job.addTask(new SucceedTestExecutable());
-        job.addTask(new SucceedTestExecutable());
-        job.setProject("default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        SucceedTestExecutable executable1 = new SucceedTestExecutable();
+        job.addTask(executable1);
 
         manager.addJob(job);
         assertEquals(2, job.getTasks().size());
         AbstractExecutable anotherJob = manager.getJob(job.getId());
         assertEquals(DefaultChainedExecutable.class, anotherJob.getClass());
         assertEquals(2, ((DefaultChainedExecutable) anotherJob).getTasks().size());
+
+        job.setProject("default");
+        executable.setProject("default");
+        executable1.setProject("default");
+
         assertJobEqual(job, anotherJob);
     }
 
@@ -122,8 +128,10 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         assertEquals(one.getStatus(), another.getStatus());
         assertEquals(one.isRunnable(), another.isRunnable());
         assertEquals(one.getOutput(), another.getOutput());
+
         assertTrue((one.getParams() == null && another.getParams() == null)
                 || (one.getParams() != null && another.getParams() != null));
+
         if (one.getParams() != null) {
             assertEquals(one.getParams().size(), another.getParams().size());
             for (String key : one.getParams().keySet()) {

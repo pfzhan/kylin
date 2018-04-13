@@ -50,13 +50,14 @@ import org.apache.kylin.job.lock.JobLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-
 
 /**
  */
 public class NDefaultScheduler implements Scheduler<AbstractExecutable>, ConnectionStateListener {
 
+    private String project;
     private JobLock jobLock;
     private NExecutableManager executableManager;
     private FetcherRunner fetcher;
@@ -70,12 +71,17 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     volatile boolean fetchFailed = false;
     private JobEngineConfig jobEngineConfig;
 
-    private static volatile NDefaultScheduler INSTANCE = null;
+    //TODO: concurrent issue?
+    private static volatile Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newHashMap();
 
-    public NDefaultScheduler() {
-        if (INSTANCE != null) {
-            throw new IllegalStateException("DefaultScheduler has been initiated. Use getInstance() instead.");
-        }
+    public NDefaultScheduler(String project) {
+        Preconditions.checkNotNull(project);
+        this.project = project;
+
+        if (INSTANCE_MAP.containsKey(project))
+            throw new IllegalStateException(
+                    "DefaultScheduler for project " + project + " has been initiated. Use getInstance() instead.");
+
     }
 
     private class FetcherRunner implements Runnable {
@@ -146,6 +152,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 logger.warn("Job Fetcher caught a exception ", e);
             }
         }
+
     }
 
     private boolean isJobPoolFull() {
@@ -195,23 +202,26 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         }
     }
 
-    public synchronized static NDefaultScheduler getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new NDefaultScheduler();
+    public synchronized static NDefaultScheduler getInstance(String project) {
+        NDefaultScheduler ret = INSTANCE_MAP.get(project);
+        if (ret == null) {
+            ret = new NDefaultScheduler(project);
+            INSTANCE_MAP.put(project, ret);
         }
-        return INSTANCE;
+        return ret;
     }
 
     public synchronized static void destroyInstance() {
-        if (INSTANCE == null)
-            return;
 
-        try {
-            INSTANCE.shutdown();
-        } catch (SchedulerException ex) {
-            logger.error("Error shutting down", ex);
+        for (Map.Entry<String, NDefaultScheduler> entry : INSTANCE_MAP.entrySet()) {
+
+            try {
+                entry.getValue().shutdown();
+            } catch (SchedulerException ex) {
+                logger.error("Error shutting down NDefaultScheduler for project " + entry.getKey(), ex);
+            }
         }
-        INSTANCE = null;
+        INSTANCE_MAP.clear();
     }
 
     @Override
@@ -237,7 +247,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             throw new IllegalStateException("Cannot start job scheduler due to lack of job lock");
         }
 
-        executableManager = NExecutableManager.getInstance(jobEngineConfig.getConfig(), null);
+        executableManager = NExecutableManager.getInstance(jobEngineConfig.getConfig(), project);
         //load all executable, set them to a consistent status
         fetcherPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NDefaultSchedulerFetchPool"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();

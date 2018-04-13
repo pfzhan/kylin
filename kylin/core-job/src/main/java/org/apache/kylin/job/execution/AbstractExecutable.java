@@ -99,7 +99,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(config, project);
+        return NExecutableManager.getInstance(config, getProject());
     }
 
     protected void onExecuteStart(ExecutableContext executableContext) {
@@ -351,6 +351,9 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     public final String getProject() {
+        if(project == null){
+            throw new IllegalStateException("project is not set for abstract executable " + getId());
+        }
         return project;
     }
 

@@ -130,7 +130,6 @@
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
         <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
-        <sonar.jacoco.reportPath>${project.basedir}/../target/jacoco.exec</sonar.jacoco.reportPath>
         <sonar.language>java</sonar.language>
         <sonar.jacoco.excludes>
             org/apache/kylin/**/tools/**:**/*CLI.java
@@ -1228,12 +1227,6 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <configuration>
-                            <append>true</append>
-                            <destFile>
-                                ${sonar.jacoco.reportPath}
-                            </destFile>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>pre-test</id>
@@ -1334,12 +1327,6 @@
                     <plugin>
                         <groupId>org.jacoco</groupId>
                         <artifactId>jacoco-maven-plugin</artifactId>
-                        <configuration>
-                            <append>true</append>
-                            <destFile>
-                                ${sonar.jacoco.reportPath}
-                            </destFile>
-                        </configuration>
                         <executions>
                             <execution>
                                 <id>pre-test</id>

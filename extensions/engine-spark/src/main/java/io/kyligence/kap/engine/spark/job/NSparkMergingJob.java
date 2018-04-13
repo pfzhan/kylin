@@ -32,7 +32,6 @@ import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -120,8 +119,4 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         this.addTask(step);
     }
 
-    @Override
-    protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(getConfig(), getProject());
-    }
 }

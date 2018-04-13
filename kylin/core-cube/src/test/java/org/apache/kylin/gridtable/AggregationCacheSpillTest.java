@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,8 +50,10 @@ import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.kylin.common.util.CleanMetadataHelper;
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -67,13 +68,23 @@ public class AggregationCacheSpillTest {
 
     static GTInfo INFO;
 
-    @BeforeClass
-    public static void beforeClass() {
+    private CleanMetadataHelper cleanMetadataHelper = null;
+
+    @Before
+    public void setUp() throws Exception {
+        cleanMetadataHelper = new CleanMetadataHelper();
+        cleanMetadataHelper.setUp();
 
         INFO = UnitTestSupport.hllInfo();
         final List<GTRecord> data = UnitTestSupport.mockupHllData(INFO, DATA_CARDINALITY);
+        TEST_DATA.clear();
         for (int i = 0; i < DATA_REPLICATION; i++)
             TEST_DATA.addAll(data);
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanMetadataHelper.tearDown();
     }
 
     @Test

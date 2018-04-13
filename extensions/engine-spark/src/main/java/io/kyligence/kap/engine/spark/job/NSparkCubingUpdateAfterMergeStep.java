@@ -32,7 +32,6 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
@@ -94,8 +93,4 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         update.setStatus(RealizationStatusEnum.READY);
     }
 
-    @Override
-    protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(getConfig(), getProject());
-    }
 }

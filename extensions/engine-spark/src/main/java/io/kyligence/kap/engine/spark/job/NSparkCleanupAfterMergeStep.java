@@ -35,7 +35,6 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
-import org.apache.kylin.job.execution.NExecutableManager;
 
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -72,8 +71,4 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
         return new ExecuteResult(ExecuteResult.State.SUCCEED);
     }
 
-    @Override
-    protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(getConfig(), getProject());
-    }
 }

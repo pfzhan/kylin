@@ -63,7 +63,7 @@ public class NExecutableManager {
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
-            return config.getManager(NExecutableManager.class);
+            throw new IllegalStateException();
         }
         return config.getManager(project, NExecutableManager.class);
     }
@@ -91,17 +91,17 @@ public class NExecutableManager {
         this.executableDao = NExecutableDao.getInstance(config);
     }
 
-    private static ExecutablePO parse(AbstractExecutable executable) {
+    private static ExecutablePO parse(AbstractExecutable executable, String project) {
         ExecutablePO result = new ExecutablePO();
+        result.setProject(project);
         result.setName(executable.getName());
-        result.setProject(executable.getProject());
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
         if (executable instanceof ChainedExecutable) {
             List<ExecutablePO> tasks = Lists.newArrayList();
             for (AbstractExecutable task : ((ChainedExecutable) executable).getTasks()) {
-                tasks.add(parse(task));
+                tasks.add(parse(task, project));
             }
             result.setTasks(tasks);
         }
@@ -111,7 +111,7 @@ public class NExecutableManager {
     public void addJob(AbstractExecutable executable) {
         try {
             executable.initConfig(config);
-            executableDao.addJob(parse(executable));
+            executableDao.addJob(parse(executable, project));
             addJobOutput(executable);
         } catch (PersistentException e) {
             logger.error("fail to submit job:" + executable.getId(), e);

@@ -68,19 +68,15 @@ public class RealizationCheck {
 
 
     public void addCapableCube(IRealization realization) {
-        throw new IllegalStateException();
     }
 
     public void addIncapableCube(IRealization realization) {
-        throw new IllegalStateException();
     }
 
     public void addIncapableCube(IRealization realization, IncapableReason incapableReason) {
-        throw new IllegalStateException();
     }
 
     public void addCubeIncapableReason(IRealization realization, IncapableReason incapableReason) {
-        throw new IllegalStateException();
     }
 
     public Map<NDataModel, Map<String, String>> getCapableModels() {

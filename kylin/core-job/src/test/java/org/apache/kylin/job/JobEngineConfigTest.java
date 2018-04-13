@@ -62,11 +62,11 @@ public class JobEngineConfigTest extends HotLoadKylinPropertiesTestCase {
     public void testPropertiesHotLoad() throws IOException {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
         JobEngineConfig jobEngineConfig = new JobEngineConfig(baseConfig);
-        assertEquals(10, jobEngineConfig.getMaxConcurrentJobLimit());
+        assertEquals(20, jobEngineConfig.getMaxConcurrentJobLimit());
 
-        updateProperty("kylin.job.max-concurrent-jobs", "20");
+        updateProperty("kylin.job.max-concurrent-jobs", "30");
         KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
 
-        assertEquals(20, jobEngineConfig.getMaxConcurrentJobLimit());
+        assertEquals(30, jobEngineConfig.getMaxConcurrentJobLimit());
     }
 }

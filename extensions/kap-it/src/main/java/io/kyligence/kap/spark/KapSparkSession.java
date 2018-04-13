@@ -183,7 +183,7 @@ public class KapSparkSession extends SparkSession {
 
     public void speedUp() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
         scheduler.init(new JobEngineConfig(config), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");

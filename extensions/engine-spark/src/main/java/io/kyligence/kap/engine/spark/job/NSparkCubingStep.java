@@ -28,7 +28,6 @@ import java.util.Arrays;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,8 +86,4 @@ public class NSparkCubingStep extends NSparkExecutable {
         }
     }
 
-    @Override
-    protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(getConfig(), getProject());
-    }
 }

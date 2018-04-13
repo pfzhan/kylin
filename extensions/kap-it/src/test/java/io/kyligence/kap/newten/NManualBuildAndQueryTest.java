@@ -61,7 +61,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -85,15 +85,15 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
 
-        if (Boolean.valueOf(System.getProperty("noBuild"))) {
-            System.out.println("Direct query");
-        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
+//        if (Boolean.valueOf(System.getProperty("noBuild"))) {
+//            System.out.println("Direct query");
+//        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
             fullBuildBasic("ncube_basic");
             fullBuildBasic("ncube_basic_inner");
-        } else {
-            buildAndMergeCube("ncube_basic");
-            buildAndMergeCube("ncube_basic_inner");
-        }
+//        } else {
+//            buildAndMergeCube("ncube_basic");
+//            buildAndMergeCube("ncube_basic_inner");
+//        }
 
         // build is done, start to test query
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
