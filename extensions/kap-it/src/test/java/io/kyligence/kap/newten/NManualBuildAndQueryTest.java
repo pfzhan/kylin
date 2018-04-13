@@ -39,6 +39,7 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
@@ -53,6 +54,7 @@ import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
 
+@Ignore
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     public static final String DEFAULT_PROJECT = "default";
