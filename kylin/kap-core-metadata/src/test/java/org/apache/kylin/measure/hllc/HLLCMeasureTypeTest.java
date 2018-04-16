@@ -50,6 +50,7 @@ import org.apache.kylin.measure.MeasureIngester;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -90,5 +91,8 @@ public class HLLCMeasureTypeTest {
 
         hllc = ingester.valueOf(new String[] { "abc" }, null, null);
         assertEquals(1, hllc.getCountEstimate());
+
+        FunctionDesc functionDesc = FunctionDesc.newInstance(HLLCMeasureType.FUNC_COUNT_DISTINCT, null, "hllc(10)");
+        mtype.validate(functionDesc);
     }
 }

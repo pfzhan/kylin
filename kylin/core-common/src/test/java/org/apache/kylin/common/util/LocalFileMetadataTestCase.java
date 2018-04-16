@@ -43,12 +43,11 @@
 
 package org.apache.kylin.common.util;
 
-import java.io.File;
-import java.io.IOException;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
+
+import java.io.File;
+import java.io.IOException;
 
 public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
 
@@ -89,20 +88,5 @@ public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
     @Override
     public void cleanupTestMetadata() {
         cleanAfterClass();
-    }
-
-    protected String getLocalWorkingDirectory() {
-        String dir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
-        if (dir.startsWith("file://"))
-            dir = dir.substring("file://".length());
-        try {
-            return new File(dir).getCanonicalPath();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    protected ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 }

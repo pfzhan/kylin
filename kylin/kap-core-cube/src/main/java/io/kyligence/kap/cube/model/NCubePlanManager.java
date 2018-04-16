@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.cube.model;
 
-import java.io.IOException;
-import java.util.List;
-
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
@@ -40,11 +41,8 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.IOException;
+import java.util.List;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);

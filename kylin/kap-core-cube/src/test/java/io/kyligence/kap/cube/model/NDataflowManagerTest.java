@@ -24,14 +24,10 @@
 
 package io.kyligence.kap.cube.model;
 
-import static org.junit.Assert.fail;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -41,7 +37,14 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.Assert.fail;
 
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -196,11 +199,38 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetDataflow(){
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        Assert.assertNotNull(mgr.getDataflowByUuid("0aeb985d-aec5-488a-a9b7-a5a564004433"));
+        Assert.assertNotNull(mgr.getDataflowsByCubePlan("ncube_basic"));
+    }
+
+    @Test
+    public void testGetLookuptable(){
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        List<NDataflow> ncubeBasic = mgr.getDataflowsByCubePlan("ncube_basic");
+        LookupStringTable lookupTable = ncubeBasic.get(0).getLookupTable("EDW.TEST_SITES");
+        System.out.println(lookupTable);
+        lookupTable.dump();
+        List<String> list = new ArrayList<String>();
+        list.add("220");
+        list.add("100");
+        Assert.assertNotNull(lookupTable.scan("SITE_ID", list, "SITE_NAME"));
+        Set<String> set = new HashSet<String>();
+        set.add("220");
+        set.add("100");
+        Assert.assertNotNull(lookupTable.mapValues("SITE_ID", set, "SITE_NAME"));
+        Assert.assertNotNull(lookupTable.mapRange("SITE_ID", "100", "220", "SITE_NAME"));
+    }
+
+    @Test
     public void testMergeSegmentsFail() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataflow df = mgr.getDataflow("ncube_basic");
-
+        //ncube_basic
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         mgr.updateDataflow(update);

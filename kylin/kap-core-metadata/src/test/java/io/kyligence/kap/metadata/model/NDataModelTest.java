@@ -24,40 +24,79 @@
 
 package io.kyligence.kap.metadata.model;
 
-import java.io.IOException;
-
+import com.google.common.collect.ImmutableBiMap;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableBiMap;
+import java.io.IOException;
+import java.util.Set;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+public class NDataModelTest {
 
-public class NDataModelTest extends NLocalFileMetadataTestCase {
+    private static final String DEFAULT_PROJECT = "default";
 
     @Before
     public void setUp() throws Exception {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        this.cleanupTestMetadata();
+        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 
     @Test
     public void testBasics() {
-        NDataModelManager mgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);
+        try {
+            mgr.init(config, DEFAULT_PROJECT);
+        } catch (Exception e){
+            Assert.fail();
+        }
+
+        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_ORDER"));
+        Set<TableRef> lookupTables = model.getLookupTables();
+        TableRef lookupTable = null;
+        for (TableRef table: lookupTables){
+            if(table.getTableIdentity().equals("DEFAULT.TEST_ORDER")){
+                lookupTable = table;
+                break;
+            }
+        }
+        Assert.assertNotNull(lookupTable);
+        Assert.assertTrue(model.isLookupTable(lookupTable));
+
+        Assert.assertTrue(model.isFactTable("DEFAULT.TEST_KYLIN_FACT"));
+        Set<TableRef> factTables = model.getFactTables();
+        TableRef factTable = null;
+        for (TableRef table: factTables){
+            if(table.getTableIdentity().equals("DEFAULT.TEST_KYLIN_FACT")){
+                factTable = table;
+                break;
+            }
+        }
+        Assert.assertNotNull(factTable);
+        Assert.assertTrue(model.isFactTable(factTable));
 
         ImmutableBiMap<Integer, TblColRef> dimMap = model.getEffectiveColsMap();
         Assert.assertEquals(model.findColumn("TRANS_ID"), dimMap.get(1));
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.CAL_DT"), dimMap.get(2));
         Assert.assertEquals(model.findColumn("LSTG_FORMAT_NAME"), dimMap.get(3));
         Assert.assertEquals(model.getAllCols().size() - 1, dimMap.size());
+
+        Assert.assertNotNull(model.findFirstTable("DEFAULT.TEST_KYLIN_FACT"));
+
+        NDataModel copyModel = NDataModel.getCopyOf(model);
+        Assert.assertEquals(model.getProject(), copyModel.getProject());
+        Assert.assertEquals(model.getAllCols(), copyModel.getAllCols());
+        Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
+        Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
+        Assert.assertEquals(model.getColCorrs(), copyModel.getColCorrs());
+
 
         ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasureMap();
         Assert.assertEquals(model.getAllMeasures().size() - 1, measureMap.size());
@@ -72,13 +111,14 @@ public class NDataModelTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void getAllNamedColumns_changeToTomb_lessEffectiveCols() throws IOException {
-        NDataModelManager mgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NDataModelManager mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);
+        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
         int size = model.getEffectiveColsMap().size();
 
         model.getAllNamedColumns().get(0).tomb = true;
         mgr.updateDataModelDesc(model);
-        model = (NDataModel) mgr.getDataModelDesc("nmodel_basic");
+        model = mgr.getDataModelDesc("nmodel_basic");
         int size2 = model.getEffectiveColsMap().size();
 
         Assert.assertEquals(size - 1, size2);

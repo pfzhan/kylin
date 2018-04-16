@@ -43,19 +43,17 @@
 
 package org.apache.kylin.measure;
 
-import java.math.BigDecimal;
-import java.util.List;
-
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.measure.basic.BigDecimalMaxAggregator;
-import org.apache.kylin.measure.basic.BigDecimalMinAggregator;
-import org.apache.kylin.measure.basic.BigDecimalSumAggregator;
-import org.apache.kylin.measure.basic.DoubleMaxAggregator;
-import org.apache.kylin.measure.basic.DoubleMinAggregator;
-import org.apache.kylin.measure.basic.DoubleSumAggregator;
-import org.apache.kylin.measure.basic.LongMaxAggregator;
 import org.apache.kylin.measure.basic.LongMinAggregator;
+import org.apache.kylin.measure.basic.LongMaxAggregator;
 import org.apache.kylin.measure.basic.LongSumAggregator;
+import org.apache.kylin.measure.basic.DoubleMinAggregator;
+import org.apache.kylin.measure.basic.DoubleMaxAggregator;
+import org.apache.kylin.measure.basic.DoubleSumAggregator;
+import org.apache.kylin.measure.basic.BigDecimalMinAggregator;
+import org.apache.kylin.measure.basic.BigDecimalMaxAggregator;
+import org.apache.kylin.measure.basic.BigDecimalSumAggregator;
 import org.apache.kylin.measure.bitmap.BitmapAggregator;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.RoaringBitmapCounterFactory;
@@ -66,7 +64,8 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.github.jamm.MemoryMeter;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import java.math.BigDecimal;
+import java.util.List;
 
 public class AggregatorMemEstimateTest {
     private static final MemoryMeter meter = new MemoryMeter();

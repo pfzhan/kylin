@@ -24,11 +24,21 @@
 
 package io.kyligence.kap.engine.spark.mockup;
 
-import java.util.Set;
-
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.source.IReadableTable;
+import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -38,35 +48,48 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
-import io.kyligence.kap.metadata.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.NDataModel;
+import java.util.List;
+import java.util.Set;
 
 @SuppressWarnings("serial")
 public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
+    private static final String DEFAULT_TABLE = "DEFAULT.TEST_KYLIN_FACT";
+
     @Test
     public void testGetTable() {
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
-        TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        TableDesc fact = tableMgr.getTableDesc(DEFAULT_TABLE);
+        ColumnDesc[] colDescs = fact.getColumns();
         NSparkCubingSource cubingSource = new CsvSource().adaptToBuildEngine(NSparkCubingSource.class);
         Dataset<Row> df = cubingSource.getSourceData(fact, ss);
-        df.show(10);
-
+        df.take(10);
         StructType schema = df.schema();
-        ColumnDesc[] colDescs = fact.getColumns();
         for (int i = 0; i < colDescs.length; i++) {
             StructField field = schema.fields()[i];
             Assert.assertEquals(field.name(), colDescs[i].getName());
             Assert.assertEquals(field.dataType(), DataTypes.StringType);
         }
+
     }
+
+    @Test
+    public void testSourceMetadataExplorer() throws Exception {
+        CsvSource csvSource = new CsvSource();
+        ISourceMetadataExplorer sourceMetadataExplorer = csvSource.getSourceMetadataExplorer();
+        List<String> databases = sourceMetadataExplorer.listDatabases();
+        String database = DEFAULT_PROJECT.toUpperCase();
+        Assert.assertTrue(databases.contains(database));
+        List<String> tables = sourceMetadataExplorer.listTables(DEFAULT_PROJECT.toUpperCase());
+        String table = DEFAULT_TABLE.split("\\.")[1];
+        Assert.assertTrue(tables.contains(table));
+        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database, table, DEFAULT_PROJECT);
+        TableDesc tableDesc = tableDescTableExtDescPair.getFirst();
+
+        IReadableTable readableTable = csvSource.createReadableTable(tableDesc);
+        Assert.assertTrue(readableTable.exists());
+    }
+
 
     @Test
     public void testGetFlatTable() {
@@ -94,7 +117,5 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
             index++;
         }
         ds.select(modelCols).show(10);
-
-        System.out.println(ds.select(modelCols).queryExecution().optimizedPlan());
     }
 }

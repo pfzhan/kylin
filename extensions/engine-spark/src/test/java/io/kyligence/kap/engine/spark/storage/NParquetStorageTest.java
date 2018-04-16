@@ -69,7 +69,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 @SuppressWarnings("serial")
 public class NParquetStorageTest extends NLocalWithSparkSessionTest implements Serializable {
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         this.createTestMetadata();
     }
 

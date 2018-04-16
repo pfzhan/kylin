@@ -56,7 +56,7 @@
         <scala.version>2.11.8</scala.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+        <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
     </properties>
 
     <modules>

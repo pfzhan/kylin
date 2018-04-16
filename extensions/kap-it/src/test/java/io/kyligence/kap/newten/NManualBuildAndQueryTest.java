@@ -23,26 +23,6 @@
  */
 package io.kyligence.kap.newten;
 
-import java.io.File;
-import java.util.List;
-
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.spark.SparkContext;
-import org.apache.spark.sql.SparkSession;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Sets;
-
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -52,20 +32,43 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparkSession;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.spark_project.guava.collect.Lists;
+import org.spark_project.guava.collect.Sets;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
 
     public static final String DEFAULT_PROJECT = "default";
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        init();
     }
 
     @After
@@ -78,13 +81,14 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Test
     @SuppressWarnings("MethodLength")
     public void test_ncube_basic() throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        final KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
-
+        QueryResult queryResult = new QueryResult();
+        ExecutorService service = new CustomeThreadPoolExecutor(queryResult);
         if (Boolean.valueOf(System.getProperty("noBuild"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
@@ -100,144 +104,207 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         existingCxt.stop();
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
 
-        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        final KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
         // Validate results between sparksql and cube
         populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
 
-        List<Pair<String, String>> queries;
         String[] joinTypes = new String[] { "left", "inner" };
+        String[] sameLevelSql = new String[] { "sql", "sql_lookup", "sql_casewhen", "sql_like", "sql_cache",
+                "sql_derived", "sql_datetime", "sql_subquery", "sql_distinct_dim", "sql_timestamp", "sql_orderby",
+                "sql_snowflake", "sql_topn", "sql_join", "sql_union", "sql_hive", "sql_distinct_precisely", "sql_raw",
+                "sql_rawtable" };
+        String[] rowcountLevelSql = new String[] { "sql_tableau" };
+        String[] noneLevelSql = new String[] { "sql_window", "sql_h2_uncapable", "sql_grouping", "sql_intersect_count",
+                "sql_percentile", "sql_distinct", "sql_powerbi" };
+        String[] limitedSql = new String[] { "sql" };
+        String[] multiSql = new String[] { "sql_multi_model" };
+        //ignore
+        String[] ignoreSql = new String[] { "tableau_probing" };
 
-        for (String joinType : joinTypes) {
+        Map<CompareLevel, String[]> allJoinType = new HashMap<CompareLevel, String[]>();
+        allJoinType.put(CompareLevel.SAME, sameLevelSql);
+        allJoinType.put(CompareLevel.SAME_ROWCOUNT, rowcountLevelSql);
+        allJoinType.put(CompareLevel.NONE, noneLevelSql);
+        allJoinType.put(CompareLevel.SUBSET, limitedSql);
 
-            //ITKapKylinQueryTest.testCommonQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testLookupQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_lookup");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testCaseWhen
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_casewhen");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testLikeQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_like");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testCachedQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_cache");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testDerivedColumnQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_derived");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testDateTimeQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_datetime");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testSubQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_subquery");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testTableauQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_tableau");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME_ROWCOUNT, joinType);
-
-            //ITKapKylinQueryTest.testDimDistinctCountQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_distinct_dim");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testTimeStampAdd
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_timestamp");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testOrderByQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_orderby");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testSnowflakeQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_snowflake");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testTopNQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_topn");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testJoinCastQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_join");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testUnionQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_union");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //                //fail, it's ignore ever since
-            //                //ITKapKylinQueryTest.testTableauProbing
-            //                queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "tableau_probing");
-            //                NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testWindowQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_window");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //ITKapKylinQueryTest.testH2Uncapable
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_h2_uncapable");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //ITKapKylinQueryTest.testGroupingQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_grouping");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //ITKapKylinQueryTest.testHiveQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_hive");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //in lastest KAP, this is ignore only with a confusing comment: "skip, has conflict with raw table, and Kylin CI has covered"
-            //ITKapKylinQueryTest.testIntersectCountQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_intersect_count"); //left
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //ITKapKylinQueryTest.testPercentileQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_percentile");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //need to check it again after global dict
-            //ITKapKylinQueryTest.testPreciselyDistinctCountQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_distinct_precisely"); //left
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //ITKapKylinQueryTest.testDistinctCountQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_distinct"); //left
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.NONE, joinType);
-
-            //kap folders
-
-            //ITKapKylinQueryTest.testPowerBiQuery
-            queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_powerbi");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, joinType);
-
-            //execLimitAndValidate
-            //ITKapKylinQueryTest.testLimitCorrectness
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
-            NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
-
-            // test table index
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_raw");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, joinType);
-
-            queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_rawtable");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, joinType);
+        int countNum = (rowcountLevelSql.length + noneLevelSql.length + sameLevelSql.length + limitedSql.length)
+                * joinTypes.length + multiSql.length;
+        final CountDownLatch latch = new CountDownLatch(countNum);
+        for (final String joinType : joinTypes) {
+            for (Map.Entry<CompareLevel, String[]> entry : allJoinType.entrySet()) {
+                CompareLevel compareLevel = entry.getKey();
+                String[] values = entry.getValue();
+                for (String value : values) {
+                    Runnable runnable = new QueryRunnbale(kapSparkSession, latch, compareLevel, joinType, value);
+                    service.submit(runnable);
+                }
+            }
         }
 
-        //ITKapKylinQueryTest.testMultiModelQuery
-        queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_multi_model");
-        NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
+        QueryRunnbale runnbale = new QueryRunnbale(kapSparkSession, latch, CompareLevel.SAME, "default", multiSql[0]);
+        service.submit(runnbale);
+        try {
+            latch.await();
+        } catch (Exception e) {
+            logger.error("query error when countdown wait!");
+        }
+        service.shutdown();
+        if(queryResult.getErrorCount() > 0){
+            Assert.fail();
+        }
+    }
+
+    class QueryRunnbale implements Runnable {
+
+        private KapSparkSession kapSparkSession;
+        private CountDownLatch latch;
+        private NExecAndComp.CompareLevel compareLevel;
+        private String joinType;
+        private String sqlSuffix;
+
+        public QueryRunnbale(KapSparkSession kapSparkSession, CountDownLatch latch,
+                NExecAndComp.CompareLevel compareLevel, String joinType, String sqlSuffix) {
+            this.kapSparkSession = kapSparkSession;
+            this.latch = latch;
+            this.compareLevel = compareLevel;
+            this.joinType = joinType;
+            this.sqlSuffix = sqlSuffix;
+        }
+
+        @Override
+        public void run() {
+            try {
+                if (NExecAndComp.CompareLevel.SUBSET.equals(compareLevel)) {
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
+                    NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
+                } else {
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + sqlSuffix);
+                    NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, joinType);
+                }
+            } catch (Exception e) {
+                logger.error(
+                        "query error: " + sqlSuffix + ", joinType: " + joinType + ", compareLevel: " + compareLevel);
+                throw new RuntimeException(e);
+            } finally {
+                latch.countDown();
+            }
+        }
+    }
+
+    class QueryResult{
+        private List<String> errorQuerys;
+        private int errorCount;
+
+        public List<String> getErrorQuerys() {
+            return errorQuerys;
+        }
+
+        public void addErrorQuery(String errorQuery) {
+            if(errorQuerys == null){
+                errorQuerys = new ArrayList<String>();
+            }
+            errorQuerys.add(errorQuery);
+        }
+
+        public int getErrorCount() {
+            return errorCount;
+        }
+
+        public void increament() {
+            errorCount++;
+        }
+
+        @Override
+        public String toString() {
+            return "QueryResult{" +
+                           "errorQuerys=" + errorQuerys +
+                           ", errorCount=" + errorCount +
+                           '}';
+        }
+    }
+
+
+    class CustomeThreadPoolExecutor extends ThreadPoolExecutor {
+        private QueryResult queryResult;
+        public CustomeThreadPoolExecutor(QueryResult queryResult){
+            super(9, 9, 1, TimeUnit.DAYS, new LinkedBlockingQueue<Runnable>(100));
+            this.queryResult = queryResult;
+        }
+
+        @Override
+        protected void afterExecute(Runnable r, Throwable t) {
+            super.afterExecute(r, t);
+            if(t.getLocalizedMessage().contains("not match")){
+                String message = t.getLocalizedMessage().split(":")[1];
+                queryResult.addErrorQuery(message);
+                queryResult.increament();
+            }
+        }
     }
 
     public void buildAndMergeCube(String dfName) throws Exception {
+        if (dfName.equals("ncube_basic")) {
+            buildFourSegementAndMerge(dfName);
+        }
+        if (dfName.equals("ncube_basic_inner")) {
+            buildTwoSegementAndMerge(dfName);
+        }
+    }
+
+    private void buildTwoSegementAndMerge(String dfName) throws Exception{
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+
+        NDataflow df = dsMgr.getDataflow(dfName);
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+
+        /**
+         * Round1. Build 4 segment
+         */
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2013-01-01");
+        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2013-01-01");
+        end = SegmentRange.dateToLong("2015-01-01");
+        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+
+        /**
+         * Round2. Merge two segments
+         */
+        df = dsMgr.getDataflow(dfName);
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(firstMergeJob);
+        // wait job done
+        Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+
+        /**
+         * validate cube segment info
+         */
+        NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegment(2);
+        Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
+        Assert.assertEquals(21, firstSegment.getDictionaries().size());
+        Assert.assertEquals(7, firstSegment.getSnapshots().size());
+    }
+
+    private void buildFourSegementAndMerge(String dfName) throws Exception{
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
@@ -308,7 +375,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(21, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
-
     }
 
     private void fullBuildBasic(String dfName) throws Exception {
@@ -330,6 +396,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
         builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                Sets.<NCuboidLayout> newLinkedHashSet(round1));
+                Sets.<NCuboidLayout>newLinkedHashSet(round1));
     }
 }

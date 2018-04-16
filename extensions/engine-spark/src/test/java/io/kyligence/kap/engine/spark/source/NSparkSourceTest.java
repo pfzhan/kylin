@@ -24,13 +24,12 @@
 
 package io.kyligence.kap.engine.spark.source;
 
-import java.util.Set;
-
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
@@ -39,18 +38,8 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.metadata.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-
 @SuppressWarnings("serial")
 public class NSparkSourceTest extends NLocalWithSparkSessionTest {
-
     @Test
     public void testGetTable() {
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
@@ -68,35 +57,5 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(field.name(), colDescs[i].getName());
             Assert.assertEquals(field.dataType(), DataTypes.StringType);
         }
-    }
-
-    @Test
-    public void testGetFlatTable() {
-        System.out.println(getTestConfig().getMetadataUrl());
-        NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataModel model = (NDataModel) df.getModel();
-
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(),
-                new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()));
-        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
-        ds.show(10);
-
-        StructType schema = ds.schema();
-        for (StructField field : schema.fields()) {
-            Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.valueOf(field.name()))));
-            Assert.assertEquals(field.dataType(), DataTypes.StringType);
-        }
-
-        Set<Integer> dims = df.getCubePlan().getEffectiveDimCols().keySet();
-        Column[] modelCols = new Column[dims.size()];
-        int index = 0;
-        for (int id : dims) {
-            modelCols[index] = new Column(String.valueOf(id));
-            index++;
-        }
-        ds.select(modelCols).show(10);
-
-        System.out.println(ds.select(modelCols).queryExecution().optimizedPlan());
     }
 }

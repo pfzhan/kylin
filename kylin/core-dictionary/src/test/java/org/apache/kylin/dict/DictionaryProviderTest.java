@@ -82,37 +82,36 @@ public class DictionaryProviderTest {
         //string dict
         Dictionary<String> dict = getDict(DataType.getType("string"),
                 Arrays.asList(new String[] { "a", "b" }).iterator());
+        dict.printlnStatistics();
         readWriteTest(dict);
         //number dict
         Dictionary<String> dict2 = getDict(DataType.getType("long"),
                 Arrays.asList(new String[] { "1", "2" }).iterator());
+        dict2.printlnStatistics();
         readWriteTest(dict2);
 
         //date dict
         Dictionary<String> dict3 = getDict(DataType.getType("datetime"),
                 Arrays.asList(new String[] { "20161122", "20161123" }).iterator());
+        dict3.printlnStatistics();
         readWriteTest(dict3);
 
         //date dict
         Dictionary<String> dict4 = getDict(DataType.getType("datetime"),
                 Arrays.asList(new String[] { "2016-11-22", "2016-11-23" }).iterator());
+        dict4.printlnStatistics();
         readWriteTest(dict4);
 
         //date dict
         try {
             Dictionary<String> dict5 = getDict(DataType.getType("date"),
                     Arrays.asList(new String[] { "2016-11-22", "20161122" }).iterator());
+            dict5.printlnStatistics();
             readWriteTest(dict5);
             fail("Date format not correct.Should throw exception");
         } catch (IllegalArgumentException e) {
             //correct
         }
-    }
-
-    @Test
-    public void testReadWriteTime() {
-        System.out.println(Long.MAX_VALUE);
-        System.out.println(Long.MIN_VALUE);
     }
 
     private Dictionary<String> getDict(DataType type, Iterator<String> values) throws Exception {

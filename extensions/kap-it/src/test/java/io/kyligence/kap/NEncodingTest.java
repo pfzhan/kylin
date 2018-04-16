@@ -24,16 +24,25 @@
 
 package io.kyligence.kap;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.google.common.collect.Lists;
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.newten.NExecAndComp;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.spark.KapSparkSession;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkContext;
 import org.junit.After;
@@ -42,21 +51,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.newten.NExecAndComp;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.spark.KapSparkSession;
+import java.util.ArrayList;
+import java.util.List;
 
 public class NEncodingTest extends NLocalWithSparkSessionTest {
 
@@ -64,17 +60,11 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        init();
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
@@ -166,6 +156,6 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
         queries.add(Pair.newPair("date_in_time_ms",
                 "select cast(date_in_time_ms as date) from test_encoding group by date_in_time_ms"));
         queries.add(Pair.newPair("standard_time", "select standard_time from test_encoding group by standard_time"));
-        NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "left");
+        NExecAndComp.execAndCompareOld(queries, kapSparkSession, CompareLevel.SAME, "left");
     }
 }

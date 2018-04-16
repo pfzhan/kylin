@@ -24,46 +24,53 @@
 
 package io.kyligence.kap.cube;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.UUID;
-
-import org.junit.After;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import java.util.UUID;
 
-public class NCubePlanManagerTest extends NLocalFileMetadataTestCase {
-    private String projectDefault = "default";
+public class NCubePlanManagerTest {
+    private static final String DEFAULT_PROJECT = "default";
+    private static final String TEST_MODEL_NAME = "nmodel_basic";
+    private static final String TEST_DESCRIPTION = "test_description";
 
     @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
-    }
-
-    @After
-    public void after() throws Exception {
-        this.cleanupTestMetadata();
+    public void setUp() {
+        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 
     @Test
-    public void testCRUD() throws IOException {
-        NCubePlanManager manager = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+    public void testCRUD() throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
         final String cubeName = UUID.randomUUID().toString();
+        //refect
+        Class<? extends NCubePlanManager> managerClass = manager.getClass();
+        Constructor<? extends NCubePlanManager> constructor = managerClass.getDeclaredConstructor(KylinConfig.class, String.class);
+        constructor.setAccessible(true);
+        final NCubePlanManager refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
+        Assert.assertNotNull(refectionManage);
+        Assert.assertEquals(refectionManage.listAllCubePlans().size(), manager.listAllCubePlans().size());
 
-        // create
+        //create
         int cntBeforeCreate = manager.listAllCubePlans().size();
         NCubePlan cube = new NCubePlan();
         cube.setName(cubeName);
-        cube.setModelName("nmodel_basic");
+        cube.setModelName(TEST_MODEL_NAME);
         cube.setUuid(UUID.randomUUID().toString());
-        cube.setDescription("test_description");
-        cube.setProject(projectDefault);
+        cube.setDescription(TEST_DESCRIPTION);
+        cube.setProject(DEFAULT_PROJECT);
         Assert.assertNotNull(manager.createCubePlan(cube));
 
         // list

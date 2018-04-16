@@ -46,9 +46,8 @@ package org.apache.kylin.job;
 import org.apache.kylin.common.HotLoadKylinPropertiesTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.junit.Assert;
 import org.junit.Test;
-
-import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
 
@@ -59,14 +58,25 @@ import static org.junit.Assert.assertEquals;
 public class JobEngineConfigTest extends HotLoadKylinPropertiesTestCase {
 
     @Test
-    public void testPropertiesHotLoad() throws IOException {
+    public void testPropertiesHotLoad() {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
         JobEngineConfig jobEngineConfig = new JobEngineConfig(baseConfig);
         assertEquals(20, jobEngineConfig.getMaxConcurrentJobLimit());
+        String hdfsWorkingDirectory = jobEngineConfig.getHdfsWorkingDirectory();
 
         updateProperty("kylin.job.max-concurrent-jobs", "30");
         KylinConfig.getInstanceFromEnv().reloadFromSiteProperties();
 
         assertEquals(30, jobEngineConfig.getMaxConcurrentJobLimit());
+    }
+
+    @Test
+    public void testGetProperty(){
+        KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
+        JobEngineConfig jobEngineConfig = new JobEngineConfig(baseConfig);
+        Assert.assertEquals(jobEngineConfig.getAdminDls(), baseConfig.getAdminDls());
+        Assert.assertEquals(jobEngineConfig.getConfig(), baseConfig);
+        Assert.assertEquals(jobEngineConfig.getTimeZone(), baseConfig.getTimeZone());
+        Assert.assertEquals(jobEngineConfig.getHdfsWorkingDirectory(), baseConfig.getHdfsWorkingDirectory());
     }
 }

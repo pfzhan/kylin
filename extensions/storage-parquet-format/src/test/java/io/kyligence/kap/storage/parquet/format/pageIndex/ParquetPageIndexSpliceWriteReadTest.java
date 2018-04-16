@@ -71,6 +71,9 @@ public class ParquetPageIndexSpliceWriteReadTest {
         writer.startDiv(0, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});
         writer.write(new byte[]{2}, 2);
         writer.endDiv();
+        writer.startDiv(1, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});
+        writer.write(new byte[]{3}, 0, 1);
+        writer.endDiv();
         writer.close();
 
         FSDataInputStream inputStream = HadoopUtil.getWorkingFileSystem().open(new Path(indexFile.getAbsolutePath()));

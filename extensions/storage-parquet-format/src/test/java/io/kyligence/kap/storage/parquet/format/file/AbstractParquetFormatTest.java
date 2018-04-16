@@ -43,7 +43,6 @@ import java.util.List;
 
 public abstract class AbstractParquetFormatTest {
     protected Path path, indexPath;
-    protected static String tempFilePath;
     protected int groupSize = ParquetConfig.PagesPerGroup * ParquetConfig.RowsPerPage;
     protected MessageType type;
 

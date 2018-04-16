@@ -89,8 +89,7 @@ public class CsvSource implements ISource {
             }
 
             @Override
-            public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
-                    throws Exception {
+            public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj) {
                 NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), prj);
                 String tableName = database + "." + table;
                 TableDesc tableDesc = mgr.getTableDesc(tableName);
