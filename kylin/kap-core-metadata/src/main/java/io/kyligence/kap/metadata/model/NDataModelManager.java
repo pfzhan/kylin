@@ -119,7 +119,7 @@ public class NDataModelManager {
         public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
             //clean up the current project's table desc
             // TODO: Why model changes trigger TableDesc reset?
-            NTableMetadataManager.getInstance(config, project).resetProjectSpecificTableDesc(project);
+            NTableMetadataManager.getInstance(config, project).resetProjectSpecificTableDesc();
 
             try (AutoLock lock = modelMapLock.lockForWrite()) {
                 for (String model : getProjectManager().getProject(project).getModels()) {
@@ -269,7 +269,7 @@ public class NDataModelManager {
     }
 
     private Map<String, TableDesc> getAllTablesMap() {
-        return NTableMetadataManager.getInstance(config, project).getAllTablesMap(project);
+        return NTableMetadataManager.getInstance(config, project).getAllTablesMap();
     }
 
     /**

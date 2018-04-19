@@ -61,14 +61,14 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListAllTables() throws Exception {
-        List<TableDesc> tables = mgrDefault.listAllTables(projectDefault);
+        List<TableDesc> tables = mgrDefault.listAllTables();
         Assert.assertNotNull(tables);
         Assert.assertTrue(tables.size() > 0);
     }
 
     @Test
     public void testGetAllTablesMap() {
-        Map<String, TableDesc> tm = mgrDefault.getAllTablesMap(projectDefault);
+        Map<String, TableDesc> tm = mgrDefault.getAllTablesMap();
         Assert.assertTrue(tm.size() > 0);
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", tm.get("DEFAULT.TEST_KYLIN_FACT").getIdentity());
     }
@@ -89,13 +89,13 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetInstance() throws Exception {
         Assert.assertNotNull(mgrDefault);
-        Assert.assertNotNull(mgrDefault.listAllTables(projectDefault));
-        Assert.assertTrue(mgrDefault.listAllTables(projectDefault).size() > 0);
+        Assert.assertNotNull(mgrDefault.listAllTables());
+        Assert.assertTrue(mgrDefault.listAllTables().size() > 0);
     }
 
     @Test
     public void testTableSample() throws IOException {
-        TableExtDesc tableExtDesc = mgrDefault.getTableExt(tableKylinFact, projectDefault);
+        TableExtDesc tableExtDesc = mgrDefault.getTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc);
 
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
@@ -103,14 +103,14 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         columnStats.setColumnSamples("Max", "Min", "dfadsfdsfdsafds", "d");
         columnStatsList.add(columnStats);
         tableExtDesc.setColumnStats(columnStatsList);
-        mgrDefault.saveTableExt(tableExtDesc, "default");
+        mgrDefault.saveTableExt(tableExtDesc);
 
-        TableExtDesc tableExtDesc1 = mgrDefault.getTableExt(tableKylinFact, projectDefault);
+        TableExtDesc tableExtDesc1 = mgrDefault.getTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc1);
 
         List<TableExtDesc.ColumnStats> columnStatsList1 = tableExtDesc1.getColumnStats();
         Assert.assertEquals(1, columnStatsList1.size());
 
-        mgrDefault.removeTableExt(tableKylinFact, projectDefault);
+        mgrDefault.removeTableExt(tableKylinFact);
     }
 }

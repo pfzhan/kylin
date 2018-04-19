@@ -31,7 +31,6 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ISourceAware;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -44,6 +43,8 @@ import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer, Serializable {
     private SparkSession ss;
@@ -85,10 +86,10 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     public Pair<TableDesc, TableExtDesc> loadTableMetadata(final String database, String tableName, String prj)
             throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        TableMetadataManager metaMgr = TableMetadataManager.getInstance(config);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, prj);
 
         NSparkTableMeta tableMeta = getTableMetaExplorer().getSparkTableMeta(database, tableName);
-        TableDesc tableDesc = metaMgr.getTableDesc(database + "." + tableName, prj);
+        TableDesc tableDesc = metaMgr.getTableDesc(database + "." + tableName);
 
         // make a new TableDesc instance, don't modify the one in use
         if (tableDesc == null) {
@@ -194,7 +195,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     @Override
     public void loadSampleData(String tableName, String tableFileDir) throws Exception {
         Dataset<Row> dataset = ss.read().csv(tableFileDir + "/" + tableName + ".csv").toDF();
-        if(tableName.indexOf(".") > 0){
+        if (tableName.indexOf(".") > 0) {
             tableName = tableName.substring(tableName.indexOf(".") + 1);
         }
         dataset.createOrReplaceTempView(tableName);

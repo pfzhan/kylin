@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,7 +48,6 @@ import static org.junit.Assert.assertEquals;
 import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.apache.kylin.dict.lookup.SnapshotManager;
 import org.apache.kylin.dict.lookup.SnapshotTable;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.IReadableTable.TableReader;
@@ -57,6 +55,8 @@ import org.apache.kylin.source.SourceFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 /**
  * @author yangli9
@@ -80,7 +80,7 @@ public class ITSnapshotManagerTest extends HBaseMetadataTestCase {
     @Test
     public void basicTest() throws Exception {
         String tableName = "EDW.TEST_SITES";
-        TableDesc tableDesc = TableMetadataManager.getInstance(getTestConfig()).getTableDesc(tableName, "default");
+        TableDesc tableDesc = NTableMetadataManager.getInstance(getTestConfig(), "default").getTableDesc(tableName);
         IReadableTable hiveTable = SourceFactory.createReadableTable(tableDesc);
         String snapshotPath = snapshotMgr.buildSnapshot(hiveTable, tableDesc).getResourcePath();
 

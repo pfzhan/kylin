@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,8 +48,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
+
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 public class ColumnGenConfig {
 
@@ -58,22 +58,22 @@ public class ColumnGenConfig {
     public static final String ID = "ID";
     public static final String RAND = "RAND";
     public static final String $RANDOM = "${RANDOM}";
-    
+
     // discrete values
     boolean isDiscrete;
     boolean isFK;
     List<String> values;
-    
+
     // random
     boolean isRandom;
     String randFormat;
     int randStart;
     int randEnd;
-    
+
     // ID
     boolean isID;
     int idStart;
-    
+
     // general
     int cardinality;
     boolean genNull;
@@ -81,19 +81,19 @@ public class ColumnGenConfig {
     String genNullStr;
     boolean order;
     boolean unique;
-    
+
     public ColumnGenConfig(ColumnDesc col, ModelDataGenerator modelGen) throws IOException {
         init(col, modelGen);
     }
 
     private void init(ColumnDesc col, ModelDataGenerator modelGen) throws IOException {
-        
+
         Map<String, String> config = Util.parseEqualCommaPairs(col.getDataGen(), "values");
 
         values = Arrays.asList(Util.parseString(config, "values", "").split("[|]"));
-        
+
         List<String> pkValues = modelGen.getPkValuesIfIsFk(col);
-        
+
         if (FK.equals(values.get(0)) || (values.get(0).isEmpty() && pkValues != null)) {
             isFK = true;
             values = getPkValues(modelGen, config, pkValues);
@@ -108,7 +108,7 @@ public class ColumnGenConfig {
         } else {
             isDiscrete = true;
         }
-        
+
         cardinality = Util.parseInt(config, "card", guessCardinality(col.getName()));
         genNull = Util.parseBoolean(config, "null", guessGenNull(col.getName()));
         genNullPct = Util.parseDouble(config, "nullpct", 0.01);
@@ -117,19 +117,20 @@ public class ColumnGenConfig {
         unique = Util.parseBoolean(config, "uniq", modelGen.isPK(col));
     }
 
-    private List<String> getPkValues(ModelDataGenerator modelGen, Map<String, String> config, List<String> dftPkValues) throws IOException {
+    private List<String> getPkValues(ModelDataGenerator modelGen, Map<String, String> config, List<String> dftPkValues)
+            throws IOException {
         String pkColName = config.get("pk");
         if (pkColName == null)
             return dftPkValues;
-        
+
         int cut = pkColName.lastIndexOf('.');
         String pkTableName = pkColName.substring(0, cut);
         pkColName = pkColName.substring(cut + 1);
-        
-        KylinConfig kylinConfig = modelGen.getModle().getConfig();
-        String project = modelGen.getModle().getProject();
-        ColumnDesc pkcol = TableMetadataManager.getInstance(kylinConfig)//
-                .getTableDesc(pkTableName, project).findColumnByName(pkColName);
+
+        KylinConfig kylinConfig = modelGen.getModel().getConfig();
+        String project = modelGen.getModel().getProject();
+        ColumnDesc pkcol = NTableMetadataManager.getInstance(kylinConfig, modelGen.getModel().getProject())//
+                .getTableDesc(pkTableName).findColumnByName(pkColName);
         return modelGen.getPkValues(pkcol);
     }
 

@@ -35,7 +35,6 @@ import org.apache.kylin.cube.model.validation.ValidateContext;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
@@ -45,12 +44,15 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
 
     public static final long CUBOID_DESC_ID_STEP = 1000L;
     public static final long CUBOID_LAYOUT_ID_STEP = 1L;
+
+    public static final String NCUBE_PLAN_ENTITY_NAME = "cube_plan";
 
     public static NCubePlanManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NCubePlanManager.class);
@@ -78,7 +80,7 @@ public class NCubePlanManager implements IKeepNames {
         logger.info("Initializing NCubePlanManager with config " + config);
         this.config = cfg;
         this.project = project;
-        this.cubePlanMap = new CaseInsensitiveStringCache<>(config, "cube_plan");
+        this.cubePlanMap = new CaseInsensitiveStringCache<>(config, NCUBE_PLAN_ENTITY_NAME);
         String resourceRootPath = "/" + project + NCubePlan.CUBE_PLAN_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<NCubePlan>(getStore(), resourceRootPath, NCubePlan.class, cubePlanMap) {
             @Override
@@ -97,7 +99,7 @@ public class NCubePlanManager implements IKeepNames {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), "cube_plan");
+        Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), NCUBE_PLAN_ENTITY_NAME);
     }
 
     private class CubePlanSyncListener extends Broadcaster.Listener {
@@ -179,7 +181,7 @@ public class NCubePlanManager implements IKeepNames {
 
             NCubePlan saved = crud.save(cubePlan);
 
-//            NProjectManager.getInstance(config).moveRealizationToProject()
+            //            NProjectManager.getInstance(config).moveRealizationToProject()
             return saved;
         }
     }

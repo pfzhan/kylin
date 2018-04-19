@@ -42,7 +42,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.CaseInsensitiveStringMap;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 
@@ -54,12 +53,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 @SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-        getterVisibility = JsonAutoDetect.Visibility.NONE,
-        isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-        setterVisibility = JsonAutoDetect.Visibility.NONE)
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class RowACL extends RootPersistentEntity implements IKeep {
     @JsonProperty("tableRowCondsWithUser")
     private RowACLEntry tableRowCondsWithUser = new RowACLEntry();
@@ -68,16 +65,16 @@ public class RowACL extends RootPersistentEntity implements IKeep {
     private RowACLEntry tableRowCondsWithGroup = new RowACLEntry();
 
     private String project;
-    
+
     void init(String project) {
         this.project = project;
     }
-    
+
     @Override
     public String resourceName() {
         return project;
     }
-    
+
     private RowACLEntry currentEntry(String type) {
         if (type.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
             return tableRowCondsWithUser;
@@ -135,7 +132,8 @@ public class RowACL extends RootPersistentEntity implements IKeep {
 
     static Map<String, String> getColumnWithType(String project, String table) {
         Map<String, String> columnWithType = new HashMap<>();
-        TableDesc tableDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getTableDesc(table, project);
+        TableDesc tableDesc = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getTableDesc(table);
         ColumnDesc[] columns = tableDesc.getColumns();
         for (ColumnDesc column : columns) {
             columnWithType.put(column.getName(), column.getTypeName());
@@ -173,10 +171,7 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         return result.toString();
     }
 
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     private static class RowACLEntry extends HashMap<String, TableToRowConds> implements Serializable, IKeep {
 
         private Map<String, String> getQueryUsedTblToConds(String project, String name) {
@@ -224,7 +219,8 @@ public class RowACL extends RootPersistentEntity implements IKeep {
             putRowACLEntry(name, table, columnToConds, tableToRowConds);
         }
 
-        private void putRowACLEntry(String name, String table, ColumnToConds columnToConds, TableToRowConds tableToRowConds) {
+        private void putRowACLEntry(String name, String table, ColumnToConds columnToConds,
+                TableToRowConds tableToRowConds) {
             tableToRowConds.put(table, columnToConds);
             super.put(name, tableToRowConds);
         }
@@ -264,27 +260,21 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         private void validateACLExists(String name, String table) {
             TableToRowConds tableRowConds = super.get(name);
             if (tableRowConds == null) {
-                throw new RuntimeException(
-                        "Operation fail, user:" + name + " not have any row acl conds!");
+                throw new RuntimeException("Operation fail, user:" + name + " not have any row acl conds!");
             }
             if (!tableRowConds.containTbl(table)) {
-                throw new RuntimeException(
-                        "Operation fail, table:" + table + " not have any row acl conds!");
+                throw new RuntimeException("Operation fail, table:" + table + " not have any row acl conds!");
             }
         }
 
         private void validateACLExists(String name) {
             if (!super.containsKey(name)) {
-                throw new RuntimeException(
-                        "Operation fail, user:" + name + " not have any row acl conds!");
+                throw new RuntimeException("Operation fail, user:" + name + " not have any row acl conds!");
             }
         }
     }
 
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     private static class TableToRowConds implements Serializable, IKeep {
         //{T1:columnToConds1}, {T2:columnToConds2}
         @JsonProperty("rowCondsWithTable")
@@ -319,10 +309,7 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         }
     }
 
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     public static class ColumnToConds implements Serializable, IKeep {
         //all row conds in the table, for example:C1:{cond1, cond2},C2{cond1, cond3}, immutable
         @JsonProperty("condsWithColumn")
@@ -358,15 +345,12 @@ public class RowACL extends RootPersistentEntity implements IKeep {
         }
     }
 
-    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE,
-            getterVisibility = JsonAutoDetect.Visibility.NONE,
-            isGetterVisibility = JsonAutoDetect.Visibility.NONE,
-            setterVisibility = JsonAutoDetect.Visibility.NONE)
+    @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
     public static class Cond implements Serializable, IKeep {
         public enum IntervalType implements Serializable, IKeep {
-            OPEN,            //(a,b) = {x | a < x < b}
-            CLOSED,          //[a,b] = {x | a <= x <= b}
-            LEFT_INCLUSIVE,  //[a,b) = {x | a <= x < b}
+            OPEN, //(a,b) = {x | a < x < b}
+            CLOSED, //[a,b] = {x | a <= x <= b}
+            LEFT_INCLUSIVE, //[a,b) = {x | a <= x < b}
             RIGHT_INCLUSIVE, //(a,b] = {x | a < x <= b}
         }
 
@@ -464,28 +448,32 @@ public class RowACL extends RootPersistentEntity implements IKeep {
 
         private static Pair<String, String> getOp(Cond.IntervalType type) {
             switch (type) {
-                case OPEN:
-                    return Pair.newPair(">", "<");
-                case CLOSED:
-                    return Pair.newPair(">=", "<=");
-                case LEFT_INCLUSIVE:
-                    return Pair.newPair(">=", "<");
-                case RIGHT_INCLUSIVE:
-                    return Pair.newPair(">", "<=");
-                default:
-                    throw new RuntimeException("error, unknown type for condition");
+            case OPEN:
+                return Pair.newPair(">", "<");
+            case CLOSED:
+                return Pair.newPair(">=", "<=");
+            case LEFT_INCLUSIVE:
+                return Pair.newPair(">=", "<");
+            case RIGHT_INCLUSIVE:
+                return Pair.newPair(">", "<=");
+            default:
+                throw new RuntimeException("error, unknown type for condition");
             }
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
 
             Cond cond = (Cond) o;
 
-            if (type != cond.type) return false;
-            if (leftExpr != null ? !leftExpr.equals(cond.leftExpr) : cond.leftExpr != null) return false;
+            if (type != cond.type)
+                return false;
+            if (leftExpr != null ? !leftExpr.equals(cond.leftExpr) : cond.leftExpr != null)
+                return false;
             return rightExpr != null ? rightExpr.equals(cond.rightExpr) : cond.rightExpr == null;
         }
 

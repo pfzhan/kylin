@@ -322,7 +322,7 @@ public class ModelDataGenerator {
         return outputPath + "/" + "ddl_" + model.getName() + ".sql";
     }
 
-    public NDataModel getModle() {
+    public NDataModel getModel() {
         return model;
     }
 

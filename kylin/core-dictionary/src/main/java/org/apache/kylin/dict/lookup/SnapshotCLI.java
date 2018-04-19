@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,9 +45,10 @@ package org.apache.kylin.dict.lookup;
 import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
+
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 public class SnapshotCLI {
 
@@ -60,14 +60,15 @@ public class SnapshotCLI {
 
     private static void rebuild(String table, String overwriteUUID, String project) throws IOException {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
-        TableMetadataManager metaMgr = TableMetadataManager.getInstance(conf);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(conf, project);
         SnapshotManager snapshotMgr = SnapshotManager.getInstance(conf);
 
-        TableDesc tableDesc = metaMgr.getTableDesc(table, project);
+        TableDesc tableDesc = metaMgr.getTableDesc(table);
         if (tableDesc == null)
             throw new IllegalArgumentException("Not table found by " + table);
 
-        SnapshotTable snapshot = snapshotMgr.rebuildSnapshot(SourceFactory.createReadableTable(tableDesc), tableDesc, overwriteUUID);
+        SnapshotTable snapshot = snapshotMgr.rebuildSnapshot(SourceFactory.createReadableTable(tableDesc), tableDesc,
+                overwriteUUID);
         System.out.println("resource path updated: " + snapshot.getResourcePath());
     }
 }

@@ -50,7 +50,6 @@ import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,6 +59,7 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
  */
@@ -146,7 +146,7 @@ public class NTableMetadataManager {
         @Override
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
                 throws IOException {
-            try (AutoLock lock = srcTableMapLock.lockForWrite()) {
+            try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
                 if (event == Event.DROP)
                     srcTableMap.removeLocal(cacheKey);
                 else
@@ -167,16 +167,16 @@ public class NTableMetadataManager {
         }
     }
 
-    public List<TableDesc> listAllTables(String prj) {
-        try (AutoLock lock = srcTableMapLock.lockForWrite()) {
-            return Lists.newArrayList(getAllTablesMap(prj).values());
+    public List<TableDesc> listAllTables() {
+        try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
+            return Lists.newArrayList(getAllTablesMap().values());
         }
     }
 
-    public Map<String, TableDesc> getAllTablesMap(String prj) {
+    public Map<String, TableDesc> getAllTablesMap() {
         try (AutoLock lock = srcTableMapLock.lockForWrite()) {
-            ProjectInstance project = getProjectManager().getProject(prj);
-            Set<String> prjTableNames = project.getTables();
+            ProjectInstance pi = getProjectManager().getProject(project);
+            Set<String> prjTableNames = pi.getTables();
 
             Map<String, TableDesc> ret = new LinkedHashMap<>();
             for (String tableName : prjTableNames) {
@@ -191,7 +191,7 @@ public class NTableMetadataManager {
      * Get TableDesc by name and project
      */
     public TableDesc getTableDesc(String tableName) {
-        try (AutoLock lock = srcTableMapLock.lockForRead()) {
+        try (AutoLock ignored = srcTableMapLock.lockForRead()) {
             return srcTableMap.get(tableName);
         }
     }
@@ -206,15 +206,15 @@ public class NTableMetadataManager {
             return tableName.toUpperCase();
     }
 
-    public void saveSourceTable(TableDesc srcTable, String prj) throws IOException {
-        try (AutoLock lock = srcTableMapLock.lockForWrite()) {
-            srcTable.init(prj);
+    public void saveSourceTable(TableDesc srcTable) throws IOException {
+        try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
+            srcTable.init(project);
             srcTableCrud.save(srcTable);
         }
     }
 
-    public void removeSourceTable(String tableIdentity, String prj) throws IOException {
-        try (AutoLock lock = srcTableMapLock.lockForWrite()) {
+    public void removeSourceTable(String tableIdentity) throws IOException {
+        try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
             TableDesc t = getTableDesc(tableIdentity);
             if (t == null)
                 return;
@@ -228,10 +228,10 @@ public class NTableMetadataManager {
      * when the projects' model list changed, project-specific table should be reset and get expanded
      * again
      */
-    public void resetProjectSpecificTableDesc(String prj) throws IOException {
-        try (AutoLock lock = srcTableMapLock.lockForWrite()) {
-            ProjectInstance project = NProjectManager.getInstance(config).getProject(prj);
-            for (String tableName : project.getTables()) {
+    public void resetProjectSpecificTableDesc() {
+        try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
+            ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
+            for (String tableName : projectInstance.getTables()) {
                 String tableIdentity = getTableIdentity(tableName);
                 //                String key = resourcePath(prj, tableIdentity);
                 TableDesc originTableDesc = srcTableMap.get(tableIdentity);
@@ -270,9 +270,8 @@ public class NTableMetadataManager {
 
     private class SrcTableExtSyncListener extends Broadcaster.Listener {
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock lock = srcExtMapLock.lockForWrite()) {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) {
+            try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
                 if (event == Event.DROP)
                     srcExtMap.removeLocal(cacheKey);
                 else
@@ -287,7 +286,7 @@ public class NTableMetadataManager {
      * @param tableName
      * @return
      */
-    public TableExtDesc getTableExt(String tableName, String prj) {
+    public TableExtDesc getTableExt(String tableName) {
         TableDesc t = getTableDesc(tableName);
         if (t == null)
             return null;
@@ -296,7 +295,7 @@ public class NTableMetadataManager {
     }
 
     public TableExtDesc getTableExt(TableDesc t) {
-        try (AutoLock lock = srcExtMapLock.lockForRead()) {
+        try (AutoLock ignored = srcExtMapLock.lockForRead()) {
             TableExtDesc result = srcExtMap.get(t.getIdentity());
 
             // avoid returning null, since the TableDesc exists
@@ -314,8 +313,8 @@ public class NTableMetadataManager {
         }
     }
 
-    public void saveTableExt(TableExtDesc tableExt, String prj) throws IOException {
-        try (AutoLock lock = srcExtMapLock.lockForWrite()) {
+    public void saveTableExt(TableExtDesc tableExt) throws IOException {
+        try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
             if (tableExt.getUuid() == null || tableExt.getIdentity() == null) {
                 throw new IllegalArgumentException();
             }
@@ -331,10 +330,10 @@ public class NTableMetadataManager {
         }
     }
 
-    public void removeTableExt(String tableName, String prj) throws IOException {
-        try (AutoLock lock = srcExtMapLock.lockForWrite()) {
+    public void removeTableExt(String tableName) throws IOException {
+        try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
             // note, here assume always delete TableExtDesc first, then TableDesc
-            TableExtDesc t = getTableExt(tableName, prj);
+            TableExtDesc t = getTableExt(tableName);
             if (t == null)
                 return;
 
@@ -392,9 +391,8 @@ public class NTableMetadataManager {
 
     private class ExtFilterSyncListener extends Broadcaster.Listener {
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock lock = extFilterMapLock.lockForWrite()) {
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey) {
+            try (AutoLock ignored = extFilterMapLock.lockForWrite()) {
                 if (event == Event.DROP)
                     extFilterMap.removeLocal(cacheKey);
                 else
@@ -404,26 +402,26 @@ public class NTableMetadataManager {
     }
 
     public List<ExternalFilterDesc> listAllExternalFilters() {
-        try (AutoLock lock = extFilterMapLock.lockForRead()) {
+        try (AutoLock ignored = extFilterMapLock.lockForRead()) {
             return Lists.newArrayList(extFilterMap.values());
         }
     }
 
     public ExternalFilterDesc getExtFilterDesc(String filterTableName) {
-        try (AutoLock lock = extFilterMapLock.lockForRead()) {
+        try (AutoLock ignored = extFilterMapLock.lockForRead()) {
             ExternalFilterDesc result = extFilterMap.get(filterTableName);
             return result;
         }
     }
 
     public void saveExternalFilter(ExternalFilterDesc desc) throws IOException {
-        try (AutoLock lock = extFilterMapLock.lockForWrite()) {
+        try (AutoLock ignored = extFilterMapLock.lockForWrite()) {
             extFilterCrud.save(desc);
         }
     }
 
     public void removeExternalFilter(String name) throws IOException {
-        try (AutoLock lock = extFilterMapLock.lockForWrite()) {
+        try (AutoLock ignored = extFilterMapLock.lockForWrite()) {
             extFilterCrud.delete(name);
         }
     }

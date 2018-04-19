@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.engine.spark.mockup;
 
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -43,12 +47,9 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CsvSource implements ISource {
 
@@ -58,13 +59,14 @@ public class CsvSource implements ISource {
 
             List<ProjectInstance> allProjects = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                     .listAllProjects();
-            TableMetadataManager mgr = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv());
 
             @Override
-            public List<String> listDatabases() throws Exception {
+            public List<String> listDatabases() {
                 Set<String> databases = new TreeSet<>();
                 for (ProjectInstance prj : allProjects) {
-                    for (TableDesc tbl : mgr.listAllTables(prj.getName())) {
+                    NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                            prj.getName());
+                    for (TableDesc tbl : mgr.listAllTables()) {
                         databases.add(tbl.getDatabase());
                     }
                 }
@@ -72,10 +74,13 @@ public class CsvSource implements ISource {
             }
 
             @Override
-            public List<String> listTables(String database) throws Exception {
+            public List<String> listTables(String database) {
                 Set<String> tables = new TreeSet<>();
                 for (ProjectInstance prj : allProjects) {
-                    for (TableDesc tbl : mgr.listAllTables(prj.getName())) {
+                    NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                            prj.getName());
+
+                    for (TableDesc tbl : mgr.listAllTables()) {
                         if (database.equals(tbl.getDatabase()))
                             tables.add(tbl.getName());
                     }
@@ -86,9 +91,10 @@ public class CsvSource implements ISource {
             @Override
             public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
                     throws Exception {
+                NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), prj);
                 String tableName = database + "." + table;
-                TableDesc tableDesc = mgr.getTableDesc(tableName, prj);
-                TableExtDesc tableExt = mgr.getTableExt(tableName, prj);
+                TableDesc tableDesc = mgr.getTableDesc(tableName);
+                TableExtDesc tableExt = mgr.getTableExt(tableName);
                 return Pair.newPair(tableDesc, tableExt);
             }
 
@@ -102,7 +108,6 @@ public class CsvSource implements ISource {
     @SuppressWarnings("unchecked")
     @Override
     public <I> I adaptToBuildEngine(Class<I> engineInterface) {
-
 
         if (engineInterface == NSparkCubingSource.class) {
             return (I) new NSparkCubingSource() {

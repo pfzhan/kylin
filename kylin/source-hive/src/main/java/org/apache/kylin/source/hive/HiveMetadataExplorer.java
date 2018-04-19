@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,17 +49,18 @@ import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
+
 public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer {
 
     IHiveClient hiveClient = HiveClientFactory.getHiveClient();
-    
+
     @Override
     public List<String> listDatabases() throws Exception {
         return hiveClient.getHiveDbNames();
@@ -74,7 +74,7 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
     @Override
     public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String tableName, String prj) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        TableMetadataManager metaMgr = TableMetadataManager.getInstance(config);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, prj);
 
         HiveTableMeta hiveTableMeta;
         try {
@@ -83,8 +83,8 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
             throw new RuntimeException("cannot get HiveTableMeta", e);
         }
 
-        TableDesc tableDesc = metaMgr.getTableDesc(database + "." + tableName, prj);
-        
+        TableDesc tableDesc = metaMgr.getTableDesc(database + "." + tableName);
+
         // make a new TableDesc instance, don't modify the one in use
         if (tableDesc == null) {
             tableDesc = new TableDesc();
@@ -95,7 +95,7 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
         } else {
             tableDesc = new TableDesc(tableDesc);
         }
-        
+
         if (hiveTableMeta.tableType != null) {
             tableDesc.setTableType(hiveTableMeta.tableType);
         }
@@ -130,7 +130,7 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
         tableExtDesc.setUuid(UUID.randomUUID().toString());
         tableExtDesc.setLastModified(0);
         tableExtDesc.init(prj);
-        
+
         tableExtDesc.addDataSourceProp("location", hiveTableMeta.sdLocation);
         tableExtDesc.addDataSourceProp("owner", hiveTableMeta.owner);
         tableExtDesc.addDataSourceProp("last_access_time", String.valueOf(hiveTableMeta.lastAccessTime));
@@ -154,10 +154,10 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
         hiveClient.executeHQL(generateCreateSchemaSql(database));
     }
 
-    private String generateCreateSchemaSql(String schemaName){
+    private String generateCreateSchemaSql(String schemaName) {
         return String.format("CREATE DATABASE IF NOT EXISTS %s", schemaName);
     }
-    
+
     @Override
     public void createSampleTable(TableDesc table) throws Exception {
         hiveClient.executeHQL(generateCreateTableSql(table));
@@ -186,7 +186,7 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
 
         return new String[] { dropsql, dropsql2, ddl.toString() };
     }
-    
+
     @Override
     public void loadSampleData(String tableName, String tmpDataDir) throws Exception {
         hiveClient.executeHQL(generateLoadDataSql(tableName, tmpDataDir));
@@ -195,12 +195,12 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
     private String generateLoadDataSql(String tableName, String tableFileDir) {
         return "LOAD DATA LOCAL INPATH '" + tableFileDir + "/" + tableName + ".csv' OVERWRITE INTO TABLE " + tableName;
     }
-    
+
     @Override
     public void createWrapperView(String origTableName, String viewName) throws Exception {
         hiveClient.executeHQL(generateCreateViewSql(viewName, origTableName));
     }
-    
+
     private String[] generateCreateViewSql(String viewName, String tableName) {
 
         String dropView = "DROP VIEW IF EXISTS " + viewName;
@@ -210,7 +210,7 @@ public class HiveMetadataExplorer implements ISourceMetadataExplorer, ISampleDat
 
         return new String[] { dropView, dropTable, createSql };
     }
-    
+
     private static String getHiveDataType(String javaDataType) {
         String hiveDataType = javaDataType.toLowerCase().startsWith("varchar") ? "string" : javaDataType;
         hiveDataType = javaDataType.toLowerCase().startsWith("integer") ? "int" : hiveDataType;

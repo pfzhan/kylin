@@ -49,7 +49,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ByteArray;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dimension.DimensionEncoding;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.filter.function.Functions;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.slf4j.Logger;
@@ -65,14 +64,15 @@ public class MassinFilterManager {
     public static final Logger logger = LoggerFactory.getLogger(MassinFilterManager.class);
 
     private static final ConcurrentMap<KylinConfig, ResourceStore> RESOURCE_STORE_CACHE = new ConcurrentHashMap<>();
-    private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder().maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
-        @Override
-        public void onRemoval(RemovalNotification<Object, Object> notification) {
-            logger.debug(String.valueOf(notification.getCause()));
-        }
-    }).build();
+    private final static Cache<String, Pair<Long, Set<ByteArray>>> HDFS_CACHES = CacheBuilder.newBuilder()
+            .maximumSize(3).removalListener(new RemovalListener<Object, Object>() {
+                @Override
+                public void onRemoval(RemovalNotification<Object, Object> notification) {
+                    logger.debug(String.valueOf(notification.getCause()));
+                }
+            }).build();
     private static final ConcurrentMap<String, DimensionEncoding> EncodingMapping = new ConcurrentHashMap<>();
-    
+
     public static MassinFilterManager getInstance(KylinConfig config) {
         return config.getManager(MassinFilterManager.class);
     }
@@ -129,12 +129,16 @@ public class MassinFilterManager {
         filterDesc.setUuid(UUID.randomUUID().toString());
         filterDesc.setFilterResourceIdentifier(resourcePath);
         filterDesc.setFilterTableType(filterTableType);
-        TableMetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
 
-        return filterName;
+        //TODO
+        throw new IllegalStateException();
+        //TableMetadataManager.getInstance(kylinConfig).saveExternalFilter(filterDesc);
+
+        //return filterName;
     }
 
-    public Set<ByteArray> load(Functions.FilterTableType filterTableType, String resourceIdentifier) throws IOException {
+    public Set<ByteArray> load(Functions.FilterTableType filterTableType, String resourceIdentifier)
+            throws IOException {
         if (filterTableType == Functions.FilterTableType.HDFS) {
             Pair<Long, Set<ByteArray>> cached = HDFS_CACHES.getIfPresent(resourceIdentifier);
             if (cached != null) {
@@ -181,7 +185,8 @@ public class MassinFilterManager {
     private ResourceStore getStore() {
         ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
         if (store == null) {
-            StorageURL url = StorageURL.valueOf(kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
+            StorageURL url = StorageURL.valueOf(
+                    kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
             try {
                 store = new HDFSResourceStore(kylinConfig, url);
                 synchronized (MassinFilterManager.class) {

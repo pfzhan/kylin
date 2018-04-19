@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,9 +46,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.FunctionTupleFilter;
@@ -139,7 +136,8 @@ public class MassInTupleFilter extends FunctionTupleFilter {
             super.addChild(child);
             ColumnTupleFilter columnFilter = (ColumnTupleFilter) child;
             if (this.column != null) {
-                throw new IllegalStateException("Duplicate columns! old is " + column.getName() + " and new is " + columnFilter.getColumn().getName());
+                throw new IllegalStateException("Duplicate columns! old is " + column.getName() + " and new is "
+                        + columnFilter.getColumn().getName());
             }
             this.column = columnFilter.getColumn();
 
@@ -149,7 +147,10 @@ public class MassInTupleFilter extends FunctionTupleFilter {
 
             if (filterTableName == null) {
                 filterTableName = (String) child.getValues().iterator().next();
-                ExternalFilterDesc externalFilterDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getExtFilterDesc(filterTableName);
+
+                //TODO
+                ExternalFilterDesc externalFilterDesc = null;
+                //ExternalFilterDesc externalFilterDesc = TableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv()).getExtFilterDesc(filterTableName);
                 if (externalFilterDesc == null) {
                     throw new IllegalArgumentException("External filter named " + filterTableName + " is not found");
                 }
@@ -157,7 +158,8 @@ public class MassInTupleFilter extends FunctionTupleFilter {
                 filterTableResourceIdentifier = externalFilterDesc.getFilterResourceIdentifier();
             }
         } else {
-            throw new IllegalStateException("MassInTupleFilter only has two children: one ColumnTupleFilter and one ConstantTupleFilter");
+            throw new IllegalStateException(
+                    "MassInTupleFilter only has two children: one ColumnTupleFilter and one ConstantTupleFilter");
         }
     }
 

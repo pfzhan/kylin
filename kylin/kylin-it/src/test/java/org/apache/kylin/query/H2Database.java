@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -56,13 +55,14 @@ import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.TableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.NTableMetadataManager;
 
 public class H2Database {
     @SuppressWarnings("unused")
@@ -104,8 +104,8 @@ public class H2Database {
     }
 
     private void loadH2Table(String tableName) throws SQLException {
-        TableMetadataManager metaMgr = TableMetadataManager.getInstance(config);
-        TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase(), project);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
+        TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
         File tempFile = null;
 
         try {
@@ -165,7 +165,8 @@ public class H2Database {
             csvColumns.append(col.getName());
         }
         ddl.append(")" + "\n");
-        ddl.append("AS SELECT * FROM CSVREAD('" + csvFilePath + "', '" + csvColumns + "', 'charset=UTF-8 fieldSeparator=,');");
+        ddl.append("AS SELECT * FROM CSVREAD('" + csvFilePath + "', '" + csvColumns
+                + "', 'charset=UTF-8 fieldSeparator=,');");
 
         return ddl.toString();
     }
@@ -176,7 +177,8 @@ public class H2Database {
         for (ColumnDesc col : tableDesc.getColumns()) {
             if ("T".equalsIgnoreCase(col.getIndex())) {
                 StringBuilder ddl = new StringBuilder();
-                ddl.append("CREATE INDEX IDX_" + tableDesc.getName() + "_" + x + " ON " + tableDesc.getIdentity() + "(" + col.getName() + ")");
+                ddl.append("CREATE INDEX IDX_" + tableDesc.getName() + "_" + x + " ON " + tableDesc.getIdentity() + "("
+                        + col.getName() + ")");
                 ddl.append("\n");
                 result.add(ddl.toString());
                 x++;

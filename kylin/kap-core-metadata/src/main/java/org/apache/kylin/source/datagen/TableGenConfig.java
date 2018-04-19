@@ -70,7 +70,7 @@ public class TableGenConfig {
         Map<String, String> config = Util.parseEqualCommaPairs(dataGen, "rows");
         
         // config.rows is either a multiplier (0,1] or an absolute row number
-        rows = Util.parseDouble(config, "rows", modelGen.getModle().isFactTable(table.getIdentity()) ? 1.0 : 20);
+        rows = Util.parseDouble(config, "rows", modelGen.getModel().isFactTable(table.getIdentity()) ? 1.0 : 20);
     }
     
 }
