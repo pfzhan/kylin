@@ -65,6 +65,7 @@ import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
 import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 //import io.kyligence.kap.smart.NSmartController;
+import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -190,7 +191,7 @@ public class KapSparkSession extends SparkSession {
         }
 
         logger.info("Magic starts from here. Let's wait several minutes......");
-        //NSmartController.optimizeFromPushdown(config, project);
+        NSmartController.optimizeFromPushdown(config, project);
         logger.info("Auto modeling done. Starts to build......");
         buildAllCubes(config, project);
 

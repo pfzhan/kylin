@@ -1,0 +1,732 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.newten;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.io.FileUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.query.routing.Candidate;
+import org.apache.spark.SparkContext;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.spark.KapSparkSession;
+
+public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(NAutoBuildAndQueryTest.class);
+    private static KylinConfig kylinConfig;
+    private static final String DEFAULT_PROJECT = "newten";
+    private static final String IT_SQL_KYLIN_DIR = "../../kylin/kylin-it/src/test/resources/query";
+    private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
+
+    private static String JOIN_TYPE = "default";
+
+    @Before
+    public void setup() throws Exception {
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        super.setUp();
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+        kylinConfig = getTestConfig();
+        kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
+        kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
+        kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
+    }
+
+    @After
+    public void after() throws Exception {
+        Candidate.restorePriorities();
+
+        NDefaultScheduler.destroyInstance();
+        super.tearDown();
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        
+        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testAutoSingleModel() throws Exception {
+
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+
+        // 1. Create simple model with one fact table
+        String targetModelName;
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 1, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            Assert.assertEquals(modelContexts.size(), 1);
+            NModelContext modelContext = modelContexts.get(0);
+            NDataModel dataModel = modelContext.getTargetModel();
+            Assert.assertNotNull(dataModel);
+            targetModelName = dataModel.getName();
+            Assert.assertEquals(dataModel.getAllTables().size(), 1);
+            NCubePlan cubePlan = modelContext.getTargetCubePlan();
+            Assert.assertNotNull(cubePlan);
+        }
+
+        // 2. Feed query with left join same fact table, should update same model
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 1, 2, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            Assert.assertEquals(modelContexts.size(), 1);
+            NModelContext modelContext = modelContexts.get(0);
+            NDataModel dataModel = modelContext.getTargetModel();
+            Assert.assertNotNull(dataModel);
+            Assert.assertEquals(targetModelName, dataModel.getName());
+            Assert.assertEquals(dataModel.getAllTables().size(), 2);
+            NCubePlan cubePlan = modelContext.getTargetCubePlan();
+            Assert.assertNotNull(cubePlan);
+        }
+
+        //kapSparkSession.close();
+
+        //kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+
+        // 3. Auto suggested model is able to serve related query
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 3, "default");
+            kapSparkSession.use(DEFAULT_PROJECT);
+            populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
+        }
+
+        // 4. Feed bad queries
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql_bad", true, 0, 0, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            Assert.assertEquals(modelContexts.size(), 0);
+        }
+
+        // 5. Feed query with inner join same fact table, should create another model
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 3, 4, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            Assert.assertEquals(modelContexts.size(), 1);
+            NModelContext modelContext = modelContexts.get(0);
+            NDataModel dataModel = modelContext.getTargetModel();
+            Assert.assertNotNull(dataModel);
+            Assert.assertNotEquals(targetModelName, dataModel.getName());
+            Assert.assertEquals(dataModel.getAllTables().size(), 2);
+            NCubePlan cubePlan = modelContext.getTargetCubePlan();
+            Assert.assertNotNull(cubePlan);
+        }
+
+        kapSparkSession.close();
+
+        kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+
+        // 6. Final run of all queries
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 4, "default");
+            kapSparkSession.use(DEFAULT_PROJECT);
+            populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+            NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
+            kapSparkSession.close();
+        }
+
+        kapSparkSession.close();
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testAutoMultipleModel() throws Exception {
+
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+
+        Map<String, NCubePlan> cubePlanOfParts = new HashMap<>();
+        Map<String, NCubePlan> cubePlanOfAll = new HashMap<>();
+
+        // 1. Feed queries part1
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 2, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (NModelContext nModelContext : modelContexts) {
+                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
+                cubePlanOfParts.put(cubePlan.getId(), cubePlan);
+            }
+        }
+
+        // 2. Feed queried part2
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 2, 4, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (NModelContext nModelContext : modelContexts) {
+                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
+                cubePlanOfParts.put(cubePlan.getId(), cubePlan);
+            }
+        }
+
+        // 3. Retry all queries
+        {
+            List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", true, 0, 4, "default");
+            List<String> sqlList = new ArrayList<>();
+            for (Pair<String, String> queryPair : queries) {
+                sqlList.add(queryPair.getSecond());
+            }
+
+            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+            master.runAll();
+            kapSparkSession.use(DEFAULT_PROJECT);
+            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+
+            List<NModelContext> modelContexts = master.getContext().getModelContexts();
+            for (NModelContext nModelContext : modelContexts) {
+                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
+                cubePlanOfAll.put(cubePlan.getId(), cubePlan);
+            }
+        }
+
+        // 4. Suggested cuboids should be consistent no matter modeling with partial or full queries
+        {
+            Assert.assertEquals(cubePlanOfParts.size(), cubePlanOfAll.size());
+            for (NCubePlan actual : cubePlanOfAll.values()) {
+                NCubePlan expected = cubePlanOfParts.get(actual.getId());
+                Assert.assertNotNull(expected);
+                // compare cuboids
+                Assert.assertEquals(expected.getCuboids().size(), actual.getCuboids().size());
+                Assert.assertEquals(expected.getAllCuboidLayouts().size(), actual.getAllCuboidLayouts().size());
+                for (NCuboidDesc actualCuboid : actual.getCuboids()) {
+                    NCuboidDesc expectedCuboid = expected.getCuboidDesc(actualCuboid.getId());
+                    Assert.assertArrayEquals(expectedCuboid.getDimensions(), actualCuboid.getDimensions());
+                    Assert.assertArrayEquals(expectedCuboid.getMeasures(), actualCuboid.getMeasures());
+                }
+            }
+        }
+
+        kapSparkSession.close();
+    }
+
+    @Ignore
+    @Test
+    public void testAllQuery() throws Exception {
+        executeTestScenario(
+                new TestScenario("sql", CompareLevel.SAME),
+                new TestScenario("sql_lookup", CompareLevel.SAME),
+                new TestScenario("sql_casewhen", CompareLevel.SAME),
+                new TestScenario("sql_like", CompareLevel.SAME),
+                new TestScenario("sql_cache", CompareLevel.SAME),
+                new TestScenario("sql_derived", CompareLevel.SAME),
+                new TestScenario("sql_datetime", CompareLevel.SAME),
+                new TestScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT),
+                new TestScenario("sql_distinct", CompareLevel.SAME),
+                new TestScenario("sql_distinct_dim", CompareLevel.SAME, 0, 2),
+                new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left"),
+                new TestScenario("sql_timestamp", CompareLevel.NONE),
+                new TestScenario("sql_multi_model", CompareLevel.SAME),
+                new TestScenario("sql_orderby", CompareLevel.SAME),
+                new TestScenario("sql_snowflake", CompareLevel.SAME),
+                new TestScenario("sql_topn", CompareLevel.SAME, "left"),
+                new TestScenario("sql_join", CompareLevel.SAME),
+                new TestScenario("sql_union", CompareLevel.SAME),
+                new TestScenario("tableau_probing", CompareLevel.NONE),
+                new TestScenario("sql_window", CompareLevel.NONE),
+                new TestScenario("sql_h2_uncapable", CompareLevel.NONE),
+                new TestScenario("sql_grouping", CompareLevel.SAME),
+                new TestScenario("sql_hive", CompareLevel.SAME),
+                new TestScenario("sql_intersect_count", CompareLevel.NONE, "left"),
+                new TestScenario("sql_percentile", CompareLevel.NONE),
+//                new TestScenario("sql_powerbi", CompareLevel.SAME, true),
+                new TestScenario("sql_raw", CompareLevel.SAME),
+                new TestScenario("sql_rawtable", CompareLevel.SAME, true),
+                new TestScenario("sql_subquery", CompareLevel.SAME)
+                );
+    }
+
+    /***************
+     * Test Kylin test queries with auto modeling
+     */
+
+    //@Ignore("passed")
+    @Test
+    public void testCommonQuery() throws Exception {
+        new TestScenario("sql", CompareLevel.SAME).execute();
+    }
+
+    @Ignore("auto model will suggest lookup table as fact, not fit in this case")
+    @Test
+    public void testLookupQuery() throws Exception {
+        new TestScenario("sql_lookup", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testCasewhen() throws Exception {
+        new TestScenario("sql_casewhen", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testLikeQuery() throws Exception {
+        new TestScenario("sql_like", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testCachedQuery() throws Exception {
+        new TestScenario("sql_cache", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testDerived() throws Exception {
+        new TestScenario("sql_derived", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testDatetime() throws Exception {
+        new TestScenario("sql_datetime", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    // different results due to limited disorder, just check result size
+    @Test
+    public void testTableau() throws Exception {
+        new TestScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testDistinct() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        new TestScenario("sql_distinct", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testDistinctDim() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        new TestScenario("sql_distinct_dim", CompareLevel.SAME, 0, 2).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testDistinctPrecisely() throws Exception {
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left").execute();
+    }
+
+    @Ignore("no query found")
+    @Test
+    public void testTimestamp() throws Exception {
+        new TestScenario("sql_timestamp", CompareLevel.NONE).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testMultiModel() throws Exception {
+        new TestScenario("sql_multi_model", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testOrderBy() throws Exception {
+        new TestScenario("sql_orderby", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testSnowFlake() throws Exception {
+        new TestScenario("sql_snowflake", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testTopn() throws Exception {
+        new TestScenario("sql_topn", CompareLevel.SAME, "left").execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testJoin() throws Exception {
+        new TestScenario("sql_join", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testUnion() throws Exception {
+        new TestScenario("sql_union", CompareLevel.SAME).execute();
+    }
+
+    @Ignore("not storage query, skip")
+    @Test
+    public void testTableauProbing() throws Exception {
+        new TestScenario("tableau_probing", CompareLevel.NONE).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testWindow() throws Exception {
+        new TestScenario("sql_window", CompareLevel.NONE).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testH2Uncapable() throws Exception {
+        new TestScenario("sql_h2_uncapable", CompareLevel.NONE).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testGrouping() throws Exception {
+        new TestScenario("sql_grouping", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testHive() throws Exception {
+        new TestScenario("sql_hive", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testIntersectCount() throws Exception {
+        new TestScenario("sql_intersect_count", CompareLevel.NONE, "left").execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testPercentile() throws Exception {
+        new TestScenario("sql_percentile", CompareLevel.NONE).execute();
+    }
+
+    @Ignore("passed")
+    @Test
+    public void testPowerBiQuery() throws Exception {
+        new TestScenario("sql_powerbi", CompareLevel.SAME, true).execute();
+    }
+
+    @Ignore("Fail at (SortedIteratorMergerWithLimit.java:132), conflict with SortedIteratorMergerWithLimitTest")
+    @Test
+    public void testLimitCorrectness() throws Exception {
+        List<Pair<String, String>> queries = fetchPartialQueries("sql", false, 0, 0, JOIN_TYPE);
+        buildCube(queries);
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+        populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+        NExecAndComp.execLimitAndValidate(queries, kapSparkSession, JOIN_TYPE);
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testRaw() throws Exception {
+        new TestScenario("sql_raw", CompareLevel.SAME).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testRawTable() throws Exception {
+        new TestScenario("sql_rawtable", CompareLevel.SAME, true).execute();
+    }
+
+    //@Ignore("passed")
+    @Test
+    public void testSubQuery() throws Exception {
+        //System.setProperty("calcite.debug", "true");
+        new TestScenario("sql_subquery", CompareLevel.SAME).execute();
+    }
+
+    /****************
+     * Following cased are not in Newten M1 scope
+     */
+
+    @Ignore
+    @Test
+    public void testDynamic() throws Exception {
+        new TestScenario("sql_dynamic", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testExtendedColumn() throws Exception {
+        new TestScenario("sql_extended_column", CompareLevel.SAME).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testInvalid() throws Exception {
+        new TestScenario("sql_invalid", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testLimit() throws Exception {
+        new TestScenario("sql_limit", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testMassin() throws Exception {
+        new TestScenario("sql_massin", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testMassinDistinct() throws Exception {
+        new TestScenario("sql_massin_distinct", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testStreaming() throws Exception {
+        new TestScenario("sql_streaming", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testTimeout() throws Exception {
+        new TestScenario("sql_timeout", CompareLevel.NONE).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testVerifyContent() throws Exception {
+        new TestScenario("sql_verifyContent", CompareLevel.SAME).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testVerifyCount() throws Exception {
+        new TestScenario("sql_verifyCount", CompareLevel.SAME_ROWCOUNT).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testTimeStampAdd() throws Exception {
+        new TestScenario("sql_current_date", CompareLevel.SAME, true).execute();
+    }
+
+    @Ignore
+    @Test
+    public void testPercentileQuery() throws Exception {
+        new TestScenario("sql_percentile", CompareLevel.SAME, false).execute();
+    }
+
+    class TestScenario {
+
+        String name;
+        List<Pair<String, String>> queries;
+        CompareLevel compareLevel;
+        String joinType;
+
+        public TestScenario(String name, CompareLevel compareLevel) throws Exception {
+            this(name, compareLevel, false, 0, 0, "default");
+        }
+
+        public TestScenario(String name, CompareLevel compareLevel, boolean isKapTest) throws Exception {
+            this(name, compareLevel, isKapTest, 0, 0, "default");
+        }
+
+        public TestScenario(String name, CompareLevel compareLevel, int start, int end) throws Exception {
+            this(name, compareLevel, false, start, end, "default");
+        }
+
+        public TestScenario(String name, CompareLevel compareLevel, String joinType) throws Exception {
+            this(name, compareLevel, false, 0, 0, joinType);
+        }
+
+        public TestScenario(String name, CompareLevel compareLevel, boolean isKapTest, int start, int end,
+                String joinType) throws Exception {
+            this.name = name;
+            this.compareLevel = compareLevel;
+            this.joinType = joinType;
+            this.queries = fetchPartialQueries(name, isKapTest, start, end, joinType);
+        }
+
+        public void execute() throws Exception {
+            executeTestScenario(this);
+        }
+    }
+
+    private void executeTestScenario(TestScenario... tests) throws Exception {
+        
+        // build is done, start to test query
+//        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+//        existingCxt.stop();
+//        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        
+        List<Pair<String, String>> queries = new ArrayList<>();
+        for (TestScenario test : tests) {
+            queries.addAll(test.queries);
+        }
+
+        buildCube(queries);
+
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+
+        // Validate results between sparksql and cube
+        populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+
+        for (TestScenario test : tests) {
+            try {
+                NExecAndComp.execAndCompare(test.queries, kapSparkSession, test.compareLevel, test.joinType);
+            } catch (Exception e) {
+                logger.error("'{}' failed.", test.name);
+                throw e;
+            }
+        }
+
+        kapSparkSession.close();
+    }
+
+    private void buildCube(List<Pair<String, String>> queries) throws Exception {
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(DEFAULT_PROJECT);
+        for (Pair<String, String> query : queries) {
+            kapSparkSession.collectQueries(query.getSecond());
+        }
+        kapSparkSession.speedUp();
+        kapSparkSession.close();
+        
+//        String[] sqls = new String[queries.size()];
+//        int i = 0;
+//        for (Pair<String, String> query : queries) {
+//            sqls[i++] = query.getSecond();
+//        }
+//
+//        NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqls);
+//        master.runAll();
+//        NSmartContext smartContext = master.getContext();
+//        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, DEFAULT_PROJECT);
+//        
+//        for (NModelContext modelContext : smartContext.getModelContexts()) {
+//            NCubePlan cubePlan = modelContext.getTargetCubePlan();
+//            if (cubePlan == null) {
+//                continue;
+//            }
+//            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+//            if (dataflow == null) {
+//                continue;
+//            }
+//
+//            NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+//            update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+//            dataflowManager.updateDataflow(update);
+//            dataflow = dataflowManager.getDataflow(dataflow.getName());
+//            builCuboid(dataflow.getName(), SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+//                    Sets.<NCuboidLayout>newLinkedHashSet(cubePlan.getAllCuboidLayouts()), DEFAULT_PROJECT);
+//        }
+    }
+
+    private List<Pair<String, String>> fetchPartialQueries(String subFolder, boolean isKapTest, int start, int end,
+            String joinType) throws IOException {
+        String folder = (isKapTest ? IT_SQL_KAP_DIR : IT_SQL_KYLIN_DIR) + File.separator + subFolder;
+        List<Pair<String, String>> partials = start < end ? NExecAndComp.fetchPartialQueries(folder, start, end)
+                : NExecAndComp.fetchQueries(folder);
+        for (Pair<String, String> pair : partials) {
+            String sql = pair.getSecond();
+            pair.setSecond(NExecAndComp.changeJoinType(sql, joinType));
+        }
+        return partials;
+    }
+}
