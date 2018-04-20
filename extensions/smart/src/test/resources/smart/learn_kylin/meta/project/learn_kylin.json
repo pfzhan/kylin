@@ -1,0 +1,17 @@
+{
+  "uuid": "2fbca32a-a33e-4b69-83dd-0bb8b1f8c91b",
+  "name": "learn_kylin",
+  "realizations": [],
+  "tables": [
+    "DEFAULT.KYLIN_SALES",
+    "DEFAULT.KYLIN_CAL_DT",
+    "DEFAULT.KYLIN_CATEGORY_GROUPINGS",
+    "DEFAULT.KYLIN_ACCOUNT",
+    "DEFAULT.KYLIN_COUNTRY"
+  ],
+  "models": [
+    "kylin_sales_model",
+    "kylin_sales_model_star",
+    "mp"
+  ]
+}

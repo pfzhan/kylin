@@ -80,6 +80,7 @@ import io.kyligence.kap.storage.gtrecord.NSequentialTupleIterator;
 
 public class NDataStorageQuery implements IStorageQuery {
 
+    @SuppressWarnings("serial")
     public static class CannotFilterExtendedColumnException extends RuntimeException {
         public CannotFilterExtendedColumnException(TblColRef tblColRef) {
             super(tblColRef == null ? "null" : tblColRef.getCanonicalName());
@@ -88,9 +89,9 @@ public class NDataStorageQuery implements IStorageQuery {
 
     private static final Logger logger = LoggerFactory.getLogger(NDataStorageQuery.class);
 
-    private NDataflow dataflow;
+    protected NDataflow dataflow;
 
-    NDataStorageQuery(NDataflow dataflow) {
+    protected NDataStorageQuery(NDataflow dataflow) {
         this.dataflow = dataflow;
     }
 
@@ -133,12 +134,39 @@ public class NDataStorageQuery implements IStorageQuery {
         System.out.println("Choose dataflow:" + cuboidLayout.getCuboidDesc().getModel().getName());
         System.out.println("Choose cuboid layout ID:" + cuboidLayout.getId());
         return searchCube(context, sqlDigest, returnTupleInfo, dataSegments, filter, dimensions, metrics,
-                layoutCandidate, cuboidLayout);
+                layoutCandidate);
+    }
+    
+    protected ITupleIterator searchCube(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo,
+            Segments<NDataSegment> dataSegments, TupleFilter filter, Set<TblColRef> dimensions,
+            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate) {
+        NDataStorageQueryRequest request = getStorageQueryRequest(context, sqlDigest, filter, dimensions, metrics, layoutCandidate);
+        
+        List<NDataSegScanner> scanners = Lists.newArrayList();
+        for (NDataSegment dataSeg : dataSegments) {
+            NDataCuboid cuboidInstance = dataSeg.getCuboidsMap().get(layoutCandidate.getCuboidLayout().getId());
+            NDataSegScanner scanner;
+
+            if (dataSeg.getConfig().isSkippingEmptySegments() && cuboidInstance.getRows() == 0) {
+                logger.info("Skip data segment {} because its input record is 0", dataSeg);
+                continue;
+            }
+
+            scanner = new NDataSegScanner(dataSeg, layoutCandidate, request.getDimensions(), request.getGroups(),
+                    request.getMetrics(), request.getFilter(), request.getHavingFilter(), request.getContext());
+            if (!scanner.isSegmentSkipped())
+                scanners.add(scanner);
+        }
+
+        return new NSequentialTupleIterator(scanners, layoutCandidate, request.getDimensions(), request.getGroups(),
+                request.getMetrics(), returnTupleInfo, request.getContext(), sqlDigest);
     }
 
-    private ITupleIterator searchCube(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo,
-            Segments<NDataSegment> dataSegments, TupleFilter filter, Set<TblColRef> dimensions,
-            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate, NCuboidLayout cuboidLayout) {
+    protected NDataStorageQueryRequest getStorageQueryRequest(StorageContext context, SQLDigest sqlDigest,
+            TupleFilter filter, Set<TblColRef> dimensions,
+            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate) {
+        NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
+        
         // all dimensions = groups + other(like filter) dimensions
         Collection<TblColRef> groups = sqlDigest.groupbyColumns;
         Set<TblColRef> otherDims = Sets.newHashSet(dimensions);
@@ -192,24 +220,8 @@ public class NDataStorageQuery implements IStorageQuery {
                 dataflow.getName(), cuboidLayout.getId(), groupsD, filterColumnD, context.getFinalPushDownLimit(),
                 context.getStorageLimitLevel(), context.isNeedStorageAggregation());
 
-        List<NDataSegScanner> scanners = Lists.newArrayList();
-        for (NDataSegment dataSeg : dataSegments) {
-            NDataCuboid cuboidInstance = dataSeg.getCuboidsMap().get(cuboidLayout.getId());
-            NDataSegScanner scanner;
-
-            if (dataSeg.getConfig().isSkippingEmptySegments() && cuboidInstance.getRows() == 0) {
-                logger.info("Skip data segment {} because its input record is 0", dataSeg);
-                continue;
-            }
-
-            scanner = new NDataSegScanner(dataSeg, layoutCandidate, dimensionsD, groupsD, metrics, filterD,
-                    havingFilter, context);
-            if (!scanner.isSegmentSkipped())
-                scanners.add(scanner);
-        }
-
-        return new NSequentialTupleIterator(scanners, layoutCandidate, dimensionsD, groupsD, metrics, returnTupleInfo,
-                context, sqlDigest);
+        return new NDataStorageQueryRequest(cuboidLayout, dimensionsD, groupsD, filterColumnD, metrics, filterD,
+                havingFilter, context);
     }
 
     public String getGTStorage(NCuboidLayout cuboidLayout) {
@@ -350,6 +362,7 @@ public class NDataStorageQuery implements IStorageQuery {
         }
     }
 
+    @SuppressWarnings("unused")
     private boolean isExactAggregation(StorageContext context, NCuboidLayout cuboid, Collection<TblColRef> groups,
             Set<TblColRef> othersD, Set<TblColRef> singleValuesD, Set<TblColRef> derivedPostAggregation,
             Collection<FunctionDesc> functionDescs) {
@@ -530,6 +543,7 @@ public class NDataStorageQuery implements IStorageQuery {
         context.applyLimitPushDown(dataflow, storageLimitLevel);
     }
 
+    @SuppressWarnings("unused")
     private void enableStorageLimitIfPossible(SQLDigest sqlDigest, TupleFilter filter, StorageContext context) {
         StorageLimitLevel storageLimitLevel = StorageLimitLevel.LIMIT_ON_SCAN;
 

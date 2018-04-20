@@ -69,6 +69,7 @@
         <module>extensions/storage-parquet-format</module>
         <module>extensions/query</module>
         <module>extensions/kap-it</module>
+        <module>extensions/smart</module>
         <module>extensions/tomcat-ext</module>
         <module>extensions/udf</module>
     </modules>
@@ -160,6 +161,11 @@
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
                 <artifactId>kap-server</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-smart</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

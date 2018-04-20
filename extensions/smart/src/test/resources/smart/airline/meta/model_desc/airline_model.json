@@ -1,0 +1,26 @@
+{
+  "uuid" : "69e180ac-eeef-43fb-bb95-34142e0a78c5",
+  "last_modified" : 1493262136849,
+  "version" : "2.0.0",
+  "name" : "airline_model",
+  "owner" : "ADMIN",
+  "description" : "",
+  "fact_table" : "AIRLINE.AIRLINE",
+  "lookups" : [ ],
+  "dimensions" : [ {
+    "table" : "AIRLINE",
+    "columns" : [ "UNIQUECARRIER", "ORIGIN", "ORIGINCITYNAME", "ORIGINSTATE", "DEST", "DESTCITYNAME", "DESTSTATE", "YEAR", "MONTH", "DAYOFWEEK", "DEPDEL15", "ARRDEL15", "CANCELLATIONCODE" ]
+  } ],
+  "metrics" : [ "AIRLINE.DEPDELAYMINUTES", "AIRLINE.ARRDELAYMINUTES", "AIRLINE.DISTANCE", "AIRLINE.ACTUALELAPSEDTIME" ],
+  "filter_condition" : "",
+  "partition_desc" : {
+    "partition_date_column" : null,
+    "partition_time_column" : null,
+    "partition_date_start" : 0,
+    "partition_date_format" : "yyyy-MM-dd",
+    "partition_time_format" : "HH:mm:ss",
+    "partition_type" : "APPEND",
+    "partition_condition_builder" : "org.apache.kylin.metadata.model.PartitionDesc$DefaultPartitionConditionBuilder"
+  },
+  "capacity" : "MEDIUM"
+}
