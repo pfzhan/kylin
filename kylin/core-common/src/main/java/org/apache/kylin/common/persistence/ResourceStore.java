@@ -81,7 +81,6 @@ abstract public class ResourceStore {
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 
     public static final String CUBE_RESOURCE_ROOT = "/cube";
-    public static final String CUBE_DESC_RESOURCE_ROOT = "/cube_desc";
     public static final String DATA_MODEL_DESC_RESOURCE_ROOT = "/model_desc";
     public static final String DICT_RESOURCE_ROOT = "/dict";
     public static final String PROJECT_RESOURCE_ROOT = "/project";
@@ -90,15 +89,11 @@ abstract public class ResourceStore {
     public static final String TEMP_STATMENT_RESOURCE_ROOT = "/temp_statement";
     public static final String TABLE_RESOURCE_ROOT = "/table";
     public static final String EXTERNAL_FILTER_RESOURCE_ROOT = "/ext_filter";
-    public static final String HYBRID_RESOURCE_ROOT = "/hybrid";
     public static final String EXECUTE_RESOURCE_ROOT = "/execute";
     public static final String EXECUTE_OUTPUT_RESOURCE_ROOT = "/execute_output";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
-    public static final String KAFKA_RESOURCE_ROOT = "/kafka";
-    public static final String STREAMING_OUTPUT_RESOURCE_ROOT = "/streaming_output";
-    public static final String CUBE_STATISTICS_ROOT = "/cube_statistics";
     public static final String BAD_QUERY_RESOURCE_ROOT = "/bad_query";
-    public static final String DRAFT_RESOURCE_ROOT = "/draft";
+    public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 
     public static final String METASTORE_UUID_TAG = "/UUID";
 

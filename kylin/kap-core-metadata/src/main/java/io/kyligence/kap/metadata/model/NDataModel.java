@@ -795,7 +795,7 @@ public  class NDataModel extends RootPersistentEntity {
     }
 
     public ProjectInstance getProjectInstance() {
-        return NProjectManager.getInstance(getConfig()).getProjectOfModel(this.getName());
+        return NProjectManager.getInstance(getConfig()).getProject(project);
     }
 
     public static NDataModel copy(NDataModel orig, NDataModel copy) {

@@ -148,7 +148,7 @@ public class KylinConfig extends KylinConfigBase {
             System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            config.setMetadataUrl(localMetaDir);
+            config.setMetadataUrl(localMetaDir + "/metadata");
 
             // make sure a local working directory
             File workingDir = new File(localMetaDir, "working-dir");

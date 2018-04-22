@@ -54,6 +54,7 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.io.Files;
@@ -67,6 +68,7 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
 @SuppressWarnings("serial")
+@Ignore
 public class NParquetStorageTest extends NLocalWithSparkSessionTest implements Serializable {
     @Before
     public void setUp() {

@@ -1,0 +1,40 @@
+{
+  "uuid" : "a9e2c5c6-689d-42d4-8706-16f6ff9998b7",
+  "last_modified" : 1512113416003,
+  "version" : "3.0.0.0",
+  "dataflow" : "ncube_basic",
+  "segment_id" : 0,
+  "cuboid_instances" : [ {
+    "cuboid_layout_id" : 1,
+    "status" : "READY",
+    "build_job_id" : 0,
+    "rows" : 402,
+    "size_kb" : 0,
+    "source_rows" : 0,
+    "source_kb" : 0
+  }, {
+    "cuboid_layout_id" : 2,
+    "status" : "READY",
+    "build_job_id" : 0,
+    "rows" : 402,
+    "size_kb" : 0,
+    "source_rows" : 0,
+    "source_kb" : 0
+  }, {
+    "cuboid_layout_id" : 1001,
+    "status" : "READY",
+    "build_job_id" : 0,
+    "rows" : 402,
+    "size_kb" : 0,
+    "source_rows" : 0,
+    "source_kb" : 0
+  }, {
+    "cuboid_layout_id" : 1002,
+    "status" : "READY",
+    "build_job_id" : 0,
+    "rows" : 402,
+    "size_kb" : 0,
+    "source_rows" : 0,
+    "source_kb" : 0
+  } ]
+}

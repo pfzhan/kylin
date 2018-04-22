@@ -31,16 +31,21 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
@@ -61,6 +66,7 @@ import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
 
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
+    private Serializer<ProjectInstance> serializer;
 
     public static NProjectManager getInstance(KylinConfig config) {
         return config.getManager(NProjectManager.class);
@@ -78,7 +84,6 @@ public class NProjectManager {
 
     // project name => ProjrectInstance
     private CaseInsensitiveStringCache<ProjectInstance> projectMap;
-    private CachedCrudAssist<ProjectInstance> crud;
 
     // protects concurrent operations around the cached map, to avoid for example
     // writing an entity in the middle of reloading it (dirty read)
@@ -89,17 +94,10 @@ public class NProjectManager {
         this.config = config;
         this.projectMap = new CaseInsensitiveStringCache<ProjectInstance>(config, "project");
         this.l2Cache = new NProjectL2Cache(this);
-        this.crud = new CachedCrudAssist<ProjectInstance>(getStore(), ResourceStore.PROJECT_RESOURCE_ROOT,
-                ProjectInstance.class, projectMap) {
-            @Override
-            protected ProjectInstance initEntityAfterReload(ProjectInstance prj, String resourceName) {
-                prj.init();
-                return prj;
-            }
-        };
+        serializer = new JsonSerializer<>(ProjectInstance.class);
 
         // touch lower level metadata before registering my listener
-        crud.reloadAll();
+        reloadAll();
         Broadcaster.getInstance(config).registerListener(new ProjectSyncListener(), "project");
     }
 
@@ -125,9 +123,115 @@ public class NProjectManager {
         l2Cache.clear();
     }
 
+    //in Newten
+
+    private void reloadAll() throws IOException {
+        projectMap.clear();
+        Set<String> projects = getProjectsFromResource();
+        for (String project : projects) {
+            reloadQuietly(project);
+        }
+    }
+
+    private Set<String> getProjectsFromResource() throws IOException {
+        NavigableSet<String> resources = getStore().listResources("/");
+        NavigableSet<String> projects = new TreeSet<>();
+        //resources have all dirs and files need to filter
+        //need reconstruction (will be a blunder?)
+
+        for (String resource : resources) {
+            // "/" filter dirs  properties  and *.crc
+            if (resource.equals("/UUID")
+                    || resource.equals("/user")
+                    || resource.equals("/user_group")
+                    || resource.contains(".crc")
+                    || resource.contains(".properties"))
+                continue;
+            //remove "/" before driName
+            String dirName = resource.substring(1, resource.length());
+            projects.add(dirName);
+        }
+        return projects;
+    }
+
+    private ProjectInstance reloadQuietly(String projectName) throws IOException {
+        ProjectInstance instance = getInstanceFromResource(projectName);
+        instance.setName(projectName);
+        instance.setModels(getModelsFromResource(projectName));
+        instance.setRealizationEntries(getRealizationsFromResource(projectName));
+        instance.setTables(getTableFromResource(projectName));
+
+        projectMap.putLocal(projectName, instance);
+        instance.init();
+        return instance;
+    }
+
+    private List<String> getModelsFromResource(String projectName) throws IOException {
+        logger.debug("Reloading models for " + projectName);
+        String modeldescRootPath = getProjectRootPath(projectName) + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
+        Set<String> modelResource = getStore().listResources(modeldescRootPath);
+        List<String> models = getNameListFromResource(modelResource);
+        return models;
+    }
+
+    private String getProjectRootPath(String prj) {
+        return "/" + prj;
+    }
+
+    private List<RealizationEntry> getRealizationsFromResource(String projectName) throws IOException {
+        logger.debug("Reloading realizations for " + projectName);
+        String dataflowRootPath = getProjectRootPath(projectName) + ResourceStore.DATAFLOW_RESOURCE_ROOT;
+        Set<String> realizationResource = getStore().listResources(dataflowRootPath);
+
+        if (realizationResource == null)
+            return new ArrayList<>();
+
+        List<String> realizations = getNameListFromResource(realizationResource);
+        List<RealizationEntry> realizationEntries = new ArrayList<>();
+        for (String realization : realizations) {
+            RealizationEntry entry = RealizationEntry.create("NCUBE", realization);
+            realizationEntries.add(entry);
+        }
+
+        return realizationEntries;
+    }
+
+    private Set<String> getTableFromResource(String projectName) throws IOException {
+        String tableRootPath = getProjectRootPath(projectName) + ResourceStore.TABLE_RESOURCE_ROOT;
+        Set<String> tableResource = getStore().listResources(tableRootPath);
+        if (tableResource == null)
+            return new TreeSet<>();
+        List<String> tables = getNameListFromResource(tableResource);
+        Set<String> tableSet = new TreeSet<>(tables);
+        return tableSet;
+    }
+
+    private ProjectInstance getInstanceFromResource(String projectName) throws IOException {
+        String projectResourcePath = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE + ".json";
+        ProjectInstance instance = getStore().getResource(projectResourcePath, ProjectInstance.class, serializer);
+
+        if (instance == null)
+            throw new IllegalStateException("error loading project " + projectName + " at " + projectResourcePath);
+        return instance;
+    }
+
+    //drop the path ahead name and drop suffix e.g [/default/model_desc/]nmodel_basic[.json]
+    private List<String> getNameListFromResource(Set<String> modelResource) {
+        if (modelResource == null)
+            return new ArrayList<>();
+        List<String> nameList = new ArrayList<>();
+        for (String resource : modelResource) {
+            String[] path = resource.split("/");
+            resource = path[path.length - 1];
+            resource = StringUtil.dropSuffix(resource, MetadataConstants.FILE_SURFIX);
+            nameList.add(resource);
+        }
+        return nameList;
+    }
+
     public ProjectInstance reloadProjectQuietly(String project) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            ProjectInstance prj = crud.reloadQuietly(project);
+            ProjectInstance prj = reloadQuietly(project);
             clearL2Cache();
             return prj;
         }
@@ -206,7 +310,6 @@ public class NProjectManager {
 
             logger.info("Dropping project '" + projectInstance.getName() + "'");
 
-            crud.delete(projectInstance);
             NBadQueryHistoryManager.getInstance(config, projectName).removeBadQueryHistory();
 
             clearL2Cache();
@@ -259,19 +362,10 @@ public class NProjectManager {
         }
     }
 
-    public void removeModelFromProjects(String modelName) throws IOException {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            for (ProjectInstance projectInstance : findProjectsByModel(modelName)) {
-                projectInstance.removeModel(modelName);
-                save(projectInstance);
-            }
-        }
-    }
-
     public ProjectInstance moveRealizationToProject(String realizationType, String realizationName,
             String newProjectName, String owner) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            removeRealizationsFromProjects(realizationType, realizationName);
+            removeRealizationsFromProject(newProjectName, realizationType, realizationName);
             return addRealizationToProject(realizationType, realizationName, newProjectName, owner);
         }
     }
@@ -294,12 +388,11 @@ public class NProjectManager {
         return newProject;
     }
 
-    public void removeRealizationsFromProjects(String realizationType, String realizationName) throws IOException {
+    public void removeRealizationsFromProject(String prj, String realizationType, String realizationName) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            for (ProjectInstance projectInstance : findProjects(realizationType, realizationName)) {
-                projectInstance.removeRealization(realizationType, realizationName);
-                save(projectInstance);
-            }
+            ProjectInstance project = getProject(prj);
+            project.removeRealization(realizationType, realizationName);
+            save(project);
         }
     }
 
@@ -365,45 +458,21 @@ public class NProjectManager {
     }
 
     private ProjectInstance save(ProjectInstance prj) throws IOException {
-        crud.save(prj);
-        clearL2Cache();
-        return prj;
-    }
-
-    public ProjectInstance getProjectOfModel(String model) {
-        try (AutoLock lock = prjMapLock.lockForRead()) {
-            for (ProjectInstance prj : projectMap.values()) {
-                if (prj.getModels().contains(model))
-                    return prj;
-            }
-            throw new IllegalStateException("No project found for model " + model);
-        }
-    }
-
-    public List<ProjectInstance> findProjects(String realizationType, String realizationName) {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            List<ProjectInstance> result = Lists.newArrayList();
-            for (ProjectInstance prj : projectMap.values()) {
-                for (RealizationEntry entry : prj.getRealizationEntries()) {
-                    if (entry.getType().equals(realizationType) && entry.getRealization().equals(realizationName)) {
-                        result.add(prj);
-                        break;
-                    }
+            String projectPathRoot = getProjectRootPath(prj.getName()) + "/" + MetadataConstants.PROJECT_RESOURCE + ".json";
+            Preconditions.checkArgument(prj != null);
+            if (getStore().getConfig().isCheckCopyOnWrite()) {
+                if (prj.isCachedAndShared() || projectMap.get(prj.getName()) == prj) {
+                    throw new IllegalStateException(
+                            "Copy-on-write violation! The updating entity " + prj + " is a shared object in "
+                                    + ProjectInstance.class.getSimpleName() + " cache, which should not be.");
                 }
             }
-            return result;
-        }
-    }
-
-    public List<ProjectInstance> findProjectsByModel(String modelName) {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            List<ProjectInstance> projects = new ArrayList<ProjectInstance>();
-            for (ProjectInstance projectInstance : projectMap.values()) {
-                if (projectInstance.containsModel(modelName)) {
-                    projects.add(projectInstance);
-                }
-            }
-            return projects;
+            getStore().putResource(projectPathRoot, prj, serializer);
+            projectMap.put(prj.getName(), prj);
+            reloadQuietly(prj.getName());
+            clearL2Cache();
+            return prj;
         }
     }
 

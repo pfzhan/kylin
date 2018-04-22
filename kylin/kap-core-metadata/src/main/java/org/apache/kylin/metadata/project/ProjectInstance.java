@@ -65,6 +65,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import org.apache.kylin.metadata.MetadataConstants;
 
 /**
  * Project is a concept in Kylin similar to schema in DBMS
@@ -76,10 +77,8 @@ public class ProjectInstance extends RootPersistentEntity {
     public static final String DEFAULT_PROJECT_NAME = "default";
     private KylinConfigExt config;
 
-    @JsonProperty("name")
     private String name;
 
-    @JsonProperty("tables")
     private Set<String> tables = new TreeSet<String>();
 
     @JsonProperty("owner")
@@ -98,10 +97,8 @@ public class ProjectInstance extends RootPersistentEntity {
     @JsonProperty("description")
     private String description;
 
-    @JsonProperty("realizations")
     private List<RealizationEntry> realizationEntries;
 
-    @JsonProperty("models")
     private List<String> models;
 
     @JsonProperty("ext_filters")
@@ -363,6 +360,10 @@ public class ProjectInstance extends RootPersistentEntity {
     @Override
     public String toString() {
         return "ProjectDesc [name=" + name + "]";
+    }
+
+    public String getProjectResourcePath() {
+        return "/" + name + "/" + MetadataConstants.PROJECT_RESOURCE + MetadataConstants.FILE_SURFIX;
     }
 
 }

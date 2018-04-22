@@ -62,6 +62,7 @@ public class CleanMetadataHelper {
         jam = File.createTempFile("CleanMetadataHelper", "jam");
         jam.delete();
         jam.mkdirs();
+        new File(jam.getAbsolutePath() + "/metadata").mkdir();
         File tempKylinProperties = new File(jam, "kylin.properties");
         jam.deleteOnExit();
         tempKylinProperties.createNewFile();

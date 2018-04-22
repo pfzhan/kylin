@@ -50,7 +50,6 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TimeRange;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
 import org.slf4j.Logger;
@@ -135,16 +134,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             String dataflowName = cacheKey;
 
             try (AutoLock lock = dfMapLock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    dataflowMap.removeLocal(dataflowName);
-                else
-                    crud.reloadQuietly(dataflowName);
+                crud.reloadQuietly(dataflowName);
             }
 
-            for (ProjectInstance prj : NProjectManager.getInstance(config).findProjects(getRealizationType(),
-                    dataflowName)) {
-                broadcaster.notifyProjectDataUpdate(prj.getName());
-            }
+            broadcaster.notifyProjectDataUpdate(project);
         }
     }
 
@@ -507,7 +500,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         });
     }
 
-    NDataflow dropDataflow(String dfName) throws IOException {
+    public NDataflow dropDataflow(String dfName) throws IOException {
         try (AutoLock lock = dfMapLock.lockForWrite()) {
             logger.info("Dropping NDataflow '" + dfName + "'");
 
@@ -523,7 +516,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             crud.delete(df);
 
             // delete NDataflow from project
-            NProjectManager.getInstance(config).removeRealizationsFromProjects(getRealizationType(), dfName);
+            NProjectManager.getInstance(config).removeRealizationsFromProject(project, getRealizationType(), dfName);
 
             return df;
         }

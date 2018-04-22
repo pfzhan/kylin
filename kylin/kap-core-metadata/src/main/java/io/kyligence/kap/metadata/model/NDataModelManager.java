@@ -50,7 +50,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -132,10 +131,7 @@ public class NDataModelManager {
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
                 throws IOException {
             try (AutoLock lock = modelMapLock.lockForWrite()) {
-                if (event == Event.DROP)
-                    dataModelDescMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
+                crud.reloadQuietly(cacheKey);
             }
 
             broadcaster.notifyProjectSchemaUpdate(project);
@@ -155,12 +151,10 @@ public class NDataModelManager {
         return crud.getSerializer();
     }
 
-    public List<NDataModel> listAllDataModels() {
-        List<NDataModel> ret = Lists.newArrayList();
-        for (ProjectInstance projectInstance : getProjectManager().listAllProjects()) {
-            ret.addAll(getInstance(config, projectInstance.getName()).listModels());
+    public List<NDataModel> getDataModels() {
+        try (AutoLock lock = modelMapLock.lockForRead()) {
+            return new ArrayList<>(dataModelDescMap.values());
         }
-        return ret;
     }
 
     public NDataModel getDataModelDesc(String name) {

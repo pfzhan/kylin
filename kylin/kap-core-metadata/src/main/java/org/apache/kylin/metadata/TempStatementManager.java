@@ -103,10 +103,7 @@ public class TempStatementManager {
         public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
                 throws IOException {
             try (AutoLock l = lock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    tmpStatMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
+                crud.reloadQuietly(cacheKey);
             }
         }
     }

@@ -94,7 +94,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListDataModels() {
-        Assert.assertEquals(5, mgrDefault.listAllDataModels().size());
+        Assert.assertEquals(4, mgrDefault.getDataModels().size());
     }
 
     @Test

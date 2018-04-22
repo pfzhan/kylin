@@ -210,6 +210,7 @@ public class NTableMetadataManager {
         try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
             srcTable.init(project);
             srcTableCrud.save(srcTable);
+            getProjectManager().addTableDescToProject(new String[] { srcTable.getIdentity() }, project);
         }
     }
 
@@ -218,7 +219,7 @@ public class NTableMetadataManager {
             TableDesc t = getTableDesc(tableIdentity);
             if (t == null)
                 return;
-
+            getProjectManager().removeTableDescFromProject(tableIdentity, project);
             srcTableCrud.delete(t);
         }
     }

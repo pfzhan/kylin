@@ -35,6 +35,11 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
     }
 
+
+    public void createTestMetadata(String ... overlay) {
+        staticCreateTestMetadata(overlay);
+    }
+
     @Override
     public void createTestMetadata() {
         staticCreateTestMetadata();
@@ -53,10 +58,14 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         super.cleanupTestMetadata();
     }
 
+    public static void staticCreateTestMetadata(String... overlay) {
+        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata(false, overlay);
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
+        tempMetadataDirectory = new File(tempMetadataDir);
+    }
+
     public static void staticCreateTestMetadata() {
-
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
-
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
         tempMetadataDirectory = new File(tempMetadataDir);
     }

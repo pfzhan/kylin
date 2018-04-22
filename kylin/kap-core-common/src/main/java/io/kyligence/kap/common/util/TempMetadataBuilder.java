@@ -74,6 +74,10 @@ public class TempMetadataBuilder {
         return new TempMetadataBuilder(debug, N_KAP_META_TEST_DATA).build();
     }
 
+    public static String prepareNLocalTempMetadata(boolean debug, String... overlay) {
+        return new TempMetadataBuilder(debug, overlay).build();
+    }
+
     // ============================================================================
 
     private String[] metaSrcs = null;

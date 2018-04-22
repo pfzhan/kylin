@@ -1,0 +1,38 @@
+{
+  "uuid": "0aeb985d-aec5-488a-a9b7-a5a564008891",
+  "last_modified": 1512113416000,
+  "version": "2.3.0.20500",
+  "name": "ncube_basic",
+  "description": "test_description",
+  "owner": "test_owner",
+  "mp_values": null,
+  "cube_plan": "ncube_basic",
+  "create_time_utc": 1509791792901,
+  "status": "READY",
+  "cost": 50,
+  "segments": [
+    {
+      "id": 0,
+      "name": "FULL_BUILD",
+      "create_time_utc": 1512113393458,
+      "status": "READY",
+      "segRange": {
+        "@class": "org.apache.kylin.metadata.model.SegmentRange$TimePartitionedSegmentRange",
+        "date_range_start": 0,
+        "date_range_end": 9223372036854775807
+      },
+      "timeRange": null,
+      "dictionaries": {
+        "TEST_KYLIN_FACT.TRANS_ID": "/default/dict/DEFAULT.TEST_KYLIN_FACT/TRANS_ID/8f8d7611-45c1-492b-a23b-82dc14c37f68.dict",
+        "TEST_KYLIN_FACT.CAL_DT": "/default/dict/DEFAULT.TEST_KYLIN_FACT/CAL_DT/05928137-3e2e-458d-855d-a06608a92871.dict",
+        "TEST_SITES.SITE_NAME": "/default/dict/EDW.TEST_SITES/SITE_NAME/e42c2751-a896-4fdd-ad02-82691a9634ce.dict"
+      },
+      "snapshots": null,
+      "column_stats": null,
+      "last_build_time": 0,
+      "last_build_job_id": 0,
+      "additionalInfo": {}
+    }
+  ],
+  "storage_location_identifier": null
+}

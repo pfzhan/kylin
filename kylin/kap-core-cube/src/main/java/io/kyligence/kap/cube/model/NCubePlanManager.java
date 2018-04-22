@@ -36,7 +36,6 @@ import org.apache.kylin.cube.model.validation.ValidateContext;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,18 +118,13 @@ public class NCubePlanManager implements IKeepNames {
                 throws IOException {
             String planName = cacheKey;
             NCubePlan cubePlan = getCubePlan(planName);
-            String modelName = cubePlan == null ? null : cubePlan.getModelName();
+            String prj = cubePlan == null ? null : cubePlan.getProject();
 
             try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    cubePlanMap.removeLocal(planName);
-                else
-                    crud.reloadQuietly(planName);
+                crud.reloadQuietly(planName);
             }
 
-            for (ProjectInstance prj : NProjectManager.getInstance(config).findProjectsByModel(modelName)) {
-                broadcaster.notifyProjectSchemaUpdate(prj.getName());
-            }
+            broadcaster.notifyProjectSchemaUpdate(prj);
         }
     }
 

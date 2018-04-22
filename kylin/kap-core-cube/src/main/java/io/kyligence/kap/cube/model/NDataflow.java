@@ -151,7 +151,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         r.add(getCubePlan().getResourcePath());
 
         // project & model & tables
-        r.add(getModel().getProjectInstance().getResourcePath());
+        r.add(getModel().getProjectInstance().getProjectResourcePath());
         r.add(getModel().getResourcePath());
         for (TableRef t : getModel().getAllTables()) {
             r.add(t.getTableDesc().getResourcePath());
