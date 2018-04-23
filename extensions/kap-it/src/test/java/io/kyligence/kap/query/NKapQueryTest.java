@@ -95,7 +95,7 @@ public class NKapQueryTest extends NKylinTestBase {
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "true");
 
             File tempFile = File.createTempFile("testQuery_cubeNonaggDisabled_throwNoRealization", "sqlfile");
-            tempFile.deleteOnExit();;
+            tempFile.deleteOnExit();
             FileUtils.writeStringToFile(tempFile, "select * from test_kylin_fact", false);
             runSQL(tempFile, false, false);
         } finally {
