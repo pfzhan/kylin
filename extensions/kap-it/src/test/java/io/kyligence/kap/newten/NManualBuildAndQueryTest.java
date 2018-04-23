@@ -39,7 +39,6 @@ import org.apache.spark.sql.SparkSession;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
@@ -54,7 +53,6 @@ import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
 
-@Ignore
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     public static final String DEFAULT_PROJECT = "default";
@@ -87,15 +85,15 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
 
-//        if (Boolean.valueOf(System.getProperty("noBuild"))) {
-//            System.out.println("Direct query");
-//        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
+        if (Boolean.valueOf(System.getProperty("noBuild"))) {
+            System.out.println("Direct query");
+        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
             fullBuildBasic("ncube_basic");
             fullBuildBasic("ncube_basic_inner");
-//        } else {
-//            buildAndMergeCube("ncube_basic");
-//            buildAndMergeCube("ncube_basic_inner");
-//        }
+        } else {
+            buildAndMergeCube("ncube_basic");
+            buildAndMergeCube("ncube_basic_inner");
+        }
 
         // build is done, start to test query
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);

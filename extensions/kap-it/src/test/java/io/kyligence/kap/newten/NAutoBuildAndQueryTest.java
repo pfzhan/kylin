@@ -56,7 +56,6 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
 
-@Ignore
 public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NAutoBuildAndQueryTest.class);
