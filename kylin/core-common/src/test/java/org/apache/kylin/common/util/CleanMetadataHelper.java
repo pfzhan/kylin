@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,7 +46,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 
