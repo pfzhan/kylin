@@ -54,7 +54,6 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.io.Files;
@@ -68,7 +67,6 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 
 @SuppressWarnings("serial")
-@Ignore
 public class NParquetStorageTest extends NLocalWithSparkSessionTest implements Serializable {
     @Before
     public void setUp() {
@@ -97,6 +95,7 @@ public class NParquetStorageTest extends NLocalWithSparkSessionTest implements S
         dataflow.show();
 
         File tmpDir = new File(Files.createTempDir(), UUID.randomUUID().toString());
+        File hdfsDir = new File(Files.createTempDir(), UUID.randomUUID().toString());
 
         KylinConfig config = getTestConfig();
         Map<String, String> params = new HashMap<>();
@@ -104,7 +103,7 @@ public class NParquetStorageTest extends NLocalWithSparkSessionTest implements S
         StorageURL newStorageUrl = new StorageURL(config.getMetadataUrlPrefix(), HDFSResourceStore.HDFS_SCHEME, params);
         KylinConfig hdfsConfig = KylinConfig.createKylinConfig(config);
         hdfsConfig.setProperty("kylin.metadata.url", newStorageUrl.toString());
-        hdfsConfig.setProperty("kylin.env.hdfs-working-dir", tmpDir.getAbsolutePath());
+        hdfsConfig.setProperty("kylin.env.hdfs-working-dir", hdfsDir.getAbsolutePath());
         ResourceTool.copy(config, hdfsConfig);
         File tmpProps = File.createTempFile("kylin", ".properties");
         hdfsConfig.exportToFile(tmpProps);
