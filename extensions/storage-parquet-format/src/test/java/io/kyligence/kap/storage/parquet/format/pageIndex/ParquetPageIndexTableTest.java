@@ -83,6 +83,7 @@ public class ParquetPageIndexTableTest {
         cleanMetadataHelper.setUp();
 
         File indexFile = File.createTempFile("local", "inv");
+        indexFile.deleteOnExit();
         writeIndexFile(indexFile);
         Path invPath = new Path(indexFile.getAbsolutePath());
         FileSystem fileSystem = HadoopUtil.getWorkingFileSystem();

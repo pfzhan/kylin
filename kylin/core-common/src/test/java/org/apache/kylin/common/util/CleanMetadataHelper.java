@@ -47,6 +47,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+import com.google.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 
@@ -64,6 +65,7 @@ public class CleanMetadataHelper {
         jam.delete();
         jam.mkdirs();
         File tempKylinProperties = new File(jam, "kylin.properties");
+        jam.deleteOnExit();
         tempKylinProperties.createNewFile();
 
         if (properties != null) {

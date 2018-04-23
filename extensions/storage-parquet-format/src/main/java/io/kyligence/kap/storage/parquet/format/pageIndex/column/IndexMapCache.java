@@ -244,6 +244,8 @@ public class IndexMapCache implements Closeable {
                 dis.close();
             if (dumpedFile != null && dumpedFile.exists())
                 dumpedFile.delete();
+            if (dumpedReverseFile != null && dumpedReverseFile.exists())
+                dumpedReverseFile.delete();
         }
 
         public Iterable<Pair<Comparable, ? extends Iterable<? extends Number>>> getIterable(boolean notReserve) {

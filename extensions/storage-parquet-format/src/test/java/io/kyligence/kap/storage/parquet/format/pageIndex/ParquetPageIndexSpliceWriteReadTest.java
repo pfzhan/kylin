@@ -59,6 +59,7 @@ public class ParquetPageIndexSpliceWriteReadTest {
     @Test
     public void testReadWrite() throws IOException, ClassNotFoundException {
         File indexFile = File.createTempFile("local", "inv");
+        indexFile.deleteOnExit();
         FSDataOutputStream outputStream = new FSDataOutputStream(new FileOutputStream(indexFile));
         ParquetPageIndexSpliceWriter writer = new ParquetPageIndexSpliceWriter(outputStream);
         writer.startDiv(0, new String[]{"name"}, new int[]{1}, new int[]{1}, new boolean[]{true});

@@ -96,6 +96,7 @@ public class ParquetPageIndexWriteReadTest {
             s2.add(a);
         }
         File indexFile = File.createTempFile("local", "inv");
+        indexFile.deleteOnExit();
         System.out.println("Temp index file: " + indexFile);
 
         // write
