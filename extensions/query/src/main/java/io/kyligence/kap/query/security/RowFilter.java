@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import io.kyligence.kap.metadata.acl.RowACLManager;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -58,7 +59,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.acl.RowACLManager;
 
 public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     private static final Logger logger = LoggerFactory.getLogger(RowFilter.class);
@@ -74,12 +74,15 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
             return sql;
         }
 
+        logger.info("\nStart to transform SQL with row ACL\n");
         // if origin SQL has where clause, add "()", see KAP#2873
         sql = whereClauseBracketsCompletion(defaultSchema, sql, getCandidateTables(allWhereCondWithTbls));
 
         for (Map<String, String> whereCondWithTbls : allWhereCondWithTbls) {
             sql = rowFilter(defaultSchema, sql, whereCondWithTbls);
         }
+
+        logger.info("\nFinsh transforming SQL with row ACL.\n");
         return sql;
     }
 
@@ -122,10 +125,6 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
     static String rowFilter(String schema, String inputSQL, Map<String, String> whereCondWithTbls) {
         Map<SqlSelect, List<Table>> selectClausesWithTbls = getSelectClausesWithTbls(inputSQL, schema);
         List<Pair<Integer, String>> toBeInsertedPosAndExprs = getInsertPosAndExpr(inputSQL, whereCondWithTbls, selectClausesWithTbls);
-
-        if (toBeInsertedPosAndExprs.size() > 0) {
-            logger.info("\n---Start to transform SQL with row ACL, see transformed sql in the below---");
-        }
         return afterInsertSQL(inputSQL, toBeInsertedPosAndExprs);
     }
 
@@ -202,8 +201,8 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
     private static String getToBeInsertCond(Map<String, String> whereCondWithTbls, SqlSelect select, List<Table> tables) {
         StringBuilder whereCond = new StringBuilder();
-        for (int i = 0; i < tables.size(); i++) {
-            Table table = tables.get(i);
+        boolean isHeadCond = true;
+        for (Table table : tables) {
             String cond = whereCondWithTbls.get(table.getName());
             if (StringUtils.isEmpty(cond)) {
                 continue;
@@ -211,8 +210,9 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
 
             //complete condition expr with alias
             cond = CalciteParser.insertAliasInExpr(cond, table.getAlias());
-            if (i == 0 && !select.hasWhere()) {
+            if (isHeadCond && !select.hasWhere()) {
                 whereCond = new StringBuilder(" WHERE " + cond);
+                isHeadCond = false;
             } else {
                 whereCond.append(" AND ").append(cond);
             }
@@ -403,34 +403,28 @@ public class RowFilter implements QueryUtil.IQueryTransformer, IKeep {
         }
     }
 
-    private String getUsername() {
-        QueryContext context = QueryContext.current();
-        return context.getUsername();
-    }
-
-    private Set<String> getUserGroups() {
-        QueryContext context = QueryContext.current();
-        return context.getGroups();
-    }
-
     //get all user/groups's row ACL
     private List<Map<String, String>> getAllWhereCondWithTbls(String project) {
+        String username = QueryContext.current().getUsername();
+        Set<String> userGroups = QueryContext.current().getGroups();
+
         RowACLManager rowACLManager = RowACLManager.getInstance(KylinConfig.getInstanceFromEnv());
         List<Map<String, String>> list = new ArrayList<>();
-        Map<String, String> conds = rowACLManager.getQueryUsedTblToConds(project, getUsername(), MetadataConstants.TYPE_USER);
+        Map<String, String> conds = rowACLManager.getConcatCondsByEntity(project, MetadataConstants.TYPE_USER, username);
+        logger.info("Start retrieving " + username + "'s row ACL.");
         if (!conds.isEmpty()) {
             list.add(conds);
         }
-        Set<String> groups = getUserGroups();
-        if (groups == null || groups.isEmpty()) {
+        if (userGroups == null || userGroups.isEmpty()) {
             throw new RuntimeException("Can not get uses's group when in row ACL transforming");
         }
-        for (String group : getUserGroups()) {
-            Map<String, String> groupConds = rowACLManager.getQueryUsedTblToConds(project, group, MetadataConstants.TYPE_GROUP);
+        for (String group : userGroups) {
+            Map<String, String> groupConds = rowACLManager.getConcatCondsByEntity(project, MetadataConstants.TYPE_GROUP, group);
             if (!groupConds.isEmpty()) {
                 list.add(groupConds);
             }
         }
+        logger.info("Finished retrieving " + username + "'s row ACL.");
         return list;
     }
 }

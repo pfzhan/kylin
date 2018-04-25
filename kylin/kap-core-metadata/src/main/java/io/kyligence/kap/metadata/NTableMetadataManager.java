@@ -127,7 +127,7 @@ public class NTableMetadataManager {
     // ============================================================================
 
     private void initSrcTable() throws IOException, ClassNotFoundException {
-        this.srcTableMap = new CaseInsensitiveStringCache<>(config, "table");
+        this.srcTableMap = new CaseInsensitiveStringCache<>(config, project, "table");
         String resourceRootPath = "/" + project + ResourceStore.TABLE_RESOURCE_ROOT;
         this.srcTableCrud = new CachedCrudAssist<TableDesc>(getStore(), resourceRootPath,
                 // TODO: ugly casting here
@@ -139,7 +139,7 @@ public class NTableMetadataManager {
             }
         };
         srcTableCrud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new SrcTableSyncListener(), "table");
+        Broadcaster.getInstance(config).registerListener(new SrcTableSyncListener(), project, "table");
     }
 
     private class SrcTableSyncListener extends Broadcaster.Listener {
@@ -249,7 +249,7 @@ public class NTableMetadataManager {
     // ============================================================================
 
     private void initSrcExt() throws IOException, ClassNotFoundException {
-        this.srcExtMap = new CaseInsensitiveStringCache<>(config, "table_ext");
+        this.srcExtMap = new CaseInsensitiveStringCache<>(config, project, "table_ext");
         this.srcExtCrud = new CachedCrudAssist<TableExtDesc>(getStore(),
                 "/" + project + ResourceStore.TABLE_EXD_RESOURCE_ROOT,
                 (Class<TableExtDesc>) (Class.forName(NTableExtDesc.class.getName())), srcExtMap) {
@@ -266,7 +266,7 @@ public class NTableMetadataManager {
             }
         };
         srcExtCrud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new SrcTableExtSyncListener(), "table_ext");
+        Broadcaster.getInstance(config).registerListener(new SrcTableExtSyncListener(), project, "table_ext");
     }
 
     private class SrcTableExtSyncListener extends Broadcaster.Listener {
@@ -378,7 +378,7 @@ public class NTableMetadataManager {
     // ============================================================================
 
     private void initExtFilter() throws IOException {
-        this.extFilterMap = new CaseInsensitiveStringCache<>(config, "external_filter");
+        this.extFilterMap = new CaseInsensitiveStringCache<>(config, project, "external_filter");
         this.extFilterCrud = new CachedCrudAssist<ExternalFilterDesc>(getStore(),
                 ResourceStore.EXTERNAL_FILTER_RESOURCE_ROOT, ExternalFilterDesc.class, extFilterMap) {
             @Override
@@ -387,7 +387,7 @@ public class NTableMetadataManager {
             }
         };
         extFilterCrud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new ExtFilterSyncListener(), "external_filter");
+        Broadcaster.getInstance(config).registerListener(new ExtFilterSyncListener(), project, "external_filter");
     }
 
     private class ExtFilterSyncListener extends Broadcaster.Listener {

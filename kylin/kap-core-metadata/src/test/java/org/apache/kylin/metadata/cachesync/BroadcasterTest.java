@@ -81,7 +81,7 @@ public class BroadcasterTest {
                     throws IOException {
                 Assert.assertEquals(2, i.incrementAndGet());
             }
-        }, "test");
+        }, "", "test");
 
         broadcaster.registerListener(new Listener() {
             @Override
@@ -89,7 +89,7 @@ public class BroadcasterTest {
                     throws IOException {
                 Assert.assertEquals(1, i.incrementAndGet());
             }
-        }, "test");
+        }, "", "test");
 
         broadcaster.notifyListener("test", Event.UPDATE, "");
 
@@ -107,7 +107,7 @@ public class BroadcasterTest {
                     throws IOException {
                 throw new IllegalStateException("Should not notify static listener.");
             }
-        }, "test");
+        }, "", "test");
 
         broadcaster.registerListener(new Listener() {
             @Override
@@ -115,7 +115,7 @@ public class BroadcasterTest {
                     throws IOException {
                 Assert.assertEquals(1, i.incrementAndGet());
             }
-        }, "test");
+        }, "", "test");
 
         broadcaster.notifyNonStaticListener("test", Event.UPDATE, "");
 

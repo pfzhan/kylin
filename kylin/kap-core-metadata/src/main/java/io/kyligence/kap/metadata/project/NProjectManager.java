@@ -92,13 +92,13 @@ public class NProjectManager {
     public NProjectManager(KylinConfig config) throws IOException {
         logger.info("Initializing ProjectManager with metadata url " + config);
         this.config = config;
-        this.projectMap = new CaseInsensitiveStringCache<ProjectInstance>(config, "project");
+        this.projectMap = new CaseInsensitiveStringCache<ProjectInstance>(config, "", "project");
         this.l2Cache = new NProjectL2Cache(this);
         serializer = new JsonSerializer<>(ProjectInstance.class);
 
         // touch lower level metadata before registering my listener
         reloadAll();
-        Broadcaster.getInstance(config).registerListener(new ProjectSyncListener(), "project");
+        Broadcaster.getInstance(config).registerListener(new ProjectSyncListener(), "", "project");
     }
 
     private class ProjectSyncListener extends Broadcaster.Listener {

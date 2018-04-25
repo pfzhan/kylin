@@ -201,12 +201,12 @@ public class Broadcaster {
     }
 
     // static listener survives cache wipe and goes after normal listeners
-    public void registerStaticListener(Listener listener, String... entities) {
-        doRegisterListener(staticListenerMap, listener, entities);
+    public void registerStaticListener(Listener listener, String prj, String entity) {
+        doRegisterListener(staticListenerMap, listener, prj + "/" + entity);
     }
 
-    public void registerListener(Listener listener, String... entities) {
-        doRegisterListener(listenerMap, listener, entities);
+    public void registerListener(Listener listener, String prj, String entity) {
+        doRegisterListener(listenerMap, listener, prj + "/" + entity);
     }
 
     private static void doRegisterListener(Map<String, List<Listener>> lmap, Listener listener, String... entities) {

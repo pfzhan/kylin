@@ -119,7 +119,7 @@ public class JDBCResourceDAO {
     }
 
     //fetch primary key only
-    public TreeSet<String> listAllResource(final String folderPath) throws SQLException {
+    public TreeSet<String> listAllResource(final String folderPath, final boolean recursive) throws SQLException {
         final TreeSet<String> allResourceName = new TreeSet<>();
         executeSql(new SqlOperation() {
             @Override
@@ -130,9 +130,13 @@ public class JDBCResourceDAO {
                 while (rs.next()) {
                     String path = rs.getString(META_TABLE_KEY);
                     assert path.startsWith(folderPath);
-                    int cut = path.indexOf('/', folderPath.length());
-                    String child = cut < 0 ? path : path.substring(0, cut);
-                    allResourceName.add(child);
+                    if (recursive) {
+                        allResourceName.add(path);
+                    } else {
+                        int cut = path.indexOf('/', folderPath.length());
+                        String child = cut < 0 ? path : path.substring(0, cut);
+                        allResourceName.add(child);
+                    }
                 }
             }
         });

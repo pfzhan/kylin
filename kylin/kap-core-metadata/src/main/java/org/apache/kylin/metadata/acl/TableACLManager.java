@@ -82,7 +82,8 @@ public class TableACLManager {
     public TableACLManager(KylinConfig config) throws IOException {
         logger.info("Initializing TableACLManager with config " + config);
         this.config = config;
-        this.tableACLMap = new CaseInsensitiveStringCache<>(config, "table_acl");
+        // todo prj
+        this.tableACLMap = new CaseInsensitiveStringCache<>(config, "", "table_acl");
         this.crud = new CachedCrudAssist<TableACL>(getStore(), "/table_acl", "", TableACL.class, tableACLMap) {
             @Override
             protected TableACL initEntityAfterReload(TableACL acl, String resourceName) {
@@ -92,7 +93,7 @@ public class TableACLManager {
         };
 
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new TableACLSyncListener(), "table_acl");
+        Broadcaster.getInstance(config).registerListener(new TableACLSyncListener(), "", "table_acl");
     }
 
     private class TableACLSyncListener extends Broadcaster.Listener {

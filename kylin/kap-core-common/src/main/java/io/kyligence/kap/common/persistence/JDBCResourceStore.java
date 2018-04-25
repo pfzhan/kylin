@@ -92,9 +92,9 @@ public class JDBCResourceStore extends ResourceStore {
     }
 
     @Override
-    protected NavigableSet<String> listResourcesImpl(String folderPath) throws IOException {
+    protected NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive) throws IOException {
         try {
-            final TreeSet<String> result = resourceDAO.listAllResource(makeFolderPath(folderPath));
+            final TreeSet<String> result = resourceDAO.listAllResource(makeFolderPath(folderPath), recursive);
             return result.isEmpty() ? null : result;
         } catch (SQLException e) {
             throw new IOException(e);

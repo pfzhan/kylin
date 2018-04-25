@@ -153,12 +153,12 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
 
         Preconditions.checkNotNull(tableManager.getTableDesc(tableIdentity));
 
-        tableManager.removeSourceTable(tableIdentity, defaultPrj);
+        tableManager.removeSourceTable(tableIdentity);
         Thread.sleep(1000);
         Assert.assertFalse(projectManager.getProject(defaultPrj).getTables().contains(tableIdentity));
 
         tableDesc.setLastModified(0L);
-        tableManager.saveSourceTable(tableDesc, defaultPrj);
+        tableManager.saveSourceTable(tableDesc);
         Assert.assertTrue(projectManager.getProject(defaultPrj).getTables().contains(tableIdentity));
 
     }

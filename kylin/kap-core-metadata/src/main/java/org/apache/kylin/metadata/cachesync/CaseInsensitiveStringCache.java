@@ -51,8 +51,8 @@ import org.apache.kylin.common.KylinConfig;
  */
 public class CaseInsensitiveStringCache<V> extends SingleValueCache<String, V> {
 
-    public CaseInsensitiveStringCache(KylinConfig config, String syncEntity) {
-        super(config, syncEntity, new ConcurrentSkipListMap<String, V>(String.CASE_INSENSITIVE_ORDER));
+    public CaseInsensitiveStringCache(KylinConfig config, String prj,  String syncEntity) {
+        super(config, prj + "/" + syncEntity, new ConcurrentSkipListMap<String, V>(String.CASE_INSENSITIVE_ORDER));
     }
 
     @Override

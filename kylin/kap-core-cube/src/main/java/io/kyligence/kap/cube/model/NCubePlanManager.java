@@ -77,7 +77,7 @@ public class NCubePlanManager implements IKeepNames {
         logger.info("Initializing NCubePlanManager with config " + config);
         this.config = cfg;
         this.project = project;
-        this.cubePlanMap = new CaseInsensitiveStringCache<>(config, NCUBE_PLAN_ENTITY_NAME);
+        this.cubePlanMap = new CaseInsensitiveStringCache<>(config, project, NCUBE_PLAN_ENTITY_NAME);
         String resourceRootPath = "/" + project + NCubePlan.CUBE_PLAN_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<NCubePlan>(getStore(), resourceRootPath, NCubePlan.class, cubePlanMap) {
             @Override
@@ -96,7 +96,7 @@ public class NCubePlanManager implements IKeepNames {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), NCUBE_PLAN_ENTITY_NAME);
+        Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), project, NCUBE_PLAN_ENTITY_NAME);
     }
 
     private class CubePlanSyncListener extends Broadcaster.Listener {
@@ -121,7 +121,11 @@ public class NCubePlanManager implements IKeepNames {
             String prj = cubePlan == null ? null : cubePlan.getProject();
 
             try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-                crud.reloadQuietly(planName);
+                if (event == Broadcaster.Event.DROP)
+                    cubePlanMap.removeLocal(planName);
+                else
+                    crud.reloadQuietly(planName);
+
             }
 
             broadcaster.notifyProjectSchemaUpdate(prj);
@@ -171,10 +175,7 @@ public class NCubePlanManager implements IKeepNames {
                 throw new IllegalArgumentException(cubePlan.getErrorMsg());
             }
 
-            NCubePlan saved = crud.save(cubePlan);
-
-            //            NProjectManager.getInstance(config).moveRealizationToProject()
-            return saved;
+            return crud.save(cubePlan);
         }
     }
 

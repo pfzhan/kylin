@@ -64,7 +64,8 @@ public class ColumnACLManager {
     public ColumnACLManager(KylinConfig config) throws IOException {
         logger.info("Initializing ColumnACLManager with config " + config);
         this.config = config;
-        this.columnACLMap = new CaseInsensitiveStringCache<>(config, "column_acl");
+        // todo prj
+        this.columnACLMap = new CaseInsensitiveStringCache<>(config, "", "column_acl");
         this.crud = new CachedCrudAssist<ColumnACL>(getStore(), "/column_acl", "", ColumnACL.class, columnACLMap) {
             @Override
             protected ColumnACL initEntityAfterReload(ColumnACL acl, String resourceName) {
@@ -74,7 +75,7 @@ public class ColumnACLManager {
         };
 
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new ColumnACLSyncListener(), "column_acl");
+        Broadcaster.getInstance(config).registerListener(new ColumnACLSyncListener(), "", "column_acl");
     }
 
     private class ColumnACLSyncListener extends Broadcaster.Listener {

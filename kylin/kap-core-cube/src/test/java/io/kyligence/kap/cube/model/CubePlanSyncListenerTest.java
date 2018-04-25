@@ -62,7 +62,7 @@ public class CubePlanSyncListenerTest extends NLocalFileMetadataTestCase {
 
         {
             NCubePlan cubePlanBeforeNotify = mgr.getCubePlan(cubePlanName);
-            broadcaster.notifyListener(NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.CREATE, cubePlanName);
+            broadcaster.notifyListener(projectDefault + "/" + NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.CREATE, cubePlanName);
             NCubePlan cubePlanAfterNotify = mgr.getCubePlan(cubePlanName);
             Assert.assertNotNull(cubePlanBeforeNotify);
             Assert.assertNotNull(cubePlanAfterNotify);
@@ -70,7 +70,7 @@ public class CubePlanSyncListenerTest extends NLocalFileMetadataTestCase {
         }
         {
             NCubePlan cubePlanBeforeNotify = mgr.getCubePlan(cubePlanName);
-            broadcaster.notifyListener(NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.UPDATE, cubePlanName);
+            broadcaster.notifyListener(projectDefault + "/" + NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.UPDATE, cubePlanName);
             NCubePlan cubePlanAfterNotify = mgr.getCubePlan(cubePlanName);
             Assert.assertNotNull(cubePlanBeforeNotify);
             Assert.assertNotNull(cubePlanAfterNotify);
@@ -78,7 +78,7 @@ public class CubePlanSyncListenerTest extends NLocalFileMetadataTestCase {
         }
         {
             NCubePlan cubePlanBeforeNotify = mgr.getCubePlan(cubePlanName);
-            broadcaster.notifyListener(NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.DROP, cubePlanName);
+            broadcaster.notifyListener(projectDefault + "/" + NCUBE_PLAN_ENTITY_NAME, Broadcaster.Event.DROP, cubePlanName);
             NCubePlan cubePlanAfterNotify = mgr.getCubePlan(cubePlanName);
             Assert.assertNotNull(cubePlanBeforeNotify);
             Assert.assertNull(cubePlanAfterNotify);

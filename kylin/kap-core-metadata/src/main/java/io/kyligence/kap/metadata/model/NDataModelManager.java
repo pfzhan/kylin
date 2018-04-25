@@ -93,7 +93,7 @@ public class NDataModelManager {
     protected void init(KylinConfig cfg, final String project) throws IOException {
         this.config = cfg;
         this.project = project;
-        this.dataModelDescMap = new CaseInsensitiveStringCache<>(config, "data_model");
+        this.dataModelDescMap = new CaseInsensitiveStringCache<>(config, project, "data_model");
         String resourceRootPath = "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class, dataModelDescMap) {
             @Override
@@ -109,7 +109,7 @@ public class NDataModelManager {
         // touch lower level metadata before registering model listener
         NTableMetadataManager.getInstance(config, project);
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new NDataModelSyncListener(), "data_model");
+        Broadcaster.getInstance(config).registerListener(new NDataModelSyncListener(), project, "data_model");
     }
 
     private class NDataModelSyncListener extends Broadcaster.Listener {
@@ -131,7 +131,10 @@ public class NDataModelManager {
         public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
                 throws IOException {
             try (AutoLock lock = modelMapLock.lockForWrite()) {
-                crud.reloadQuietly(cacheKey);
+                if (event == Event.DROP)
+                    dataModelDescMap.removeLocal(cacheKey);
+                else
+                    crud.reloadQuietly(cacheKey);
             }
 
             broadcaster.notifyProjectSchemaUpdate(project);

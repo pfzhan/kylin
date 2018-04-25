@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -109,11 +108,11 @@ public class FederatedResourceStore extends ResourceStore {
     }
 
     @Override
-    protected NavigableSet<String> listResourcesImpl(String folderPath) throws IOException {
+    protected NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive) throws IOException {
         if (isTopDir(folderPath)) {
-            NavigableSet<String> result = base.listResourcesImpl(folderPath);
+            NavigableSet<String> result = base.listResourcesImpl(folderPath, recursive);
             for (ResourceStore store : delegates.values()) {
-                NavigableSet<String> subResult = store.listResourcesImpl(folderPath);
+                NavigableSet<String> subResult = store.listResourcesImpl(folderPath, recursive);
                 if (null != subResult) {
                     if (null == result) {
                         result = new TreeSet<>();
@@ -123,7 +122,7 @@ public class FederatedResourceStore extends ResourceStore {
             }
             return result;
         } else {
-            return select(folderPath).listResourcesImpl(folderPath);
+            return select(folderPath).listResourcesImpl(folderPath, recursive);
         }
     }
 

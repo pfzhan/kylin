@@ -144,7 +144,7 @@ public class NProjectIsolationTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCubePlan() throws IOException {
+    public void testCubePlan() throws IOException, InterruptedException {
         KylinConfig testConfig = getTestConfig();
 
         NCubePlanManager cpm = NCubePlanManager.getInstance(testConfig, PRJ_SEP1);
@@ -167,13 +167,15 @@ public class NProjectIsolationTest extends NLocalFileMetadataTestCase {
 
         // create
         NCubePlan cube2 = new NCubePlan();
-        cube2.setName("ncube_basic");
+        cube2.setName("ncube_basic1");
         cube2.setModelName("nmodel_basic");
         cube2.setUuid(UUID.randomUUID().toString());
-        cube2.setDescription("test_description");
+        cube2.setDescription("test_description2");
         cube2.setProject(PRJ_SEP1);
+
         cpm.createCubePlan(cube2);
         Assert.assertEquals(1, cpm.listAllCubePlans().size());
+        validate();
     }
 
     @Test
@@ -181,11 +183,11 @@ public class NProjectIsolationTest extends NLocalFileMetadataTestCase {
         KylinConfig testConfig = getTestConfig();
         NTableMetadataManager tm = NTableMetadataManager.getInstance(testConfig, PRJ_SEP1);
         TableDesc table = tm.getTableDesc("DEFAULT.TEST_COUNTRY");
-        tm.removeSourceTable("DEFAULT.TEST_COUNTRY", PRJ_SEP1);
+        tm.removeSourceTable("DEFAULT.TEST_COUNTRY");
         validate();
 
         table.setLastModified(0L);
-        tm.saveSourceTable(table, PRJ_SEP1);
+        tm.saveSourceTable(table);
         validate();
     }
 
@@ -210,6 +212,6 @@ public class NProjectIsolationTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("test_description", cube.getDescription());
 
         NTableMetadataManager tm = NTableMetadataManager.getInstance(testConfig, PRJ_SEP2);
-        Assert.assertEquals(9, tm.listAllTables(PRJ_SEP2).size());
+        Assert.assertEquals(9, tm.listAllTables().size());
     }
 }

@@ -86,7 +86,8 @@ public class StreamingManager {
 
     private StreamingManager(KylinConfig config) throws IOException {
         this.config = config;
-        this.streamingMap = new CaseInsensitiveStringCache<StreamingConfig>(config, "streaming");
+        // todo prj
+        this.streamingMap = new CaseInsensitiveStringCache<StreamingConfig>(config, "", "streaming");
         this.crud = new CachedCrudAssist<StreamingConfig>(getStore(), ResourceStore.STREAMING_RESOURCE_ROOT,
                 StreamingConfig.class, streamingMap) {
             @Override
@@ -97,7 +98,7 @@ public class StreamingManager {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new StreamingSyncListener(), "streaming");
+        Broadcaster.getInstance(config).registerListener(new StreamingSyncListener(), "", "streaming");
     }
 
     private class StreamingSyncListener extends Broadcaster.Listener {

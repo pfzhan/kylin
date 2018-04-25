@@ -92,7 +92,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         logger.info("Initializing NDataflowManager with config " + cfg);
         this.config = cfg;
         this.project = project;
-        this.dataflowMap = new CaseInsensitiveStringCache<>(config, "ncube");
+        this.dataflowMap = new CaseInsensitiveStringCache<>(config, project, "ncube");
         String resourceRootPath = "/" + project + NDataflow.DATAFLOW_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class, dataflowMap) {
             @Override
@@ -113,7 +113,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new NDataflowSyncListener(), "ncube");
+        Broadcaster.getInstance(config).registerListener(new NDataflowSyncListener(), project, "ncube");
     }
 
     private class NDataflowSyncListener extends Broadcaster.Listener {
@@ -134,7 +134,10 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             String dataflowName = cacheKey;
 
             try (AutoLock lock = dfMapLock.lockForWrite()) {
-                crud.reloadQuietly(dataflowName);
+                if (event == Broadcaster.Event.DROP)
+                    dataflowMap.removeLocal(dataflowName);
+                else
+                    crud.reloadQuietly(dataflowName);
             }
 
             broadcaster.notifyProjectDataUpdate(project);

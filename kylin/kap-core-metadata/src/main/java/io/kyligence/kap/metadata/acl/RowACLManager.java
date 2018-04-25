@@ -24,24 +24,41 @@
 
 package io.kyligence.kap.metadata.acl;
 
-import static io.kyligence.kap.metadata.acl.RowACL.concatConds;
-import static io.kyligence.kap.metadata.acl.RowACL.getColumnWithType;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.concatConds;
+import static io.kyligence.kap.metadata.acl.ColumnToConds.getColumnWithType;
+import static org.apache.kylin.metadata.MetadataConstants.TYPE_GROUP;
+import static org.apache.kylin.metadata.MetadataConstants.TYPE_USER;
 
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
+import javax.annotation.Nonnull;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ArrayListMultimap;
 
 public class RowACLManager {
 
@@ -59,121 +76,255 @@ public class RowACLManager {
     // ============================================================================
 
     private KylinConfig config;
-    // user ==> RowACL
-    private CaseInsensitiveStringCache<RowACL> rowACLMap;
-    private CachedCrudAssist<RowACL> crud;
+    private ResourceStore store;
+    private static final Serializer<RowACL> ROW_ACL_SERIALIZER = new JsonSerializer<>(RowACL.class);
+    private static final String DIR_PREFIX = "/row_acl";
+    private CaseInsensitiveStringCache<String> rowACLKeys;
+    private Cache<String, Map<String, String>> queryUserRowACL;
     private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public RowACLManager(KylinConfig config) throws IOException {
-        logger.info("Initializing RowACLManager with config " + config);
         this.config = config;
-        this.rowACLMap = new CaseInsensitiveStringCache<>(config, "row_acl");
-        this.crud = new CachedCrudAssist<RowACL>(getStore(), "/row_acl", "", RowACL.class, rowACLMap) {
-            @Override
-            protected RowACL initEntityAfterReload(RowACL acl, String resourceName) {
-                acl.init(resourceName);
-                return acl;
-            }
-        };
+        logger.info("Initializing LegacyRowACLManager with config " + config);
+        this.store = ResourceStore.getKylinMetaStore(config);
+        this.queryUserRowACL = CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(3, TimeUnit.DAYS).build();
 
-        crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new RowACLSyncListener(), "row_acl");
+        // todo prj
+        this.rowACLKeys = new CaseInsensitiveStringCache<>(config, "", "row_acl");
+        loadAllKeys();
+        Broadcaster.getInstance(config).registerListener(new RowACLSyncListener(), "", "row_acl");
     }
 
     private class RowACLSyncListener extends Broadcaster.Listener {
 
+        // cacheKey : /row_acl/project/type/userOrGroup/tablename.json
         @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
+        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
                 throws IOException {
             try (AutoLock l = lock.lockForWrite()) {
-                if (event == Event.DROP)
-                    rowACLMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
+                invalidateQueryUserRowACL(cacheKey);
+                if (event == Event.DROP) {
+                    rowACLKeys.removeLocal(cacheKey);
+                } else {
+                    // rowACLKeys only has : add/delete operation.
+                    rowACLKeys.putLocal(cacheKey, "/");
+                }
             }
-            broadcaster.notifyProjectACLUpdate(cacheKey);
+            int s = StringUtils.ordinalIndexOf(cacheKey, "/", 2);
+            int e = StringUtils.ordinalIndexOf(cacheKey, "/", 3);
+            String project = cacheKey.substring(s + 1, e);
+            broadcaster.notifyProjectACLUpdate(project);
+        }
+
+        private void invalidateQueryUserRowACL(String cacheKey) {
+            int s = StringUtils.ordinalIndexOf(cacheKey, "/", 4);
+            int e = StringUtils.ordinalIndexOf(cacheKey, "/", 5);
+            String username = cacheKey.substring(s + 1, e);
+            queryUserRowACL.invalidate(username);
         }
     }
 
-    public KylinConfig getConfig() {
-        return config;
-    }
-
-    public ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(this.config);
-    }
-
-    public RowACL getRowACLByCache(String project) {
-        try (AutoLock l = lock.lockForRead()) {
-            RowACL rowACL = rowACLMap.get(project);
-            if (rowACL == null) {
-                return newRowACL(project);
-            }
-            return rowACL;
+    private void loadAllKeys() throws IOException {
+        NavigableSet<String> keys = store.listResourcesRecursively(DIR_PREFIX);
+        if (keys == null) {
+            return;
+        }
+        for (String key : keys) {
+            rowACLKeys.putLocal(key, "");
         }
     }
 
-    public void addRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn, String type)
+    //table:concatedCond, for backend query.
+    public Map<String, String> getConcatCondsByEntity(String project, String type, String name) {
+        Map<String, String> userRowACL = queryUserRowACL.getIfPresent(name);
+        if (userRowACL == null) {
+            logger.info("Can not get " + name + "'row ACL from cache, ask metastore.");
+
+            userRowACL = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+
+            Collection<String> tables = getParsedKeysByPrj(project).entityToTable.get(type, name);
+
+            for (String tbl : tables) {
+                Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, tbl));
+                RowACL rowACL = Preconditions.checkNotNull(getRowACL(project, type, name, tbl),
+                        "Something wrong with parse Row ACL keys.");
+                userRowACL.put(tbl, concatConds(rowACL.getColumnToConds(), columnWithType));
+            }
+            queryUserRowACL.put(name, userRowACL);
+            logger.info("Finish load " + name + "'row ACL.");
+        }
+        return userRowACL;
+    }
+
+    //user/group:ColumnToConds, for frontend display.
+    public Map<String, ColumnToConds> getRowACLByTable(String project, String type, String table) throws IOException {
+        table = table.toUpperCase();
+        Map<String, ColumnToConds> r = new HashMap<>();
+        Collection<String> entities = getParsedKeysByPrj(project).tableToEntity.get(type, table);
+        for (String e : entities) {
+            RowACL acl = Preconditions.checkNotNull(getRowACL(project, type, e, table),
+                    "Something wrong with parse Row ACL keys.");
+            r.put(e, acl.getColumnToConds());
+        }
+        return r;
+    }
+
+    public Collection<String> getRowACLEntitesByTable(String project, String type, String table) {
+        return getParsedKeysByPrj(project).tableToEntity.get(type, table.toUpperCase());
+    }
+
+    public RowACL getRowACL(String project, String type, String name, String table) {
+        table = table.toUpperCase();
+        RowACL acl;
+        try {
+            acl = store.getResource(path(project, type, name, table), RowACL.class, ROW_ACL_SERIALIZER);
+        } catch (IOException e) {
+            throw new RuntimeException("Can not get row ACL");
+        }
+        return acl;
+    }
+
+    public void addRowACL(String project, String type, String name, String table, ColumnToConds condsWithColumn)
             throws IOException {
         try (AutoLock l = lock.lockForWrite()) {
-            RowACL rowACL = loadRowACL(project).add(name, table, condsWithColumn, type);
-            crud.save(rowACL);
+            validateACLNotExists(project, type, name, table);
+            RowACL rowACL = newRowACL(project, type, name, table);
+            putRowACL(project, type, name, table, condsWithColumn, rowACL);
         }
     }
 
-    public void updateRowACL(String project, String name, String table, RowACL.ColumnToConds condsWithColumn,
-            String type) throws IOException {
+    public void updateRowACL(String project, String type, String name, String table, ColumnToConds condsWithColumn)
+            throws IOException {
         try (AutoLock l = lock.lockForWrite()) {
-            RowACL rowACL = loadRowACL(project).update(name, table, condsWithColumn, type);
-            crud.save(rowACL);
+            table = table.toUpperCase();
+            validateACLExists(project, type, name, table);
+            RowACL rowACL = store.getResource(path(project, type, name, table), RowACL.class, ROW_ACL_SERIALIZER);
+            putRowACL(project, type, name, table, condsWithColumn, rowACL);
         }
     }
 
-    public void deleteRowACL(String project, String name, String table, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            RowACL rowACL = loadRowACL(project).delete(name, table, type);
-            crud.save(rowACL);
-        }
+    private void putRowACL(String project, String type, String name, String table, ColumnToConds condsWithColumn,
+            RowACL rowACL) throws IOException {
+        rowACL.add(condsWithColumn);
+        store.putResource(path(project, type, name, table), rowACL, ROW_ACL_SERIALIZER);
+        rowACLKeys.put(path(project, type, name, table), "");
     }
 
-    public void deleteRowACL(String project, String name, String type) throws IOException {
+    public void deleteRowACL(String project, String type, String name, String table) throws IOException {
         try (AutoLock l = lock.lockForWrite()) {
-            RowACL rowACL = loadRowACL(project).delete(name, type);
-            crud.save(rowACL);
+            table = table.toUpperCase();
+            validateACLExists(project, type, name, table);
+            store.deleteResource(path(project, type, name, table));
+            rowACLKeys.remove(path(project, type, name, table));
         }
     }
 
     public void deleteRowACLByTbl(String project, String table) throws IOException {
         try (AutoLock l = lock.lockForWrite()) {
-            RowACL rowACL = loadRowACL(project).deleteByTbl(table);
-            crud.save(rowACL);
+            table = table.toUpperCase();
+            delete(project, TYPE_USER, table);
+            delete(project, TYPE_GROUP, table);
         }
     }
 
-    private RowACL loadRowACL(String project) throws IOException {
-        RowACL acl = crud.reload(project);
-        if (acl == null) {
-            acl = newRowACL(project);
+    private void delete(String project, String type, String table) throws IOException {
+        table = table.toUpperCase();
+        Collection<String> entities = getParsedKeysByPrj(project).tableToEntity.get(type, table);
+        for (String e : entities) {
+            store.deleteResource(path(project, type, e, table));
+            rowACLKeys.remove(path(project, type, e, table));
         }
-        return acl;
     }
 
-    private RowACL newRowACL(String project) {
+    public void deleteRowACL(String project, String type, String name) throws IOException {
+        try (AutoLock l = lock.lockForWrite()) {
+            Collection<String> tables = getParsedKeysByPrj(project).entityToTable.get(type, name);
+            for (String t : tables) {
+                store.deleteResource(path(project, type, name, t));
+                rowACLKeys.remove(path(project, type, name, t));
+            }
+        }
+    }
+
+    private RowACL newRowACL(String project, String type, String name, String table) {
+        table = table.toUpperCase();
         RowACL acl = new RowACL();
         acl.updateRandomUuid();
-        acl.init(project);
+        acl.init(project, type, name, table);
         return acl;
     }
 
-    // ============================================================================
+    @Nonnull
+    private BiParsedKeys getParsedKeysByPrj(String project) {
+        BiParsedKeys parsedKeys = new BiParsedKeys();
+        Set<String> keys = this.rowACLKeys.keySet();
+        for (String key : keys) {
+            //key : /row_acl/project/type/userOrGroup/table.json
+            String[] paths = key.split("/");
+            Preconditions.checkArgument(paths.length == 6);
 
-    public String preview(String project, String table, RowACL.ColumnToConds condsWithColumn) throws IOException {
-        Map<String, String> columnWithType = Preconditions.checkNotNull(getColumnWithType(project, table));
-        return concatConds(condsWithColumn, columnWithType);
+            String prj = paths[2];
+            if (!prj.equalsIgnoreCase(project)) {
+                continue;
+            }
+
+            String type = paths[3];
+            String username = paths[4];
+            String table = paths[5].split("\\.json")[0];
+            parsedKeys.update(type, username, table);
+        }
+        return parsedKeys;
     }
 
-    public Map<String, String> getQueryUsedTblToConds(String project, String name, String type) {
-        return getRowACLByCache(project).getQueryUsedTblToConds(project, name, type);
+    private static String path(String project, String type, String name, String table) {
+        return DIR_PREFIX + "/" + project + "/" + type + "/" + name + "/" + table.toUpperCase() + ".json";
     }
 
+    private void validateACLExists(String project, String type, String name, String table) throws IOException {
+        if (!store.exists(path(project, type, name, table))) {
+            throw new RuntimeException("Operation fail, table:" + table + " not have any row acl conds!");
+        }
+    }
+
+    private void validateACLNotExists(String project, String type, String name, String table) throws IOException {
+        if (store.exists(path(project, type, name, table))) {
+            throw new RuntimeException("Operation fail, entity:" + name + ", table:" + table + " already has row ACL!");
+        }
+    }
+
+    private static class BiParsedKeys {
+        private ParsedKeys entityToTable = new ParsedKeys();
+        private ParsedKeys tableToEntity = new ParsedKeys();
+
+        public void update(String type, String username, String table) {
+            if (type.equals(TYPE_USER)) {
+                entityToTable.user.put(username, table);
+                tableToEntity.user.put(table, username);
+            } else {
+                entityToTable.group.put(username, table);
+                tableToEntity.group.put(table, username);
+            }
+        }
+    }
+
+    private static class ParsedKeys {
+        // May be userOrGroup <=> tables OR tables <=> userOrGroup
+        private ArrayListMultimap<String, String> user = ArrayListMultimap.create();
+        private ArrayListMultimap<String, String> group = ArrayListMultimap.create();
+
+        @Nonnull
+        private List<String> get(String type, String name) {
+            List<String> r;
+            if (type.equals(TYPE_USER)) {
+                r = user.get(name);
+            } else {
+                r = group.get(name);
+            }
+
+            if (r == null) {
+                r = Collections.emptyList();
+            }
+            return r;
+        }
+    }
 }
