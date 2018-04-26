@@ -54,7 +54,6 @@ import javax.annotation.Nullable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -113,7 +112,7 @@ public class ProjectInstance extends RootPersistentEntity {
     }
 
     public static String concatResourcePath(String projectName) {
-        return ResourceStore.PROJECT_RESOURCE_ROOT + "/" + projectName + ".json";
+        return "/" + projectName + "/" + MetadataConstants.PROJECT_RESOURCE  + MetadataConstants.FILE_SURFIX;
     }
 
     public static ProjectInstance create(String name, String owner, String description,

@@ -1,51 +1,5 @@
 {
   "uuid": "1eaca32a-a33e-4b69-83dd-0bb8b1f8c91b",
-  "name": "default",
-  "realizations": [
-    {
-      "type": "NCUBE",
-      "realization": "ncube_basic"
-    },
-    {
-      "type": "NCUBE",
-      "realization": "all_fixed_length"
-    },
-    {
-      "type": "NCUBE",
-      "realization": "test_encoding"
-    },
-    {
-      "type": "NCUBE",
-      "realization": "ncube_basic_inner"
-    },
-    {
-      "type": "NCUBE",
-      "realization": "ncube_full_measure_test"
-    },
-    {
-      "type": "NCUBE",
-      "realization": "ut_inner_join_cube_partial"
-    }
-  ],
-  "tables": [
-    "DEFAULT.TEST_KYLIN_FACT",
-    "DEFAULT.TEST_ORDER",
-    "DEFAULT.TEST_ACCOUNT",
-    "DEFAULT.TEST_COUNTRY",
-    "EDW.TEST_CAL_DT",
-    "DEFAULT.TEST_CATEGORY_GROUPINGS",
-    "EDW.TEST_SITES",
-    "EDW.TEST_SELLER_TYPE_DIM",
-    "DEFAULT.STREAMING_TABLE",
-    "DEFAULT.TEST_ENCODING",
-    "DEFAULT.TEST_MEASURE"
-  ],
-  "models": [
-    "nmodel_basic",
-    "nmodel_basic_inner",
-    "test_encoding",
-    "nmodel_full_measure_test"
-  ],
   "override_kylin_properties": {
     "kylin.storage.hbase.owner-tag": "kylin@kylin.apache.org"
   }

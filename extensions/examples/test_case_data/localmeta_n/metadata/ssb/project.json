@@ -2,18 +2,11 @@
   "uuid" : "1aaca32a-a33e-4b69-83dd-0bb8b1f8c93b",
   "last_modified" : 1514536509242,
   "version" : "3.0.0.0",
-  "name" : "ssb",
-  "tables" : [ "SSB.DATES", "SSB.SUPPLIER", "SSB.CUSTOMER", "SSB.PART", "SSB.P_LINEORDER" ],
   "owner" : null,
   "status" : null,
   "create_time_utc" : 0,
   "last_update_time" : null,
   "description" : null,
-  "realizations" : [ {
-    "type" : "NCUBE",
-    "realization" : "ssb"
-  } ],
-  "models" : [ "ssb" ],
   "ext_filters" : [ ],
   "override_kylin_properties" : {
     "kylin.storage.hbase.owner-tag" : "kylin@kylin.apache.org"
