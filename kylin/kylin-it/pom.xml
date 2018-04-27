@@ -55,12 +55,6 @@
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-server</artifactId>
-            <classifier>classes</classifier>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
         </dependency>
         <dependency>
@@ -106,12 +100,6 @@
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-assembly</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.maven</groupId>

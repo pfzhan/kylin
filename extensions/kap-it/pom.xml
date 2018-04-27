@@ -67,10 +67,6 @@
             <artifactId>kap-engine-spark</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-source-hive</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kap-core-common</artifactId>
         </dependency>
@@ -81,12 +77,6 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>atopcalcite</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-server</artifactId>
-            <version>${kylin.version}</version>
-            <classifier>classes</classifier>
         </dependency>
         <dependency>
             <groupId>org.apache.kylin</groupId>
@@ -167,12 +157,6 @@
         <dependency>
             <groupId>org.apache.kylin</groupId>
             <artifactId>kylin-core-storage</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kylin</groupId>
-            <artifactId>kylin-assembly</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
