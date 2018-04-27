@@ -27,7 +27,6 @@ package io.kyligence.kap.cube.model;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -38,10 +37,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.fail;
@@ -206,24 +202,6 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(mgr.getDataflowsByCubePlan("ncube_basic"));
     }
 
-    @Test
-    public void testGetLookuptable(){
-        KylinConfig testConfig = getTestConfig();
-        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        List<NDataflow> ncubeBasic = mgr.getDataflowsByCubePlan("ncube_basic");
-        LookupStringTable lookupTable = ncubeBasic.get(0).getLookupTable("EDW.TEST_SITES");
-        System.out.println(lookupTable);
-        lookupTable.dump();
-        List<String> list = new ArrayList<String>();
-        list.add("220");
-        list.add("100");
-        Assert.assertNotNull(lookupTable.scan("SITE_ID", list, "SITE_NAME"));
-        Set<String> set = new HashSet<String>();
-        set.add("220");
-        set.add("100");
-        Assert.assertNotNull(lookupTable.mapValues("SITE_ID", set, "SITE_NAME"));
-        Assert.assertNotNull(lookupTable.mapRange("SITE_ID", "100", "220", "SITE_NAME"));
-    }
 
     @Test
     public void testMergeSegmentsFail() throws IOException {

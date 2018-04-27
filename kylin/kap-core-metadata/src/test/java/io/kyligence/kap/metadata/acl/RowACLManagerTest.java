@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -152,7 +153,7 @@ public class RowACLManagerTest extends NLocalFileMetadataTestCase {
         RowACLManager manager = new RowACLManager(configA);
         manager.addRowACL(PROJECT, TYPE_USER, USER, "default.test_country", getColumnToConds());
         final String PATH = "/row_acl/" + PROJECT + "/user/" + USER + "/DEFAULT.TEST_COUNTRY.json";
-        Assert.assertNotNull(getStore().getResource(PATH));
+        Assert.assertNotNull(ResourceStore.getKylinMetaStore(configA).getResource(PATH));
         manager.getRowACLByTable(PROJECT, TYPE_USER, "default.test_country").containsKey(USER);
     }
 
