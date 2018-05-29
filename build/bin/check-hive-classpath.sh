@@ -12,6 +12,6 @@ if [ -z "${hive_dependency}" ]; then
 fi
 
 jobjar=`find ${KYLIN_HOME}/lib -name '*job*.jar'`
-$JAVA -cp ${hive_dependency}:${jobjar}  org.apache.kylin.common.util.ClasspathScanner  HCatInputFormat.class
+$JAVA -cp ${hive_dependency}:${jobjar}  ClasspathScanner  HCatInputFormat.class
 
 [[ $? == 0 ]]         || quit "ERROR: Class HCatInputFormat is not found on hive dependency. Please check 'bin/find-hive-dependency.sh' reports the correct Hive classpath."

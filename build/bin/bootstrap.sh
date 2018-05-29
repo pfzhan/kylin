@@ -144,7 +144,7 @@ function checkRestPort() {
 function classpathDebug() {
     if [ "${KYLIN_CLASSPATH_DEBUG}" != "" ]; then
         echo "Finding ${KYLIN_CLASSPATH_DEBUG} on classpath" $@
-        $JAVA -classpath $@ org.apache.kylin.common.util.ClasspathScanner ${KYLIN_CLASSPATH_DEBUG}
+        $JAVA -classpath $@ ClasspathScanner ${KYLIN_CLASSPATH_DEBUG}
     fi
 }
 
@@ -323,7 +323,7 @@ then
 
 elif [ "$1" = "version" ]
 then
-    runTool org.apache.kylin.common.KylinVersion
+    runTool KylinVersion
 
 elif [ "$1" = "diag" ]
 then

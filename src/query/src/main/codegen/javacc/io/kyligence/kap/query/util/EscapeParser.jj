@@ -1,0 +1,306 @@
+options {
+    IGNORE_CASE = true;
+    STATIC = false;
+    UNICODE_INPUT=true;
+}
+
+PARSER_BEGIN(EscapeParser)
+package io.kyligence.kap.query.util;
+import java.io.StringReader;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Scanner;
+import io.kyligence.kap.common.obf.IKeep;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class EscapeParser implements IKeep {
+
+    private final static Logger logger = LoggerFactory.getLogger(EscapeParser.class);
+
+    private EscapeDialect dialect = EscapeDialect.DEFAULT;
+
+    public static void main(String args[]) throws ParseException {
+        System.out.println("Input SQL:");
+        Scanner reader = new Scanner(System.in);
+        String sql = reader.nextLine();
+        reader.close();
+        EscapeParser parser = new EscapeParser(new StringReader(sql));
+        String parseResult = parser.Input();
+        System.out.println("Translated SQL:");
+        System.out.println(parseResult);
+    }
+
+    public EscapeParser(EscapeDialect newDialect, String sql) {
+        this(new StringReader(sql));
+        this.dialect = newDialect;
+    }
+}
+
+PARSER_END(EscapeParser)
+
+//< DEFAULT, ESCAPE, FUNCTION >
+//SKIP :
+//{
+//  "\t"
+//| "\n"
+//| "\r"
+//}
+
+< DEFAULT >
+TOKEN :
+{
+  < LBRACE : "{" > : ESCAPE
+| < RBRACE : "}" >
+| < RPAREN : ")" >
+| < LPAREN : "(" >
+| < COMMA : "," >
+| < SPACE : [" ", "\t", "\n", "\r"] >
+| < QUOTE: "'" >
+| < QUOTED_STRING: <QUOTE> ( (~["'"]) | ("''"))* <QUOTE> >
+| < ANY : (~[ "{", "}", " ", "(", ")", ",", "\t", "\n", "\r" ])+ >
+}
+
+< ESCAPE, FUNCTION, TIMESTAMP >
+SKIP :
+{
+  < SKIP_SPACE : <SPACE> >
+}
+
+< ESCAPE >
+TOKEN :
+{
+  < FN : "fn" > : FUNCTION
+| < TS : "ts" > : DEFAULT
+| < D : "d" > : DEFAULT
+| < T : "t" > : DEFAULT
+}
+
+< FUNCTION >
+TOKEN :
+{
+  < FUNCTION_NAME : (~[ "(", "\t", "\n", "\r", " " ])+ > : DEFAULT
+}
+
+/** Root production. */
+String Input() :
+{
+    String innerString;
+}
+{
+    innerString = Expression()
+    {
+        return innerString;
+    }
+}
+
+/** Brace counting production. */
+String Expression() :
+{
+    String innerString = "";
+    String nextString = "";
+}
+{
+    (
+        innerString = EscapeExpress()
+    | innerString = ParenExpress()
+    | innerString = QuotedString()
+    | innerString = Comma()
+    | innerString = Space()
+    | innerString = Any()
+    | (
+        < EOF >
+        {
+            return "";
+        }
+        )
+    )
+    (
+        LOOKAHEAD(2)
+        nextString = Expression()
+    )?
+    {
+        return innerString + nextString;
+    }
+}
+
+String Comma() :
+{}
+{
+    < COMMA >
+    {
+        logger.trace("meet token <COMMA>");
+        return getToken(0).image;
+    }
+}
+
+String Space() :
+{}
+{
+    < SPACE >
+    {
+        logger.trace("meet token <SPACE>");
+        return getToken(0).image;
+    }
+}
+
+String QuotedString() :
+{
+    String s;
+}
+{
+    <QUOTED_STRING>
+    {
+        logger.trace("meet token in <QUOTED_STRING>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
+String Any() :
+{}
+{
+    < ANY >
+    {
+        logger.trace("meet token in <ANY>: " + getToken(0).image);
+        return getToken(0).image;
+    }
+}
+
+String ParenExpress() :
+{
+    String innerString = "";
+}
+{
+    < LPAREN >
+    (
+        innerString = Expression()
+    )?
+    < RPAREN >
+    {
+        return "(" + innerString + ")";
+    }
+}
+
+String EscapeExpress() :
+{
+    String innerString;
+}
+{
+    < LBRACE >
+    (
+        innerString = EscapeFunction()
+    |   innerString = EscapeTimestamp()
+    |   innerString = EscapeDate()
+    |   innerString = EscapeTime()
+    )
+    (< SPACE >)*
+    < RBRACE >
+    {
+        return innerString;
+    }
+}
+
+String EscapeFunction() :
+{
+    String functionName;
+    String commaEnding;
+    String parenEnding;
+    List <String> parameters = new ArrayList();
+}
+{
+    < FN >< FUNCTION_NAME >
+    {
+        functionName = getToken(0).image; 
+    }
+    < LPAREN >
+    (
+        EscapeFunctionParameter(parameters)
+        (
+            < COMMA > EscapeFunctionParameter(parameters)
+        )*
+    )?
+    < RPAREN >
+    {
+        return dialect.transformFN(functionName, parameters.toArray(new String [ 0 ]));
+    }
+}
+
+void EscapeFunctionParameter(List<String> paramCollection) :
+{
+    String parameter = "";
+}
+{
+    (
+        parameter = ParameterExpression()
+    )
+    {
+        paramCollection.add(parameter.trim());
+    }
+}
+
+String ParameterExpression() :
+{
+    String innerString = "";
+    String nextString = "";
+}
+{
+    (
+        innerString = EscapeExpress()
+    | innerString = ParenExpress()
+    | innerString = QuotedString()
+    | innerString = Space()
+    | innerString = Any()
+    )
+    (
+        LOOKAHEAD(2)
+        nextString = ParameterExpression()
+    )?
+    {
+        return innerString + nextString;
+    }
+}
+
+String EscapeTimestamp() :
+{
+    String timestampExpr;
+}
+{
+    < TS >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return "CAST(" + timestampExpr + " AS TIMESTAMP)";
+    }
+}
+
+String EscapeDate() :
+{
+    String timestampExpr;
+}
+{
+    < D >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return "CAST(" + timestampExpr + " AS DATE)";
+    }
+}
+
+String EscapeTime() :
+{
+    String timestampExpr;
+}
+{
+    < T >
+    (< SPACE >)*
+    (
+        timestampExpr = QuotedString()
+    )
+    {
+        return "CAST(" + timestampExpr + " AS TIME)";
+    }
+}

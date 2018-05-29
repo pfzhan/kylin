@@ -39,7 +39,7 @@ then
 
     rm -rf ${full_metadata_dir}
     hadoop ${hadoop_conf_param} fs -rm -r ${current_working_dir}/${meta_backup_dir}
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool download ${full_metadata_dir}
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool download ${full_metadata_dir}
     [[ $? == 0 ]] || quit "Failed to dump KAP metadata."
     echo "KAP metadata is dumped to file: ${full_metadata_dir}."
     hadoop ${hadoop_conf_param} fs -put -f ${full_metadata_dir} ${current_working_dir} || quit "Failed to put ${full_metadata_dir} to ${current_working_dir}"
@@ -73,7 +73,7 @@ then
     hadoop ${hadoop_conf_param} distcp ${dist_working_dir}/* hdfs:///${current_working_dir}
     mkdir -p ${KYLIN_HOME}/meta_backups
     hadoop ${hadoop_conf_param} fs -get ${current_working_dir}/${meta_backup_dir} ${full_metadata_dir} || quit "ERROR: failed to get ${hdfs_full_file} from HDFS"
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool upload ${full_metadata_dir}
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool upload ${full_metadata_dir}
     rm -rf ${full_metadata_dir}
     hadoop ${hadoop_conf_param} fs -rm -r ${current_working_dir}/${meta_backup_dir}
 fi

@@ -42,7 +42,7 @@ then
         echo "Starting backup to ${_file}"
         mkdir -p ${_file}
 
-        ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool download ${_file}
+        ${KYLIN_HOME}/bin/kylin.sh ResourceTool download ${_file}
         echo "metadata store backed up to ${_file}"
     fi
 
@@ -57,7 +57,7 @@ then
     echo "Starting restoring $_fileDst"
     mkdir -p $_fileDst
 
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool fetch $_fileDst $_file
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool fetch $_fileDst $_file
     echo "metadata store backed up to $_fileDst"
 
 elif [ "$1" == "restore" ]
@@ -65,33 +65,33 @@ then
 
     _file=$2
     echo "Starting restoring $_file"
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool upload $_file
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool upload $_file
 
 elif [ "$1" == "list" ]
 then
 
     _file=$2
     echo "Starting list $_file"
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool list $_file
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool list $_file
 
 elif [ "$1" == "remove" ]
 then
 
     _file=$2
     echo "Starting remove $_file"
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool remove $_file
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool remove $_file
 
 elif [ "$1" == "cat" ]
 then
 
     _file=$2
     echo "Starting cat $_file"
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool cat $_file
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool cat $_file
 
 elif [ "$1" == "reset" ]
 then
 
-    ${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool  reset
+    ${KYLIN_HOME}/bin/kylin.sh ResourceTool  reset
     
 elif [ "$1" == "clean" ]
 then

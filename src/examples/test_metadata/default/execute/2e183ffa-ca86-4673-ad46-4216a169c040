@@ -1,0 +1,38 @@
+{
+  "uuid" : "2e183ffa-ca86-4673-ad46-4216a169c040",
+  "last_modified" : 1527584316687,
+  "version" : "3.0.0.0",
+  "name" : null,
+  "tasks" : [ {
+    "uuid" : "2e183ffa-ca86-4673-ad46-4216a169c040-00",
+    "last_modified" : 0,
+    "version" : "3.0.0.0",
+    "name" : null,
+    "tasks" : null,
+    "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingStep",
+    "params" : {
+      "distMetaUrl" : "../examples/test_metadata@hdfs,path=file:///Users/wangcheng/Developments/KAP/src/examples/test_metadata/working-dir/..-examples-test_metadata/job_tmp/46ac2888-2678-4fc3-9771-c61887083498/meta",
+      "jobId" : "2e183ffa-ca86-4673-ad46-4216a169c040",
+      "dataflowName" : "ncube_full_measure_test",
+      "project" : "default",
+      "className" : "io.kyligence.kap.engine.spark.builder.NDataflowBuildJob",
+      "cuboidLayoutIds" : "1",
+      "segmentIds" : "1",
+      "parentId" : "2e183ffa-ca86-4673-ad46-4216a169c040"
+    }
+  }, {
+    "uuid" : "2e183ffa-ca86-4673-ad46-4216a169c040-01",
+    "last_modified" : 0,
+    "version" : "3.0.0.0",
+    "name" : null,
+    "tasks" : null,
+    "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingUpdateAfterBuildStep",
+    "params" : {
+      "parentId" : "2e183ffa-ca86-4673-ad46-4216a169c040"
+    }
+  } ],
+  "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingJob",
+  "params" : {
+    "submitter" : "ADMIN"
+  }
+}

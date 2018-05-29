@@ -11,7 +11,7 @@ rm -rf ${_file}
 
 echo "Starting backup to ${_file}"
 mkdir -p ${_file}
-${KYLIN_HOME}/bin/kylin.sh org.apache.kylin.common.persistence.ResourceTool fetch $_file cube_desc
+${KYLIN_HOME}/bin/kylin.sh ResourceTool fetch $_file cube_desc
 echo "metadata store backed up to ${_file}"
 
 cd ${KYLIN_HOME}/meta_backups/meta_legacy/cube_desc

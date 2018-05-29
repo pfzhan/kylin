@@ -207,7 +207,7 @@ EOL
         quit "Port ${driverPort} is not available, could not start Spark Client"
     fi
     retrieveSparkEnvProps
-    submitCommand='$SPARK_HOME/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_SPARK_JAR_PATH}" '
+    submitCommand='$SPARK_HOME/bin/spark-submit --class SparkEntry --master yarn --deploy-mode client --verbose --files "${LOG4J_DIR}/spark-executor-log4j.properties,${KYLIN_SPARK_JAR_PATH}" '
     submitCommand=${submitCommand}${confStr}
     submitCommand=${submitCommand}' ${KYLIN_SPARK_JAR_PATH} -className io.kyligence.kap.storage.parquet.cube.spark.SparkQueryDriver --port ${driverPort} > ${KYLIN_HOME}/logs/spark-driver.out 2>&1 & echo $! > ${KYLIN_HOME}/spark_client_pid &'
     verbose "The submit command is: $submitCommand"

@@ -30,12 +30,12 @@
 }
 
 -keepclassmembernames class io.kyligence.kap**Manager {
-    static io.kyligence.kap.**.*Manager newInstance(org.apache.kylin.common.KylinConfig);
+    static io.kyligence.kap.**.*Manager newInstance(KylinConfig);
 }
 
 -keepclassmembers class io.kyligence.kap.rest.request.** {*;}
 -keepclassmembers class io.kyligence.kap.rest.response.** {*;}
--keep class * implements org.apache.kylin.gridtable.IGTCodeSystem {*;}
+-keep class * implements IGTCodeSystem {*;}
 -keepclassmembers class io.kyligence.kap.job.SampleCubeJoinedFlatTable {*;}
 
 -keep class io.kyligence.kap.modeling.smart.shaded.** {*;}
@@ -52,7 +52,7 @@
 -keep class io.kyligence.kap.query.util.** {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkDriverClient {*;}
 -keep class io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl {*;}
--keep class * extends org.apache.kylin.common.util.AbstractApplication {*;}
+-keep class * extends AbstractApplication {*;}
 -keep class io.kyligence.kap.storage.parquet.ParquetSpliceStorage {*;}
 -keep class io.kyligence.kap.storage.parquet.ParquetStorage {*;}
 -keep class io.kyligence.kap.storage.parquet.cube.spark.rpc.SparkExecutorPreAggFunction {*;}

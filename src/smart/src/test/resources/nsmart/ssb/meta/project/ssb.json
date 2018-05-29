@@ -1,0 +1,23 @@
+{
+  "uuid": "2eaca32a-a33e-4b69-83dd-0bb8b1f8c91b",
+  "last_modified": 1483194389940,
+  "version": "2.0.0",
+  "name": "ssb",
+  "tables": [
+    "SSB.PART",
+    "SSB.CUSTOMER",
+    "SSB.P_LINEORDER",
+    "SSB.SUPPLIER",
+    "SSB.DATES"
+  ],
+  "owner": null,
+  "status": null,
+  "create_time_utc": 0,
+  "last_update_time": null,
+  "description": null,
+  "realizations": [],
+  "models": [
+  ],
+  "ext_filters": [],
+  "override_kylin_properties": {}
+}

@@ -1,0 +1,17 @@
+{
+  "uuid" : "09272492-a4e3-40b5-af65-8007891e0ddd",
+  "last_modified" : 1527584328460,
+  "version" : "3.0.0.0",
+  "dataflow" : "ncube_full_measure_test",
+  "segment_id" : 1,
+  "cuboid_instances" : [ {
+    "cuboid_layout_id" : 1,
+    "status" : "READY",
+    "build_job_id" : "2e183ffa-ca86-4673-ad46-4216a169c040",
+    "rows" : 6,
+    "size_kb" : 1,
+    "file_count" : 2,
+    "source_rows" : 12,
+    "source_kb" : 0
+  } ]
+}
