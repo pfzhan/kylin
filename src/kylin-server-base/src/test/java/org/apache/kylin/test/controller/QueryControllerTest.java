@@ -53,9 +53,11 @@ import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.KapQueryService;
 import org.apache.kylin.test.service.ServiceTestBase;
-import org.junit.Assert;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Assert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 
@@ -68,11 +70,21 @@ public class QueryControllerTest extends ServiceTestBase {
 
     private NQueryController queryController;
     @Autowired
-    @Qualifier("queryService")
+    @Qualifier("kapQueryService")
     KapQueryService queryService;
 
     @Autowired
     private CacheManager cacheManager;
+
+    @BeforeClass
+    public static void beforeClass() {
+        staticCreateTestMetadata();
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        staticCleanupTestMetadata();
+    }
 
     @Before
     public void setup() throws Exception {

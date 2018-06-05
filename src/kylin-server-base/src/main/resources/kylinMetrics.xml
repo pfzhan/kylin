@@ -61,7 +61,7 @@
                     -->
                     <entry key-ref="blockingReservoir">
                         <list>
-                            <bean class="common.util.Pair">
+                            <bean class="org.apache.kylin.common.util.Pair">
                                 <property name="first"
                                           value="org.apache.kylin.metrics.lib.impl.hive.HiveReservoirReporter"/>
                                 <property name="second">

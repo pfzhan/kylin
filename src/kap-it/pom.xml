@@ -76,16 +76,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>atopcalcite</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.calcite.avatica</groupId>
-                    <artifactId>avatica-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-storage</artifactId>
         </dependency>
         <dependency>

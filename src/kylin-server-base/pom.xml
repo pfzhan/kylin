@@ -220,10 +220,6 @@
             <artifactId>kap-core-job</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>atopcalcite</artifactId>
-        </dependency>
     </dependencies>
 
     <repositories>

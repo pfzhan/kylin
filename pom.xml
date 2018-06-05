@@ -52,7 +52,7 @@
         <!-- <reflections.version>0.9.10</reflections.version> -->
 
         <!-- Calcite Version -->
-        <calcite.version>1.13.0-kylin-r3-SNAPSHOT</calcite.version>
+        <calcite.version>1.13.0-kylin-r8-SNAPSHOT</calcite.version>
         <avatica.version>1.10.0</avatica.version>
 
         <!-- Hadoop Common deps, keep compatible with hadoop2.version -->
@@ -139,7 +139,6 @@
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
         <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
-        <calcite.version>1.13.0-kylin-r3-SNAPSHOT</calcite.version>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.21</slf4j.version>
 
@@ -174,7 +173,6 @@
         <module>src/kap-core-common</module>
         <module>src/kap-core-metadata</module>
         <module>src/kap-core-cube</module>
-        <module>src/atopcalcite</module>
         <module>src/core-metrics</module>
         <module>src/jdbc</module>
         <module>src/source-hive</module>
@@ -255,11 +253,6 @@
                 <artifactId>mssql-jdbc</artifactId>
                 <version>${mssql-jdbc.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>atopcalcite</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>

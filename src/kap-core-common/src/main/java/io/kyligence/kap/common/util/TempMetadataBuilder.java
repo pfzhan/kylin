@@ -37,11 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TempMetadataBuilder {
-    private static final String KYLIN_META_TEST_DATA = "../../kylin/examples/test_case_data/localmeta";
     private static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
     private static final String KAP_SPARDER_META_TEST_DATA = "../examples/test_case_data/sparder_localmeta";
 
-    private static final String N_KAP_META_TEST_DATA = "../../extensions/examples/test_case_data/localmeta_n";
+    private static final String N_KAP_META_TEST_DATA = "../examples/test_case_data/localmeta_n";
     private static final String TEMP_TEST_METADATA = "../examples/test_metadata";
 
     private static final Logger logger = LoggerFactory.getLogger(TempMetadataBuilder.class);
@@ -52,7 +51,6 @@ public class TempMetadataBuilder {
 
     public static String prepareLocalTempMetadata(boolean debug, String... extraMetaOverlays) {
         ArrayList<String> list = new ArrayList<>();
-        list.add(KYLIN_META_TEST_DATA);
         list.add(KAP_META_TEST_DATA);
 
         if (Boolean.parseBoolean(System.getProperty("sparder.enabled"))) {

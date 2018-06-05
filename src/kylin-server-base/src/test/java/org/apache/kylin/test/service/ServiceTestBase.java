@@ -30,19 +30,20 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
 package org.apache.kylin.test.service;
 
 import java.util.Arrays;
+import java.util.UUID;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
@@ -70,8 +71,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author xduo
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml",
-        "classpath:kylinMetrics.xml" })
+@ContextConfiguration(locations = {"classpath:applicationContext.xml", "classpath:kylinSecurity.xml",
+        "classpath:kylinMetrics.xml"})
 @ActiveProfiles("testing")
 public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
@@ -96,20 +97,26 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
         Broadcaster.getInstance(config).notifyClearAll();
 
         if (!userService.userExists("ADMIN")) {
-            userService.createUser(new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
+            final ManagedUser managedUser = new ManagedUser("ADMIN", "KYLIN", false, Arrays.asList(//
                     new SimpleGrantedAuthority(Constant.ROLE_ADMIN), new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
-                    new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+                    new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
+            managedUser.setUuid(UUID.randomUUID().toString());
+            userService.createUser(managedUser);
         }
 
         if (!userService.userExists("MODELER")) {
-            userService.createUser(new ManagedUser("MODELER", "MODELER", false, Arrays.asList(//
+            final ManagedUser managedUser = new ManagedUser("MODELER", "MODELER", false, Arrays.asList(//
                     new SimpleGrantedAuthority(Constant.ROLE_ANALYST),
-                    new SimpleGrantedAuthority(Constant.ROLE_MODELER))));
+                    new SimpleGrantedAuthority(Constant.ROLE_MODELER)));
+            managedUser.setUuid(UUID.randomUUID().toString());
+            userService.createUser(managedUser);
         }
 
         if (!userService.userExists("ANALYST")) {
-            userService.createUser(new ManagedUser("ANALYST", "ANALYST", false, Arrays.asList(//
-                    new SimpleGrantedAuthority(Constant.ROLE_ANALYST))));
+            final ManagedUser managedUser = new ManagedUser("ANALYST", "ANALYST", false, Arrays.asList(//
+                    new SimpleGrantedAuthority(Constant.ROLE_ANALYST)));
+            managedUser.setUuid(UUID.randomUUID().toString());
+            userService.createUser(managedUser);
         }
     }
 

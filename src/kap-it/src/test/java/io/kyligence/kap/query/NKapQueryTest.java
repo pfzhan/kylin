@@ -138,7 +138,7 @@ public class NKapQueryTest extends NKylinTestBase {
     public void testQuery_validSql_fail() throws Exception {
 
         logger.info("-------------------- Test Invalid Query --------------------");
-        String queryFolder = KYLIN_SQL_BASE_DIR + File.separator + "sql_invalid";
+        String queryFolder = KAP_SQL_BASE_DIR + File.separator + "sql_invalid";
         List<File> sqlFiles = getFilesFromFolder(new File(queryFolder), ".sql");
         for (File sqlFile : sqlFiles) {
             logger.info("Testing Invalid Query: " + sqlFile.getCanonicalPath());
