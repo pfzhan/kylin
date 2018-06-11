@@ -87,10 +87,6 @@
             <artifactId>kylin-jdbc</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-query</artifactId>
-        </dependency>
-        <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-linq4j</artifactId>
         </dependency>
@@ -112,12 +108,6 @@
         </dependency>
 
         <!-- Env & Test -->
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
@@ -313,10 +303,6 @@
             <scope>test</scope>
             <!--MRUnit relies on older version of mockito, so cannot manage it globally-->
             <version>${mockito.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
         </dependency>
     </dependencies>
 

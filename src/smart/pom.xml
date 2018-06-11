@@ -38,11 +38,6 @@
 
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-query</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
 
@@ -75,12 +70,6 @@
         </dependency>
 
         <!--Env & Test-->
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-common</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>

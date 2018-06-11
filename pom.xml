@@ -105,8 +105,8 @@
         <!--metric-->
         <dropwizard.version>3.1.2</dropwizard.version>
         <!-- REST Service, ref https://github.com/spring-projects/spring-boot/blob/v1.3.8.RELEASE/spring-boot-dependencies/pom.xml -->
-        <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
-        <spring.framework.version>4.3.10.RELEASE</spring.framework.version>
+        <spring.boot.version>1.5.13.RELEASE</spring.boot.version>
+        <spring.framework.version>4.3.17.RELEASE</spring.framework.version>
         <spring.framework.security.version>4.2.3.RELEASE</spring.framework.security.version>
         <spring.framework.security.extensions.version>1.0.2.RELEASE</spring.framework.security.extensions.version>
         <opensaml.version>2.6.4</opensaml.version>
@@ -125,27 +125,18 @@
         <!-- Kylin versions -->
         <kylin.version>3.0.0-SNAPSHOT</kylin.version>
 
-        <commons-dbcp.version>1.4</commons-dbcp.version>
-        <mysql-connector.version>5.1.41</mysql-connector.version>
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
         <parquet.version>kylin-1.9.0-r1</parquet.version>
         <tomcat.version>7.0.82</tomcat.version>
-        <spark.version>2.1.1</spark.version>
         <jackson.version>2.6.5</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <curator.version>2.7.1</curator.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
-        <mssql-jdbc.version>6.1.0.jre7</mssql-jdbc.version>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.21</slf4j.version>
-
-        <!-- REST Service, keep same with Kylin -->
-        <spring.boot.version>1.3.8.RELEASE</spring.boot.version>
-        <spring.framework.version>4.3.10.RELEASE</spring.framework.version>
-        <spring.framework.security.version>4.2.3.RELEASE</spring.framework.security.version>
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -180,6 +171,7 @@
         <module>src/metrics-reporter-hive</module>
         <module>src/metrics-reporter-kafka</module>
         <module>src/core-dictionary</module>
+        <module>src/kap-server</module>
     </modules>
 
     <dependencyManagement>
@@ -253,11 +245,6 @@
                 <artifactId>mssql-jdbc</artifactId>
                 <version>${mssql-jdbc.version}</version>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.kap</groupId>
-                <artifactId>kylin-core-dictionary</artifactId>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.kap</groupId>
@@ -572,11 +559,6 @@
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>org.apache.calcite</groupId>
-                <artifactId>calcite-linq4j</artifactId>
-                <version>${calcite.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.calcite.avatica</groupId>
                 <artifactId>avatica-core</artifactId>
                 <version>${avatica.version}</version>
@@ -606,12 +588,6 @@
             </dependency>
 
             <!-- Spark dependency -->
-            <dependency>
-                <groupId>org.apache.spark</groupId>
-                <artifactId>spark-core_2.11</artifactId>
-                <version>${spark.version}</version>
-                <scope>provided</scope>
-            </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
                 <artifactId>spark-sql_2.11</artifactId>
@@ -764,12 +740,6 @@
                 <version>${opensaml.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.microsoft.sqlserver</groupId>
-                <artifactId>mssql-jdbc</artifactId>
-                <version>${mssql-jdbc.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>
                 <version>${mysql-connector.version}</version>
@@ -778,6 +748,12 @@
 
 
             <!-- Spring Core -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring.boot.version}</version>
+                <scope>provided</scope>
+            </dependency>
             <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
@@ -873,11 +849,6 @@
                 <version>${zkclient.version}</version>
             </dependency>
             <dependency>
-                <groupId>commons-dbcp</groupId>
-                <artifactId>commons-dbcp</artifactId>
-                <version>${commons-dbcp.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>io.grpc</groupId>
                 <artifactId>grpc-all</artifactId>
                 <version>${grpc.version}</version>
@@ -886,12 +857,6 @@
                 <groupId>me.lemire.integercompression</groupId>
                 <artifactId>JavaFastPFOR</artifactId>
                 <version>${fastPFOR.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>${mysql-connector.version}</version>
-                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
@@ -963,6 +928,7 @@
                     </exclusion>
                 </exclusions>
                 <version>${spark.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.spark</groupId>
@@ -975,19 +941,9 @@
                 <version>${spark.version}</version>
             </dependency>
             <dependency>
-                <groupId>org.apache.tomcat</groupId>
-                <artifactId>tomcat-catalina</artifactId>
-                <version>${tomcat.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.quartz-scheduler</groupId>
                 <artifactId>quartz</artifactId>
                 <version>${quartz.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>${jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -1009,17 +965,6 @@
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-linq4j</artifactId>
                 <version>${calcite.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.calcite</groupId>
-                <artifactId>calcite-core</artifactId>
-                <version>${calcite.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>com.google.protobuf</groupId>
-                        <artifactId>protobuf-java</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
         </dependencies>
     </dependencyManagement>
