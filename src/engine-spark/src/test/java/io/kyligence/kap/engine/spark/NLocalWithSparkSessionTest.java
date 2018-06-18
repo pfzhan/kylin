@@ -52,6 +52,7 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -99,8 +100,11 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
         sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
-
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
+
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
     }
 
     @AfterClass

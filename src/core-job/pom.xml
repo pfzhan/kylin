@@ -26,10 +26,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-job</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>

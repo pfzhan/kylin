@@ -23,10 +23,6 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-storage</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kap-core-common</artifactId>
         </dependency>
 

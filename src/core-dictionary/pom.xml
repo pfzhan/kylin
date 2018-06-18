@@ -21,10 +21,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-core-dictionary</artifactId>
+    <artifactId>kap-core-dictionary</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - Core Dictionary</name>
-    <description>Apache Kylin - Core Dictionary</description>
+    <name>KAP - Core Dictionary</name>
+    <url>http://kyligence.io</url>
+    <description>KAP Core Dictionary</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>

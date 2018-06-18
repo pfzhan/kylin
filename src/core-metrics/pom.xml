@@ -21,10 +21,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-core-metrics</artifactId>
+    <artifactId>kap-core-metrics</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - Core Metrics</name>
-    <description>Apache Kylin - Core Metrics</description>
+    <name>KAP - Core Metrics</name>
+    <url>http://kyligence.io</url>
+    <description>KAP Core Metrics</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>

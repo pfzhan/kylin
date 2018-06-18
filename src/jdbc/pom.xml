@@ -21,10 +21,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-jdbc</artifactId>
+    <artifactId>kap-jdbc</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - JDBC Driver</name>
-    <description>Kylin JDBC Driver on Calcite Avatica</description>
+    <name>KAP - JDBC Driver</name>
+    <url>http://kyligence.io</url>
+    <description>KAP JDBC Driver on Calcite Avatica</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>

@@ -20,10 +20,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-metrics-reporter-kafka</artifactId>
+    <artifactId>kap-metrics-reporter-kafka</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - Metrics Reporter Kafka</name>
-    <description>Apache Kylin - Metrics Reporter Kafka</description>
+    <name>KAP - Metrics Reporter Kafka</name>
+    <url>http://kyligence.io</url>
+    <description>KAP Metrics Reporter Kafka</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -35,7 +36,7 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kylin-core-metrics</artifactId>
+            <artifactId>kap-core-metrics</artifactId>
         </dependency>
 
         <dependency>

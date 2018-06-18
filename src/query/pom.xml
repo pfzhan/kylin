@@ -33,10 +33,6 @@
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-query</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>3.0.2</version>

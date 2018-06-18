@@ -21,10 +21,11 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-metrics-reporter-hive</artifactId>
+    <artifactId>kap-metrics-reporter-hive</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - Metrics Reporter Hive</name>
-    <description>Apache Kylin - Metrics Reporter Hive</description>
+    <name>KAP - Metrics Reporter Hive</name>
+    <url>http://kyligence.io</url>
+    <description>KAP Metrics Reporter Hive</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
@@ -36,7 +37,7 @@
     <dependencies>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kylin-core-metrics</artifactId>
+            <artifactId>kap-core-metrics</artifactId>
         </dependency>
 
         <dependency>

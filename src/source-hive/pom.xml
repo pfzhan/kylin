@@ -21,10 +21,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>kylin-source-hive</artifactId>
+    <artifactId>kap-source-hive</artifactId>
     <packaging>jar</packaging>
-    <name>Apache Kylin - Hive Source</name>
-    <description>Apache Kylin - Hive Source</description>
+    <name>KAP - Hive Source</name>
+    <description>KAP Hive Source</description>
 
     <parent>
         <groupId>io.kyligence.kap</groupId>
