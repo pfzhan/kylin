@@ -24,22 +24,46 @@
 
 package io.kyligence.kap.rest;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.kylin.common.KylinConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportResource;
 
+import java.io.File;
+
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
 public class KAPDebugServer {
 
+    private static File localMetadata;
+
     public static void main(String[] args) {
-        setEnvs();
+        setLocalEnvs();
         SpringApplication.run(KAPDebugServer.class, args);
+
+        if (localMetadata != null && localMetadata.exists()) {
+            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    localMetadata.delete();
+                }
+            }));
+        }
     }
 
-    private static void setEnvs(){
+    private static void setSandboxEnvs() {
         KylinConfig.setSandboxEnvIfPossible();
+    }
+
+    private static void setLocalEnvs() {
+        if ((localMetadata = new File(TempMetadataBuilder.TEMP_TEST_METADATA)).exists()) {
+            localMetadata.delete();
+        }
+        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
+
+        localMetadata = new File(tempMetadataDir);
     }
 
 }

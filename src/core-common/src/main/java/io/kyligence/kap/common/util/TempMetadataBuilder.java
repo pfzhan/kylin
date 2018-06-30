@@ -40,8 +40,8 @@ public class TempMetadataBuilder {
     private static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
     private static final String KAP_SPARDER_META_TEST_DATA = "../examples/test_case_data/sparder_localmeta";
 
-    private static final String N_KAP_META_TEST_DATA = "../examples/test_case_data/localmeta_n";
-    private static final String TEMP_TEST_METADATA = "../examples/test_metadata";
+    public static final String N_KAP_META_TEST_DATA = "../examples/test_case_data/localmeta_n";
+    public static final String TEMP_TEST_METADATA = "../examples/test_metadata";
 
     private static final Logger logger = LoggerFactory.getLogger(TempMetadataBuilder.class);
 
