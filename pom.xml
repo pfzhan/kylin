@@ -146,6 +146,11 @@
         <sonar.language>java</sonar.language>
         <scala.version>2.11.8</scala.version>
 
+        <!-- swagger api-->
+        <swagger.version>1.5.20</swagger.version>
+        <springfox.version>2.9.2</springfox.version>
+        <swagger2markup.version>1.3.3</swagger2markup.version>
+
         <!-- JVM Args for Testing -->
         <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
         <dropwizard.version>3.1.2</dropwizard.version>
@@ -993,6 +998,30 @@
                 <artifactId>calcite-linq4j</artifactId>
                 <version>${calcite.version}</version>
             </dependency>
+
+            <!-- Swagger API -->
+            <dependency>
+                <groupId>io.swagger</groupId>
+                <artifactId>swagger-core</artifactId>
+                <scope>compile</scope>
+                <version>${swagger.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>javax.ws.rs</groupId>
+                        <artifactId>jsr311-api</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.springfox</groupId>
+                <artifactId>springfox-swagger2</artifactId>
+                <version>${springfox.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.github.swagger2markup</groupId>
+                <artifactId>swagger2markup</artifactId>
+                <version>${swagger2markup.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -1073,6 +1102,11 @@
             <url>
                 https://oss.sonatype.org/content/repositories/releases/org/scalastyle/scalastyle-maven-plugin/
             </url>
+        </repository>
+        <repository>
+            <id>jcenter-snapshots</id>
+            <name>jcenter</name>
+            <url>https://jcenter.bintray.com/</url>
         </repository>
     </repositories>
 
@@ -1323,6 +1357,28 @@
                         <!--</configuration>-->
                     </execution>
                 </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.asciidoctor</groupId>
+                <artifactId>asciidoctor-maven-plugin</artifactId>
+                <version>1.5.6</version>
+                <configuration>
+                    <sourceDirectory>${basedir}/docs/asciidoc</sourceDirectory>
+                    <outputFile>${basedir}/docs/docs.html</outputFile>
+                    <backend>html5</backend>
+                    <sourceHighlighter>highlight.js</sourceHighlighter>
+                    <attributes>
+                        <icons>font</icons>
+                        <doctype>book</doctype>
+                        <toc>left</toc>
+                        <toclevels>3</toclevels>
+                        <numbered></numbered>
+                        <hardbreaks></hardbreaks>
+                        <sectlinks></sectlinks>
+                        <sectanchors></sectanchors>
+                    </attributes>
+                </configuration>
             </plugin>
         </plugins>
     </build>

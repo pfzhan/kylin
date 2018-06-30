@@ -22,18 +22,28 @@
         <kylin.engine/>
         <kylin.storage/>
         <sparder.enabled/>
+        <guava.version>20.0</guava.version>
+        <beanutils.version>1.9.2</beanutils.version>
     </properties>
 
     <!-- Dependencies. -->
     <dependencies>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <scope>compile</scope>
-        </dependency>
+        <!--Springfox Swagger2 v2.9.2, swagger2markup v1.3.3. has specific requirement on guava and commons-beanutils -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+            <version>${guava.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <version>${beanutils.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
             <scope>compile</scope>
         </dependency>
         <dependency>
@@ -324,6 +334,16 @@
             <scope>test</scope>
             <!--MRUnit relies on older version of mockito, so cannot manage it globally-->
             <version>${mockito.version}</version>
+        </dependency>
+
+        <!-- Generate API Docs-->
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-swagger2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.swagger2markup</groupId>
+            <artifactId>swagger2markup</artifactId>
         </dependency>
     </dependencies>
 

@@ -44,9 +44,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 @RunWith(SpringRunner.class)
-@ContextConfiguration(locations = {
-        "file:../server-base/src/main/resources/applicationContext.xml",
-        "file:../server-base/src/main/resources/kylinSecurity.xml"})
+@ContextConfiguration(classes = IntegrationConfig.class)
 @WebAppConfiguration
 @ActiveProfiles("testing")
 public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataTestCase {
@@ -80,6 +78,4 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     public void tearDown() {
         cleanupTestMetadata();
     }
-
-
 }
