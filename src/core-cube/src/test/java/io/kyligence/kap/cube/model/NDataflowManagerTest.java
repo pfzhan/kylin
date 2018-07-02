@@ -312,4 +312,47 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         df = mgr.getDataflow("ncube_basic");
         Assert.assertEquals(9, df.getSegment(0).getCuboidsMap().size());
     }
+
+    @Test
+    public void testConcurrentMergeAndMerge() throws Exception {
+        System.setProperty("kylin.cube.max-building-segments", "10");
+        NDataflowManager mgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
+        String dfName = "ncube_basic";
+        //get a empty dataflow
+        NDataflow dataflow = mgr.getDataflow(dfName);
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+        update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
+        mgr.updateDataflow(update);
+        NDataflow newDataflow = mgr.getDataflow(dfName);
+        Assert.assertEquals(0, newDataflow.getSegments().size());
+
+        //append tow segements to empty dataflow
+        long start1 = SegmentRange.dateToLong("2010-01-01");
+        long end1 = SegmentRange.dateToLong("2013-01-01");
+
+        NDataSegment seg1 = mgr.appendSegment(newDataflow, new SegmentRange.TimePartitionedSegmentRange(start1, end1));
+        seg1.setStatus(SegmentStatusEnum.READY);
+        NDataflowUpdate update1 = new NDataflowUpdate(newDataflow.getName());
+        update1.setToUpdateSegs(seg1);
+        mgr.updateDataflow(update1);
+
+        NDataflow updatedDataflow = mgr.getDataflow(dfName);
+
+        long start2 = SegmentRange.dateToLong("2013-01-01");
+        long end2 = SegmentRange.dateToLong("2015-01-01");
+        NDataSegment seg2 = mgr.appendSegment(updatedDataflow, new SegmentRange.TimePartitionedSegmentRange(start2, end2));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        NDataflowUpdate update2 = new NDataflowUpdate(newDataflow.getName());
+        update2.setToUpdateSegs(seg2);
+        mgr.updateDataflow(update2);
+
+        NDataflow encodingDataflow = mgr.getDataflow(dfName);
+        Assert.assertEquals(encodingDataflow.getSegments().size(), 2);
+
+        //merge two segements
+        mgr.mergeSegments(encodingDataflow, new SegmentRange.TimePartitionedSegmentRange(start1, end2), true);
+
+        Assert.assertEquals(mgr.getDataflow(dfName).getSegments().size(), 3);
+        Assert.assertNotNull(mgr.getDataflow(dfName).getSegment(2));
+    }
 }

@@ -60,6 +60,7 @@ public class SwaggerDocsGenerator extends AbstractMVCIntegrationTestCase {
                 .withSwaggerMarkupLanguage(MarkupLanguage.ASCIIDOC)
                 .withOutputLanguage(Language.EN)
                 .withPathsGroupedBy(GroupBy.TAGS)
+                .withGeneratedExamples()
                 .build();
         Swagger2MarkupConverter.from(swaggerJson).withConfig(config).build().toFile(Paths.get("../../docs/asciidoc/swagger"));
     }
