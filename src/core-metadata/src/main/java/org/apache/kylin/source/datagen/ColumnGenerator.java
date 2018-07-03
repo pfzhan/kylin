@@ -167,8 +167,13 @@ public class ColumnGenerator {
 
         private void initNumberRange(int randStart, int randEnd, int cardinality) {
             if (randStart == 0 && randEnd == 0) {
-                randStart = 0;
-                randEnd = 1000;
+                if (this.type.isTinyInt()) {
+                    randStart = 0;
+                    randEnd = 127;
+                } else {
+                    randStart = 0;
+                    randEnd = 1000;
+                }
             }
             randEnd = Math.max(randEnd, randStart + cardinality);
 

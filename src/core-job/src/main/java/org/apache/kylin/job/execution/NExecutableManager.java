@@ -468,9 +468,9 @@ public class NExecutableManager {
 
     public void forceKillJob(String jobId) {
         try {
-            final ExecutableOutputPO jobOutput = executableDao.getJobOutput(pathOfJob(jobId, project));
+            final ExecutableOutputPO jobOutput = executableDao.getJobOutput(pathOfOutput(jobId, project));
             jobOutput.setStatus(ExecutableState.ERROR.toString());
-            List<ExecutablePO> tasks = executableDao.getJob(jobId, project).getTasks();
+            List<ExecutablePO> tasks = executableDao.getJob(pathOfJob(jobId, project)).getTasks();
 
             for (ExecutablePO task : tasks) {
                 if (executableDao.getJobOutput(pathOfJob(task.getId(), project)).getStatus().equals("SUCCEED")) {

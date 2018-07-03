@@ -41,22 +41,24 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job;
+package org.apache.kylin.job.execution;
 
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableContext;
+import org.apache.kylin.job.exception.ExecuteException;
 
 /**
  */
-public class NoErrorStatusExecutable extends DefaultChainedExecutable {
+public class FailedTestExecutable extends BaseTestExecutable {
 
-    public NoErrorStatusExecutable() {
+    public FailedTestExecutable() {
         super();
     }
 
     @Override
-    protected void onExecuteError(Throwable exception, ExecutableContext executableContext) {
-        return;
+    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+        }
+        return new ExecuteResult(ExecuteResult.State.FAILED, "failed");
     }
-
 }

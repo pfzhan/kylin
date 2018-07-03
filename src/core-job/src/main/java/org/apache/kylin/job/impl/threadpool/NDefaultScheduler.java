@@ -118,7 +118,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                             nStopped++;
                         } else {
                             if (fetchFailed) {
-                                executableManager.forceKillJob(path);
+                                executableManager.forceKillJob(NExecutableManager.extractId(path));
                                 nError++;
                             } else {
                                 nOthers++;

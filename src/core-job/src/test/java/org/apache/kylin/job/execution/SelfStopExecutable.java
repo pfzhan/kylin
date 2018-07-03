@@ -41,26 +41,48 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job;
+package org.apache.kylin.job.execution;
 
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecuteResult;
 
 /**
  */
-public class FailedTestExecutable extends BaseTestExecutable {
+public class SelfStopExecutable extends BaseTestExecutable {
 
-    public FailedTestExecutable() {
+    volatile boolean doingWork;
+
+    public SelfStopExecutable() {
         super();
     }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+        doingWork = true;
+        try {
+            for (int i = 0; i < 20; i++) {
+                sleepOneSecond();
+                
+                if (isDiscarded())
+                    return new ExecuteResult(ExecuteResult.State.STOPPED, "stopped");
+            }
+                
+            return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+        } finally {
+            doingWork = false;
+        }
+    }
+
+    private void sleepOneSecond() {
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
-        return new ExecuteResult(ExecuteResult.State.FAILED, "failed");
+    }
+
+    public void waitForDoWork() {
+        while (doingWork) {
+            sleepOneSecond();
+        }
     }
 }

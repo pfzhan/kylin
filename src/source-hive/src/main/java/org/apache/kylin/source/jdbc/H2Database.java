@@ -40,7 +40,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query;
+package org.apache.kylin.source.jdbc;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -68,7 +68,7 @@ public class H2Database {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(H2Database.class);
 
-    private static final String[] ALL_TABLES = new String[] { //
+    private static final String[] ALL_TABLES = new String[]{ //
             "edw.test_cal_dt", //
             "default.test_category_groupings", //
             "default.test_kylin_fact", //
@@ -76,8 +76,7 @@ public class H2Database {
             "edw.test_seller_type_dim", //
             "edw.test_sites", //
             "default.test_account", //
-            "default.test_country", //
-            "default.streaming_table" };
+            "default.test_country"}; //
     private static final Map<String, String> javaToH2DataTypeMapping = new HashMap<String, String>();
 
     static {
@@ -143,7 +142,7 @@ public class H2Database {
 
     private String path(TableDesc tableDesc) {
         if ("EDW.TEST_SELLER_TYPE_DIM".equals(tableDesc.getIdentity())) // it is a view of table below
-            return "/data/" + "EDW.TEST_SELLER_TYPE_DIM_TABLE" + ".csv";
+            return "/data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
         else
             return "/data/" + tableDesc.getIdentity() + ".csv";
     }

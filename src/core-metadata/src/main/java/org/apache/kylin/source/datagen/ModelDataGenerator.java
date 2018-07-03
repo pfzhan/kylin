@@ -86,7 +86,7 @@ public class ModelDataGenerator {
 
     boolean outprint = false; // for debug
 
-    private ModelDataGenerator(NDataModel model, int nRows, ResourceStore outputStore) {
+    public ModelDataGenerator(NDataModel model, int nRows, ResourceStore outputStore) {
         this(model, nRows, outputStore, "/data");
     }
 

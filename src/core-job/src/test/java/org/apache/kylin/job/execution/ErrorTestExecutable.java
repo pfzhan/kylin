@@ -41,17 +41,15 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job;
+package org.apache.kylin.job.execution;
 
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.ExecutableContext;
-import org.apache.kylin.job.execution.ExecuteResult;
 
 /**
  */
-public class SucceedTestExecutable extends BaseTestExecutable {
+public class ErrorTestExecutable extends BaseTestExecutable {
 
-    public SucceedTestExecutable() {
+    public ErrorTestExecutable() {
         super();
     }
 
@@ -61,6 +59,6 @@ public class SucceedTestExecutable extends BaseTestExecutable {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
         }
-        return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+        throw new RuntimeException("test error");
     }
 }

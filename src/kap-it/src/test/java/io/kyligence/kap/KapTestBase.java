@@ -29,9 +29,9 @@ import java.sql.DriverManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.query.H2Database;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.query.QueryConnection;
+import org.apache.kylin.source.jdbc.H2Database;
 
 public class KapTestBase extends KylinTestBase {
 

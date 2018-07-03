@@ -24,6 +24,7 @@
 
 package org.apache.kylin.job.execution;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 
 /**
@@ -32,14 +33,21 @@ public class SucceedTestExecutable extends BaseTestExecutable {
 
     public SucceedTestExecutable() {
         super();
+        this.initConfig(KylinConfig.getInstanceFromEnv());
     }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         try {
             Thread.sleep(1000);
+            this.retry++;
         } catch (InterruptedException e) {
         }
         return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+    }
+
+    @Override
+    public boolean needRetry() {
+        return super.needRetry();
     }
 }
