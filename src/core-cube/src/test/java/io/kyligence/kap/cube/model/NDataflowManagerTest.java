@@ -35,10 +35,15 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
+import java.util.Vector;
+import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.Assert.fail;
 
@@ -354,5 +359,145 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(mgr.getDataflow(dfName).getSegments().size(), 3);
         Assert.assertNotNull(mgr.getDataflow(dfName).getSegment(2));
+    }
+
+    @Test
+    @Ignore
+    public void testConcurrency() throws IOException, InterruptedException {
+        // this test case merge from PR <https://github.com/Kyligence/KAP/pull/4744>
+        final KylinConfig testConfig = getTestConfig();
+        final NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NCubePlanManager cubePlanMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
+        NProjectManager projMgr = NProjectManager.getInstance(testConfig);
+
+        final String[] dataFlowNames = { "df1", "df2", "df3", "df4" };
+        final String owner = "test_owner";
+        final int n = dataFlowNames.length;
+        final int updatesPerCube = 100;
+        testConfig.setProperty("kylin.cube.max-building-segments", String.valueOf(updatesPerCube));
+
+        final ProjectInstance proj = projMgr.getProject(projectDefault);
+        final NCubePlan cube = cubePlanMgr.getCubePlan("ncube_basic");
+        final List<NDataflow> dataflows = new ArrayList<>();
+
+        // create
+        for (String dataFlowName : dataFlowNames) {
+            dataflows.add(mgr.createDataflow(dataFlowName, proj.getName(), cube, owner));
+        }
+
+        final AtomicInteger runningFlag = new AtomicInteger();
+        final Vector<Exception> exceptions = new Vector<>();
+
+        // 1 thread, keeps reloading dataflow
+        Thread reloadThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    Random rand = new Random();
+                    while (runningFlag.get() == 0) {
+                        String name = dataFlowNames[rand.nextInt(n)];
+                        NDataflowManager.getInstance(testConfig, projectDefault).reloadDataFlow(name);
+                        Thread.sleep(1);
+                    }
+                } catch (Exception ex) {
+                    exceptions.add(ex);
+                }
+            }
+        };
+        reloadThread.start();
+
+        // 4 threads, keeps updating cubes
+        Thread[] updateThreads = new Thread[n];
+        for (int i = 0; i < n; i++) {
+            // each thread takes care of one dataFlow
+            // for now, the design refuses concurrent updates to one dataFlow
+            final String dataFlowName = dataFlowNames[i];
+            updateThreads[i] = new Thread() {
+                @Override
+                public void run() {
+                    try {
+                        Random rand = new Random();
+                        for (int i = 0; i < updatesPerCube; i++) {
+                            NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+                            NDataflow dataflow = mgr.getDataflow(dataFlowName);
+                            mgr.appendSegment(dataflow,
+                                    new SegmentRange.TimePartitionedSegmentRange((long) i, (long) i + 1));
+                            Thread.sleep(rand.nextInt(1));
+                        }
+                    } catch (Exception ex) {
+                        exceptions.add(ex);
+                    }
+                }
+            };
+            updateThreads[i].start();
+        }
+
+        // wait things done
+        for (int i = 0; i < n; i++) {
+            updateThreads[i].join();
+        }
+        runningFlag.incrementAndGet();
+        reloadThread.join();
+
+        // check result and error
+        if (exceptions.isEmpty() == false) {
+            fail();
+        }
+        for (int i = 0; i < n; i++) {
+            NDataflow dataflow = mgr.getDataflow(dataFlowNames[i]);
+            Assert.assertEquals(updatesPerCube, dataflow.getSegments().size());
+        }
+
+    }
+
+    @Test
+    public void testRefreshSegment() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataSegment segment = df.getSegments(SegmentStatusEnum.READY).get(0);
+
+        NDataSegment newSegment = mgr.refreshSegment(df, segment.getSegRange());
+
+        Assert.assertEquals(newSegment.getId() == segment.getId() + 1, true);
+        Assert.assertEquals(newSegment.getSegRange().equals(segment.getSegRange()), true);
+        Assert.assertEquals(newSegment.getStatus().equals(SegmentStatusEnum.NEW), true);
+    }
+
+    @Test
+    public void testGetDataflow2() throws IOException {
+        KylinConfig testConfig = getTestConfig();
+        String cubePlanName = "ncube_basic";
+        String uuid = "0aeb985d-aec5-488a-a9b7-a5a564008891";
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+
+        NDataflow df = mgr.getDataflowByUuid(uuid);
+        Assert.assertEquals(uuid.equals(df.getUuid()), true);
+
+        List<NDataflow> dataflows = mgr.getDataflowsByCubePlan(cubePlanName);
+        for (NDataflow dataflow : dataflows) {
+            Assert.assertEquals(dataflow.getCubePlanName().equals(cubePlanName), true);
+        }
+
+    }
+
+    @Test
+    public void testCalculateHoles() throws IOException {
+        String dataFlowName = "dataFlowWithHole";
+        KylinConfig testConfig = getTestConfig();
+        NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        NCubePlanManager cubePlanMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
+        final NCubePlan cubePlan = cubePlanMgr.getCubePlan("ncube_basic");
+
+        NDataflow df = mgr.createDataflow(dataFlowName, projectDefault, cubePlan, "test_owner");
+
+        mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
+        mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
+        mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1000L, 10000L));
+
+        List<NDataSegment> dataSegments = mgr.calculateHoles(dataFlowName);
+
+        Assert.assertEquals(dataSegments.size() == 2, true);
+
     }
 }

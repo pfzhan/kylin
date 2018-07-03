@@ -71,7 +71,7 @@ public class NDictionaryInfo extends RootPersistentEntity {
     private String dictionaryClass;
     @JsonProperty("cardinality")
     private int cardinality;
-
+    @JsonProperty("project")
     private String project;
     transient Dictionary<String> dictionaryObject;
 

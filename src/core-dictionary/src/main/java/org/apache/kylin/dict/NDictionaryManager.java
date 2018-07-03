@@ -380,14 +380,14 @@ public class NDictionaryManager {
 
     private String checkDupByInfo(NDictionaryInfo dictInfo) throws IOException {
         final ResourceStore store = getStore();
-        final List<DictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(), DictionaryInfo.class,
-                DictionaryInfoSerializer.INFO_SERIALIZER);
+        final List<NDictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(), NDictionaryInfo.class,
+                NDictionaryInfoSerializer.INFO_SERIALIZER);
 
         TableSignature input = dictInfo.getInput();
 
-        for (DictionaryInfo DictionaryInfo : allResources) {
-            if (input.equals(DictionaryInfo.getInput())) {
-                return DictionaryInfo.getResourcePath();
+        for (NDictionaryInfo dictionaryInfo : allResources) {
+            if (input.equals(dictionaryInfo.getInput())) {
+                return dictionaryInfo.getResourcePath();
             }
         }
         return null;

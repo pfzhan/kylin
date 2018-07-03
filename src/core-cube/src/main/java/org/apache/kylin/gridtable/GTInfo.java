@@ -102,6 +102,10 @@ public class GTInfo {
         return colBlocks.length;
     }
 
+    public DataType[] getColTypes() {
+        return colTypes;
+    }
+
     public ImmutableBitSet getColumnBlock(int i) {
         return colBlocks[i];
     }

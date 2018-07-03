@@ -144,6 +144,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
+    NDataflow reloadDataFlow(String dataFlowName) {
+        try (AutoLock lock = dfMapLock.lockForWrite()) {
+            return crud.reload(dataFlowName);
+        }
+    }
+
     public LookupStringTable getLookupTable(NDataSegment cubeSegment, JoinDesc join) {
         long ts = System.currentTimeMillis();
 
