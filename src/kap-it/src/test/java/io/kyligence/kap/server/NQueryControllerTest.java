@@ -73,4 +73,15 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andDo(MockMvcResultHandlers.print());
 
     }
+
+    @Test
+    public void testGetMetadata() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders
+                .get("/api/tables_and_columns")
+                .param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andDo(MockMvcResultHandlers.print());
+
+    }
 }
