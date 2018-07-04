@@ -38,7 +38,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultHandlers;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 
-public class ITNQueryControllerTest extends AbstractMVCIntegrationTestCase {
+public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testQuery() throws Exception {
