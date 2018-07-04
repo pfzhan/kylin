@@ -171,12 +171,9 @@
         <module>src/core-common</module>
         <module>src/core-metadata</module>
         <module>src/core-cube</module>
-        <module>src/core-metrics</module>
         <module>src/jdbc</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
-        <module>src/metrics-reporter-hive</module>
-        <module>src/metrics-reporter-kafka</module>
         <module>src/core-dictionary</module>
         <module>src/server</module>
     </modules>

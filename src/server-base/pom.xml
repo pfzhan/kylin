@@ -58,25 +58,7 @@
 
         <dependency>
             <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-core-metrics</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
             <artifactId>kylin-external-htrace</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-metrics-reporter-kafka</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>io.kyligence.kap</groupId>
-            <artifactId>kap-metrics-reporter-hive</artifactId>
             <version>${project.version}</version>
         </dependency>
 
