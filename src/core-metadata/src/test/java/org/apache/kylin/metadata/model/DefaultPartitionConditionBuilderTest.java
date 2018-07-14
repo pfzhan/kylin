@@ -187,4 +187,18 @@ public class DefaultPartitionConditionBuilderTest {
                 condition);
     }
 
+    @Test
+    public void testCCPartition() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "CC_COLUMN", "string",
+                "CAST(DATE_COLUMN AS DATE)");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals("CAST(DATE_COLUMN AS DATE) >= '2016-02-22' AND CAST(DATE_COLUMN AS DATE) < '2016-02-23'",
+                condition);
+    }
 }

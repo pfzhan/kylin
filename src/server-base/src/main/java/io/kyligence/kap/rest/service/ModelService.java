@@ -743,7 +743,7 @@ public class ModelService extends BasicService {
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
                 || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return;
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
 
         val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn);
         val format = DateFormat.proposeDateFormat(date);
@@ -758,7 +758,8 @@ public class ModelService extends BasicService {
         val modelDesc = modelManager.getDataModelDesc(model);
         val table = modelDesc.getRootFactTableName();
 
-        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelDesc.getPartitionDesc().getPartitionDateColumn(), table);
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumnRef().getExpressionInSourceDB();
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table);
 
         String dateFormat;
         if (StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateFormat())) {

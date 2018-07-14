@@ -150,11 +150,13 @@ public class TblColRef implements Serializable {
 
     // for test mainly
     public static TblColRef mockup(TableDesc table, int oneBasedColumnIndex, String name, String datatype) {
-        ColumnDesc desc = new ColumnDesc();
+        return mockup(table, oneBasedColumnIndex, name, datatype, null);
+    }
+
+    // for test mainly
+    public static TblColRef mockup(TableDesc table, int oneBasedColumnIndex, String name, String datatype, String computedColumnExpr) {
         String id = "" + oneBasedColumnIndex;
-        desc.setId(id);
-        desc.setName(name);
-        desc.setDatatype(datatype);
+        ColumnDesc desc = new ColumnDesc(id, name, datatype, null, null, null, computedColumnExpr);
         desc.init(table);
         return new TblColRef(desc);
     }
