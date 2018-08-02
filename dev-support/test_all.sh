@@ -24,11 +24,10 @@ set -o pipefail
 rm testall*.log
 
 export SPARK_HOME=${SPARK_HOME:-"/root/spark-2.1.1-bin-hadoop2.6"}
-export ZIPKIN_HOSTNAME=${ZIPKIN_HOSTNAME:-"localhost"}
-export ZIPKIN_SCRIBE_PORT=${ZIPKIN_SCRIBE_PORT:-"9410"}
-export KAP_HDFS_WORKING_DIR=${KAP_HDFS_WORKING_DIR:-"/kylin"}
-export hdpv=${HDP_VERSION:-"2.4.0.0-169"}
+#export ZIPKIN_HOSTNAME=${ZIPKIN_HOSTNAME:-"localhost"}
+#export ZIPKIN_SCRIBE_PORT=${ZIPKIN_SCRIBE_PORT:-"9410"}
+#export KAP_HDFS_WORKING_DIR=${KAP_HDFS_WORKING_DIR:-"/kylin"}
+#export hdpv=${HDP_VERSION:-"2.4.0.0-169"}
 
 mvn clean install -DskipTests                                       2>&1 | tee testall-1.log  || exit 1
-mvn test -fae -Dhdp.version=$hdpv -P sandbox                        2>&1 | tee testall-2.log  || exit 1
-mvn -pl :kap-it verify -Dhdp.version=$hdpv -P sandbox               2>&1 | tee testall-3.log  || exit 1
+mvn test -fae                                                       2>&1 | tee testall-2.log  || exit 1
