@@ -24,20 +24,22 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.spark.KapSparkSession;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.query.routing.Candidate;
 import org.apache.spark.SparkContext;
 import org.junit.After;
@@ -48,18 +50,16 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.spark.KapSparkSession;
 
+@SuppressWarnings("serial")
 public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NAutoBuildAndQueryTest.class);
@@ -72,13 +72,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
-        super.setUp();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+        super.init();
 
         kylinConfig = getTestConfig();
         kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
@@ -89,12 +83,11 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     @After
     public void after() throws Exception {
-        Candidate.restorePriorities();
-
         NDefaultScheduler.destroyInstance();
-        super.tearDown();
+        super.cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
+        Candidate.restorePriorities();
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
@@ -241,8 +234,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         String[] noneAndLeftSql = new String[]{ "sql_intersect_count" };
         String[] specialSql = new String[]{ "sql_distinct_dim", "sql_rawtable"};
 
-        QueryResult result = new QueryResult();
-        ExecutorService service = new CustomeThreadPoolExecutor(result);
+        CustomThreadPoolExecutor service = new CustomThreadPoolExecutor();
         int countdownNum = sameSql.length + rowcountSql.length + leftJoinSql.length +
                 noneSql.length + noneAndLeftSql.length + specialSql.length;
 
@@ -275,61 +267,38 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
         try {
             latch.await();
-        } catch (Exception e){
-
+        } finally {
+            service.shutdown();
         }
-        service.shutdown();
-        if(result.getErrorCount() > 0){
+        
+        if (!service.reportError())
             Assert.fail();
-        }
     }
 
-    class QueryResult{
-        private List<String> errorQuerys;
-        private int errorCount;
+    class CustomThreadPoolExecutor extends ThreadPoolExecutor {
+        private List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<Throwable>());
 
-        public List<String> getErrorQuerys() {
-            return errorQuerys;
-        }
-
-        public void addErrorQuery(String errorQuery) {
-            if(errorQuerys == null){
-                errorQuerys = new ArrayList<String>();
-            }
-            errorQuerys.add(errorQuery);
-        }
-
-        public int getErrorCount() {
-            return errorCount;
-        }
-
-        public void increament() {
-            errorCount++;
-        }
-
-        @Override
-        public String toString() {
-            return "QueryResult{" +
-                    "errorQuerys=" + errorQuerys +
-                    ", errorCount=" + errorCount +
-                    '}';
-        }
-    }
-
-    class CustomeThreadPoolExecutor extends ThreadPoolExecutor {
-        private QueryResult queryResult;
-        public CustomeThreadPoolExecutor(QueryResult queryResult){
+        public CustomThreadPoolExecutor() {
             super(9, 9, 1, TimeUnit.DAYS, new LinkedBlockingQueue<Runnable>(100));
-            this.queryResult = queryResult;
+        }
+
+        public boolean reportError() {
+            if (exceptions.isEmpty())
+                return true;
+            
+            logger.error("There were exceptions in CustomThreadPoolExecutor");
+            for (Throwable ex : exceptions) {
+                logger.error("", ex);
+            }
+            return false;
         }
 
         @Override
         protected void afterExecute(Runnable r, Throwable t) {
             super.afterExecute(r, t);
-            if(t.getLocalizedMessage().contains("not match")){
-                String message = t.getLocalizedMessage();
-                queryResult.addErrorQuery(message);
-                queryResult.increament();
+            
+            if (t != null) {
+                exceptions.add(t);
             }
         }
     }
@@ -365,9 +334,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
                 NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, JOIN_TYPE);
                 kapSparkSession.close();
-            } catch (Exception e){
-                logger.error("query error! name: " + subFolder);
-                throw new RuntimeException(e);
+            } catch (Exception e) {
+                throw new RuntimeException("query error in sub-folder: " + subFolder, e);
             } finally {
                 latch.countDown();
             }

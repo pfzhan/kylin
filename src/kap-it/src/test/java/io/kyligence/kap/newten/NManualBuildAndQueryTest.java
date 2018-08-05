@@ -23,20 +23,23 @@
  */
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
-import io.kyligence.kap.spark.KapSparkSession;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockedDistributedLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -49,17 +52,17 @@ import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.spark.KapSparkSession;
 
+@SuppressWarnings("serial")
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
@@ -68,36 +71,23 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() throws Exception {
-        init();
+        super.init();
     }
 
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
-        cleanupTestMetadata();
+        super.cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
-    @SuppressWarnings("MethodLength")
-    public void test_ncube_basic() throws Exception {
+    public void testBasics() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
+        config.setProperty("kylin.metadata.distributed-lock-impl", MockedDistributedLock.MockedFactory.class.getName());
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        System.setProperty("noBuild", "false");
-        System.setProperty("isDeveloperMode", "false");
-        QueryResult queryResult = new QueryResult();
-        ExecutorService service = new CustomeThreadPoolExecutor(queryResult);
-        if (Boolean.valueOf(System.getProperty("noBuild"))) {
-            System.out.println("Direct query");
-        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode"))) {
-            fullBuildBasic("ncube_basic");
-            fullBuildBasic("ncube_basic_inner");
-        } else {
-            buildAndMergeCube("ncube_basic");
-            buildAndMergeCube("ncube_basic_inner");
-        }
+        
+        buildCubes();
 
         // build is done, start to test query
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
@@ -106,7 +96,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
         final KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
-        // Validate results between sparksql and cube
         populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
 
         String[] joinTypes = new String[] { "left", "inner" };
@@ -119,8 +108,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 "sql_percentile", "sql_distinct", "sql_powerbi" };
         String[] limitedSql = new String[] { "sql" };
         String[] multiSql = new String[] { "sql_multi_model" };
-        //ignore
-        String[] ignoreSql = new String[] { "tableau_probing" };
+        
+        //String[] ignoreSql = new String[] { "tableau_probing" };
 
         Map<CompareLevel, String[]> allJoinType = new HashMap<CompareLevel, String[]>();
         allJoinType.put(CompareLevel.SAME, sameLevelSql);
@@ -128,9 +117,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         allJoinType.put(CompareLevel.NONE, noneLevelSql);
         allJoinType.put(CompareLevel.SUBSET, limitedSql);
 
+        final CustomThreadPoolExecutor service = new CustomThreadPoolExecutor();
         int countNum = (rowcountLevelSql.length + noneLevelSql.length + sameLevelSql.length + limitedSql.length)
                 * joinTypes.length + multiSql.length;
         final CountDownLatch latch = new CountDownLatch(countNum);
+        
         for (final String joinType : joinTypes) {
             for (Map.Entry<CompareLevel, String[]> entry : allJoinType.entrySet()) {
                 CompareLevel compareLevel = entry.getKey();
@@ -141,17 +132,29 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 }
             }
         }
-
+        
         QueryRunnbale runnbale = new QueryRunnbale(kapSparkSession, latch, CompareLevel.SAME, "default", multiSql[0]);
         service.submit(runnbale);
+        
         try {
             latch.await();
-        } catch (Exception e) {
-            logger.error("query error when countdown wait!");
+        } finally {
+            service.shutdown();
         }
-        service.shutdown();
-        if(queryResult.getErrorCount() > 0){
+        
+        if (!service.reportError())
             Assert.fail();
+    }
+
+    private void buildCubes() throws Exception {
+        if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
+            System.out.println("Direct query");
+        } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
+            fullBuildBasic("ncube_basic");
+            fullBuildBasic("ncube_basic_inner");
+        } else {
+            buildAndMergeCube("ncube_basic");
+            buildAndMergeCube("ncube_basic_inner");
         }
     }
 
@@ -185,62 +188,38 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                     NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, joinType);
                 }
             } catch (Exception e) {
-                logger.error(
-                        "query error: " + sqlSuffix + ", joinType: " + joinType + ", compareLevel: " + compareLevel);
-                throw new RuntimeException(e);
+                throw new RuntimeException(
+                        "query error: " + sqlSuffix + ", joinType: " + joinType + ", compareLevel: " + compareLevel, e);
             } finally {
                 latch.countDown();
             }
         }
     }
 
-    class QueryResult{
-        private List<String> errorQuerys;
-        private int errorCount;
+    class CustomThreadPoolExecutor extends ThreadPoolExecutor {
+        private List<Throwable> exceptions = Collections.synchronizedList(new ArrayList<Throwable>());
 
-        public List<String> getErrorQuerys() {
-            return errorQuerys;
-        }
-
-        public void addErrorQuery(String errorQuery) {
-            if(errorQuerys == null){
-                errorQuerys = new ArrayList<String>();
-            }
-            errorQuerys.add(errorQuery);
-        }
-
-        public int getErrorCount() {
-            return errorCount;
-        }
-
-        public void increament() {
-            errorCount++;
-        }
-
-        @Override
-        public String toString() {
-            return "QueryResult{" +
-                    "errorQuerys=" + errorQuerys +
-                    ", errorCount=" + errorCount +
-                    '}';
-        }
-    }
-
-
-    class CustomeThreadPoolExecutor extends ThreadPoolExecutor {
-        private QueryResult queryResult;
-        public CustomeThreadPoolExecutor(QueryResult queryResult){
+        public CustomThreadPoolExecutor() {
             super(9, 9, 1, TimeUnit.DAYS, new LinkedBlockingQueue<Runnable>(100));
-            this.queryResult = queryResult;
+        }
+
+        public boolean reportError() {
+            if (exceptions.isEmpty())
+                return true;
+            
+            logger.error("There were exceptions in CustomThreadPoolExecutor");
+            for (Throwable ex : exceptions) {
+                logger.error("", ex);
+            }
+            return false;
         }
 
         @Override
         protected void afterExecute(Runnable r, Throwable t) {
             super.afterExecute(r, t);
-            if(t.getLocalizedMessage().contains("not match")){
-                String message = t.getLocalizedMessage().split(":")[1];
-                queryResult.addErrorQuery(message);
-                queryResult.increament();
+            
+            if (t != null) {
+                exceptions.add(t);
             }
         }
     }

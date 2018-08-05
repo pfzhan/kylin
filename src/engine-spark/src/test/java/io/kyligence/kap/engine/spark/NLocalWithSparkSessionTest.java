@@ -225,7 +225,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         }
     }
 
-    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
+    protected void builCuboid(String cubeName, SegmentRange<?> segmentRange, Set<NCuboidLayout> toBuildLayouts)
             throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
