@@ -49,7 +49,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -150,8 +149,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
-            fullBuildBasic("ncube_basic");
-            fullBuildBasic("ncube_basic_inner");
+            fullBuildCube("ncube_basic", DEFAULT_PROJECT);
+            fullBuildCube("ncube_basic_inner", DEFAULT_PROJECT);
         } else {
             buildAndMergeCube("ncube_basic");
             buildAndMergeCube("ncube_basic_inner");
@@ -179,12 +178,10 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         public void run() {
             try {
                 if (NExecAndComp.CompareLevel.SUBSET.equals(compareLevel)) {
-                    List<Pair<String, String>> queries = NExecAndComp
-                            .fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql");
+                    List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
                     NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
                 } else {
-                    List<Pair<String, String>> queries = NExecAndComp
-                            .fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + sqlSuffix);
+                    List<Pair<String, String>> queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlSuffix);
                     NExecAndComp.execAndCompare(queries, kapSparkSession, compareLevel, joinType);
                 }
             } catch (Exception e) {
@@ -354,27 +351,5 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(21, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
-    }
-
-    private void fullBuildBasic(String dfName) throws Exception {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-
-        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-        // ready dataflow, segment, cuboid layout
-        NDataflow df = dsMgr.getDataflow(dfName);
-
-        // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-        df = dsMgr.getDataflow(dfName);
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
-        List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
-        builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                Sets.<NCuboidLayout>newLinkedHashSet(round1));
     }
 }

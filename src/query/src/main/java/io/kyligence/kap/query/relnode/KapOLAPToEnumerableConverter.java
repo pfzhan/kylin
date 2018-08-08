@@ -89,7 +89,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
             intercept.intercept(contexts);
         }
 
-        RealizationChooser.selectRealization(contexts);
+        RealizationChooser.selectLayoutCandidate(contexts);
 
         dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET");
 

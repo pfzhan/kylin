@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -61,6 +62,7 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
@@ -86,7 +88,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
-    protected static final String KYLIN_SQL_BASE_DIR = "../../kylin/kylin-it/src/test/resources/query";
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
 
     protected static SparkConf sparkConf;
@@ -225,17 +226,42 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         }
     }
 
-    protected void builCuboid(String cubeName, SegmentRange<?> segmentRange, Set<NCuboidLayout> toBuildLayouts)
+    protected void fullBuildCube(String dfName, String prj) throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
+        Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
+        // ready dataflow, segment, cuboid layout
+        NDataflow df = dsMgr.getDataflow(dfName);
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow(dfName);
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
+        builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+                Sets.newLinkedHashSet(round1), prj);
+    }
+
+    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
+            throws Exception {
+        builCuboid(cubeName, segmentRange, toBuildLayouts, DEFAULT_PROJECT);
+    }
+
+    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, String prj)
             throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
         NDataflow df = dsMgr.getDataflow(cubeName);
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, segmentRange);
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));

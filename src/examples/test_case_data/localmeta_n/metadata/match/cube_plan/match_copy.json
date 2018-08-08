@@ -1,0 +1,103 @@
+{
+  "uuid": "64cc1592-50be-422d-b94c-f1f011070d3b",
+  "last_modified": 1509531215483,
+  "version": "2.3.0.20500",
+  "name": "match_copy",
+  "model_name": "match_copy",
+  "description": "test_description",
+  "dimensions": [
+    {
+      "id": 1,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    },
+    {
+      "id": 2,
+      "encoding": {
+        "name": "date",
+        "version": "1"
+      }
+    },
+    {
+      "id": 3,
+      "encoding": {
+        "name": "fixed_length:10",
+        "version": "1"
+      }
+    },
+    {
+      "id": 11,
+      "encoding": {
+        "name": "dict",
+        "version": "1"
+      }
+    }],
+  "cuboids": [
+    {
+      "id": 0,
+      "dimensions": [
+        1,
+        2,
+        3,
+        11
+      ],
+      "measures": [
+        1000,
+        1001
+      ],
+      "layouts": [
+        {
+          "id": 1,
+          "rowkeys": [
+            {
+              "dimension_id": 1,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 2,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 3,
+              "index": "eq"
+            },
+            {
+              "dimension_id": 11,
+              "index": "eq"
+            }
+          ],
+          "dim_cf": [
+            {
+              "name": "D1",
+              "columns": [
+                1,
+                2,
+                3,
+                11
+              ]
+            }
+          ],
+          "measure_cf": [
+            {
+              "name": "M1",
+              "columns": [
+                1000,
+                1001
+              ]
+            }
+          ],
+          "storage_type": 20
+        }
+      ]
+    }],
+  "override_properties": {},
+  "segment_range_start": 0,
+  "segment_range_end": 9223372036854775807,
+  "auto_merge_time_ranges": null,
+  "retention_range": 0,
+  "notify_list": null,
+  "status_need_notify": [],
+  "engine_type": 0
+}

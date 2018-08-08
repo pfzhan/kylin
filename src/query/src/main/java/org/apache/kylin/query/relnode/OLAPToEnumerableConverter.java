@@ -113,7 +113,7 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
             System.out.println(dumpPlan);
         }
 
-        RealizationChooser.selectRealization(contexts);
+        RealizationChooser.selectLayoutCandidate(contexts);
 
         doAccessControl(contexts);
 

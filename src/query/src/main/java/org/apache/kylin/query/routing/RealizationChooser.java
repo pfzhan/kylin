@@ -43,50 +43,69 @@
 
 package org.apache.kylin.query.routing;
 
+import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.measure.MeasureType;
+import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
+import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NRawQueryLastHacker;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class RealizationChooser {
 
     private static final Logger logger = LoggerFactory.getLogger(RealizationChooser.class);
 
     // select models for given contexts, return realization candidates for each context
-    public static void selectRealization(List<OLAPContext> contexts) {
+    public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
 
         for (OLAPContext ctx : contexts) {
-            attemptSelectRealization(ctx);
+            attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);
         }
     }
 
-    private static void attemptSelectRealization(OLAPContext context) {
+    private static void attemptSelectCandidate(OLAPContext context) {
         Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
 
         if (modelMap.size() == 0) {
@@ -120,12 +139,99 @@ public class RealizationChooser {
                 }
 
                 context.realization = realization;
-                return;
+                if (!chooseLayoutCandidate(context)) {
+                    context.realization = null;
+                    context.unfixModel();
+                    logger.info("Give up on realization {} because no suitable layout candidate is found.",
+                            realization);
+                    continue;
+                }
+                return; // success
             }
         }
 
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
 
+    }
+
+    private static boolean chooseLayoutCandidate(OLAPContext context) {
+        SQLDigest sqlDigest = context.getSQLDigest();
+        NDataflow dataflow = (NDataflow) context.realization;
+        //cope with queries with no aggregations
+        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow);
+        // Customized measure taking effect: e.g. allow custom measures to help raw queries
+        notifyBeforeStorageQuery(sqlDigest, dataflow);
+        // build dimension & metrics
+        Set<TblColRef> dimensions = new LinkedHashSet<>();
+        Set<FunctionDesc > metrics = new LinkedHashSet<>();
+        buildDimensionsAndMetrics(sqlDigest, dimensions, metrics, dataflow);
+        Segments<NDataSegment > dataSegments = dataflow.getSegments(SegmentStatusEnum.READY);
+        Set<TblColRef> filterColumns = Sets.newHashSet();
+        TupleFilter.collectColumns(sqlDigest.filter, filterColumns);
+        // TODO: in future, segment's cuboid may differ
+        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
+                dataSegments.get(0) //
+                , ImmutableSet.copyOf(sqlDigest.allColumns) //
+                , ImmutableSet.copyOf(dimensions) //
+                , ImmutableSet.copyOf(filterColumns) //
+                , ImmutableSet.copyOf(metrics) //
+                , sqlDigest.isRawQuery); //
+        if (layoutCandidate != null) {
+            StorageContext storageContext = context.storageContext;
+            NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
+            storageContext.setCandidate(layoutCandidate);
+            storageContext.setDimensions(dimensions);
+            storageContext.setMetrics(metrics);
+            logger.info("Choose dataflow:" + cuboidLayout.getCuboidDesc().getModel().getName());
+            logger.info("Choose cuboid layout ID:" + cuboidLayout.getId());
+            return true;
+        } else {
+            return false;
+        }
+    }
+    private static void notifyBeforeStorageQuery(SQLDigest sqlDigest, NDataflow dataflow) {
+        Map<String, List<MeasureDesc>> map = Maps.newHashMap();
+        for (MeasureDesc measure : dataflow.getMeasures()) {
+            MeasureType<?> measureType = measure.getFunction().getMeasureType();
+            String key = measureType.getClass().getCanonicalName();
+            List<MeasureDesc> temp;
+            if ((temp = map.get(key)) != null) {
+                temp.add(measure);
+            } else {
+                map.put(key, Lists.newArrayList(measure));
+            }
+        }
+        for (List<MeasureDesc> sublist : map.values()) {
+            sublist.get(0).getFunction().getMeasureType().adjustSqlDigest(sublist, sqlDigest);
+        }
+    }
+
+    private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
+                                                  Collection<FunctionDesc> metrics, NDataflow dataflow) {
+        Set<TblColRef> metricColumns = new HashSet<>();
+        for (FunctionDesc func : sqlDigest.aggregations) {
+            if (!func.isDimensionAsMetric()) {
+                // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
+                FunctionDesc aggrFuncFromDataflowDesc = findAggrFuncFromDataflowDesc(func, dataflow);
+                metrics.add(aggrFuncFromDataflowDesc);
+                metricColumns.addAll(aggrFuncFromDataflowDesc.getParameter().getColRefs());
+            }
+        }
+        for (TblColRef column : sqlDigest.allColumns) {
+            // skip measure columns
+            if (metricColumns.contains(column)
+                    && !(sqlDigest.groupbyColumns.contains(column) || sqlDigest.filterColumns.contains(column))) {
+                continue;
+            }
+            dimensions.add(column);
+        }
+    }
+    private static FunctionDesc findAggrFuncFromDataflowDesc(FunctionDesc aggrFunc, NDataflow dataflow) {
+        for (MeasureDesc measure : dataflow.getMeasures()) {
+            if (measure.getFunction().equals(aggrFunc))
+                return measure.getFunction();
+        }
+        return aggrFunc;
     }
 
     private static String toErrorMsg(OLAPContext ctx) {

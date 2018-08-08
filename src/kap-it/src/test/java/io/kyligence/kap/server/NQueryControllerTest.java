@@ -55,7 +55,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andReturn();
 
         Assert.assertTrue(result.getResolvedException() instanceof InternalErrorException);
-        Assert.assertTrue(StringUtils.contains(result.getResolvedException().getMessage(), "Table not found by DEFAULT.TEST_COUNTRY"));
+        Assert.assertTrue(StringUtils.contains(result.getResolvedException().getMessage(), "No realization found for OLAPContext"));
     }
 
     @Test

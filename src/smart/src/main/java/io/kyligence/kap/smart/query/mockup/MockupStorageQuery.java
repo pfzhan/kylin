@@ -25,12 +25,8 @@
 package io.kyligence.kap.smart.query.mockup;
 
 import java.util.Properties;
-import java.util.Set;
 
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.ITupleIterator;
 import org.apache.kylin.metadata.tuple.TupleInfo;
@@ -97,12 +93,10 @@ public class MockupStorageQuery extends NDataStorageQuery {
 
     @Override
     protected ITupleIterator searchCube(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo,
-            Segments<NDataSegment> dataSegments, TupleFilter filter, Set<TblColRef> dimensions,
-            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate) {
+                                        Segments<NDataSegment> dataSegments, NLayoutCandidate layoutCandidate) {
 
         QueryRecord record = MockupQueryExecutor.getCurrentRecord();
-        NDataStorageQueryRequest request = getStorageQueryRequest(context, sqlDigest, filter, dimensions, metrics,
-                layoutCandidate);
+        NDataStorageQueryRequest request = getStorageQueryRequest(context, sqlDigest, layoutCandidate);
         record.setCubeInstance(dataflow);
         record.setGtRequest(request);
         record.setStorageContext(context);

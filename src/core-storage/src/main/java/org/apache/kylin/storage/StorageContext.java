@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +43,16 @@
 
 package org.apache.kylin.storage;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.gridtable.StorageLimitLevel;
+import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,11 +82,14 @@ public class StorageContext {
 
     private IStorageQuery storageQuery;
     private Long cuboidId;
-
     private AtomicLong processedRowCount = new AtomicLong();
     private boolean partialResultReturned = false;
-
     private Range<Long> reusedPeriod;
+
+    private NLayoutCandidate candidate;
+    private TupleFilter filter;
+    private Set<TblColRef> dimensions;
+    private Set<FunctionDesc> metrics;
 
     public StorageURL getConnUrl() {
         return connUrl;
@@ -133,11 +141,42 @@ public class StorageContext {
         this.cuboidId = cuboidId;
     }
 
+    public NLayoutCandidate getCandidate() {
+        return candidate;
+    }
+
+    public void setCandidate(NLayoutCandidate candidate) {
+        this.candidate = candidate;
+    }
+
+    public TupleFilter getFilter() {
+        return filter;
+    }
+
+    public void setFilter(TupleFilter filter) {
+        this.filter = filter;
+    }
+
+    public Set<TblColRef> getDimensions() {
+        return dimensions;
+    }
+
+    public void setDimensions(Set<TblColRef> dimensions) {
+        this.dimensions = dimensions;
+    }
+
+    public Set<FunctionDesc> getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Set<FunctionDesc> metrics) {
+        this.metrics = metrics;
+    }
+
     /**
      * in contrast to the limit in SQL concept, "limit push down" means
-     * whether the limit is effective in storage level. Some queries are not possible 
-     * to leverage limit clause, checkout 
-     * {@link GTCubeStorageQueryBase#enableStorageLimitIfPossible(org.apache.kylin.cube.cuboid.Cuboid, java.util.Collection, java.util.Set, java.util.Collection, org.apache.kylin.metadata.filter.TupleFilter, java.util.Set, java.util.Collection, org.apache.kylin.storage.StorageContext)}
+     * whether the limit is effective in storage level. Some queries are not possible
+     * to leverage limit clause, checkout
      */
     public boolean isLimitPushDownEnabled() {
         return isValidPushDownLimit(finalPushDownLimit);
@@ -279,3 +318,4 @@ public class StorageContext {
         this.enableStreamAggregate = true;
     }
 }
+

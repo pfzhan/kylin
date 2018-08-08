@@ -30,12 +30,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.gridtable.StorageLimitLevel;
-import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.filter.CaseTupleFilter;
 import org.apache.kylin.metadata.filter.ColumnTupleFilter;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
@@ -60,19 +58,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NRawQueryLastHacker;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.storage.gtrecord.NCubeTupleConverter;
 import io.kyligence.kap.storage.gtrecord.NDataSegScanner;
@@ -104,43 +98,14 @@ public class NDataStorageQuery implements IStorageQuery {
         }
 
         context.setStorageQuery(this);
-
-        //cope with queries with no aggregations
-        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow, returnTupleInfo);
-
-        // Customized measure taking effect: e.g. allow custom measures to help raw queries
-        notifyBeforeStorageQuery(sqlDigest);
-
-        TupleFilter filter = sqlDigest.filter;
-        Set<TblColRef> filterColumns = Sets.newHashSet();
-        TupleFilter.collectColumns(filter, filterColumns);
-
-        // build dimension & metrics
-        Set<TblColRef> dimensions = new LinkedHashSet<>();
-        Set<FunctionDesc> metrics = new LinkedHashSet<>();
-        buildDimensionsAndMetrics(sqlDigest, dimensions, metrics);
-
-        // TODO: in future, segment's cuboid may differ
-        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
-                dataSegments.get(0) //
-                , ImmutableSet.copyOf(sqlDigest.allColumns) //
-                , ImmutableSet.copyOf(dimensions) //
-                , ImmutableSet.copyOf(filterColumns) //
-                , ImmutableSet.copyOf(metrics) //
-                , sqlDigest.isRawQuery); //
-
+        NLayoutCandidate layoutCandidate = context.getCandidate();
         Preconditions.checkNotNull(layoutCandidate);
-        NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
-        System.out.println("Choose dataflow:" + cuboidLayout.getCuboidDesc().getModel().getName());
-        System.out.println("Choose cuboid layout ID:" + cuboidLayout.getId());
-        return searchCube(context, sqlDigest, returnTupleInfo, dataSegments, filter, dimensions, metrics,
-                layoutCandidate);
+        return searchCube(context, sqlDigest, returnTupleInfo, dataSegments, layoutCandidate);
     }
-    
+
     protected ITupleIterator searchCube(StorageContext context, SQLDigest sqlDigest, TupleInfo returnTupleInfo,
-            Segments<NDataSegment> dataSegments, TupleFilter filter, Set<TblColRef> dimensions,
-            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate) {
-        NDataStorageQueryRequest request = getStorageQueryRequest(context, sqlDigest, filter, dimensions, metrics, layoutCandidate);
+            Segments<NDataSegment> dataSegments, NLayoutCandidate layoutCandidate) {
+        NDataStorageQueryRequest request = getStorageQueryRequest(context, sqlDigest, layoutCandidate);
         
         List<NDataSegScanner> scanners = Lists.newArrayList();
         for (NDataSegment dataSeg : dataSegments) {
@@ -162,14 +127,12 @@ public class NDataStorageQuery implements IStorageQuery {
                 request.getMetrics(), returnTupleInfo, request.getContext(), sqlDigest);
     }
 
-    protected NDataStorageQueryRequest getStorageQueryRequest(StorageContext context, SQLDigest sqlDigest,
-            TupleFilter filter, Set<TblColRef> dimensions,
-            Set<FunctionDesc> metrics, NLayoutCandidate layoutCandidate) {
+    protected NDataStorageQueryRequest getStorageQueryRequest(StorageContext context, SQLDigest sqlDigest, NLayoutCandidate layoutCandidate) {
         NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
         
         // all dimensions = groups + other(like filter) dimensions
         Collection<TblColRef> groups = sqlDigest.groupbyColumns;
-        Set<TblColRef> otherDims = Sets.newHashSet(dimensions);
+        Set<TblColRef> otherDims = Sets.newHashSet(context.getDimensions());
         otherDims.removeAll(groups);
 
         Preconditions.checkNotNull(cuboidLayout, "cuboid not found"); // TODO: throw no realization found exception?
@@ -188,7 +151,7 @@ public class NDataStorageQuery implements IStorageQuery {
 
         // TODO: move following part to each segment level, and create new context for each segment
         // set whether to aggr at storage
-        Set<TblColRef> singleValuesD = findSingleValueColumns(layoutCandidate, filter);
+        Set<TblColRef> singleValuesD = findSingleValueColumns(layoutCandidate, sqlDigest.filter);
         context.setNeedStorageAggregation(isNeedStorageAggregation(cuboidLayout, groupsD, singleValuesD));
 
         // exactAggregation mean: needn't aggregation at storage and query engine both.
@@ -199,7 +162,7 @@ public class NDataStorageQuery implements IStorageQuery {
         // replace derived columns in filter with host columns; columns on loosened condition must be added to group by
         Set<TblColRef> loosenedColumnD = Sets.newHashSet();
         Set<TblColRef> filterColumnD = Sets.newHashSet();
-        TupleFilter filterD = translateDerived(layoutCandidate, filter, loosenedColumnD);
+        TupleFilter filterD = translateDerived(layoutCandidate, sqlDigest.filter, loosenedColumnD);
         groupsD.addAll(loosenedColumnD);
         TupleFilter.collectColumns(filterD, filterColumnD);
 
@@ -211,6 +174,7 @@ public class NDataStorageQuery implements IStorageQuery {
         // set query deadline
         context.setDeadline(dataflow);
 
+        Set<FunctionDesc> metrics = context.getMetrics();
         // push down having clause filter if possible
         TupleFilter havingFilter = checkHavingCanPushDown(cuboidLayout, sqlDigest.havingFilter, groupsD,
                 sqlDigest.aggregations, metrics);
@@ -232,53 +196,6 @@ public class NDataStorageQuery implements IStorageQuery {
             //            throw new IllegalStateException("Unsupported storage type");
             return "io.kyligence.kap.spark.parquet.cube.NMockedDataflowSparkRPC";
         }
-    }
-
-    private void notifyBeforeStorageQuery(SQLDigest sqlDigest) {
-        Map<String, List<MeasureDesc>> map = Maps.newHashMap();
-        for (MeasureDesc measure : dataflow.getMeasures()) {
-            MeasureType<?> measureType = measure.getFunction().getMeasureType();
-
-            String key = measureType.getClass().getCanonicalName();
-            List<MeasureDesc> temp;
-            if ((temp = map.get(key)) != null) {
-                temp.add(measure);
-            } else {
-                map.put(key, Lists.newArrayList(measure));
-            }
-        }
-
-        for (List<MeasureDesc> sublist : map.values()) {
-            sublist.get(0).getFunction().getMeasureType().adjustSqlDigest(sublist, sqlDigest);
-        }
-    }
-
-    private void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
-            Collection<FunctionDesc> metrics) {
-        for (FunctionDesc func : sqlDigest.aggregations) {
-            if (!func.isDimensionAsMetric()) {
-                // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
-                metrics.add(findAggrFuncFromCubeDesc(func));
-            }
-        }
-
-        for (TblColRef column : sqlDigest.allColumns) {
-            // skip measure columns
-            if (sqlDigest.metricColumns.contains(column)
-                    && !(sqlDigest.groupbyColumns.contains(column) || sqlDigest.filterColumns.contains(column))) {
-                continue;
-            }
-
-            dimensions.add(column);
-        }
-    }
-
-    private FunctionDesc findAggrFuncFromCubeDesc(FunctionDesc aggrFunc) {
-        for (MeasureDesc measure : dataflow.getMeasures()) {
-            if (measure.getFunction().equals(aggrFunc))
-                return measure.getFunction();
-        }
-        return aggrFunc;
     }
 
     private Set<TblColRef> expandDerived(NLayoutCandidate layoutCandidate, Collection<TblColRef> cols,

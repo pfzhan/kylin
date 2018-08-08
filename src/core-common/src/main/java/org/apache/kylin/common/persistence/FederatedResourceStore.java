@@ -61,8 +61,7 @@ public class FederatedResourceStore extends ResourceStore {
 
     final ResourceStore base;
     final Map<String, ResourceStore> delegates;
-    final List<String> reservedNonTopDir = ImmutableList.of(ResourceStore.METASTORE_UUID_TAG,
-            ResourceStore.PROJECT_RESOURCE_ROOT, "/kylin.properties");
+    final List<String> reservedNonTopDir = ImmutableList.of(ResourceStore.METASTORE_UUID_TAG, "/kylin.properties");
 
     public FederatedResourceStore(ResourceStore baseStore, Map<String, ResourceStore> delegates) {
         super(baseStore.kylinConfig, baseStore.storageUrl);

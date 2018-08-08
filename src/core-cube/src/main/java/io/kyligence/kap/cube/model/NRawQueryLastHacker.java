@@ -29,7 +29,6 @@ import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.metadata.tuple.TupleInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +36,7 @@ public class NRawQueryLastHacker {
 
     private static final Logger logger = LoggerFactory.getLogger(NRawQueryLastHacker.class);
 
-    public static void hackNoAggregations(SQLDigest sqlDigest, NDataflow nDataflow, TupleInfo tupleInfo) {
+    public static void hackNoAggregations(SQLDigest sqlDigest, NDataflow nDataflow) {
         if (!sqlDigest.isRawQuery || BackdoorToggles.getDisabledRawQueryLastHacker()) {
             return;
         }
@@ -72,7 +71,7 @@ public class NRawQueryLastHacker {
                         break;
                     }
                 }
-                
+
                 if (measureHasSum) {
                     sqlDigest.aggregations.add(sumFunc);
                 } else {

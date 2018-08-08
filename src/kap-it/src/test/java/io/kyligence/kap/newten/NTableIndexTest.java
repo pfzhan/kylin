@@ -67,7 +67,7 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
 
         for (String joinType : joinTypes) {
             //ITKapKylinQueryTest.testCommonQuery
-            queries = NExecAndComp.fetchQueries(KYLIN_SQL_BASE_DIR + File.separator + "sql_raw");
+            queries = NExecAndComp.fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_raw");
             NExecAndComp.execAndCompare(queries, ksc, NExecAndComp.CompareLevel.SAME, joinType);
 
             //ITKapKylinQueryTest.testCommonQuery
