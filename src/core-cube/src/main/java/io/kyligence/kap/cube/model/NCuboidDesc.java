@@ -232,13 +232,17 @@ public class NCuboidDesc implements Serializable, IKeep {
     }
 
     public boolean bothTableIndexOrNot(NCuboidDesc another) {
-        if (id >= TABLE_INDEX_START_ID && another.getId() >= TABLE_INDEX_START_ID)
+        if (this.isTableIndex() && another.isTableIndex())
             return true;
 
-        if (id < TABLE_INDEX_START_ID && another.getId() < TABLE_INDEX_START_ID)
+        if (!this.isTableIndex() && !another.isTableIndex())
             return true;
 
         return false;
+    }
+
+    public boolean isTableIndex() {
+        return id >= TABLE_INDEX_START_ID;
     }
 
 }

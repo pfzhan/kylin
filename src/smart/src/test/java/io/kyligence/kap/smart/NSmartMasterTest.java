@@ -244,7 +244,8 @@ public class NSmartMasterTest extends NTestBase {
         TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("DEFAULT.KYLIN_SALES");
 
         String[] sqls = new String[] {
-                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt" //
+                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt" , //
+                "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" //
         };
         final int expectedEffectiveOLAPCtxNum = 4;
 
@@ -288,11 +289,20 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(4, cubePlan.getCuboids().size());
             smartMaster.shrinkCubePlan();
             NCubePlan shrinkedCubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(3, shrinkedCubePlan.getCuboids().size());
+            Assert.assertEquals(2, shrinkedCubePlan.getCuboids().size());
         }
         
         {
+            
+            NSmartContext ctx = smartMaster.getContext();
+            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            NDataModel model = mdCtx.getTargetModel();
+            Assert.assertEquals(4, model.getEffectiveColsMap().size());
+            Assert.assertEquals(3, model.getEffectiveMeasureMap().size());
             smartMaster.shrinkModel();
+            NDataModel shrinkedModel = mdCtx.getTargetModel();
+            Assert.assertEquals(3, shrinkedModel.getEffectiveColsMap().size());
+            Assert.assertEquals(2, shrinkedModel.getEffectiveMeasureMap().size());
         }
 
         // save
@@ -301,8 +311,8 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
-            smartMaster.saveModel();
             smartMaster.saveCubePlan();
+            smartMaster.saveModel();
 
             Assert.assertEquals(1, dataModelManager.listModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());

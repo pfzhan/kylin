@@ -1,4 +1,50 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
 package io.kyligence.kap.smart.cube;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.cube.model.NColumnFamilyDesc;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.smart.NSmartContext;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.filter.CompareTupleFilter;
+import org.apache.kylin.metadata.filter.TupleFilter;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.OLAPContext;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -11,37 +57,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedSet;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.ArrayUtils;
-import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.metadata.filter.CompareTupleFilter;
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.TableExtDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.relnode.OLAPContext;
-
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.cube.model.NColumnFamilyDesc;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
-
 public class CuboidSuggester {
-
 
     private class RowkeyComparator implements Comparator<NRowkeyColumnDesc> {
         final Map<Integer, Double> dimScores;
 
-        public RowkeyComparator(Map<Integer, Double> dimScores) {
+        RowkeyComparator(Map<Integer, Double> dimScores) {
             this.dimScores = dimScores;
         }
 
@@ -57,7 +78,7 @@ public class CuboidSuggester {
         }
     }
 
-    class RowkeySuggester {
+    private class RowkeySuggester {
         OLAPContext olapContext;
 
         private RowkeySuggester(OLAPContext olapContext) {
@@ -100,7 +121,7 @@ public class CuboidSuggester {
         }
     }
 
-    class DimensionCFClusterer {
+    private class DimensionCFClusterer {
         NColumnFamilyDesc.DimensionCF[] cluster(Collection<Integer> dimIds) {
             // TODO: because of limitation of GTRecord, currently only support
             // all dimensions in one column family
@@ -112,7 +133,7 @@ public class CuboidSuggester {
         }
     }
 
-    class MeasureCFClusterer {
+    private class MeasureCFClusterer {
         NColumnFamilyDesc.MeasureCF[] cluster(Collection<Integer> measureIds) {
             NColumnFamilyDesc.MeasureCF[] measureCFs = new NColumnFamilyDesc.MeasureCF[measureIds.size()];
             int c = 0;
@@ -125,20 +146,21 @@ public class CuboidSuggester {
             return measureCFs;
         }
     }
-    
-    NModelContext context;
-    NCubePlan cubePlan;
-    NDataModel model;
-    Map<TblColRef, Integer> colIdMap;
-    Map<FunctionDesc, Integer> aggFuncIdMap;
-    Map<Pair<BitSet, BitSet>, NCuboidDesc> collector;
 
-    SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
+    private NSmartContext context;
+    private NCubePlan cubePlan;
+    private NDataModel model;
+    private Map<TblColRef, Integer> colIdMap;
+    private Map<FunctionDesc, Integer> aggFuncIdMap;
+    private Map<Pair<BitSet, BitSet>, NCuboidDesc> collector;
 
-    public CuboidSuggester(NModelContext context, Map<Pair<BitSet, BitSet>, NCuboidDesc> collector) {
+    private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
+
+    public CuboidSuggester(NSmartContext context, NDataModel model, NCubePlan cubePlan,
+            Map<Pair<BitSet, BitSet>, NCuboidDesc> collector) {
         this.context = context;
-        this.model = context.getTargetModel();
-        this.cubePlan = context.getTargetCubePlan();
+        this.model = model;
+        this.cubePlan = cubePlan;
         this.collector = collector;
 
         colIdMap = model.getEffectiveColsMap().inverse();
@@ -171,9 +193,8 @@ public class CuboidSuggester {
         List<Integer> shardBy = Lists.newArrayList();
         for (int dimId : dimIds) {
             TblColRef colRef = model.getEffectiveColsMap().get(dimId);
-            TableExtDesc.ColumnStats colStats = context.getSmartContext().getColumnStats(colRef);
-            if (colStats != null && colStats.getCardinality() > context.getSmartContext().getSmartConfig()
-                    .getRowkeyUHCCardinalityMin()) {
+            TableExtDesc.ColumnStats colStats = context.getColumnStats(colRef);
+            if (colStats != null && colStats.getCardinality() > context.getSmartConfig().getRowkeyUHCCardinalityMin()) {
                 shardBy.add(dimId);
             }
         }
@@ -212,7 +233,7 @@ public class CuboidSuggester {
         if (CollectionUtils.isNotEmpty(groupByCols)) {
             for (TblColRef colRef : groupByCols) {
                 int colId = colIdMap.get(colRef);
-                TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+                TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
                 if (columnStats != null && columnStats.getCardinality() > 0)
                     dimScores.put(colId, -1D / columnStats.getCardinality());
                 else
@@ -223,7 +244,7 @@ public class CuboidSuggester {
         if (CollectionUtils.isNotEmpty(ctx.filterColumns)) {
             for (TblColRef colRef : ctx.filterColumns) {
                 int colId = colIdMap.get(colRef);
-                TableExtDesc.ColumnStats columnStats = context.getSmartContext().getColumnStats(colRef);
+                TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
                 if (columnStats != null && columnStats.getCardinality() > 0)
                     dimScores.put(colId, (double) columnStats.getCardinality());
                 else
@@ -355,8 +376,7 @@ public class CuboidSuggester {
     }
 
     private long suggestLayoutId(NCuboidDesc cuboidDesc) {
-        long s = cuboidDesc.getLastLayout() == null ? cuboidDesc.getId() + 1
-                : cuboidDesc.getLastLayout().getId() + 1;
+        long s = cuboidDesc.getLastLayout() == null ? cuboidDesc.getId() + 1 : cuboidDesc.getLastLayout().getId() + 1;
         while (cuboidLayoutIds.contains(s)) {
             s++;
         }
@@ -387,4 +407,3 @@ public class CuboidSuggester {
         }
     }
 }
-
