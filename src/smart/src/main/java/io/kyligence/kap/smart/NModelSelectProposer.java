@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
@@ -37,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
@@ -65,9 +67,18 @@ public class NModelSelectProposer extends NAbstractProposer {
             if (model != null) {
                 // found matched, then use it
                 modelContext.setOrigModel(model);
-                modelContext.setTargetModel(NDataModel.getCopyOf(model));
+                NDataModel targetModel = NDataModel.getCopyOf(model);
+                initModel(targetModel);
+                modelContext.setTargetModel(targetModel);
             }
         }
+    }
+
+    private void initModel(NDataModel modelDesc) {
+        KylinConfig kylinConfig = context.getKylinConfig();
+        String project = context.getProject();
+        modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(),
+                Lists.<NDataModel> newArrayList(), false);
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {

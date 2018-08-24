@@ -34,6 +34,7 @@ public abstract class NAbstractCubeProposer {
         this.context = context;
     }
 
+    // TODO should not pass in CubePlan
     public NCubePlan propose(NCubePlan cubePlan) {
         doPropose(cubePlan);
         return cubePlan;

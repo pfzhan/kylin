@@ -236,6 +236,80 @@ public class NSmartMasterTest extends NTestBase {
         }
     }
 
+    private void test3rdRound() throws IOException {
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, proj);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, proj);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
+        TableDesc kylinSalesTblDesc = tableMetadataManager.getTableDesc("DEFAULT.KYLIN_SALES");
+
+        String[] sqls = new String[] {
+                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt" //
+        };
+        final int expectedEffectiveOLAPCtxNum = 4;
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        {
+            NSmartContext ctx = smartMaster.getContext();
+            Assert.assertNotNull(ctx);
+        }
+
+        // analysis SQL
+        {
+            smartMaster.analyzeSQLs();
+            NSmartContext ctx = smartMaster.getContext();
+            Assert.assertEquals(1, ctx.getModelContexts().size());
+        }
+
+        // select model
+        {
+            smartMaster.selectModel();
+            NSmartContext ctx = smartMaster.getContext();
+
+            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            Assert.assertNotNull(mdCtx.getTargetModel());
+            Assert.assertNotNull(mdCtx.getOrigModel());
+        }
+
+        // select cube_plan
+        {
+            smartMaster.selectCubePlan();
+            NSmartContext ctx = smartMaster.getContext();
+            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            Assert.assertNotNull(mdCtx.getTargetCubePlan());
+            Assert.assertNotNull(mdCtx.getOrigCubePlan());
+        }
+
+        // reduce cube_plan
+        {
+            NSmartContext ctx = smartMaster.getContext();
+            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            NCubePlan cubePlan = mdCtx.getTargetCubePlan();
+            Assert.assertEquals(4, cubePlan.getCuboids().size());
+            smartMaster.shrinkCubePlan();
+            NCubePlan shrinkedCubePlan = mdCtx.getTargetCubePlan();
+            Assert.assertEquals(3, shrinkedCubePlan.getCuboids().size());
+        }
+        
+        {
+            smartMaster.shrinkModel();
+        }
+
+        // save
+        {
+            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
+
+            smartMaster.saveModel();
+            smartMaster.saveCubePlan();
+
+            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
+        }
+    }
+
     @Test
     public void test() throws Exception {
         //        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig);
@@ -248,6 +322,8 @@ public class NSmartMasterTest extends NTestBase {
 
         // 2nd round - update model and cube_plan
         test2ndRound();
+        
+        test3rdRound();
     }
 
 }

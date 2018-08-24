@@ -81,6 +81,14 @@ public class NSmartMaster {
     public void optimizeCubePlan() {
         proposerProvider.getCubePlanOptProposer().propose();
     }
+    
+    public void shrinkCubePlan() {
+        proposerProvider.getCubePlanShrinkProposer().propose();
+    }
+    
+    public void shrinkModel() {
+        proposerProvider.getModelShrinkProposer().propose();
+    }
 
     public void runAll() throws IOException {
         analyzeSQLs();
