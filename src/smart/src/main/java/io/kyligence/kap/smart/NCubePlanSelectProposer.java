@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NCubePlanSelectProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanSelectProposer.class);
@@ -62,7 +65,21 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
     }
 
     private NCubePlan findExisting(NDataModel model) {
-        for (IRealization realization : projectManager.listAllRealizations(context.getProject())) {
+        final Set<IRealization> iRealizations = projectManager.listAllRealizations(context.getProject());
+        if (iRealizations.size() == 0) {
+            return null;
+        }
+        //TODO order by cost in the future
+        // keep order by name of realization, so that can get consistent result under different circumstance
+        TreeSet<IRealization> realizations = new TreeSet<>(new Comparator<IRealization>() {
+            @Override
+            public int compare(IRealization r1, IRealization r2) {
+                return r1.getName().compareTo(r2.getName());
+            }
+        });
+        realizations.addAll(iRealizations);
+
+        for (IRealization realization : realizations) {
             if (realization instanceof NDataflow) {
                 NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
                 if (cubePlan.getModelName().equals(model.getName()))
