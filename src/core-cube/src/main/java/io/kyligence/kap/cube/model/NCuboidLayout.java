@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -64,7 +65,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("sort_by_columns")
     private int[] sortByColumns = new int[0];
     @JsonProperty("storage_type")
-    private int storageType = IStorageAware.ID_HBASE;
+    private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 
     // computed fields below
 

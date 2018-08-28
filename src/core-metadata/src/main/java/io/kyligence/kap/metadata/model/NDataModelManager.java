@@ -184,6 +184,19 @@ public class NDataModelManager {
         }
     }
 
+    // within a project, find models that use the specified table as root table
+    public List<String> getModelsUsingRootTable(TableDesc table) throws IOException {
+        try (AutoLock lock = modelMapLock.lockForRead()) {
+            List<String> models = new ArrayList<>();
+            for (NDataModel modelDesc : listModels()) {
+                if (modelDesc.isRootFactTable(table)) {
+                    models.add(modelDesc.getName());
+                }
+            }
+            return models;
+        }
+    }
+
     public boolean isTableInAnyModel(TableDesc table) {
         try (AutoLock lock = modelMapLock.lockForRead()) {
             for (NDataModel model : listModels()) {

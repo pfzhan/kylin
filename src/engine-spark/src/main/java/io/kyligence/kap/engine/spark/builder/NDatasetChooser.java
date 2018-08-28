@@ -173,14 +173,14 @@ public class NDatasetChooser {
         return sourceInfo;
     }
 
-    static NBuildSourceInfo getDataSourceByCuboid(List<NBuildSourceInfo> sources, final NCuboidDesc cuboid) {
+    static NBuildSourceInfo getDataSourceByCuboid(List<NBuildSourceInfo> sources, final NCuboidDesc cuboid, final NDataSegment seg) {
 
         List<NBuildSourceInfo> filterSources = new ArrayList<>();
         filterSources.addAll(Collections2.filter(sources, new Predicate<NBuildSourceInfo>() {
             @Override
             public boolean apply(@Nullable NBuildSourceInfo input) {
                 for (NCuboidDesc ncd : input.getToBuildCuboids()) {
-                    if (ncd == cuboid)
+                    if (ncd == cuboid && input.getSegment() == seg)
                         return true;
                 }
                 return false;

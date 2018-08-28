@@ -271,6 +271,100 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
     }
 
+    public static class TimePartitionedDataLoadingRange extends TimePartitionedSegmentRange {
+        public TimePartitionedDataLoadingRange() {
+            super();
+        }
+
+        public TimePartitionedDataLoadingRange(Long startMs, Long endMs) {
+            super(startMs, endMs);
+            this.waterMark = startMs;
+        }
+
+        public static TimePartitionedDataLoadingRange createInfinite() {
+            return new TimePartitionedDataLoadingRange(0L, Long.MAX_VALUE);
+        }
+
+        @JsonProperty("project")
+        private String project;
+        @JsonProperty("tableName")
+        private String tableName;
+        @JsonProperty("columnName")
+        private String columnName;
+        @JsonProperty("waterMark")
+        private Long waterMark;
+
+        private TimePartitionedDataLoadingRange convert(SegmentRange o) {
+            Preconditions.checkState(o instanceof TimePartitionedDataLoadingRange);
+            return (TimePartitionedDataLoadingRange) o;
+        }
+
+        @Override
+        public SegmentRange coverWith(SegmentRange o) {
+            TimePartitionedDataLoadingRange other = convert(o);
+            return new TimePartitionedDataLoadingRange(this.start, other.end);
+        }
+
+        @Override
+        public SegmentRange gapTill(SegmentRange o) {
+            TimePartitionedDataLoadingRange other = convert(o);
+            return new TimePartitionedDataLoadingRange(this.end, other.start);
+        }
+
+        @JsonProperty("loading_date_range_start")
+        public Long getStart() {
+            return start;
+        }
+
+        @JsonProperty("loading_date_range_start")
+        public void setStart(Long start) {
+            this.start = start;
+        }
+
+        @Override
+        @JsonProperty("loading_date_range_end")
+        public Long getEnd() {
+            return end;
+        }
+
+        @JsonProperty("loading_date_range_end")
+        public void setEnd(Long end) {
+            this.end = end;
+        }
+
+        public String getProject() {
+            return project;
+        }
+
+        public void setProject(String project) {
+            this.project = project;
+        }
+
+        public String getTableName() {
+            return tableName;
+        }
+
+        public void setTableName(String tableName) {
+            this.tableName = tableName;
+        }
+
+        public String getColumnName() {
+            return columnName;
+        }
+
+        public void setColumnName(String columnName) {
+            this.columnName = columnName;
+        }
+
+        public Long getWaterMark() {
+            return waterMark;
+        }
+
+        public void setWaterMark(Long waterMark) {
+            this.waterMark = waterMark;
+        }
+    }
+
     public static class KafkaOffsetPartitionedSegmentRange extends BasicSegmentRange {
 
         @JsonProperty("source_partition_offset_start")

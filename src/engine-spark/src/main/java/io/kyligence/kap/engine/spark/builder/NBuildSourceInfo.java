@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.builder;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.NDataSegment;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
@@ -38,6 +39,7 @@ public class NBuildSourceInfo {
     private long count;
     private long layoutId;
     private Set<NCuboidDesc> toBuildCuboids = new LinkedHashSet<>();
+    private NDataSegment segment;
 
     public void setSizeKB(long sizeKB) {
         this.sizeKB = sizeKB;
@@ -83,4 +85,11 @@ public class NBuildSourceInfo {
         this.toBuildCuboids.add(cuboid);
     }
 
+    public NDataSegment getSegment() {
+        return segment;
+    }
+
+    public void setSegment(NDataSegment segment) {
+        this.segment = segment;
+    }
 }

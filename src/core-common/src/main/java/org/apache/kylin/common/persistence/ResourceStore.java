@@ -95,6 +95,9 @@ abstract public class ResourceStore {
     public static final String BAD_QUERY_RESOURCE_ROOT = "/bad_query";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String USER_ROOT = "/user";
+    public static final String EVENT_RESOURCE_ROOT = "/event";
+    public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
+
 
     public static final String METASTORE_UUID_TAG = "/UUID";
 

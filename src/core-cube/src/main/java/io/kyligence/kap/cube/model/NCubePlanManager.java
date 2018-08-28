@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
@@ -97,6 +98,21 @@ public class NCubePlanManager implements IKeepNames {
         // touch lower level metadata before registering my listener
         crud.reloadAll();
         Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), project, NCUBE_PLAN_ENTITY_NAME);
+    }
+
+    public List<NCubePlan> findMatchingCubePlan(String modelName, String project, KylinConfig kylinConfig) {
+        List<NCubePlan> matchingCubePlans = Lists.newArrayList();
+        Set<IRealization> realizations = NProjectManager.getInstance(kylinConfig).listAllRealizations(project);
+        for (IRealization realization : realizations) {
+            if (realization instanceof NDataflow) {
+                NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
+                if (cubePlan.getModelName().equals(modelName)){
+                    matchingCubePlans.add(cubePlan);
+                }
+            }
+        }
+
+        return matchingCubePlans;
     }
 
     private class CubePlanSyncListener extends Broadcaster.Listener {

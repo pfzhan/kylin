@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,89 +41,60 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.dao;
+package io.kylingence.kap.event.manager;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NDataSegment;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
+import io.kylingence.kap.event.model.Event;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.exception.PersistentException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
 
-/**
- */
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class ExecutablePO extends RootPersistentEntity {
+public class EventManager {
 
-    @JsonProperty("name")
-    private String name;
+    private static final Logger logger = LoggerFactory.getLogger(EventManager.class);
 
-    @JsonProperty("tasks")
-    private List<ExecutablePO> tasks;
-
-    @JsonProperty("type")
-    private String type;
-
-    @JsonProperty("params")
-    private Map<String, String> params = Maps.newHashMap();
-
-    @JsonProperty("project")
+    public static final String GLOBAL = "@global";
+    private KylinConfig config;
     private String project;
+    private EventDao eventDao;
 
-    @JsonProperty("segments")
-    private Set<NDataSegment> segments = Sets.newHashSet();
-
-    public String getName() {
-        return name;
+    public static EventManager getInstance(KylinConfig config) {
+        return config.getManager(GLOBAL, EventManager.class);
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public static EventManager getInstance(KylinConfig config, String project) {
+        return config.getManager(project, EventManager.class);
     }
 
-    public String getProject() {
-        return project;
+    // called by reflection
+    @SuppressWarnings("unused")
+    static EventManager newInstance(KylinConfig conf, String project) {
+        try {
+            return new EventManager(conf, project);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to init EventManager from " + conf, e);
+        }
     }
 
-    public void setProject(String project) {
+    public EventManager(KylinConfig cfg, final String project) {
+        this.config = cfg;
         this.project = project;
+        this.eventDao = EventDao.getInstance(config, project);
     }
 
-    public List<ExecutablePO> getTasks() {
-        return tasks;
+    public void post(Event event) {
+        try {
+            if (event.isGlobal() && !GLOBAL.equals(project)) {
+                // dispatch to global
+                EventManager.getInstance(config).post(event);
+            } else {
+                eventDao.addEvent(event);
+            }
+        } catch (PersistentException e) {
+            logger.error("EventManager post error : " + e.getMessage(), e);
+        }
     }
 
-    public void setTasks(List<ExecutablePO> tasks) {
-        this.tasks = tasks;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Map<String, String> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<String, String> params) {
-        this.params = params;
-    }
-
-    public Set<NDataSegment> getSegments() {
-        return segments;
-    }
-
-    public void setSegments(Set<NDataSegment> segments) {
-        this.segments = segments;
-    }
 }

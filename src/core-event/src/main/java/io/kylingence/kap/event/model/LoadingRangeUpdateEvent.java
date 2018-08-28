@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,89 +41,38 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.dao;
+package io.kylingence.kap.event.model;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NDataSegment;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
 
-/**
- */
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class ExecutablePO extends RootPersistentEntity {
+public class LoadingRangeUpdateEvent extends Event{
 
-    @JsonProperty("name")
-    private String name;
+    @JsonProperty("models")
+    private List<String> modelNames;
+    @JsonProperty("table")
+    private String tableName;
 
-    @JsonProperty("tasks")
-    private List<ExecutablePO> tasks;
-
-    @JsonProperty("type")
-    private String type;
-
-    @JsonProperty("params")
-    private Map<String, String> params = Maps.newHashMap();
-
-    @JsonProperty("project")
-    private String project;
-
-    @JsonProperty("segments")
-    private Set<NDataSegment> segments = Sets.newHashSet();
-
-    public String getName() {
-        return name;
+    public LoadingRangeUpdateEvent() {
+        super();
+        setTriggerType(TriggerType.TIME_LINE);
+        setApproved(true);
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public List<String> getModelNames() {
+        return modelNames;
     }
 
-    public String getProject() {
-        return project;
+    public void setModelNames(List<String> modelNames) {
+        this.modelNames = modelNames;
     }
 
-    public void setProject(String project) {
-        this.project = project;
+    public String getTableName() {
+        return tableName;
     }
 
-    public List<ExecutablePO> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<ExecutablePO> tasks) {
-        this.tasks = tasks;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Map<String, String> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<String, String> params) {
-        this.params = params;
-    }
-
-    public Set<NDataSegment> getSegments() {
-        return segments;
-    }
-
-    public void setSegments(Set<NDataSegment> segments) {
-        this.segments = segments;
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 }

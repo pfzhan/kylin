@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,51 +41,30 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.job.dao;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NDataSegment;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
+package io.kyligence.kap.cube.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.SegmentRange;
 
-/**
- */
+import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
+
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class ExecutablePO extends RootPersistentEntity {
+public class NDataLoadingRange extends RootPersistentEntity {
 
-    @JsonProperty("name")
-    private String name;
-
-    @JsonProperty("tasks")
-    private List<ExecutablePO> tasks;
-
-    @JsonProperty("type")
-    private String type;
-
-    @JsonProperty("params")
-    private Map<String, String> params = Maps.newHashMap();
+    public NDataLoadingRange() {}
 
     @JsonProperty("project")
     private String project;
-
-    @JsonProperty("segments")
-    private Set<NDataSegment> segments = Sets.newHashSet();
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
+    @JsonProperty("tableName")
+    private String tableName;
+    @JsonProperty("columnName")
+    private String columnName;
+    @JsonProperty("dataLoadingRange")
+    private SegmentRange dataLoadingRange;
 
     public String getProject() {
         return project;
@@ -95,35 +74,38 @@ public class ExecutablePO extends RootPersistentEntity {
         this.project = project;
     }
 
-    public List<ExecutablePO> getTasks() {
-        return tasks;
+    public String getTableName() {
+        return tableName;
     }
 
-    public void setTasks(List<ExecutablePO> tasks) {
-        this.tasks = tasks;
+    public void setTableName(String tableName) {
+        this.tableName = tableName;
     }
 
-    public String getType() {
-        return type;
+    public String getColumnName() {
+        return columnName;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
     }
 
-    public Map<String, String> getParams() {
-        return params;
+    public SegmentRange getDataLoadingRange() {
+        return dataLoadingRange;
     }
 
-    public void setParams(Map<String, String> params) {
-        this.params = params;
+    public void setDataLoadingRange(SegmentRange dataLoadingRange) {
+        this.dataLoadingRange = dataLoadingRange;
     }
 
-    public Set<NDataSegment> getSegments() {
-        return segments;
+    @Override
+    public String resourceName() {
+        return tableName;
     }
 
-    public void setSegments(Set<NDataSegment> segments) {
-        this.segments = segments;
+    @Override
+    public String getResourcePath() {
+        return new StringBuilder().append("/").append(project).append(DATA_LOADING_RANGE_RESOURCE_ROOT).append("/")
+                .append(resourceName()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 }

@@ -97,6 +97,7 @@ public class NDataflowBuildJob extends NDataflowJob {
                 seg = dfMgr.getDataflow(dfName).getSegment(segId);
 
                 if (buildFromFlatTable != null) {
+                    buildFromFlatTable.setSegment(seg);
                     sources.add(buildFromFlatTable);
                     // build cuboids from flat table
                     for (NCuboidDesc cuboid : buildFromFlatTable.getToBuildCuboids()) {
@@ -109,6 +110,7 @@ public class NDataflowBuildJob extends NDataflowJob {
                 sources.addAll(buildFromLayouts);
                 // build cuboids from reused layouts
                 for (NBuildSourceInfo source : buildFromLayouts) {
+                    source.setSegment(seg);
                     for (NCuboidDesc root : source.getToBuildCuboids()) {
                         recursiveBuildCuboid(seg, root, source.getDataset(),
                                 cubePlan.getCuboidLayout(source.getLayoutId()).getCuboidDesc().getOrderedMeasures(),
@@ -170,7 +172,7 @@ public class NDataflowBuildJob extends NDataflowJob {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
 
-        NBuildSourceInfo sourceInfo = NDatasetChooser.getDataSourceByCuboid(sources, root);
+        NBuildSourceInfo sourceInfo = NDatasetChooser.getDataSourceByCuboid(sources, root, seg);
         long sourceSizeKB = sourceInfo.getSizeKB();
         long sourceCount = sourceInfo.getCount();
 

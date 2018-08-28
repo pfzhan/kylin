@@ -105,6 +105,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
                 toAddCuboids.add(seg.getCuboid(layoutId));
             }
         }
+
         update.setToRemoveSegs((NDataSegment[]) toRemoveSegments.toArray(new NDataSegment[toRemoveSegments.size()]));
         update.setToUpdateSegs((NDataSegment[]) toUpdateSegments.toArray(new NDataSegment[toUpdateSegments.size()]));
         update.setToAddOrUpdateCuboids((NDataCuboid[]) toAddCuboids.toArray(new NDataCuboid[toAddCuboids.size()]));

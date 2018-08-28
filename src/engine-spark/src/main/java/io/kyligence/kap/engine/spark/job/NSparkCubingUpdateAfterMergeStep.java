@@ -78,6 +78,7 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         List<NDataCuboid> toUpdateCuboids = Lists.newArrayList();
 
         NDataSegment mergedSegment = distDataflow.getSegment(mergingStep.getSegmentIds());
+
         if (mergedSegment.getStatus() == SegmentStatusEnum.NEW)
             mergedSegment.setStatus(SegmentStatusEnum.READY);
 

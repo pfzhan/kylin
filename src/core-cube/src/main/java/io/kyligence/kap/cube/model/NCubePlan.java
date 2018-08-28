@@ -125,7 +125,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NDictionaryDesc> dictionaries;
     // computed fields below
-
+    @JsonProperty("project")
     private String project;
     private KylinConfigExt config = null;
     private NDataModel model = null;

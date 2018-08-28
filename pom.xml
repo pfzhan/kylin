@@ -176,6 +176,8 @@
         <module>src/server-base</module>
         <module>src/core-dictionary</module>
         <module>src/server</module>
+        <module>src/core-event</module>
+
     </modules>
 
     <dependencyManagement>
@@ -242,6 +244,11 @@
                 <artifactId>kap-tomcat-ext</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.kap</groupId>
+                <artifactId>kap-core-event</artifactId>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>

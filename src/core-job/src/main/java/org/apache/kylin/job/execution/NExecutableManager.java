@@ -27,14 +27,18 @@ package org.apache.kylin.job.execution;
 import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
 import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
+import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import io.kyligence.kap.cube.model.NDataSegment;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -98,6 +102,13 @@ public class NExecutableManager {
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
+        Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
+        if (runTimeInfo != null && runTimeInfo.size() > 0) {
+            Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
+            if (segments != null) {
+                result.getSegments().addAll(segments);
+            }
+        }
         if (executable instanceof ChainedExecutable) {
             List<ExecutablePO> tasks = Lists.newArrayList();
             for (AbstractExecutable task : ((ChainedExecutable) executable).getTasks()) {

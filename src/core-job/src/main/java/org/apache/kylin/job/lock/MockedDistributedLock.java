@@ -53,6 +53,7 @@ import org.apache.curator.framework.CuratorFramework;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLockFactory;
+import org.apache.kylin.common.util.AutoReadWriteLock;
 
 public class MockedDistributedLock implements DistributedLock, JobLock {
 
@@ -88,6 +89,8 @@ public class MockedDistributedLock implements DistributedLock, JobLock {
     final String client;
     final byte[] clientBytes;
 
+    private static AutoReadWriteLock mockLock = new AutoReadWriteLock();
+
     private MockedDistributedLock(CuratorFramework curator, String zkPathBase, String client) {
         if (client == null)
             throw new NullPointerException("client must not be null");
@@ -112,6 +115,7 @@ public class MockedDistributedLock implements DistributedLock, JobLock {
 
     @Override
     public boolean lock(String lockPath, long timeout) {
+        mockLock.lockForWrite();
         return false;
     }
 
@@ -132,7 +136,7 @@ public class MockedDistributedLock implements DistributedLock, JobLock {
 
     @Override
     public void unlock(String lockPath) throws IllegalStateException {
-
+        mockLock.innerLock().writeLock().unlock();
     }
 
     @Override

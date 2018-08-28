@@ -75,6 +75,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static final String END_TIME = "endTime";
     public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
+    public static final String RUNTIME_INFO = "runtimeInfo";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
     protected int retry = 0;
@@ -84,6 +85,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private String id;
     private Map<String, String> params = Maps.newHashMap();
     private String project;
+    private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
@@ -460,5 +462,13 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public String toString() {
         return Objects.toStringHelper(this).add("id", getId()).add("name", getName()).add("state", getStatus())
                 .toString();
+    }
+
+    public Map<String, Object> getRunTimeInfo() {
+        return runTimeInfo;
+    }
+
+    public void setRunTimeInfo(Map<String, Object> runTimeInfo) {
+        this.runTimeInfo = runTimeInfo;
     }
 }

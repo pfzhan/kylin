@@ -292,6 +292,16 @@ public  class NDataModel extends RootPersistentEntity {
         return false;
     }
 
+    public boolean isRootFactTable(TableDesc table) {
+        if (table == null || StringUtils.isBlank(table.getIdentity())
+                || StringUtils.isBlank(table.getProject())) {
+            return false;
+        }
+
+        return rootFactTableRef.getTableIdentity().equals(table.getIdentity())
+                && rootFactTableRef.getTableDesc().getProject().equals(table.getProject());
+    }
+
     public boolean containsTable(TableDesc table) {
         for (TableRef t : allTableRefs) {
             if (t.getTableIdentity().equals(table.getIdentity())
@@ -834,6 +844,7 @@ public  class NDataModel extends RootPersistentEntity {
         public String name;
         @JsonProperty("column")
         public String aliasDotColumn;
+        // logical delete symbol
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public boolean tomb = false;
@@ -842,6 +853,7 @@ public  class NDataModel extends RootPersistentEntity {
     public static class Measure extends MeasureDesc implements IKeep {
         @JsonProperty("id")
         public int id;
+        // logical delete symbol
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public boolean tomb = false;
