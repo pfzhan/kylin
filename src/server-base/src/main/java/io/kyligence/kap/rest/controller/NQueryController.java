@@ -38,6 +38,9 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -89,10 +92,14 @@ public class NQueryController extends NBasicController {
     @Qualifier("kapQueryService")
     private KapQueryService queryService;
 
+    @Autowired
+    @Qualifier("queryHistoryService")
+    private QueryHistoryService queryHistoryService;
+
     @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse query(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse query(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, sqlResponse, "");
     }
@@ -102,7 +109,7 @@ public class NQueryController extends NBasicController {
     @RequestMapping(value = "/query/prestate", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) {
+    public EnvelopeResponse prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
         Map<String, String> newToggles = Maps.newHashMap();
         if (sqlRequest.getBackdoorToggles() != null)
             newToggles.putAll(sqlRequest.getBackdoorToggles());
@@ -112,57 +119,57 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
     }
 
-    @RequestMapping(value = "/saved_queries", method = RequestMethod.POST, produces = {
+    @RequestMapping(value = "/save_query/{project}", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public void saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
+    public void saveQuery(@PathVariable("project") String project, @RequestBody SaveSqlRequest sqlRequest) throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         Query newQuery = new Query(sqlRequest.getName(), sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
 
-        queryService.saveQuery(creator, newQuery);
+        queryService.saveQuery(creator, project, newQuery);
     }
 
-    @RequestMapping(value = "/saved_queries/{id}", method = RequestMethod.DELETE, produces = {
+    @RequestMapping(value = "/saved_queries/{project}/{id}", method = RequestMethod.DELETE, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public void removeQuery(@PathVariable("id") String id) throws IOException {
+    public void removeSavedQuery(@PathVariable("project") String project, @PathVariable("id") String id) throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
-        queryService.removeQuery(creator, id);
+        queryService.removeSavedQuery(creator, project, id);
     }
 
     @RequestMapping(value = "/saved_queries", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getQueries(@RequestParam(value = "project", required = false) String project,
+    public EnvelopeResponse getSavedQueries(@RequestParam(value = "project", required = false) String project,
                                        @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
                                        @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<Query> queries = new ArrayList<Query>();
-        for (Query query : queryService.getQueries(creator)) {
-            if (project == null || query.getProject().equals(project))
-                queries.add(query);
-        }
+        List<Query> savedQueries = queryService.getSavedQueries(creator, project);
 
-        int offset = pageOffset * pageSize;
-        int limit = pageSize;
+        data.put("saved_queries", PagingUtil.cutPage(savedQueries, pageOffset, pageSize));
+        data.put("size", savedQueries.size());
 
-        if (queries.size() <= offset) {
-            offset = queries.size();
-            limit = 0;
-        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
 
-        if ((queries.size() - offset) < limit) {
-            limit = queries.size() - offset;
-        }
+    @RequestMapping(value = "/query_histories", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getAllQueryHistories(@RequestParam(value = "project", required = false) String project,
+                                              @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+                                              @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+        throws IOException {
+        HashMap<String, Object> data = new HashMap<>();
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(project);
 
-        data.put("queries", queries.subList(offset, offset + limit));
-        data.put("size", queries.size());
+        data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
+        data.put("size", queryHistories.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }

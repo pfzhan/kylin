@@ -62,7 +62,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.NTableMetadataManager;
-import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
 
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
@@ -82,7 +81,7 @@ public class NProjectManager {
     private KylinConfig config;
     private NProjectL2Cache l2Cache;
 
-    // project name => ProjrectInstance
+    // project name => ProjectInstance
     private CaseInsensitiveStringCache<ProjectInstance> projectMap;
 
     // protects concurrent operations around the cached map, to avoid for example
@@ -310,8 +309,6 @@ public class NProjectManager {
             }
 
             logger.info("Dropping project '" + projectInstance.getName() + "'");
-
-            NBadQueryHistoryManager.getInstance(config, projectName).removeBadQueryHistory();
 
             clearL2Cache();
             return projectInstance;

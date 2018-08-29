@@ -1,0 +1,16 @@
+{
+      "uuid" : "ba0c9cad-35c1-4f4b-8c10-669248842c2b",
+      "last_modified" : 0,
+      "version" : "3.0.0.0",
+      "sql" : "select * from test_kylin_fact limit 3",
+      "start_time" : 1459362230222,
+      "latency" : 1000.0,
+      "realization": "Pushdown",
+      "query_node" : "sandbox.hortonworks.com",
+      "thread" : "t-0",
+      "user" : "ADMIN",
+      "query_status" : "SUCCEEDED",
+      "favorite" : "bd3285c9-55e3-4f2d-a12c-742a8d631195",
+      "accelerate_status": "FULLY_ACCELERATED",
+      "query_id": "query-1"
+}

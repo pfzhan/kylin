@@ -46,63 +46,72 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
+import java.util.List;
 
-import org.apache.kylin.metadata.badquery.BadQueryEntry;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class BadQueryDetectorTest {
+public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
+
+    private QueryHistoryService queryHistoryService = new QueryHistoryService();
 
     @Before
     public void setup() {
-        System.setProperty("KYLIN_CONF", "../examples/test_case_data/localmeta");
+        createTestMetadata();
     }
 
     @After
-    public void after() throws Exception {
-        System.clearProperty("KYLIN_CONF");
+    public void after() {
+        cleanupTestMetadata();
     }
 
     @SuppressWarnings("deprecation")
     @Test
-    public void test() throws InterruptedException {
-        int alertMB = BadQueryDetector.getSystemAvailMB() * 2;
+    public void test() throws Exception {
+        int alertMB = SlowQueryDetector.getSystemAvailMB() * 2;
         int alertRunningSec = 5;
         String mockSql = "select * from just_a_test";
         final ArrayList<String[]> alerts = new ArrayList<>();
 
-        BadQueryDetector badQueryDetector = new BadQueryDetector(alertRunningSec * 1000, alertMB, alertRunningSec,
+        SlowQueryDetector slowQueryDetector = new SlowQueryDetector(alertRunningSec * 1000, alertMB, alertRunningSec,
                 1000);
-        badQueryDetector.registerNotifier(new BadQueryDetector.Notifier() {
+        slowQueryDetector.registerNotifier(new SlowQueryDetector.Notifier() {
             @Override
-            public void badQueryFound(String adj, float runningSec, long startTime, String project, String sql,
+            public void slowQueryFound(float runningSec, long startTime, String project, String sql,
                     String user, Thread t) {
-                alerts.add(new String[] { adj, sql });
+                alerts.add(new String[] {QueryHistory.ADJ_SLOW, sql });
             }
         });
-        badQueryDetector.start();
+        slowQueryDetector.start();
 
         {
-            Thread.sleep(1000);
-
             SQLRequest sqlRequest = new SQLRequest();
             sqlRequest.setSql(mockSql);
-            badQueryDetector.queryStart(Thread.currentThread(), sqlRequest, "user");
+            sqlRequest.setProject("default");
+            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, "ADMIN", System.currentTimeMillis());
 
-            // make sure bad query check happens twice
-            Thread.sleep((alertRunningSec * 2 + 1) * 1000);
+            // make sure slow query check happens once
+            Thread.sleep((alertRunningSec * 2 + 4) * 1000);
 
-            badQueryDetector.queryEnd(Thread.currentThread(), BadQueryEntry.ADJ_PUSHDOWN);
+            slowQueryDetector.queryEnd(Thread.currentThread());
         }
 
-        badQueryDetector.interrupt();
+        slowQueryDetector.interrupt();
 
         assertEquals(2, alerts.size());
         // second check founds a Slow
-        assertArrayEquals(new String[] { BadQueryEntry.ADJ_SLOW, mockSql }, alerts.get(0));
-        // end notifies a Pushdown
-        assertArrayEquals(new String[] { BadQueryEntry.ADJ_PUSHDOWN, mockSql }, alerts.get(1));
+        assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
+
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories("default");
+        QueryHistory slowQuery = queryHistories.get(queryHistories.size() - 1);
+
+        assertEquals(mockSql, slowQuery.getSql());
+        assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(queryHistories.size() - 1).getQueryStatus());
     }
 }

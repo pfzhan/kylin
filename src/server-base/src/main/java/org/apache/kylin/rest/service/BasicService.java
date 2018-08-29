@@ -42,6 +42,7 @@
 
 package org.apache.kylin.rest.service;
 
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.acl.TableACLManager;
 
@@ -51,7 +52,7 @@ import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-public abstract class BasicService{
+public abstract class BasicService {
 
     public KylinConfig getConfig() {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -85,5 +86,9 @@ public abstract class BasicService{
 
     public TableACLManager getTableACLManager() {
         return TableACLManager.getInstance(getConfig());
+    }
+
+    public QueryHistoryManager getQueryHistoryManager(String project) {
+        return QueryHistoryManager.getInstance(getConfig(), project);
     }
 }

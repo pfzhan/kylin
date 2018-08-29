@@ -42,7 +42,10 @@
 
 package io.kyligence.kap.rest.controller;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.service.KapQueryService;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -51,7 +54,6 @@ import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
@@ -72,7 +74,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-
 /**
  * @author xduo
  */
@@ -82,6 +83,9 @@ public class NQueryControllerTest {
 
     @Mock
     private KapQueryService kapQueryService;
+
+    @Mock
+    private QueryHistoryService queryHistoryService;
 
     @InjectMocks
     private NQueryController nQueryController = Mockito.spy(new NQueryController());
@@ -93,14 +97,9 @@ public class NQueryControllerTest {
         MockitoAnnotations.initMocks(this);
 
         mockMvc = MockMvcBuilders.standaloneSetup(nQueryController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api"))
-                .build();
+                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
-    @After
-    public void tearDown() {
     }
 
     private PrepareSqlRequest mockPrepareSqlRequest() {
@@ -124,9 +123,7 @@ public class NQueryControllerTest {
     @Test
     public void testPrepareQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = mockPrepareSqlRequest();
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/query/prestate")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/prestate").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -138,28 +135,28 @@ public class NQueryControllerTest {
     public void testSaveQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = mockPrepareSqlRequest();
         mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/saved_queries")
+                .post("/api/save_query/{project}", "default")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).saveQuery((SaveSqlRequest) Mockito.any());
+        Mockito.verify(nQueryController).saveQuery(Mockito.eq("default"), Mockito.any(SaveSqlRequest.class));
     }
 
     @Test
-    public void testRemoveQuery() throws Exception {
+    public void testRemoveSavedQuery() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders
-                .delete("/api/saved_queries/{id}", "1")
+                .delete("/api/saved_queries/{project}/{id}", "default", "1")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).removeQuery("1");
+        Mockito.verify(nQueryController).removeSavedQuery("default", "1");
     }
 
     @Test
-    public void testGetQueries() throws Exception {
-        Mockito.when(kapQueryService.getQueries("ADMIN")).thenReturn(mockQueries());
+    public void testGetSavedQueries() throws Exception {
+        Mockito.when(kapQueryService.getSavedQueries("ADMIN", "default")).thenReturn(mockSavedQueries());
         mockMvc.perform(MockMvcRequestBuilders
                 .get("/api/saved_queries")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -169,15 +166,15 @@ public class NQueryControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.queries.length()").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.queries[0].name").value(7))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.queries[1].name").value(8))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.queries[2].name").value(9));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[0].name").value(7))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[1].name").value(8))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[2].name").value(9));
 
-        Mockito.verify(nQueryController).getQueries("default", 2, 3);
+        Mockito.verify(nQueryController).getSavedQueries("default", 2, 3);
     }
 
-    private List<Query> mockQueries() {
+    private List<Query> mockSavedQueries() {
         final List<Query> queries = new ArrayList<>();
         queries.add(new Query("1", "default", "", ""));
         queries.add(new Query("2", "default", "", ""));
@@ -189,6 +186,38 @@ public class NQueryControllerTest {
         queries.add(new Query("8", "default", "", ""));
         queries.add(new Query("9", "default", "", ""));
         queries.add(new Query("10", "default", "", ""));
+
+        return queries;
+    }
+
+    @Test
+    public void testGetQueryHistories() throws Exception {
+        Mockito.when(queryHistoryService.getQueryHistories("default")).thenReturn(mockQueryHistories());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query_histories").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("pageOffset", "2").param("pageSize", "3")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].start_time").value(7))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
+
+        Mockito.verify(nQueryController).getAllQueryHistories("default", 2, 3);
+    }
+
+    private List<QueryHistory> mockQueryHistories() {
+        final List<QueryHistory> queries = Lists.newArrayList();
+        queries.add(new QueryHistory("0", "", 1, 100, "", "", ""));
+        queries.add(new QueryHistory("1", "", 2, 100, "", "", ""));
+        queries.add(new QueryHistory("2", "", 3, 100, "", "", ""));
+        queries.add(new QueryHistory("3", "", 4, 100, "", "", ""));
+        queries.add(new QueryHistory("4", "", 5, 100, "", "", ""));
+        queries.add(new QueryHistory("5", "", 6, 100, "", "", ""));
+        queries.add(new QueryHistory("6", "", 7, 100, "", "", ""));
+        queries.add(new QueryHistory("7", "", 8, 100, "", "", ""));
+        queries.add(new QueryHistory("8", "", 9, 100, "", "", ""));
+        queries.add(new QueryHistory("9", "", 10, 100, "", "", ""));
 
         return queries;
     }

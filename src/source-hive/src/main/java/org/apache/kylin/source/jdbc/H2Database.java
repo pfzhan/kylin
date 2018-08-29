@@ -142,9 +142,9 @@ public class H2Database {
 
     private String path(TableDesc tableDesc) {
         if ("EDW.TEST_SELLER_TYPE_DIM".equals(tableDesc.getIdentity())) // it is a view of table below
-            return "/data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
+            return "/../data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
         else
-            return "/data/" + tableDesc.getIdentity() + ".csv";
+            return "/../data/" + tableDesc.getIdentity() + ".csv";
     }
 
     private String generateCreateH2TableSql(TableDesc tableDesc, String csvFilePath) {

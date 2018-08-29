@@ -1,0 +1,14 @@
+{
+      "uuid": "Q2-2",
+      "last_modified": 0,
+      "version": "3.0.0.0",
+      "query_id": "Q2-2",
+      "sql": "SELECT SUM(lo_revenue) AS lo_revenue, d_year, p_brand FROM ssb.p_lineorder LEFT JOIN ssb.dates ON lo_orderdate = d_datekey LEFT JOIN ssb.part ON lo_partkey = p_partkey LEFT JOIN ssb.supplier ON lo_suppkey = s_suppkey WHERE p_brand BETWEEN 'MFGR#0201' AND 'MFGR#0208' AND s_region = 'ASIA' GROUP BY d_year, p_brand ORDER BY d_year, p_brand",
+      "start_time": 1459362230010,
+      "latency": 1000,
+      "realization": "Pushdown",
+      "query_node": "sandbox.hortonworks.com",
+      "thread": "t-0",
+      "user": "ADMIN",
+      "query_status": "SUCCEEDED"
+}

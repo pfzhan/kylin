@@ -1222,24 +1222,16 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.derived-filter-translation-threshold", "20"));
     }
 
-    public int getBadQueryStackTraceDepth() {
-        return Integer.parseInt(getOptional("kylin.query.badquery-stacktrace-depth", "10"));
+    public int getSlowQueryStackTraceDepth() {
+        return Integer.parseInt(getOptional("kylin.query.slowquery-stacktrace-depth", "10"));
     }
 
-    public int getBadQueryHistoryNum() {
-        return Integer.parseInt(getOptional("kylin.query.badquery-history-number", "50"));
+    public int getSlowQueryDefaultAlertingSeconds() {
+        return Integer.parseInt(getOptional("kylin.query.slowquery-alerting-seconds", "90"));
     }
 
-    public int getBadQueryDefaultAlertingSeconds() {
-        return Integer.parseInt(getOptional("kylin.query.badquery-alerting-seconds", "90"));
-    }
-
-    public int getBadQueryDefaultDetectIntervalSeconds() {
-        return Integer.parseInt(getOptional("kylin.query.badquery-detect-interval", "60"));
-    }
-
-    public boolean getBadQueryPersistentEnabled() {
-        return Boolean.parseBoolean(getOptional("kylin.query.badquery-persistent-enabled", "true"));
+    public int getSlowQueryDefaultDetectIntervalSeconds() {
+        return Integer.parseInt(getOptional("kylin.query.slowquery-detect-interval", "60"));
     }
 
     public String[] getQueryTransformers() {

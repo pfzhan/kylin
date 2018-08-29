@@ -1,0 +1,14 @@
+{
+      "uuid": "ca0c9cad-35c1-4f4b-8c10-669248842c2f",
+      "last_modified": 0,
+      "version": "3.0.0.0",
+      "sql": "select count(*) from test_kylin_fact",
+      "start_time": 1459362236585,
+      "latency": 100,
+      "realization": "Slow",
+      "query_node": "sandbox.hortonworks.com",
+      "thread": "t-0",
+      "user": "ADMIN",
+      "query_status": "FAILED",
+      "query_id": "query-2"
+}

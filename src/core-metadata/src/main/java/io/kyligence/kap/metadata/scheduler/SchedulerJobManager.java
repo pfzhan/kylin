@@ -62,7 +62,7 @@ public class SchedulerJobManager {
     private KylinConfig kylinConfig;
 
     private SchedulerJobManager(KylinConfig config) throws IOException {
-        logger.info("Initializing BadQueryHistoryManager with config " + config);
+        logger.info("Initializing SchedulerJobManager with config " + config);
         this.kylinConfig = config;
         loadAllSchedulerJobInstance();
     }

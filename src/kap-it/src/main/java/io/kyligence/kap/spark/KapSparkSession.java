@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -37,7 +39,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -61,10 +62,7 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.badquery.NBadQueryHistory;
-import io.kyligence.kap.metadata.badquery.NBadQueryHistoryManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-//import io.kyligence.kap.smart.NSmartController;
 import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
@@ -156,22 +154,20 @@ public class KapSparkSession extends SparkSession {
     public void collectQueries(String sqlText) {
         // collect queries
         try {
-            logger.info("Collect a bad query: {}", sqlText);
-            collectBadQuery(sqlText);
+            logger.info("Collect a query: {}", sqlText);
+            collectQueryHistory(sqlText);
         } catch (Throwable e) {
-            logger.error("Collect bad query error", e);
+            logger.error("Collect query error", e);
         }
     }
 
-    private void collectBadQuery(String sql) throws IOException {
+    private void collectQueryHistory(String sql) throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        final NBadQueryHistoryManager bqhManager = NBadQueryHistoryManager.getInstance(config, project);
-        NBadQueryHistory history = bqhManager.getBadQueriesForProject();
-        BadQueryEntry queryEntry = new BadQueryEntry();
+        final QueryHistoryManager manager = QueryHistoryManager.getInstance(config, project);
+        QueryHistory queryEntry = new QueryHistory();
         queryEntry.setSql(sql);
-        queryEntry.setAdj(BadQueryEntry.ADJ_PUSHDOWN);
-        history.getEntries().add(queryEntry);
-        bqhManager.upsertToProject(history);
+        queryEntry.setRealization(QueryHistory.ADJ_PUSHDOWN);
+        manager.upsertEntry(queryEntry);
     }
 
     public Dataset<Row> queryCube(String sql) throws Exception {

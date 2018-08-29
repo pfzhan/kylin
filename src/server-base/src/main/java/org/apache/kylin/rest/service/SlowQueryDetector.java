@@ -49,18 +49,20 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentMap;
 
-import org.apache.kylin.badquery.BadQueryHistoryManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
+import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.badquery.BadQueryEntry;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-public class BadQueryDetector extends Thread {
+public class SlowQueryDetector extends Thread {
 
-    private static final Logger logger = LoggerFactory.getLogger(BadQueryDetector.class);
+    private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetector.class);
     public static final int ONE_MB = 1024 * 1024;
 
     private final ConcurrentMap<Thread, Entry> runningQueries = Maps.newConcurrentMap();
@@ -71,20 +73,21 @@ public class BadQueryDetector extends Thread {
     private ArrayList<Notifier> notifiers = new ArrayList<>();
     private int queryTimeoutSeconds;
 
-    public BadQueryDetector() {
-        super("BadQueryDetector");
+    public SlowQueryDetector() {
+        super("SlowQueryDetector");
         this.setDaemon(true);
         this.kylinConfig = KylinConfig.getInstanceFromEnv();
-        this.detectionInterval = kylinConfig.getBadQueryDefaultDetectIntervalSeconds() * 1000L;
+        //todo
+        this.detectionInterval = kylinConfig.getSlowQueryDefaultDetectIntervalSeconds() * 1000L;
         this.alertMB = 100;
-        this.alertRunningSec = kylinConfig.getBadQueryDefaultAlertingSeconds();
+        this.alertRunningSec = kylinConfig.getSlowQueryDefaultAlertingSeconds();
         this.queryTimeoutSeconds = kylinConfig.getQueryTimeoutSeconds();
 
         initNotifiers();
     }
 
-    public BadQueryDetector(long detectionInterval, int alertMB, int alertRunningSec, int queryTimeoutSeconds) {
-        super("BadQueryDetector");
+    public SlowQueryDetector(long detectionInterval, int alertMB, int alertRunningSec, int queryTimeoutSeconds) {
+        super("SlowQueryDetector");
         this.setDaemon(true);
         this.detectionInterval = detectionInterval;
         this.alertMB = alertMB;
@@ -111,21 +114,19 @@ public class BadQueryDetector extends Thread {
 
     private void initNotifiers() {
         this.notifiers.add(new LoggerNotifier());
-        if (kylinConfig.getBadQueryPersistentEnabled()) {
-            this.notifiers.add(new PersistenceNotifier());
-        }
+        this.notifiers.add(new PersistenceNotifier());
     }
 
     public void registerNotifier(Notifier notifier) {
         notifiers.add(notifier);
     }
 
-    private void notify(String adj, Entry e) {
+    private void notify(Entry e) {
         float runningSec = (float) (System.currentTimeMillis() - e.startTime) / 1000;
 
         for (Notifier notifier : notifiers) {
             try {
-                notifier.badQueryFound(adj, runningSec, //
+                notifier.slowQueryFound(runningSec, //
                         e.startTime, e.sqlRequest.getProject(), e.sqlRequest.getSql(), e.user, e.thread);
             } catch (Exception ex) {
                 logger.error("", ex);
@@ -133,19 +134,12 @@ public class BadQueryDetector extends Thread {
         }
     }
 
-    public void queryStart(Thread thread, SQLRequest sqlRequest, String user) {
-        runningQueries.put(thread, new Entry(sqlRequest, user, thread));
+    public void queryStart(Thread thread, SQLRequest sqlRequest, String user, long startTime) {
+        runningQueries.put(thread, new Entry(sqlRequest, user, thread, startTime));
     }
 
     public void queryEnd(Thread thread) {
-        queryEnd(thread, null);
-    }
-
-    public void queryEnd(Thread thread, String badReason) {
-        Entry entry = runningQueries.remove(thread);
-
-        if (badReason != null)
-            notify(badReason, entry);
+        runningQueries.remove(thread);
     }
 
     @Override
@@ -160,14 +154,14 @@ public class BadQueryDetector extends Thread {
             }
 
             try {
-                detectBadQuery();
+                detectSlowQuery();
             } catch (Exception ex) {
                 logger.error("", ex);
             }
         }
     }
 
-    private void detectBadQuery() {
+    private void detectSlowQuery() {
         long now = System.currentTimeMillis();
         ArrayList<Entry> entries = new ArrayList<Entry>(runningQueries.values());
         Collections.sort(entries);
@@ -178,7 +172,7 @@ public class BadQueryDetector extends Thread {
             setQueryThreadInterrupted(e, runningSec);
 
             if (runningSec >= alertRunningSec) {
-                notify(BadQueryEntry.ADJ_SLOW, e);
+                notify(e);
                 dumpStackTrace(e.thread);
             } else {
                 break; // entries are sorted by startTime
@@ -198,9 +192,9 @@ public class BadQueryDetector extends Thread {
         }
     }
 
-    // log the stack trace of bad query thread for further analysis
+    // log the stack trace of slow query thread for further analysis
     private void dumpStackTrace(Thread t) {
-        int maxStackTraceDepth = kylinConfig.getBadQueryStackTraceDepth();
+        int maxStackTraceDepth = kylinConfig.getSlowQueryStackTraceDepth();
         int current = 0;
 
         StackTraceElement[] stackTrace = t.getStackTrace();
@@ -216,21 +210,20 @@ public class BadQueryDetector extends Thread {
     }
 
     public interface Notifier {
-        void badQueryFound(String adj, float runningSec, long startTime, String project, String sql, String user,
-                Thread t);
+        void slowQueryFound(float runningSec, long startTime, String project, String sql, String user,
+                Thread t) throws IOException;
     }
 
     private class LoggerNotifier implements Notifier {
         @Override
-        public void badQueryFound(String adj, float runningSec, long startTime, String project, String sql, String user,
-                Thread t) {
-            logger.info("{} query has been running {} seconds (project:{}, thread: 0x{}, user:{}) -- {}", adj,
+        public void slowQueryFound(float runningSec, long startTime, String project, String sql,
+                String user, Thread t) {
+            logger.info("{} query has been running {} seconds (project:{}, thread: 0x{}, user:{}) -- {}", QueryHistory.ADJ_SLOW,
                     runningSec, project, Long.toHexString(t.getId()), user, sql);
         }
     }
 
     private class PersistenceNotifier implements Notifier {
-        BadQueryHistoryManager badQueryManager = BadQueryHistoryManager.getInstance(kylinConfig);
         String serverHostname;
 
         public PersistenceNotifier() {
@@ -243,15 +236,12 @@ public class BadQueryDetector extends Thread {
         }
 
         @Override
-        public void badQueryFound(String adj, float runningSec, long startTime, String project, String sql, String user,
-                Thread t) {
-            try {
-                BadQueryEntry entry = new BadQueryEntry(sql, adj, startTime, runningSec, serverHostname, t.getName(),
-                        user);
-                badQueryManager.upsertEntryToProject(entry, project);
-            } catch (IOException e) {
-                logger.error("Error in bad query persistence.", e);
-            }
+        public void slowQueryFound(float runningSec, long startTime, String project, String sql, String user, Thread t) throws IOException {
+                QueryHistory entry = new QueryHistory(QueryContext.current().getQueryId(), sql, startTime, runningSec,
+                        serverHostname, t.getName(), user);
+                entry.setRealization("Slow");
+                entry.setQueryStatus(QueryHistoryStatusEnum.FAILED);
+                QueryHistoryManager.getInstance(kylinConfig, project).upsertEntry(entry);
         }
     }
 
@@ -261,9 +251,9 @@ public class BadQueryDetector extends Thread {
         final Thread thread;
         final String user;
 
-        Entry(SQLRequest sqlRequest, String user, Thread thread) {
+        Entry(SQLRequest sqlRequest, String user, Thread thread, long startTime) {
             this.sqlRequest = sqlRequest;
-            this.startTime = System.currentTimeMillis();
+            this.startTime = startTime;
             this.thread = thread;
             this.user = user;
         }

@@ -44,13 +44,12 @@ package org.apache.kylin.rest.service;
 
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import net.sf.ehcache.CacheManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.query.QueryConnection;
-import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -61,15 +60,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.Assert;
-import org.junit.runner.RunWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -82,9 +80,17 @@ import java.util.List;
 /**
  * @author xduo
  */
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({QueryConnection.class, PushDownUtil.class})
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
+
+    @Mock
+    private CacheManager cacheManager = Mockito.spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
+
+    @Mock
+    private QueryHistoryService queryHistoryService = Mockito.spy(QueryHistoryService.class);
+
+    @InjectMocks
+    private QueryService queryService = Mockito.spy(new QueryService());
+
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -95,10 +101,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
+        createTestMetadata();
         SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
+        ReflectionTestUtils.setField(queryService, "queryHistoryService", queryHistoryService);
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {
@@ -116,9 +124,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(connection.createStatement()).thenReturn(statement);
         Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
 
-        PowerMockito.mockStatic(QueryConnection.class);
-        PowerMockito.when(QueryConnection.getConnection(project)).thenReturn(connection);
-
+        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
     }
 
     private void stubQueryConnectionSQLException(final String sql, final String project) throws Exception {
@@ -132,18 +138,16 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(connection.createStatement()).thenReturn(statement);
         Mockito.when(connection.prepareStatement(sql)).thenReturn(statement);
 
-        PowerMockito.mockStatic(QueryConnection.class);
-        PowerMockito.when(QueryConnection.getConnection(project)).thenReturn(connection);
+        Mockito.when(queryService.getConnection(project)).thenReturn(connection);
 
         // mock PushDownUtil
-        PowerMockito.mockStatic(PushDownUtil.class);
-        PowerMockito.when(PushDownUtil.tryPushDownSelectQuery(project, sql, null, sqlException, false))
-                .thenReturn(new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
+        Mockito.when(queryService.tryPushDownSelectQuery(project, sql, null, sqlException, false)).
+                thenReturn(new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
+
     }
 
     private void stubQueryConnectionException(final String project) throws Exception {
-        PowerMockito.mockStatic(QueryConnection.class);
-        PowerMockito.doThrow(new RuntimeException(new ResourceLimitExceededException(""))).when(QueryConnection.class, "getConnection", project);
+        Mockito.when(queryService.getConnection(project)).thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
     }
 
     @AfterClass
@@ -151,13 +155,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         staticCleanupTestMetadata();
     }
 
-
-    private final CacheManager cacheManager = CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml"));
-    private final QueryService queryService = new QueryService();
-
     @Test
     public void testQueryPushDown() throws Exception {
-        final String sql = "select * from success_table";
+        final String sql = "select * from success_table_2";
         final String project = "default";
         stubQueryConnectionSQLException(sql, project);
 
@@ -202,7 +202,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         stubQueryConnectionException(project);
         try {
             final SQLResponse response = queryService.doQueryWithCache(request, false);
-            Assert.assertEquals(false, response.isStorageCacheUsed());
+            Assert.assertEquals(false, response.isHitExceptionCache());
             Assert.assertEquals(true, response.getIsException());
         } catch (InternalErrorException ex) {
             // ignore
@@ -210,7 +210,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         try {
             final SQLResponse response = queryService.doQueryWithCache(request, false);
-            Assert.assertEquals(true, response.isStorageCacheUsed());
+            Assert.assertEquals(true, response.isHitExceptionCache());
             Assert.assertEquals(true, response.getIsException());
         } catch (InternalErrorException ex) {
             // ignore
@@ -218,7 +218,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateTableToWith() {
+    public void testCreateTableToWith() throws IOException {
         String create_table1 = " create table tableId as select * from some_table1;";
         String create_table2 = "CREATE TABLE tableId2 AS select * FROM some_table2;";
         String select_table = "select * from tableId join tableId2 on tableId.a = tableId2.b;";

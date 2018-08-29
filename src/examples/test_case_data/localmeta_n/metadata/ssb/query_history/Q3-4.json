@@ -1,0 +1,14 @@
+{
+      "uuid": "Q3-4",
+      "last_modified": 0,
+      "version": "3.0.0.0",
+      "query_id": "Q3-4",
+      "sql": "SELECT c_city, s_city, d_year, SUM(lo_revenue) AS lo_revenue FROM ssb.p_lineorder LEFT JOIN ssb.dates ON lo_orderdate = d_datekey LEFT JOIN ssb.customer ON lo_custkey = c_custkey LEFT JOIN ssb.supplier ON lo_suppkey = s_suppkey WHERE (c_city = 'UNITED KI1' OR c_city = 'UNITED KI5') AND (s_city = 'UNITED KI1' OR s_city = 'UNITED KI5') AND d_yearmonth LIKE '%1997' GROUP BY c_city, s_city, d_year ORDER BY d_year ASC, lo_revenue DESC",
+      "start_time": 1459362230010,
+      "latency": 1000,
+      "realization": "Pushdown",
+      "query_node": "sandbox.hortonworks.com",
+      "thread": "t-0",
+      "user": "ADMIN",
+      "query_status": "SUCCEEDED"
+}

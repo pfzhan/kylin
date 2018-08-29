@@ -71,6 +71,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -92,7 +93,6 @@ import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
-import org.apache.kylin.metadata.badquery.BadQueryEntry;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
@@ -152,7 +152,7 @@ public class QueryService extends BasicService {
     public static final String EXCEPTION_QUERY_CACHE = "ExceptionQueryCache";
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
-    final BadQueryDetector badQueryDetector = new BadQueryDetector();
+    final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
     final ResourceStore queryStore;
 
     @Autowired
@@ -161,9 +161,12 @@ public class QueryService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
+    @Autowired
+    private QueryHistoryService queryHistoryService;
+
     public QueryService() {
         queryStore = ResourceStore.getKylinMetaStore(getConfig());
-        badQueryDetector.start();
+        slowQueryDetector.start();
     }
 
     protected static void close(ResultSet resultSet, Statement stat, Connection conn) {
@@ -173,8 +176,8 @@ public class QueryService extends BasicService {
         DBUtils.closeQuietly(conn);
     }
 
-    private static String getQueryKeyById(String creator) {
-        return QUERY_STORE_PATH_PREFIX + creator;
+    private static String getQueryKeyById(String project, String creator) {
+        return "/" + project + QUERY_STORE_PATH_PREFIX + creator;
     }
 
     @PostConstruct
@@ -185,15 +188,13 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret = null;
         try {
-            final String user = SecurityContextHolder.getContext().getAuthentication().getName();
-            badQueryDetector.queryStart(Thread.currentThread(), sqlRequest, user);
+            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, getUserName(), System.currentTimeMillis());
 
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
 
         } finally {
-            String badReason = (ret != null && ret.isPushDown()) ? BadQueryEntry.ADJ_PUSHDOWN : null;
-            badQueryDetector.queryEnd(Thread.currentThread(), badReason);
+            slowQueryDetector.queryEnd(Thread.currentThread());
             Thread.interrupted(); //reset if interrupted
         }
     }
@@ -203,7 +204,7 @@ public class QueryService extends BasicService {
         logger.debug("Query pushdown enabled, redirect the non-select query to pushdown engine.");
         Connection conn = null;
         try {
-            conn = QueryConnection.getConnection(sqlRequest.getProject());
+            conn = getConnection(sqlRequest.getProject());
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = PushDownUtil.tryPushDownNonSelectQuery(
                     sqlRequest.getProject(), sqlRequest.getSql(), conn.getSchema(), BackdoorToggles.getPrepareOnly());
 
@@ -221,18 +222,18 @@ public class QueryService extends BasicService {
         }
     }
 
-    public void saveQuery(final String creator, final Query query) throws IOException {
-        List<Query> queries = getQueries(creator);
+    public void saveQuery(final String creator, final String project, final Query query) throws IOException {
+        List<Query> queries = getSavedQueries(creator, project);
         queries.add(query);
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.putResourceWithoutCheck(getQueryKeyById(creator), record, System.currentTimeMillis(),
+        queryStore.putResourceWithoutCheck(getQueryKeyById(project, creator), record, System.currentTimeMillis(),
                 QueryRecordSerializer.getInstance());
         return;
     }
 
-    public void removeQuery(final String creator, final String id) throws IOException {
-        List<Query> queries = getQueries(creator);
+    public void removeSavedQuery(final String creator, final String project, final String id) throws IOException {
+        List<Query> queries = getSavedQueries(creator, project);
         Iterator<Query> queryIter = queries.iterator();
 
         boolean changed = false;
@@ -250,21 +251,22 @@ public class QueryService extends BasicService {
         }
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.putResourceWithoutCheck(getQueryKeyById(creator), record, System.currentTimeMillis(),
+        queryStore.putResourceWithoutCheck(getQueryKeyById(project, creator), record, System.currentTimeMillis(),
                 QueryRecordSerializer.getInstance());
         return;
     }
 
-    public List<Query> getQueries(final String creator) throws IOException {
+    public List<Query> getSavedQueries(final String creator, final String project) throws IOException {
         if (null == creator) {
             return null;
         }
         List<Query> queries = new ArrayList<Query>();
-        QueryRecord record = queryStore.getResource(getQueryKeyById(creator), QueryRecord.class,
+        QueryRecord record = queryStore.getResource(getQueryKeyById(project, creator), QueryRecord.class,
                 QueryRecordSerializer.getInstance());
         if (record != null) {
             for (Query query : record.getQueries()) {
-                queries.add(query);
+                if (project == null || query.getProject().equals(project))
+                    queries.add(query);
             }
         }
         return queries;
@@ -326,7 +328,7 @@ public class QueryService extends BasicService {
         logger.info(stringBuilder.toString());
     }
 
-    public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) {
+    public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) throws IOException {
         long t = System.currentTimeMillis();
         aclEvaluate.checkProjectReadPermission(sqlRequest.getProject());
         logger.info("Check query permission in " + (System.currentTimeMillis() - t) + " ms.");
@@ -399,13 +401,12 @@ public class QueryService extends BasicService {
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);
-            try {
-                recordMetric(sqlRequest, sqlResponse);
-            } catch (Throwable th) {
-                logger.warn("Write metric error.", th);
+
+            recordMetric(sqlRequest, sqlResponse);
+
+            if (!isCreateTempStatement && !isQueryInspect) {
+                queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, startTime);
             }
-            if (sqlResponse.getIsException())
-                throw new InternalErrorException(sqlResponse.getExceptionMessage());
 
             return sqlResponse;
 
@@ -547,7 +548,7 @@ public class QueryService extends BasicService {
         Connection conn = null;
 
         try {
-            conn = QueryConnection.getConnection(sqlRequest.getProject());
+            conn = getConnection(sqlRequest.getProject());
 
             String userInfo = SecurityContextHolder.getContext().getAuthentication().getName();
             QueryContext context = QueryContext.current();
@@ -591,6 +592,15 @@ public class QueryService extends BasicService {
         }
     }
 
+    Connection getConnection(String project) throws SQLException {
+        return QueryConnection.getConnection(project);
+    }
+
+    Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
+            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
+        return PushDownUtil.tryPushDownSelectQuery(project, sql, defaultSchema, sqlException, isPrepare);
+    }
+
     protected List<TableMeta> getMetadata(String project) throws SQLException {
 
         Connection conn = null;
@@ -601,7 +611,7 @@ public class QueryService extends BasicService {
         }
         ResultSet JDBCTableMeta = null;
         try {
-            conn = QueryConnection.getConnection(project);
+            conn = getConnection(project);
             DatabaseMetaData metaData = conn.getMetaData();
 
             JDBCTableMeta = metaData.getTables(null, null, null, null);
@@ -669,7 +679,7 @@ public class QueryService extends BasicService {
         }
         ResultSet JDBCTableMeta = null;
         try {
-            conn = QueryConnection.getConnection(project);
+            conn = getConnection(project);
             DatabaseMetaData metaData = conn.getMetaData();
 
             JDBCTableMeta = metaData.getTables(null, null, null, null);
@@ -879,7 +889,7 @@ public class QueryService extends BasicService {
         } catch (SQLException sqlException) {
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
             try {
-                r = PushDownUtil.tryPushDownSelectQuery(sqlRequest.getProject(), correctedSql, conn.getSchema(),
+                r = tryPushDownSelectQuery(sqlRequest.getProject(), correctedSql, conn.getSchema(),
                         sqlException, BackdoorToggles.getPrepareOnly());
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);

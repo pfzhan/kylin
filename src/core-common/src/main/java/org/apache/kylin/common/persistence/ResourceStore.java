@@ -92,7 +92,7 @@ abstract public class ResourceStore {
     public static final String EXECUTE_RESOURCE_ROOT = "/execute";
     public static final String EXECUTE_OUTPUT_RESOURCE_ROOT = "/execute_output";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
-    public static final String BAD_QUERY_RESOURCE_ROOT = "/bad_query";
+    public static final String QUERY_HISTORY_RESOURCE_ROOT = "/query_history";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String USER_ROOT = "/user";
     public static final String EVENT_RESOURCE_ROOT = "/event";
