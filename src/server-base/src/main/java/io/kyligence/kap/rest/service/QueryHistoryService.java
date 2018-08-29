@@ -43,19 +43,25 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.HashSet;
@@ -126,5 +132,64 @@ public class QueryHistoryService extends BasicService {
     public List<QueryHistory> getQueryHistories(final String project) throws IOException {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
         return getQueryHistoryManager(project).getAllQueryHistories();
+    }
+
+    public List<QueryHistory> getQueryHistoriesByRules(final String project, final QueryHistoryFilterRule rules) throws IOException {
+        List<QueryHistory> allQueryHistories = getQueryHistories(project);
+        List<Predicate<QueryHistory>> predicates = Lists.newArrayList();
+
+        if (rules == null)
+            return allQueryHistories;
+
+        for (final QueryHistoryFilterRule.QueryHistoryCond cond : rules.getConds()) {
+            Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+                @Override
+                public boolean apply(@Nullable QueryHistory queryHistory) {
+                    Object value = null;
+                    try {
+                        value = queryHistory.getValueByFieldName(cond.getField());
+                    } catch (Throwable ex) {
+                        throw new InternalErrorException(ex);
+                    }
+
+                    if (value == null){
+                        throw new InternalErrorException("Can not find field with name as" + cond.getField());
+                    }
+
+                    switch (cond.getOp()) {
+                        case GREATER:
+                            if (value instanceof Float) {
+                                return (float) value > Float.valueOf(cond.getThreshold());
+                            } else if (value instanceof Long) {
+                                return (long) value > Long.valueOf(cond.getThreshold());
+                            } else
+                                throw new InternalErrorException("Wrong field type " + value.getClass().getName());
+                        case LESS:
+                            if (value instanceof Float) {
+                                return (float) value < Float.valueOf(cond.getThreshold());
+                            } else if (value instanceof Long) {
+                                return (long) value < Long.valueOf(cond.getThreshold());
+                            } else
+                                throw new InternalErrorException("Wrong field type " + value.getClass().getName());
+                        case EQUAL:
+                            if (value instanceof Float) {
+                                return (float) value == Float.valueOf(cond.getThreshold());
+                            } else
+                                return value.toString().equals(cond.getThreshold());
+                        case CONTAIN:
+                            return value.toString().contains(cond.getThreshold());
+                        default:
+                            throw new BadRequestException("Wrong operation " + cond.getOp());
+                    }
+                }
+            };
+
+            if (predicate != null)
+                predicates.add(predicate);
+        }
+
+        List<QueryHistory> filteredQueries = Lists.newArrayList(Iterables.filter(allQueryHistories, Predicates.and(predicates)));
+
+        return filteredQueries;
     }
 }

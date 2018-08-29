@@ -47,6 +47,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 
@@ -101,9 +102,8 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     @JsonProperty("cube_hit")
     private boolean isCubeHit = false;
 
-
-    public QueryHistory(String queryId, String sql, long startTime, float latency, String queryNode,
-                        String thread, String user) {
+    public QueryHistory(String queryId, String sql, long startTime, float latency, String queryNode, String thread,
+            String user) {
         this.queryId = queryId;
         this.updateRandomUuid();
         this.sql = sql;
@@ -293,5 +293,29 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     public String toString() {
         return "QueryHistory [ realization =" + realization + ", query node =" + queryNode + ", startTime="
                 + DateFormat.formatToTimeStr(startTime) + " ]";
+    }
+
+    private Field getFieldByFieldName(String fieldName) throws NoSuchFieldException {
+        for (Class<?> superClass = this.getClass(); superClass != Object.class; superClass = superClass
+                .getSuperclass()) {
+            return superClass.getDeclaredField(fieldName);
+        }
+        return null;
+    }
+
+    public Object getValueByFieldName(String fieldName)
+            throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
+        Field field = getFieldByFieldName(fieldName);
+        Object value = null;
+        if (field != null) {
+            if (field.isAccessible()) {
+                value = field.get(this);
+            } else {
+                field.setAccessible(true);
+                value = field.get(this);
+                field.setAccessible(false);
+            }
+        }
+        return value;
     }
 }

@@ -50,6 +50,7 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.FilterQueryHistoryRequest;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -164,9 +165,25 @@ public class NQueryController extends NBasicController {
     public EnvelopeResponse getAllQueryHistories(@RequestParam(value = "project", required = false) String project,
                                               @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
                                               @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
-        throws IOException {
+            throws IOException {
         HashMap<String, Object> data = new HashMap<>();
         List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(project);
+
+        data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
+        data.put("size", queryHistories.size());
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    @RequestMapping(value = "/query_histories", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getFilteredQueryHistories(@RequestBody FilterQueryHistoryRequest request,
+                                                      @RequestParam(value = "pageOffset", required = false, defaultValue = "0") int pageOffset,
+                                                      @RequestParam(value = "pageSize", required = false, defaultValue = "10") int pageSize)
+            throws IOException {
+        HashMap<String, Object> data = new HashMap<>();
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(request.getProject(), request.getRule());
 
         data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
         data.put("size", queryHistories.size());
