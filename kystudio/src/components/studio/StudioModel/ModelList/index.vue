@@ -74,7 +74,7 @@
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
-          prop="fact_table"
+          prop="capacity"
           show-overflow-tooltip
           width="210"
           :label="$t('Capbility')">
@@ -354,7 +354,7 @@ export default class ModelList extends Vue {
     return hasRole(this, 'ROLE_ADMIN')
   }
   created () {
-    this.filterArgs.projectName = this.currentSelectedProject
+    this.filterArgs.project = this.currentSelectedProject
     this.loadModelsList()
   }
 }

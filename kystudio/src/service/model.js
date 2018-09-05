@@ -13,7 +13,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + params.project + '/table_suggestions').get(params)
   },
   getModelByModelName: (para) => {
-    return Vue.resource(apiUrl + 'model_desc/' + para.project + '/' + para.modelName).get()
+    return Vue.resource(apiUrl + 'models').get(para)
   },
   deleteModel: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName).delete()

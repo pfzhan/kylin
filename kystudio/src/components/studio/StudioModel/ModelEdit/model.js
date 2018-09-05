@@ -19,7 +19,7 @@ class NModel {
     this.last_modified = options.last_modified || 0
     this.partition_desc = options.partition_desc || {}
     this.all_named_columns = options.all_named_columns || []
-    this.join_tables = options.join_tables || []
+    this.lookups = options.lookups || []
     this.dimensions = options.dimensions || []
     this.all_measures = options.all_measures || []
     this.project = options.project
@@ -58,7 +58,7 @@ class NModel {
         kind: 'FACT',
         table: this.fact_table
       })
-      this.join_tables.forEach((tableObj) => {
+      this.lookups.forEach((tableObj) => {
         let ntable = this.addTable({
           alias: tableObj.alias,
           columns: this._getTableColumns(tableObj.table),
@@ -136,7 +136,7 @@ class NModel {
     return this.mixResult(this.dimensions, 'dimension', 'table', keywords)
   }
   searchJoin (keywords) {
-    return this.mixResult(this.join_tables, 'join', 'table', keywords)
+    return this.mixResult(this.lookups, 'join', 'table', keywords)
   }
   searchRule (content, keywords) {
     var reg = new RegExp(keywords, 'i')
