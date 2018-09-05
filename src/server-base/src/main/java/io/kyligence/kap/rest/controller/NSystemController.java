@@ -22,38 +22,38 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.controller;
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.rest.response.EnvelopeResponse;
+import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.service.LicenseInfoService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import java.io.IOException;
 
-public class NTableDesc extends TableDesc {
 
-    public NTableDesc(TableDesc other) {
-       super(other);
-    }
-    public NTableDesc() {
-        super();
-    }
-    @Override
-    public String getProject() {
-        return project;
-    }
+@Controller
+@Component("kapSystemController")
+@RequestMapping(value = "/kap/system")
+public class NSystemController extends NBasicController {
+    private final static String CODE_UNDEFINED = "400";
 
-    @Override
-    public void setProject(String project) {
-        this.project = project;
-    }
+    @Autowired
+    private LicenseInfoService licenseInfoService;
 
-    @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+
+
+    @RequestMapping(value = "/license", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse listLicense() throws IOException {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, licenseInfoService.extractLicenseInfo(), "");
     }
 
-    @Override
-    public String resourceName() {
-        return getIdentity();
-    }
+
+
 }

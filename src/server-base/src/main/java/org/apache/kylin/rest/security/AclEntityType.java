@@ -22,38 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableDesc;
+package org.apache.kylin.rest.security;
 
-public class NTableDesc extends TableDesc {
+/**
+ */
+public interface AclEntityType {
 
-    public NTableDesc(TableDesc other) {
-       super(other);
-    }
-    public NTableDesc() {
-        super();
-    }
-    @Override
-    public String getProject() {
-        return project;
-    }
+    static final String N_DATA_MODEL = "NDataModel";
 
-    @Override
-    public void setProject(String project) {
-        this.project = project;
-    }
+    static final String JOB_INSTANCE = "JobInstance";
 
-    @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
-    }
-
-    @Override
-    public String resourceName() {
-        return getIdentity();
-    }
+    static final String PROJECT_INSTANCE = "ProjectInstance";
 }

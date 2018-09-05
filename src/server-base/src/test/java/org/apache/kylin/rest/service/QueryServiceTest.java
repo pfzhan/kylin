@@ -152,7 +152,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        staticCleanupTestMetadata();
+        cleanAfterClass();
     }
 
     @Test

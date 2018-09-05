@@ -140,12 +140,8 @@ public class NProjectManager {
 
         for (String resource : resources) {
             // "/" filter dirs  properties  and *.crc
-            if (resource.equals("/UUID")
-                    || resource.equals("/user")
-                    || resource.equals("/user_group")
-                    || resource.contains(".crc")
-                    || resource.contains(".properties")
-                    || resource.contains(".DS_Store"))
+            if (resource.equals("/UUID") || resource.equals("/user") || resource.equals("/user_group")
+                    || resource.contains(".crc") || resource.contains(".properties") || resource.contains(".DS_Store"))
                 continue;
             //remove "/" before driName
             String dirName = resource.substring(1, resource.length());
@@ -207,7 +203,8 @@ public class NProjectManager {
     }
 
     private ProjectInstance getInstanceFromResource(String projectName) throws IOException {
-        String projectResourcePath = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE + ".json";
+        String projectResourcePath = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE
+                + ".json";
         ProjectInstance instance = getStore().getResource(projectResourcePath, ProjectInstance.class, serializer);
 
         if (instance == null)
@@ -323,7 +320,6 @@ public class NProjectManager {
             project.setName(newName);
             project.setDescription(newDesc);
             project.setOverrideKylinProps(overrideProps);
-
             if (project.getUuid() == null)
                 project.updateRandomUuid();
 
@@ -386,7 +382,8 @@ public class NProjectManager {
         return newProject;
     }
 
-    public void removeRealizationsFromProject(String prj, String realizationType, String realizationName) throws IOException {
+    public void removeRealizationsFromProject(String prj, String realizationType, String realizationName)
+            throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             ProjectInstance project = getProject(prj);
             project.removeRealization(realizationType, realizationName);
@@ -457,7 +454,8 @@ public class NProjectManager {
 
     private ProjectInstance save(ProjectInstance prj) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
-            String projectPathRoot = getProjectRootPath(prj.getName()) + "/" + MetadataConstants.PROJECT_RESOURCE + ".json";
+            String projectPathRoot = getProjectRootPath(prj.getName()) + "/" + MetadataConstants.PROJECT_RESOURCE
+                    + ".json";
             Preconditions.checkArgument(prj != null);
             if (getStore().getConfig().isCheckCopyOnWrite()) {
                 if (prj.isCachedAndShared() || projectMap.get(prj.getName()) == prj) {

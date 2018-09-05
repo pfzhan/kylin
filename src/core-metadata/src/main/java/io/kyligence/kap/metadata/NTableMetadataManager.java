@@ -420,6 +420,14 @@ public class NTableMetadataManager {
             extFilterCrud.save(desc);
         }
     }
+    public void updateTableDesc(TableDesc tableDesc) throws IOException {
+        try (AutoLock lock = srcTableMapLock.lockForWrite()) {
+            if(!srcTableMap.containsKey(tableDesc.getIdentity())){
+                throw new IllegalStateException("tableDesc " + tableDesc.getName() + "does not exist");
+            }
+            saveSourceTable(tableDesc);
+        }
+    }
 
     public void removeExternalFilter(String name) throws IOException {
         try (AutoLock ignored = extFilterMapLock.lockForWrite()) {

@@ -24,18 +24,24 @@
 
 package io.kyligence.kap.cube.cuboid;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 
-public abstract class NSpanningTree {
+@SuppressWarnings("serial")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+public abstract class NSpanningTree implements Serializable {
+    @JsonProperty("cuboids")
     final protected Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids;
     final protected String cacheKey;
 
@@ -76,6 +82,10 @@ public abstract class NSpanningTree {
 
     public String getCuboidCacheKey() {
         return cacheKey;
+    }
+
+    public Map<NCuboidDesc, Collection<NCuboidLayout>> getCuboids() {
+        return cuboids;
     }
 
     private transient List<Collection<NCuboidDesc>> cuboidsByLayer;

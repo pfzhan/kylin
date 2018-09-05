@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -75,7 +75,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     public static String concatRawResourcePath(String nameOnPath) {
         return ResourceStore.TABLE_RESOURCE_ROOT + "/" + nameOnPath + ".json";
     }
-    
+
     public static String makeResourceName(String tableIdentity, String prj) {
         return prj == null ? tableIdentity : tableIdentity + "--" + prj;
     }
@@ -122,6 +122,9 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String dataGen;
 
+    @JsonProperty("fact")
+    private boolean isFact;
+
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
     private String identity = null;
@@ -133,7 +136,6 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     public TableDesc(TableDesc other) {
         this.uuid = other.uuid;
         this.lastModified = other.lastModified;
-
         this.name = other.name;
         this.sourceType = other.sourceType;
         this.tableType = other.tableType;
@@ -154,7 +156,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     public String resourceName() {
         return makeResourceName(getIdentity(), getProject());
     }
-    
+
     public TableDesc appendColumns(ColumnDesc[] computedColumns, boolean makeCopy) {
         if (computedColumns == null || computedColumns.length == 0) {
             return this;
@@ -215,7 +217,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         if (isBorrowedFromGlobal()) {
             return concatResourcePath(getIdentity(), null);
         }
-        
+
         return concatResourcePath(getIdentity(), project);
     }
 
@@ -290,6 +292,14 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         this.columns = columns;
     }
 
+    public Boolean getFact() {
+        return isFact;
+    }
+
+    public void setFact(Boolean fact) {
+        isFact = fact;
+    }
+
     public int getMaxColumnIndex() {
         if (columns == null) {
             return -1;
@@ -341,18 +351,6 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     public int hashCode() {
         return getIdentity().hashCode();
     }
-
-    //    @Override
-    //    public boolean equals(Object obj) {
-    //        if (this == obj)
-    //            return true;
-    //        if (!super.equals(obj))
-    //            return false;
-    //        if (getClass() != obj.getClass())
-    //            return false;
-    //        TableDesc other = (TableDesc) obj;
-    //        return getIdentity().equals(other.getIdentity());
-    //    }
 
     @Override
     public boolean equals(Object o) {

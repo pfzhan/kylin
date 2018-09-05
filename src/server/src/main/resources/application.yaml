@@ -1,6 +1,6 @@
 server:
   port: 7070
-  servlet-path: "/api"
+  servlet-path: "/kylin/api"
 
 spring:
   profiles:

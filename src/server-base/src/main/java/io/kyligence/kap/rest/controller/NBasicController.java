@@ -47,10 +47,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
+import java.util.HashMap;
+import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
+import io.kyligence.kap.rest.PagingUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -156,6 +157,20 @@ public class NBasicController {
             }
         }
         return isAdmin;
+    }
+
+    public HashMap<String, Object> getDataResponse(String name, List<?> result, int offset, int limit) {
+        HashMap<String, Object> data = new HashMap<>();
+        data.put(name, PagingUtil.cutPage(result, offset, limit));
+        data.put("size", result.size());
+        return data;
+    }
+
+    public void checkProjectName(String project) {
+        Message msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(project)) {
+            throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+        }
     }
 
 }

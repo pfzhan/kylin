@@ -22,38 +22,34 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableDesc;
+public class TableLoadRequest {
+    private int datasourceType;
+    private String project;
+    private String[] tables;
 
-public class NTableDesc extends TableDesc {
-
-    public NTableDesc(TableDesc other) {
-       super(other);
+    public Integer getDatasourceType() {
+        return datasourceType;
     }
-    public NTableDesc() {
-        super();
+
+    public void setDatasourceType(Integer datasourceType) {
+        this.datasourceType = datasourceType;
     }
-    @Override
+
+    public String[] getTables() {
+        return tables;
+    }
+
+    public void setTables(String[] tables) {
+        this.tables = tables;
+    }
+
     public String getProject() {
         return project;
     }
 
-    @Override
     public void setProject(String project) {
         this.project = project;
-    }
-
-    @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
-    }
-
-    @Override
-    public String resourceName() {
-        return getIdentity();
     }
 }

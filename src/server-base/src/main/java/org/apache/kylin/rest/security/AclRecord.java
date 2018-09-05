@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.springframework.security.acls.domain.ObjectIdentityImpl;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.model.AccessControlEntry;
 import org.springframework.security.acls.model.Acl;

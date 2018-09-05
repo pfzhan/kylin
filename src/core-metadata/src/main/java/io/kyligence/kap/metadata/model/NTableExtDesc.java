@@ -29,9 +29,17 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.TableExtDesc;
 
-public class NTableExtDesc extends TableExtDesc{
+public class NTableExtDesc extends TableExtDesc {
     @JsonProperty("project")
     private String project;
+
+    public NTableExtDesc() {
+        super();
+    }
+
+    public NTableExtDesc(TableExtDesc other) {
+        super(other);
+    }
 
     @Override
     public String getProject() {
@@ -44,7 +52,7 @@ public class NTableExtDesc extends TableExtDesc{
 
     @Override
     public String getResourcePath() {
-        return new StringBuilder().append(ResourceStore.TABLE_EXD_RESOURCE_ROOT).append("/").append(project)
-            .append("/").append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+        return new StringBuilder().append(ResourceStore.TABLE_EXD_RESOURCE_ROOT).append("/").append(project).append("/")
+                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 }

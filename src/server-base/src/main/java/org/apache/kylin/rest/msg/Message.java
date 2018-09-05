@@ -262,6 +262,10 @@ public class Message {
         return "The project named '%s' already exists.";
     }
 
+    public String sourceTYPE_NOT_ALLOWED() {
+        return "this source type not allowed";
+    }
+
     public String getPROJECT_NOT_FOUND() {
         return "Cannot find project '%s'.";
     }
@@ -272,6 +276,10 @@ public class Message {
 
     public String getPROJECT_RENAME() {
         return "Project renaming is not allowed.";
+    }
+
+    public String getPROJECT_FAILED() {
+        return "Cannot find project.";
     }
 
     // Table

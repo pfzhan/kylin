@@ -24,8 +24,13 @@
 
 package io.kyligence.kap.rest;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.Pair;
 
 public class PagingUtil {
     
@@ -47,5 +52,44 @@ public class PagingUtil {
             end = full.size();
 
         return full.subList(begin, end);
+    }
+
+    public static <T> Pair<List<T>, List<T>> cutPageWithTwoList(List<T> l1, List<T> l2, int pageOffset, int pageSize) {
+        List<T> l1Paged = cutPage(l1, pageOffset, pageSize);
+        Pair<List<T>, List<T>> r = new Pair<>();
+        r.setFirst(l1Paged);
+
+        if (l1Paged.size() == pageSize) {
+            r.setSecond(Collections.<T>emptyList());
+        }
+
+        if (0 < l1Paged.size() && l1Paged.size() < pageSize) {
+            r.setSecond(cutPage(l2, 0, pageSize - l1Paged.size()));
+        }
+
+        if (0 == l1Paged.size()) {
+            int begin = pageOffset * pageSize - l1.size();
+            int end = begin + pageSize;
+            r.setSecond(cut(l2, begin, end));
+        }
+        return r;
+    }
+
+    public static List<String> getIdentifierAfterFuzzyMatching(String nameSeg, boolean isCaseSensitive, Collection<String> l) {
+        List<String> identifier = new ArrayList<>();
+        if (StringUtils.isBlank(nameSeg)) {
+            identifier.addAll(l);
+        } else {
+            for (String u : l) {
+                if (!isCaseSensitive && StringUtils.containsIgnoreCase(u, nameSeg)) {
+                    identifier.add(u);
+                }
+                if (isCaseSensitive && StringUtils.contains(u, nameSeg)) {
+                    identifier.add(u);
+                }
+            }
+        }
+        Collections.sort(identifier);
+        return identifier;
     }
 }

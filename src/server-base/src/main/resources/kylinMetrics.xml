@@ -33,47 +33,5 @@
         </constructor-arg>
     </bean>
 
-    <bean id="hiveSink" class="org.apache.kylin.metrics.lib.impl.hive.HiveSink"/>
-
-    <bean id="kafkaSink" class="org.apache.kylin.metrics.lib.impl.kafka.KafkaSink"/>
-
-    <bean id="initMetricsManager" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetClass" value="org.apache.kylin.metrics.MetricsManager"/>
-        <property name="targetMethod" value="initMetricsManager"/>
-        <property name="arguments">
-            <list>
-                <ref bean="hiveSink"/>
-                <map key-type="org.apache.kylin.metrics.lib.ActiveReservoir" value-type="java.util.List">
-                    <!--
-                    <entry key-ref="instantReservoir">
-                        <list>
-                            <bean class="Pair">
-                                <property name="first"
-                                          value="org.apache.kylin.metrics.lib.impl.kafka.KafkaReservoirReporter"/>
-                                <property name="second">
-                                    <props>
-                                        <prop key="bootstrap.servers">sandbox:9092</prop>
-                                    </props>
-                                </property>
-                            </bean>
-                        </list>
-                    </entry>
-                    -->
-                    <entry key-ref="blockingReservoir">
-                        <list>
-                            <bean class="org.apache.kylin.common.util.Pair">
-                                <property name="first"
-                                          value="org.apache.kylin.metrics.lib.impl.hive.HiveReservoirReporter"/>
-                                <property name="second">
-                                    <props>
-                                    </props>
-                                </property>
-                            </bean>
-                        </list>
-                    </entry>
-                </map>
-            </list>
-        </property>
-    </bean>
 
 </beans>

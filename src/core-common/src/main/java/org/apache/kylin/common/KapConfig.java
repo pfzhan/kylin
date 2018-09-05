@@ -266,6 +266,10 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.storage.columnar.ii-query-enabled", "true"));
     }
 
+    public boolean isProjectInternalDefaultPermissionGranted() {
+        return Boolean.parseBoolean(config.getOptional("kap.acl.project-internal-default-permission-granted", "true"));
+    }
+
     /**
      * Massin
      */

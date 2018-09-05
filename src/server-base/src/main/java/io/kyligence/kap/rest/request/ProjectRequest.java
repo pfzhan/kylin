@@ -22,38 +22,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableDesc;
+import java.util.Objects;
 
-public class NTableDesc extends TableDesc {
+/**
+ */
+public class ProjectRequest {
+    private String formerProjectName;
 
-    public NTableDesc(TableDesc other) {
-       super(other);
+    private String projectDescData;
+
+    public ProjectRequest() {
     }
-    public NTableDesc() {
-        super();
+
+    public String getProjectDescData() {
+        return projectDescData;
     }
+
+    public void setProjectDescData(String projectDescData) {
+        this.projectDescData = projectDescData;
+    }
+
+    public String getFormerProjectName() {
+        return formerProjectName;
+    }
+
+    public void setFormerProjectName(String formerProjectName) {
+        this.formerProjectName = formerProjectName;
+    }
+
     @Override
-    public String getProject() {
-        return project;
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        ProjectRequest that = (ProjectRequest) o;
+        return Objects.equals(formerProjectName, that.formerProjectName)
+                && Objects.equals(projectDescData, that.projectDescData);
     }
 
     @Override
-    public void setProject(String project) {
-        this.project = project;
-    }
+    public int hashCode() {
 
-    @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
-    }
-
-    @Override
-    public String resourceName() {
-        return getIdentity();
+        return Objects.hash(formerProjectName, projectDescData);
     }
 }

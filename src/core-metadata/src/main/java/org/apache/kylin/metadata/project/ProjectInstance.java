@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -65,17 +64,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.ISourceAware;
 
 /**
  * Project is a concept in Kylin similar to schema in DBMS
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class ProjectInstance extends RootPersistentEntity {
+public class ProjectInstance extends RootPersistentEntity implements ISourceAware {
 
     public static final String DEFAULT_PROJECT_NAME = "default";
     private KylinConfigExt config;
 
+    @JsonProperty("name")
     private String name;
 
     private Set<String> tables = new TreeSet<String>();
@@ -112,7 +113,7 @@ public class ProjectInstance extends RootPersistentEntity {
     }
 
     public static String concatResourcePath(String projectName) {
-        return "/" + projectName + "/" + MetadataConstants.PROJECT_RESOURCE  + MetadataConstants.FILE_SURFIX;
+        return "/" + projectName + "/" + MetadataConstants.PROJECT_RESOURCE + MetadataConstants.FILE_SURFIX;
     }
 
     public static ProjectInstance create(String name, String owner, String description,
@@ -152,7 +153,7 @@ public class ProjectInstance extends RootPersistentEntity {
     public String resourceName() {
         return this.name;
     }
-    
+
     public String getDescription() {
         return description;
     }
@@ -365,4 +366,8 @@ public class ProjectInstance extends RootPersistentEntity {
         return "/" + name + "/" + MetadataConstants.PROJECT_RESOURCE + MetadataConstants.FILE_SURFIX;
     }
 
+    @Override
+    public int getSourceType() {
+        return getConfig().getDefaultSource();
+    }
 }

@@ -55,7 +55,16 @@
             <artifactId>kap-core-cube</artifactId>
             <version>${project.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-core-metrics</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.kap</groupId>
+            <artifactId>kap-engine-spark</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>io.kyligence.kap</groupId>
             <artifactId>kylin-external-htrace</artifactId>

@@ -22,38 +22,50 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.request;
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableDesc;
 
-public class NTableDesc extends TableDesc {
+import java.io.Serializable;
+import java.util.Objects;
 
-    public NTableDesc(TableDesc other) {
-       super(other);
+public class DataSourceRequest implements Serializable{
+
+    private int datasourceType;
+
+    private String project;
+
+
+    public int getDatasourceType() {
+        return datasourceType;
     }
-    public NTableDesc() {
-        super();
+
+    public void setDatasourceType(int datasourceType) {
+        this.datasourceType = datasourceType;
     }
-    @Override
+
     public String getProject() {
         return project;
     }
 
-    @Override
     public void setProject(String project) {
         this.project = project;
     }
 
     @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DataSourceRequest that = (DataSourceRequest) o;
+        return datasourceType == that.datasourceType &&
+                Objects.equals(project, that.project);
     }
 
     @Override
-    public String resourceName() {
-        return getIdentity();
+    public int hashCode() {
+
+        return Objects.hash(datasourceType, project);
     }
+
+
+
 }

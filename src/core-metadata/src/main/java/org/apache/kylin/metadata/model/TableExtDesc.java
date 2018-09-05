@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -75,7 +74,7 @@ public class TableExtDesc extends RootPersistentEntity {
     public static Pair<String, String> parseResourcePath(String path) {
         return TableDesc.parseResourcePath(path);
     }
-    
+
     // ============================================================================
 
     @JsonProperty("table_name")
@@ -105,11 +104,26 @@ public class TableExtDesc extends RootPersistentEntity {
     public TableExtDesc() {
     }
 
+    public TableExtDesc(TableExtDesc other) {
+        this.uuid = other.uuid;
+        this.lastModified = other.lastModified;
+        this.tableIdentity = other.tableIdentity;
+        this.jodID = other.jodID;
+        this.frequency = other.frequency;
+        this.columnStats = other.columnStats;
+        this.sampleRows = other.sampleRows;
+        this.lastModifiedTime = other.lastModifiedTime;
+        this.totalRows = other.totalRows;
+        this.mapRecords = other.mapRecords;
+        this.dataSourceProps = other.dataSourceProps;
+        this.project = other.project;
+    }
+
     @Override
     public String resourceName() {
         return TableDesc.makeResourceName(getIdentity(), getProject());
     }
-    
+
     public String getResourcePath() {
         return concatResourcePath(getIdentity(), getProject());
     }

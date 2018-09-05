@@ -36,6 +36,8 @@ import java.util.SortedSet;
 
 import javax.annotation.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
@@ -46,7 +48,10 @@ import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 
+@SuppressWarnings("serial")
+@JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
+    @JsonProperty("nodes")
     private final Map<Long, TreeNode> nodesMap = Maps.newHashMap();
     private final Map<Long, NCuboidLayout> layoutMap = Maps.newHashMap();
 
