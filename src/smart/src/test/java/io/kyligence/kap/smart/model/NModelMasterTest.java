@@ -27,9 +27,13 @@ package io.kyligence.kap.smart.model;
 import java.io.IOException;
 
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.Assert;
 import org.junit.Test;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -38,6 +42,8 @@ import io.kyligence.kap.smart.common.NTestBase;
 public class NModelMasterTest extends NTestBase {
     @Test
     public void test() throws IOException {
+        preparePartition();
+
         NSmartContext.NModelContext mdCtx = getModelContext();
         Assert.assertNotNull(mdCtx);
 
@@ -62,6 +68,14 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertEquals("KYLIN_CAL_DT", joins[0].getAlias());
             Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins[0].getJoin().getPrimaryKey());
             Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins[0].getJoin().getForeignKey());
+        }
+        
+        dataModel = modelMaster.proposePartition(dataModel);
+        {
+            PartitionDesc partition = dataModel.getPartitionDesc();
+            Assert.assertNotNull(partition);
+            Assert.assertTrue(partition.isPartitioned());
+            Assert.assertEquals("KYLIN_SALES.PART_DT", partition.getPartitionDateColumn());
         }
 
         // propose again, should return same result
@@ -92,10 +106,26 @@ public class NModelMasterTest extends NTestBase {
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         smartMaster.analyzeSQLs();
-        smartMaster.optimizeModel();
-        smartMaster.saveModel();
 
         NSmartContext ctx = smartMaster.getContext();
         return ctx.getModelContexts().get(0);
+    }
+
+    private NDataLoadingRange preparePartition() throws IOException {
+        String tableName = "DEFAULT.KYLIN_SALES";
+        String columnName = "PART_DT";
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.updateRandomUuid();
+        dataLoadingRange.setProject(proj);
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setColumnName(columnName);
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2013-01-01");
+        SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(start,
+                end);
+        dataLoadingRange.setDataLoadingRange(range);
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, proj);
+        NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+        return savedDataLoadingRange;
     }
 }

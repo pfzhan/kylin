@@ -73,4 +73,8 @@ public class NModelMaster {
     public NDataModel proposeScope(NDataModel modelDesc) {
         return proposerProvider.getScopeProposer().propose(modelDesc);
     }
+    
+    public NDataModel proposePartition(NDataModel modelDesc) {
+        return proposerProvider.getPartitionProposer().propose(modelDesc);
+    }
 }

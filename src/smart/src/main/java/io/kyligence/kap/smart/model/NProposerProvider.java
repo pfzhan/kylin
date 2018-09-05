@@ -44,4 +44,8 @@ public class NProposerProvider {
     public NAbstractModelProposer getScopeProposer() {
         return new NQueryScopeProposer(context);
     }
+
+    public NAbstractModelProposer getPartitionProposer() {
+        return new NPartitionProposer(context);
+    }
 }

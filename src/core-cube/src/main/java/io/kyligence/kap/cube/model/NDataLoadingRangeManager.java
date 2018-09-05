@@ -150,7 +150,7 @@ public class NDataLoadingRangeManager {
             String tableName = dataLoadingRange.getTableName();
             TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
             if (tableDesc == null) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's table " + tableName + "does not exists");
+                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's table " + tableName + " does not exists");
             }
             String columnName = dataLoadingRange.getColumnName();
             ColumnDesc columnDesc = tableDesc.findColumnByName(columnName);
