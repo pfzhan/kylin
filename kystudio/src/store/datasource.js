@@ -72,6 +72,12 @@ export default {
     [types.DELETE_QUERY]: function ({commit}, queryId) {
       return api.datasource.deleteQuery(queryId)
     },
+    [types.GET_HISTORY_LIST]: function ({commit}, para) {
+      return api.datasource.getHistoryList(para)
+    },
+    [types.GET_FAVORITE_LIST]: function ({commit}, para) {
+      return api.datasource.getFavoriteList(para)
+    },
     [types.GET_ENCODINGS]: function ({commit}) {
       return api.datasource.getEncoding().then((response) => {
         commit(types.CACHE_ENCODINGS, {data: response.data.data})

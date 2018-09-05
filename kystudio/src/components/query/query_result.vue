@@ -109,8 +109,7 @@ import saveQueryDialog from './save_query_dialog'
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      query: 'QUERY_BUILD_TABLES',
-      saveQueryToServer: 'SAVE_QUERY'
+      query: 'QUERY_BUILD_TABLES'
     })
   },
   components: {

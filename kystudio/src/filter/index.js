@@ -156,3 +156,8 @@ Vue.filter('filterArr', function (data, key, value, isFuzzy) {
   }) || []
 })
 
+Vue.filter('arrayToStr', function (data) {
+  if (Array.isArray(data)) {
+    return data.join(',')
+  }
+})

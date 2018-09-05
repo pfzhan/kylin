@@ -610,7 +610,6 @@ export default class LayoutLeftRightTop extends Vue {
         }
       }
     }
-    
   }
   .round-icon (@width, @height) {
     width:@width;
@@ -621,7 +620,7 @@ export default class LayoutLeftRightTop extends Vue {
     display:inline-block;
     border-radius: 50%;
     color:#fff;
-    margin-left:10px;
+    margin-left:3px;
   }
   .number-icon {
     .round-icon(16px, 16px);

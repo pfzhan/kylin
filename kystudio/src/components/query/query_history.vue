@@ -1,6 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData" v-on:openAgg="openAgg"></query_history_table>
+    <pager ref="queryHistoryPager" class="ksd-center" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
     <el-dialog
       title="Aggregate Index"
       :visible.sync="aggDetailVisible"
@@ -42,11 +43,14 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
-import queryHistoryTable from '../common/query_history_table'
+import { handleSuccessAsync } from '../../util/index'
+import queryHistoryTable from './query_history_table'
 import { CodeFlower } from 'util/code_flower'
 @Component({
   methods: {
-    ...mapActions({})
+    ...mapActions({
+      getHistoryList: 'GET_HISTORY_LIST'
+    })
   },
   components: {
     'query_history_table': queryHistoryTable
@@ -54,17 +58,18 @@ import { CodeFlower } from 'util/code_flower'
 })
 export default class QueryHistory extends Vue {
   aggDetailVisible = false
+  queryCurrentPage = 1
   queryHistoryData = [
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'speed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'partSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'speeding'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'},
-    {queryId: 1248332349, startTime: 1524829437628, duration: '2.2s', resultRowCount: '100,000', ifHitCache: false, modelName: 'Model_auto1', realization: 'Aggreaget data ID / Raw data ID', content: 'columnA, columnB', totalScanCount: '100,000', totalScanBytes: '100,000,000', queryContent: 'Select count (*) from table_1', user: 'Admin', queryTarget: 'Pushdowm to Hive', ip: '101.1.1.181', status: 'unSpeed'}
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'FULLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false}
   ]
   aggAmount = 1205
   aggDetail = {
@@ -495,6 +500,26 @@ export default class QueryHistory extends Vue {
       const myFlower = new CodeFlower('#visualization', 700, 600)
       myFlower.update(this.flowerJson)
     }, 0)
+  }
+
+  async loadHistoryList (pageIndex) {
+    const res = await this.getHistoryList({
+      pageData: {
+        project: this.project || null,
+        limit: this.listRows,
+        offset: pageIndex || 0
+      }
+    })
+    this.queryHistoryData = await handleSuccessAsync(res)
+  }
+
+  created () {
+    this.loadHistoryList()
+  }
+
+  pageCurrentChange (currentPage) {
+    this.queryCurrentPage = currentPage
+    this.loadHistoryList(currentPage - 1)
   }
 }
 </script>

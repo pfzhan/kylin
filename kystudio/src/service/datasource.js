@@ -39,6 +39,12 @@ export default {
   deleteQuery: (id) => {
     return Vue.resource(apiUrl + 'saved_queries/' + id).delete()
   },
+  getHistoryList: (para) => {
+    return Vue.resource(apiUrl + 'history_queries').get(para.pageData)
+  },
+  getFavoriteList: (para) => {
+    return Vue.resource(apiUrl + 'favorite_queries').get(para.pageData)
+  },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()
   },

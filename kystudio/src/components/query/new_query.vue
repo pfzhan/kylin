@@ -103,8 +103,6 @@ import { pageCount, permissions, insightKeyword } from '../../config'
 @Component({
   methods: {
     ...mapActions({
-      loadBuildCompleteTables: 'LOAD_BUILD_COMPLETE_TABLES',
-      query: 'QUERY_BUILD_TABLES',
       getSavedQueries: 'GET_SAVE_QUERIES',
       delQuery: 'DELETE_QUERY',
       loadDataSourceByProject: 'LOAD_DATASOURCE'
@@ -160,9 +158,9 @@ export default class NewQuery extends Vue {
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
       pageData: {
-        projectName: this.project || null,
-        pageSize: pageCount,
-        pageOffset: pageIndex
+        project: this.project || null,
+        limit: this.listRows,
+        offset: pageIndex
       }
     })
   }

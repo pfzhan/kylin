@@ -42,18 +42,18 @@
                 </div>
                 <div>
                   <span class="label">Duration:</span>
-                  <span>{{props.row.duration}}</span>
+                  <span>{{props.row.latency}}s</span>
                 </div>
                 <div>
                   <span class="label">Query Countent:</span>
-                  <kap_editor height="130" width="80%" lang="sql" theme="chrome" v-model="props.row.queryContent" dragbar="#393e53">
+                  <kap_editor height="130" width="80%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
                   </kap_editor>
                 </div>
               </el-col>
               <el-col :span="10">
                 <div>
                   <span class="label">Model Name:</span>
-                  <span>{{props.row.modelName}}</span>
+                  <span>{{props.row.model_name}}</span>
                 </div>
                 <div>
                   <span class="label">Realization:</span>
@@ -61,24 +61,24 @@
                 </div>
                 <div>
                   <span class="label">Content:</span>
-                  <span>{{props.row.content}}</span>
+                  <span>{{props.row.content | arrayToStr}}</span>
                 </div>
                 <div>
                   <span class="label">Total Scan Count:</span>
-                  <span>{{props.row.totalScanCount}}</span>
+                  <span>{{props.row.total_scan_count}}</span>
                 </div>
                 <div>
                   <span class="label">Total Scan Bytes:</span>
-                  <span>{{props.row.totalScanBytes}}</span>
+                  <span>{{props.row.total_scan_bytes}}</span>
                 </div>
                 <br/>
                 <div>
                   <span class="label">Result Row Count:</span>
-                  <span>{{props.row.resultRowCount}}</span>
+                  <span>{{props.row.result_row_count}}</span>
                 </div>
                 <div>
                   <span class="label">If Hit Cache:</span>
-                  <span>{{props.row.ifHitCache}}</span>
+                  <span>{{props.row.is_cubeHit}}</span>
                 </div>
               </el-col>
             </el-row>
@@ -91,26 +91,25 @@
           {{props.row.startTime | gmtTime}}
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn2" sortable prop="duration" header-align="center" align="right" width="150">
+      <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent')" prop="queryContent" header-align="center">
+      <el-table-column :label="$t('kylinLang.query.sqlContent')" prop="sql" header-align="center" show-overflow-tooltip>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn4" prop="ip" header-align="center" width="150">
+      <el-table-column :renderHeader="renderColumn4" prop="queryNode" header-align="center" width="150">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn5" prop="status" align="center" width="100" v-if="!isCandidate">
+      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="100" v-if="!isCandidate">
         <template slot-scope="props">
           <i class="status-icon" :class="{
-            'el-icon-ksd-acclerate': props.row.status === 'speed',
-            'el-icon-ksd-acclerate_portion': props.row.status === 'partSpeed',
-            'el-icon-ksd-acclerate_ready': props.row.status === 'unSpeed',
-            'el-icon-ksd-acclerate_ongoing': props.row.status === 'speeding'
+            'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
+            'el-icon-ksd-acclerate_portion': props.row.accelerate_status === 'PARTLY_ACCELERATED',
+            'el-icon-ksd-acclerate_ready': props.row.accelerate_status === 'WAITING',
+            'el-icon-ksd-acclerate_ongoing': props.row.accelerate_status === 'ACCELERATING'
           }"></i>
         </template>
       </el-table-column>
     </el-table>
-    <pager ref="queryHistoryPager" class="ksd-center" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
     <div class="rule-block" v-if="ruleVisible"></div>
     <div class="ruleDiaglog translate-right transition-new" v-if="ruleVisible">
       <div class="el-dialog__header">
@@ -193,7 +192,7 @@ export default class QueryHistoryTable extends Vue {
   endSec = 10
   latencyFilterPopoverVisible = false
   realFilteArr = [{name: 'Pushdown to Hive', value: 'pushdown1'}, {name: 'Pushdown to Greenplum', value: 'pushdown2'}, {name: 'Model Name', value: 'modelName'}]
-  ipFilteArr= ['101.1.1.181']
+  ipFilteArr= ['node1']
   statusFilteArr = [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}]
   filterData = {
     startTime: null,
@@ -245,7 +244,6 @@ export default class QueryHistoryTable extends Vue {
       this.ruleVisible = true
     }
   }
-  pageCurrentChange () {}
   handleSelectionChange (val) {
     this.multipleSelection = val
   }
