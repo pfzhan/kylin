@@ -1,0 +1,274 @@
+<template>
+  <el-form class="build-cube" :model="timeZone" label-position="top" :rules="rules" ref="buildCubeForm">
+
+    <div v-if="cubeDesc.multilevel_partition_cols.length > 0">
+      <el-form-item :label="$t('primaryPartitionColumn')" >
+        <el-input size="medium" v-model="cubeDesc.multilevel_partition_cols[0]" :disabled="true"></el-input>
+      </el-form-item>
+      <el-form-item :label="$t('partitionValues')" prop="mpValues">
+        <el-autocomplete
+          size="medium"
+          class="inline-input"
+          value-key="name"
+          v-model="timeZone.mpValues"
+          :fetch-suggestions="querySearch"
+          :trigger-on-focus="true"
+          @select="handleSelect"
+        ></el-autocomplete>
+      </el-form-item>
+      <div class="ky-line ksd-mb-20"></div>
+    </div>
+
+    <el-form-item :label="$t('partitionDateColumn')">
+      <el-input size="medium" v-model="cubeDesc.partitionDateColumn" :disabled="true"></el-input>
+    </el-form-item>
+    <el-form-item :label="$t('startDate')" prop="startDate" class="is-required" v-if="cubeDesc.isStandardPartitioned">
+      <el-date-picker :clearable="false" ref="startDateInput" size="medium"
+                      v-model="timeZone.startDate" type="datetime">
+      </el-date-picker>
+    </el-form-item>
+    <el-form-item :label="$t('endDate')" prop="endDate" class="is-required" v-if="cubeDesc.isStandardPartitioned">
+      <el-date-picker size="medium" :clearable="false" ref="endDateInput"
+        v-model="timeZone.endDate"
+        type="datetime">
+      </el-date-picker>
+    </el-form-item>
+
+    <el-form-item :label="$t('startDate')" prop="startInt" class="is-required" v-if="!cubeDesc.isStandardPartitioned">
+      <el-input size="medium" v-model="timeZone.startInt" :placeholder="$t('kylinLang.common.pleaseInput')"></el-input>
+    </el-form-item>
+    <el-form-item :label="$t('endDate')" prop="endInt" class="is-required" v-if="!cubeDesc.isStandardPartitioned">
+      <el-input size="medium" v-model="timeZone.endInt" :placeholder="$t('kylinLang.common.pleaseInput')"></el-input>
+    </el-form-item>
+  </el-form>
+</template>
+<script>
+import { mapActions } from 'vuex'
+import { transToUtcTimeFormat, transToUTCMs, handleSuccess, handleError } from '../../../util/business'
+export default {
+  name: 'build_cube',
+  props: ['cubeDesc', 'formVisible'],
+  data () {
+    return {
+      mpValuesList: [],
+      timeZone: {
+        startDate: transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true),
+        endDate: null,
+        mpValues: '',
+        startInt: this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart,
+        endInt: ''
+      },
+      rules: {
+        startDate: [
+          { validator: this.validateStartDate, trigger: 'blur' }
+        ],
+        endDate: [
+          { validator: this.validateEndDate, trigger: 'blur' }
+        ],
+        mpValues: [
+          { required: true, message: this.$t('partitionNull'), trigger: 'blur' }
+        ],
+        startInt: [
+          { validator: this.validateStartInt, trigger: 'blur' }
+        ],
+        endInt: [
+          { validator: this.validateEndInt, trigger: 'blur' }
+        ]
+      }
+    }
+  },
+  methods: {
+    ...mapActions({
+      getMPValues: 'GET_MP_VALUES'
+    }),
+    querySearch: function (queryString, cb) {
+      let mpValuesList = this.mpValuesList
+      let results = []
+      if (mpValuesList.length > 0) {
+        results = queryString ? mpValuesList.filter(this.createFilter(queryString)) : mpValuesList
+      }
+      // 调用 callback 返回建议列表的数据
+      cb(results)
+    },
+    createFilter: function (queryString) {
+      return (mpValue) => {
+        return (mpValue.name.indexOf(queryString) === 0)
+      }
+    },
+    handleSelect: function (item) {
+      let mpIndex = this.mpValuesList.indexOf(item)
+      let segLength = this.mpValuesList[mpIndex].cube.segments.length
+      if (segLength > 0) {
+        this.timeZone.startDate = transToUtcTimeFormat(this.mpValuesList[mpIndex].cube.segments[segLength - 1].date_range_end, true)
+      }
+      this.$refs['buildCubeForm'].validateField('mpValues')
+    },
+    validateStartDate: function (rule, value, callback) {
+      let realValue = this.$refs['startDateInput'].$el.querySelectorAll('.el-input__inner')[0].value
+      realValue = realValue.replace(/(^\s*)|(\s*$)/g, '')
+      if (realValue) {
+        let reg = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])(\s+[0-9]\d:[0-9]\d:[0-9]\d)?$/
+        let regExp = new RegExp(reg)
+        let isLegalDate = regExp.test(realValue)
+
+        if (isLegalDate) {
+          let regDate = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/
+          let regExpDate = new RegExp(regDate)
+          let isLegalDateFormat = regExpDate.test(realValue)
+          if (isLegalDateFormat) {
+            this.timeZone.startDate = new Date(realValue).setHours(0, 0, 0, 0)
+            realValue = realValue + ' 00:00:00'
+            this.$nextTick(() => {
+              this.$refs['startDateInput'].$el.querySelectorAll('.el-input__inner')[0].value = realValue
+            })
+          }
+        } else {
+          callback(new Error(this.$t('legalDate')))
+        }
+      }
+      let endTime = (new Date(this.timeZone.endDate)).getTime()
+      let startTime = (new Date(this.timeZone.startDate)).getTime()
+      if (startTime === null || startTime === undefined || startTime === '' || isNaN(startTime)) {
+        callback(new Error(this.$t('selectDate')))
+      } else if (endTime <= startTime) {
+        // callback(new Error(this.$t('timeCompare')))
+      } else {
+        this.$refs['buildCubeForm'].validateField('endDate')
+        callback()
+      }
+    },
+    validateEndDate: function (rule, value, callback) {
+      let realValue = this.$refs['endDateInput'].$el.querySelectorAll('.el-input__inner')[0].value
+      realValue = realValue.replace(/(^\s*)|(\s*$)/g, '')
+      if (realValue) {
+        let reg = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])(\s+[0-9]\d:[0-9]\d:[0-9]\d)?$/
+        let regExp = new RegExp(reg)
+        let isLegalDate = regExp.test(realValue)
+
+        if (isLegalDate) {
+          let regDate = /^[1-9]\d{3}-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])$/
+          let regExpDate = new RegExp(regDate)
+          let isLegalDateFormat = regExpDate.test(realValue)
+          if (isLegalDateFormat) {
+            this.timeZone.endDate = new Date(realValue).setHours(0, 0, 0, 0)
+            realValue = realValue + ' 00:00:00'
+            this.$nextTick(() => {
+              this.$refs['endDateInput'].$el.querySelectorAll('.el-input__inner')[0].value = realValue
+            })
+          }
+        } else {
+          callback(new Error(this.$t('legalDate')))
+        }
+      }
+
+      let endTime = (new Date(this.timeZone.endDate)).getTime()
+      let startTime = (new Date(this.timeZone.startDate)).getTime()
+      if (endTime === null || endTime === undefined || endTime === '' || isNaN(endTime)) {
+        callback(new Error(this.$t('selectDate')))
+      } else if (endTime <= startTime) {
+        callback(new Error(this.$t('timeCompare')))
+      } else {
+        callback()
+      }
+    },
+    validateStartInt: function (rule, value, callback) {
+      if (value === '') {
+        callback(new Error(this.$t('inputDate')))
+      } else {
+        let reg = /^\d+$/
+        let regExp = new RegExp(reg)
+        let isLegalInt = regExp.test(value)
+        if (!isLegalInt) {
+          callback(new Error(this.$t('inputAnInt')))
+        } else {
+          this.$refs['buildCubeForm'].validateField('endInt')
+          callback()
+        }
+      }
+    },
+    validateEndInt: function (rule, value, callback) {
+      if (value === '') {
+        callback(new Error(this.$t('inputDate')))
+      } else {
+        let reg = /^\d+$/
+        let regExp = new RegExp(reg)
+        let isLegalInt = regExp.test(value)
+        if (!isLegalInt) {
+          callback(new Error(this.$t('inputAnInt')))
+        } else if (parseInt(this.timeZone.startInt) > parseInt(value)) {
+          callback(new Error(this.$t('timeCompare')))
+        } else {
+          callback()
+        }
+      }
+    }
+  },
+  created () {
+    if (this.cubeDesc.multilevel_partition_cols.length > 0) {
+      this.getMPValues(this.cubeDesc.name).then((res) => {
+        handleSuccess(res, (data) => {
+          this.mpValuesList = data
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    }
+    this.$on('buildCubeFormValid', (t) => {
+      this.$refs['buildCubeForm'].validate((valid) => {
+        if (valid) {
+          let startTime = this.cubeDesc.isStandardPartitioned ? transToUTCMs(this.timeZone.startDate) : parseInt(this.timeZone.startInt)
+          let endTime = this.cubeDesc.isStandardPartitioned ? transToUTCMs(this.timeZone.endDate) : parseInt(this.timeZone.endInt)
+          this.$emit('validSuccess', {start: startTime, end: endTime, mpValues: this.timeZone.mpValues})
+        }
+      })
+    })
+    this.$on('resetBuildCubeForm', (t) => {
+      this.$refs['buildCubeForm'].resetFields()
+    })
+  },
+
+  watch: {
+    formVisible (formVisible) {
+      if (formVisible) {
+        this.timeZone.startDate = transToUtcTimeFormat(this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart, true)
+        this.timeZone.endDate = null
+        this.timeZone.startInt = this.cubeDesc.segments[this.cubeDesc.segments.length - 1] ? this.cubeDesc.segments[this.cubeDesc.segments.length - 1].date_range_end : this.cubeDesc.partitionDateStart
+        this.timeZone.endInt = ''
+        if (this.cubeDesc.multilevel_partition_cols.length > 0) {
+          this.getMPValues(this.cubeDesc.name).then((res) => {
+            handleSuccess(res, (data) => {
+              this.mpValuesList = data
+            })
+          }, (res) => {
+            handleError(res)
+          })
+        }
+      }
+    }
+  },
+  locales: {
+    'en': {partitionDateColumn: 'Time Partition Column', startDate: 'Start Time (Include)', endDate: 'End Time (Exclude)', selectDate: 'Please select the time.', legalDate: 'Please enter a complete time formatted as YYYY-MM-DD.', timeCompare: 'End time should be later than the start time.', partitionValues: 'Partition Value', partitionNull: 'Please input partition value.', primaryPartitionColumn: 'Primary Partition Column', inputDate: 'Please input the time.', inputAnInt: 'Please input an integer.'},
+    'zh-cn': {partitionDateColumn: '时间分区列', startDate: '起始时间（包含）', endDate: '结束时间（不包含）', selectDate: '请选择时间', legalDate: '请输入完整时间，格式为YYYY-MM-DD', timeCompare: '结束时间应晚于起始时间', partitionValues: '分区值', partitionNull: '请输入分区值。', primaryPartitionColumn: '一级分区列', inputDate: '请输入时间', inputAnInt: '请输入一个整数。'}
+  }
+}
+</script>
+<style lang="less">
+  @import '../../../assets/styles/variables.less';
+  .build-cube{
+    .line-primary {
+      margin: 20px -20px 0px -20px;
+    }
+    .el-form-item{
+      >span {
+        width: 100%;
+        height: 36px;
+        line-height: 36px;
+        padding: 0px 10px 0px 10px;
+      }
+    }
+    .el-input {
+      margin-left: 0px;
+      width: 100%;
+    }
+  }
+</style>

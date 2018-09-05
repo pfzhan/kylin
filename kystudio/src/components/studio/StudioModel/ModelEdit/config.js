@@ -1,0 +1,44 @@
+export const modelRenderConfig = {
+  jsPlumbAnchor: [
+    [0.5, 0, 0.6, 0],
+    [0.1, 0, 0.2, 0],
+    [0.8, 0, 0.9, 0],
+    [0.5, 1, 0.6, 1],
+    [0.1, 1, 0.2, 1],
+    [0.8, 1, 0.9, 1],
+    [0, 0.8, 0, 0.9],
+    [1, 0.8, 1, 0.9]
+  ], // 连线动态附着点设置
+  baseLeft: 100, // 可视区域距离画布最左侧距离
+  baseTop: 10, // 可视区域距离画布最顶部距离
+  tableBoxWidth: 220, // table盒子宽度
+  tableBoxHeight: 195, // table盒子高度
+  tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
+  tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
+  zoom: 8,
+  rootBox: '.model-edit-outer', // 根元素
+  drawBox: '.model-edit', // 绘制区域
+  joinKind: {
+    inner: 'inner',
+    left: 'left'
+  },
+  joinKindSelectData: [{label: 'Inner Join', value: 'INNER'}, {label: 'Left Join', value: 'LEFT'}],
+  columnType: ['D', 'M', '－'],
+  tableKind: {
+    rootFact: 'ROOTFACT',
+    fact: 'FACT',
+    lookup: 'LOOKUP'
+  },
+  searchKeys: {
+    join: ['left', 'left join', 'inner', 'inner join']
+
+  },
+  searchAction: {
+    table: [{action: 'showtable', i18n: 'showtable'}], // 搜索table
+    column: [{action: 'adddimension', i18n: 'adddimension'}, {action: 'addmeasure', i18n: 'addmeasure'}, {action: 'addjoin', i18n: 'addjoin'}], // 搜索列
+    measure: [{action: 'editmeasure', i18n: 'editmeasure'}], // 搜索measure
+    dimension: [{action: 'editdimension', i18n: 'editdimension'}], // 搜索dimension
+    join: [{action: 'editjoin', i18n: 'editjoin'}] //  搜索join
+  },
+  searchCountLimit: 4
+}

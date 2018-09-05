@@ -1,0 +1,61 @@
+export function get (object, pathStr = '') {
+  try {
+    const newObject = JSON.parse(JSON.stringify(object))
+    const pathArray = pathStr.split('.')
+
+    let curObject = newObject
+
+    pathArray.forEach((path, index) => {
+      curObject = curObject[path]
+    })
+
+    return curObject
+  } catch (e) {
+    console.log(e)
+    return null
+  }
+}
+
+export function set (object, pathStr = '', value) {
+  try {
+    const newObject = JSON.parse(JSON.stringify(object))
+    const pathArray = pathStr.split('.')
+
+    let curObject = newObject
+
+    pathArray.forEach((path, index) => {
+      if (index === pathArray.length - 1) {
+        curObject[path] = value
+      } else {
+        curObject = curObject[path]
+      }
+    })
+
+    return newObject
+  } catch (e) {
+    console.log(e)
+    return null
+  }
+}
+
+export function push (object, pathStr = '', value) {
+  try {
+    const newObject = JSON.parse(JSON.stringify(object))
+    const pathArray = pathStr.split('.')
+
+    let curObject = newObject
+
+    pathArray.forEach((path, index) => {
+      if (index === pathArray.length - 1) {
+        curObject[path].push(value)
+      } else {
+        curObject = curObject[path]
+      }
+    })
+
+    return newObject
+  } catch (e) {
+    console.log(e)
+    return null
+  }
+}

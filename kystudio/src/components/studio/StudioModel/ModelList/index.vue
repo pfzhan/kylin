@@ -1,0 +1,463 @@
+<template>
+  <div class="mode-list" :class="{'full-cell': showFull}">
+    <div class="notice-box">
+      <el-alert
+      type="warning"
+      :closable="false"
+      show-icon>
+       <span slot="title">Release 2.75 TB storage with only 3% favorite score down! <a>Apply</a></span>
+      </el-alert>
+      <div class="tip-toggle-btnbox">
+        <el-button-group>
+          <el-button icon="el-icon-arrow-left" size="mini"></el-button>
+          <el-button icon="el-icon-arrow-right" size="mini"></el-button>
+        </el-button-group>
+      </div>
+    </div>
+    <div v-if="showSearchResult">
+      <div  class="ksd-mb-14 ksd-fright ksd-mt-20">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.modelName"  @input="searchModels" class="show-search-btn" >
+        </el-input>
+      </div>
+      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-20" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="addModel"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-table class="model_list_table"
+        :data="modelArray"
+        border
+        tooltip-effect="dark"
+        style="width: 100%">
+        <el-table-column type="expand" min-width="30">
+          <template slot-scope="props">
+            <div class="cell-content" :class="{'hidden-cell': props.$index !== activeIndex}">
+              <i class="el-icon-ksd-full_screen ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
+              <i class="el-icon-ksd-collapse ksd-fright full-model-box" v-else @click="showFull = false"></i>
+              <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                <el-tab-pane label="Segment" name="first">
+                  <ModelSegment :model="props.row" />
+                </el-tab-pane>
+                <el-tab-pane label="Aggregate" name="second">
+                  <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
+                </el-tab-pane>
+                <el-tab-pane label="Table Index" name="third">
+                  <TableIndex></TableIndex>
+                </el-tab-pane>
+                <el-tab-pane label="JSON" name="forth">
+                  <el-input
+                    class="model-json"
+                    :value="JSON.stringify(props.row, '', 4)"
+                    type="textarea"
+                    :rows="18"
+                    :readonly="true">
+                  </el-input>
+                </el-tab-pane>
+                <el-tab-pane label="SQL" name="fifth">
+                  <el-input
+                    class="model-json"
+                    :value="mockSQL"
+                    type="textarea"
+                    :rows="18"
+                    :readonly="true">
+                  </el-input>
+                </el-tab-pane>
+              </el-tabs>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column
+        show-overflow-tooltip
+        prop="name"
+          :label="$t('kylinLang.model.modelNameGrid')">
+        </el-table-column>
+        <el-table-column
+          prop="fact_table"
+          show-overflow-tooltip
+          width="210"
+          :label="$t('kylinLang.common.fact')">
+        </el-table-column>
+        <el-table-column
+          prop="fact_table"
+          show-overflow-tooltip
+          width="210"
+          :label="$t('Capbility')">
+        </el-table-column>
+        <el-table-column
+          prop="gmtTime"
+          show-overflow-tooltip
+          width="210"
+          :label="$t('Data Load Time')">
+        </el-table-column>
+        <el-table-column
+          prop="owner"
+          show-overflow-tooltip
+          width="100"
+          :label="$t('Status')">
+          <template slot-scope="scope">
+        <el-tag size="small" :type="scope.row.status === 'DISABLED' ? 'danger' : scope.row.status === 'DESCBROKEN'? 'info' : 'success'">{{scope.row.status}}</el-tag>
+      </template>
+        </el-table-column>
+        <el-table-column
+          prop="owner"
+          show-overflow-tooltip
+          width="100"
+          :label="$t('kylinLang.model.ownerGrid')">
+        </el-table-column>
+        <el-table-column class="ksd-center"
+        width="120"
+        :label="$t('kylinLang.common.action')">
+          <template slot-scope="scope">
+            <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
+             <div v-show="isAdmin || hasPermissionOfProject()">
+              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.name)"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
+                <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" >
+                  <span class="el-dropdown-link" >
+                      <i class="el-icon-ksd-table_others ksd-fs-16"></i>
+                  </span>
+                 <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
+                    <el-dropdown-item command="verify">Data Check</el-dropdown-item>
+                    <el-dropdown-item command="verify">Data Loading</el-dropdown-item>
+                    <el-dropdown-item command="verify">Favorite</el-dropdown-item>
+                    <el-dropdown-item command="verify" divided>Import MDX</el-dropdown-item>
+                    <el-dropdown-item command="verify">Export to TDS</el-dropdown-item>
+                    <el-dropdown-item command="verify">Export to MDX</el-dropdown-item>
+                    <el-dropdown-item command="verify" divided>Rename</el-dropdown-item>
+                    <el-dropdown-item command="clone" >{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item command="verify">Delete</el-dropdown-item>
+                    <el-dropdown-item command="verify">Purge</el-dropdown-item>
+                    <el-dropdown-item command="verify">Disable</el-dropdown-item>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </common-tip>
+              </div>
+          </template>
+        </el-table-column>
+      </el-table>
+
+
+      <kap-pager class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+
+    </div>
+    <div class="ksd-null-pic-text" v-if="!showSearchResult">
+      <img src="../../../../assets/img/no_model.png">
+      <p v-if="isAdmin || hasPermissionOfProject()">{{$t('noModel')}}</p>
+      <div>
+      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="isAdmin || hasPermissionOfProject()" @click="addModel">{{$t('kylinLang.common.model')}}</el-button>
+       </div>
+    </div>
+
+    <el-dialog width="440px" :title="$t('Note')" :visible.sync="applyDialogVisible">
+    <div>
+      Hi Adora,<br/>
+      <p style="text-indent:25px; line-height: 26px;">We have a nre proposal to reise model’s favorite score <span class="ky-highlight-text">15%</span>
+up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wnat to apply it?</p>
+    </div>
+    <div slot="footer" class="dialog-footer">
+      <!-- <el-button size="medium" @click="applyDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button> -->
+      <el-button size="medium" type="primary" plain @click="applyDialogVisible = false">{{$t('Apply')}}</el-button>
+    </div>
+  </el-dialog>
+  <!-- 模型克隆 -->
+  <el-dialog :title="$t('modelClone')" width="440px" :visible.sync="cloneFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+      <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm" label-width="100px">
+        <el-form-item :label="$t('modelName')" prop="newName">
+          <el-input v-model="cloneModelMeta.newName" auto-complete="off" size="medium"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="cloneFormVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="clone">{{$t('kylinLang.common.clone')}}</el-button>
+      </div>
+    </el-dialog>
+
+    <!-- 添加model -->
+    <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible.sync="createModelVisible" @close="resetAddModelForm">
+      <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
+        <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
+          <span slot="label">{{$t('kylinLang.model.modelName')}}
+            <common-tip :content="$t('kylinLang.model.modelNameTips')" ><i class="el-icon-question"></i></common-tip>
+          </span>
+          <el-input v-model="createModelMeta.modelName" auto-complete="off" size="medium"></el-input>
+        </el-form-item>
+        <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc" style="margin-top: 20px;">
+         <el-input
+            type="textarea"
+            :rows="2"
+            :placeholder="$t('kylinLang.common.pleaseInput')"
+            v-model="createModelMeta.modelDesc">
+          </el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="createModelVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
+    </el-dialog>
+
+  </div>
+</template>
+<script>
+import Vue from 'vue'
+import { Component, Watch } from 'vue-property-decorator'
+import { mapActions, mapGetters } from 'vuex'
+import { permissions, NamedRegex } from '../../../../config'
+import locales from './locales'
+import { handleError, hasRole, hasPermission } from 'util/business'
+import TableIndex from '../TableIndex/index.vue'
+import ModelSegment from './ModelSegment/index.vue'
+import ModelAggregate from './ModelAggregate/index.vue'
+import { mockSQL } from './mock'
+@Component({
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject',
+      'modelsPagerRenderData'
+    ])
+  },
+  methods: {
+    ...mapActions({
+      loadModels: 'LOAD_MODEL_LIST',
+      cloneModel: 'CLONE_MODEL',
+      delModel: 'DELETE_MODEL',
+      checkModelName: 'CHECK_MODELNAME'
+    })
+  },
+  components: {
+    TableIndex,
+    ModelSegment,
+    ModelAggregate
+  },
+  locales
+})
+export default class ModelList extends Vue {
+  mockSQL = mockSQL
+  applyDialogVisible = false
+  createModelVisible = false
+  cloneFormVisible = false
+  btnLoading = false
+  createModelFormRule = {
+    modelName: [
+      {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
+      {validator: this.checkName, trigger: 'blur'}
+    ]
+  }
+  cloneFormRule = {
+    newName: [
+      {required: true, message: this.$t('inputCloneName'), trigger: 'blur'},
+      {validator: this.checkName, trigger: 'blur'}]
+  }
+  createModelMeta = {
+    modelName: '',
+    modelDesc: ''
+  }
+  cloneModelMeta = {
+    newName: '',
+    oldName: '',
+    project: ''
+  }
+  filterArgs = {
+    pageOffset: 0,
+    pageSize: 10,
+    exactMatch: false,
+    modelName: ''
+  }
+  showFull = false
+  activeIndex = -1
+  showSearchResult = false
+  searchLoading = false
+  modelArray = []
+  checkName (rule, value, callback) {
+    if (!NamedRegex.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    } else {
+      callback()
+    }
+  }
+  handleCommand (command, component) {
+    if (command === 'clone') {
+      this.cloneFormVisible = true
+    }
+  }
+  @Watch('modelsPagerRenderData')
+  onModelChange (modelsPagerRenderData) {
+    this.modelArray = []
+    modelsPagerRenderData.list.forEach(item => {
+      this.modelArray.push({
+        ...item,
+        tabTypes: 'first'
+      })
+    })
+  }
+  // 全凭查看模型附属信息
+  toggleShowFull (index) {
+    this.showFull = true
+    this.activeIndex = index
+  }
+  handleEditModel (modelName) {
+    this.$router.push({ name: 'ModelEdit', params: { modelName: modelName, action: 'edit' } })
+  }
+  // 加载模型列表
+  loadModelsList () {
+    return this.loadModels(this.filterArgs).then(() => {
+      if (this.filterArgs.modelName || this.modelsPagerRenderData.list.length) {
+        this.showSearchResult = true
+      } else {
+        this.showSearchResult = false
+      }
+    }).catch((res) => {
+      handleError(res)
+    })
+  }
+  // 分页
+  pageCurrentChange (size, count) {
+    this.filterArgs.pageOffset = size
+    this.filterArgs.pageSize = count
+    this.loadModelsList()
+  }
+  // 搜索模型
+  searchModels () {
+    clearTimeout(this.ST)
+    this.ST = setTimeout(() => {
+      this.searchLoading = true
+      this.loadModelsList().then(() => {
+        this.searchLoading = false
+      }).finally((res) => {
+        this.searchLoading = false
+      })
+    }, 500)
+  }
+  addModel () {
+    this.createModelVisible = true
+  }
+  handleEdit (model) {
+    this.$emit('addtabs', 'model', model.name, 'modelEdit', {
+      project: model.project,
+      modelName: model.name,
+      uuid: model.uuid,
+      status: model.is_draft
+    })
+  }
+  handleDrop (model) {
+    this.delModel({modelName: model.name, project: model.project}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
+      })
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  hasPermissionOfProject () {
+    return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
+  }
+  get isAdmin () {
+    return hasRole(this, 'ROLE_ADMIN')
+  }
+  created () {
+    this.filterArgs.projectName = this.currentSelectedProject
+    this.loadModelsList()
+  }
+}
+</script>
+<style lang="less">
+@import '../../../../assets/styles/variables.less';
+.mode-list{
+  .model-detail-tabs {
+    &>.el-tabs__header{
+      margin-bottom:0;
+    }
+  }
+  .notice-box {
+    position:relative;
+    .el-alert{
+      background-color:@base-color-9;
+      a {
+        text-decoration: underline;
+        color:@base-color-1;
+      }
+    }
+    .tip-toggle-btnbox {
+      position:absolute;
+      top:4px;
+      right:10px;
+    }
+  }
+  .model_list_table .el-table__expanded-cell {
+    background-color: @breadcrumbs-bg-color;
+    padding: 20px;
+    padding-bottom:0;
+    &:hover {
+      background-color: @breadcrumbs-bg-color;
+    }
+    .cell-content {
+      position: relative;
+      .full-model-box {
+        color: #455A64;
+        font-size: 28px;
+        top: -15px;
+        right: -15px;
+        position: absolute;
+        cursor: pointer;
+        z-index: 10;
+        &:hover {
+          color: @base-color;
+        }
+      }
+    }
+  }
+  margin-left: 20px;
+  margin-right: 20px;
+  &.full-cell {
+    margin: 0 20px;
+    position: relative;
+    .segment-settings {
+      display: block;
+    }
+    .segment-actions .left {
+      display: block;
+    }
+    .model_list_table {
+      position: static !important;
+      border: none;
+      td {
+        position: static !important;
+      }
+      .el-table__body-wrapper {
+        position: static !important;
+        .el-table__expanded-cell {
+          padding: 0;
+          .cell-content {
+            z-index: 999;
+            position: absolute;
+            padding-top: 10px;
+            background: @breadcrumbs-bg-color;
+            top: 0px;
+            height: 100vh;
+            width: calc(~'100% + 40px');
+            padding-right: 20px;
+            padding-left: 20px;
+            margin-left: -20px;
+            border-top: 1px solid #CFD8DC;
+            &.hidden-cell {
+              display: none;
+            }
+            .full-model-box {
+              top: 5px;
+              right: 5px;
+            }
+          }
+        }
+      }
+    }
+  }
+  .el-tabs__nav {
+    margin-left: 0;
+  }
+  .model-json {
+    margin: 20px 0;
+  }
+  .el-tabs__content {
+    overflow: initial;
+  }
+}
+</style>
