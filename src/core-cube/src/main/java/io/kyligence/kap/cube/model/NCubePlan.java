@@ -250,7 +250,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private void initDimensionAndMeasures() {
         final BitSet dimBitSet = new BitSet();
         final BitSet measureBitSet = new BitSet();
-        for (NCuboidDesc cuboid : cuboids) {
+        for (NCuboidDesc cuboid : getCuboids()) {
             dimBitSet.or(cuboid.getDimensionBitset().mutable());
             measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }

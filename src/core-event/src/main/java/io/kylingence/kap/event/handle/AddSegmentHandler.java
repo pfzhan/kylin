@@ -80,13 +80,18 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
         List<NCuboidLayout> layouts = new ArrayList<>();
         Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
         if (CollectionUtils.isEmpty(readySegments)) {
-            layouts.addAll(df.getCubePlan().getAllCuboidLayouts());
+            if (CollectionUtils.isNotEmpty(df.getCubePlan().getCuboids())) {
+                layouts.addAll(df.getCubePlan().getAllCuboidLayouts());
+            }
         } else {
             for (Map.Entry<Long, NDataCuboid> cuboid : readySegments.getLatestReadySegment().getCuboidsMap().entrySet()) {
                 if (cuboid.getValue().getStatus() == SegmentStatusEnum.READY) {
                     layouts.add(cuboid.getValue().getCuboidLayout());
                 }
             }
+        }
+        if (CollectionUtils.isEmpty(layouts)) {
+            return null;
         }
 
         List<Integer> segmentIds = event.getSegmentIds();

@@ -67,7 +67,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
         NDataflow df = dfMgr.getDataflow(cubePlanName);
         updateDataLoadingRange(df);
 
-        List<Long> sqlList = event.getSqlIdList();
+        List<String> sqlList = event.getSqlIdList();
         if (CollectionUtils.isNotEmpty(sqlList)) {
             //TODO update favorite sql status
 
@@ -123,6 +123,9 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                         NDataModel model = cubePlan.getModel();
                         String tableName = model.getRootFactTable().getTableIdentity();
                         NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
+                        if (dataLoadingRange == null) {
+                            return null;
+                        }
                         segmentRange = dataLoadingRange.getDataLoadingRange();
                     }
                     checkNotNull(segmentRange);

@@ -44,6 +44,7 @@ package io.kyligence.kap.query.util;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;
@@ -62,6 +63,7 @@ import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedDataLoadingRange;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
@@ -89,9 +91,11 @@ public class FilterPushDownUtil {
      * @return            string applied data loading range
      * @throws SqlParseException if there is a parse error
      */
-    static String applyDataLoadingRange(String sqlToUpdate, TimePartitionedDataLoadingRange range)
+    static String applyDataLoadingRange(String sqlToUpdate, NDataLoadingRange range)
             throws SqlParseException {
         Preconditions.checkNotNull(range);
+        SegmentRange.TimePartitionedDataLoadingRange timePartitionedDataLoadingRange = (TimePartitionedDataLoadingRange) range.getDataLoadingRange();
+        Preconditions.checkNotNull(timePartitionedDataLoadingRange);
 
         final String tableName = range.getTableName();
         final String columnName = range.getColumnName();
@@ -99,10 +103,9 @@ public class FilterPushDownUtil {
         Preconditions.checkState(schemaAndShortName.length == 2);
 
         // use start and waterMark
-        final String start = DateFormat.formatToDateStr(range.getStart(), DateFormat.DEFAULT_DATE_PATTERN);
-        final String waterMark = DateFormat.formatToDateStr(range.getWaterMark(), DateFormat.DEFAULT_DATE_PATTERN);
-        String colName = schemaAndShortName[1] + "." + columnName;
-        String extraCondition = String.format("%s >= '%s' and %s <= '%s'", colName, start, colName, waterMark);
+        final String start = DateFormat.formatToDateStr(timePartitionedDataLoadingRange.getStart(), DateFormat.DEFAULT_DATE_PATTERN);
+        final String waterMark = DateFormat.formatToDateStr(timePartitionedDataLoadingRange.getWaterMark(), DateFormat.DEFAULT_DATE_PATTERN);
+        String extraCondition = String.format("%s >= '%s' and %s <= '%s'", columnName, start, columnName, waterMark);
 
         return applyFilterCondition(sqlToUpdate, extraCondition, tableName);
     }

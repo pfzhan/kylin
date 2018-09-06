@@ -41,6 +41,7 @@ import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -49,6 +50,7 @@ import org.slf4j.LoggerFactory;
 
 
 import io.kyligence.kap.metadata.NTableMetadataManager;
+
 
 public class NDataLoadingRangeManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataLoadingRangeManager.class);
@@ -141,10 +143,8 @@ public class NDataLoadingRangeManager {
 
     public NDataLoadingRange createDataLoadingRange(NDataLoadingRange dataLoadingRange) throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
-            if (dataLoadingRange.getUuid() == null || StringUtils.isEmpty(dataLoadingRange.resourceName()))
-                throw new IllegalArgumentException();
-            if (dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' already exists");
+            checkNDataLoadingRangeIdentify(dataLoadingRange);
+            checkNDataLoadingRangeExist(dataLoadingRange);
 
             NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, project);
             String tableName = dataLoadingRange.getTableName();
@@ -157,6 +157,11 @@ public class NDataLoadingRangeManager {
             if (columnDesc == null) {
                 throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's column " + columnName + " does not exists");
             }
+            String columnType = columnDesc.getDatatype();
+            DataType dataType = DataType.getType(columnType);
+            if (dataType == null || !dataType.isDate()) {
+                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's column " + columnName + " 's dataType does not support partition column");
+            }
 
             return crud.save(dataLoadingRange);
         }
@@ -164,53 +169,48 @@ public class NDataLoadingRangeManager {
 
     public NDataLoadingRange updateDataLoadingRange(NDataLoadingRange dataLoadingRange) throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
-            if (dataLoadingRange.getUuid() == null || StringUtils.isEmpty(dataLoadingRange.resourceName()))
-                throw new IllegalArgumentException();
-            if (!dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' does not exist");
+            if (getStore().getConfig().isCheckCopyOnWrite()) {
+                if (dataLoadingRange.isCachedAndShared())
+                    throw new IllegalStateException();
+            }
+            checkNDataLoadingRangeIdentify(dataLoadingRange);
+            checkNDataLoadingRangeNotExist(dataLoadingRange);
 
             return crud.save(dataLoadingRange);
         }
     }
 
-    public void updateDataLoadingRangeWaterMark(String tableName, Long waterMark) throws IOException {
+    public NDataLoadingRange copyForWrite(NDataLoadingRange dataLoadingRange) throws IOException {
+        return crud.copyForWrite(dataLoadingRange);
+    }
+
+    public void removeDataLoadingRange(NDataLoadingRange dataLoadingRange) throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
-            NDataLoadingRange dataLoadingRange = getDataLoadingRange(tableName);
-            if (dataLoadingRange == null)
-                throw new IllegalArgumentException("NDataLoadingRange '" + tableName + "' does not exist");
+            checkNDataLoadingRangeIdentify(dataLoadingRange);
+            checkNDataLoadingRangeNotExist(dataLoadingRange);
 
-            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingTable(tableDesc);
-            for (String model : models) {
-                List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project, config);
-                if (CollectionUtils.isEmpty(matchingCubePlans)) {
-                    continue;
-                }
-                for (NCubePlan cubePlan : matchingCubePlans) {
-                    NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
-                    NDataSegment segment = df.getSegments().getLatestReadySegment();
-                    if (segment == null) {
-                        return;
-                    }
-                    SegmentRange segmentRange = segment.getSegRange();
-                    if (segmentRange == null) {
-                        return;
-                    }
-                    long end = (Long) segmentRange.getEnd();
-                    if (end < waterMark) {
-                        return;
-                    }
-                }
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(dataLoadingRange.getTableName());
+            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingRootTable(tableDesc);
+            if (CollectionUtils.isNotEmpty(models)) {
+                throw new IllegalStateException("NDataLoadingRange is related in models '" + models + "' as rootFactTable, it can not be removed !!!");
             }
-
-            SegmentRange.TimePartitionedDataLoadingRange loadingRange = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
-            long currentWaterMark = loadingRange.getWaterMark();
-
-            if (waterMark > currentWaterMark) {
-                loadingRange.setWaterMark(waterMark);
-                crud.save(dataLoadingRange);
-            }
+            crud.delete(dataLoadingRange);
         }
+    }
+
+    private void checkNDataLoadingRangeExist(NDataLoadingRange dataLoadingRange) {
+        if (dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
+            throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' has exist");
+    }
+
+    private void checkNDataLoadingRangeNotExist(NDataLoadingRange dataLoadingRange) {
+        if (!dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
+            throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' does not exist");
+    }
+
+    private void checkNDataLoadingRangeIdentify(NDataLoadingRange dataLoadingRange) {
+        if (dataLoadingRange.getUuid() == null || StringUtils.isEmpty(dataLoadingRange.resourceName()))
+            throw new IllegalArgumentException("NDataLoadingRange uuid or resourceName is empty");
     }
 
     public void updateDataLoadingRangeWaterMark(String tableName) throws IOException {
@@ -219,9 +219,11 @@ public class NDataLoadingRangeManager {
             if (dataLoadingRange == null)
                 throw new IllegalArgumentException("NDataLoadingRange '" + tableName + "' does not exist");
 
+            dataLoadingRange = copyForWrite(dataLoadingRange);
+
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
             List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingTable(tableDesc);
-            long newWaterMark = 0L;
+            long newWaterMark = Long.MAX_VALUE;
 
             for (String model : models) {
                 List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project, config);
@@ -245,10 +247,11 @@ public class NDataLoadingRangeManager {
 
             SegmentRange.TimePartitionedDataLoadingRange loadingRange = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
             long currentWaterMark = loadingRange.getWaterMark();
+            long currentEnd = loadingRange.getEnd();
 
-            if (newWaterMark > currentWaterMark) {
+            if (newWaterMark > currentWaterMark && newWaterMark <= currentEnd) {
                 loadingRange.setWaterMark(newWaterMark);
-                crud.save(dataLoadingRange);
+                updateDataLoadingRange(dataLoadingRange);
             }
         }
     }

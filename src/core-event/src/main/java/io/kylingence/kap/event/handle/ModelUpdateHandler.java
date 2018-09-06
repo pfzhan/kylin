@@ -54,8 +54,8 @@ public class ModelUpdateHandler extends AbstractEventHandler {
         ModelUpdateEvent event = (ModelUpdateEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
-
-        Map<String, Long> sqlMap = event.getSqlMap();
+        boolean eventAutoApproved = kylinConfig.getEventAutoApproved();
+        Map<String, String> sqlMap = event.getSqlMap();
         if (sqlMap == null || sqlMap.size() == 0) {
             return;
         }
@@ -66,8 +66,13 @@ public class ModelUpdateHandler extends AbstractEventHandler {
             if (event.isFavoriteMark()) {
                 master.runAll();
             } else {
-                // TODO unFavoriteMark
+                // unFavorite sql will not update model and cubePlan, just convert to a RemoveCuboidEvent and dispatch it
+                master.analyzeSQLs();
+                master.selectModel();
+                master.selectCubePlan();
 
+                master.shrinkCubePlan();
+                master.shrinkModel();
             }
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             if (CollectionUtils.isEmpty(modelContexts)) {
@@ -76,7 +81,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (NSmartContext.NModelContext modelContext : modelContexts) {
                 String[] sqls = modelContext.getSmartContext().getSqls();
-                List<Long> sqlIdList = getSqlIdList(sqls, sqlMap);
+                List<String> sqlIdList = getSqlIdList(sqls, sqlMap);
                 NCubePlan origCubePlan = modelContext.getOrigCubePlan();
                 NCubePlan targetCubePlan = modelContext.getTargetCubePlan();
                 Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan, targetCubePlan);
@@ -86,7 +91,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                 RemoveCuboidEvent removeCuboidEvent;
                 if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
                     addCuboidEvent = new AddCuboidEvent();
-                    addCuboidEvent.setApproved(true);
+                    addCuboidEvent.setApproved(eventAutoApproved);
                     addCuboidEvent.setProject(project);
                     addCuboidEvent.setModelName(targetCubePlan.getModelName());
                     addCuboidEvent.setCubePlanName(targetCubePlan.getName());
@@ -97,13 +102,13 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                     eventManager.post(addCuboidEvent);
                 }
 
-                if (CollectionUtils.isNotEmpty(removedLayoutIds)) {
+                if (CollectionUtils.isNotEmpty(removedLayoutIds) && origCubePlan != null) {
                     removeCuboidEvent = new RemoveCuboidEvent();
-                    removeCuboidEvent.setApproved(true);
+                    removeCuboidEvent.setSqlList(Lists.newArrayList(sqls));
+                    removeCuboidEvent.setApproved(eventAutoApproved);
                     removeCuboidEvent.setProject(project);
                     removeCuboidEvent.setModelName(origCubePlan.getModelName());
                     removeCuboidEvent.setCubePlanName(origCubePlan.getName());
-                    removeCuboidEvent.setLayoutIds(removedLayoutIds);
                     removeCuboidEvent.setParentId(event.getId());
                     eventManager.post(removeCuboidEvent);
                 }
@@ -113,8 +118,8 @@ public class ModelUpdateHandler extends AbstractEventHandler {
 
     }
 
-    private List<Long> getSqlIdList(String[] sqls, Map<String, Long> sqlMap) {
-        List<Long> sqlIdList = Lists.newArrayList();
+    private List<String> getSqlIdList(String[] sqls, Map<String, String> sqlMap) {
+        List<String> sqlIdList = Lists.newArrayList();
         if (sqls == null || sqls.length == 0) {
             return sqlIdList;
         }
@@ -160,7 +165,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
         if (cubePlan == null) {
             return layoutIds;
         }
-        List<NCuboidLayout>  layoutList = cubePlan.getAllCuboidLayouts();
+        List<NCuboidLayout> layoutList = cubePlan.getAllCuboidLayouts();
         if (CollectionUtils.isEmpty(layoutList)) {
             return layoutIds;
         }

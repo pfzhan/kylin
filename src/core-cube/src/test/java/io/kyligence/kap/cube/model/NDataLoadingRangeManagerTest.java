@@ -68,7 +68,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
     public void testCreateAndUpdateDataLoadingRange() throws IOException {
 
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
-        String columnName = "CAL_DT";
+        String columnName = "TEST_KYLIN_FACT.CAL_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setProject(DEFAULT_PROJECT);
@@ -85,6 +85,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(savedRange.getStart().equals(savedRange.getWaterMark()));
 
         range.setWaterMark(range.getEnd());
+        savedDataLoadingRange = dataLoadingRangeManager.copyForWrite(savedDataLoadingRange);
         savedDataLoadingRange.setDataLoadingRange(range);
         NDataLoadingRange updatedDataLoadingRange = dataLoadingRangeManager.updateDataLoadingRange(savedDataLoadingRange);
         SegmentRange.TimePartitionedDataLoadingRange updatedRange = (SegmentRange.TimePartitionedDataLoadingRange) updatedDataLoadingRange.getDataLoadingRange();
@@ -96,12 +97,18 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(updatedRange1.getWaterMark().equals(updatedRange.getWaterMark()));
 
-
         dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
 
         NDataLoadingRange dataLoadingRange2 = dataLoadingRangeManager.getDataLoadingRange(tableName);
         SegmentRange.TimePartitionedDataLoadingRange updatedRange2 = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange2.getDataLoadingRange();
         Assert.assertTrue(updatedRange2.getWaterMark().equals(updatedRange.getWaterMark()));
+
+        try {
+            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange2);
+            Assert.fail();
+        } catch (IllegalStateException ex) {
+            // expected
+        }
 
     }
 

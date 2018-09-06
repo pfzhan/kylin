@@ -52,34 +52,51 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testHandler() throws Exception {
+    public void testHandlerIdempotent() throws Exception {
+
+        getTestConfig().setProperty("kylin.server.mode", "query");
         ModelUpdateEvent event = new ModelUpdateEvent();
         event.setFavoriteMark(true);
         event.setProject(DEFAULT_PROJECT);
-        int layoutCount = 0;
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
-        layoutCount += cubePlan1.getAllCuboidLayouts().size();
-        NCubePlan cubePlan2 = cubePlanManager.getCubePlan("ncube_basic");
-        layoutCount += cubePlan2.getAllCuboidLayouts().size();
+        int layoutCount1 = cubePlan1.getAllCuboidLayouts().size();
 
-        event.setSqlMap(new HashMap<String, Long>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", 0L);}});
+        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "1");}});
         EventContext eventContext = new EventContext(event, getTestConfig());
         ModelUpdateHandler handler = new ModelUpdateHandler();
+        // add favorite sql to update model and post an new AddCuboidEvent
         handler.handle(eventContext);
 
-
-        int newLayoutCount = 0;
-        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
-        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
-        NCubePlan cubePlan4 = cubePlanManager.getCubePlan("ncube_basic");
-        newLayoutCount += cubePlan4.getAllCuboidLayouts().size();
-
-        Assert.assertEquals(layoutCount + 1, newLayoutCount);
+        NCubePlan cubePlan2 = cubePlanManager.getCubePlan("all_fixed_length");
+        int layoutCount2 = cubePlan2.getAllCuboidLayouts().size();
+        Assert.assertEquals(layoutCount1 + 1, layoutCount2);
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
         Assert.assertTrue(events.size() == 2);
+
+        // run again, and model will not update and will not post an new AddCuboidEvent
+        handler.handle(eventContext);
+
+        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
+        int layoutCount3 = cubePlan3.getAllCuboidLayouts().size();
+        Assert.assertEquals(layoutCount3, layoutCount2);
+
+        // cancel favorite sql will not update model and cubePlan, just post an new RemoveCuboidEvent
+        event.setFavoriteMark(false);
+        handler.handle(eventContext);
+
+        NCubePlan cubePlan4 = cubePlanManager.getCubePlan("all_fixed_length");
+        int layoutCount4 = cubePlan4.getAllCuboidLayouts().size();
+        Assert.assertEquals(layoutCount3, layoutCount4);
+
+        events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
+        Assert.assertNotNull(events);
+        Assert.assertTrue(events.size() == 3);
+
+        getTestConfig().setProperty("kylin.server.mode", "all");
+
     }
 
 }

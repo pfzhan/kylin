@@ -53,7 +53,7 @@ public class AddCuboidEvent extends Event {
     private List<Long> layoutIds;
 
     @JsonProperty("sql_ids")
-    private List<Long> sqlIdList;
+    private List<String> sqlIdList;
 
 
     public AddCuboidEvent() {
@@ -70,11 +70,11 @@ public class AddCuboidEvent extends Event {
         this.layoutIds = layoutIds;
     }
 
-    public List<Long> getSqlIdList() {
+    public List<String> getSqlIdList() {
         return sqlIdList;
     }
 
-    public void setSqlIdList(List<Long> sqlIdList) {
+    public void setSqlIdList(List<String> sqlIdList) {
         this.sqlIdList = sqlIdList;
     }
 }

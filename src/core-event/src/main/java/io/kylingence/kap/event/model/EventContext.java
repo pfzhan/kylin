@@ -52,6 +52,7 @@ public class EventContext {
     private KylinConfig config;
     private ExecutableState jobStatus;
     private Throwable exception;
+    private int retry = 3;
 
     public EventContext(Event event, KylinConfig config) {
         this.event = event;
@@ -88,5 +89,13 @@ public class EventContext {
 
     public void setException(Throwable exception) {
         this.exception = exception;
+    }
+
+    public int getRetry() {
+        return retry;
+    }
+
+    public void setRetry(int retry) {
+        this.retry = retry;
     }
 }

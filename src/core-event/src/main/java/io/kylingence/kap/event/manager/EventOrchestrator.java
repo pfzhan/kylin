@@ -110,7 +110,7 @@ public class EventOrchestrator {
         init();
     }
 
-    private class FetcherRunner implements Runnable {
+    protected class FetcherRunner implements Runnable {
 
         @Override
         synchronized public void run() {
@@ -131,7 +131,7 @@ public class EventOrchestrator {
             }
         }
 
-        private Map<String, List<EventSetManager>> sectionalizeEvents(List<Event> events) {
+        protected Map<String, List<EventSetManager>> sectionalizeEvents(List<Event> events) {
             Map<String, List<EventSetManager>> eventSetGroup = Maps.newHashMap();
             if (CollectionUtils.isEmpty(events)) {
                 return eventSetGroup;
@@ -259,10 +259,15 @@ public class EventOrchestrator {
                 CopyOnWriteArraySet<EventHandler> eventHandlers = subscribers.get(event.getClass());
                 logger.info("EventRunner event:" + event.getId() + " running....");
 
-                EventContext eventContext = new EventContext(event, kylinConfig);
-                for (EventHandler eventHandler : eventHandlers) {
-                    eventHandler.handle(eventContext);
+                if (CollectionUtils.isNotEmpty(eventHandlers)) {
+                    EventContext eventContext = new EventContext(event, kylinConfig);
+                    for (EventHandler eventHandler : eventHandlers) {
+                        eventHandler.handle(eventContext);
+                    }
+                } else {
+                    // TODO process dead event
                 }
+
             } catch (Exception e) {
                 logger.error("EventRunner eventList error : " + e.getMessage(), e);
             }
@@ -309,14 +314,16 @@ public class EventOrchestrator {
             CopyOnWriteArraySet<EventHandler> newSet = new CopyOnWriteArraySet<>();
             eventHandlers = MoreObjects.firstNonNull(subscribers.putIfAbsent(eventClassType, newSet), newSet);
         }
-        eventHandlers.add(handler);
+        if (!eventHandlers.contains(handler)) {
+            eventHandlers.add(handler);
+        }
     }
 
     public ConcurrentMap<Class<?>, CopyOnWriteArraySet<EventHandler>> getSubscribers() {
         return subscribers;
     }
 
-    private class EventSetManager {
+    protected class EventSetManager {
 
         private Class<?> eventClassType;
         private List<Event> events = Lists.newArrayList();
@@ -368,6 +375,11 @@ public class EventOrchestrator {
 
             return true;
         }
+
+        public List<Event> getEvents() {
+            return events;
+        }
+
     }
 
     public void cleanBlackList(){

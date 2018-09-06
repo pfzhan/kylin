@@ -44,7 +44,7 @@ public class RemoveSegmentHandler extends AbstractEventHandler {
     private static final Logger logger = LoggerFactory.getLogger(RemoveSegmentHandler.class);
 
     @Override
-    public void doHandle(EventContext eventContext) throws Exception {
+    protected void doHandle(EventContext eventContext) throws Exception {
         RemoveSegmentEvent event = (RemoveSegmentEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
@@ -66,9 +66,11 @@ public class RemoveSegmentHandler extends AbstractEventHandler {
             dataSegments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-        update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
-        dfMgr.updateDataflow(update);
+        if (CollectionUtils.isNotEmpty(dataSegments)) {
+            NDataflowUpdate update = new NDataflowUpdate(df.getName());
+            update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
+            dfMgr.updateDataflow(update);
+        }
 
         logger.info("RemoveSegmentHandler doHandle success...");
     }

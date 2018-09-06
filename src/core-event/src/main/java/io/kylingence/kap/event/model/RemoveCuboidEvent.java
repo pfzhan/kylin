@@ -49,8 +49,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class RemoveCuboidEvent extends Event {
 
-    @JsonProperty("layoutIds")
-    private List<Long> layoutIds;
+    @JsonProperty("sqls")
+    private List<String> sqlList;
 
     @JsonProperty("force")
     private boolean force;
@@ -68,11 +68,11 @@ public class RemoveCuboidEvent extends Event {
         this.force = force;
     }
 
-    public List<Long> getLayoutIds() {
-        return layoutIds;
+    public List<String> getSqlList() {
+        return sqlList;
     }
 
-    public void setLayoutIds(List<Long> layoutIds) {
-        this.layoutIds = layoutIds;
+    public void setSqlList(List<String> sqlList) {
+        this.sqlList = sqlList;
     }
 }

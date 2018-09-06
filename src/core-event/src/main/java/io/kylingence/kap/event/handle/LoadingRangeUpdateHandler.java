@@ -28,6 +28,8 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -55,6 +57,7 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
         LoadingRangeUpdateEvent event = (LoadingRangeUpdateEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
+        boolean eventAutoApproved = kylinConfig.getEventAutoApproved();
 
         String tableName = event.getTableName();
         TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, project).getTableDesc(tableName);
@@ -78,7 +81,7 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
                     SegmentRange segmentRange = event.getSegmentRange();
                     NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
                     addSegmentEvent = new AddSegmentEvent();
-                    addSegmentEvent.setApproved(true);
+                    addSegmentEvent.setApproved(eventAutoApproved);
                     addSegmentEvent.setProject(project);
                     addSegmentEvent.setModelName(modelName);
                     addSegmentEvent.setCubePlanName(cubePlan.getName());
@@ -90,6 +93,14 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
                             project, modelName, cubePlan.getName(), event.getSegmentRange());
                 }
             }
+        } else {
+            // there is no models, just update the dataLoadingRange waterMark
+            NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
+            SegmentRange.TimePartitionedDataLoadingRange range = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
+            range.setWaterMark(range.getEnd());
+            NDataLoadingRange copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+            dataLoadingRangeManager.updateDataLoadingRange(copy);
         }
 
     }

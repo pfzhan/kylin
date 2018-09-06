@@ -50,7 +50,7 @@ import java.util.Map;
 public class ModelUpdateEvent extends Event {
 
     @JsonProperty("sql_map")
-    private Map<String, Long> sqlMap;
+    private Map<String, String> sqlMap;
 
     @JsonProperty("favorite_mark")
     private boolean favoriteMark = true;
@@ -68,11 +68,11 @@ public class ModelUpdateEvent extends Event {
         this.favoriteMark = favoriteMark;
     }
 
-    public Map<String, Long> getSqlMap() {
+    public Map<String, String> getSqlMap() {
         return sqlMap;
     }
 
-    public void setSqlMap(Map<String, Long> sqlMap) {
+    public void setSqlMap(Map<String, String> sqlMap) {
         this.sqlMap = sqlMap;
     }
 }

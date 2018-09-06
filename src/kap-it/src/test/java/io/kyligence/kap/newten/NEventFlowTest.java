@@ -27,23 +27,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
 import io.kylingence.kap.event.handle.MergeSegmentHandler;
 import io.kylingence.kap.event.handle.RemoveCuboidHandler;
 import io.kylingence.kap.event.handle.RemoveSegmentHandler;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
 import io.kylingence.kap.event.model.RemoveSegmentEvent;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -106,6 +106,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         new RemoveSegmentHandler();
         new AddCuboidHandler();
         new ModelUpdateHandler();
+        new LoadingRangeUpdateHandler();
     }
 
     @After
@@ -119,9 +120,9 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     @Test
     @SuppressWarnings("MethodLength")
     public void testEventFlow() throws Exception {
+        testLoadingRangeFlow();
         testSegEventFlow();
         testCuboidEventFlow();
-        waitForEventFinished(config);
         testMergeEventFlow();
         testRemoveEventFlow();
     }
@@ -131,35 +132,10 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         Event event = new AddProjectEvent(DEFAULT_PROJECT);
         eventManager.post(event);
 
-        // cleanup all segments first
-        NDataflow df = dsMgr.getDataflow("all_fixed_length");
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
+        long start = SegmentRange.dateToLong("2012-06-01");
+        long end = SegmentRange.dateToLong("2013-01-01");
 
-        df = dsMgr.getDataflow("ncube_basic");
-        update = new NDataflowUpdate(df.getName());
-        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dsMgr.updateDataflow(update);
-
-        long start = SegmentRange.dateToLong("2010-01-01");
-        long end = SegmentRange.dateToLong("2012-06-01");
-
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(),
-                DEFAULT_PROJECT);
-        String tableName = "DEFAULT.TEST_KYLIN_FACT";
-        String columnName = "CAL_DT";
-        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-        dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
-        dataLoadingRange.setTableName(tableName);
-        dataLoadingRange.setColumnName(columnName);
-        SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(start,
-                end);
-        dataLoadingRange.setDataLoadingRange(range);
-        NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
-
-        df = dsMgr.getDataflow("ncube_basic");
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment dataSegment = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setProject(DEFAULT_PROJECT);
@@ -168,10 +144,9 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         addSegmentEvent.setCubePlanName("ncube_basic");
         addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
         eventManager.post(addSegmentEvent);
-        Thread.sleep(1 * 1000);
 
-        start = SegmentRange.dateToLong("2012-06-01");
-        end = SegmentRange.dateToLong("2013-01-01");
+        start = SegmentRange.dateToLong("2013-01-01");
+        end = SegmentRange.dateToLong("2014-01-01");
         df = dsMgr.getDataflow("ncube_basic");
         dataSegment = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
         addSegmentEvent = new AddSegmentEvent();
@@ -182,14 +157,16 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
 
         eventManager.post(addSegmentEvent);
-        Thread.sleep(1 * 1000);
+
+        waitForEventFinished(config);
+        // now, there should be three ready segments
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 3);
 
 
     }
 
     private void testMergeEventFlow() throws PersistentException, InterruptedException {
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 2);
 
         Event event = new MergeSegmentEvent();
         event.setProject(DEFAULT_PROJECT);
@@ -201,31 +178,38 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         eventManager.post(event);
         waitForEventFinished(config);
-        df = dsMgr.getDataflow("ncube_basic");
-        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 1);
+        // after merge, there should be only one segment
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 2);
 
     }
 
     private void testRemoveEventFlow() throws PersistentException, InterruptedException {
+        int layoutCount = 0;
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
+        layoutCount += cubePlan1.getAllCuboidLayouts().size();
+
+        ModelUpdateEvent event = new ModelUpdateEvent();
+        event.setProject(DEFAULT_PROJECT);
+        event.setFavoriteMark(false);
+        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "1");}});
+        event.setApproved(true);
+        eventManager.post(event);
+
+
+        waitForEventFinished(config);
+
+        int newLayoutCount = 0;
+        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
+        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
+
+        // the num of cuboidLayouts should be reduced by one
+        Assert.assertEquals(layoutCount - 1, newLayoutCount);
+
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment readySeg = df.getSegments(SegmentStatusEnum.READY).get(0);
         Integer tobeRemoveSegId = readySeg.getId();
-        Long tobeRemoveLayoutId = readySeg.getCuboidsMap().keySet().iterator().next();
-
-        RemoveCuboidEvent removeCuboidEvent = new RemoveCuboidEvent();
-        removeCuboidEvent.setProject(DEFAULT_PROJECT);
-        removeCuboidEvent.setApproved(true);
-        removeCuboidEvent.setModelName("nmodel_basic");
-        removeCuboidEvent.setCubePlanName("ncube_basic");
-        List<Long> layoutIds = new ArrayList<>();
-        layoutIds.add(tobeRemoveLayoutId);
-        removeCuboidEvent.setLayoutIds(layoutIds);
-        eventManager.post(removeCuboidEvent);
-
-        waitForEventFinished(config);
-        df = dsMgr.getDataflow("ncube_basic");
-        NDataCuboid cuboid = df.getSegment(tobeRemoveSegId).getCuboid(tobeRemoveLayoutId);
-        Assert.assertNull(cuboid);
 
         RemoveSegmentEvent removeSegmentEvent = new RemoveSegmentEvent();
         removeSegmentEvent.setProject(DEFAULT_PROJECT);
@@ -238,27 +222,13 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         eventManager.post(removeSegmentEvent);
 
         waitForEventFinished(config);
+        // tobeRemoveSeg should be removed
         df = dsMgr.getDataflow("ncube_basic");
         NDataSegment updatedSeg = df.getSegment(tobeRemoveSegId);
         Assert.assertNull(updatedSeg);
     }
 
-    @Test
-    @Ignore
-    @SuppressWarnings("MethodLength")
     public void testLoadingRangeFlow() throws Exception {
-        final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
-        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        System.setProperty("noBuild", "false");
-        System.setProperty("isDeveloperMode", "false");
-
-        EventOrchestratorManager manager = EventOrchestratorManager.getInstance(config);
-        manager.register(new AddSegmentHandler());
-        manager.register(new LoadingRangeUpdateHandler());
-
-        EventManager eventManager = EventManager.getInstance(config, DEFAULT_PROJECT);
 
         // cleanup all segments first
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
@@ -288,7 +258,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(),
                 DEFAULT_PROJECT);
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
-        String columnName = "CAL_DT";
+        String columnName = "TEST_KYLIN_FACT.CAL_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setProject(DEFAULT_PROJECT);
@@ -305,6 +275,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         List<String> modelNames = new ArrayList<>();
         modelNames.add("nmodel_basic");
         loadingRangeUpdateEvent.setModelNames(modelNames);
+        loadingRangeUpdateEvent.setTableName(tableName);
         loadingRangeUpdateEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
 
         eventManager.post(loadingRangeUpdateEvent);
@@ -316,38 +287,58 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         SegmentRange.TimePartitionedDataLoadingRange range1 = (SegmentRange.TimePartitionedDataLoadingRange) finalDataLoadingRange
                 .getDataLoadingRange();
         Assert.assertTrue(range1.getWaterMark().equals(end));
+
+        df = dsMgr.getDataflow("ncube_basic");
+        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
+        Assert.assertEquals(readySegments.size(), 1);
+
+        df = dsMgr.getDataflow("all_fixed_length");
+        readySegments = df.getSegments(SegmentStatusEnum.READY);
+        Assert.assertEquals(readySegments.size(), 1);
+
+        df = dsMgr.getDataflow("ut_inner_join_cube_partial");
+        readySegments = df.getSegments(SegmentStatusEnum.READY);
+        Assert.assertEquals(readySegments.size(), 1);
+
+        df = dsMgr.getDataflow("ncube_basic_inner");
+        readySegments = df.getSegments(SegmentStatusEnum.READY);
+        Assert.assertEquals(readySegments.size(), 1);
     }
 
     public void testCuboidEventFlow() throws Exception {
 
-
-
-        EventManager eventManager = EventManager.getInstance(config, DEFAULT_PROJECT);
+        int layoutCount = 0;
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
+        layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
         // cleanup all segments first
-//        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-//        NDataflow df = dsMgr.getDataflow("ncube_basic");
-//        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-//        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-//        dsMgr.updateDataflow(update);
         ModelUpdateEvent event = new ModelUpdateEvent();
         event.setProject(DEFAULT_PROJECT);
-        event.setSqlMap(new HashMap<String, Long>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", 1L);}});
+        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "1");}});
         event.setApproved(true);
         eventManager.post(event);
 
         event = new ModelUpdateEvent();
         event.setProject(DEFAULT_PROJECT);
-        event.setSqlMap(new HashMap<String, Long>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", 2L);}});
+        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "2");}});
         event.setApproved(true);
         eventManager.post(event);
 
         event = new ModelUpdateEvent();
         event.setProject(DEFAULT_PROJECT);
-        event.setSqlMap(new HashMap<String, Long>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", 3L);}});
+        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "3");}});
         event.setApproved(true);
         eventManager.post(event);
 
+        waitForEventFinished(config);
+
+        int newLayoutCount = 0;
+        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
+        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
+
+        // the num of cuboidLayouts should be added by three
+        Assert.assertEquals(layoutCount + 3 , newLayoutCount);
     }
 
     private void waitForEventFinished(KylinConfig config) throws PersistentException, InterruptedException {

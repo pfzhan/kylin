@@ -84,16 +84,12 @@ public class EventManager {
         this.eventDao = EventDao.getInstance(config, project);
     }
 
-    public void post(Event event) {
-        try {
-            if (event.isGlobal() && !GLOBAL.equals(project)) {
-                // dispatch to global
-                EventManager.getInstance(config).post(event);
-            } else {
-                eventDao.addEvent(event);
-            }
-        } catch (PersistentException e) {
-            logger.error("EventManager post error : " + e.getMessage(), e);
+    public void post(Event event) throws PersistentException {
+        if (event.isGlobal() && !GLOBAL.equals(project)) {
+            // dispatch to global
+            EventManager.getInstance(config).post(event);
+        } else {
+            eventDao.addEvent(event);
         }
     }
 

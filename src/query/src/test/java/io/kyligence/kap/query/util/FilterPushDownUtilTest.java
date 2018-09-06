@@ -44,6 +44,7 @@ package io.kyligence.kap.query.util;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -452,13 +453,16 @@ public class FilterPushDownUtilTest {
     public void testApplyDataLoadingRange() throws SqlParseException {
         String sql = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
                 + "where ks.price > 50 and ks.part_dt > '2012-02-05'";
-        SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange();
-        range.setColumnName("part_dt");
+
+        NDataLoadingRange range = new NDataLoadingRange();
+        range.setColumnName("kylin_sales.part_dt");
         range.setTableName("default.kylin_sales");
         range.setProject("learn_kylin");
-        range.setStart(DateFormat.stringToMillis("2012-07-08"));
-        range.setWaterMark(DateFormat.stringToMillis("2015-09-23"));
-        range.setEnd(DateFormat.stringToMillis("2018-09-23"));
+        SegmentRange.TimePartitionedDataLoadingRange timePartitionedDataLoadingRange = new SegmentRange.TimePartitionedDataLoadingRange();
+        timePartitionedDataLoadingRange.setStart(DateFormat.stringToMillis("2012-07-08"));
+        timePartitionedDataLoadingRange.setWaterMark(DateFormat.stringToMillis("2015-09-23"));
+        timePartitionedDataLoadingRange.setEnd(DateFormat.stringToMillis("2018-09-23"));
+        range.setDataLoadingRange(timePartitionedDataLoadingRange);
 
         final String actual = FilterPushDownUtil.applyDataLoadingRange(sql, range);
         String expected = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n" //

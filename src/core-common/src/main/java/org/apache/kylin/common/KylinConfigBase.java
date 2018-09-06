@@ -1478,4 +1478,8 @@ abstract public class KylinConfigBase implements Serializable {
                         + "kylin.web.help,kylin.web.hide-measures,kylin.web.link-streaming-guide,kylin.server.external-acl-provider,kylin.security.profile,"
                         + "kylin.htrace.show-gui-trace-toggle");
     }
+
+    public boolean getEventAutoApproved() {
+        return Boolean.valueOf(getOptional("kylin.event.auto-approved", "true"));
+    }
 }

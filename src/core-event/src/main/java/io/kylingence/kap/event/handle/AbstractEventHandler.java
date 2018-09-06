@@ -71,7 +71,20 @@ public abstract class AbstractEventHandler implements EventHandler {
         try {
             onHandleStart(eventContext);
 
-            doHandle(eventContext);
+            Throwable throwable;
+            do {
+                try {
+                    throwable = null;
+                    doHandle(eventContext);
+                } catch (Throwable e) {
+                    logger.error("EventHandler doHandle error : " + e.getMessage(), e);
+                    throwable = e;
+                }
+            } while (needRetry(eventContext, throwable));
+
+            if (throwable != null) {
+                throw new RuntimeException(throwable);
+            }
 
             onHandleFinished(eventContext);
 
@@ -80,6 +93,16 @@ public abstract class AbstractEventHandler implements EventHandler {
             logger.error("handle error : " + e.getMessage(), e);
         }
 
+    }
+
+    private boolean needRetry(EventContext eventContext, Throwable throwable) {
+        if (throwable == null) {
+            return false;
+        }
+        int retry = eventContext.getRetry();
+        retry --;
+        eventContext.setRetry(retry);
+        return retry > 0;
     }
 
     private void onHandleError(EventContext eventContext, Exception e) throws Exception {
@@ -117,4 +140,13 @@ public abstract class AbstractEventHandler implements EventHandler {
 
     protected abstract void doHandle(EventContext eventContext) throws Exception;
 
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return this.getClass().equals(obj.getClass());
+    }
 }

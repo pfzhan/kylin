@@ -81,7 +81,7 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
                 onJobError(eventContext);
             }
         } else if (ExecutableState.DISCARDED.equals(jobStatus)) {
-            onJobDicarded(eventContext);
+            onJobDiscarded(eventContext);
         }
     }
 
@@ -109,8 +109,6 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
                 event.setStatus(EventStatus.SUCCEED);
                 getEventDao(eventContext).updateEvent(event);
             }
-        } else {
-            throw new RuntimeException("Event : " + event + " 's jobId is empty !!! ");
         }
     }
 
@@ -118,7 +116,8 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
 
     protected void onJobSuccess(EventContext eventContext) throws Exception {}
 
-    protected void onJobDicarded(EventContext eventContext) throws Exception {}
+    protected void onJobDiscarded(EventContext eventContext) throws Exception {}
+
     protected abstract AbstractExecutable createJob(EventContext eventContext) throws Exception;
 
     protected void waitForJobFinished(AbstractExecutable job, EventContext eventContext, boolean wait) throws Exception {
