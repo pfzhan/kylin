@@ -81,6 +81,7 @@ public class TableDescResponse extends TableDesc {
         this.setName(table.getName());
         this.setSourceType(table.getSourceType());
         this.setUuid(table.getUuid());
+        this.setFact(table.getFact());
         this.setTableType(table.getTableType());
     }
 

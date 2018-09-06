@@ -42,11 +42,13 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -64,10 +66,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-
-/**
- * @author zy
- */
 
 public class TableServiceTest extends NLocalFileMetadataTestCase {
     private final TableService tableService = new TableService();
@@ -132,9 +130,24 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSourceDbNames() throws Exception {
-        String[] tables = { "DEFAULT.TEST_SITES" };
         List<String> dbNames = tableService.getSourceDbNames("default", 11);
-        Assert.assertEquals(true, dbNames != null);
-
+        ArrayList<String> dbs = Lists.newArrayList(dbNames);
+        Assert.assertTrue(dbs.contains("DEFAULT"));
     }
+
+    @Test
+    public void testGetSourceTableNames() throws Exception {
+        List<String> tableNames = tableService.getSourceTableNames("default", "DEFAULT", 11);
+        Assert.assertTrue(tableNames.contains("TEST_ACCOUNT"));
+    }
+
+    @Test
+    public void testSetFactAndSetDataRange() throws Exception {
+
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        TableDesc desc = tableService.getTableDescByName("DEFAULT.TEST_KYLIN_FACT", false, "default");
+        tableService.setDataRange("default", "DEFAULT.TEST_KYLIN_FACT", 1L, 1534824000000L);
+        Assert.assertTrue(desc.getFact() && desc.getName().equals("TEST_KYLIN_FACT"));
+    }
+
 }

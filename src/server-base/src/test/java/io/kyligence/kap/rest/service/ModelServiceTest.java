@@ -42,13 +42,15 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
-import org.apache.commons.lang.StringUtils;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
@@ -65,9 +67,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-/**
- * @author zy
- */
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
     private final ModelService modelService = new ModelService();
     private final TableService tableService = new TableService();
@@ -104,15 +103,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
 
-        Segments<NDataSegment> segments = modelService.getSegments("ncube_basic", "default", 1, Long.MAX_VALUE - 1);
-        Assert.assertEquals(segments.size(), 0);
+        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, 9223372036854775807L);
+        Assert.assertEquals(segments.size(), 2);
 
     }
 
     @Test
     public void testGetAggIndexs() throws Exception {
 
-        List<NCuboidDesc> indexs = modelService.getAggIndexs("nmodel_basic", "default");
+        List<CuboidDescResponse> indexs = modelService.getAggIndexs("nmodel_basic", "default");
         Assert.assertEquals(indexs.size(), 7);
 
     }
@@ -128,7 +127,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetTableIndexs() throws Exception {
 
-        List<NCuboidDesc> indexs = modelService.getTableIndexs("nmodel_basic", "default");
+        List<CuboidDescResponse> indexs = modelService.getTableIndexs("nmodel_basic", "default");
         Assert.assertEquals(indexs.size(), 3);
 
     }
@@ -137,27 +136,25 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testGetCuboidDescs() throws Exception {
 
         List<NCuboidDesc> cuboids = modelService.getCuboidDescs("nmodel_basic", "default");
-        Assert.assertTrue(cuboids.size() > 0);
-    }
-
-    @Test
-    public void testGetModelJson() throws Exception {
-
-        String json = modelService.getModelJson("nmodel_basic", "default");
-        Assert.assertTrue(!StringUtils.isEmpty(json));
+        Assert.assertTrue(cuboids.size() == 10);
     }
 
     @Test
     public void testGetCuboidById() throws Exception {
 
-        NCuboidDesc cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
+        CuboidDescResponse cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
         Assert.assertTrue(cuboid.getId() == 0L);
     }
 
     @Test
-    public void testGetModelRelations() throws Exception {
+    public void testGetModelJson() throws IOException {
+        String modelJson = modelService.getModelJson("nmodel_basic", "default");
+        Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getName().equals("nmodel_basic"));
+    }
 
-        List<NForestSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
-        Assert.assertTrue(relations.size() > 0);
+    @Test
+    public void testGetModelRelations() {
+        HashMap<String, Object> relations = modelService.getModelRelations("nmodel_basic", "default");
+        Assert.assertTrue(relations.size() == 4);
     }
 }

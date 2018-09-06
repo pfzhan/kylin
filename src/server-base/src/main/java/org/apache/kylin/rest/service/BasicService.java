@@ -42,8 +42,12 @@
 
 package org.apache.kylin.rest.service;
 
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
+import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.manager.EventManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
 
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -80,12 +84,28 @@ public abstract class BasicService {
         return NCubePlanManager.getInstance(getConfig(), project);
     }
 
+    public NDataLoadingRangeManager getDataLoadingRangeManager(String project) {
+        return NDataLoadingRangeManager.getInstance(getConfig(), project);
+    }
+
+    public EventManager getEventManager(String project) {
+        return EventManager.getInstance(getConfig(), project);
+    }
+
     public NProjectManager getProjectManager() {
         return NProjectManager.getInstance(getConfig());
     }
 
     public TableACLManager getTableACLManager() {
         return TableACLManager.getInstance(getConfig());
+    }
+
+    public EventDao getEventDao(String project) {
+        return EventDao.getInstance(getConfig(), project);
+    }
+
+    public NExecutableManager getExecutableManager(String project) {
+        return NExecutableManager.getInstance(getConfig(), project);
     }
 
     public QueryHistoryManager getQueryHistoryManager(String project) {

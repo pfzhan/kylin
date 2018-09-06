@@ -25,23 +25,39 @@
 package io.kyligence.kap.rest;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kylingence.kap.event.handle.AddSegmentHandler;
+import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
+import io.kylingence.kap.event.handle.ProjectHandler;
+import io.kylingence.kap.event.handle.RemoveSegmentHandler;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.exception.SchedulerException;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportResource;
 
 import java.io.File;
+import java.util.UUID;
 
-@ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
+@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
 @SpringBootApplication
 public class KAPDebugServer {
 
     private static File localMetadata;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws SchedulerException {
         setLocalEnvs();
         SpringApplication.run(KAPDebugServer.class, args);
-
+        new LoadingRangeUpdateHandler();
+        new AddSegmentHandler();
+        new ProjectHandler();
+        new RemoveSegmentHandler();
+        new NDefaultScheduler("default").init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (localMetadata != null && localMetadata.exists()) {
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 @Override
@@ -64,6 +80,12 @@ public class KAPDebugServer {
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
 
         localMetadata = new File(tempMetadataDir);
+        final SparkConf sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
+        SparkSession.builder().config(sparkConf).getOrCreate();
+        KylinConfig.getInstanceFromEnv().setProperty("kylin.metadata.distributed-lock-impl",
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
     }
 
 }

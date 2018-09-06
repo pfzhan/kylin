@@ -51,7 +51,6 @@ import java.util.HashMap;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import io.kyligence.kap.rest.PagingUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -63,6 +62,7 @@ import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.ErrorResponse;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -170,6 +170,13 @@ public class NBasicController {
         Message msg = MsgPicker.getMsg();
         if (StringUtils.isEmpty(project)) {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
+        }
+    }
+
+    public void checkTableName(String table) {
+        Message msg = MsgPicker.getMsg();
+        if (StringUtils.isEmpty(table)) {
+            throw new BadRequestException("table name can not be empty");
         }
     }
 

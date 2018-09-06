@@ -66,9 +66,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-/**
- * @author zy
- */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:applicationContext.xml", "classpath:kylinSecurity.xml",
         "classpath:kylinMetrics.xml" })
@@ -81,7 +78,6 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setupResource() throws Exception {
-        System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);

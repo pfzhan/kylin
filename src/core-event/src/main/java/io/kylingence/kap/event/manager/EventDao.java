@@ -43,6 +43,7 @@
 package io.kylingence.kap.event.manager;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
@@ -110,6 +111,17 @@ public class EventDao {
             logger.error("error get all events:", e);
             throw new PersistentException(e);
         }
+    }
+
+    public List<Event> getEventsUnApproved() throws PersistentException {
+        List<Event> unApprovedEvents = new ArrayList<>();
+
+        for (Event event : getEvents()) {
+            if (!event.isApproved()) {
+                unApprovedEvents.add(event);
+            }
+        }
+        return unApprovedEvents;
     }
 
     public List<Event> getEvents(long timeStart, long timeEndExclusive) throws PersistentException {

@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -1053,8 +1053,7 @@ public  class NDataModel extends RootPersistentEntity {
     }
 
     //TODO: !!! check the returned
-    public @Nullable
-    Integer getColId(TblColRef colRef) {
+    public @Nullable Integer getColId(TblColRef colRef) {
         return effectiveCols.inverse().get(colRef);
     }
 

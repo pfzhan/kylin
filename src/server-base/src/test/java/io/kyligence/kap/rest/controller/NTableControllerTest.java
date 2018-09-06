@@ -42,7 +42,6 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.request.DataSourceRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -72,9 +71,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * @author zy
- */
 public class NTableControllerTest {
 
     private MockMvc mockMvc;
@@ -104,17 +100,11 @@ public class NTableControllerTest {
     public void tearDown() {
     }
 
-    private DataSourceRequest mockDataSoruceRequest() {
-        final DataSourceRequest dataSourceRequest = new DataSourceRequest();
-        dataSourceRequest.setProject("default");
-        dataSourceRequest.setDatasourceType(11);
-        return dataSourceRequest;
-    }
-
     private FactTableRequest mockFactTableRequest() {
         final FactTableRequest factTableRequest = new FactTableRequest();
         factTableRequest.setProject("default");
         factTableRequest.setTable("table1");
+        factTableRequest.setColumn("CAL_DT");
         factTableRequest.setFact(true);
         return factTableRequest;
     }

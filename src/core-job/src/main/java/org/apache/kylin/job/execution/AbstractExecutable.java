@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -82,10 +82,48 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     private KylinConfig config;
     private String name;
+
+    private String jobType;
+
+    public long getDataRangeStart() {
+        return dataRangeStart;
+    }
+
+    public void setDataRangeStart(long dataRangeStart) {
+        this.dataRangeStart = dataRangeStart;
+    }
+
+    public long getDataRangeEnd() {
+        return dataRangeEnd;
+    }
+
+    public void setDataRangeEnd(long dataRangeEnd) {
+        this.dataRangeEnd = dataRangeEnd;
+    }
+
+    private String targetSubject;
     private String id;
+    private long dataRangeStart;
+    private long dataRangeEnd;
     private Map<String, String> params = Maps.newHashMap();
     private String project;
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
+
+    public String getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
+    }
+
+    public String getTargetSubject() {
+        return targetSubject;
+    }
+
+    public void setTargetSubject(String targetSubject) {
+        this.targetSubject = targetSubject;
+    }
 
     public AbstractExecutable() {
         setId(UUID.randomUUID().toString());
@@ -353,7 +391,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     public final String getProject() {
-        if(project == null){
+        if (project == null) {
             throw new IllegalStateException("project is not set for abstract executable " + getId());
         }
         return project;

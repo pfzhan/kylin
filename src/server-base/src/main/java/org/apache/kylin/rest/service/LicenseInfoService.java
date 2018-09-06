@@ -57,16 +57,7 @@ public class LicenseInfoService extends BasicService {
         }
 
         result.put("kap.license.isEvaluation", System.getProperty("kap.license.isEvaluation"));
-/*
-        if (kapConfig.isRecordSourceUsage()) {
-            long used = SourceUsageManager.getInstance(KylinConfig.getInstanceFromEnv())
-                    .getSumOfAllCubeSourceSizeBytes();
-            double usedTb = (double) used / (1024L * 1024L * 1024L * 1024L);
-            DecimalFormat df = new DecimalFormat("#0.00");
 
-            result.put("kap.license.source.total", System.getProperty("kap.license.volume"));
-            result.put("kap.license.source.used", df.format(usedTb));
-        }*/
         long total;
         try {
             total = Long.parseLong(result.get("kap.license.source.total"));

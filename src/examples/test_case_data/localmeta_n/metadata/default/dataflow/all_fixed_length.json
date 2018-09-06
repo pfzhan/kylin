@@ -15,8 +15,11 @@
     "name" : "20171104141833_20171105141833",
     "create_time_utc" : 1509805113772,
     "status" : "READY",
-    "segRangeStart" : "1309891513770",
-    "segRangeEnd" : "1509891513770",
+    "segRange" : {
+      "@class" : "org.apache.kylin.metadata.model.SegmentRange$TimePartitionedSegmentRange",
+      "date_range_start" : 1309891513770,
+      "date_range_end" : 1509891513770
+    },
     "tsRangeStart" : 1309891513770,
     "tsRangeEnd" : 1509891513770,
     "source_partition_offset_start" : null,

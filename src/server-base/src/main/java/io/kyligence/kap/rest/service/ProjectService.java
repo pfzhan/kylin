@@ -25,8 +25,10 @@
 package io.kyligence.kap.rest.service;
 
 import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kylingence.kap.event.model.AddProjectEvent;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -49,10 +51,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-/**
- * @author zy
- * 
- */
 @Component("projectService")
 public class ProjectService extends BasicService {
 
@@ -71,7 +69,7 @@ public class ProjectService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public ProjectInstance createProject(ProjectInstance newProject) throws IOException {
+    public ProjectInstance createProject(ProjectInstance newProject) throws IOException, PersistentException {
         Message msg = MsgPicker.getMsg();
         String projectName = newProject.getName();
         String description = newProject.getDescription();
@@ -83,8 +81,9 @@ public class ProjectService extends BasicService {
         String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps);
+        AddProjectEvent projectEvent = new AddProjectEvent(createdProject.getName());
+        getEventManager(createdProject.getName()).post(projectEvent);
         logger.debug("New project created.");
-
         return createdProject;
     }
 

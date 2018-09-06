@@ -64,9 +64,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 
-/**
- * @author zy
- */
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     private final TableService tableService = new TableService();
     private final TableExtService tableExtService = new TableExtService();

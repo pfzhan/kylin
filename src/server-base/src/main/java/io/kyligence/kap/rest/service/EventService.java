@@ -22,44 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.service;
 
-public class FactTableRequest {
-    private String table;
-    private String project;
-    private String column;
-    private boolean fact;
+import java.util.List;
 
-    public String getColumn() {
-        return column;
+import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.model.Event;
+import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.rest.service.BasicService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+@Component("eventService")
+public class EventService extends BasicService {
+
+    private static final Logger logger = LoggerFactory.getLogger(EventService.class);
+
+    public List<Event> listEventsNotApproved(String project) throws PersistentException {
+        EventDao eventDao = getEventDao(project);
+        List<Event> events = eventDao.getEventsUnApproved();
+        return events;
     }
 
-    public void setColumn(String column) {
-        this.column = column;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public boolean getFact() {
-        return fact;
-
-    }
-
-    public void setFact(boolean fact) {
-        this.fact = fact;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
+    public void applyEvent(String id, String project) throws PersistentException {
+        EventDao eventDao = getEventDao(project);
+        Event event = eventDao.getEvent(id);
+        event.setApproved(true);
+        eventDao.updateEvent(event);
     }
 }

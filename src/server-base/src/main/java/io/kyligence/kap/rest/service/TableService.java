@@ -28,14 +28,20 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.rest.response.TableDescResponse;
+import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -257,12 +263,81 @@ public class TableService extends BasicService {
         return (dbTableName[0] + "." + dbTableName[1]).toUpperCase();
     }
 
-    public void setFact(String table, String project, boolean fact) throws IOException {
+    public void setFact(String table, String project, boolean fact, String column) throws IOException {
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
-        tableDesc.setFact(fact);
-        tableManager.updateTableDesc(tableDesc);
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        String ColumnIdentity = table + "." + column;
+        boolean oldFact = tableDesc.getFact();
+        if (fact && !oldFact) {
+            NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+            dataLoadingRange.updateRandomUuid();
+            dataLoadingRange.setProject(project);
+            dataLoadingRange.setTableName(table);
+            dataLoadingRange.setColumnName(ColumnIdentity);
+            dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+            tableDesc.setFact(fact);
+            tableManager.updateTableDesc(tableDesc);
+        } else if (!fact && oldFact) {
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
+            tableDesc.setFact(fact);
+            tableManager.updateTableDesc(tableDesc);
+        }
+    }
 
+    public void setDataRange(String project, String table, long startTime, long endTime) throws IOException, PersistentException {
+        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange(table);
+
+        if (dataLoadingRange != null) {
+            List<SegmentRange> segmentRanges = getSegmentRange(dataLoadingRange.getDataLoadingRange(), startTime,
+                    endTime);
+            SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(
+                    startTime, endTime);
+            dataLoadingRange.setDataLoadingRange(range);
+            rangeManager.updateDataLoadingRange(dataLoadingRange);
+            EventManager eventManager = getEventManager(project);
+            for (SegmentRange seg : segmentRanges) {
+                LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
+                updateEvent.setTableName(table);
+                updateEvent.setApproved(true);
+                updateEvent.setProject(project);
+                updateEvent.setSegmentRange(seg);
+                eventManager.post(updateEvent);
+            }
+
+        } else {
+            throw new IllegalArgumentException(
+                    "this table can not set date range, plz check table " + table + "is fact or else");
+        }
+    }
+
+    private List<SegmentRange> getSegmentRange(SegmentRange dataLoadingRange, long startTime, long endTime) {
+        List<SegmentRange> segmentRanges = new ArrayList<>();
+        SegmentRange.TimePartitionedDataLoadingRange newRange = new SegmentRange.TimePartitionedDataLoadingRange(
+                startTime, endTime);
+        if (dataLoadingRange == null || !dataLoadingRange.overlaps(newRange)) {
+            SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(
+                    newRange.getStart(), newRange.getEnd());
+            segmentRanges.add(timePartitionedSegmentRange);
+            return segmentRanges;
+        }
+        if (dataLoadingRange.contains(newRange)) {
+            //do nothing but set range to new start and end
+            return segmentRanges;
+        }
+
+        long oldStartTime = ((SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange).getStart();
+        long oldEndTime = ((SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange).getEnd();
+        if (startTime < oldStartTime) {
+            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(startTime, oldStartTime - 1));
+        }
+        if (endTime > oldEndTime) {
+            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(oldEndTime + 1, endTime));
+        }
+
+        return segmentRanges;
     }
 
 }

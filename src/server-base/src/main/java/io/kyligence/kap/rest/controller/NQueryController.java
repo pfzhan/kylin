@@ -84,6 +84,7 @@ import com.google.common.collect.Maps;
  * @author xduo
  */
 @RestController
+@RequestMapping(value = "/query")
 public class NQueryController extends NBasicController {
 
     @SuppressWarnings("unused")
@@ -97,8 +98,7 @@ public class NQueryController extends NBasicController {
     @Qualifier("queryHistoryService")
     private QueryHistoryService queryHistoryService;
 
-    @RequestMapping(value = "/query", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "", method = RequestMethod.POST, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse query(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
         SQLResponse sqlResponse = queryService.doQueryWithCache(sqlRequest, false);
@@ -107,8 +107,8 @@ public class NQueryController extends NBasicController {
 
     // TODO should be just "prepare" a statement, get back expected ResultSetMetaData
 
-    @RequestMapping(value = "/query/prestate", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/prestate", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse prepareQuery(@RequestBody PrepareSqlRequest sqlRequest) throws IOException {
         Map<String, String> newToggles = Maps.newHashMap();
@@ -120,33 +120,34 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.doQueryWithCache(sqlRequest, false), "");
     }
 
-    @RequestMapping(value = "/save_query/{project}", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/saved_queries", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void saveQuery(@PathVariable("project") String project, @RequestBody SaveSqlRequest sqlRequest) throws IOException {
+    public EnvelopeResponse saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         Query newQuery = new Query(sqlRequest.getName(), sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
-
-        queryService.saveQuery(creator, project, newQuery);
+        queryService.saveQuery(creator, sqlRequest.getProject(), newQuery);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/saved_queries/{project}/{id}", method = RequestMethod.DELETE, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public void removeSavedQuery(@PathVariable("project") String project, @PathVariable("id") String id) throws IOException {
+    public void removeSavedQuery(@PathVariable("project") String project, @PathVariable("id") String id)
+            throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         queryService.removeSavedQuery(creator, project, id);
     }
 
     @RequestMapping(value = "/saved_queries", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSavedQueries(@RequestParam(value = "project", required = false) String project,
-                                       @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-                                       @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
             throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
@@ -160,12 +161,12 @@ public class NQueryController extends NBasicController {
     }
 
     @RequestMapping(value = "/query_histories", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getAllQueryHistories(@RequestParam(value = "project", required = false) String project,
                                               @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
                                               @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
-            throws IOException {
+        throws IOException {
         HashMap<String, Object> data = new HashMap<>();
         List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(project);
 
@@ -191,11 +192,11 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/query/format/{format}", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"}, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @RequestMapping(value = "/format/{format}", method = RequestMethod.POST, produces = {
+            "application/vnd.apache.kylin-v2+json" }, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @ResponseBody
-    public void downloadQueryResult(@PathVariable("format") String format, SQLRequest sqlRequest, HttpServletResponse response)
-            throws IOException {
+    public void downloadQueryResult(@PathVariable("format") String format, SQLRequest sqlRequest,
+            HttpServletResponse response) throws IOException {
 
         KylinConfig config = queryService.getConfig();
         Message msg = MsgPicker.getMsg();
@@ -239,7 +240,7 @@ public class NQueryController extends NBasicController {
     }
 
     @RequestMapping(value = "/tables_and_columns", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getMetadata(MetaRequest metaRequest) throws SQLException, IOException {
 

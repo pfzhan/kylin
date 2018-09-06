@@ -61,10 +61,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-/**
- * @author zy
- */
-
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     private final ProjectService projectService = new ProjectService();
 

@@ -25,16 +25,19 @@
 package io.kyligence.kap.rest.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -48,14 +51,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
-/**
- * @author zy
- */
+
 @Component("modelService")
 public class ModelService extends BasicService {
 
@@ -100,7 +103,8 @@ public class ModelService extends BasicService {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         Segments<NDataSegment> segments = new Segments<NDataSegment>();
-        final SegmentRange<Long> filterRange = new SegmentRange.TimePartitionedSegmentRange(startTime - 1, endTime + 1);
+        final SegmentRange.TimePartitionedSegmentRange filterRange = new SegmentRange.TimePartitionedSegmentRange(
+                startTime, endTime);
         for (NCubePlan cubeplan : cubePlans) {
             NDataflow dataflow = dataflowManager.getDataflow(cubeplan.getName());
             for (NDataSegment segment : dataflow.getSegments()) {
@@ -112,22 +116,26 @@ public class ModelService extends BasicService {
         return segments;
     }
 
-    public List<NCuboidDesc> getAggIndexs(String modelName, String project) {
+    public List<CuboidDescResponse> getAggIndexs(String modelName, String project) {
         List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
-        List<NCuboidDesc> result = new ArrayList<NCuboidDesc>();
+        List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
         for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            if (cuboidDesc.getId() < NCuboidDesc.TABLE_INDEX_START_ID)
-                result.add(cuboidDesc);
+            if (cuboidDesc.getId() < NCuboidDesc.TABLE_INDEX_START_ID) {
+                CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
+                result.add(cuboidDescResponse);
+            }
         }
         return result;
     }
 
-    public List<NCuboidDesc> getTableIndexs(String modelName, String project) {
+    public List<CuboidDescResponse> getTableIndexs(String modelName, String project) {
         List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
-        List<NCuboidDesc> result = new ArrayList<NCuboidDesc>();
+        List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
         for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            if (cuboidDesc.getId() >= NCuboidDesc.TABLE_INDEX_START_ID)
-                result.add(cuboidDesc);
+            if (cuboidDesc.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
+                CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
+                result.add(cuboidDescResponse);
+            }
         }
         return result;
     }
@@ -141,7 +149,7 @@ public class ModelService extends BasicService {
         return cuboidDescs;
     }
 
-    public NCuboidDesc getCuboidById(String modelName, String project, Long cuboidId) {
+    public CuboidDescResponse getCuboidById(String modelName, String project, Long cuboidId) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         NCuboidDesc cuboidDesc = null;
         for (NCubePlan cubeplan : cubePlans) {
@@ -151,7 +159,7 @@ public class ModelService extends BasicService {
             }
         }
 
-        return cuboidDesc;
+        return new CuboidDescResponse(cuboidDesc);
     }
 
     public String getModelJson(String modelName, String project) throws JsonProcessingException {
@@ -159,16 +167,52 @@ public class ModelService extends BasicService {
         return JsonUtil.writeValueAsIndentString(modelDesc);
     }
 
-    public List<NForestSpanningTree> getModelRelations(String modelName, String project) {
+    public HashMap<String, Object> getModelRelations(String modelName, String project) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         List<NForestSpanningTree> result = new ArrayList<NForestSpanningTree>();
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        HashMap<String, Object> resultMap = new HashMap<>();
+        if (cubePlans == null) {
+            return resultMap;
+        }
         for (NCubePlan cubeplan : cubePlans) {
             NSpanningTree spanningTree = cubeplan.getSpanningTree();
+            NDataflow dataflow = dataflowManager.getDataflow(cubeplan.getName());
             NForestSpanningTree nForestSpanningTree = new NForestSpanningTree(spanningTree.getCuboids(),
                     spanningTree.getCuboidCacheKey());
             result.add(nForestSpanningTree);
         }
+        resultMap.putAll(computeSegmentsStorage(cubePlans, project));
+        resultMap.put("relations", result);
+        return resultMap;
+    }
+
+    private HashMap<String, Object> computeSegmentsStorage(List<NCubePlan> cubePlans, String project) {
+        long totalStorageSize = 0L;
+        long dataStart = 0L;
+        long dataEnd = Long.MAX_VALUE;
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        for (NCubePlan cubePlan : cubePlans) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            Segments<NDataSegment> segments = dataflow.getSegments();
+            for (NDataSegment segment : segments) {
+                long startCompare = Long.parseLong(segment.getSegRange().getStart().toString());
+                long endCompare = Long.parseLong(segment.getSegRange().getEnd().toString());
+                dataStart = dataStart < startCompare ? dataStart : startCompare;
+                dataEnd = dataStart < startCompare ? dataEnd : endCompare;
+                ArrayList<NDataCuboid> nDataCuboids = Lists.newArrayList(segment.getCuboidsMap().values());
+                for (NDataCuboid cuboid : nDataCuboids) {
+                    totalStorageSize += cuboid.getSizeKB();
+                }
+
+            }
+        }
+        HashMap<String, Object> result = new HashMap<>();
+        result.put("data_start_time", dataStart);
+        result.put("data_end_time", dataEnd);
+        result.put("storage", totalStorageSize);
         return result;
+
     }
 
     public List<NDataModel> getRelateModels(String project, String table) throws IOException {

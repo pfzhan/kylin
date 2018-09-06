@@ -134,10 +134,11 @@ public class NExecutableDao {
         }
     }
 
-    public List<ExecutablePO> getJobs(long timeStart, long timeEndExclusive) throws PersistentException {
+    public List<ExecutablePO> getJobs(String project, long timeStart, long timeEndExclusive)
+            throws PersistentException {
         try {
-            return store.getAllResources(ResourceStore.EXECUTE_RESOURCE_ROOT, timeStart, timeEndExclusive,
-                    ExecutablePO.class, JOB_SERIALIZER);
+            return store.getAllResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT, timeStart,
+                    timeEndExclusive, ExecutablePO.class, JOB_SERIALIZER);
         } catch (IOException e) {
             logger.error("error get all Jobs:", e);
             throw new PersistentException(e);

@@ -40,58 +40,76 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.rest.controller;
+package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.JobStatusEnum;
+import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.response.EnvelopeResponse;
-import org.apache.kylin.rest.response.ResponseCode;
-import org.apache.kylin.rest.security.ManagedUser;
-import org.junit.After;
+import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.util.AclEvaluate;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.InjectMocks;
 import org.mockito.Mockito;
-import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.util.ReflectionTestUtils;
 
-public class NUserControllerTest {
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-    private MockMvc mockMvc;
+public class JobServiceTest extends NLocalFileMetadataTestCase {
+    private final JobService jobService = new JobService();
 
-    @InjectMocks
-    private NUserController nUserController = Mockito.spy(new NUserController());
+    private AccessService accessService = Mockito.mock(AccessService.class);
 
-    @Before
-    public void setup() {
-        MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nUserController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
-        List<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-        ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
-        Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+    @BeforeClass
+    public static void setupResource() throws Exception {
+        System.setProperty("HADOOP_USER_NAME", "root");
+        staticCreateTestMetadata();
+
     }
 
-    @After
-    public void tearDown() {
+    @Before
+    public void setup() throws IOException {
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(jobService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
+
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        cleanAfterClass();
     }
 
     @Test
-    public void testBasics() throws IOException {
-        EnvelopeResponse<UserDetails> userDetailsEnvelopeResponse = nUserController.authenticatedUser();
-        Assert.assertNotNull(userDetailsEnvelopeResponse);
-        Assert.assertTrue(userDetailsEnvelopeResponse.code.equals(ResponseCode.CODE_SUCCESS));
+    public void testListJobs() throws Exception {
+        NExecutableManager manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NSparkCubingJob executable = new NSparkCubingJob();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        manager.addJob(executable);
+        List<JobStatusEnum> status = new ArrayList<>();
+        status.add(JobStatusEnum.NEW);
+        ArrayList<AbstractExecutable> jobs = new ArrayList<>();
+        Integer[] statusInt = { 4 };
+        String[] subjects = {};
+
+        jobs = jobService.listJobs("default", status, JobTimeFilterEnum.ALL, subjects, "");
+        Assert.assertTrue(jobs.size() == 1);
+
     }
+
 }

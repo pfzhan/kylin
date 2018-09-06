@@ -102,6 +102,10 @@ public class NExecutableManager {
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
+        result.setJobType(executable.getJobType());
+        result.setDataRangeStart(executable.getDataRangeStart());
+        result.setDataRangeEnd(executable.getDataRangeEnd());
+        result.setTargetSubject(executable.getTargetSubject());
         Map<String, Object> runTimeInfo = executable.getRunTimeInfo();
         if (runTimeInfo != null && runTimeInfo.size() > 0) {
             Set<NDataSegment> segments = (HashSet<NDataSegment>) runTimeInfo.get(RUNTIME_INFO);
@@ -248,7 +252,7 @@ public class NExecutableManager {
     public List<AbstractExecutable> getAllExecutables(long timeStartInMillis, long timeEndInMillis) {
         try {
             List<AbstractExecutable> ret = Lists.newArrayList();
-            for (ExecutablePO po : executableDao.getJobs(timeStartInMillis, timeEndInMillis)) {
+            for (ExecutablePO po : executableDao.getJobs(project, timeStartInMillis, timeEndInMillis)) {
                 try {
                     AbstractExecutable ae = parseTo(po);
                     ret.add(ae);
@@ -278,7 +282,7 @@ public class NExecutableManager {
             Class<? extends AbstractExecutable> expectedClass) {
         try {
             List<AbstractExecutable> ret = Lists.newArrayList();
-            for (ExecutablePO po : executableDao.getJobs(timeStartInMillis, timeEndInMillis)) {
+            for (ExecutablePO po : executableDao.getJobs(project, timeStartInMillis, timeEndInMillis)) {
                 try {
                     AbstractExecutable ae = parseToAbstract(po, expectedClass);
                     ret.add(ae);
@@ -567,6 +571,10 @@ public class NExecutableManager {
             result.setName(executablePO.getName());
             result.setProject(executablePO.getProject());
             result.setParams(executablePO.getParams());
+            result.setJobType(executablePO.getJobType());
+            result.setDataRangeStart(executablePO.getDataRangeStart());
+            result.setDataRangeEnd(executablePO.getDataRangeEnd());
+            result.setTargetSubject(executablePO.getTargetSubject());
             List<ExecutablePO> tasks = executablePO.getTasks();
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);

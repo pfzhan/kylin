@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -67,20 +67,16 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse getProjects(@RequestParam(value = "project", required = false) String projectName,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        try {
-            List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName);
-            List<ProjectInstance> projectInstances = PagingUtil.cutPage(readableProjects, offset, limit);
-            HashMap<String, Object> response = getDataResponse("projects", projectInstances, offset, limit);
-            return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
-        } catch (Exception e) {
-            throw new BadRequestException("Cannot get proects");
-        }
+
+        List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName);
+        HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, limit);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projects, "");
 
     }
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) throws IOException {
+    public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) throws IOException, PersistentException {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
         if (StringUtils.isEmpty(projectDesc.getName())) {

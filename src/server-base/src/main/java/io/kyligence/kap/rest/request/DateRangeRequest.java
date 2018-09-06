@@ -24,18 +24,39 @@
 
 package io.kyligence.kap.rest.request;
 
-public class FactTableRequest {
-    private String table;
-    private String project;
-    private String column;
-    private boolean fact;
+import java.util.Objects;
 
-    public String getColumn() {
-        return column;
+public class DateRangeRequest {
+    private long startTime;
+
+    private long endTime;
+
+    private String project;
+
+    private String table;
+
+    public long getStartTime() {
+        return startTime;
     }
 
-    public void setColumn(String column) {
-        this.column = column;
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public String getTable() {
@@ -46,20 +67,24 @@ public class FactTableRequest {
         this.table = table;
     }
 
-    public boolean getFact() {
-        return fact;
-
+    public DateRangeRequest() {
     }
 
-    public void setFact(boolean fact) {
-        this.fact = fact;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        DateRangeRequest that = (DateRangeRequest) o;
+        return startTime == that.startTime && endTime == that.endTime && Objects.equals(project, that.project)
+                && Objects.equals(table, that.table);
     }
 
-    public String getProject() {
-        return project;
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(startTime, endTime, project, table);
     }
 
-    public void setProject(String project) {
-        this.project = project;
-    }
 }

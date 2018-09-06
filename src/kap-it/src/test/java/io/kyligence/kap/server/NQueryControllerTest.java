@@ -163,7 +163,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
     @Test
     public void testGetMetadata() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/tables_and_columns")
+                .get("/api/query/tables_and_columns")
                 .param("project", "default")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -176,7 +176,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), "default");
         List<QueryHistory> queryHistories = manager.getAllQueryHistories();
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query_histories").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())

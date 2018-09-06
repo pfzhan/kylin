@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -49,14 +50,24 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
         Preconditions.checkArgument(submitter != null);
-
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
+        job.setJobType(JobTypeEnum.SPARKING_CUBING.toString());
+        long startTime = 0L;
+        long endTime = Long.MAX_VALUE - 1;
+        for (NDataSegment segment : segments) {
+            startTime = startTime < Long.parseLong(segment.getSegRange().getStart().toString()) ? startTime
+                    : Long.parseLong(segment.getSegRange().getStart().toString());
+            endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
+                    : Long.parseLong(segment.getSegRange().getEnd().toString());
+        }
+        job.setDataRangeStart(startTime);
+        job.setDataRangeEnd(endTime);
+        job.setTargetSubject(segments.iterator().next().getModel().getName());
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
         job.addSparkCubingStep(segments, layouts);
         job.addUpdateAfterBuildStep();
-
         return job;
     }
 

@@ -137,35 +137,28 @@ public class NQueryControllerTest {
     @Test
     public void testSaveQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = mockPrepareSqlRequest();
-        mockMvc.perform(MockMvcRequestBuilders
-                .post("/api/save_query/{project}", PROJECT)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(sqlRequest))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/saved_queries")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).saveQuery(Mockito.eq(PROJECT), Mockito.any(SaveSqlRequest.class));
+        Mockito.verify(nQueryController).saveQuery(Mockito.any(SaveSqlRequest.class));
     }
 
     @Test
     public void testRemoveSavedQuery() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders
-                .delete("/api/saved_queries/{project}/{id}", PROJECT, "1")
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/query/saved_queries/{project}/{id}", "default", "1")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).removeSavedQuery(PROJECT, "1");
+        Mockito.verify(nQueryController).removeSavedQuery("default", "1");
     }
 
     @Test
     public void testGetSavedQueries() throws Exception {
-        Mockito.when(kapQueryService.getSavedQueries("ADMIN", PROJECT)).thenReturn(mockSavedQueries());
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/saved_queries")
-                .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .param("pageOffset", "2")
-                .param("pageSize", "3")
+        Mockito.when(kapQueryService.getSavedQueries("ADMIN", "default")).thenReturn(mockSavedQueries());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/saved_queries").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("pageOffset", "2").param("pageSize", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
@@ -174,7 +167,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[1].name").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.saved_queries[2].name").value(9));
 
-        Mockito.verify(nQueryController).getSavedQueries(PROJECT, 2, 3);
+        Mockito.verify(nQueryController).getSavedQueries("default", 2, 3);
     }
 
     private List<Query> mockSavedQueries() {
@@ -195,9 +188,9 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetQueryHistories() throws Exception {
-        Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query_histories").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT).param("pageOffset", "2").param("pageSize", "3")
+        Mockito.when(queryHistoryService.getQueryHistories("default")).thenReturn(mockQueryHistories());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("pageOffset", "2").param("pageSize", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
@@ -206,7 +199,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
 
-        Mockito.verify(nQueryController).getAllQueryHistories(PROJECT, 2, 3);
+        Mockito.verify(nQueryController).getAllQueryHistories("default", 2, 3);
     }
 
     private List<QueryHistory> mockQueryHistories() {
@@ -235,7 +228,7 @@ public class NQueryControllerTest {
     @Test
     public void testGetQueryHistoriesByRule() throws Exception {
         Mockito.when(queryHistoryService.getQueryHistoriesByRules(PROJECT, mockFilterQueryHistoryRequest().getRule())).thenReturn(mockQueryHistories());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/query_histories").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockFilterQueryHistoryRequest())).param("pageOffset", "2").param("pageSize", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -266,9 +259,7 @@ public class NQueryControllerTest {
     @Test
     public void testGetMetadata() throws Exception {
         final MetaRequest metaRequest = new MetaRequest();
-        mockMvc.perform(MockMvcRequestBuilders
-                .get("/api/tables_and_columns")
-                .contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/tables_and_columns").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(metaRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());

@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -97,7 +98,9 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) throws IOException {
 
         checkProjectName(factTableRequest.getProject());
-        tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.getFact());
+        checkRequiredArg("column", factTableRequest.getColumn());
+        tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.getFact(),
+                factTableRequest.getColumn());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -114,6 +117,24 @@ public class NTableController extends NBasicController {
                 tableLoadRequest.getDatasourceType());
 
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sets, "");
+    }
+
+    @RequestMapping(value = "/date_range", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
+        checkProjectName(dateRangeRequest.getProject());
+        checkRequiredArg("table", dateRangeRequest.getTable());
+        if (dateRangeRequest.getStartTime() >= dateRangeRequest.getEndTime()) {
+            throw new BadRequestException("Illegal starttime or endtime,endTime"+dateRangeRequest.getEndTime()+"must be larger than startTime"+dateRangeRequest.getStartTime());
+        }
+        if(dateRangeRequest.getStartTime() < 0){
+            throw new BadRequestException("Illegal starttime ,startTime"+dateRangeRequest.getStartTime()+"can not be negative");
+
+        }
+        tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest.getTable(),
+                dateRangeRequest.getStartTime(), dateRangeRequest.getEndTime());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {

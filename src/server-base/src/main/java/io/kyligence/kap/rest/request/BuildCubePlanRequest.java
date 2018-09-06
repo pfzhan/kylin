@@ -24,18 +24,18 @@
 
 package io.kyligence.kap.rest.request;
 
-public class FactTableRequest {
-    private String table;
-    private String project;
-    private String column;
-    private boolean fact;
+public class BuildCubePlanRequest {
 
-    public String getColumn() {
-        return column;
+    private String project;
+
+    private String table;
+
+    public String getProject() {
+        return project;
     }
 
-    public void setColumn(String column) {
-        this.column = column;
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public String getTable() {
@@ -46,20 +46,7 @@ public class FactTableRequest {
         this.table = table;
     }
 
-    public boolean getFact() {
-        return fact;
-
+    public BuildCubePlanRequest() {
     }
 
-    public void setFact(boolean fact) {
-        this.fact = fact;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
 }

@@ -26,10 +26,9 @@ package io.kyligence.kap.rest.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
@@ -121,7 +120,7 @@ public class NModelController extends NBasicController {
         if (StringUtils.isEmpty(modelName)) {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        List<NCuboidDesc> aggIndexs = modelService.getAggIndexs(modelName, project);
+        List<CuboidDescResponse> aggIndexs = modelService.getAggIndexs(modelName, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndexs, "");
     }
 
@@ -134,7 +133,7 @@ public class NModelController extends NBasicController {
         if (StringUtils.isEmpty(modelName)) {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        NCuboidDesc cuboidDesc = modelService.getCuboidById(modelName, project, id);
+        CuboidDescResponse cuboidDesc = modelService.getCuboidById(modelName, project, id);
         if (cuboidDesc == null) {
             throw new BadRequestException("Can not find this cuboid " + id);
         }
@@ -149,7 +148,7 @@ public class NModelController extends NBasicController {
         if (StringUtils.isEmpty(modelName)) {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        List<NCuboidDesc> tableIndexs = modelService.getTableIndexs(modelName, project);
+        List<CuboidDescResponse> tableIndexs = modelService.getTableIndexs(modelName, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndexs, "");
     }
 
@@ -180,7 +179,7 @@ public class NModelController extends NBasicController {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
 
-        List<NForestSpanningTree> relations = modelService.getModelRelations(modelName, project);
+        HashMap<String, Object> relations = modelService.getModelRelations(modelName, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, relations, "");
     }

@@ -26,11 +26,10 @@ package io.kyligence.kap.rest.controller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
-import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.AccessService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,22 +47,28 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-public class NAccessControllerTest {
+import io.kyligence.kap.rest.request.EventRequest;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.service.EventService;
+import io.kylingence.kap.event.model.Event;
+
+public class NEventControllerTest {
 
     private MockMvc mockMvc;
 
     @Mock
-    private AccessService accessService;
+    private EventService eventService;
 
     @InjectMocks
-    private NAccessController nAccessController = Mockito.spy(new NAccessController());
+    private NEventController nEventController = Mockito.spy(new NEventController());
 
     private final Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
 
     @Before
     public void setup() {
         MockitoAnnotations.initMocks(this);
-        mockMvc = MockMvcBuilders.standaloneSetup(nAccessController)
+
+        mockMvc = MockMvcBuilders.standaloneSetup(nEventController)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -73,21 +78,46 @@ public class NAccessControllerTest {
     public void tearDown() {
     }
 
+    private ProjectRequest mokeProjectRequest() {
+        ProjectRequest projectRequest = new ProjectRequest();
+        projectRequest.setProjectDescData("{\"name\":\"test\"}");
+        return projectRequest;
+    }
+
     @Test
-    public void testGetUserPermissionInPrj() throws Exception {
-        List<JobStatusEnum> status = new ArrayList<>();
-        status.add(JobStatusEnum.NEW);
-        ArrayList<AbstractExecutable> jobs = new ArrayList<>();
-        Integer[] statusInt = { 4 };
-        String[] subjects = {};
-        Mockito.when(accessService.getUserPermissionInPrj("default")).thenReturn("ADMIN");
+    public void testGetEvents() throws Exception {
+        List<Event> events = new ArrayList<>();
+        Event event = new Event();
+        event.setApproved(false);
+        event.setUuid(UUID.randomUUID().toString());
+        Event event1 = new Event();
+        event1.setUuid(UUID.randomUUID().toString());
+        events.add(event);
+        events.add(event1);
+        Mockito.when(eventService.listEventsNotApproved("default")).thenReturn(events);
         MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/access/permission/project_permission")
-                        .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .perform(MockMvcRequestBuilders.get("/api/events").contentType(MediaType.APPLICATION_JSON)
+                        .param("project", "default")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nAccessController).getUserPermissionInPrj("default");
+        Mockito.verify(nEventController).getEvents("default");
+
+    }
+
+    @Test
+    public void testApplyEvents() throws Exception {
+        EventRequest eventRequest = new EventRequest();
+        eventRequest.setId(UUID.randomUUID().toString());
+        eventRequest.setProject("default");
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.post("/api/events").contentType(MediaType.APPLICATION_JSON)
+                        .content(JsonUtil.writeValueAsString(eventRequest))
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nEventController).applyEvents(Mockito.any(EventRequest.class));
+
     }
 
 }

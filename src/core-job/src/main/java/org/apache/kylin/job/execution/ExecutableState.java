@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -102,7 +102,7 @@ public enum ExecutableState {
     public boolean isReadyOrRunning() {
         return this == READY || this == RUNNING;
     }
-    
+
     public boolean isFinalState() {
         return this == SUCCEED || this == DISCARDED;
     }

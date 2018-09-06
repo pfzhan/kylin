@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -78,6 +78,51 @@ public class ExecutablePO extends RootPersistentEntity {
 
     @JsonProperty("segments")
     private Set<NDataSegment> segments = Sets.newHashSet();
+
+    @JsonProperty("job_type")
+    private String jobType;
+
+    @JsonProperty("data_range_start")
+    private long dataRangeStart;
+
+    @JsonProperty("data_range_end")
+    private long dataRangeEnd;
+
+    @JsonProperty("target_subject")
+
+    private String targetSubject;
+
+    public long getDataRangeStart() {
+        return dataRangeStart;
+    }
+
+    public void setDataRangeStart(long dataRangeStart) {
+        this.dataRangeStart = dataRangeStart;
+    }
+
+    public long getDataRangeEnd() {
+        return dataRangeEnd;
+    }
+
+    public void setDataRangeEnd(long dataRangeEnd) {
+        this.dataRangeEnd = dataRangeEnd;
+    }
+
+    public String getJobType() {
+        return jobType;
+    }
+
+    public void setJobType(String jobType) {
+        this.jobType = jobType;
+    }
+
+    public String getTargetSubject() {
+        return targetSubject;
+    }
+
+    public void setTargetSubject(String targetSubject) {
+        this.targetSubject = targetSubject;
+    }
 
     public String getName() {
         return name;

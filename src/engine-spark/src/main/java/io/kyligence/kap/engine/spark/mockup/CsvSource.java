@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.mockup;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +33,8 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IBuildable;
@@ -48,7 +51,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
-import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class CsvSource implements ISource {
@@ -63,11 +65,17 @@ public class CsvSource implements ISource {
             @Override
             public List<String> listDatabases() {
                 Set<String> databases = new TreeSet<>();
-                for (ProjectInstance prj : allProjects) {
-                    NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                            prj.getName());
-                    for (TableDesc tbl : mgr.listAllTables()) {
-                        databases.add(tbl.getDatabase());
+                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
+                        .toString();
+                String path = resPath + "/../data/tableDesc";
+                File[] files = new File(path).listFiles();
+                for (File file : files) {
+                    if (!file.isDirectory()) {
+                        String fileName = file.getName();
+                        String suffix = fileName.substring(fileName.lastIndexOf(".") + 1);
+                        if ("json".equals(suffix)) {
+                            databases.add(fileName.substring(0, fileName.indexOf(".")));
+                        }
                     }
                 }
                 return new ArrayList<String>(databases);
@@ -76,24 +84,33 @@ public class CsvSource implements ISource {
             @Override
             public List<String> listTables(String database) {
                 Set<String> tables = new TreeSet<>();
-                for (ProjectInstance prj : allProjects) {
-                    NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                            prj.getName());
-
-                    for (TableDesc tbl : mgr.listAllTables()) {
-                        if (database.equals(tbl.getDatabase()))
-                            tables.add(tbl.getName());
+                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
+                        .toString();
+                String path = resPath + "/../data/tableDesc";
+                File[] files = new File(path).listFiles();
+                for (File file : files) {
+                    if (!file.isDirectory()) {
+                        String fileName = file.getName();
+                        String[] strings = fileName.split("\\.");
+                        if (strings.length >= 1 && database.equals(strings[0])
+                                && "json".equals(strings[strings.length - 1])) {
+                            tables.add(strings[1]);
+                        }
                     }
                 }
                 return new ArrayList<String>(tables);
             }
 
             @Override
-            public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj) {
-                NTableMetadataManager mgr = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), prj);
-                String tableName = database + "." + table;
-                TableDesc tableDesc = mgr.getTableDesc(tableName);
-                TableExtDesc tableExt = mgr.getTableExt(tableName);
+            public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
+                    throws IOException {
+                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
+                        .toString();
+                String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
+                TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
+                tableDesc.setTableType("defaultTable");
+                TableExtDesc tableExt = new TableExtDesc();
+                tableExt.setIdentity(tableDesc.getIdentity());
                 return Pair.newPair(tableDesc, tableExt);
             }
 

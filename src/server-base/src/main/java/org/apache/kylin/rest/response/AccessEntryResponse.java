@@ -48,10 +48,6 @@ import org.springframework.util.Assert;
 
 import java.io.Serializable;
 
-/**
- * @author zy
- * 
- */
 public class AccessEntryResponse {
 
     private Permission permission;

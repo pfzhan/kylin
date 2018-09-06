@@ -53,6 +53,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -73,9 +74,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-/**
- * @author zy
- */
 public class NModelControllerTest {
 
     private MockMvc mockMvc;
@@ -141,22 +139,11 @@ public class NModelControllerTest {
     }
 
     @Test
-    public void testAggIndexs() throws Exception {
-        Mockito.when(modelService.getAggIndexs("model1", "default")).thenReturn(mockCuboidDescs());
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/agg_indexs").contentType(MediaType.APPLICATION_JSON)
-                        .param("model", "model1").param("project", "default")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-
-        Mockito.verify(nModelController).getAggIndexs("model1", "default");
-    }
-
-    @Test
     public void testGetCuboids() throws Exception {
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(432323);
-        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(cuboidDesc);
+        CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
+        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(cuboidDescResponse);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/cuboids").contentType(MediaType.APPLICATION_JSON)
                         .param("id", "432323").param("project", "default").param("model", "model1")
@@ -191,7 +178,8 @@ public class NModelControllerTest {
         Mockito.verify(nModelController).getModels("model1", true, "default", "", 0, 10);
     }
 
-    private List<NForestSpanningTree> mockRelations() {
+    private HashMap<String, Object> mockRelations() {
+        HashMap<String, Object> resultMap = new HashMap<>();
         final List<NForestSpanningTree> nSpanningTrees = new ArrayList<>();
         Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids = new HashMap<>();
         NCuboidDesc cuboidDesc = new NCuboidDesc();
@@ -203,14 +191,16 @@ public class NModelControllerTest {
         cuboids.put(cuboidDesc, layouts);
         NForestSpanningTree nSpanningTree = new NForestSpanningTree(cuboids, "test");
         nSpanningTrees.add(nSpanningTree);
-        return nSpanningTrees;
+        resultMap.put("relations", nSpanningTrees);
+        resultMap.put("storage", 222);
+        return resultMap;
     }
 
-    private List<NCuboidDesc> mockCuboidDescs() {
-        final List<NCuboidDesc> nCuboidDescs = new ArrayList<>();
+    private List<CuboidDescResponse> mockCuboidDescs() {
+        final List<CuboidDescResponse> nCuboidDescs = new ArrayList<>();
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(1234);
-        nCuboidDescs.add(cuboidDesc);
+        nCuboidDescs.add(new CuboidDescResponse(cuboidDesc));
         return nCuboidDescs;
     }
 
