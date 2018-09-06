@@ -130,7 +130,10 @@ export default {
     },
     // newten
     [types.GET_MODEL_AGGREGATE_INDEX] ({ commit }, params) {
-      return api.model.getAggregateIndex({ commit }, params)
+      return api.model.getAggregateIndex(params)
+    },
+    [types.FETCH_SEGMENTS] ({ commit }, params) {
+      return api.model.fetchSegments(params.modelName, params.projectName, params.startDate, params.endDate)
     }
   },
   getters: {

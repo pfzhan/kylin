@@ -8,7 +8,7 @@
     <template v-if="isFormShow">
       <SourceNew
         v-if="isNewSource"
-        :selected-type="form.sourceType"
+        :selected-type="form.project.override_kylin_properties['kylin.source.default']"
         @input="selectDataSource">
       </SourceNew>
       <SourceHive

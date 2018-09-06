@@ -1,6 +1,6 @@
 <template>
   <div class="segment-chart">
-    <svg ref="svg" :width="elementWidth" :height="elementHeight">
+    <svg ref="svg" :width="elementWidth" :height="elementHeight" v-if="isChartCreated">
       <defs>
         <filter id="mouseEnterStyle" x="-50%" y="-50%" width="200%" height="200%">
           <feOffset result="offOut" in="SourceAlpha" dx="0" dy="0" />
@@ -9,8 +9,8 @@
         </filter>
         <clipPath
           v-for="segment in segments"
-          :key="`clip-${segment.uuid}`"
-          :id="`clip-${segment.uuid}`">
+          :key="`clip-${segment.id}`"
+          :id="`clip-${segment.id}`">
           <rect
             :x="segment.x"
             :y="0"
@@ -23,13 +23,13 @@
       <g class="stage" :width="stageWidth" :height="stageHeight" :transform="`translate(${margin.left}, ${margin.top})`" ref="stage">
         <g class="axis" ref="axis">
           <g class="x-axis" :transform="`translate(0, ${stageHeight})`" ref="x-axis"></g>
-          <line class="x-line-top" x1="0" :x2="chartWidth" y1="0" y2="0" stroke="#b0bec5"></line>
-          <line class="x-line-bottom" x1="0" :x2="chartWidth" :y1="chartHeight" :y2="chartHeight" stroke="#b0bec5"></line>
+          <line class="x-line-top" x1="0" :x2="chartWidth" y1="-1" y2="-1" stroke="#b0bec5"></line>
+          <line class="x-line-bottom" x1="0" :x2="chartWidth" :y1="chartHeight + 1" :y2="chartHeight + 1" stroke="#b0bec5"></line>
         </g>
         <g class="segment-group"
           v-for="segment in segments"
-          :key="segment.uuid"
-          :ref="segment.uuid"
+          :key="segment.id"
+          :ref="segment.id"
           @mouseleave="event => handleMouseOut(event, segment)"
           @mouseenter="event => handleMouseEnter(event, segment)"
           @click="event => handleClick(event, segment)">
@@ -51,7 +51,7 @@
             :y="chartHeight / 2"
             fill="#263238"
             transform="translate(-31, -4)"
-            :clip-path="segment.isMerging ? `url(#clip-${segment.uuid})` : null">
+            :clip-path="segment.isMerging ? `url(#clip-${segment.id})` : null">
             Merging...
           </text>
           <rect
@@ -61,7 +61,7 @@
             :width="segment.width / 3"
             fill="#0988DE"
             height="10"
-            :clip-path="segment.isMerging ? `url(#clip-${segment.uuid})` : null">
+            :clip-path="segment.isMerging ? `url(#clip-${segment.id})` : null">
             <animate
               attributeType="XML"
               attributeName="x"
@@ -111,6 +111,7 @@ import { transToGmtTime } from '../../../../../../util/business'
 export default class SegmentChart extends Vue {
   margin = { top: 10, right: 0, bottom: 20, left: 0 }
   fontMargin = 28
+  isChartCreated = false
   segments = []
   // vue组件的整个元素宽度
   elementWidth = 0
@@ -118,7 +119,7 @@ export default class SegmentChart extends Vue {
   elementHeight = 0
   // 选出segment中from的最小时间
   get minDate () {
-    return d3.min(this.segments, segment => segment.from)
+    return this.segments.length ? d3.min(this.segments, segment => new Date(segment.from)) : new Date()
   }
   // 选出segment中to的最大时间
   get maxDate () {
@@ -136,7 +137,6 @@ export default class SegmentChart extends Vue {
       case 'Day':
         return maxDate.setDate(maxDate.getDate() + 10)
     }
-    // return d3.max(this.segments, segment => segment.to)
   }
   // svg-stage绘图高度
   get stageHeight () {
@@ -164,30 +164,44 @@ export default class SegmentChart extends Vue {
   }
   get hoveredSegmentInfo () {
     return this.hoveredSegment ? {
-      'Segment ID': this.hoveredSegment.uuid,
+      'Segment ID': this.hoveredSegment.id,
       'Storage Size': `${this.hoveredSegment.size_kb}KB`,
-      'Start': transToGmtTime(this.hoveredSegment.date_range_start),
-      'End': transToGmtTime(this.hoveredSegment.date_range_end)
+      'Start': transToGmtTime(this.hoveredSegment.dateRangeStart),
+      'End': transToGmtTime(this.hoveredSegment.dateRangeEnd)
     } : null
   }
-
   @Watch('segmentsData')
-  onSegmentsDataChange () {
-    this.initSegments()
-    this.handleZoom()
+  @Watch('maxDate')
+  async onSegmentsDataChange () {
+    await this.cleanSVG()
+    await this.drawSVG()
   }
-
-  mounted () {
-    this.initSegments()
-    this.elementWidth = this.$el.clientWidth
-    this.elementHeight = this.$el.clientHeight
-
-    setTimeout(() => {
-      this.initialized = true
+  cleanSVG () {
+    return new Promise(resolve => {
+      this.isChartCreated = false
       this.d3data = {}
-      this.initSVGData(this.d3data)
-      this.handleZoom()
+      setTimeout(() => {
+        this.isChartCreated = true
+        resolve()
+      }, 20)
     })
+  }
+  drawSVG () {
+    return new Promise(resolve => {
+      this.elementWidth = this.$el.clientWidth
+      this.elementHeight = this.$el.clientHeight
+      this.initSegments()
+
+      setTimeout(() => {
+        this.initSVGData(this.d3data)
+        this.handleZoom()
+        resolve()
+      }, 20)
+    })
+  }
+  async mounted () {
+    await this.cleanSVG()
+    await this.drawSVG()
   }
   // 事件: 处理缩放
   handleZoom () {
@@ -228,7 +242,7 @@ export default class SegmentChart extends Vue {
     if (isSelectedFirst) {
       this.selectedSegments
         .map(selectedSegment => {
-          return d3.select(this.$refs[selectedSegment.uuid].length && this.$refs[selectedSegment.uuid][0])
+          return d3.select(this.$refs[selectedSegment.id].length && this.$refs[selectedSegment.id][0])
         })
         .forEach(selectedSegmentEl => {
           selectedSegmentEl.each(function () {
@@ -251,7 +265,12 @@ export default class SegmentChart extends Vue {
   }
   initSegments () {
     this.segments = this.segmentsData.map(segment => ({
-      ...segment, x: 0, width: 0, isHover: false
+      ...segment,
+      x: 0,
+      width: 0,
+      isHover: false,
+      from: segment.dateRangeStart,
+      to: segment.dateRangeEnd
     }))
   }
   getSegmentBgColor (segment) {
@@ -263,12 +282,12 @@ export default class SegmentChart extends Vue {
   }
   getStartTimeArray (data) {
     return this.selectedSegments
-      .filter(segment => data.uuid !== segment.uuid)
+      .filter(segment => data.id !== segment.id)
       .map(segment => segment.date_range_start)
   }
   getEndTimeArray (data) {
     return this.selectedSegments
-      .filter(segment => data.uuid !== segment.uuid)
+      .filter(segment => data.id !== segment.id)
       .map(segment => segment.date_range_end)
   }
   isSegmentSelectable (segment) {
@@ -278,7 +297,7 @@ export default class SegmentChart extends Vue {
 
     const isStartTimeContinue = startTimeArray.includes(segment.date_range_end)
     const isEndTimeContinue = endTimeArray.includes(segment.date_range_start)
-    const isSelfCancelSegment = selectedSegments.length === 1 && segment.uuid === selectedSegments[0].uuid
+    const isSelfCancelSegment = selectedSegments.length === 1 && segment.id === selectedSegments[0].id
     const isNoSegment = selectedSegments.length === 0
     const isCancelMiddleSegment = isStartTimeContinue && isEndTimeContinue
     // 对用户选择的segment进行判断

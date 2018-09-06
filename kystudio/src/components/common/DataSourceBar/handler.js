@@ -77,10 +77,6 @@ export const render = {
           <div class="left">
             {tags.map(tag => {
               switch (tag) {
-                case 'D':
-                  return <i class="tree-icon column-tag el-icon-ksd-dimansion"></i>
-                case 'M':
-                  return <i class="tree-icon column-tag el-icon-ksd-measure"></i>
                 case 'FK':
                   return <i class="tree-icon column-tag el-icon-ksd-symbol_fk"></i>
                 case 'PK':

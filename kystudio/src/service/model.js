@@ -85,5 +85,8 @@ export default {
   getAggregateIndex: params => {
     // Vue.resource(`${apiUrl}/models/agg_indexs`).get(params)
     return aggregateTree
+  },
+  fetchSegments: (model, project, startTime, endTime) => {
+    return Vue.resource(apiUrl + 'models/segments').get({model, project, startTime, endTime})
   }
 }

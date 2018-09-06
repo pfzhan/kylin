@@ -135,7 +135,7 @@ export default class StudioSource extends Vue {
   }
 
   async mounted () {
-    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
+    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: false})
     this.datasouce = await handleSuccessAsync(res)
     this.viewType = viewTypes.DATA_LOAD
 

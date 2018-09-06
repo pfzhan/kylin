@@ -251,6 +251,7 @@ export default class DataSourceBar extends Vue {
     & > .el-tree-node {
       border: 1px solid #CFD8DC;
       overflow: hidden;
+      margin-bottom: 10px;
       &[aria-expanded="true"] > .el-tree-node__content {
         border-bottom: 1px solid #CFD8DC;
       }

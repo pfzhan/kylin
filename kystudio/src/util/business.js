@@ -40,7 +40,7 @@ export function handleError (res, errorcallback) {
       }
     }
   }
-  this.$store.state.config.showLoadingBox = false
+  window.kapVm.$store.state.config.showLoadingBox = false
 }
 // 全局命名校验
 export function validateNamed (rule, value, callback) {
