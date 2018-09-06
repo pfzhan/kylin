@@ -436,7 +436,18 @@ export function getFullMapping (mapping) {
   }
   return fullMapping
 }
-
+export function cacheSessionStorage (name, val) {
+  if (val) {
+    sessionStorage.setItem(name, val)
+  }
+  return sessionStorage.getItem(name)
+}
+export function cacheLocalStorage (name, val) {
+  if (val !== undefined) {
+    localStorage.setItem(name, val)
+  }
+  return localStorage.getItem(name, val)
+}
 export { set, get, push } from './object'
 export { handleError, hasRole, hasPermission, kapConfirm, transToGmtTime } from './business'
 export { validate, validateTypes }

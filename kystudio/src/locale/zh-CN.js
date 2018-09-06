@@ -146,6 +146,7 @@ exports.default = {
   },
   model: {
     modelName: '模型名称：',
+    modelList: '模型列表',
     modelNameGrid: '模型名称',
     modifiedGrid: '上次更新时间',
     statusGrid: '健康状态',

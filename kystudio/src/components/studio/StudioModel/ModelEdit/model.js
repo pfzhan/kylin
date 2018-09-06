@@ -109,10 +109,11 @@ class NModel {
     var conn = this.plumbTool.connect(pid, fid, () => {
       this.connClick(pid, fid)
     }, {})
+    this.setOverLayLabel(conn)
     this.plumbTool.refreshPlumbInstance()
     return conn
   }
-  renderLabels (pid, fid) {
+  renderLabels () {
     for (var i in this.allConnInfo) {
       this.setOverLayLabel(this.allConnInfo[i])
     }
@@ -122,8 +123,9 @@ class NModel {
     var smeasures = this.searchMeasure(keywords)
     var sdimensions = this.searchDimension(keywords)
     var sjoins = this.searchJoin(keywords)
+    var scolumns = this.searchColumn(keywords)
     // console.log(stables, smeasures, sdimensions, sjoins)
-    return [].concat(stables, smeasures, sdimensions, sjoins)
+    return [].concat(stables, smeasures, sdimensions, sjoins, scolumns)
   }
   // search
   searchTable (keywords) {
@@ -137,6 +139,9 @@ class NModel {
   }
   searchJoin (keywords) {
     return this.mixResult(this.lookups, 'join', 'table', keywords)
+  }
+  searchColumn (keywords) {
+    return this.mixResult(this.all_named_columns, 'column', 'name', keywords)
   }
   searchRule (content, keywords) {
     var reg = new RegExp(keywords, 'i')

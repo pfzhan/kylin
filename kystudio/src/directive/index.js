@@ -46,9 +46,15 @@ Vue.directive('focus', {
 Vue.directive('scroll', {
   componentUpdated: function (el, binding) {
     if (el) {
-      var instance = Scrollbar.get(el)
-      if (!instance) {
+      var isReactive = binding.modifiers.reactive
+      // 组件更新后强制重新初始化
+      if (isReactive) {
         Scrollbar.init(el)
+      } else {
+        var instance = Scrollbar.get(el)
+        if (!instance) {
+          Scrollbar.init(el)
+        }
       }
     }
   }

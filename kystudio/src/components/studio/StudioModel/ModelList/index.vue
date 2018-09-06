@@ -13,13 +13,14 @@
           <el-button icon="el-icon-arrow-right" size="mini"></el-button>
         </el-button-group>
       </div>
-    </div>
+    </div>  
+    <div class="ky-list-title ksd-mt-20">{{$t('kylinLang.model.modelList')}}</div>
     <div v-if="showSearchResult">
-      <div  class="ksd-mb-14 ksd-fright ksd-mt-20">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.modelName"  @input="searchModels" class="show-search-btn" >
+      <div  class="ksd-mb-14 ksd-fright ksd-mt-8">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:400px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.modelName"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-20" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="addModel"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
       <el-table class="model_list_table"
         :data="modelArray"
         border
@@ -77,19 +78,19 @@
           prop="capacity"
           show-overflow-tooltip
           width="210"
-          :label="$t('Capbility')">
+          :label="$t('capbility')">
         </el-table-column>
         <el-table-column
           prop="gmtTime"
           show-overflow-tooltip
           width="210"
-          :label="$t('Data Load Time')">
+          :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column
-          prop="owner"
+          prop="status"
           show-overflow-tooltip
           width="100"
-          :label="$t('Status')">
+          :label="$t('status')">
           <template slot-scope="scope">
         <el-tag size="small" :type="scope.row.status === 'DISABLED' ? 'danger' : scope.row.status === 'DESCBROKEN'? 'info' : 'success'">{{scope.row.status}}</el-tag>
       </template>
@@ -141,7 +142,7 @@
       <img src="../../../../assets/img/no_model.png">
       <p v-if="isAdmin || hasPermissionOfProject()">{{$t('noModel')}}</p>
       <div>
-      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="isAdmin || hasPermissionOfProject()" @click="addModel">{{$t('kylinLang.common.model')}}</el-button>
+      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
        </div>
     </div>
 
@@ -165,7 +166,7 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="cloneFormVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="clone">{{$t('kylinLang.common.clone')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="cloneModel">{{$t('kylinLang.common.clone')}}</el-button>
       </div>
     </el-dialog>
 
@@ -325,9 +326,12 @@ export default class ModelList extends Vue {
       })
     }, 500)
   }
-  addModel () {
+  showAddModelDialog () {
     this.createModelVisible = true
   }
+  createModel () {}
+  resetAddModelForm () {}
+  cloneModel () {}
   handleEdit (model) {
     this.$emit('addtabs', 'model', model.name, 'modelEdit', {
       project: model.project,

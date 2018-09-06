@@ -1,12 +1,12 @@
 <template>
-  <div class="full-layout" id="fullBox">
-  <el-row class="panel" :class="briefMenu">
+  <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen}">
+  <el-row class="panel" :class="{'brief_menu':briefMenu}">
     <el-col :span="24" class="panel-center">
       <aside class="left-menu">
-        <img v-show="briefMenu!=='brief_menu'" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
-        <img v-show="briefMenu==='brief_menu'" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
+        <img v-show="!briefMenu" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
+        <img v-show="briefMenu" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
         <div class="ky-line"></div>
-        <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenu==='brief_menu'">
+        <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenu">
           <template v-for="(item,index) in menus" >
             <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
               <i :class="item.icon" class="ksd-fs-16"></i>
@@ -25,7 +25,7 @@
         </el-menu>
       </aside>
       <div class="topbar">
-        <i class="ksd-fs-14" :class="[briefMenu !== 'brief_menu' ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleMenu"></i>
+        <i class="ksd-fs-14" :class="[!briefMenu ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
         <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
         <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
           <i class="el-icon-ksd-project_list"></i>
@@ -141,7 +141,8 @@ import $ from 'jquery'
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
       resetProjectState: 'RESET_PROJECT_STATE',
-      resetMonitorState: 'RESET_MONITOR_STATE'
+      resetMonitorState: 'RESET_MONITOR_STATE',
+      toggleMenu: 'TOGGLE_MENU'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -157,7 +158,8 @@ import $ from 'jquery'
   },
   computed: {
     ...mapGetters([
-      'currentPathNameGet'
+      'currentPathNameGet',
+      'isFullScreen'
     ])
   },
   locales: {
@@ -277,9 +279,8 @@ export default class LayoutLeftRightTop extends Vue {
       this.defaultActive = a
     }
   }
-  toggleMenu () {
-    this.$store.state.config.layoutConfig.briefMenu = this.$store.state.config.layoutConfig.briefMenu ? '' : 'brief_menu'
-    localStorage.setItem('menu_type', this.$store.state.config.layoutConfig.briefMenu)
+  toggleLeftMenu () {
+    this.toggleMenu(!this.briefMenu)
   }
   logoutConfirm () {
     return kapConfirm(this.$t('confirmLoginOut'))

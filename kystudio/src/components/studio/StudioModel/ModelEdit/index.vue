@@ -36,7 +36,7 @@
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click="toggleMenu('datasource')" v-event-stop><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
         <div class="panel-box panel-datasource" v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
-          <div class="panel-title"><span>Data Source</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
+          <div class="panel-title"><span>{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
           <DataSourceBar
             class="tree-box"
             :is-show-load-source="false"
@@ -124,7 +124,7 @@
             </div>
             <div class="panel-main-content" style="top:36px;" data-scrollbar>
               <div :class="{active:autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="true">Auto-Model <i class="el-icon-ksd-lock"></i></el-radio></div>
+                <div><el-radio v-model="autoSetting" :label="true">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
                 <ul>
                   <li>可以自动修改模型定义，比如Joint-tree,Dimension,Measure</li>
                   <li>可以添加和删除cuboid</li>
@@ -132,7 +132,7 @@
                 </ul>
               </div>
               <div :class="{active:!autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="false">Auto-Model <i class="el-icon-ksd-lock"></i></el-radio></div>
+                <div><el-radio v-model="autoSetting" :label="false">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
                 <ul>
                   <li>无法自动修改模型定义，比如Joint-tree,Dimension,Measure</li>
                   <li>可以添加和删除cuboid</li>
@@ -155,7 +155,7 @@
         <div>
          <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
            <ul>
-             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{x.action}}]</span> <span class="search-name">{{x.name}}</span></li>
+             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.action)}}]</span> <span class="search-name">{{x.name}}</span></li>
            </ul>
            <div class="ky-line"></div>
          </div>
@@ -175,7 +175,6 @@ import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, loadingBox } from '../../../../util/business'
 import { isIE, groupData } from '../../../../util'
-import Scrollbar from 'smooth-scrollbar'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import AddMeasure from '../AddMeasure/index.vue'
@@ -187,7 +186,8 @@ import { modelRenderConfig } from './config'
   props: ['extraoption'],
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isFullScreen'
     ])
   },
   methods: {
@@ -206,6 +206,9 @@ import { modelRenderConfig } from './config'
     }),
     ...mapActions('SingleDimensionModal', {
       showSingleDimensionDialog: 'CALL_MODAL'
+    }),
+    ...mapMutations({
+      toggleFullScreen: 'TOGGLE_SCREEN'
     })
   },
   components: {
@@ -223,6 +226,7 @@ export default class ModelEdit extends Vue {
   modelInstance = null // 模型实例对象
   currentDragTable = '' // 当前拖拽的表
   currentDragColumn = '' // 当前拖拽的列
+  currentDropColumnData = {} // 当前释放到的列
   currentDragColumnData = {} // 当前拖拽列携带信息
   modelGlobalSearch = '' // model全局搜索信息
   showSearchResult = true
@@ -233,7 +237,6 @@ export default class ModelEdit extends Vue {
   measureVisible = false
   baseIndex = 100
   autoSetting = true
-  isFullScreen = false
   // 0 dimension 1 measure 2 setting 3 datasource 4 searchbox
   panelAppear = {
     dimension: {
@@ -330,29 +333,11 @@ export default class ModelEdit extends Vue {
   }
   // 全屏
   fullScreen () {
-    this.isFullScreen = !this.isFullScreen
-    $('#fullBox').toggleClass('fullLayoutForModelEdit')
+    this.toggleFullScreen(!this.isFullScreen)
   }
   // 自动布局
   autoLayout () {
     this.modelInstance.renderPosition()
-  }
-  // 老数据和新数据的转换  临时函数
-  tempTransFormData (data) {
-    var newtenData = {}
-    newtenData.fact_table = data.fact_table
-    newtenData.name = data.name
-    newtenData.filter_condition = data.filter_condition
-    newtenData.uuid = data.uuid
-    newtenData.computed_columns = data.computed_columns
-    newtenData.join_tables = data.lookups
-    newtenData.partition_desc = data.partition_desc
-    newtenData.partition_desc = data.last_modified
-    newtenData.dimensions = data.dimensions
-    newtenData.all_measures = data.metrics.map((x) => {
-      return {name: x}
-    })
-    return newtenData
   }
   initModelDesc (cb) {
     if (this.extraoption.modelName && this.extraoption.action === 'edit') {
@@ -376,16 +361,6 @@ export default class ModelEdit extends Vue {
       cb(this.modelData)
       this.globalLoading.hide()
     }
-  }
-  initScroll () {
-    this.$nextTick(() => {
-      this.$el.querySelectorAll('.panel-main-content').forEach((el) => {
-        Scrollbar.init(el)
-      })
-      this.$el.querySelectorAll('.column-list-box').forEach((el) => {
-        Scrollbar.init(el)
-      })
-    })
   }
   batchDimension () {
     this.showDimensionDialog([], [])
@@ -444,7 +419,6 @@ export default class ModelEdit extends Vue {
   // 释放列
   dropColumn (event, col, table) {
     this.removeDragInClass()
-    let dropColumnData = {}
     // 判断是否是自己连自己
     if (this.currentDragColumnData.guid === table.guid) {
       return
@@ -459,7 +433,7 @@ export default class ModelEdit extends Vue {
       return
     }
     if (this.currentDragColumnData.guid) {
-      dropColumnData = {
+      this.currentDropColumnData = {
         guid: table.guid,
         columnName: col && col.name || ''
       }
@@ -472,8 +446,13 @@ export default class ModelEdit extends Vue {
     })
     // 弹出框弹出
     this.showJoinDialog()
-    this.modelInstance.renderLink(dropColumnData.guid, this.currentDragColumnData.guid)
+  }
+  saveLinkData () {
+    this.modelInstance.renderLink(this.currentDropColumnData.guid, this.currentDragColumnData.guid)
+    var pTable = this.modelInstance.tables[this.currentDropColumnData.guid]
+    pTable.addLinkData(pTable, this.currentDragColumnData.columnName, this.currentDropColumnData.columnName, modelRenderConfig.joinKind.inner)
     this.currentDragColumnData = {}
+    this.currentDropColumnData = {}
     this.currentDragColumn = null
   }
   removeDragInClass () {
@@ -509,6 +488,9 @@ export default class ModelEdit extends Vue {
     if (select.action === 'adddimension') {
       this.showDimensionDialog([], [])
     }
+    if (select.action === 'addmeasure') {
+      this.measureVisible = true
+    }
     if (select.action === 'editdimension') {
       this.showDimensionDialog([], [])
     }
@@ -516,6 +498,9 @@ export default class ModelEdit extends Vue {
       this.measureVisible = true
     }
     if (select.action === 'editjoin') {
+      this.showJoinDialog()
+    }
+    if (select.action === 'addjoin') {
       this.showJoinDialog()
     }
     this.panelAppear.search.display = false
@@ -576,7 +561,6 @@ export default class ModelEdit extends Vue {
             })
             this.showJoinDialog()
           })
-          this.initScroll()
         })
       })
     })

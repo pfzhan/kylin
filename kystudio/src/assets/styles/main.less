@@ -131,6 +131,11 @@ i[class=el-icon-question] {
     cursor:ns-resize;
   }
 }
+.ky-list-title {
+  font-size: 16px;
+  color:@text-title-color;
+  font-weight: @font-medium;
+}
   table.ksd-table{
     border-top:solid 1px @line-border-color;
     border-left:solid 1px @line-border-color;
@@ -323,7 +328,33 @@ i[class=el-icon-question] {
   line-height: 32px;
 }
 
-
+.fullLayout{
+  .left-menu{
+    display: none;
+  }
+  #scrollBox{
+    left:0;
+    top:0;
+  }
+  .model_panel .model_edit_tool{
+    left: 0;
+  }
+  .topbar{
+    display: none;
+  }
+  .model_panel .model_edit_tool.smallScreen{
+    left: 0;
+  }
+  #modeltab>.el-tabs--card>.el-tabs__header{
+    display: none;
+  }
+  #breadcrumb_box{
+    display: none;
+  }
+  .btn_group{
+    bottom:152px;
+  }
+}
 // panel toggle 动画
 .bounceright-enter-active {
   transform-origin:100% 0;

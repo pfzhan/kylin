@@ -15,7 +15,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapMutations } from 'vuex'
 // import { sampleGuid } from '../../../../config'
 import locales from './locales'
 import { sampleGuid } from 'util/index'
@@ -44,6 +44,9 @@ import PartitionModal from '../ModelPartitionModal/index.vue'
     }),
     ...mapActions('ModelPartitionModal', {
       showPartitionDialog: 'CALL_MODAL'
+    }),
+    ...mapMutations({
+      toggleFullScreen: 'TOGGLE_SCREEN'
     })
   },
   components: {
@@ -69,9 +72,11 @@ export default class ModelTabs extends Vue {
     this.goModelList()
   }
   checkTab (name) {
+    this.toggleFullScreen(false)// 关闭全屏模式
     this.activeName = name
   }
   goModelList () {
+    this.toggleFullScreen(false)
     this.$router.push({name: 'ModelList'})
   }
   openSaveDialog () {

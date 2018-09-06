@@ -1,5 +1,6 @@
 import api from './../service/api'
 import * as types from './types'
+import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 export default {
   state: {
     projectList: [],
@@ -15,24 +16,23 @@ export default {
     [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
       state.allProject.splice(0, state.allProject.length)
       state.allProject = Object.assign(state.allProject, list)
+      var selectedProject = cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
       var hasMatch = false
-      if (list) {
+      if (list && list.length > 0) {
         list.forEach((p) => {
-          if (p.name === localStorage.getItem('selected_project')) {
+          if (p.name === selectedProject) {
             hasMatch = true
             state.selected_project = p.name // 之前没这句，在其他tab 切换了project，顶部会不变
           }
         })
         if (!hasMatch) {
-          localStorage.setItem('selected_project', '')
-          state.selected_project = ''
-        }
-        if (state.allProject.length > 0 && !localStorage.getItem('selected_project')) {
           state.selected_project = state.allProject[0].name
-          localStorage.setItem('selected_project', state.selected_project)
+          cacheSessionStorage('projectName', state.selected_project)
+          cacheLocalStorage('projectName', state.selected_project)
         }
       } else {
-        localStorage.setItem('selected_project', '')
+        cacheSessionStorage('projectName', '')
+        cacheLocalStorage('projectName', '')
         state.selected_project = ''
       }
     },
@@ -40,10 +40,11 @@ export default {
       state.allProject = []
     },
     [types.RESET_PROJECT_STATE]: function (state) {
+      var selectedProject = cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
       state.projectList.splice(0, state.projectList.length)
       state.allProject.splice(0, state.allProject.length)
       state.projectTotalSize = 0
-      state.selected_project = localStorage.getItem('selected_project')
+      state.selected_project = selectedProject
       state.projectAccess = {}
       state.projectEndAccess = {}
     }

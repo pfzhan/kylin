@@ -10,6 +10,7 @@
 </template>
 <script>
 import { mapActions } from 'vuex'
+import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 export default {
   name: 'projectselect',
   data () {
@@ -21,12 +22,9 @@ export default {
     ...mapActions({
       loadAllProjects: 'LOAD_ALL_PROJECT'
     }),
-    clearProject () {
-      localStorage.removeItem('selected_project')
-      this.$store.state.project.selected_project = ''
-    },
     changeProject (val) {
-      localStorage.setItem('selected_project', val)
+      cacheSessionStorage('projectName', val)
+      cacheLocalStorage('projectName', val)
       this.$store.state.project.selected_project = val
       this.$emit('changePro', val)
     }

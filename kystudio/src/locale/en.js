@@ -149,6 +149,7 @@ exports.default = {
     draft: 'Draft',
     modelName: 'Model Name:',
     modelNameGrid: 'Model Name',
+    modelList: 'Model List',
     modifiedGrid: 'Last Modified Time',
     statusGrid: 'Health Status',
     metaData: 'Metadata',

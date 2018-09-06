@@ -1,5 +1,6 @@
 import api from './../service/api'
 import * as types from './types'
+import { cacheLocalStorage } from 'util'
 export default {
   state: {
     encodingTip: {
@@ -18,8 +19,9 @@ export default {
       project: {}
     },
     layoutConfig: {
-      briefMenu: localStorage.getItem('menu_type'),
-      gloalProjectSelectShow: true
+      briefMenu: localStorage.getItem('isBrief') === 'true',
+      gloalProjectSelectShow: true,
+      fullScreen: false
     },
     errorMsgBox: {
       isShow: false,
@@ -36,6 +38,14 @@ export default {
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list, type }) {
       state.defaultConfig[type] = list
+    },
+    [types.TOGGLE_SCREEN]: function (state, isFull) {
+      state.layoutConfig.fullScreen = isFull
+    },
+    [types.TOGGLE_MENU]: function (state, isBrief) {
+      console.log(isBrief)
+      state.layoutConfig.briefMenu = isBrief
+      cacheLocalStorage('isBrief', isBrief)
     }
   },
   actions: {
@@ -51,6 +61,9 @@ export default {
     },
     currentPathNameGet (state) {
       return state.routerConfig.currentPathName
+    },
+    isFullScreen (state) {
+      return state.layoutConfig.fullScreen
     }
   }
 }
