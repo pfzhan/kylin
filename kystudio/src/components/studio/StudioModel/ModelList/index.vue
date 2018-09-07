@@ -115,8 +115,8 @@
                       <i class="el-icon-ksd-table_others ksd-fs-16"></i>
                   </span>
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
-                    <el-dropdown-item command="verify">Data Check</el-dropdown-item>
-                    <el-dropdown-item command="verify">Data Loading</el-dropdown-item>
+                    <el-dropdown-item command="dataCheck">Data Check</el-dropdown-item>
+                    <el-dropdown-item command="dataLoading">Data Loading</el-dropdown-item>
                     <el-dropdown-item command="verify">Favorite</el-dropdown-item>
                     <el-dropdown-item command="verify" divided>Import MDX</el-dropdown-item>
                     <el-dropdown-item command="verify">Export to TDS</el-dropdown-item>
@@ -146,7 +146,7 @@
        </div>
     </div>
 
-    <el-dialog width="440px" :title="$t('Note')" :visible.sync="applyDialogVisible">
+  <el-dialog width="440px" :title="$t('Note')" :visible.sync="applyDialogVisible">
     <div>
       Hi Adora,<br/>
       <p style="text-indent:25px; line-height: 26px;">We have a nre proposal to reise model’s favorite score <span class="ky-highlight-text">15%</span>
@@ -168,7 +168,7 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
         <el-button @click="cloneFormVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="cloneModel">{{$t('kylinLang.common.clone')}}</el-button>
       </div>
-    </el-dialog>
+  </el-dialog>
 
     <!-- 添加model -->
     <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible.sync="createModelVisible" @close="resetAddModelForm">
@@ -190,6 +190,89 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="createModelVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
+    </el-dialog>
+
+
+    <!-- 模型检查 -->
+    <el-dialog title="Model Check" width="440px" :visible.sync="modelCheckModeVisible">
+      <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
+        <div class="ky-list-title">数据检查项</div>
+        <ul class="ksd-mtb-20">
+          <li class="ksd-mb-10"><el-checkbox v-model="checked">模型上主外键重复</el-checkbox></li>
+          <li class="ksd-mb-10"><el-checkbox v-model="checked">数据倾斜（偏度过高）</el-checkbox></li>
+          <li class="ksd-mb-10"><el-checkbox v-model="checked">字段中存在空值</el-checkbox></li>
+        </ul>
+        <div class="ky-line"></div>
+        <div class="ky-list-title ksd-mt-20">数据容忍标准</div>
+        <div class="ksd-mt-20">
+          有数据问题超过<el-input size="mini" style="width:70px;" class="ksd-mrl-4"></el-input>条时，采取以下方式：
+        </div>
+        <div class="ksd-mt-16">
+          <ul>
+            <li class="ksd-mb-10"><el-radio v-model="checked">模型上主外键重复</el-radio></li>
+            <li class="ksd-mb-10"><el-radio v-model="checked">数据倾斜（偏度过高）</el-radio></li>
+            <li><el-radio v-model="checked">字段中存在空值</el-radio></li>
+          </ul>
+        </div>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="modelCheckModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
+    </el-dialog>
+
+
+    <!--  数据加载 -->
+    <el-dialog title="数据加载管理"  width="660px" :visible.sync="dataLoadingModeVisible">
+      <div>
+        <div class="ky-list-title">分区设置</div>
+        <div class="ky-list-sub-title">一级分区</div>
+        <el-form :inline="true"  class="demo-form-inline">
+          <el-form-item label="表">
+            <el-select  placeholder="请选择表">
+              <el-option label="1" value="shanghai"></el-option>
+              <el-option label="2" value="beijing"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="列">
+            <el-select  placeholder="请选择列">
+              <el-option label="1" value="shanghai"></el-option>
+              <el-option label="2" value="beijing"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="ky-list-sub-title ksd-mt-2">时间分区</div>
+        <el-form :inline="true"  class="demo-form-inline">
+          <el-form-item label="表">
+            <el-select  placeholder="表">
+              <el-option label="1" value="shanghai"></el-option>
+              <el-option label="2" value="beijing"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="列">
+            <el-select  placeholder="列">
+              <el-option label="1" value="1"></el-option>
+              <el-option label="2" value="2"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="ky-line"></div>
+        <div class="ky-list-title ksd-mt-20">数据更新</div>
+        <div class="ky-list-sub-title">维度表更新</div>
+        <div class="ksd-mt-14">
+          <el-radio label="1">与数据源更新同步</el-radio>
+          <el-radio label="2">自定义更新时间</el-radio>
+        </div>
+        <div class="ky-list-sub-title">事实表更新</div>
+        <div class="ksd-mt-14">
+          <el-radio label="1">与数据源更新同步</el-radio>
+          <el-radio label="2">自定义更新时间</el-radio>
+        </div>
+      </div>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="dataLoadingModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
@@ -234,6 +317,8 @@ export default class ModelList extends Vue {
   applyDialogVisible = false
   createModelVisible = false
   cloneFormVisible = false
+  modelCheckModeVisible = false
+  dataLoadingModeVisible = false
   btnLoading = false
   createModelFormRule = {
     modelName: [
@@ -276,6 +361,10 @@ export default class ModelList extends Vue {
   handleCommand (command, component) {
     if (command === 'clone') {
       this.cloneFormVisible = true
+    } else if (command === 'dataCheck') {
+      this.modelCheckModeVisible = true
+    } else if (command === 'dataLoading') {
+      this.dataLoadingModeVisible = true
     }
   }
   @Watch('modelsPagerRenderData')

@@ -34,7 +34,7 @@ export const modelRenderConfig = {
 
   },
   searchAction: {
-    table: [], // [{action: 'showtable', i18n: 'showtable'}], // 搜索table
+    table: [{action: 'tableeditjoin', i18n: 'editjoin'}], // [{action: 'showtable', i18n: 'showtable'}], // 搜索table
     column: [{action: 'adddimension', i18n: 'adddimension'}, {action: 'addmeasure', i18n: 'addmeasure'}, {action: 'addjoin', i18n: 'addjoin'}], // 搜索列
     measure: [{action: 'editmeasure', i18n: 'editmeasure'}], // 搜索measure
     dimension: [{action: 'editdimension', i18n: 'editdimension'}], // 搜索dimension

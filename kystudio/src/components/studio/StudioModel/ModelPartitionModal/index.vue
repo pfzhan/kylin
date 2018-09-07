@@ -8,8 +8,8 @@
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
-    <div class="partition-title">Fact Table Setting</div>
-    <div class="partition-sub-title">中心表叫做事实表</div>
+    <div class="ky-list-title">Fact Table Setting</div>
+    <div class="ky-list-sub-title">中心表叫做事实表</div>
     <el-form :model="form"  ref="ruleForm2" label-position="top">
       <el-form-item prop="pass">
         <el-select  style="width:522px;" v-model="form.fact_table" auto-complete="off">
@@ -17,9 +17,9 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="ky-line"></div>
-    <div class="partition-title">分区设置</div>
-    <div class="partition-sub-title">一级分区</div>
+    <div class="ky-line ksd-mb-30"></div>
+    <div class="ky-list-title">分区设置</div>
+    <div class="ky-list-sub-title">一级分区</div>
     <el-form :inline="true" :model="form" class="demo-form-inline">
       <el-form-item label="表">
         <el-select v-model="form.region" placeholder="请选择表">
@@ -34,7 +34,7 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="partition-sub-title ksd-mt-2">时间分区</div>
+    <div class="ky-list-sub-title ksd-mt-2">时间分区</div>
     <el-form :inline="true" :model="form" class="demo-form-inline">
       <el-form-item label="表">
         <el-select v-model="form.region" placeholder="表">
@@ -49,8 +49,8 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="ky-line"></div>
-    <div class="partition-title">Where 条件设置</div>
+    <div class="ky-line  ksd-mb-30"></div>
+    <div class="ky-list-title">Where 条件设置</div>
     <el-input type="textarea" class="where-area"></el-input>
     <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
     <div slot="footer" class="dialog-footer">
@@ -154,19 +154,6 @@ export default class ModelPartitionModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .model-partition-dialog {
-  .partition-title {
-    font-size: 16px;
-    color:@text-title-color;
-    font-weight: @font-medium;
-  }
-  .partition-sub-title  {
-    margin-top: 20px;
-    margin-bottom: 10px;
-    color:@text-title-color;
-  }
-  .ky-line{
-    margin-bottom: 30px;
-  }
   .where-area {
     margin-top:20px;
   }

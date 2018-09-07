@@ -129,7 +129,7 @@ class NModel {
   }
   // search
   searchTable (keywords) {
-    return this.mixResult(this.tables, 'table', 'name', keywords)
+    return this.mixResult(Object.values(this.tables), 'table', 'name', keywords)
   }
   searchMeasure (keywords) {
     return this.mixResult(this.all_measures, 'measure', 'name', keywords)
@@ -150,23 +150,22 @@ class NModel {
   mixResult (data, kind, key, searchVal) {
     let result = []
     let actionsConfig = modelRenderConfig.searchAction[kind]
-    if (Object.prototype.toString.call(data) === '[object Object]') {
-      for (var i in data) {
-        actionsConfig.forEach((a) => {
-          if (this.searchRule(data[i][key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
-            result.push({name: data[i][key], kind: kind, action: a.action, i18n: a.i18n})
-          }
-        })
-      }
-    } else if (Object.prototype.toString.call(data) === '[object Array]') {
-      data && data.forEach((t) => {
-        actionsConfig.forEach((a) => {
-          if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
+    data && data.forEach((t) => {
+      actionsConfig.forEach((a) => {
+        if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
+          if (a.action === 'tableeditjoin') {
+            let joinInfo = t.joinInfo[t.guid]
+            if (joinInfo) {
+              var resultItem = {name: joinInfo.table.name, kind: kind, action: a.action, i18n: a.i18n}
+              resultItem.subName = '  [' + joinInfo.join.type + ']    <i class="el-icon-ksd-auto"></i>' + joinInfo.foreignTable.name
+              result.push(resultItem)
+            }
+          } else {
             result.push({name: t[key], kind: kind, action: a.action, i18n: a.i18n})
           }
-        })
+        }
       })
-    }
+    })
     return result
   }
   delTable (guid) {

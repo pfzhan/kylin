@@ -155,7 +155,7 @@
         <div>
          <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
            <ul>
-             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.action)}}]</span> <span class="search-name">{{x.name}}</span></li>
+             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.action)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.subName"></span></li>
            </ul>
            <div class="ky-line"></div>
          </div>
@@ -501,6 +501,9 @@ export default class ModelEdit extends Vue {
       this.showJoinDialog()
     }
     if (select.action === 'addjoin') {
+      this.showJoinDialog()
+    }
+    if (select.action === 'tableeditjoin') {
       this.showJoinDialog()
     }
     this.panelAppear.search.display = false
