@@ -99,7 +99,7 @@ import DataSourceBar from '../common/DataSourceBar'
 import { kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { mapActions, mapGetters } from 'vuex'
 import { handleSuccessAsync } from '../../util/index'
-import { pageCount, permissions, insightKeyword } from '../../config'
+import { permissions, insightKeyword } from '../../config'
 @Component({
   methods: {
     ...mapActions({
@@ -136,18 +136,13 @@ export default class NewQuery extends Vue {
   savedQueryListVisible = false
   editableTabs = []
   activeSubMenu = 'Query1'
-  cacheQuery = {}
   savedQuriesSize = 0
-  cookieQueries = []
-  cookieQuerySize = 0
-  cookieQueryCurrentPage = 1
   queryCurrentPage = 1
   showDetail = false
   showDetailInd = -1
   extraoptionObj = null
   datasource = []
 
-  openLoadDataSourceDialog () {}
   handleAutoComplete (data) {
     this.setCompleteData([...data, ...insightKeyword])
   }
@@ -157,11 +152,9 @@ export default class NewQuery extends Vue {
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
-      pageData: {
-        project: this.project || null,
-        limit: this.listRows,
-        offset: pageIndex
-      }
+      project: this.currentSelectedProject || null,
+      limit: 10,
+      offset: pageIndex
     })
   }
   addTab (targetName, componentName, extraData) {
@@ -188,7 +181,6 @@ export default class NewQuery extends Vue {
         index: tabIndex
       })
       this.activeSubMenu = tabName
-      this.addQueryInCache(extraData.sql)
     }
   }
   delTab (targetName) {
@@ -230,22 +222,7 @@ export default class NewQuery extends Vue {
   }
   pageCurrentChange (currentPage) {
     this.queryCurrentPage = currentPage
-    this.getSavedQueries({
-      pageData: {
-        projectName: this.project || null,
-        pageSize: this.$refs.savedQueryPager.pageSize,
-        pageOffset: currentPage - 1
-      }
-    })
-  }
-  pageCurrentChangeForCookie (currentPage) {
-    this.cookieQueryCurrentPage = currentPage
-    var wantPagerQuery = this.cacheQuery[this.project].slice(0)
-    wantPagerQuery.sort((a, b) => {
-      return b.queryTime - a.queryTime
-    })
-    this.cookieQueries = Object.assign([], wantPagerQuery.slice((currentPage - 1) * pageCount, currentPage * pageCount))
-    this.cookieQuerySize = this.cacheQuery[this.project] && this.cacheQuery[this.project].length || 0
+    this.loadSavedQuery(currentPage - 1)
   }
   removeQuery (queryId) {
     kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
@@ -263,11 +240,10 @@ export default class NewQuery extends Vue {
       acceptPartial: true,
       limit: this.listRows,
       offset: 0,
-      project: this.project,
+      project: this.currentSelectedProject,
       sql: sql
     }
     this.addTab('query', 'querypanel', queryObj)
-    this.pageCurrentChangeForCookie(this.cookieQueryCurrentPage || 1)
     this.$nextTick(() => {
       document.getElementById('scrollBox').scrollTop = document.getElementById('scrollBox').scrollHeight + 1200
     })
@@ -283,11 +259,6 @@ export default class NewQuery extends Vue {
         break
       }
     }
-  }
-  addQueryInCache (sql) {
-    this.cacheQuery[this.project] = this.cacheQuery[this.project] || []
-    this.cacheQuery[this.project].push({sql: sql, queryTime: Date.now()})
-    localStorage.setItem('queryCache', JSON.stringify(this.cacheQuery))
   }
   openSaveQueryDialog () {
     this.$nextTick(() => {
@@ -309,14 +280,13 @@ export default class NewQuery extends Vue {
       acceptPartial: true,
       limit: this.listRows,
       offset: 0,
-      project: this.project,
+      project: this.currentSelectedProject,
       sql: this.sourceSchema,
       backdoorToggles: {
         DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
       }
     }
     this.addTab('query', 'querypanel', queryObj)
-    this.pageCurrentChangeForCookie(this.cookieQueryCurrentPage || 1)
   }
   hasProjectAdminPermission () {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
@@ -364,7 +334,7 @@ export default class NewQuery extends Vue {
       enableSnippets: true,
       enableLiveAutocompletion: true
     })
-    if (!this.project) {
+    if (!this.currentSelectedProject) {
       return
     }
     const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})

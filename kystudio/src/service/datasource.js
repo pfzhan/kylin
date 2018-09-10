@@ -31,19 +31,49 @@ export default {
     return Vue.resource(apiUrl + 'query').save(para)
   },
   saveQuery: (para) => {
-    return Vue.resource(apiUrl + 'saved_queries').save(para)
+    return Vue.resource(apiUrl + 'query/saved_queries').save(para)
   },
   getSaveQueries: (para) => {
-    return Vue.resource(apiUrl + 'saved_queries').get(para.pageData)
+    return Vue.resource(apiUrl + 'query/saved_queries').get(para)
   },
   deleteQuery: (id) => {
     return Vue.resource(apiUrl + 'saved_queries/' + id).delete()
   },
+  deleteFav: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries').delete(para)
+  },
+  markFav: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
+  },
+  getAllrules: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
+  },
+  updateRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para.data)
+  },
+  saveRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').save(para)
+  },
+  deleteRule: (ruleId) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + ruleId)
+  },
+  enableRule: (ruleId) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + ruleId)
+  },
+  applyRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorites_queries/rules/apply').save(para)
+  },
+  autoMaticRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic').save(para)
+  },
   getHistoryList: (para) => {
-    return Vue.resource(apiUrl + 'history_queries').get(para.pageData)
+    return Vue.resource(apiUrl + 'query/history_queries').get(para)
   },
   getFavoriteList: (para) => {
-    return Vue.resource(apiUrl + 'favorite_queries').get(para.pageData)
+    return Vue.resource(apiUrl + 'query/favorite_queries').get(para)
+  },
+  getCandidateList: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/candidates').get(para)
   },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()

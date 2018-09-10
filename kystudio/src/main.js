@@ -18,8 +18,8 @@ import iconBtn from 'components/common/icon_button'
 import commonTip from 'components/common/common_tip'
 import tree from 'components/common/tree'
 import tab from 'components/common/tab'
-import pager from 'components/common/pager'
-import kapPager from 'components/common/kap_pager'// 弃用
+import pager from 'components/common/pager'// 弃用
+import kapPager from 'components/common/kap_pager'
 import slider from 'components/common/slider'
 import nodata from 'components/common/nodata'
 import progressbar from 'components/common/progress'

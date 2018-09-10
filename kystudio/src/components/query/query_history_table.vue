@@ -2,7 +2,7 @@
   <div id="queryHistoryTable">
     <div class="clearfix ksd-mb-16">
       <div class="btn-group ksd-fleft" v-if="isCandidate">
-        <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite">Mark Favorite</el-button>
+        <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite">Mark Favorite</el-button>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
         <el-input v-model="inputHasVal" prefix-icon="el-icon-search" placeholder="请输入内容" size="medium"></el-input>
@@ -11,9 +11,9 @@
         <el-button size="medium" icon="el-icon-ksd-table_setting" plain type="primary">{{$t('kylinLang.query.applyRule')}}</el-button>
         <el-dropdown-menu slot="dropdown">
           <el-dropdown-item v-for="item in rules" :key="item.ruleId" class="fav-dropdown-item">
-            <el-checkbox v-model="item.enabled" v-event-stop:click>{{item.name}}</el-checkbox>
-            <i class="el-icon-ksd-table_edit" v-event-stop:click></i>
-            <i class="el-icon-ksd-table_delete"></i>
+            <el-checkbox v-model="item.enabled" v-event-stop:click @click="toggleRule(item.id)">{{item.name}}</el-checkbox>
+            <i class="el-icon-ksd-table_edit" @click="editRule(item)"></i>
+            <i class="el-icon-ksd-table_delete" v-event-stop:click @click="delRule(item.id)"></i>
           </el-dropdown-item>
           <el-dropdown-item divided command="createRule">{{$t('createRule')}}</el-dropdown-item>
           <el-dropdown-item divided command="applyAll">{{$t('applyAll')}}</el-dropdown-item>
@@ -116,7 +116,7 @@
         <span class="el-dialog__title">{{$t('createRule')}}</span>
       </div>
       <div class="el-dialog__body">
-        <el-form label-position="top" size="medium" :model="formRule">
+        <el-form label-position="top" size="medium" :model="formRule" ref="formRule">
           <el-form-item :label="$t('ruleName')">
             <el-input v-model.trim="formRule.name"></el-input>
           </el-form-item>
@@ -125,34 +125,34 @@
             <span>When a new SQL query that meets all these conditions : </span>
             <i class="el-icon-ksd-what"></i>
           </div>
-          <el-form-item v-for="(con, index) in formRule.conditions" :key="index" class="con-form-item">
+          <el-form-item v-for="(con, index) in formRule.conds" :key="index" class="con-form-item">
             <el-row :gutter="10">
               <el-col :span="6">
-                <el-select v-model="con.name" placeholder="请选择">
-                  <el-option v-for="item in options" :key="item" :label="item" :value="item">
+                <el-select v-model="con.field" placeholder="请选择" @change="fieldChanged(con)">
+                  <el-option v-for="(item, key) in options" :key="key" :label="key" :value="item">
                   </el-option>
                 </el-select>
               </el-col>
-              <el-col :span="3">
-                <el-select v-model="con.mark" placeholder="请选择">
-                  <el-option v-for="item in markOptions" :key="item" :label="item" :value="item">
-                  </el-option>
-                </el-select>
+              <el-col :span="3" class="ksd-center">
+                <span v-if="con.field=='latency' || con.field=='frequency'"> > </span>
+                <span v-if="con.field=='user'"> is </span>
+                <span v-if="con.field=='sql'"> Contains </span>
               </el-col>
               <el-col :span="5">
-                <el-input v-model.trim="con.value" placeholder="Number"></el-input>
-              </el-col>
-              <el-col :span="4">
-                <span v-if="con.name=='Latency'">Times</span>
-                <el-select v-model="con.unit" placeholder="请选择" v-else>
-                  <el-option label="Days" value="Days">
+                <el-input v-model.trim="con.rightThreshold" v-if="con.field!=='user'"></el-input>
+                <el-select v-model="con.rightThreshold" placeholder="请选择" v-else>
+                  <el-option v-for="item in userGroups" :key="item" :label="item" :value="item">
                   </el-option>
                 </el-select>
+              </el-col>
+              <el-col :span="4" style="width:105px;height:36px;">
+                <span v-if="con.field=='latency'">Seconds</span>
+                <span v-if="con.field=='frequency'">Times</span>
               </el-col>
               <el-col :span="6">
                 <div class="action-group ksd-fright">
                   <el-button type="primary" icon="el-icon-ksd-add" plain circle size="medium" @click="addCon" v-if="index==0"></el-button>
-                  <el-button icon="el-icon-ksd-minus" plain circle size="medium" :disabled="formRule.conditions.length == 1" @click="removeCon(index)"></el-button>
+                  <el-button icon="el-icon-ksd-minus" plain circle size="medium" :disabled="formRule.conds.length == 1" @click="removeCon(index)"></el-button>
                 </div>
               </el-col>
             </el-row>
@@ -163,7 +163,7 @@
         <span class="dialog-footer">
           <el-checkbox v-model="formRule.enabled" class="ksd-fleft ksd-mt-6">Enabled</el-checkbox>
           <el-button size="medium" @click="ruleVisible = false">取 消</el-button>
-          <el-button size="medium" type="primary" plain @click="ruleVisible = false">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button size="medium" type="primary" plain @click="submitRuleFrom">{{$t('kylinLang.common.save')}}</el-button>
         </span>
       </div>
     </div>
@@ -171,14 +171,28 @@
 </template>
 
 <script>
+// import { handleSuccessAsync } from '../../util/index'
 import { transToUtcTimeFormat } from '../../util/business'
 import Vue from 'vue'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 @Component({
   props: ['queryHistoryData', 'isCandidate'],
   methods: {
-    ...mapActions({})
+    ...mapActions({
+      getAllRules: 'GET_ALL_RULES',
+      saveRule: 'SAVE_RULE',
+      updateRule: 'UPDATE_RULE',
+      deleteRule: 'DELETE_RULE',
+      enableRule: 'ENABLE_RULE',
+      applyRule: 'APPLY_RULE',
+      automaticRule: 'AUTOMATIC_RULE'
+    })
+  },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   locales: {
     'en': {createRule: 'Create Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name'},
@@ -204,22 +218,23 @@ export default class QueryHistoryTable extends Vue {
     checkedStatus: []
   }
   multipleSelection = []
+  userGroups = []
   ruleVisible = false
+  isEditRule = false
   rules = [
-    {name: 'Rule_setting_01', enabled: true, ruleId: ''},
-    {name: 'Rule_setting_02', enabled: false, ruleId: ''},
-    {name: 'Rule_setting_03', enabled: false, ruleId: ''},
-    {name: 'Rule_setting_04', enabled: true, ruleId: ''}
+    {name: 'Rule_setting_01', enabled: true, ruleId: '1'},
+    {name: 'Rule_setting_02', enabled: false, ruleId: '2'},
+    {name: 'Rule_setting_03', enabled: false, ruleId: '3'},
+    {name: 'Rule_setting_04', enabled: true, ruleId: '4'}
   ]
   formRule = {
     name: '',
-    conditions: [
-      {name: 'Latency', mark: '>', value: null, unit: 'Times'}
+    conds: [
+      {field: 'latency', op: 'GREATER', rightThreshold: null}
     ],
     enabled: false
   }
-  options = ['Latency', 'Last Period']
-  markOptions = ['>', 'is']
+  options = {Latency: 'latency', Frequency: 'frequency', 'User/Group': 'user', 'SQL Content': 'sql'}
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
@@ -229,23 +244,84 @@ export default class QueryHistoryTable extends Vue {
     }
   }
 
+  async loadAllRules () {
+    // const res = this.getAllRules({project: this.currentSelectedProject})
+    // this.rules = await handleSuccessAsync(res)
+  }
+
+  created () {
+    if (this.isCandidate) {
+      this.loadAllRules()
+    }
+  }
+
+  markFavorite () {
+    this.$emit('markToFav')
+  }
+
   addCon () {
-    const con = {name: '', mark: '', value: null, unit: ''}
-    this.formRule.conditions.push(con)
+    const con = {field: '', op: '', rightThreshold: null}
+    this.formRule.conds.push(con)
   }
   removeCon (index) {
-    if (index === 0 && this.formRule.conditions.length === 1) {
+    if (index === 0 && this.formRule.conds.length === 1) {
       return
     }
-    this.formRule.conditions.splice(index, 1)
+    this.formRule.conds.splice(index, 1)
   }
+  fieldChanged (con) {
+    if (con.field === 'latency' || con.field === 'frequency') {
+      con.op = 'GREATER'
+    } else if (con.field === 'user') {
+      con.op = 'EQUAL'
+    } else if (con.field === 'sql') {
+      con.op = 'CONTAINS'
+    }
+  }
+
+  editRule (ruleObj) {
+    this.formRule = ruleObj
+    this.ruleVisible = true
+    this.isEditRule = true
+  }
+
+  submitRuleFrom () {
+    this.$refs['formRule'].validate((valid) => {
+      if (valid) {
+        if (this.isEditRule) {
+          this.updateRule({project: this.currentSelectedProject, rules: this.formRule})
+        } else {
+          this.saveRule({project: this.currentSelectedProject, rules: this.formRule})
+        }
+      }
+    })
+  }
+
+  delRule (ruleId) {
+    this.deleteRule(ruleId).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
+      })
+      this.loadAllRules()
+    })
+  }
+
+  toggleRule (ruleId) {
+    this.enableRule(ruleId)
+  }
+
   handleCommand (command) {
     if (command === 'createRule') {
       this.ruleVisible = true
+    } else if (command === 'applyAll') {
+      this.applyRule({project: this.currentSelectedProject})
+    } else if (command === 'markAll') {
+      this.automaticRule({project: this.currentSelectedProject})
     }
   }
-  handleSelectionChange (val) {
-    this.multipleSelection = val
+  handleSelectionChange (rows) {
+    this.$emit('selectionChanged', rows)
   }
   openAgg () {
     this.$emit('openAgg')
@@ -422,224 +498,6 @@ export default class QueryHistoryTable extends Vue {
     </span>)
   }
 }
-// export default {
-//   name: 'QueryHistoryTable',
-//   props: ['queryHistoryData', 'isCandidate'],
-//   data () {
-//     return {
-//       inputHasVal: '',
-//       datetimerange: '',
-//       startSec: 0,
-//       endSec: 10,
-//       latencyFilterPopoverVisible: false,
-//       realFilteArr: [{name: 'Pushdown to Hive', value: 'pushdown1'}, {name: 'Pushdown to Greenplum', value: 'pushdown2'}, {name: 'Model Name', value: 'modelName'}],
-//       ipFilteArr: ['101.1.1.181'],
-//       statusFilteArr: [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}],
-//       filterData: {
-//         startTime: null,
-//         endTime: null,
-//         startSec: -1,
-//         endSec: -1,
-//         checkedRealization: [],
-//         checkedIP: [],
-//         checkedStatus: []
-//       },
-//       multipleSelection: []
-//     }
-//   },
-//   locales: {
-//     'en': {createRule: 'Create Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name'},
-//     'zh-cn': {createRule: '新建规则', applyAll: '全部应用', markAll: '全部标记为待加速', ruleName: '规则名称'}
-//   },
-//   watch: {
-//     datetimerange (val) {
-//       if (val) {
-//         this.filterData.startTime = new Date(val[0]).getTime()
-//         this.filterData.endTime = new Date(val[1]).getTime()
-//       }
-//     }
-//   },
-//   methods: {
-//     pageCurrentChange () {},
-//     handleSelectionChange (val) {
-//       this.multipleSelection = val
-//     },
-//     openAgg () {
-//       this.$emit('openAgg')
-//     },
-//     renderColumn (h) {
-//       if (this.filterData.startTime && this.filterData.endTime) {
-//         const startTime = transToUtcTimeFormat(this.filterData.startTime)
-//         const endTime = transToUtcTimeFormat(this.filterData.endTime)
-//         return (<span onClick={e => (e.stopPropagation())}>
-//           <span>{this.$t('kylinLang.query.startTimeFilter')}</span>
-//           <el-tooltip placement="top" class="ksd-fright">
-//             <div slot="content">
-//               <span>
-//                 <i class='el-icon-time'></i>
-//                 <span> {startTime} To {endTime}</span>
-//               </span>
-//             </div>
-//             <el-date-picker
-//               value={this.datetimerange}
-//               onInput={val => (this.datetimerange = val)}
-//               type="datetimerange"
-//               popper-class="table-filter-datepicker"
-//               toggle-icon="el-icon-ksd-data_range"
-//               is-only-icon={true}>
-//             </el-date-picker>
-//           </el-tooltip>
-//         </span>)
-//       } else {
-//         return (<span onClick={e => (e.stopPropagation())}>
-//           <span>{this.$t('kylinLang.query.startTimeFilter')}</span>
-//           <el-date-picker
-//             value={this.datetimerange}
-//             onInput={val => (this.datetimerange = val)}
-//             popper-class="table-filter-datepicker"
-//             type="datetimerange"
-//             toggle-icon="el-icon-ksd-data_range"
-//             is-only-icon={true}>
-//           </el-date-picker>
-//         </span>)
-//       }
-//     },
-//     resetLatency () {
-//       this.startSec = -1
-//       this.endSec = -1
-//     },
-//     saveLatencyRange () {
-//       this.filterData.startSec = this.startSec
-//       this.filterData.endSec = this.endSec
-//       this.latencyFilterPopoverVisible = false
-//     },
-//     renderColumn2 (h) {
-//       if (this.filterData.startSec >= 0 && this.filterData.endSec >= 0) {
-//         return (<span>
-//           <span>{this.$t('kylinLang.query.latency')}</span>
-//           <el-tooltip placement="top" class="ksd-fright">
-//             <div slot="content">
-//               <span>
-//                 <i class='el-icon-time'></i>
-//                 <span> {this.filterData.startSec}s To {this.filterData.endSec}s</span>
-//               </span>
-//             </div>
-//             <el-popover
-//               ref="latencyFilterPopover"
-//               placement="bottom"
-//               width="320"
-//               value={this.latencyFilterPopoverVisible}
-//               onInput={val => (this.latencyFilterPopoverVisible = val)}>
-//               <div class="latency-filter-pop">
-//                 <el-input-number
-//                   size="medium"
-//                   value={this.startSec}
-//                   onInput={val1 => (this.startSec = val1)}></el-input-number>
-//                 <span>&nbsp;S&nbsp;&nbsp;To</span>
-//                 <el-input-number
-//                   size="medium"
-//                   value={this.endSec}
-//                   onInput={val2 => (this.endSec = val2)}></el-input-number>
-//                 <span>&nbsp;S</span>
-//               </div>
-//               <div class="latency-filter-footer">
-//                 <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
-//                 <el-button type="primary" onClick={this.saveLatencyRange} plain size="small">{this.$t('kylinLang.common.save')}</el-button>
-//               </div>
-//               <i class="el-icon-ksd-data_range" onClick={e => (e.stopPropagation())} slot="reference"></i>
-//             </el-popover>
-//           </el-tooltip>
-//         </span>)
-//       } else {
-//         return (<span>
-//           <span>{this.$t('kylinLang.query.latency')}</span>
-//           <el-popover
-//             ref="latencyFilterPopover"
-//             placement="bottom"
-//             width="320"
-//             class="ksd-fright"
-//             value={this.latencyFilterPopoverVisible}
-//             onInput={val => (this.latencyFilterPopoverVisible = val)}>
-//             <div class="latency-filter-pop">
-//               <el-input-number
-//                 size="medium"
-//                 value={this.startSec}
-//                 onInput={val1 => (this.startSec = val1)}></el-input-number>
-//               <span>&nbsp;S&nbsp;&nbsp;To</span>
-//               <el-input-number
-//                 size="medium"
-//                 value={this.endSec}
-//                 onInput={val2 => (this.endSec = val2)}></el-input-number>
-//               <span>&nbsp;S</span>
-//             </div>
-//             <div class="latency-filter-footer">
-//               <el-button size="small" onClick={this.resetLatency}>{this.$t('kylinLang.query.clear')}</el-button>
-//               <el-button type="primary" onClick={this.saveLatencyRange} plain size="small">{this.$t('kylinLang.common.save')}</el-button>
-//             </div>
-//             <i class="el-icon-ksd-data_range" onClick={e => (e.stopPropagation())} slot="reference"></i>
-//           </el-popover>
-//         </span>)
-//       }
-//     },
-//     renderColumn3 (h) {
-//       let items = []
-//       for (let i = 0; i < this.realFilteArr.length; i++) {
-//         items.push(<el-checkbox label={this.realFilteArr[i].name} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
-//       }
-//       return (<span>
-//         <span>{this.$t('kylinLang.query.realization')}</span>
-//         <el-popover
-//           ref="realFilterPopover"
-//           placement="bottom"
-//           width="200">
-//           <el-checkbox-group class="filter-groups" value={this.filterData.checkedRealization} onInput={val => (this.filterData.checkedRealization = val)}>
-//             {items}
-//           </el-checkbox-group>
-//           <i class="el-icon-ksd-filter" slot="reference"></i>
-//         </el-popover>
-//       </span>)
-//     },
-//     renderColumn4 (h) {
-//       let items = []
-//       for (let i = 0; i < this.ipFilteArr.length; i++) {
-//         items.push(<el-checkbox label={this.ipFilteArr[i]} key={this.ipFilteArr[i]}>{this.ipFilteArr[i]}</el-checkbox>)
-//       }
-//       return (<span>
-//         <span>IP</span>
-//         <el-popover
-//           ref="ipFilterPopover"
-//           placement="bottom"
-//           popperClass="filter-popover"
-//           width="100">
-//           <el-checkbox-group class="filter-groups" value={this.filterData.checkedIP} onInput={val => (this.filterData.checkedIP = val)}>
-//             {items}
-//           </el-checkbox-group>
-//           <i class="el-icon-ksd-filter" slot="reference"></i>
-//         </el-popover>
-//       </span>)
-//     },
-//     renderColumn5 (h) {
-//       let items = []
-//       for (let i = 0; i < this.statusFilteArr.length; i++) {
-//         const keyName = Object.keys(this.statusFilteArr[i])[0]
-//         const labelClass = this.statusFilteArr[i][keyName]
-//         items.push(<el-checkbox key={keyName}><slot><i class={labelClass}></i></slot></el-checkbox>)
-//       }
-//       return (<span>
-//         <span>{this.$t('kylinLang.common.status')}</span>
-//         <el-popover
-//           ref="ipFilterPopover"
-//           placement="bottom"
-//           popperClass="filter-popover">
-//           <el-checkbox-group class="filter-groups" value={this.filterData.checkedStatus} onInput={val => (this.filterData.checkedStatus = val)}>
-//             {items}
-//           </el-checkbox-group>
-//           <i class="el-icon-ksd-filter" slot="reference"></i>
-//         </el-popover>
-//       </span>)
-//     }
-//   }
-// }
 </script>
 
 <style lang="less">
@@ -731,7 +589,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .rule-block {
     width: 100%;
-    height: 710px;
+    height: 690px;
     position: absolute;
     top: 57px;
     left: 0;
@@ -766,7 +624,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .ruleDiaglog {
     width: 660px;
-    height: 710px;
+    height: 690px;
     position: absolute;
     top: 57px;
     right: 0;
@@ -780,7 +638,7 @@ export default class QueryHistoryTable extends Vue {
       margin-bottom: 30px;
     }
     .el-dialog__body {
-      height: 560px;
+      height: 528px;
     }
     .con-form-item {
       margin-bottom: 20px;

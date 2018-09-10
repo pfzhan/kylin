@@ -5,15 +5,17 @@
         <span>Favorite Query <i class="el-icon-ksd-what"></i></span>
       </div>
       <div class="ksd-fright btn-group">
-        <el-button size="medium" icon="el-icon-ksd-query_add" plain type="primary" @click="candidateVisible = true">{{$t('kylinLang.common.add')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-query_add" plain type="primary" @click="openCandidateList">{{$t('kylinLang.common.add')}}</el-button>
         <el-button size="medium" icon="el-icon-ksd-query_import" plain>{{$t('kylinLang.common.import')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-table_delete" plain>{{$t('kylinLang.common.remove')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="removeFav">{{$t('kylinLang.common.remove')}}</el-button>
       </div>
     </div>
     <el-table
       :data="favQueList"
       border
       class="favorite-table"
+      @selection-change="handleSelectionChange"
+      ref="favoriteTable"
       style="width: 100%">
       <el-table-column type="selection" width="55" align="center"></el-table-column>
       <el-table-column label="SQL" prop="sqlPattern" header-align="center" show-overflow-tooltip></el-table-column>
@@ -45,13 +47,13 @@
         </template>
       </el-table-column>
     </el-table>
-    <pager ref="FavoriteQueryPager" class="ksd-center" :totalSize="favQueList.length"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+    <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Candidate Query"
       :visible.sync="candidateVisible"
       width="80%">
-      <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true"></query_history_table>
-      <pager ref="queryHistoryPager" class="ksd-center" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='historyCurrentChange' ></pager>
+      <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav"></query_history_table>
+      <kap-pager ref="filterHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='historyCurrentChange'></kap-pager>
     </el-dialog>
   </div>
 </template>
@@ -59,33 +61,29 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
-import { handleSuccessAsync } from '../../util/index'
+import { mapActions, mapGetters } from 'vuex'
+import $ from 'jquery'
+import { handleSuccessAsync, handleError } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 @Component({
   methods: {
     ...mapActions({
-      getFavoriteList: 'GET_FAVORITE_LIST'
+      getFavoriteList: 'GET_FAVORITE_LIST',
+      getCandidateList: 'GET_CANDIDATE_LIST',
+      deleteFav: 'DELETE_FAV',
+      markFav: 'Mark_FAV'
     })
+  },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   components: {
     'query_history_table': queryHistoryTable
   }
 })
 export default class FavoriteQuery extends Vue {
-  // favQueList = [
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'unSpeed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speeding'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'partSpeed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'},
-  //   {query: 'Select count (*) from table_1', lastModefied: 1524829437628, rate: 0.94376, frequency: 55, duration: 5.98, status: 'speed'}
-  // ]
   favQueList = [
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'ACCELERATING', success_query_count: 10},
@@ -101,9 +99,11 @@ export default class FavoriteQuery extends Vue {
   ]
   statusFilteArr = [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}]
   checkedStatus = []
-  queryCurrentPage = 1
-  historyCurrentPage = 1
   candidateVisible = false
+  favoriteCurrentPage = 1
+  candidateCurrentPage = 1
+  selectToUnFav = {}
+  selectToFav = {}
   queryHistoryData = [
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
@@ -117,27 +117,96 @@ export default class FavoriteQuery extends Vue {
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false}
   ]
 
-  async loadFavoriteList (pageIndex) {
+  async loadFavoriteList (pageIndex, pageSize) {
     const res = await this.getFavoriteList({
-      pageData: {
-        project: this.project || null,
-        limit: this.listRows,
-        offset: pageIndex || 0
-      }
+      project: this.currentSelectedProject || null,
+      limit: pageSize || 10,
+      offset: pageIndex || 0
     })
     this.favQueList = await handleSuccessAsync(res)
+    if (this.selectToUnFav[this.favoriteCurrentPage]) {
+      this.$nextTick(() => {
+        this.$refs.favoriteTable.toggleRowSelection(this.selectToUnFav[this.favoriteCurrentPage])
+      })
+    }
+  }
+
+  async loadCandidateList (pageIndex, pageSize) {
+    const res = await this.getCandidateList({
+      project: this.currentSelectedProject || null,
+      limit: pageSize || 10,
+      offset: pageIndex || 0
+    })
+    this.queryHistoryData = await handleSuccessAsync(res)
   }
 
   created () {
     this.loadFavoriteList()
   }
 
-  pageCurrentChange (currentPage) {
-    this.queryCurrentPage = currentPage
-    this.loadHistoryList(currentPage - 1)
+  openCandidateList () {
+    this.candidateVisible = true
+    this.loadCandidateList()
   }
 
-  historyCurrentChange () {}
+  pageCurrentChange (offset, pageSize) {
+    this.favoriteCurrentPage = offset + 1
+    this.loadFavoriteList(offset, pageSize)
+  }
+
+  historyCurrentChange (offset, pageSize) {
+    this.candidateCurrentPage = offset + 1
+    this.loadCandidateList(offset, pageSize)
+  }
+
+  handleSelectionChange (rows) {
+    this.selectToUnFav[this.favoriteCurrentPage] = rows
+  }
+
+  selectionChanged (rows) {
+    this.selectToFav[this.candidateCurrentPage] = rows
+  }
+
+  removeFav () {
+    let uuidArr = []
+    $.each(this.selectToUnFav, (index, item) => {
+      const uuids = item.map((t) => {
+        return t.uuid
+      })
+      uuidArr = uuidArr.concat(uuids)
+    })
+    this.deleteFav({project: this.currentSelectedProject, queries: uuidArr}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.markSuccess')
+      })
+      this.selectToUnFav = {}
+      this.loadCandidateList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+
+  markToFav () {
+    let uuidArr = []
+    $.each(this.selectToFav, (index, item) => {
+      const uuids = item.map((t) => {
+        return t.uuid
+      })
+      uuidArr = uuidArr.concat(uuids)
+    })
+    this.markFav({project: this.currentSelectedProject, queries: uuidArr}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
+      })
+      this.selectToFav = {}
+      this.loadFavoriteList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+
   renderColumn (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {

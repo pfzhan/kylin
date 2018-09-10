@@ -72,11 +72,41 @@ export default {
     [types.DELETE_QUERY]: function ({commit}, queryId) {
       return api.datasource.deleteQuery(queryId)
     },
+    [types.DELETE_FAV]: function ({commit}, para) {
+      return api.datasource.deleteFav(para)
+    },
+    [types.MARK_FAV]: function ({commit}, para) {
+      return api.datasource.markFav(para)
+    },
+    [types.GET_ALL_RULES]: function ({commit}, para) {
+      return api.datasource.getAllrules(para)
+    },
+    [types.UPDATE_RULE]: function ({commit}, para) {
+      return api.datasource.updateRule(para)
+    },
+    [types.SAVE_RULE]: function ({commit}, para) {
+      return api.datasource.saveRule(para)
+    },
+    [types.DELETE_RULE]: function ({commit}, ruleId) {
+      return api.datasource.deleteRule(ruleId)
+    },
+    [types.ENABLE_RULE]: function ({commit}, ruleId) {
+      return api.datasource.enableRule(ruleId)
+    },
+    [types.APPLY_RULE]: function ({commit}, para) {
+      return api.datasource.applyRule(para)
+    },
+    [types.AUTOMATIC_RULE]: function ({commit}, para) {
+      return api.datasource.autoMaticRule(para)
+    },
     [types.GET_HISTORY_LIST]: function ({commit}, para) {
       return api.datasource.getHistoryList(para)
     },
     [types.GET_FAVORITE_LIST]: function ({commit}, para) {
       return api.datasource.getFavoriteList(para)
+    },
+    [types.GET_CANDIDATE_LIST]: function ({commit}, para) {
+      return api.datasource.getCandidateList(para)
     },
     [types.GET_ENCODINGS]: function ({commit}) {
       return api.datasource.getEncoding().then((response) => {

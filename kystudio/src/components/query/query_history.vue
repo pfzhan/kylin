@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
     <query_history_table :queryHistoryData="queryHistoryData" v-on:openAgg="openAgg"></query_history_table>
-    <pager ref="queryHistoryPager" class="ksd-center" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Aggregate Index"
       :visible.sync="aggDetailVisible"
@@ -42,7 +42,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { handleSuccessAsync } from '../../util/index'
 import queryHistoryTable from './query_history_table'
 import { CodeFlower } from 'util/code_flower'
@@ -51,6 +51,11 @@ import { CodeFlower } from 'util/code_flower'
     ...mapActions({
       getHistoryList: 'GET_HISTORY_LIST'
     })
+  },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   components: {
     'query_history_table': queryHistoryTable
@@ -62,6 +67,8 @@ export default class QueryHistory extends Vue {
   queryHistoryData = [
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'FULLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
@@ -502,13 +509,11 @@ export default class QueryHistory extends Vue {
     }, 0)
   }
 
-  async loadHistoryList (pageIndex) {
+  async loadHistoryList (pageIndex, pageSize) {
     const res = await this.getHistoryList({
-      pageData: {
-        project: this.project || null,
-        limit: this.listRows,
-        offset: pageIndex || 0
-      }
+      project: this.currentSelectedProject || null,
+      limit: pageSize || 10,
+      offset: pageIndex || 0
     })
     this.queryHistoryData = await handleSuccessAsync(res)
   }
@@ -517,9 +522,9 @@ export default class QueryHistory extends Vue {
     this.loadHistoryList()
   }
 
-  pageCurrentChange (currentPage) {
-    this.queryCurrentPage = currentPage
-    this.loadHistoryList(currentPage - 1)
+  pageCurrentChange (offset, pageSize) {
+    this.queryCurrentPage = offset + 1
+    this.loadHistoryList(offset, pageSize)
   }
 }
 </script>
