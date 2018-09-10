@@ -11,9 +11,9 @@
         <el-button size="medium" icon="el-icon-ksd-table_setting" plain type="primary">{{$t('kylinLang.query.applyRule')}}</el-button>
         <el-dropdown-menu slot="dropdown">
           <el-dropdown-item v-for="item in rules" :key="item.ruleId" class="fav-dropdown-item">
-            <el-checkbox v-model="item.enabled" v-event-stop:click @click="toggleRule(item.id)">{{item.name}}</el-checkbox>
+            <el-checkbox v-model="item.enabled" v-event-stop:click @click="toggleRule(item.uuid)">{{item.name}}</el-checkbox>
             <i class="el-icon-ksd-table_edit" @click="editRule(item)"></i>
-            <i class="el-icon-ksd-table_delete" v-event-stop:click @click="delRule(item.id)"></i>
+            <i class="el-icon-ksd-table_delete" v-event-stop:click @click="delRule(item.uuid)"></i>
           </el-dropdown-item>
           <el-dropdown-item divided command="createRule">{{$t('createRule')}}</el-dropdown-item>
           <el-dropdown-item divided command="applyAll">{{$t('applyAll')}}</el-dropdown-item>
@@ -38,7 +38,7 @@
               <el-col :span="10">
                 <div>
                   <span class="label">Query ID:</span>
-                  <span>{{props.row.queryId}}</span>
+                  <span>{{props.row.query_id}}</span>
                 </div>
                 <div>
                   <span class="label">Duration:</span>
@@ -57,7 +57,7 @@
                 </div>
                 <div>
                   <span class="label">Realization:</span>
-                  <span class="realization-detail" @click="openAgg">{{props.row.realization}}</span>
+                  <span class="realization-detail" @click="openAgg">{{props.row.realization | arrayToStr}}</span>
                 </div>
                 <div>
                   <span class="label">Content:</span>
@@ -86,9 +86,9 @@
         </template>
       </el-table-column>
       <el-table-column type="selection" width="55" align="center" v-if="isCandidate"></el-table-column>
-      <el-table-column :renderHeader="renderColumn" sortable prop="startTime" header-align="center" width="160">
+      <el-table-column :renderHeader="renderColumn" sortable prop="start_time" header-align="center" width="160">
         <template slot-scope="props">
-          {{props.row.startTime | gmtTime}}
+          {{props.row.start_time | gmtTime}}
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
@@ -97,7 +97,7 @@
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn4" prop="queryNode" header-align="center" width="150">
+      <el-table-column :renderHeader="renderColumn4" prop="query_node" header-align="center" width="200">
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="100" v-if="!isCandidate">
         <template slot-scope="props">
@@ -171,7 +171,7 @@
 </template>
 
 <script>
-// import { handleSuccessAsync } from '../../util/index'
+import { handleSuccessAsync } from '../../util/index'
 import { transToUtcTimeFormat } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
@@ -245,8 +245,9 @@ export default class QueryHistoryTable extends Vue {
   }
 
   async loadAllRules () {
-    // const res = this.getAllRules({project: this.currentSelectedProject})
-    // this.rules = await handleSuccessAsync(res)
+    const res = await this.getAllRules({project: this.currentSelectedProject})
+    const data = await handleSuccessAsync(res)
+    this.rules = data && data.rules
   }
 
   created () {
@@ -589,7 +590,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .rule-block {
     width: 100%;
-    height: 690px;
+    height: 560px;
     position: absolute;
     top: 57px;
     left: 0;
@@ -624,7 +625,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .ruleDiaglog {
     width: 660px;
-    height: 690px;
+    height: 560px;
     position: absolute;
     top: 57px;
     right: 0;
@@ -638,7 +639,8 @@ export default class QueryHistoryTable extends Vue {
       margin-bottom: 30px;
     }
     .el-dialog__body {
-      height: 528px;
+      height: 400px;
+      overflow-y: scroll;
     }
     .con-form-item {
       margin-bottom: 20px;

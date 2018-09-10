@@ -515,7 +515,8 @@ export default class QueryHistory extends Vue {
       limit: pageSize || 10,
       offset: pageIndex || 0
     })
-    this.queryHistoryData = await handleSuccessAsync(res)
+    const data = await handleSuccessAsync(res)
+    this.queryHistoryData = data.query_histories
   }
 
   created () {

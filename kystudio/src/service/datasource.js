@@ -61,10 +61,10 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + ruleId)
   },
   applyRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorites_queries/rules/apply').save(para)
+    return Vue.resource(apiUrl + 'query/favorites_queries/rules/apply/' + para.project).update()
   },
   autoMaticRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic').save(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic/' + para.project).update()
   },
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries').get(para)
@@ -73,7 +73,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries').get(para)
   },
   getCandidateList: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/candidates').get(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/candidates').save(para)
   },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()

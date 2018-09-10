@@ -31,8 +31,7 @@ import { handleSuccess, handleError, transToGmtTime } from '../../util/business'
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      query: 'QUERY_BUILD_TABLES',
-      saveQueryToServer: 'SAVE_QUERY'
+      query: 'QUERY_BUILD_TABLES'
     })
   },
   components: {
@@ -84,9 +83,6 @@ export default class queryPanel extends Vue {
   }
   closeModal () {
     this.saveQueryFormVisible = false
-  }
-  reloadSavedProject () {
-    this.$emit('reloadSavedProject', 0)
   }
   mounted () {
     var _this = this

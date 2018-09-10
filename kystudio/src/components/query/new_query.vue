@@ -42,11 +42,11 @@
           <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
             <tab type="card" class="insight_tab" v-on:addtab="addTab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu"  v-on:removetab="delTab">
               <template slot-scope="props">
-                <component :is="props.item.content" v-on:changeView="changeTab" v-on:reloadSavedProject="loadSavedQuery" :extraoption="props.item.extraoption"></component>
+                <component :is="props.item.content" v-on:changeView="changeTab" :extraoption="props.item.extraoption"></component>
               </template>
             </tab>
           </div>
-          <save_query_dialog v-if="extraoptionObj" :show="saveQueryFormVisible" :extraoption="extraoptionObj" v-on:closeModal="closeModal" v-on:reloadSavedProject="reloadSavedProject"></save_query_dialog>
+          <save_query_dialog v-if="extraoptionObj" :show="saveQueryFormVisible" :extraoption="extraoptionObj" v-on:closeModal="closeModal"></save_query_dialog>
           <el-dialog
             :title="$t('savedQueries')"
             width="660px"
@@ -267,9 +267,6 @@ export default class NewQuery extends Vue {
   }
   closeModal () {
     this.saveQueryFormVisible = false
-  }
-  reloadSavedProject () {
-    this.$emit('reloadSavedProject', 0)
   }
   openSaveQueryListDialog () {
     this.savedQueryListVisible = true

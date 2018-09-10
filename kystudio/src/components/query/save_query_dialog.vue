@@ -52,7 +52,7 @@ export default class saveQueryDialog extends Vue {
     this.$refs['saveQueryForm'].validate((valid) => {
       if (valid) {
         this.saveQueryToServer(this.saveQueryMeta).then((response) => {
-          this.$message(this.$t('kylinLang.common.saveSuccess'))
+          this.$message({type: 'success', message: this.$t('kylinLang.common.saveSuccess')})
           this.closeSaveQueryDialog()
           this.$emit('reloadSavedProject', 0)
         }, (res) => {

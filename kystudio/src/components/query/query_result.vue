@@ -160,9 +160,6 @@ export default class queryResult extends Vue {
       this.$el.querySelectorAll('.exportTool')[0].submit()
     })
   }
-  reloadSavedProject () {
-    this.$emit('reloadSavedProject', 0)
-  }
   transDataForGrid (data) {
     var columnMeata = this.extraoption.data.columnMetas
     var lenOfMeta = columnMeata.length

@@ -18,10 +18,10 @@
       ref="favoriteTable"
       style="width: 100%">
       <el-table-column type="selection" width="55" align="center"></el-table-column>
-      <el-table-column label="SQL" prop="sqlPattern" header-align="center" show-overflow-tooltip></el-table-column>
-      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_executing_time" sortable header-align="center" width="250">
+      <el-table-column label="SQL" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_modified" sortable header-align="center" width="250">
         <template slot-scope="props">
-          {{props.row.last_executing_time | gmtTime}}
+          {{props.row.last_modified | gmtTime}}
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.rate')" prop="success_rate" sortable align="center" width="200">
@@ -51,7 +51,9 @@
     <el-dialog
       title="Candidate Query"
       :visible.sync="candidateVisible"
-      width="80%">
+      width="80%"
+      top="5vh"
+      class="candidateDialog">
       <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav"></query_history_table>
       <kap-pager ref="filterHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='historyCurrentChange'></kap-pager>
     </el-dialog>
@@ -85,17 +87,17 @@ import queryHistoryTable from './query_history_table'
 })
 export default class FavoriteQuery extends Vue {
   favQueList = [
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'ACCELERATING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'PARTLY_ACCELERATED', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'FULLY_ACCELERATED', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sqlPattern: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10}
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'ACCELERATING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'PARTLY_ACCELERATED', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'FULLY_ACCELERATED', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10}
   ]
   statusFilteArr = [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}]
   checkedStatus = []
@@ -105,16 +107,16 @@ export default class FavoriteQuery extends Vue {
   selectToUnFav = {}
   selectToFav = {}
   queryHistoryData = [
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'FULLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', startTime: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false}
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'FULLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
+    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false}
   ]
 
   async loadFavoriteList (pageIndex, pageSize) {
@@ -123,7 +125,8 @@ export default class FavoriteQuery extends Vue {
       limit: pageSize || 10,
       offset: pageIndex || 0
     })
-    this.favQueList = await handleSuccessAsync(res)
+    const data = await handleSuccessAsync(res)
+    this.favQueList = data.favorite_queries
     if (this.selectToUnFav[this.favoriteCurrentPage]) {
       this.$nextTick(() => {
         this.$refs.favoriteTable.toggleRowSelection(this.selectToUnFav[this.favoriteCurrentPage])
@@ -137,7 +140,8 @@ export default class FavoriteQuery extends Vue {
       limit: pageSize || 10,
       offset: pageIndex || 0
     })
-    this.queryHistoryData = await handleSuccessAsync(res)
+    const data = await handleSuccessAsync(res)
+    this.queryHistoryData = data.candidates
   }
 
   created () {
@@ -238,6 +242,10 @@ export default class FavoriteQuery extends Vue {
       color: @text-title-color;
       font-size: 16px;
       line-height: 32px;
+    }
+    .candidateDialog .el-dialog > .el-dialog__body {
+      height: 520px;
+      overflow-y: scroll;
     }
     .favorite-table {
       .status-icon {
