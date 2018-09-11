@@ -78,7 +78,7 @@ public class NEventControllerTest {
     public void tearDown() {
     }
 
-    private ProjectRequest mokeProjectRequest() {
+    private ProjectRequest mockProjectRequest() {
         ProjectRequest projectRequest = new ProjectRequest();
         projectRequest.setProjectDescData("{\"name\":\"test\"}");
         return projectRequest;

@@ -83,7 +83,7 @@ export default {
   },
   // newten
   getAggregateIndex: params => {
-    // Vue.resource(`${apiUrl}/models/agg_indexs`).get(params)
+    // Vue.resource(`${apiUrl}/models/agg_indices`).get(params)
     return aggregateTree
   },
   fetchSegments: (model, project, startTime, endTime) => {

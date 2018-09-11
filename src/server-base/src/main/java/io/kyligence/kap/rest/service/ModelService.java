@@ -116,7 +116,7 @@ public class ModelService extends BasicService {
         return segments;
     }
 
-    public List<CuboidDescResponse> getAggIndexs(String modelName, String project) {
+    public List<CuboidDescResponse> getAggIndices(String modelName, String project) {
         List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
         List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
         for (NCuboidDesc cuboidDesc : cuboidDescs) {
@@ -128,7 +128,7 @@ public class ModelService extends BasicService {
         return result;
     }
 
-    public List<CuboidDescResponse> getTableIndexs(String modelName, String project) {
+    public List<CuboidDescResponse> getTableIndices(String modelName, String project) {
         List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
         List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
         for (NCuboidDesc cuboidDesc : cuboidDescs) {

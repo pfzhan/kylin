@@ -109,10 +109,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAggIndexs() throws Exception {
+    public void testGetAggIndices() throws Exception {
 
-        List<CuboidDescResponse> indexs = modelService.getAggIndexs("nmodel_basic", "default");
-        Assert.assertEquals(indexs.size(), 7);
+        List<CuboidDescResponse> indices = modelService.getAggIndices("nmodel_basic", "default");
+        Assert.assertEquals(indices.size(), 7);
 
     }
 
@@ -125,10 +125,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetTableIndexs() throws Exception {
+    public void testGetTableIndices() throws Exception {
 
-        List<CuboidDescResponse> indexs = modelService.getTableIndexs("nmodel_basic", "default");
-        Assert.assertEquals(indexs.size(), 3);
+        List<CuboidDescResponse> indices = modelService.getTableIndices("nmodel_basic", "default");
+        Assert.assertEquals(indices.size(), 3);
 
     }
 

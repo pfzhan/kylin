@@ -112,16 +112,16 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
 
-    @RequestMapping(value = "/agg_indexs", method = RequestMethod.GET, produces = {
+    @RequestMapping(value = "/agg_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getAggIndexs(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getAggIndices(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
         if (StringUtils.isEmpty(modelName)) {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        List<CuboidDescResponse> aggIndexs = modelService.getAggIndexs(modelName, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndexs, "");
+        List<CuboidDescResponse> aggIndices = modelService.getAggIndices(modelName, project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndices, "");
     }
 
     @RequestMapping(value = "/cuboids", method = RequestMethod.GET, produces = {
@@ -140,16 +140,16 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cuboidDesc, "");
     }
 
-    @RequestMapping(value = "/table_indexs", method = RequestMethod.GET, produces = {
+    @RequestMapping(value = "/table_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getTableIndexs(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getTableIndices(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
         if (StringUtils.isEmpty(modelName)) {
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        List<CuboidDescResponse> tableIndexs = modelService.getTableIndexs(modelName, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndexs, "");
+        List<CuboidDescResponse> tableIndices = modelService.getTableIndices(modelName, project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndices, "");
     }
 
     @RequestMapping(value = "/json", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })

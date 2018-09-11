@@ -93,7 +93,7 @@ public class NProjectControllerTest {
     public void tearDown() {
     }
 
-    private ProjectRequest mokeProjectRequest() {
+    private ProjectRequest mockProjectRequest() {
         ProjectRequest projectRequest = new ProjectRequest();
         projectRequest.setProjectDescData("{\"name\":\"test\"}");
         return projectRequest;
@@ -121,7 +121,7 @@ public class NProjectControllerTest {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("test");
-        ProjectRequest projectRequest = mokeProjectRequest();
+        ProjectRequest projectRequest = mockProjectRequest();
         Mockito.when(projectService.deserializeProjectDesc(projectRequest)).thenReturn(projectInstance);
         Mockito.when(projectService.createProject(projectInstance)).thenReturn(projectInstance);
         MvcResult mvcResult = mockMvc

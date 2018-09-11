@@ -127,15 +127,15 @@ public class NModelControllerTest {
     }
 
     @Test
-    public void testTableIndexs() throws Exception {
-        Mockito.when(modelService.getTableIndexs("model1", "default")).thenReturn(mockCuboidDescs());
+    public void testTableIndices() throws Exception {
+        Mockito.when(modelService.getTableIndices("model1", "default")).thenReturn(mockCuboidDescs());
         MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/table_indexs").contentType(MediaType.APPLICATION_JSON)
+                .perform(MockMvcRequestBuilders.get("/api/models/table_indices").contentType(MediaType.APPLICATION_JSON)
                         .param("model", "model1").param("project", "default")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nModelController).getTableIndexs("model1", "default");
+        Mockito.verify(nModelController).getTableIndices("model1", "default");
     }
 
     @Test
@@ -155,7 +155,7 @@ public class NModelControllerTest {
     @Test
     public void testGetSegments() throws Exception {
 
-        Mockito.when(modelService.getSegments("model1", "default", 432323L, 2234L)).thenReturn(mockSegements());
+        Mockito.when(modelService.getSegments("model1", "default", 432323L, 2234L)).thenReturn(mockSegments());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
                         .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
@@ -204,7 +204,7 @@ public class NModelControllerTest {
         return nCuboidDescs;
     }
 
-    private Segments<NDataSegment> mockSegements() {
+    private Segments<NDataSegment> mockSegments() {
         final Segments<NDataSegment> nDataSegments = new Segments<NDataSegment>();
         NDataSegment segment = new NDataSegment();
         segment.setId(123);
