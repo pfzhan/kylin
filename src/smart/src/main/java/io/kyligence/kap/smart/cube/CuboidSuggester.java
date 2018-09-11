@@ -232,7 +232,11 @@ public class CuboidSuggester {
 
         if (CollectionUtils.isNotEmpty(groupByCols)) {
             for (TblColRef colRef : groupByCols) {
-                int colId = colIdMap.get(colRef);
+                Integer colId = colIdMap.get(colRef);
+                if (colId == null) {
+                    // FIXME model not contains all columns of ctx, this is not supposed to happen
+                    throw new IllegalArgumentException();
+                }
                 TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
                 if (columnStats != null && columnStats.getCardinality() > 0)
                     dimScores.put(colId, -1D / columnStats.getCardinality());
@@ -243,7 +247,11 @@ public class CuboidSuggester {
 
         if (CollectionUtils.isNotEmpty(ctx.filterColumns)) {
             for (TblColRef colRef : ctx.filterColumns) {
-                int colId = colIdMap.get(colRef);
+                Integer colId = colIdMap.get(colRef);
+                if (colId == null) {
+                    // FIXME model not contains all columns of ctx, this is not supposed to happen
+                    throw new IllegalArgumentException();
+                }
                 TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
                 if (columnStats != null && columnStats.getCardinality() > 0)
                     dimScores.put(colId, (double) columnStats.getCardinality());

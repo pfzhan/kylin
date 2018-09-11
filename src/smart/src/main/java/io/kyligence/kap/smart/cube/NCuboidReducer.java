@@ -32,6 +32,8 @@ import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -44,6 +46,8 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.model.ModelTree;
 
 public class NCuboidReducer extends NAbstractCubeProposer {
+    
+    private static final Logger LOGGER = LoggerFactory.getLogger(NCuboidReducer.class);
 
     NCuboidReducer(NModelContext context) {
         super(context);
@@ -79,7 +83,12 @@ public class NCuboidReducer extends NAbstractCubeProposer {
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
             ctx.fixModel(model, aliasMap);
-            suggester.ingest(ctx, model);
+            try {
+                suggester.ingest(ctx, model);
+            } catch (Exception e) {
+                LOGGER.error("Unable to suggest cuboid for CubePlan", e);
+                continue;
+            }
             ctx.unfixModel();
         }
 

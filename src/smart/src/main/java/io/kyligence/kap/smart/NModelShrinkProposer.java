@@ -24,8 +24,15 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TblColRef;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -33,12 +40,6 @@ import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.TblColRef;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class NModelShrinkProposer extends NAbstractProposer {
 
@@ -72,12 +73,14 @@ public class NModelShrinkProposer extends NAbstractProposer {
                 }
             }
 
-            Map<Integer, NamedColumn> namedColumns = new HashMap<>();
+            Map<Integer, NamedColumn> namedColumnsById = Maps.newHashMap();
+            Map<String, NamedColumn> namedColumnsByName = Maps.newHashMap();
             for (NamedColumn namedColumn : model.getAllNamedColumns()) {
                 namedColumn.tomb = true;
-                namedColumns.put(namedColumn.id, namedColumn);
+                namedColumnsById.put(namedColumn.id, namedColumn);
+                namedColumnsByName.put(namedColumn.name, namedColumn);
             }
-            Map<Integer, Measure> measures = new HashMap<>();
+            Map<Integer, Measure> measures = Maps.newHashMap();
             for (Measure measure : model.getAllMeasures()) {
                 if (measure.getFunction().isCount()) {
                     continue;
@@ -92,7 +95,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             for (NCubePlan cubePlan : modelCubePlans.values()) {
                 for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
                     for (int id : cuboidDesc.getDimensions()) {
-                        NamedColumn used = namedColumns.get(id);
+                        NamedColumn used = namedColumnsById.get(id);
                         if (used != null) {
                             used.tomb = false;
                         }
@@ -104,11 +107,9 @@ public class NModelShrinkProposer extends NAbstractProposer {
                         }
                         used.tomb = false;
                         for (TblColRef param : used.getFunction().getParameter().getColRefs()) {
-                            Integer paramId = model.getColId(param);
-                            if (paramId == null) {
-                                continue;
+                            if (namedColumnsByName.containsKey(param.getIdentity())) {
+                                namedColumnsByName.get(param.getIdentity()).tomb = false;
                             }
-                            namedColumns.get(paramId).tomb = false;
                         }
                     }
                 }

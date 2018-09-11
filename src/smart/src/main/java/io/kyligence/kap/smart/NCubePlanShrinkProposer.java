@@ -39,19 +39,15 @@ public class NCubePlanShrinkProposer extends NAbstractProposer {
             return;
 
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null) {
+            if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
+                    || modelCtx.getTargetCubePlan() == null) {
                 continue;
             }
-            if (modelCtx.getOrigCubePlan() == null) {
-                continue;
-            }
-            if (modelCtx.getTargetCubePlan() == null) {
-                continue;
-            }
-            
+
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             cubePlan = cubeMaster.reduceCuboids(cubePlan);
+            cubePlan = cubeMaster.reduceDimensions(cubePlan);
             modelCtx.setTargetCubePlan(cubePlan);
         }
     }

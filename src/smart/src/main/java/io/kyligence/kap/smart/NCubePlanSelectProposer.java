@@ -66,7 +66,7 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
 
     private NCubePlan findExisting(NDataModel model) {
         final Set<IRealization> iRealizations = projectManager.listAllRealizations(context.getProject());
-        if (iRealizations.size() == 0) {
+        if (iRealizations.isEmpty()) {
             return null;
         }
         //TODO order by cost in the future
@@ -82,6 +82,9 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
         for (IRealization realization : realizations) {
             if (realization instanceof NDataflow) {
                 NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
+                if (cubePlan == null) {
+                    continue;
+                }
                 if (cubePlan.getModelName().equals(model.getName()))
                     return cubePlan;
             }

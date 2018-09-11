@@ -24,14 +24,11 @@
 
 package io.kyligence.kap.smart.common;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 
 public class DefaultSmartStrategy implements ISmartStrategy {
-    public final static ISmartStrategy INSTANCE = new DefaultSmartStrategy();
-    public final static String NAME = "default";
-
-    private KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+    public static final ISmartStrategy INSTANCE = new DefaultSmartStrategy();
+    public static final String NAME = "default";
 
     DefaultSmartStrategy() {
     }
@@ -153,6 +150,6 @@ public class DefaultSmartStrategy implements ISmartStrategy {
     }
     
     public boolean enableModelInnerJoinExactlyMatch() {
-        return false;
+        return true;
     }
 }

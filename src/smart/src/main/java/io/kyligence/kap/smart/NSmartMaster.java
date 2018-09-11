@@ -106,30 +106,31 @@ public class NSmartMaster {
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
-            if (cubePlanManager.getCubePlan(cubePlan.getName()) != null) {
-                cubePlan = cubePlanManager.updateCubePlan(cubePlan);
+            if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
+                cubePlanManager.createCubePlan(cubePlan);
+                dataflowManager.createDataflow(cubePlan.getName(), context.getProject(), cubePlan, null);
+                continue;
+            }
 
-                NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
-                NDataflowUpdate update = new NDataflowUpdate(df.getName());
-                List<NDataCuboid> toAddCuboids = Lists.newArrayList();
+            cubePlan = cubePlanManager.updateCubePlan(cubePlan);
 
-                for (NDataSegment seg : df.getSegments()) {
-                    Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
-                    for (NCuboidDesc desc : cubePlan.getCuboids()) {
-                        for (NCuboidLayout layout : desc.getLayouts()) {
-                            if (!cuboidMap.containsKey(layout.getId())) {
-                                toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
-                            }
+            NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
+            NDataflowUpdate update = new NDataflowUpdate(df.getName());
+            List<NDataCuboid> toAddCuboids = Lists.newArrayList();
+
+            for (NDataSegment seg : df.getSegments()) {
+                Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
+                for (NCuboidDesc desc : cubePlan.getCuboids()) {
+                    for (NCuboidLayout layout : desc.getLayouts()) {
+                        if (!cuboidMap.containsKey(layout.getId())) {
+                            toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
                         }
                     }
                 }
-
-                update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
-                dataflowManager.updateDataflow(update);
-            } else {
-                cubePlanManager.createCubePlan(cubePlan);
-                dataflowManager.createDataflow(cubePlan.getName(), context.getProject(), cubePlan, null);
             }
+
+            update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
+            dataflowManager.updateDataflow(update);
         }
     }
 
@@ -145,8 +146,8 @@ public class NSmartMaster {
             try {
                 Thread.sleep(1000L);
             } catch (InterruptedException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                logger.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
             }
         }
     }

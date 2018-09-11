@@ -22,46 +22,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.common;
+package io.kyligence.kap.smart.cube;
 
-import java.io.File;
-import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
-import org.apache.commons.io.FileUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.junit.After;
-import org.junit.Before;
+import org.apache.commons.lang3.ArrayUtils;
 
-import com.google.common.io.Files;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.smart.query.Utils;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDimensionDesc;
+import io.kyligence.kap.smart.NSmartContext.NModelContext;
 
-public abstract class NTestBase {
-    protected String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
-    protected String proj = "learn_kylin";
-    protected File tmpMeta;
-    protected KylinConfig kylinConfig;
+public class NDimensionReducer extends NAbstractCubeProposer {
 
-    @Before
-    public void setUp() throws Exception {
-        tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getAbsolutePath());
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+    NDimensionReducer(NModelContext context) {
+        super(context);
     }
 
-    @After
-    public void tearDown() throws Exception {
-        if (tmpMeta != null)
-            FileUtils.forceDelete(tmpMeta);
-    }
-
-    protected <T> int countInnerObj(Collection<T>... list) {
-        int i = 0;
-        for (Collection<T> l : list) {
-            i += l.size();
+    @Override
+    void doPropose(NCubePlan cubePlan) {
+        Set<Integer> usedDimensionIds = Sets.newHashSet();
+        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+            usedDimensionIds.addAll(Lists.newArrayList(ArrayUtils.toObject(cuboidDesc.getDimensions())));
         }
-        return i;
+
+        List<NDimensionDesc> usedDimensions = Lists.newArrayList();
+        for (NDimensionDesc dimensionDesc : cubePlan.getDimensions()) {
+            if (usedDimensionIds.contains(dimensionDesc.getId())) {
+                usedDimensions.add(dimensionDesc);
+            }
+        }
+
+        cubePlan.setDimensions(usedDimensions);
     }
+
 }

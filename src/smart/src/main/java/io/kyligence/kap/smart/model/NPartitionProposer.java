@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class NPartitionProposer extends NAbstractModelProposer {
     
-    private final static Logger LOGGER = LoggerFactory.getLogger(NPartitionProposer.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(NPartitionProposer.class);
 
     public NPartitionProposer(NSmartContext.NModelContext modelContext) {
         super(modelContext);

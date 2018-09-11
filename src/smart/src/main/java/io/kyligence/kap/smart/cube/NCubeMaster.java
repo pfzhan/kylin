@@ -59,8 +59,12 @@ public class NCubeMaster {
     public NCubePlan proposeDimensions(final NCubePlan cubePlan) {
         return proposerProvider.getDimensionProposer().propose(cubePlan);
     }
-    
+
     public NCubePlan reduceCuboids(final NCubePlan cubePlan) {
         return proposerProvider.getCuboidReducer().propose(cubePlan);
+    }
+
+    public NCubePlan reduceDimensions(final NCubePlan cubePlan) {
+        return proposerProvider.getDimensionReducer().propose(cubePlan);
     }
 }

@@ -120,7 +120,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         for (NDataModel.NamedColumn namedColumn : nDataModel.getAllNamedColumns()) {
             namedColsCandidate.put(namedColumn.aliasDotColumn, namedColumn);
             maxColId = Math.max(maxColId, namedColumn.id);
-        }
+        } 
         for (NDataModel.Measure measure : nDataModel.getAllMeasures()) {
             measureCandidate.put(measure.getFunction(), measure);
             maxMeasureId = Math.max(maxMeasureId, measure.id);
@@ -148,7 +148,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             });
             Set<TblColRef> allColumns = Sets.newLinkedHashSet(Arrays.asList(colArray));
 
-            if (allColumns == null || allColumns.size() == 0) {
+            if (allColumns == null || allColumns.isEmpty()) {
                 allColumns = allTableColumns;
             }
             if (ctx.subqueryJoinParticipants != null)
@@ -160,34 +160,37 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
 
             for (TblColRef tblColRef : allColumns) {
-                if (namedColsCandidate.containsKey(tblColRef.getIdentity()))
+                if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
+                    namedColsCandidate.get(tblColRef.getIdentity()).tomb = false;
                     continue;
-
-                int newId = maxColId + 1;
+                }
+                int newId = ++maxColId;
                 NDataModel.NamedColumn col = new NDataModel.NamedColumn();
                 col.name = tblColRef.getIdentity();
                 col.aliasDotColumn = tblColRef.getIdentity();
                 col.id = newId;
-
                 namedColsCandidate.put(tblColRef.getIdentity(), col);
-                maxColId = newId;
             }
 
             // collect measures
             List<FunctionDesc> aggregations = Lists.newLinkedList(ctx.aggregations);
             for (FunctionDesc agg : aggregations) {
-                if (measureCandidate.containsKey(agg))
+                if (measureCandidate.containsKey(agg)) {
+                    measureCandidate.get(agg).tomb = false;
                     continue;
-
+                }
+                for (TblColRef tblColRef : agg.getParameter().getColRefs()) {
+                    if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
+                        namedColsCandidate.get(tblColRef.getIdentity()).tomb = false;
+                    }
+                }
                 if (checkFunctionDesc(agg)) {
                     FunctionDesc newFunc = copyFunctionDesc(nDataModel, agg);
                     NDataModel.Measure measure = new NDataModel.Measure();
-                    measure.id = maxMeasureId + 1;
+                    measure.id = ++maxMeasureId;
                     measure.setName(UUID.randomUUID().toString());
                     measure.setFunction(newFunc);
-
                     measureCandidate.put(newFunc, measure);
-                    maxMeasureId = Math.max(measure.id, maxMeasureId);
                 }
             }
             ctx.unfixModel();
@@ -202,7 +205,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 continue;
             }
             String measureColName = agg.getParameter().getColRef().getIdentity();
-            NDataModel.NamedColumn measureCol = dimensionCandidate.remove(measureColName);
+            dimensionCandidate.remove(measureColName);
         }
         if (dimensionCandidate.isEmpty()) {
             // dim place holder for none
@@ -220,16 +223,14 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             namedColsCandidate.putAll(dimensionCandidate);
         }
         if (dimensionCandidate.isEmpty()) {
-            throw new RuntimeException("Suggest no dimension");
+            throw new IllegalStateException("Suggest no dimension");
         }
 
         FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(nDataModel);
         if (!measureCandidate.containsKey(countStar)) {
             NDataModel.Measure measure = new NDataModel.Measure();
-            measure.id = maxMeasureId + 1;
-
+            measure.id = ++maxMeasureId;
             measureCandidate.put(countStar, measure);
-            maxMeasureId = Math.max(measure.id, maxMeasureId);
         }
 
         List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(namedColsCandidate.values());

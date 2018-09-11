@@ -49,5 +49,8 @@ public class NProposerProvider {
     public NAbstractCubeProposer getCuboidReducer() {
         return new NCuboidReducer(context);
     }
-
+    
+    public NAbstractCubeProposer getDimensionReducer() {
+        return new NDimensionReducer(context);
+    }
 }
