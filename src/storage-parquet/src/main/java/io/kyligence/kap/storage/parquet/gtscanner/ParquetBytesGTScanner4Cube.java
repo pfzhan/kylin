@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.spark.parquet.cube.gtscanner;
+package io.kyligence.kap.storage.parquet.gtscanner;
 
 import java.nio.ByteBuffer;
 import java.util.BitSet;

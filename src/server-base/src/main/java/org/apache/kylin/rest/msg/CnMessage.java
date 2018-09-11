@@ -457,4 +457,25 @@ public class CnMessage extends Message {
     public String getHBASE_FAIL_WITHOUT_DETAIL() {
         return "HBase 遇到错误";
     }
+
+    // Favorite Query
+    public String getQUERY_HISTORY_NOT_FOUND() {
+        return "无法找到相应的查询历史";
+    }
+
+    public String getQUERY_HISTORY_IS_FAVORITED(){
+        return "查询历史已经被标记为加速查询";
+    }
+
+    public String getQUERY_HISTORY_IS_NOT_FAVORITED() {
+        return "查询历史未标记为加速查询";
+    }
+
+    public String getFAVORITE_QUERY_NOT_FOUND() {
+        return "无法找到相应的查询 [%s]";
+    }
+
+    public String getFAVORITE_RULE_NOT_FOUND() {
+        return "无法找到相应的加速规则 [%s]";
+    }
 }

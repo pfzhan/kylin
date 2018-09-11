@@ -44,14 +44,13 @@ package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryFilterRule;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.model.Query;
-import org.apache.kylin.rest.request.FilterQueryHistoryRequest;
+import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -188,9 +187,9 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetQueryHistories() throws Exception {
-        Mockito.when(queryHistoryService.getQueryHistories("default")).thenReturn(mockQueryHistories());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default").param("pageOffset", "2").param("pageSize", "3")
+        Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT).param("pageOffset", "2").param("pageSize", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
@@ -199,7 +198,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
 
-        Mockito.verify(nQueryController).getAllQueryHistories("default", 2, 3);
+        Mockito.verify(nQueryController).getAllQueryHistories(PROJECT, 2, 3);
     }
 
     private List<QueryHistory> mockQueryHistories() {
@@ -218,17 +217,19 @@ public class NQueryControllerTest {
         return queries;
     }
 
-    private FilterQueryHistoryRequest mockFilterQueryHistoryRequest() {
-        final FilterQueryHistoryRequest sqlRequest = new FilterQueryHistoryRequest();
+    private QueryFilterRequest mockFilterQueryHistoryRequest() {
+        final QueryFilterRequest sqlRequest = new QueryFilterRequest();
         sqlRequest.setProject(PROJECT);
-        sqlRequest.setRule(new QueryHistoryFilterRule());
+        sqlRequest.setRules(null);
         return sqlRequest;
     }
 
     @Test
     public void testGetQueryHistoriesByRule() throws Exception {
-        Mockito.when(queryHistoryService.getQueryHistoriesByRules(PROJECT, mockFilterQueryHistoryRequest().getRule())).thenReturn(mockQueryHistories());
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/query_histories").contentType(MediaType.APPLICATION_JSON)
+        QueryFilterRequest request = mockFilterQueryHistoryRequest();
+        Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
+        Mockito.when(queryHistoryService.getQueryHistoriesByRules(request.getRules(), mockQueryHistories())).thenReturn(mockQueryHistories());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockFilterQueryHistoryRequest())).param("pageOffset", "2").param("pageSize", "3")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
@@ -238,7 +239,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
 
-        Mockito.verify(nQueryController).getFilteredQueryHistories((FilterQueryHistoryRequest) Mockito.any(), Mockito.eq(2), Mockito.eq(3));
+        Mockito.verify(nQueryController).getFilteredQueryHistories((QueryFilterRequest) Mockito.any(), Mockito.eq(2), Mockito.eq(3));
     }
 
     @Test

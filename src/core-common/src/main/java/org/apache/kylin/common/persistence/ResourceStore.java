@@ -97,6 +97,8 @@ abstract public class ResourceStore {
     public static final String USER_ROOT = "/user";
     public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
+    public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
+    public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite_query";
 
 
     public static final String METASTORE_UUID_TAG = "/UUID";

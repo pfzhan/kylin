@@ -1444,6 +1444,21 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.restclient.connection.max-total", "200"));
     }
 
+    // ============================================================================
+    // FAVORITE QUERY
+    // ============================================================================
+    public int getFavoriteQueryAccelerateThreshold() {
+        return Integer.valueOf(this.getOptional("kylin.favorite.query-accelerate-threshold", "20"));
+    }
+
+    public boolean isAutoMarkFavorite() {
+        return Boolean.parseBoolean(this.getOptional("kylin.favorite.auto-mark", "false"));
+    }
+
+    public int getAutoMarkFavoriteDetectionInterval() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.auto-mark-detection-interval", "30"));
+    }
+
     /**
      * metric
      */

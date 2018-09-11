@@ -42,13 +42,13 @@
 
 package io.kyligence.kap.metadata.query;
 
-import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
@@ -79,7 +79,7 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
         assertEquals(4, queryHistories.size());
 
         QueryHistory entry1 = queryHistories.get(0);
-        assertEquals("Pushdown", entry1.getRealization());
+        assertEquals("Pushdown", entry1.getRealization().get(0));
         assertEquals("sandbox.hortonworks.com", entry1.getQueryNode());
         assertEquals("select * from test_kylin_fact limit 10", entry1.getSql());
 
@@ -92,9 +92,9 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
         QueryHistory entry = new QueryHistory("query-1", "sql", 1459362239992L, 100, "server", "t-0",
                 "ADMIN");
-        entry.setRealization("pushdown");
+        entry.setRealization(Lists.newArrayList("pushdown"));
         entry.setQueryStatus(QueryHistoryStatusEnum.SUCCEEDED);
-        manager.upsertEntry(entry);
+        manager.save(entry);
         List<QueryHistory> entries = manager.getAllQueryHistories();
         assertEquals(5, entries.size());
 
@@ -115,19 +115,25 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
 
         assertNotNull(queryHistory);
         assertEquals("select * from test_kylin_fact limit 10", queryHistory.getSql());
-        assertEquals("Pushdown", queryHistory.getRealization());
+        assertEquals("Pushdown", queryHistory.getRealization().get(0));
         assertEquals("query-3", queryHistory.getQueryId());
 
-        QueryHistory favoritedQuery = manager.findQueryHistory(new Predicate<QueryHistory>() {
-            @Override
-            public boolean apply(@Nullable QueryHistory favoritedQuery) {
-                return FAVORITE_QUERY.equals(favoritedQuery.getFavorite());
-            }
-        });
+        List<QueryHistory> favoritedQuery = manager.findQueryHistoryByFavorite(FAVORITE_QUERY);
 
         assertNotNull(favoritedQuery);
-        assertEquals(FAVORITE_QUERY, favoritedQuery.getFavorite());
-        assertEquals("query-1", favoritedQuery.getQueryId());
+        assertEquals(FAVORITE_QUERY, favoritedQuery.get(0).getFavorite());
+        assertEquals("query-1", favoritedQuery.get(0).getQueryId());
+    }
+
+    @Test
+    public void testGetUnFavoriteQueries() throws IOException {
+        QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
+        List<QueryHistory> unFavoriteQueries = manager.getUnFavoriteQueryHistory();
+
+        Assert.assertEquals(3, unFavoriteQueries.size());
+        for (QueryHistory queryHistory : unFavoriteQueries) {
+            Assert.assertFalse(queryHistory.isFavorite());
+        }
     }
 
 }

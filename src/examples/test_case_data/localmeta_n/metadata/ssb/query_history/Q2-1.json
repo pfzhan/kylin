@@ -6,7 +6,7 @@
       "sql": "SELECT SUM(v_revenue) AS revenue FROM ssb.p_lineorder LEFT JOIN ssb.dates ON lo_orderdate = d_datekey WHERE d_weeknuminyear = 6 AND d_year = 1994",
       "start_time": 1459362230010,
       "latency": 1000,
-      "realization": "Pushdown",
+      "realization": ["Pushdown"],
       "query_node": "sandbox.hortonworks.com",
       "thread": "t-0",
       "user": "ADMIN",

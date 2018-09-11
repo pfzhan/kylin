@@ -22,24 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.kyligence.kap.rest.service;
 
 import com.google.common.base.Preconditions;
@@ -47,14 +29,14 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryFilterRule;
+import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -64,6 +46,9 @@ import org.springframework.stereotype.Component;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -91,38 +76,40 @@ public class QueryHistoryService extends BasicService {
 
         if (sqlResponse.getIsException()) {
             queryHistory.setQueryStatus(QueryHistoryStatusEnum.FAILED);
-            getQueryHistoryManager(project).upsertEntry(queryHistory);
-            throw new InternalErrorException(sqlResponse.getExceptionMessage());
+            getQueryHistoryManager(project).save(queryHistory);
+            return;
         }
 
         if (sqlResponse.getResults() != null)
             queryHistory.setResultRowCount(sqlResponse.getResults().size());
 
         if (sqlResponse.isPushDown()) {
-            queryHistory.setRealization(QueryHistory.ADJ_PUSHDOWN);
+            queryHistory.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+            queryHistory.setAccelerateStatus(FavoriteQueryStatusEnum.WAITING.toString());
         } else {
             queryHistory.setCubeHit(true);
 
             Set<String> modelNames = new HashSet<>();
-
+            List<String> realization = Lists.newArrayList();
             if (OLAPContext.getThreadLocalContexts() != null) {
-                for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
+                for (final OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                     if (ctx.realization != null) {
                         modelNames.add(ctx.realization.getModel().getName());
+                        realization.add(String.valueOf(ctx.storageContext.getCandidate().getCuboidLayout().getId()));
                     }
                 }
             }
 
-            //TODO: get more detailed realization info
-            queryHistory.setRealization(modelNames.toString());
+            queryHistory.setRealization(realization);
             queryHistory.setModelName(modelNames.toString());
+            queryHistory.setAccelerateStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED.toString());
         }
 
         queryHistory.setQueryStatus(QueryHistoryStatusEnum.SUCCEEDED);
-        getQueryHistoryManager(project).upsertEntry(queryHistory);
+        getQueryHistoryManager(project).save(queryHistory);
     }
 
-    private String getLocalIP() throws IOException {
+    synchronized private String getLocalIP() throws IOException {
         if (localIp == null) {
             localIp = InetAddress.getLocalHost().getHostAddress();
         }
@@ -134,62 +121,107 @@ public class QueryHistoryService extends BasicService {
         return getQueryHistoryManager(project).getAllQueryHistories();
     }
 
-    public List<QueryHistory> getQueryHistoriesByRules(final String project, final QueryHistoryFilterRule rules) throws IOException {
-        List<QueryHistory> allQueryHistories = getQueryHistories(project);
-        List<Predicate<QueryHistory>> predicates = Lists.newArrayList();
+    private boolean compare(final QueryFilterRule.QueryHistoryCond cond, QueryHistory queryHistory, List<QueryHistory> queryHistories) {
+        Object value = null;
 
-        if (rules == null)
-            return allQueryHistories;
-
-        for (final QueryHistoryFilterRule.QueryHistoryCond cond : rules.getConds()) {
-            Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
-                @Override
-                public boolean apply(@Nullable QueryHistory queryHistory) {
-                    Object value = null;
-                    try {
-                        value = queryHistory.getValueByFieldName(cond.getField());
-                    } catch (Throwable ex) {
-                        throw new InternalErrorException(ex);
-                    }
-
-                    if (value == null){
-                        throw new InternalErrorException("Can not find field with name as" + cond.getField());
-                    }
-
-                    switch (cond.getOp()) {
-                        case GREATER:
-                            if (value instanceof Float) {
-                                return (float) value > Float.valueOf(cond.getThreshold());
-                            } else if (value instanceof Long) {
-                                return (long) value > Long.valueOf(cond.getThreshold());
-                            } else
-                                throw new InternalErrorException("Wrong field type " + value.getClass().getName());
-                        case LESS:
-                            if (value instanceof Float) {
-                                return (float) value < Float.valueOf(cond.getThreshold());
-                            } else if (value instanceof Long) {
-                                return (long) value < Long.valueOf(cond.getThreshold());
-                            } else
-                                throw new InternalErrorException("Wrong field type " + value.getClass().getName());
-                        case EQUAL:
-                            if (value instanceof Float) {
-                                return (float) value == Float.valueOf(cond.getThreshold());
-                            } else
-                                return value.toString().equals(cond.getThreshold());
-                        case CONTAIN:
-                            return value.toString().contains(cond.getThreshold());
-                        default:
-                            throw new BadRequestException("Wrong operation " + cond.getOp());
-                    }
-                }
-            };
-
-            if (predicate != null)
-                predicates.add(predicate);
+        if (cond.getField().equals("frequency")) {
+            switch (cond.getOp()) {
+                case GREATER:
+                    return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) > Integer.valueOf(cond.getRightThreshold());
+                case LESS:
+                    return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) < Integer.valueOf(cond.getRightThreshold());
+                case EQUAL:
+                    return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) == Integer.valueOf(cond.getRightThreshold());
+                default:
+                    throw new IllegalArgumentException("Wrong operation " + cond.getOp());
+            }
         }
 
-        List<QueryHistory> filteredQueries = Lists.newArrayList(Iterables.filter(allQueryHistories, Predicates.and(predicates)));
+        try {
+            value = queryHistory.getValueByFieldName(cond.getField());
+        } catch (Throwable ex) {
+            throw new InternalErrorException(ex);
+        }
+
+        if (value == null) {
+            return false;
+        }
+
+        switch (cond.getOp()) {
+            case GREATER:
+                if (value instanceof Float) {
+                    return (float) value > Float.valueOf(cond.getRightThreshold());
+                } else if (value instanceof Long) {
+                    return (long) value > Long.valueOf(cond.getRightThreshold());
+                } else
+                    throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
+            case LESS:
+                if (value instanceof Float) {
+                    return (float) value < Float.valueOf(cond.getRightThreshold());
+                } else if (value instanceof Long) {
+                    return (long) value < Long.valueOf(cond.getRightThreshold());
+                } else
+                    throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
+            case EQUAL:
+                if (value instanceof Float) {
+                    return (float) value == Float.valueOf(cond.getRightThreshold());
+                } else
+                    return value.toString().equals(cond.getRightThreshold());
+            case CONTAIN:
+                return value.toString().contains(cond.getRightThreshold());
+            case TO:
+                if (value instanceof Float) {
+                    return (float) value > Float.valueOf(cond.getLeftThreshold()) && (float) value < Float.valueOf(cond.getRightThreshold());
+                } else if (value instanceof Long) {
+                    return (long) value > Long.valueOf(cond.getLeftThreshold()) && (long) value < Long.valueOf(cond.getRightThreshold());
+                } else
+                    throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
+            default:
+                throw new IllegalArgumentException("Wrong operation " + cond.getOp());
+        }
+    }
+
+    public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules, final List<QueryHistory> queryHistories) throws IOException {
+        List<Predicate<QueryHistory>> andPredicates = Lists.newArrayList();
+        List<Predicate<QueryHistory>> orPredicates = Lists.newArrayList();
+
+        if (rules == null)
+            return queryHistories;
+
+        for (final QueryFilterRule rule : rules) {
+            andPredicates.clear();
+            for (final QueryFilterRule.QueryHistoryCond cond : rule.getConds()) {
+                Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+                    @Override
+                    public boolean apply(@Nullable QueryHistory queryHistory) {
+                        return compare(cond, queryHistory, queryHistories);
+                    }
+                };
+
+                if (predicate != null)
+                    andPredicates.add(predicate);
+            }
+
+            orPredicates.add(Predicates.and(andPredicates));
+        }
+
+        List<QueryHistory> filteredQueries = Lists.newArrayList(Iterables.filter(queryHistories, Predicates.or(orPredicates)));
 
         return filteredQueries;
+    }
+
+    private List<String> getDailyQueriesSqls(List<QueryHistory> queryHistories) {
+        List<String> sqls = Lists.newArrayList();
+        Calendar now = Calendar.getInstance();
+        now.setTime(new Date());
+        Calendar queryStartTime = Calendar.getInstance();
+        for (QueryHistory queryHistory : queryHistories) {
+            queryStartTime.setTime(new Date(queryHistory.getStartTime()));
+            if (now.get(Calendar.YEAR) == queryStartTime.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == queryStartTime.get(Calendar.DAY_OF_YEAR)) {
+                sqls.add(queryHistory.getSql());
+            }
+        }
+
+        return sqls;
     }
 }

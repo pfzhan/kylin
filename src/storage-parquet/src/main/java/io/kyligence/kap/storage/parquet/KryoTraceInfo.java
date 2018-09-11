@@ -21,30 +21,34 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.storage.parquet;
 
-package io.kyligence.kap.spark.parquet.cube;
+import java.io.Serializable;
 
-import javax.annotation.Nullable;
+import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceInfo;
 
-import org.apache.kylin.common.util.ByteArray;
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.gridtable.GTRecord;
-import org.apache.kylin.gridtable.GTScanRequest;
 
-//not thread safe!
-public class SparkExecutorGTRecordSerializer implements com.google.common.base.Function<GTRecord, ByteArray> {
-    private ImmutableBitSet columns;
-    private ByteArray buffer;//shared
+public class KryoTraceInfo implements Serializable {
+    private static final long serialVersionUID = 1L;
+    public final long traceId;
+    public final long spanId;
 
-    public SparkExecutorGTRecordSerializer(GTScanRequest gtScanRequest, ImmutableBitSet columns) {
-        this.columns = columns;
-        this.buffer = ByteArray.allocate(gtScanRequest.getInfo().getMaxLength());
+    public KryoTraceInfo(long traceId, long spanId) {
+        this.traceId = traceId;
+        this.spanId = spanId;
     }
 
-    @Nullable
     @Override
-    public ByteArray apply(@Nullable GTRecord input) {
-        input.exportColumns(columns, buffer);
-        return buffer;
+    public String toString() {
+        return "KryoTraceInfo(traceId=" + traceId + ", spanId=" + spanId + ")";
     }
+
+    public TraceInfo toTraceInfo() {
+        return new TraceInfo(traceId, spanId);
+    }
+
+    public static KryoTraceInfo fromTraceInfo(TraceInfo traceInfo) {
+        return new KryoTraceInfo(traceInfo.traceId, traceInfo.spanId);
+    }
+
 }

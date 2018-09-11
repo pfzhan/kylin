@@ -43,7 +43,6 @@
 package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 
@@ -58,31 +57,22 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
 
     @JsonProperty("sql")
     private String sql;
-
     @JsonProperty("start_time")
     private long startTime;
-
     @JsonProperty("latency")
     private float latency;
-
     @JsonProperty("realization")
-    private String realization;
-
+    private List<String> realization;
     @JsonProperty("query_node")
     private String queryNode;
-
     @JsonProperty("thread")
     private String thread;
-
     @JsonProperty("user")
     private String user;
-
     @JsonProperty("query_status")
     private QueryHistoryStatusEnum queryStatus;
-
     @JsonProperty("favorite")
     private String favorite;
-
     @JsonProperty("accelerate_status")
     private String accelerateStatus;
 
@@ -115,6 +105,7 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     }
 
     public QueryHistory() {
+        updateRandomUuid();
     }
 
     public String getQueryId() {
@@ -149,11 +140,11 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
         this.latency = latency;
     }
 
-    public String getRealization() {
+    public List<String> getRealization() {
         return realization;
     }
 
-    public void setRealization(String realization) {
+    public void setRealization(List<String> realization) {
         this.realization = realization;
     }
 
@@ -198,7 +189,7 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     }
 
     public boolean isFavorite() {
-        return StringUtils.isNoneBlank(this.favorite);
+        return this.favorite != null;
     }
 
     public String getAccelerateStatus() {

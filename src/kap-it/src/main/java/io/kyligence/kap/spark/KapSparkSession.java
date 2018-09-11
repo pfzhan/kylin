@@ -166,8 +166,8 @@ public class KapSparkSession extends SparkSession {
         final QueryHistoryManager manager = QueryHistoryManager.getInstance(config, project);
         QueryHistory queryEntry = new QueryHistory();
         queryEntry.setSql(sql);
-        queryEntry.setRealization(QueryHistory.ADJ_PUSHDOWN);
-        manager.upsertEntry(queryEntry);
+        queryEntry.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+        manager.save(queryEntry);
     }
 
     public Dataset<Row> queryCube(String sql) throws Exception {

@@ -5,10 +5,11 @@
       "sql": "select * from test_kylin_fact limit 10",
       "start_time": 1459362230010,
       "latency": 1000,
-      "realization" : "Pushdown",
+      "realization" : ["Pushdown"],
       "query_node": "sandbox.hortonworks.com",
       "thread": "t-0",
       "user": "ADMIN",
       "query_status" : "SUCCEEDED",
+      "accelerate_status": "WAITING",
       "query_id": "query-3"
 }

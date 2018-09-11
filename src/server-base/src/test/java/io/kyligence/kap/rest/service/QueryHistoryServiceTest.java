@@ -22,31 +22,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryFilterRule;
+import io.kyligence.kap.metadata.query.QueryFilterRule;
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import org.apache.kylin.rest.request.SQLRequest;
+import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,6 +44,7 @@ import java.util.List;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
+    private static long now = System.currentTimeMillis();
 
     @InjectMocks
     private QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
@@ -74,51 +60,90 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private List<QueryHistory> mockQueryHistories() {
-        QueryHistory query1 = new QueryHistory("query-1", "select * from test_table_1", 1, 1000, "", "", "");
-        QueryHistory query2 = new QueryHistory("query-2", "select * from test_table_1", 2, 1000, "", "", "");
-        QueryHistory query3 = new QueryHistory("query-3", "select * from test_table_1", 3, 100, "", "", "");
+        QueryHistory query1 = new QueryHistory("query-1", "select * from test_table_1", now, 1000, "", "", "");
+        QueryHistory query2 = new QueryHistory("query-2", "select * from test_table_1", now + 1, 1000, "", "", "");
+        QueryHistory query3 = new QueryHistory("query-3", "select * from test_table_1", now + 2, 100, "", "", "");
         query3.setQueryStatus(QueryHistoryStatusEnum.SUCCEEDED);
-        QueryHistory query4 = new QueryHistory("query-4", "select * from test_table_2", 4, 100, "", "", "");
+        QueryHistory query4 = new QueryHistory("query-4", "select * from test_table_2", now + 3, 100, "", "", "");
         query4.setQueryStatus(QueryHistoryStatusEnum.FAILED);
-        QueryHistory query5 = new QueryHistory("query-5", "select * from test_table_1", 5, 100, "", "", "");
+        QueryHistory query5 = new QueryHistory("query-5", "select * from test_table_1", now + 4, 100, "", "", "");
+        query5.setQueryStatus(QueryHistoryStatusEnum.FAILED);
+        QueryHistory query6 = new QueryHistory("query-6", "select * from test_table_1", 5, 100, "", "", "");
         query5.setQueryStatus(QueryHistoryStatusEnum.FAILED);
 
-        return Lists.newArrayList(query1, query2, query3, query4, query5);
+        return Lists.newArrayList(query1, query2, query3, query4, query5, query6);
     }
 
-    private QueryHistoryFilterRule prepareRules() {
-        QueryHistoryFilterRule.QueryHistoryCond cond1 = new QueryHistoryFilterRule.QueryHistoryCond();
-        cond1.setOp(QueryHistoryFilterRule.QueryHistoryCond.Operation.GREATER);
+    private List<QueryFilterRule> prepareRules() {
+        QueryFilterRule.QueryHistoryCond cond1 = new QueryFilterRule.QueryHistoryCond();
+        cond1.setOp(QueryFilterRule.QueryHistoryCond.Operation.TO);
         cond1.setField("startTime");
-        cond1.setThreshold("1");
+        cond1.setLeftThreshold(String.valueOf(now));
+        cond1.setRightThreshold(String.valueOf(now + 5));
 
-        QueryHistoryFilterRule.QueryHistoryCond cond2 = new QueryHistoryFilterRule.QueryHistoryCond();
-        cond2.setOp(QueryHistoryFilterRule.QueryHistoryCond.Operation.LESS);
+        QueryFilterRule.QueryHistoryCond cond2 = new QueryFilterRule.QueryHistoryCond();
+        cond2.setOp(QueryFilterRule.QueryHistoryCond.Operation.GREATER);
         cond2.setField("latency");
-        cond2.setThreshold("1000");
+        cond2.setRightThreshold("100");
 
-        QueryHistoryFilterRule.QueryHistoryCond cond3 = new QueryHistoryFilterRule.QueryHistoryCond();
-        cond3.setOp(QueryHistoryFilterRule.QueryHistoryCond.Operation.EQUAL);
+        QueryFilterRule.QueryHistoryCond cond3 = new QueryFilterRule.QueryHistoryCond();
+        cond3.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
         cond3.setField("queryStatus");
-        cond3.setThreshold("FAILED");
+        cond3.setRightThreshold("FAILED");
 
-        QueryHistoryFilterRule.QueryHistoryCond cond4 = new QueryHistoryFilterRule.QueryHistoryCond();
-        cond4.setOp(QueryHistoryFilterRule.QueryHistoryCond.Operation.CONTAIN);
+        QueryFilterRule.QueryHistoryCond cond4 = new QueryFilterRule.QueryHistoryCond();
+        cond4.setOp(QueryFilterRule.QueryHistoryCond.Operation.CONTAIN);
         cond4.setField("sql");
-        cond4.setThreshold("test_table_1");
+        cond4.setRightThreshold("test_table_1");
 
-        List<QueryHistoryFilterRule.QueryHistoryCond> conds = Lists.newArrayList(cond1, cond2, cond3, cond4);
+        QueryFilterRule.QueryHistoryCond cond5 = new QueryFilterRule.QueryHistoryCond();
+        cond5.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
+        cond5.setField("frequency");
+        cond5.setRightThreshold("4");
 
-        return new QueryHistoryFilterRule(conds);
+        QueryFilterRule rule1 =  new QueryFilterRule(Lists.newArrayList(cond1, cond2), "test_rule_1", false);
+        QueryFilterRule rule2 = new QueryFilterRule(Lists.newArrayList(cond3, cond4, cond5), "test_rule_2", false);
+
+        return Lists.newArrayList(rule1, rule2);
     }
 
     @Test
     public void testFilterRule() throws IOException {
-        Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(prepareRules(), mockQueryHistories());
 
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(PROJECT, prepareRules());
+        Assert.assertEquals(2, queryHistories.size());
+        Assert.assertEquals("query-2", queryHistories.get(0).getQueryId());
+        Assert.assertEquals("query-5", queryHistories.get(1).getQueryId());
+    }
 
-        Assert.assertEquals(1, queryHistories.size());
-        Assert.assertEquals("query-5", queryHistories.get(0).getQueryId());
+    @Test
+    public void testUpsertQueryHistory() throws IOException {
+        SQLRequest sqlRequest = new SQLRequest();
+        sqlRequest.setProject(PROJECT);
+        sqlRequest.setSql("select * from existing_table_1");
+        sqlRequest.setUsername("ADMIN");
+
+        SQLResponse sqlResponse = new SQLResponse();
+        sqlResponse.setDuration(100L);
+        sqlResponse.setTotalScanBytes(0);
+        sqlResponse.setTotalScanCount(0);
+
+        // exception case
+        sqlResponse.setIsException(true);
+
+        queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 0);
+        QueryHistoryManager queryHistoryManager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
+        List<QueryHistory> queryHistories = queryHistoryManager.getAllQueryHistories();
+        Assert.assertEquals(5, queryHistories.size());
+        Assert.assertEquals(0L, queryHistories.get(0).getStartTime());
+        Assert.assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(0).getQueryStatus());
+
+        // push down case
+        sqlResponse = new SQLResponse(null, null, null, 0, false, null, true, true);
+        queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 1);
+        queryHistories = queryHistoryManager.getAllQueryHistories();
+        Assert.assertEquals(6, queryHistories.size());
+        Assert.assertEquals(1L, queryHistories.get(1).getStartTime());
+        Assert.assertEquals("[Pushdown]", queryHistories.get(1).getRealization().toString());
     }
 }

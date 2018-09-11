@@ -23,12 +23,14 @@
  */
 package io.kylingence.kap.event.handle;
 
-
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -69,8 +71,12 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
 
         List<String> sqlList = event.getSqlIdList();
         if (CollectionUtils.isNotEmpty(sqlList)) {
-            //TODO update favorite sql status
-
+            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, project);
+            for (String favoriteId : sqlList) {
+                FavoriteQuery favoriteQuery = favoriteQueryManager.get(favoriteId);
+                favoriteQuery.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+                favoriteQueryManager.update(favoriteQuery);
+            }
         }
 
     }
@@ -126,7 +132,8 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                         if (dataLoadingRange == null) {
                             return null;
                         }
-                        segmentRange = dataLoadingRange.getDataLoadingRange();
+                        SegmentRange.TimePartitionedDataLoadingRange range = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
+                        segmentRange = new SegmentRange.TimePartitionedSegmentRange(range.getStart(), range.getEnd());
                     }
                     checkNotNull(segmentRange);
                     NDataSegment oneSeg = NDataflowManager.getInstance(kylinConfig, project).appendSegment(df, segmentRange);

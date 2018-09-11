@@ -55,6 +55,7 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -64,8 +65,6 @@ public class QueryHistoryManager {
     public static final Serializer<QueryHistory> QUERY_HISTORY_INSTANCE_SERIALIZER = new JsonSerializer<>(
             QueryHistory.class);
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryManager.class);
-
-    private static String QUERY_HISTORY_ROOT_PATH;
 
     public static QueryHistoryManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, QueryHistoryManager.class);
@@ -78,12 +77,13 @@ public class QueryHistoryManager {
 
     private KylinConfig kylinConfig;
     private String project;
+    private String queryHistoryResourcePath;
 
     public QueryHistoryManager(KylinConfig config, String project) {
         logger.info("Initializing QueryHistoryManager with config " + config);
         this.kylinConfig = config;
         this.project = project;
-        this.QUERY_HISTORY_ROOT_PATH = "/" + project + ResourceStore.QUERY_HISTORY_RESOURCE_ROOT;
+        this.queryHistoryResourcePath = "/" + project + ResourceStore.QUERY_HISTORY_RESOURCE_ROOT;
     }
 
     public QueryHistory findQueryHistory(String queryHistoryId) throws IOException {
@@ -98,8 +98,27 @@ public class QueryHistoryManager {
         return null;
     }
 
-    public QueryHistory findQueryHistory(Predicate<QueryHistory> predicate) throws IOException {
-        return Iterators.tryFind(getAllQueryHistories().iterator(), predicate).orNull();
+    public List<QueryHistory> getUnFavoriteQueryHistory() throws IOException {
+        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+            @Override
+            public boolean apply(@Nullable QueryHistory queryHistory) {
+                return !queryHistory.isFavorite();
+            }
+        };
+
+        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
+    }
+
+    public List<QueryHistory> findQueryHistoryByFavorite(final String favoriteUuid) throws IOException {
+        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+            @Override
+            public boolean apply(@Nullable QueryHistory queryHistory) {
+                if (queryHistory.getFavorite() == null)
+                    return false;
+                return queryHistory.getFavorite().equals(favoriteUuid);
+            }
+        };
+        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
     }
 
     private ResourceStore getStore() {
@@ -107,7 +126,7 @@ public class QueryHistoryManager {
     }
 
     public List<QueryHistory> getAllQueryHistories() throws IOException {
-        List<QueryHistory> queryHistories = getStore().getAllResources(QUERY_HISTORY_ROOT_PATH,
+        List<QueryHistory> queryHistories = getStore().getAllResources(queryHistoryResourcePath,
                 QueryHistory.class, QUERY_HISTORY_INSTANCE_SERIALIZER);
         Collections.sort(queryHistories);
 
@@ -116,14 +135,14 @@ public class QueryHistoryManager {
     }
 
     public String getResourcePathForQueryHistory(String resouceName) {
-        return QUERY_HISTORY_ROOT_PATH + "/" + resouceName + MetadataConstants.FILE_SURFIX;
+        return queryHistoryResourcePath + "/" + resouceName + MetadataConstants.FILE_SURFIX;
     }
 
-    public void upsertEntry(QueryHistory queryHistory) throws IOException {
-        upsertEntries(Lists.newArrayList(queryHistory));
+    public void save(QueryHistory queryHistory) throws IOException {
+        saveAll(Lists.newArrayList(queryHistory));
     }
 
-    public void upsertEntries(Collection<QueryHistory> queryHistoryEntries) throws IOException {
+    public void saveAll(Collection<QueryHistory> queryHistoryEntries) throws IOException {
         if (StringUtils.isEmpty(project) || queryHistoryEntries == null)
             throw new IllegalArgumentException();
 

@@ -29,17 +29,25 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import java.util.List;
 
-public class QueryHistoryFilterRule extends RootPersistentEntity {
-    public QueryHistoryFilterRule() {}
+public class QueryFilterRule extends RootPersistentEntity {
 
-    public QueryHistoryFilterRule(List<QueryHistoryCond> conds) {
+    public QueryFilterRule() {
+        updateRandomUuid();
+    }
+
+    public QueryFilterRule(List<QueryHistoryCond> conds, String name, boolean isEnabled) {
+        updateRandomUuid();
         this.conds = conds;
+        this.name = name;
+        this.enabled = isEnabled;
     }
 
     @JsonProperty("conds")
     private List<QueryHistoryCond> conds;
     @JsonProperty("name")
     private String name;
+    @JsonProperty("enabled")
+    private boolean enabled;
 
     public List<QueryHistoryCond> getConds() {
         return conds;
@@ -49,17 +57,35 @@ public class QueryHistoryFilterRule extends RootPersistentEntity {
         this.conds = conds;
     }
 
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public static class QueryHistoryCond {
         public enum Operation {
             LESS,
             GREATER,
             EQUAL,
             CONTAIN,
+            TO,
         }
 
         private Operation op;
         private String field;
-        private String threshold;
+        private String rightThreshold;
+        private String leftThreshold;
 
         public Operation getOp() {
             return op;
@@ -77,12 +103,20 @@ public class QueryHistoryFilterRule extends RootPersistentEntity {
             this.field = field;
         }
 
-        public String getThreshold() {
-            return threshold;
+        public String getRightThreshold() {
+            return rightThreshold;
         }
 
-        public void setThreshold(String threshold) {
-            this.threshold = threshold;
+        public void setRightThreshold(String rightThreshold) {
+            this.rightThreshold = rightThreshold;
+        }
+
+        public String getLeftThreshold() {
+            return leftThreshold;
+        }
+
+        public void setLeftThreshold(String leftThreshold) {
+            this.leftThreshold = leftThreshold;
         }
     }
 }

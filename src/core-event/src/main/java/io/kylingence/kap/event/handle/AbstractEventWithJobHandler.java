@@ -109,6 +109,9 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
                 event.setStatus(EventStatus.SUCCEED);
                 getEventDao(eventContext).updateEvent(event);
             }
+        } else {
+            event.setStatus(EventStatus.SUCCEED);
+            getEventDao(eventContext).updateEvent(event);
         }
     }
 

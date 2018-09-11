@@ -29,6 +29,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.model.ModelTree;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.AddCuboidEvent;
 import io.kylingence.kap.event.model.ModelUpdateEvent;
@@ -36,12 +37,15 @@ import io.kylingence.kap.event.model.RemoveCuboidEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kylingence.kap.event.model.EventContext;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +75,8 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                 master.selectModel();
                 master.selectCubePlan();
 
-                master.shrinkCubePlan();
-                master.shrinkModel();
+//                master.shrinkCubePlan();
+//                master.shrinkModel();
             }
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             if (CollectionUtils.isEmpty(modelContexts)) {
@@ -80,13 +84,13 @@ public class ModelUpdateHandler extends AbstractEventHandler {
             }
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (NSmartContext.NModelContext modelContext : modelContexts) {
-                String[] sqls = modelContext.getSmartContext().getSqls();
+
+                List<String> sqls = getRelatedSqlsFromModelContext(modelContext);
                 List<String> sqlIdList = getSqlIdList(sqls, sqlMap);
                 NCubePlan origCubePlan = modelContext.getOrigCubePlan();
                 NCubePlan targetCubePlan = modelContext.getTargetCubePlan();
                 Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan, targetCubePlan);
                 List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
-                List<Long> removedLayoutIds = updatedLayoutsPair.getSecond();
                 AddCuboidEvent addCuboidEvent;
                 RemoveCuboidEvent removeCuboidEvent;
                 if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
@@ -102,7 +106,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                     eventManager.post(addCuboidEvent);
                 }
 
-                if (CollectionUtils.isNotEmpty(removedLayoutIds) && origCubePlan != null) {
+                if (!event.isFavoriteMark() && origCubePlan != null) {
                     removeCuboidEvent = new RemoveCuboidEvent();
                     removeCuboidEvent.setSqlList(Lists.newArrayList(sqls));
                     removeCuboidEvent.setApproved(eventAutoApproved);
@@ -118,9 +122,30 @@ public class ModelUpdateHandler extends AbstractEventHandler {
 
     }
 
-    private List<String> getSqlIdList(String[] sqls, Map<String, String> sqlMap) {
+    private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext) {
+        List<String> sqls = Lists.newArrayList();
+        if (modelContext == null) {
+            return sqls;
+        }
+        ModelTree modelTree = modelContext.getModelTree();
+        if (modelTree == null) {
+            return sqls;
+        }
+        Collection<OLAPContext> olapContexts = modelTree.getOlapContexts();
+        if (CollectionUtils.isEmpty(olapContexts)) {
+            return sqls;
+        }
+        Iterator<OLAPContext> iterator = olapContexts.iterator();
+        while (iterator.hasNext()) {
+            sqls.add(iterator.next().sql);
+        }
+
+        return sqls;
+    }
+
+    private List<String> getSqlIdList(List<String> sqls, Map<String, String> sqlMap) {
         List<String> sqlIdList = Lists.newArrayList();
-        if (sqls == null || sqls.length == 0) {
+        if (sqls == null || sqls.size() == 0) {
             return sqlIdList;
         }
 

@@ -191,10 +191,10 @@ public class NDataStorageQuery implements IStorageQuery {
     public String getGTStorage(NCuboidLayout cuboidLayout) {
         switch (cuboidLayout.getStorageType()) {
         case IKapStorageAware.ID_NPARQUET:
-            return "io.kyligence.kap.spark.parquet.cube.NMockedDataflowSparkRPC"; // TODO: make it extensiable and configurable
+            return "io.kyligence.kap.storage.parquet.NMockedDataflowSparkRPC"; // TODO: make it extensiable and configurable
         default:
             //            throw new IllegalStateException("Unsupported storage type");
-            return "io.kyligence.kap.spark.parquet.cube.NMockedDataflowSparkRPC";
+            return "io.kyligence.kap.storage.parquet.NMockedDataflowSparkRPC";
         }
     }
 

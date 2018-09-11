@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.spark.parquet.cube;
+package io.kyligence.kap.storage.parquet;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -31,6 +31,8 @@ import java.util.Iterator;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.storage.parquet.gtscanner.ParquetBytesGTScanner;
+import io.kyligence.kap.storage.parquet.gtscanner.ParquetBytesGTScanner4Cube;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.hadoop.io.Text;
 import org.apache.kylin.common.htrace.HtraceInit;
@@ -53,8 +55,6 @@ import com.google.common.collect.Iterators;
 
 import io.kyligence.kap.common.metric.JVMInfoCollector;
 import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner;
-import io.kyligence.kap.spark.parquet.cube.gtscanner.ParquetBytesGTScanner4Cube;
 import io.kyligence.kap.storage.parquet.format.ParquetSpliceTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.file.ParquetMetrics;

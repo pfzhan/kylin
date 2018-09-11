@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.spark.parquet.cube;
+package io.kyligence.kap.storage.parquet;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -59,7 +59,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.storage.parquet.NDataflowSparkRPC;
 import io.kyligence.kap.storage.parquet.format.ParquetFormatConstants;
 import io.kyligence.kap.storage.parquet.format.ParquetTarballFileInputFormat;
 import io.kyligence.kap.storage.parquet.format.serialize.RoaringBitmaps;

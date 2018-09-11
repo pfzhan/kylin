@@ -1,0 +1,12 @@
+{
+  "sql" : "select * from test_kylin_fact limit 3",
+  "last_query_time" : 0,
+  "success_rate" : 0.0,
+  "frequency" : 0,
+  "average_duration" : 0,
+  "model_name" : null,
+  "status" : "WAITING",
+  "uuid" : "bd3285c9-55e3-4f2d-a12c-742a8d631195",
+  "last_modified" : 1532674471854,
+  "version" : "3.0.0.0"
+}

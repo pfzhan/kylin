@@ -43,6 +43,8 @@
 package org.apache.kylin.rest.service;
 
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.manager.EventManager;
@@ -110,5 +112,14 @@ public abstract class BasicService {
 
     public QueryHistoryManager getQueryHistoryManager(String project) {
         return QueryHistoryManager.getInstance(getConfig(), project);
+    }
+
+    public QueryFilterRuleManager getQueryFilterRuleManager(String project) {
+        return QueryFilterRuleManager.getInstance(getConfig(), project);
+    }
+
+
+    public FavoriteQueryManager getFavoriteQueryManager(String project) {
+        return FavoriteQueryManager.getInstance(getConfig(), project);
     }
 }

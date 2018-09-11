@@ -25,15 +25,20 @@
 package io.kyligence.kap.rest;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
 import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
+import io.kylingence.kap.event.handle.MergeSegmentHandler;
+import io.kylingence.kap.event.handle.ModelUpdateHandler;
 import io.kylingence.kap.event.handle.ProjectHandler;
+import io.kylingence.kap.event.handle.RemoveCuboidHandler;
 import io.kylingence.kap.event.handle.RemoveSegmentHandler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.StaticSQLConf;
@@ -42,22 +47,21 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportResource;
 
 import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.UUID;
 
-@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
+@ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
 public class KAPDebugServer {
 
     private static File localMetadata;
 
-    public static void main(String[] args) throws SchedulerException {
+    public static void main(String[] args) {
         setLocalEnvs();
         SpringApplication.run(KAPDebugServer.class, args);
-        new LoadingRangeUpdateHandler();
-        new AddSegmentHandler();
-        new ProjectHandler();
-        new RemoveSegmentHandler();
-        new NDefaultScheduler("default").init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+
         if (localMetadata != null && localMetadata.exists()) {
             Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
                 @Override
@@ -80,6 +84,50 @@ public class KAPDebugServer {
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
 
         localMetadata = new File(tempMetadataDir);
+
+        // pass checkHadoopHome
+        System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
+
+        // enable push down
+        System.setProperty("kylin.query.pushdown.runner-class-name",
+                "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+        System.setProperty("kylin.query.pushdown.converter-class-names",
+                "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+
+        // set h2 configuration
+        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+
+        // Load H2 Tables (inner join)
+        try {
+            Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
+            H2Database h2DB = new H2Database(h2Connection, KylinConfig.getInstanceFromEnv(), "default");
+            h2DB.loadAllTables();
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+
+        new ProjectHandler();
+        new AddSegmentHandler();
+        new MergeSegmentHandler();
+        new RemoveCuboidHandler();
+        new RemoveSegmentHandler();
+        new AddCuboidHandler();
+        new ModelUpdateHandler();
+        new LoadingRangeUpdateHandler();
+
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
+        try {
+            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        } catch (SchedulerException e) {
+            throw new RuntimeException(e);
+        }
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("scheduler has not been started");
+        }
+
         final SparkConf sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");

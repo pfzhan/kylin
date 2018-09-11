@@ -50,7 +50,7 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.FilterQueryHistoryRequest;
+import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -122,14 +122,12 @@ public class NQueryController extends NBasicController {
 
     @RequestMapping(value = "/saved_queries", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
+    public void saveQuery(@RequestBody SaveSqlRequest sqlRequest) throws IOException {
 
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         Query newQuery = new Query(sqlRequest.getName(), sqlRequest.getProject(), sqlRequest.getSql(),
                 sqlRequest.getDescription());
         queryService.saveQuery(creator, sqlRequest.getProject(), newQuery);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/saved_queries/{project}/{id}", method = RequestMethod.DELETE, produces = {
@@ -160,7 +158,7 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/query_histories", method = RequestMethod.GET, produces = {
+    @RequestMapping(value = "/history_queries", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getAllQueryHistories(@RequestParam(value = "project", required = false) String project,
@@ -176,15 +174,15 @@ public class NQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
-    @RequestMapping(value = "/query_histories", method = RequestMethod.POST, produces = {
+    @RequestMapping(value = "/history_queries", method = RequestMethod.POST, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getFilteredQueryHistories(@RequestBody FilterQueryHistoryRequest request,
+    public EnvelopeResponse getFilteredQueryHistories(@RequestBody QueryFilterRequest request,
                                                       @RequestParam(value = "pageOffset", required = false, defaultValue = "0") int pageOffset,
                                                       @RequestParam(value = "pageSize", required = false, defaultValue = "10") int pageSize)
             throws IOException {
         HashMap<String, Object> data = new HashMap<>();
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(request.getProject(), request.getRule());
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(request.getRules(), queryHistoryService.getQueryHistories(request.getProject()));
 
         data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
         data.put("size", queryHistories.size());

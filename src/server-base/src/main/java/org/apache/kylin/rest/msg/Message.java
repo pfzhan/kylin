@@ -473,4 +473,26 @@ public class Message {
     public String getHBASE_FAIL_WITHOUT_DETAIL() {
         return "HBase failed.";
     }
+
+    // Favorite Query
+
+    public String getQUERY_HISTORY_NOT_FOUND() {
+        return "Can not find query history";
+    }
+
+    public String getQUERY_HISTORY_IS_FAVORITED(){
+        return "Query history is already marked as favorite query";
+    }
+
+    public String getQUERY_HISTORY_IS_NOT_FAVORITED() {
+        return "Query history is not yet marked as favorite query";
+    }
+
+    public String getFAVORITE_QUERY_NOT_FOUND() {
+        return "Can find favorite query [%s]";
+    }
+
+    public String getFAVORITE_RULE_NOT_FOUND() {
+        return "Cannot find favorite rule [%s]";
+    }
 }
