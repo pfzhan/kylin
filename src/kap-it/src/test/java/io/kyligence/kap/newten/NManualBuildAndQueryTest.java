@@ -138,7 +138,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         for (Pair<String, Throwable> result : results) {
             if (result.getSecond() != null) {
                 succceed = false;
-                logger.error("CI failed on:" + result.getFirst());
+                logger.error("CI failed on:" + result.getFirst(), result.getSecond());
             }
         }
         if (!succceed) {
