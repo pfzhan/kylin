@@ -3,7 +3,7 @@
      <div class="left-part">
         <el-form label-position="top" label-width="80px">
         <el-form-item label="Shard by Column">
-          <el-select v-model="shardbyColumn" size="medium" :disabled="lockRawTable">
+          <el-select v-model="shardbyColumn" style="width:100%" size="medium" :disabled="lockRawTable">
             <el-option
               v-for="item in tableIndexDesc"
               :key="item.table + '.' + item.column"
@@ -15,8 +15,8 @@
         </el-form-item>
         <el-form-item label="Sort by Column">
           <el-row v-for="(item, index) in sortbyColumns" :key="index" :gutter="10">
-            <el-col  :span="20">
-              <el-select v-model="sortbyColumns[index]" style="width:100%" size="medium" @change="sortTable" :disabled="lockRawTable">
+            <el-col  :span="17">
+              <el-select v-model="sortbyColumns[index]" style="width:208px" size="medium" @change="sortTable" :disabled="lockRawTable">
                 <el-option
                   v-for="(column, colIndex) in sortByOptitions"
                   :key="column.table + '.' + column.column"
@@ -25,9 +25,9 @@
                 </el-option>
               </el-select>
             </el-col>
-            <el-col :span="4">
-              <el-button circle palin icon="el-icon-plus" size="medium" v-if="index === 0" @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-              <el-button circle palin icon="el-icon-delete" size="medium" v-else @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button>
+            <el-col :span="7">
+              <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
+              <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button>
             </el-col>
           </el-row>
         </el-form-item>
@@ -113,7 +113,7 @@
         <pager ref="pager" :perPageSize="15" :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange'></pager>
         <div class="ksd-right ksd-mt-10">
           <el-button plain>Cancel</el-button>
-          <el-button plain>Save</el-button>
+          <el-button type="primary" plain>Save</el-button>
         </div>
      </div>
    </div>
@@ -167,9 +167,10 @@ export default class TableIndex extends Vue {
   justify-content: space-between;
   width:100%;
   .left-part {
-    width: 360px;
+    width:360px;
     border-right:solid 1px #ccc;
     padding-top:26px;
+    padding-right: 10px;
   }
   .right-part {
     flex-grow:1;

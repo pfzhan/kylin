@@ -1,7 +1,7 @@
 import { utcToConfigTimeZone, removeNameSpace, getNameSpaceTopName } from './index'
 import { stopPropagation } from './event'
 import { permissionsMaps, NamedRegex } from 'config/index'
-import { MessageBox } from 'kyligence-ui'
+import { MessageBox, Message } from 'kyligence-ui'
 import { jsPlumb } from 'jsplumb'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
@@ -76,6 +76,15 @@ export function kapWarn (content, para) {
     showCancelButton: false
   }
   return MessageBox.confirm(content, window.kapVm.$t('kylinLang.common.tip'), dialogPara)
+}
+export function kapMessage (content, para) {
+  var messagePara = Object.assign({
+    type: 'success',
+    message: content,
+    duration: 3000,
+    showClose: false
+  }, para)
+  Message(messagePara)
 }
 // 获取基本encoding
 export function loadBaseEncodings (state) {

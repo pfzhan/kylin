@@ -6,8 +6,23 @@ import { aggregateTree } from '../../mock/aggregateIndex'
 Vue.use(VueResource)
 
 export default {
+  // 获取加速信息
+  getSpeedModelInfo: (projectName) => {
+    return Vue.resource(apiUrl + 'events?project=' + projectName).get()
+  },
+  // 执行加速
+  applySpeedModelInfo: (para) => {
+    return Vue.resource(apiUrl + 'events').save(para)
+  },
+  // purge
+  purgeModel: (project, modelName) => {
+    return Vue.resource(apiUrl + 'models/segments/' + project + '/' + modelName).delete()
+  },
   getModelList: (params) => {
     return Vue.resource(apiUrl + 'models').get(params)
+  },
+  renameModel: (params) => {
+    return Vue.resource(apiUrl + 'models').update(params)
   },
   measureDimensionSuggestion: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.project + '/table_suggestions').get(params)
@@ -31,7 +46,7 @@ export default {
     return Vue.resource(apiUrl + 'models/draft').update(data)
   },
   cloneModel: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.oldName + '/clone').update(para.data)
+    return Vue.resource(apiUrl + 'models').save(para)
   },
   diagnose: (project, modelName) => {
     return Vue.resource(apiUrl + 'models/' + project + '/' + modelName + '/diagnose').get()

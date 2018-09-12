@@ -9,7 +9,8 @@ export default {
     modelEditCache: {},
     modelAccess: {},
     modelEndAccess: {},
-    activeMenuName: ''
+    activeMenuName: '',
+    modelSpeedEvents: []
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -31,6 +32,9 @@ export default {
     },
     [types.CACHE_MODEL_END_ACCESS]: function (state, { access, id }) {
       state.modelEndAccess[id] = access
+    },
+    [types.CACHE_SPEED_INFO]: function (state, { list }) {
+      state.modelSpeedEvents = list
     }
   },
   actions: {
@@ -44,6 +48,27 @@ export default {
           reject(res)
         })
       })
+    },
+    [types.GET_SPEED_INFO]: function ({ commit }, projectName) {
+      return new Promise((resolve, reject) => {
+        api.model.getSpeedModelInfo(projectName).then((response) => {
+          console.log(response.data.data.events || [])
+          commit(types.CACHE_SPEED_INFO, { list: response.data.data.events || [] })
+          resolve(response)
+        }, (response) => {
+          commit(types.CACHE_SPEED_INFO, { list: [] })
+          reject(response)
+        })
+      })
+    },
+    [types.APPLY_SPEED_INFO]: function ({ commit }, para) {
+      return api.model.applySpeedModelInfo(para)
+    },
+    [types.PURGE_MODEL]: function ({ commit }, para) {
+      return api.model.purgeModel(para.project, para.modelName)
+    },
+    [types.RENAME_MODEL]: function ({ commit }, para) {
+      return api.model.renameModel(para)
     },
     [types.LOAD_ALL_MODEL]: function ({ commit }, para) {
       return api.model.getModelList(para)

@@ -1,11 +1,11 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}">
-    <div class="notice-box">
+    <div class="notice-box" v-if="modelSpeedEvents.length">
       <el-alert
       type="warning"
       :closable="false"
       show-icon>
-       <span slot="title">Release 2.75 TB storage with only 3% favorite score down! <a>Apply</a></span>
+       <span slot="title">Release 2.75 TB storage with only 3% favorite score down! <a @click="applySpeed">Apply</a></span>
       </el-alert>
       <div class="tip-toggle-btnbox">
         <el-button-group>
@@ -25,6 +25,7 @@
         :data="modelArray"
         border
         tooltip-effect="dark"
+        @sort-change="onSortChange"
         style="width: 100%">
         <el-table-column type="expand" min-width="30">
           <template slot-scope="props">
@@ -65,7 +66,7 @@
         </el-table-column>
         <el-table-column
         show-overflow-tooltip
-        prop="name"
+        prop="alias"
           :label="$t('kylinLang.model.modelNameGrid')">
         </el-table-column>
         <el-table-column
@@ -83,6 +84,7 @@
         <el-table-column
           prop="gmtTime"
           show-overflow-tooltip
+          sortable="custom"
           width="210"
           :label="$t('dataLoadTime')">
         </el-table-column>
@@ -107,25 +109,25 @@
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.name)"></i></common-tip>
-              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16"></i></common-tip>
+              <common-tip :tips="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.name)"></i></common-tip>
+              <common-tip :tips="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="dataLoad"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
-                <el-dropdown @command="handleCommand" :id="scope.row.name" trigger="click" >
+                <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
                       <i class="el-icon-ksd-table_others ksd-fs-16"></i>
                   </span>
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
-                    <el-dropdown-item command="dataCheck">Data Check</el-dropdown-item>
-                    <el-dropdown-item command="dataLoading">Data Loading</el-dropdown-item>
-                    <el-dropdown-item command="verify">Favorite</el-dropdown-item>
-                    <el-dropdown-item command="verify" divided>Import MDX</el-dropdown-item>
-                    <el-dropdown-item command="verify">Export to TDS</el-dropdown-item>
-                    <el-dropdown-item command="verify">Export to MDX</el-dropdown-item>
-                    <el-dropdown-item command="verify" divided>Rename</el-dropdown-item>
+                    <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item>
+                    <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item>
+                    <el-dropdown-item command="importMDX" divided disabled>{{$t('importMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" disabled>{{$t('exportTds')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled>{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="rename" divided>{{$t('rename')}}</el-dropdown-item>
                     <el-dropdown-item command="clone" >{{$t('kylinLang.common.clone')}}</el-dropdown-item>
-                    <el-dropdown-item command="verify">Delete</el-dropdown-item>
-                    <el-dropdown-item command="verify">Purge</el-dropdown-item>
-                    <el-dropdown-item command="verify">Disable</el-dropdown-item>
+                    <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
+                    <el-dropdown-item command="purge">{{$t('purge')}}</el-dropdown-item>
+                    <el-dropdown-item command="disabled" v-if="scope.row.status === 'READY'">{{$t('disable')}}</el-dropdown-item>
+                    <el-dropdown-item command="enabled" v-if="scope.row.status === 'DISABLED'" >{{$t('enable')}}</el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
                 </common-tip>
@@ -158,7 +160,7 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
     </div>
   </el-dialog>
   <!-- 模型克隆 -->
-  <el-dialog :title="$t('modelClone')" width="440px" :visible.sync="cloneFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
+<!--   <el-dialog :title="$t('modelClone')" width="440px" :visible.sync="cloneFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
       <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm" label-width="100px">
         <el-form-item :label="$t('modelName')" prop="newName">
           <el-input v-model="cloneModelMeta.newName" auto-complete="off" size="medium"></el-input>
@@ -168,7 +170,8 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
         <el-button @click="cloneFormVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="cloneModel">{{$t('kylinLang.common.clone')}}</el-button>
       </div>
-  </el-dialog>
+  </el-dialog> -->
+
 
     <!-- 添加model -->
     <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible.sync="createModelVisible" @close="resetAddModelForm">
@@ -200,9 +203,9 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
       <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
         <div class="ky-list-title">数据检查项</div>
         <ul class="ksd-mtb-20">
-          <li class="ksd-mb-10"><el-checkbox v-model="checked">模型上主外键重复</el-checkbox></li>
-          <li class="ksd-mb-10"><el-checkbox v-model="checked">数据倾斜（偏度过高）</el-checkbox></li>
-          <li class="ksd-mb-10"><el-checkbox v-model="checked">字段中存在空值</el-checkbox></li>
+          <li class="ksd-mb-10"><el-checkbox>模型上主外键重复</el-checkbox></li>
+          <li class="ksd-mb-10"><el-checkbox>数据倾斜（偏度过高）</el-checkbox></li>
+          <li class="ksd-mb-10"><el-checkbox>字段中存在空值</el-checkbox></li>
         </ul>
         <div class="ky-line"></div>
         <div class="ky-list-title ksd-mt-20">数据容忍标准</div>
@@ -211,9 +214,9 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
         </div>
         <div class="ksd-mt-16">
           <ul>
-            <li class="ksd-mb-10"><el-radio v-model="checked">模型上主外键重复</el-radio></li>
-            <li class="ksd-mb-10"><el-radio v-model="checked">数据倾斜（偏度过高）</el-radio></li>
-            <li><el-radio v-model="checked">字段中存在空值</el-radio></li>
+            <li class="ksd-mb-10"><el-radio>模型上主外键重复</el-radio></li>
+            <li class="ksd-mb-10"><el-radio>数据倾斜（偏度过高）</el-radio></li>
+            <li><el-radio>字段中存在空值</el-radio></li>
           </ul>
         </div>
       </el-form>
@@ -276,7 +279,8 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
         <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
-
+    <ModelRenameModal/>
+    <ModelCloneModal/>
   </div>
 </template>
 <script>
@@ -285,30 +289,48 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { permissions, NamedRegex } from '../../../../config'
 import locales from './locales'
-import { handleError, hasRole, hasPermission } from 'util/business'
+import { handleError, hasRole, hasPermission, kapConfirm, kapMessage } from 'util/business'
+import { objectClone } from 'util'
 import TableIndex from '../TableIndex/index.vue'
 import ModelSegment from './ModelSegment/index.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
+import ModelRenameModal from './ModelRenameModal/rename.vue'
+import ModelCloneModal from './ModelCloneModal/clone.vue'
 import { mockSQL } from './mock'
 @Component({
   computed: {
     ...mapGetters([
       'currentSelectedProject',
       'modelsPagerRenderData'
-    ])
+    ]),
+    modelSpeedEvents () {
+      return this.$store.state.model.modelSpeedEvents
+    }
   },
   methods: {
     ...mapActions({
       loadModels: 'LOAD_MODEL_LIST',
       cloneModel: 'CLONE_MODEL',
       delModel: 'DELETE_MODEL',
-      checkModelName: 'CHECK_MODELNAME'
+      checkModelName: 'CHECK_MODELNAME',
+      applySpeedInfo: 'APPLY_SPEED_INFO',
+      purgeModel: 'PURGE_MODEL',
+      disableModel: 'RENAME_MODEL',
+      enableModel: 'RENAME_MODEL'
+    }),
+    ...mapActions('ModelRenameModal', {
+      callRenameModelDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelCloneModal', {
+      callCloneModelDialog: 'CALL_MODAL'
     })
   },
   components: {
     TableIndex,
     ModelSegment,
-    ModelAggregate
+    ModelAggregate,
+    ModelRenameModal,
+    ModelCloneModal
   },
   locales
 })
@@ -344,13 +366,29 @@ export default class ModelList extends Vue {
     pageOffset: 0,
     pageSize: 10,
     exactMatch: false,
-    modelName: ''
+    modelName: '',
+    sortBy: '',
+    reverse: true
   }
   showFull = false
   activeIndex = -1
   showSearchResult = false
   searchLoading = false
   modelArray = []
+  applySpeed () {
+    var eventId = []
+    this.modelSpeedEvents.forEach((ev) => {
+      eventId.push(ev.uuid)
+    })
+    this.applySpeedInfo({
+      event_id: eventId,
+      project: this.currentSelectedProject
+    }).then(() => {
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -358,14 +396,79 @@ export default class ModelList extends Vue {
       callback()
     }
   }
-  handleCommand (command, component) {
-    if (command === 'clone') {
-      this.cloneFormVisible = true
-    } else if (command === 'dataCheck') {
+  dataLoad () {
+    this.dataLoadingModeVisible = true
+  }
+  async handleCommand (command, modelInstance) {
+    if (command === 'dataCheck') {
       this.modelCheckModeVisible = true
-    } else if (command === 'dataLoading') {
-      this.dataLoadingModeVisible = true
+    } else if (command === 'rename') {
+      this.callRenameModelDialog(objectClone(modelInstance))
+    } else if (command === 'delete') {
+      kapConfirm(this.$t('delModelTip')).then(() => {
+        this.handleDrop(modelInstance)
+      })
+    } else if (command === 'purge') {
+      kapConfirm(this.$t('pergeModelTip')).then(() => {
+        this.handlePurge(modelInstance)
+      })
+    } else if (command === 'clone') {
+      const isSubmit = await this.callCloneModelDialog(objectClone(modelInstance))
+      isSubmit && this.loadModelsList()
+    } else if (command === 'disabled') {
+      kapConfirm(this.$t('disbaleModelTip')).then(() => {
+        this.handleDisableModel(objectClone(modelInstance))
+      })
+    } else if (command === 'enabled') {
+      kapConfirm(this.$t('enableModelTip')).then(() => {
+        this.handleEnableModel(objectClone(modelInstance))
+      })
     }
+  }
+  handleDisableModel (modelInstance) {
+    let model = objectClone(modelInstance)
+    model.status = 'DISABLED'
+    this.disableModel({modelDescData: JSON.stringify(model), project: this.currentSelectedProject}).then(() => {
+      kapMessage('disbaleModelSuccessTip')
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  handleEnableModel (modelInstance) {
+    let model = objectClone(modelInstance)
+    model.status = 'READY'
+    this.disableModel({modelDescData: JSON.stringify(model), project: this.currentSelectedProject}).then(() => {
+      kapMessage('enabledModelSuccessTip')
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  handleEdit (model) {
+    this.$emit('addtabs', 'model', model.name, 'modelEdit', {
+      project: model.project,
+      modelName: model.name,
+      uuid: model.uuid,
+      status: model.is_draft
+    })
+  }
+  handleDrop (model) {
+    this.delModel({modelName: model.name, project: this.currentSelectedProject}).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('kylinLang.common.delSuccess')
+      })
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  handlePurge (model) {
+    this.purgeModel({project: this.currentSelectedProject, modelName: model.name}).then(() => {
+    }, (res) => {
+      handleError(res)
+    })
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {
@@ -376,6 +479,13 @@ export default class ModelList extends Vue {
         tabTypes: 'first'
       })
     })
+  }
+  onSortChange ({ column, prop, order }) {
+    if (prop === 'gmtTime') {
+      this.filterArgs.sortBy = 'last_modify'
+      this.filterArgs.reverse = !(order === 'ascending')
+    }
+    this.loadModelsList()
   }
   // 全凭查看模型附属信息
   toggleShowFull (index) {
@@ -421,25 +531,6 @@ export default class ModelList extends Vue {
   createModel () {}
   resetAddModelForm () {}
   cloneModel () {}
-  handleEdit (model) {
-    this.$emit('addtabs', 'model', model.name, 'modelEdit', {
-      project: model.project,
-      modelName: model.name,
-      uuid: model.uuid,
-      status: model.is_draft
-    })
-  }
-  handleDrop (model) {
-    this.delModel({modelName: model.name, project: model.project}).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.delSuccess')
-      })
-      this.loadModelsList()
-    }, (res) => {
-      handleError(res)
-    })
-  }
   hasPermissionOfProject () {
     return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
   }

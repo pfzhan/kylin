@@ -126,17 +126,17 @@
               <div :class="{active:autoSetting}">
                 <div><el-radio v-model="autoSetting" :label="true">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
                 <ul>
-                  <li>可以自动修改模型定义，比如Joint-tree,Dimension,Measure</li>
-                  <li>可以添加和删除cuboid</li>
-                  <li>可以自动删除模型</li>
+                  <li>{{$t('userMaintainedTip1')}}</li>
+                  <li>{{$t('userMaintainedTip2')}}</li>
+                  <li>{{$t('userMaintainedTip3')}}</li>
                 </ul>
               </div>
               <div :class="{active:!autoSetting}">
                 <div><el-radio v-model="autoSetting" :label="false">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
                 <ul>
-                  <li>无法自动修改模型定义，比如Joint-tree,Dimension,Measure</li>
-                  <li>可以添加和删除cuboid</li>
-                  <li>无法自动删除模型</li>
+                  <li>{{$t('systemMaintainedTip1')}}</li>
+                  <li>{{$t('systemMaintainedTip2')}}</li>
+                  <li>{{$t('systemMaintainedTip3')}}</li>
                 </ul>
               </div>
             </div>
@@ -155,7 +155,7 @@
         <div>
          <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
            <ul>
-             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.action)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.subName"></span></li>
+             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{x.kind}}][{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
            </ul>
            <div class="ky-line"></div>
          </div>
@@ -237,7 +237,6 @@ export default class ModelEdit extends Vue {
   measureVisible = false
   baseIndex = 100
   autoSetting = true
-  // 0 dimension 1 measure 2 setting 3 datasource 4 searchbox
   panelAppear = {
     dimension: {
       top: 72,
@@ -247,7 +246,6 @@ export default class ModelEdit extends Vue {
       zIndex: this.baseIndex - 2,
       display: false,
       minheight: 80,
-      // limit: {height: [80, 200], top: [0, 100], right: [0, 122]},
       box: modelRenderConfig.rootBox
     },
     measure: {
@@ -258,18 +256,16 @@ export default class ModelEdit extends Vue {
       minheight: 80,
       zIndex: this.baseIndex - 1,
       display: false,
-      // limit: {height: [80, 200], top: [0, 100], right: [0, 122]},
       box: modelRenderConfig.rootBox
     },
     setting: {
       top: 158,
       right: 60,
       width: 250,
-      height: 316,
+      height: 410,
       minheight: 80,
       zIndex: this.baseIndex,
       display: false,
-      // limit: {height: [80, 200], top: [0, 100], right: [0, 122]},
       box: modelRenderConfig.rootBox
     },
     datasource: {
@@ -280,7 +276,6 @@ export default class ModelEdit extends Vue {
       minheight: 80,
       zIndex: this.baseIndex,
       display: true,
-      // limit: {height: [80, 200], top: [0, 100], right: [0, 122]},
       box: modelRenderConfig.rootBox
     },
     search: {
@@ -291,7 +286,6 @@ export default class ModelEdit extends Vue {
       minheight: 80,
       zIndex: this.baseIndex,
       display: false,
-      // limit: {height: [80, 200], top: [0, 100], right: [0, 122]},
       box: modelRenderConfig.rootBox
     }
   }
@@ -486,13 +480,13 @@ export default class ModelEdit extends Vue {
     this.showSearchResult = false
     this.modelGlobalSearch = ''
     if (select.action === 'adddimension') {
-      this.showDimensionDialog([], [])
+      this.showSingleDimensionDialog()
     }
     if (select.action === 'addmeasure') {
       this.measureVisible = true
     }
     if (select.action === 'editdimension') {
-      this.showDimensionDialog([], [])
+      this.showSingleDimensionDialog()
     }
     if (select.action === 'editmeasure') {
       this.measureVisible = true
@@ -760,7 +754,7 @@ export default class ModelEdit extends Vue {
         font-size:18px;
       } 
       .search-result-box {
-        max-height:calc(~"100% - 300px")!important;
+        max-height:calc(~"100% - 364px")!important;
         min-height:250px;
         overflow:auto;
         .search-position();

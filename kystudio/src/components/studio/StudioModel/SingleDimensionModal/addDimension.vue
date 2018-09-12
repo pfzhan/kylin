@@ -6,7 +6,7 @@
           <el-input></el-input>
         </el-form-item>
         <el-form-item label="Dimension Candidate" prop="checkPass">
-          <el-select style="width:100%"></el-select>
+          <el-select :popper-append-to-body="false" style="width:100%"></el-select>
         </el-form-item>
         <el-form-item label="Dimension Comment" prop="age">
           <el-input ></el-input>
@@ -28,17 +28,8 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-// import { sourceTypes } from '../../../../config'
-// import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-// import { handleSuccessAsync, handleError } from '../../../util'
 
 @Component({
-  // props: {
-  //   modelTables: {
-  //     type: Array,
-  //     default: null
-  //   }
-  // },
   computed: {
     ...mapGetters([
       'currentSelectedProject'
@@ -89,8 +80,6 @@ export default class SingleDimensionModal extends Vue {
       this.callback && this.callback(isSubmit)
     }, 300)
   }
-  handleClick () {
-  }
   beforeCreate () {
     if (!this.$store.state.modals.SingleDimensionModal) {
       vuex.registerModule(['modals', 'SingleDimensionModal'], store)
@@ -106,10 +95,4 @@ export default class SingleDimensionModal extends Vue {
 
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
-.dimension-modal{
-  .table-title {
-    font-size: 16px;
-    margin-left: 5px;
-  }
-}
 </style>

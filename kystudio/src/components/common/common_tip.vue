@@ -1,7 +1,7 @@
 <template>
 	<span class="tip_box">
 		<el-tooltip :content="tips" :placement="placement||'top'" :disabled="visible" :open-delay="tooltipDelayTime">
-      <div slot="content"><slot name="content"></slot></div>
+      <div slot="content" v-if="!tips"><slot name="content"></slot></div>
 		  <span class="icon"><slot></slot></span>
 		</el-tooltip>
 	</span>

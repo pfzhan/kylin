@@ -96,6 +96,7 @@ Vue.directive('keyborad-select', {
     var searchKey = binding.value.searchKey
     var searchScope = binding.value.scope
     var list = null
+    var scrollInstance = Scrollbar.get(el)
     Vue.nextTick(() => {
       list = $(el).find(searchScope)
       var index = -1
@@ -119,7 +120,12 @@ Vue.directive('keyborad-select', {
     function selectList (i) {
       list.removeClass('active')
       if (i >= 0) {
-        list.eq(i).addClass('active').focus()
+        let height = $(el).height()
+        // console.log(scrollInstance, height / list.length * i, 'kkkk')
+        // scrollInstance.scrollTo(0, height / list.length * i)
+        console.log(scrollInstance, 'kkk')
+        scrollInstance.offset.y = height / list.length * i
+        list.eq(i).addClass('active')
       }
     }
   }

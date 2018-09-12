@@ -15,10 +15,10 @@
             <el-submenu :index="item.path" v-if="item.children">
               <template slot="title">
                 <i :class="item.icon" class="ksd-fs-16"></i>
-                <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio'" class="dot-icon"></div>
+                <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && modelSpeedEvents.length" class="dot-icon"></div>
               </template>
               <el-menu-item-group>
-                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">{{$t('kylinLang.menu.' + child.name)}}<div class="number-icon" v-if="child.name === 'model'">2</div></el-menu-item>
+                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">{{$t('kylinLang.menu.' + child.name)}}<div class="number-icon" v-if="child.name === 'model'  && modelSpeedEvents.length">{{modelSpeedEvents.length}}</div></el-menu-item>
               </el-menu-item-group>
             </el-submenu>
           </template>
@@ -113,7 +113,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
-import { objectClone, getQueryString } from '../../util/index'
+import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
 import { permissions, menusData } from '../../config'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
@@ -136,7 +136,8 @@ import $ from 'jquery'
       loadAllProjects: 'LOAD_ALL_PROJECT',
       resetPassword: 'RESET_PASSWORD',
       getAboutKap: 'GET_ABOUTKAP',
-      getUserAccess: 'USER_ACCESS'
+      getUserAccess: 'USER_ACCESS',
+      getSpeedInfo: 'GET_SPEED_INFO'
     }),
     ...mapMutations({
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
@@ -159,8 +160,12 @@ import $ from 'jquery'
   computed: {
     ...mapGetters([
       'currentPathNameGet',
-      'isFullScreen'
-    ])
+      'isFullScreen',
+      'currentSelectedProject'
+    ]),
+    modelSpeedEvents () {
+      return this.$store.state.model.modelSpeedEvents
+    }
   },
   locales: {
     'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},
@@ -196,6 +201,7 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/overview'
+    console.log(this.modelSpeedEvents, 900)
     // for newten
     // this.getEncoding().then(() => {}, (res) => {
     //   handleError(res)
@@ -260,7 +266,8 @@ export default class LayoutLeftRightTop extends Vue {
         type: 'success',
         message: this.$t('kylinLang.common.saveSuccess')
       })
-      localStorage.setItem('selected_project', saveData.name)
+      cacheSessionStorage('projectName', data.name)
+      cacheLocalStorage('projectName', data.name)
       this.$store.state.project.selected_project = saveData.name
       this.FormVisible = false
       this.projectSaveLoading = false
@@ -342,7 +349,6 @@ export default class LayoutLeftRightTop extends Vue {
   hasAdminProjectPermission () {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
   }
-
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
@@ -427,7 +433,17 @@ export default class LayoutLeftRightTop extends Vue {
     }
     return 0
   }
-
+  ST = null
+  circleLoadSpeedInfo () {
+    this.ST = setTimeout(() => {
+      this.getSpeedInfo(this.currentSelectedProject).then(() => {
+        if (this._isDestroyed) {
+          return
+        }
+        this.circleLoadSpeedInfo()
+      })
+    }, 5000)
+  }
   mounted () {
     // 接受cloud的参数
     var from = getQueryString('from')
@@ -437,6 +453,8 @@ export default class LayoutLeftRightTop extends Vue {
         this.$refs.changeLangCom.$emit('changeLang', lang)
       }
       $('#fullBox').addClass('cloud-frame-page')
+    } else {
+      this.circleLoadSpeedInfo()
     }
     // cloud
     // 刷新浏览器时的路由锁定
@@ -447,7 +465,9 @@ export default class LayoutLeftRightTop extends Vue {
       }
     })
   }
-
+  destroyed () {
+    clearTimeout(this.ST)
+  }
   @Watch('currentPathNameGet')
   onCurrentPathNameGetChange (val) {
     this.defaultActive = val
@@ -494,8 +514,8 @@ export default class LayoutLeftRightTop extends Vue {
         }
         .logo{
           width: 30px;
-          height: 35px;
-          margin: 13px 13px 12px;
+          height: 27px;
+          margin: 18px 13px 14px 12px;
         }
       }
       .topbar > i {
@@ -571,10 +591,11 @@ export default class LayoutLeftRightTop extends Vue {
             }
           }
           .logo {
-            height: 35px;
+            width:120px;
+            height: 28px;
             vertical-align: middle;
             z-index:999;
-            margin: 13px 0px 12px 20px;
+            margin: 16px 0px 15px 8px;
             cursor: pointer;
           }
           .ky-line {
