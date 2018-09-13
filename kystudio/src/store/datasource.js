@@ -171,10 +171,13 @@ export default {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
     },
     [types.SAVE_FACT_TABLE]: function ({commit}, para) {
-      return api.datasource.saveFactTable(para.project, para.table, para.isFact)
+      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isCentral, para.column)
     },
     [types.SAVE_DATE_RANGE]: function ({commit}, para) {
-      return api.datasource.saveDateRange(para.project, para.table, para.startDate, para.endDate)
+      return api.datasource.saveDateRange(para.projectName, para.tableFullName, para.startDate, para.endDate)
+    },
+    [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
+      return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName)
     }
   }
 }

@@ -1,41 +1,47 @@
 <template>
   <div class="model-aggregate" v-if="model">
     <div class="aggregate-actions">
-      <el-button icon="el-icon-ksd-table_refresh">
+      <el-button type="primary" icon="el-icon-ksd-table_refresh">
         {{$t('kylinLang.common.refresh')}}
       </el-button>
-      <el-button icon="el-icon-ksd-table_delete">
+      <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button>
-      <el-button icon="el-icon-ksd-backup" @click="newAggregateGroup">
+      <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup">
         {{$t('aggregateGroup')}}
       </el-button>
     </div>
     <div class="aggregate-view">
       <el-row :gutter="20">
         <el-col :span="16">
-          <div class="cubois-chart-block">
-            <div class="ksd-mt-10 ksd-mr-10 ksd-fright agg-amount-block">
-              <span>Aggregate Amount</span>
-              <el-input v-model.trim="aggAmount" size="small"></el-input>
+          <el-card class="agg-detail-card agg_index">
+            <div slot="header" class="clearfix">
+              <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
+              <div class="right">
+                <span>{{$t('aggregateAmount')}}</span>
+                <el-input v-model.trim="cuboidCount" size="small"></el-input>
+              </div>
             </div>
-            <FlowerChart :data="aggregates" />
-          </div>
+            <PartitionChart :data="cuboids" @on-click-node="handleClickNode" />
+          </el-card>
         </el-col>
         <el-col :span="8">
           <el-card class="agg-detail-card">
             <div slot="header" class="clearfix">
-              <span>Aggregate Detail</span>
+              <div class="left font-medium">Aggregate Detail</div>
+              <div class="right" style="opacity: 0; pointer-events: none;">
+                <el-input v-model.trim="cuboidCount" size="small"></el-input>
+              </div>
             </div>
             <div class="detail-content">
-              <el-row :gutter="5"><el-col :span="11" class="label">ID:</el-col><el-col :span="13">{{aggDetail.id}}</el-col></el-row>
+              <el-row :gutter="5"><el-col :span="11" class="label">ID:</el-col><el-col :span="13">{{cuboidDetail.id}}</el-col></el-row>
               <el-row :gutter="5">
                 <el-col :span="11" class="label">Dimension and Order:</el-col>
-                <el-col :span="13"><div v-for="item in aggDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
+                <el-col :span="13"><div v-for="item in cuboidDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
               </el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Data Size:</el-col><el-col :span="13">{{aggDetail.dataSize}}</el-col></el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Data Range:</el-col><el-col :span="13">{{aggDetail.dateFrom | gmtTime}} To {{aggDetail.dateTo | gmtTime}}</el-col></el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Served Query amount:</el-col><el-col :span="13">{{aggDetail.amount}} Query</el-col></el-row>
+              <el-row :gutter="5"><el-col :span="11" class="label">Data Size:</el-col><el-col :span="13">{{cuboidDetail.dataSize}}</el-col></el-row>
+              <el-row :gutter="5"><el-col :span="11" class="label">Data Range:</el-col><el-col :span="13">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col></el-row>
+              <el-row :gutter="5"><el-col :span="11" class="label">Served Query amount:</el-col><el-col :span="13">{{cuboidDetail.amount}} Query</el-col></el-row>
             </div>
           </el-card>
         </el-col>
@@ -48,14 +54,15 @@
 
 <script>
 import Vue from 'vue'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { getPlaintTreeNode } from './handle'
+import { formatFlowerJson, getCuboidCounts } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
-import { handleSuccessAsync } from '../../../../../util'
-import { aggregateGroups } from './mock'
+import PartitionChart from '../../../../common/PartitionChart'
+import { handleSuccessAsync, transToGmtTime } from '../../../../../util'
+import { aggregateGroups, flowerJSON } from './mock'
 import AggregateModal from './AggregateModal/index.vue'
 
 @Component({
@@ -64,39 +71,69 @@ import AggregateModal from './AggregateModal/index.vue'
       type: Object
     }
   },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
+  },
   methods: {
     ...mapActions('AggregateModal', {
       callAggregateModal: 'CALL_MODAL'
     }),
     ...mapActions({
-      getModelAggregateIndex: 'GET_MODEL_AGGREGATE_INDEX'
+      fetchModelAggregates: 'FETCH_AGGREGATES',
+      fetchCuboids: 'FETCH_CUBOIDS',
+      fetchCuboid: 'FETCH_CUBOID'
     })
   },
   components: {
     FlowerChart,
+    PartitionChart,
     AggregateModal
   },
   locales
 })
 export default class ModelAggregate extends Vue {
-  aggAmount = 0
-  aggregates = {}
-  aggDetail = {
-    id: '2234kdrkg343532342jk',
-    dim: ['Dimension_1', 'Dimension_2', 'Sum ( Price )', 'Dimension_5', 'TopN ( Seller_ID ) group by Sum ( Price )'],
-    dataSize: '256MB',
-    dateFrom: 1524829437628,
-    dateTo: 1524829437628,
-    amount: 12
+  cuboidCount = 0
+  cuboids = []
+  cuboidDetail = {
+    id: '',
+    dim: [],
+    dataSize: 0,
+    dateFrom: 0,
+    dateTo: 0,
+    amount: 0
+  }
+
+  async handleClickNode (node) {
+    const cuboidId = node.cuboid.id
+    const res = await this.fetchCuboid({
+      projectName: this.currentSelectedProject,
+      modelName: this.model.name,
+      cuboidId
+    })
+    const cuboid = await handleSuccessAsync(res)
+    this.cuboidDetail.id = cuboid.id
+    this.cuboidDetail.dim = cuboid.dimensions_res
+    this.cuboidDetail.dataSize = cuboid.storage < 1024 ? `${cuboid.storage}KB` : `${(cuboid.storage / 1024).toFixed(2)}MB`
+    this.cuboidDetail.dateFrom = transToGmtTime(cuboid.start_time)
+    this.cuboidDetail.dateTo = transToGmtTime(cuboid.end_time)
+    if (this.cuboidDetail.dateFrom) {
+      this.cuboidDetail.dateFrom = this.cuboidDetail.dateFrom.split(' GMT')[0]
+    }
+    if (this.cuboidDetail.dateTo) {
+      this.cuboidDetail.dateTo = this.cuboidDetail.dateTo.split(' GMT')[0]
+    }
   }
 
   async mounted () {
-    const res = await this.getModelAggregateIndex()
+    const res = await this.fetchCuboids({modelName: this.model.name, projectName: this.currentSelectedProject})
     const data = await handleSuccessAsync(res)
-    this.aggAmount = data.size
-    this.aggregates = getPlaintTreeNode(data.data)
+    this.cuboids = flowerJSON
+    this.cuboids = formatFlowerJson(data)
+    this.cuboidCount = getCuboidCounts(data)
   }
-  async newAggregateGroup () {
+  async handleAggregateGroup () {
     await this.callAggregateModal({ editType: 'new', model: { ...this.model, aggregateGroups } })
   }
 }
@@ -130,9 +167,17 @@ export default class ModelAggregate extends Vue {
       background-color: @grey-3;
       color: @text-title-color;
       font-size: 16px;
+      padding: 7px 9px 7px 17px;
+    }
+    &.agg_index {
+      .el-card__header {
+        padding: 7px 9px 7px 17px;
+      }
     }
     .el-card__body {
+      overflow: auto;
       padding: 10px;
+      height: 583px;
       .detail-content {
         .el-row {
           margin-bottom: 10px;
@@ -140,6 +185,20 @@ export default class ModelAggregate extends Vue {
             margin-bottom: 5px;
           }
         }
+      }
+    }
+    .left {
+      display: block;
+      float: left;
+      padding-top: 3px;
+    }
+    .right {
+      display: block;
+      float: right;
+      white-space: nowrap;
+      font-size: 14px;
+      .el-input {
+        width: 100px;
       }
     }
     .label {

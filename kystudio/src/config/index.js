@@ -636,4 +636,8 @@ export const sourceNameMapping = {
   HIVE: 'Hive(CSV)'
 }
 
+export const partitionColumnTypes = [
+  'timestamp', 'date'
+]
+
 export { projectCfgs } from './projectCfgs'

@@ -171,7 +171,7 @@ export default class SegmentChart extends Vue {
     } : null
   }
   @Watch('segmentsData')
-  @Watch('maxDate')
+  @Watch('scale')
   async onSegmentsDataChange () {
     await this.cleanSVG()
     await this.drawSVG()
@@ -264,7 +264,8 @@ export default class SegmentChart extends Vue {
     d3data.xAxisEl = d3.select(this.$refs['x-axis']).call(d3data.xAxis)
   }
   initSegments () {
-    this.segments = this.segmentsData.map(segment => ({
+    const segmentsData = JSON.parse(JSON.stringify(this.segmentsData))
+    this.segments = segmentsData.map(segment => ({
       ...segment,
       x: 0,
       width: 0,

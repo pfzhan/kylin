@@ -135,10 +135,13 @@ export default {
   previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
     return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName).save(conditions)
   },
-  saveFactTable (project, table, fact) {
-    return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact})
+  saveFactTable (project, table, fact, column) {
+    return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column})
   },
   saveDateRange (project, table, startTime, endTime) {
-    return Vue.resource(apiUrl + 'tables/date_range').save({project, table, start_time: startTime, end_time: endTime})
+    return Vue.resource(apiUrl + 'tables/date_range').save({project, table, startTime, endTime})
+  },
+  fetchRelatedModels (project, table) {
+    return Vue.resource(apiUrl + 'models').get({project, table})
   }
 }

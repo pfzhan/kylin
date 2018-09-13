@@ -153,12 +153,17 @@ export default {
     [types.GET_AUTOMODEL_SQL]: function ({ commit }, para) {
       return api.model.getAutoModelSql(para)
     },
-    // newten
-    [types.GET_MODEL_AGGREGATE_INDEX] ({ commit }, params) {
-      return api.model.getAggregateIndex(params)
+    [types.FETCH_AGGREGATES] ({ commit }, params) {
+      return api.model.fetchAggregates(params.modelName, params.projectName)
     },
     [types.FETCH_SEGMENTS] ({ commit }, params) {
       return api.model.fetchSegments(params.modelName, params.projectName, params.startDate, params.endDate)
+    },
+    [types.FETCH_CUBOID] ({ commit }, params) {
+      return api.model.fetchCuboid(params.modelName, params.projectName, params.cuboidId)
+    },
+    [types.FETCH_CUBOIDS] ({ commit }, params) {
+      return api.model.fetchCuboids(params.modelName, params.projectName)
     }
   },
   getters: {

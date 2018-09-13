@@ -1,6 +1,7 @@
 export default {
   'en': {
     updateAt: 'Last update :',
+    changeType: 'Change Table Type',
     reload: 'Reload',
     sampling: 'Sampling',
     unload: 'unload',
@@ -13,6 +14,7 @@ export default {
   },
   'zh-cn': {
     updateAt: 'Last update :',
+    changeType: 'Change Table Type',
     reload: 'Reload',
     sampling: 'Sampling',
     unload: 'unload',

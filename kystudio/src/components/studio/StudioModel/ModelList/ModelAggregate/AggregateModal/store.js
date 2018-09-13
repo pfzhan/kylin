@@ -58,6 +58,7 @@ export default {
   actions: {
     [types.CALL_MODAL] ({ commit }, { editType, model }) {
       return new Promise(resolve => {
+        console.log(model)
         commit(types.SET_MODAL, { editType, model, callback: resolve })
         commit(types.SHOW_MODAL)
       })

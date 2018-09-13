@@ -1,5 +1,5 @@
 import { sourceTypes, sourceNameMapping } from '../../../config'
-import { getTableMockTags, getColumnMockTags } from './mock'
+import { getColumnMockTags } from './mock'
 
 export const render = {
   datasource: {
@@ -34,7 +34,7 @@ export const render = {
   },
   table: {
     render (h, { node, data, store }) {
-      const { label, tags } = data
+      const { label, tags, dateRange } = data
 
       return (
         <div class="table font-medium">
@@ -53,13 +53,12 @@ export const render = {
           </div>
           <span title={label}>{label}</span>
           <div class="right">
-            { tags.includes('F') ? (
+            { dateRange ? (
               <el-popover
                 placement="right"
                 title="Data Range:"
-                width="200"
                 trigger="hover"
-                content="2018-01-01 to 2018-03-05">
+                content={dateRange}>
                 <i class="tree-icon table-date-tip el-icon-ksd-data_range" slot="reference"></i>
               </el-popover>
             ) : null }
@@ -166,16 +165,23 @@ function getTableObj (that, table) {
   const sourceType = table.source_type
   const datasourceType = sourceTypes[sourceType]
   const datasourceName = sourceNameMapping[datasourceType]
+  const tags = [
+    ...(table.root_fact ? ['F'] : []),
+    ...(table.lookup ? ['L'] : []),
+    ...(!table.root_fact && !table.lookup ? ['N'] : [])
+  ]
+  const dateRange = table.start_time && table.end_time ? getDateRangeStr(table) : null
 
   return {
     id: `table-${table.name}`,
     label: table.name,
     children: getColumnObjArray(that, table.columns),
     render: render.table.render.bind(that),
-    tags: getTableMockTags(),
+    tags,
     type: 'table',
     database: table.database,
-    datasource: datasourceName
+    datasource: datasourceName,
+    dateRange
   }
 }
 
@@ -229,4 +235,22 @@ function getChildrenWords (parent) {
   }
 
   return words
+}
+
+function getDateRangeStr (table) {
+  const startDate = new Date(table.start_time)
+  const endDate = new Date(table.end_time)
+
+  return `${getDateStr(startDate)} to ${getDateStr(endDate)}`
+}
+
+function getDateStr (date) {
+  const year = date.getFullYear()
+  const month = getDoubleNumber(date.getMonth() + 1)
+  const day = getDoubleNumber(date.getDate())
+  return `${year}-${month}-${day}`
+}
+
+function getDoubleNumber (number) {
+  return number < 10 ? `0${number}` : String(number)
 }

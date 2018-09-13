@@ -23,23 +23,39 @@ export function CodeFlower (selector, w, h) {
     .size([w, h])
 }
 
-CodeFlower.prototype.update = function (json, w, h) {
+CodeFlower.prototype.array = function (array, w, h) {
+  let splitX = 1
+  let splitY = 1
+
+  do {
+    splitX < splitY ? splitX++ : splitY++
+  } while (splitX * splitY <= array.length)
+
+  const width = w / splitX
+  const height = h / splitY
+
+  array.forEach((json, index) => {
+    this.update(json, width, height, index, splitX, splitY)
+  })
+}
+
+CodeFlower.prototype.update = function (json, w, h, index = 0, splitX = 1, splitY = 1) {
   if (json) {
     this.json = json
   }
 
   if (w) {
     this.w = w
-    this.svg.attr('width', w)
+    this.svg.attr('width', w * splitX)
   }
   if (h) {
     this.h = h
-    this.svg.attr('height', h)
+    this.svg.attr('height', h * splitY)
   }
 
   this.json.fixed = true
-  this.json.x = this.w / 2
-  this.json.y = this.h / 2
+  this.json.x = this.w / 2 + index * this.w
+  this.json.y = this.h / 2 + index * this.h
 
   var nodes = this.flatten(this.json)
   var links = d3.layout.tree().links(nodes)

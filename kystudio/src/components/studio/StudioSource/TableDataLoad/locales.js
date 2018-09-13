@@ -10,7 +10,12 @@ export default {
     startTime: 'Start Time',
     chooseStartTime: '选择开始日期',
     chooseEndTime: '选择结束日期',
-    loadRange: 'Loading Range'
+    loadRange: 'Loading Range',
+    centralTable: 'Central Table',
+    normalTable: 'Normal Table',
+    partition: 'Partition',
+    loadingRange: 'Loading Range',
+    dateRange: 'Date Range'
   },
   'zh-cn': {
     tableName: 'Table Name',
@@ -23,6 +28,11 @@ export default {
     startTime: 'Start Time',
     chooseStartTime: '选择开始日期',
     chooseEndTime: '选择结束日期',
-    loadRange: 'Loading Range'
+    loadRange: 'Loading Range',
+    centralTable: 'Central Table',
+    normalTable: 'Normal Table',
+    partition: 'Partition',
+    loadingRange: 'Loading Range',
+    dateRange: '时间范围'
   }
 }

@@ -1,7 +1,6 @@
 import Vue from 'vue'
 import VueResource from 'vue-resource'
 import { apiUrl } from '../config'
-import { aggregateTree } from '../../mock/aggregateIndex'
 
 Vue.use(VueResource)
 
@@ -96,12 +95,16 @@ export default {
   getAutoModelSql: (para) => {
     return Vue.resource(apiUrl + 'smart/' + para.modelName + '/model_sqls').get()
   },
-  // newten
-  getAggregateIndex: params => {
-    // Vue.resource(`${apiUrl}/models/agg_indices`).get(params)
-    return aggregateTree
-  },
   fetchSegments: (model, project, startTime, endTime) => {
-    return Vue.resource(apiUrl + 'models/segments').get({model, project, startTime, endTime})
+    return Vue.resource(`${apiUrl}models/segments`).get({model, project, startTime, endTime})
+  },
+  fetchAggregates: (model, project) => {
+    return Vue.resource(`${apiUrl}models/agg_indexs`).get({model, project})
+  },
+  fetchCuboid: (model, project, id) => {
+    return Vue.resource(`${apiUrl}models/cuboids`).get({model, project, id})
+  },
+  fetchCuboids: (model, project) => {
+    return Vue.resource(`${apiUrl}models/relations`).get({model, project})
   }
 }

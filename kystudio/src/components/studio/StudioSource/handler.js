@@ -9,8 +9,6 @@ export const viewTypes = {
 }
 
 export function getSelectedTableDetail (tableInfo, tableDetail) {
-  const { data_source_properties, frequency, last_modified } = tableDetail
-
   const columns = tableInfo.columns.map(column => {
     // for newten
     // const columnDetail = tableDetail.columns_stats.find(columnStats => columnStats.column_name === column.name)
@@ -24,9 +22,7 @@ export function getSelectedTableDetail (tableInfo, tableDetail) {
 
   return {
     ...tableInfo,
-    data_source_properties,
-    frequency,
-    last_modified,
+    ...tableDetail,
     mapper_rows: tableDetail.mapper_rows || [],
     sample_rows: tableDetail.sample_rows || [],
     total_rows: tableDetail.total_rows || [],

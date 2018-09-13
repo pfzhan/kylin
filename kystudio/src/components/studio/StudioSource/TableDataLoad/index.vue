@@ -8,72 +8,73 @@
         </div>
         <div class="info-value">{{table.name}}</div>
       </div>
-      <!-- 表类型/事实表 -->
+      <!-- 表类型：中心表/普通表 -->
       <div class="info-row">
         <div class="info-label font-medium">
           <span>{{$t('tableType')}}</span><span>:</span>
         </div>
         <div class="info-value">
-          <div>{{table.table_type}}</div>
-          <div class="table-remind">
-            <el-checkbox class="font-medium" @input="handleToggleFact" :value="isFactTable">{{$t('factTableCheck')}}</el-checkbox>
-            <div class="remind-header font-medium">{{$t('factTableTitle')}}</div>
-            <div class="remind-tip">
-              <b class="font-medium">{{$t('factTableName')}}</b>
-              <span>{{$t('factTableTip')}}</span>
+          <div>{{tableType}}</div>
+        </div>
+      </div>
+      <!-- v-if: 中心表才会展示的字段 -->
+      <template v-if="isCentral">
+        <!-- 表的分区列 -->
+        <div class="info-row">
+          <div class="info-label font-medium">
+            <span>{{$t('partition')}}</span><span>:</span>
+          </div>
+          <div class="info-value">
+            <div>{{table.name}}.{{table.partition_column}}</div>
+          </div>
+        </div>
+        <!-- 标题 -->
+        <div class="info-row clearfix">
+          <div class="info-label font-medium">
+            <span>{{$t('dataRange')}}</span>
+            <i class="el-icon-ksd-what"></i>
+          </div>
+        </div>
+        <!-- 时间区间 -->
+        <div class="info-row date-range-box">
+          <!-- 数据加载区间 -->
+          <div class="row-item">
+            <div class="info-label font-medium small">
+              <span>{{$t('loadingRange')}}</span>
+              <span>:</span>
+            </div>
+            <div class="load-range">
+              <DateRangeBar :date-ranges="dateRanges" />
             </div>
           </div>
-        </div>
-      </div>
-      <!-- Data Range 选择 -->
-      <div class="info-row date-range">
-        <div class="info-label font-medium date-label" :class="{'full-range': !isFactTable}">
-          <span>{{$t('dataRange')}}</span>
-          <i class="el-icon-ksd-what"></i>
-          <span>:</span>
-        </div>
-        <div class="info-value" v-if="isFactTable">
-          <el-date-picker
-            :clearable="false"
-            v-model="dateRange"
-            type="datetimerange"
-            range-separator="-"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期">
-          </el-date-picker>
-          <el-button
-            v-if="startDate && endDate"
-            class="range-submit"
-            size="medium"
-            type="primary"
-            @click="handleSubmitRange">
-            {{$t('kylinLang.common.submit')}}
-          </el-button>
-        </div>
-        <div class="info-value" v-if="!isFactTable">Full</div>
-      </div>
-
-      <div class="info-row range-process" v-if="isFactTable">
-        <div class="info-label font-medium">
-          <span>{{$t('loadRange')}}</span>
-          <span>:</span>
-        </div>
-        <div class="info-value">
-          <!-- Data Loading 展示 -->
-          <div class="load-range">
-            <DateRangeBar :date-ranges="dateRanges" />
+          <!-- 选择时间区间 -->
+          <div class="row-item">
+            <div class="info-label font-medium small">
+              <span>{{$t('dateRange')}}</span>
+              <i class="el-icon-ksd-what"></i>
+              <span>:</span>
+            </div>
+            <el-date-picker
+              size="medium"
+              class="date-range-input"
+              v-model="dateRange"
+              type="datetimerange"
+              range-separator="-"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              :picker-options="{ disabledDate: getDisabledDate }">
+            </el-date-picker>
+            <el-button size="medium" type="primary" @click="handleSubmitRange">递交</el-button>
           </div>
-          <span class="status" v-if="false">Ready</span>
-          <span class="status" v-else>In Progress</span>
         </div>
-      </div>
+      </template>
     </div>
 
-    <template v-if="isFactTable">
+    <template v-if="isCentral">
       <h1 class="related-model-title font-medium">Related Model</h1>
-      <el-table class="table" :data="modelsProgress" border>
+      <el-table class="table" :data="relatedModels" border>
         <el-table-column
-          prop="name"
+          prop="alias"
           label="Model Name"
           width="275px"
           sortable
@@ -94,10 +95,21 @@
       </el-table>
       <kap-pager
         class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
-        :totalSize="modelsProgress.length"
+        :totalSize="relatedModels.length"
         @handleCurrentChange="handlePagination">
       </kap-pager>
     </template>
+
+    <div class="table-remind">
+      <div class="table-remind-row">
+        <h1 class="remind-header font-medium">中心表（Centrel Table）:</h1>
+        <p>被标记为中心表的源数据表，需要设定映射的数据范围/将来数据加载的范围（Data Range）</p>
+      </div>
+      <div class="table-remind-row">
+        <h1 class="remind-header font-medium">普通表（Normal Table）:</h1>
+        <p>标记为普通表的源数据表，作为系统默认存储全部数据</p>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -107,9 +119,10 @@ import Vue from 'vue'
 import { mapActions } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { getModelTableData, dateRanges } from './mock'
+import { dateRanges } from './mock'
 import locales from './locales'
 import DateRangeBar from '../../../common/DateRangeBar/index.vue'
+import { handleSuccessAsync } from '../../../../util'
 
 @Component({
   props: {
@@ -125,14 +138,13 @@ import DateRangeBar from '../../../common/DateRangeBar/index.vue'
   },
   methods: {
     ...mapActions({
-      saveFactTable: 'SAVE_FACT_TABLE',
-      saveDateRange: 'SAVE_DATE_RANGE'
+      saveDateRange: 'SAVE_DATE_RANGE',
+      fetchRelatedModels: 'FETCH_RELATED_MODELS'
     })
   },
   locales
 })
 export default class TableDataLoad extends Vue {
-  isFactTable = false
   startDate = ''
   endDate = ''
   pagination = {
@@ -140,7 +152,16 @@ export default class TableDataLoad extends Vue {
     pageSize: 50
   }
   dateRanges = dateRanges
-
+  relatedModels = []
+  get isCentral () {
+    return this.table.fact
+  }
+  get isFact () {
+    return this.table.root_fact
+  }
+  get tableType () {
+    return this.isCentral ? this.$t('centralTable') : this.$t('normalTable')
+  }
   get dateRange () {
     return [this.startDate, this.endDate]
   }
@@ -148,41 +169,59 @@ export default class TableDataLoad extends Vue {
     this.startDate = startDate
     this.endDate = endDate
   }
-  get modelsProgress () {
-    return getModelTableData()
+
+  mounted () {
+    if (this.isCentral) {
+      this.resetDateRange()
+      this.getRelatedModel()
+    }
   }
   @Watch('table')
-  onTableChange (table) {
-    this.isFactTable = table.fact
-  }
-  async handleToggleFact (val) {
-    const projectName = this.project.name
-    const tableFullName = `${this.table.database}.${this.table.name}`
-
-    await this.saveFactTable({
-      project: projectName,
-      table: tableFullName,
-      isFact: val
-    })
-
-    this.isFactTable = !this.isFactTable
+  async onTableChange (table) {
+    if (this.isCentral) {
+      this.resetDateRange()
+      await this.getRelatedModel()
+    }
   }
   async handleSubmitRange () {
     const projectName = this.project.name
     const tableFullName = `${this.table.database}.${this.table.name}`
+    const startDate = this.startDate.getTime()
+    const endDate = this.endDate.getTime()
 
-    await this.saveDateRange({
-      project: projectName,
-      table: tableFullName,
-      startDate: this.startDate.getTime(),
-      endDate: this.endDate.getTime()
-    })
+    if (this.isDateRangeVaild()) {
+      await this.saveDateRange({ projectName, tableFullName, startDate, endDate })
+      this.$message('更新成功。')
+    } else {
+      this.$message('不可选择比数据表更小的时间区间。')
+    }
   }
   handlePagination (val) {
     this.pagination.pageOffset = val - 1
   }
-  mounted () {
-    this.onTableChange(this.table)
+  resetDateRange () {
+    this.startDate = new Date(this.table.start_time)
+    this.endDate = new Date(this.table.end_time)
+  }
+  async getRelatedModel () {
+    const projectName = this.project.name
+    const tableFullName = `${this.table.database}.${this.table.name}`
+
+    const res = await this.fetchRelatedModels({ projectName, tableFullName })
+    const { models } = await handleSuccessAsync(res)
+    this.relatedModels = models
+  }
+  getDisabledDate (time) {
+    return this.table.start_time <= time.getTime() &&
+      time.getTime() <= this.table.end_time
+  }
+  isDateRangeVaild () {
+    const startTime = this.startDate.getTime()
+    const endTime = this.endDate.getTime()
+    const tableStartTime = this.table.start_time
+    const tableEndTime = this.table.end_time
+
+    return startTime < tableStartTime && endTime > tableEndTime
   }
 }
 </script>
@@ -206,27 +245,20 @@ export default class TableDataLoad extends Vue {
     line-height: 1;
     color: #263238;
     margin-bottom: 15px;
-  }
-  .info-row.date-range {
-    margin-bottom: 20px;
-  }
-  .date-range .el-input__inner {
-    width: 324px;
-    height: 32px;
-    line-height: 32px;
-    .el-range-input {
-      width: 51%;
+    &:last-child {
+      margin-bottom: 0;
     }
   }
-  .info-row.range-process {
-    margin-bottom: 25px;
-  }
   .info-label {
-    width: 115px;
+    width: 97px;
     float: left;
     text-align: right;
     span:last-child {
       margin-left: 8px;
+    }
+    &.small {
+      width: 110px;
+      white-space: nowrap;
     }
   }
   .el-icon-ksd-what {
@@ -246,28 +278,27 @@ export default class TableDataLoad extends Vue {
     padding: 0 6px;
   }
   .table-remind {
-    padding: 10px;
-    margin-top: 15px;
+    padding: 20px;
+    margin-top: 20px;
     font-size: 12px;
     background: #E6F3FC;
   }
-  .remind-header {
-    margin-top: 10px;
-    margin-bottom: 8px;
-  }
-  .date-label {
-    position: relative;
-    top: 10px;
-    &.full-range {
-      top: 0;
+  .table-remind-row {
+    margin-bottom: 20px;
+    &:last-child {
+      margin-bottom: 0;
     }
   }
+  .remind-header {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
   .load-range {
-    width: 82%;
+    width: calc(~'85% - 140px');
     display: inline-block;
+    margin-left: 15px;
     .progress-bar {
-      width: calc(~'100% - 120px');
-      margin-left: 20px;
+      width: 100%;
     }
   }
   .status {
@@ -286,6 +317,26 @@ export default class TableDataLoad extends Vue {
   }
   .el-table__row > td {
     text-align: left;
+  }
+  .date-range-box {
+    background: white;
+    padding: 10px 10px 20px 10px;
+  }
+  .row-item {
+    margin-bottom: 20px;
+    &:last-child {
+      margin-bottom: 0px;
+      .info-label {
+        position: relative;
+        top: 9px;
+      }
+    }
+  }
+  .date-range-input {
+    .el-flex-box {
+      width: 100%;
+    }
+    margin-left: 10px;
   }
 }
 </style>

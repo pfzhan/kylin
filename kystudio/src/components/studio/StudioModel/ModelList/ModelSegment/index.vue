@@ -402,7 +402,7 @@ export default class ModelSegment extends Vue {
         padding-bottom: 10px;
       }
       &:not(:nth-child(2)) .delete-setting {
-        margin-left: 46px;
+        margin-left: 55px;
       }
     }
     .is-circle {

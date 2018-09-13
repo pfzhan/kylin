@@ -20,6 +20,7 @@
             <h1 class="table-name">{{selectedTable.database}}.{{selectedTable.name}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
             <div class="table-actions">
+              <el-button size="small" icon="el-icon-ksd-table_assign" type="primary" @click="handleChangeType">{{$t('changeType')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-download" @click="handleSampling">{{$t('sampling')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-download" @click="handleUnload">{{$t('unload')}}</el-button>
@@ -53,6 +54,7 @@
             </el-tabs>
           </div>
           <!-- Source Table动作弹框 -->
+          <CentralSettingModal ref="CentralSettingModal" :table="selectedTable" @submit="handleFreshTable" />
           <ReloadModal ref="ReloadModal" :table="selectedTable" />
           <SampleModal ref="SampleModal" :table="selectedTable" />
         </template>
@@ -80,6 +82,7 @@ import TableStatistics from './TableStatistics/index.vue'
 import TableExtInfo from './TableExtInfo/index.vue'
 import ReloadModal from './ReloadModal/index.vue'
 import SampleModal from './SampleModal/index.vue'
+import CentralSettingModal from './CentralSettingModal/index.vue'
 import ViewKafka from '../../kafka/view_kafka.vue'
 import Access from '../../datasource/access.vue'
 import { sourceTypes } from '../../../config'
@@ -95,6 +98,7 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
     TableExtInfo,
     ReloadModal,
     SampleModal,
+    CentralSettingModal,
     ViewKafka,
     Access
   },
@@ -143,16 +147,13 @@ export default class StudioSource extends Vue {
       await this.fetchTableDetail({ label: this.datasouce[0].name, type: 'table' })
     }
   }
-
   handleClick (data) {
     this.fetchTableDetail(data)
   }
-
   handleKafkaClick () {
     const { currentProjectData: project } = this
     this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
   }
-
   handleReload () {
     this.$refs['ReloadModal'].showModal()
   }
@@ -161,12 +162,18 @@ export default class StudioSource extends Vue {
   }
   handleUnload () {
   }
-
+  handleChangeType () {
+    this.$refs['CentralSettingModal'].showModal()
+  }
   async handleSourceUpdate () {
     const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
     this.datasouce = await handleSuccessAsync(res)
   }
-
+  async handleFreshTable () {
+    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: false})
+    this.datasouce = await handleSuccessAsync(res)
+    this.fetchTableDetail({ label: this.selectedTable.name, type: 'table' })
+  }
   async fetchTableDetail (data) {
     const { label: selectedTableName, type } = data
 
