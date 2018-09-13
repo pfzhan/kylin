@@ -32,9 +32,9 @@
     <name>Apache Kylin - External HTrace</name>
 
     <parent>
-        <groupId>io.kyligence.kap</groupId>
-        <artifactId>kap</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <groupId>io.kyligence.ke</groupId>
+        <artifactId>ke</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
 

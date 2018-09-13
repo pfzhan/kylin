@@ -8,9 +8,9 @@
     <description>Kyligence Core Common</description>
 
     <parent>
-        <groupId>io.kyligence.kap</groupId>
-        <artifactId>kap</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <groupId>io.kyligence.ke</groupId>
+        <artifactId>ke</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
@@ -57,7 +57,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kylin-external-htrace</artifactId>
         </dependency>
 
@@ -68,11 +68,11 @@
         </dependency>
 
         <!--<dependency>-->
-            <!--<groupId>io.kyligence.kap</groupId>-->
+            <!--<groupId>io.kyligence.ke</groupId>-->
             <!--<artifactId>kap-external</artifactId>-->
         <!--</dependency>-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-external-influxdb</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>

@@ -28,15 +28,15 @@
     <description>KAP REST Server Base</description>
 
     <parent>
-        <groupId>io.kyligence.kap</groupId>
-        <artifactId>kap</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <groupId>io.kyligence.ke</groupId>
+        <artifactId>ke</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-query</artifactId>
             <exclusions>
                 <exclusion>
@@ -51,27 +51,27 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-cube</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-metrics</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-event</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kylin-external-htrace</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -148,7 +148,7 @@
 
         <!-- Test & Env -->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
@@ -214,7 +214,7 @@
             <version>4.3.10.RELEASE</version>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
         </dependency>
 

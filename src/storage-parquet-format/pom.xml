@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.kyligence.kap</groupId>
+    <groupId>io.kyligence.ke</groupId>
     <artifactId>kap-storage-parquet-format</artifactId>
     <packaging>jar</packaging>
     <name>KAP - Storage Parquet Format</name>
@@ -12,23 +12,23 @@
     <description>Kyligence Storage Parquet Format</description>
 
     <parent>
-        <groupId>io.kyligence.kap</groupId>
-        <artifactId>kap</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <groupId>io.kyligence.ke</groupId>
+        <artifactId>ke</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-cube</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-storage</artifactId>
         </dependency>
         <dependency>
@@ -55,7 +55,7 @@
         
         <!--Test & Env-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

@@ -10,9 +10,9 @@
 
 
     <parent>
-        <artifactId>kap</artifactId>
-        <groupId>io.kyligence.kap</groupId>
-        <version>3.0.0-SNAPSHOT</version>
+        <artifactId>ke</artifactId>
+        <groupId>io.kyligence.ke</groupId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <dependencies>

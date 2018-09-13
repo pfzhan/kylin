@@ -13,31 +13,31 @@
     </properties>
 
     <parent>
-        <groupId>io.kyligence.kap</groupId>
-        <artifactId>kap</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <groupId>io.kyligence.ke</groupId>
+        <artifactId>ke</artifactId>
+        <version>4.0.0-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <dependencies>
         <!--Apache Kylin-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-metadata</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-query</artifactId>
         </dependency>
 
         <!--KAP-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-storage</artifactId>
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
 
@@ -71,7 +71,7 @@
 
         <!--Env & Test-->
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
             <type>test-jar</type>
             <scope>test</scope>

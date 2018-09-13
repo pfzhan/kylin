@@ -3,12 +3,12 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.kyligence.kap</groupId>
-    <artifactId>kap</artifactId>
+    <groupId>io.kyligence.ke</groupId>
+    <artifactId>ke</artifactId>
     <packaging>pom</packaging>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
 
-    <name>KAP - Kyligence Analytics Platform</name>
+    <name>Kyligence Enterprise</name>
     <url>http://kyligence.io</url>
     <inceptionYear>2016</inceptionYear>
 
@@ -185,69 +185,69 @@
         <dependencies>
             <!-- KAP, same order with modules -->
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-it</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kylin-external-htrace</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-engine-spark</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-storage-parquet</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-storage-parquet-format</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-udf</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-storage-parquet-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-smart</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-external-curator-test</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-tomcat-ext</artifactId>
                 <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-event</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -259,57 +259,57 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metadata</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-dictionary</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-cube</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-storage</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-source-hive</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-query</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-jdbc</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-metrics</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-server-base</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -321,37 +321,37 @@
 
             <!--KAP test scope-->
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-storage-parquet</artifactId>
                 <type>test-jar</type>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-storage</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-server-base</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
             <dependency>
-                <groupId>io.kyligence.kap</groupId>
+                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-cube</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
