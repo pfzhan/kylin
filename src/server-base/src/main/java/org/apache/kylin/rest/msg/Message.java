@@ -495,4 +495,8 @@ public class Message {
     public String getFAVORITE_RULE_NOT_FOUND() {
         return "Cannot find favorite rule [%s]";
     }
+
+    public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
+        return "Current number of unAccelerated favorite queries has not reached to [%s]";
+    }
 }

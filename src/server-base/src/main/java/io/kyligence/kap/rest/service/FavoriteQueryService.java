@@ -35,11 +35,12 @@ import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.ModelUpdateEvent;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
@@ -69,7 +70,7 @@ public class FavoriteQueryService extends BasicService {
     QueryHistoryService queryHistoryService;
 
     @PostConstruct
-    void init() throws SchedulerException {
+    void init() {
         autoMarkFavorite.start();
     }
 
@@ -209,7 +210,7 @@ public class FavoriteQueryService extends BasicService {
         return favoriteQueries;
     }
 
-    private List<FavoriteQuery> getUnAcceleratedQueries(String project) {
+    List<FavoriteQuery> getUnAcceleratedQueries(String project) {
         List<FavoriteQuery> result = Lists.newArrayList();
 
         for (FavoriteQuery favoriteQuery : getFavoriteQueryManager(project).getAll()) {
@@ -220,13 +221,34 @@ public class FavoriteQueryService extends BasicService {
         return result;
     }
 
-    public HashMap<String, Object> isTimeToAccelerate(String project) {
+    NSmartMaster getSmartMaster(String project, String[] sqls) {
+        return new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);
+    }
+
+    public HashMap<String, Object> getAccelerateTips(String project) {
         HashMap<String, Object> data = Maps.newHashMap();
         List<FavoriteQuery> unAcceleratedQueries = getUnAcceleratedQueries(project);
+        String[] sqls = new String[unAcceleratedQueries.size()];
+        for (int i = 0; i < unAcceleratedQueries.size(); i++) {
+            sqls[i] = unAcceleratedQueries.get(i).getSql();
+        }
+        int optimized_model_num = 0;
+        NSmartMaster smartMaster = getSmartMaster(project, sqls);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+
+        for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
+            if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
+                    || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
+                optimized_model_num ++;
+            }
+        }
 
         data.put("size", unAcceleratedQueries.size());
         data.put("unAccelerated_queries", unAcceleratedQueries);
         data.put("reach_threshold", false);
+        data.put("optimized_model_num", optimized_model_num);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         if (unAcceleratedQueries.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold())
@@ -235,9 +257,13 @@ public class FavoriteQueryService extends BasicService {
         return data;
     }
 
-    public void acceptAccelerate(String project) throws Exception {
+    public void acceptAccelerate(String project, int accelerateSize) throws Exception {
         Map<String, String> sqls = Maps.newHashMap();
-        for (final FavoriteQuery favoriteQuery : getUnAcceleratedQueries(project)) {
+        List<FavoriteQuery> unAcceleratedQueries = getUnAcceleratedQueries(project);
+        if (accelerateSize > unAcceleratedQueries.size()) {
+            throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH(), accelerateSize));
+        }
+        for (final FavoriteQuery favoriteQuery : unAcceleratedQueries.subList(0, accelerateSize)) {
             sqls.put(favoriteQuery.getSql(), favoriteQuery.getUuid());
 
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);

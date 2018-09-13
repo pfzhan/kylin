@@ -478,4 +478,8 @@ public class CnMessage extends Message {
     public String getFAVORITE_RULE_NOT_FOUND() {
         return "无法找到相应的加速规则 [%s]";
     }
+
+    public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
+        return "目前待加速的加速查询未达到[%s]条";
+    }
 }

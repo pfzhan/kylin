@@ -101,13 +101,14 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/threshold", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse isTimeToAccelerate(@RequestParam(value = "project") String project) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.isTimeToAccelerate(project), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getAccelerateTips(project), "");
     }
 
     @RequestMapping(value = "/accept", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse acceptAccelerate(@RequestParam(value = "project") String project) throws Exception {
-        favoriteQueryService.acceptAccelerate(project);
+    public EnvelopeResponse acceptAccelerate(@RequestParam(value = "project") String project,
+                                             @RequestParam(value = "accelerateSize") int accelerateSize) throws Exception {
+        favoriteQueryService.acceptAccelerate(project, accelerateSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 

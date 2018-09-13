@@ -34,7 +34,9 @@ import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import io.kyligence.kap.smart.NSmartMaster;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -124,10 +126,20 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void stubUnAcceleratedFavorites() {
+        String[] sqls = new String[] { //
+                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
+                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
+                "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
+                "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
+        };
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqls[0]);
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqls[1]);
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqls[2]);
+        FavoriteQuery favoriteQuery4 = new FavoriteQuery(sqls[3]);
         final FavoriteQueryManager manager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.when(manager.getAll()).thenReturn(favoritesForTest());
-
-        Mockito.when(favoriteQueryService.getFavoriteQueryManager(PROJECT)).thenReturn(manager);
+        Mockito.when(manager.getAll()).thenReturn(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3, favoriteQuery4));
+        Mockito.when(favoriteQueryService.getSmartMaster("newten", sqls)).thenReturn(new NSmartMaster(getTestConfig(), "newten", sqls));
+        Mockito.when(favoriteQueryService.getFavoriteQueryManager("newten")).thenReturn(manager);
     }
 
     private List<QueryHistory> queriesForTest() {
@@ -248,12 +260,32 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testTimeToAccelerate() {
+    public void testAccelerateTips() {
         stubUnAcceleratedFavorites();
 
-        HashMap<String, Object> data = favoriteQueryService.isTimeToAccelerate(PROJECT);
-        Assert.assertEquals(2, data.get("size"));
+        HashMap<String, Object> data = favoriteQueryService.getAccelerateTips("newten");
+        Assert.assertEquals(4, data.get("size"));
         Assert.assertEquals(false, data.get("reach_threshold"));
+        Assert.assertEquals(1, data.get("optimized_model_num"));
+    }
+
+    @Test
+    public void acceptAccelerate() {
+        getTestConfig().setProperty("kylin.server.mode", "query");
+        Mockito.when(favoriteQueryService.getUnAcceleratedQueries(PROJECT)).thenReturn(favoritesForTest());
+        try {
+            favoriteQueryService.acceptAccelerate(PROJECT, 10);
+        } catch (Throwable ex) {
+            Assert.assertEquals(ex.getMessage(), String.format(MsgPicker.getMsg().getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH(), 10));
+        }
+
+        try {
+            favoriteQueryService.acceptAccelerate(PROJECT, 2);
+        } catch (Throwable ex) {
+            // ignore
+        }
+        getTestConfig().setProperty("kylin.server.mode", "all");
+
     }
 
     @Test

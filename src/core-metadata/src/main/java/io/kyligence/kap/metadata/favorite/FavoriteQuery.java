@@ -26,7 +26,7 @@ package io.kyligence.kap.metadata.favorite;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
-public class FavoriteQuery extends RootPersistentEntity {
+public class FavoriteQuery extends RootPersistentEntity implements Comparable<FavoriteQuery> {
 
     @JsonProperty("sql")
     private String sql;
@@ -42,15 +42,19 @@ public class FavoriteQuery extends RootPersistentEntity {
     private String modelName;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
+    @JsonProperty("createTime")
+    private long createTime;
 
     public FavoriteQuery() {
         updateRandomUuid();
+        this.createTime = System.currentTimeMillis();
     }
 
     public FavoriteQuery(final String sql) {
         this.updateRandomUuid();
         this.sql = sql;
         this.setStatus(FavoriteQueryStatusEnum.WAITING);
+        this.createTime = System.currentTimeMillis();
     }
 
     public String getSql() {
@@ -107,6 +111,23 @@ public class FavoriteQuery extends RootPersistentEntity {
 
     public void setStatus(FavoriteQueryStatusEnum status) {
         this.status = status;
+    }
+
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
+
+    @Override
+    public int compareTo(FavoriteQuery obj) {
+        int comp = Long.compare(this.createTime, obj.getCreateTime());
+        if (comp != 0)
+            return comp;
+        else
+            return this.sql.compareTo(obj.sql);
     }
 
     @Override

@@ -147,9 +147,10 @@ public class FavoriteQueryControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/accept")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
+                .param("accelerateSize", "20")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(favoriteQueryController, Mockito.only()).acceptAccelerate(PROJECT);
+        Mockito.verify(favoriteQueryController, Mockito.only()).acceptAccelerate(PROJECT, 20);
     }
 
     @Test
