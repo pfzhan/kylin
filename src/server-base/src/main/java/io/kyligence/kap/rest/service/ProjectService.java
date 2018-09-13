@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.rest.service;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.query.QueryFilterRule;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kylingence.kap.event.model.AddProjectEvent;
 import org.apache.directory.api.util.Strings;
@@ -81,6 +84,15 @@ public class ProjectService extends BasicService {
         AddProjectEvent projectEvent = new AddProjectEvent(createdProject.getName());
         getEventManager(createdProject.getName()).post(projectEvent);
         logger.debug("New project created.");
+
+        // create default rule
+        QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+        cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
+        cond.setField("realization");
+        cond.setRightThreshold(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN).toString());
+        QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond), "default_rule", true);
+        getQueryFilterRuleManager(projectName).save(rule);
+
         return createdProject;
     }
 

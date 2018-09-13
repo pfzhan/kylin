@@ -45,10 +45,12 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -95,6 +97,9 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         }
         assert true;
 
+        QueryFilterRuleManager queryFilterRuleManager = QueryFilterRuleManager.getInstance(getTestConfig(), projectInstance.getName());
+        Assert.assertEquals(1, queryFilterRuleManager.getAll().size());
+        Assert.assertEquals("default_rule", queryFilterRuleManager.getAll().get(0).getName());
     }
 
     @Test

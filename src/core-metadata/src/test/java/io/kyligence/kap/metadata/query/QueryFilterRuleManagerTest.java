@@ -37,6 +37,7 @@ import java.util.List;
 public class QueryFilterRuleManagerTest extends NLocalFileMetadataTestCase {
     private static String PROJECT = "default";
     private static QueryFilterRuleManager manager;
+    private static final String TEST_RULE = "30a73dc4-b1b6-4744-a598-5735f52c249b";
 
     @Before
     public void setUp() {
@@ -97,10 +98,15 @@ public class QueryFilterRuleManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetRule() {
-        QueryFilterRule rule = manager.get("30a73dc4-b1b6-4744-a598-5735f52c249b");
+        QueryFilterRule rule = manager.get(TEST_RULE);
         Assert.assertNotNull(rule);
 
         rule = manager.get("not_exist_rule");
         Assert.assertNull(rule);
+    }
+
+    @Test
+    public void testGetEnabledRules() {
+        Assert.assertEquals(1, manager.getAllEnabled().size());
     }
 }
