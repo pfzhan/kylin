@@ -31,6 +31,7 @@ import java.util.Set;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import com.google.common.collect.Lists;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -124,6 +125,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                 df = dfMgr.getDataflow(cubePlanName);
                 toBeProcessedSegments = df.getSegments();
                 if (CollectionUtils.isEmpty(toBeProcessedSegments)) {
+                    List<SegmentRange> segmentRangeList = Lists.newArrayList();
                     SegmentRange segmentRange = event.getSegmentRange();
                     if (segmentRange == null) {
                         NDataModel model = cubePlan.getModel();
@@ -132,10 +134,20 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                         if (dataLoadingRange == null) {
                             return null;
                         }
-                        SegmentRange.TimePartitionedDataLoadingRange range = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
-                        segmentRange = new SegmentRange.TimePartitionedSegmentRange(range.getStart(), range.getEnd());
+                        List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+                        if (CollectionUtils.isNotEmpty(segmentRanges)) {
+                            for (SegmentRange range : segmentRanges) {
+                                segmentRangeList.add(range);
+                            }
+                        }
+
+                    } else {
+                        segmentRangeList.add(segmentRange);
                     }
-                    checkNotNull(segmentRange);
+
+                    if (CollectionUtils.isEmpty(segmentRangeList)) {
+                        return null;
+                    }
                     NDataSegment oneSeg = NDataflowManager.getInstance(kylinConfig, project).appendSegment(df, segmentRange);
                     toBeProcessedSegments.add(oneSeg);
                 }

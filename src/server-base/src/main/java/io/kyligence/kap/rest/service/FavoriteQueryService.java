@@ -35,9 +35,6 @@ import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
-import io.kylingence.kap.event.handle.AddCuboidHandler;
-import io.kylingence.kap.event.handle.ModelUpdateHandler;
-import io.kylingence.kap.event.handle.RemoveCuboidHandler;
 import io.kylingence.kap.event.model.ModelUpdateEvent;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -73,9 +70,6 @@ public class FavoriteQueryService extends BasicService {
 
     @PostConstruct
     void init() throws SchedulerException {
-        new ModelUpdateHandler();
-        new AddCuboidHandler();
-        new RemoveCuboidHandler();
         autoMarkFavorite.start();
     }
 

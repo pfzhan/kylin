@@ -26,8 +26,10 @@ package io.kyligence.kap.cube.model;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -36,6 +38,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
@@ -44,7 +47,10 @@ import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +97,7 @@ public class NDataLoadingRangeManager {
             @Override
             protected NDataLoadingRange initEntityAfterReload(NDataLoadingRange dataLoadingRange, String resourceName) {
                 // do nothing
+                dataLoadingRange.setProject(project);
                 return dataLoadingRange;
             }
         };
@@ -167,6 +174,36 @@ public class NDataLoadingRangeManager {
         }
     }
 
+    public NDataLoadingRange appendSegmentRange(NDataLoadingRange dataLoadingRange, SegmentRange segmentRange) throws IOException {
+        try (AutoLock lock = rangeMapLock.lockForWrite()) {
+            NDataLoadingRange copyForWrite = copyForWrite(dataLoadingRange);
+            List<SegmentRange> segmentRanges = copyForWrite.getSegmentRanges();
+            if (CollectionUtils.isEmpty(segmentRanges)) {
+                segmentRanges.add(segmentRange);
+            } else {
+                SegmentRange lastSegmentRange = segmentRanges.get(segmentRanges.size() - 1);
+                SegmentRange firstSegmentRange = segmentRanges.get(0);
+
+                if (lastSegmentRange.connects(segmentRange)) {
+                    segmentRanges.add(segmentRange);
+                } else if (segmentRange.connects(firstSegmentRange)) {
+                    // if add segRange at first, waterMarkStart and waterMarkEnd ++
+                    int waterMarkEnd = copyForWrite.getWaterMarkEnd();
+                    int waterMarkStart = copyForWrite.getWaterMarkStart();
+                    if (waterMarkEnd != -1) {
+                        copyForWrite.setWaterMarkStart(++ waterMarkStart);
+                        copyForWrite.setWaterMarkEnd(++ waterMarkEnd);
+                    }
+                    segmentRanges.add(0, segmentRange);
+                }else {
+                    throw new IllegalArgumentException("NDataLoadingRange appendSegmentRange " + segmentRange +
+                            " has overlaps/gap with existing segmentRanges " + copyForWrite.getCoveredSegmentRange());
+                }
+            }
+            return updateDataLoadingRange(copyForWrite);
+        }
+    }
+
     public NDataLoadingRange updateDataLoadingRange(NDataLoadingRange dataLoadingRange) throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
             if (getStore().getConfig().isCheckCopyOnWrite()) {
@@ -223,37 +260,103 @@ public class NDataLoadingRangeManager {
 
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
             List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingTable(tableDesc);
-            long newWaterMark = Long.MAX_VALUE;
+            boolean needUpdateWaterMark = false;
 
-            for (String model : models) {
-                List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project, config);
-                if (CollectionUtils.isEmpty(matchingCubePlans)) {
-                    continue;
+            if (CollectionUtils.isEmpty(models)) {
+                needUpdateWaterMark = true;
+                dataLoadingRange.setWaterMarkEnd(dataLoadingRange.getSegmentRanges().size() - 1);
+            } else {
+                List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+
+                Pair<SegmentRange, SegmentRange> readySegmentRange = genReadySegmentRange(models);
+                SegmentRange start = readySegmentRange.getFirst();
+                SegmentRange end = readySegmentRange.getSecond();
+
+                if (start != null) {
+                    int waterMarkStart = segmentRanges.indexOf(start) - 1;
+                    if (waterMarkStart != dataLoadingRange.getWaterMarkStart()) {
+                        dataLoadingRange.setWaterMarkStart(waterMarkStart);
+                        needUpdateWaterMark = true;
+                    }
                 }
-                for (NCubePlan cubePlan : matchingCubePlans) {
-                    NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
-                    NDataSegment segment = df.getSegments().getLatestReadySegment();
-                    if (segment == null) {
-                        return;
+                if (end != null) {
+                    int waterMarkEnd = segmentRanges.indexOf(end);
+                    if (waterMarkEnd != dataLoadingRange.getWaterMarkEnd()) {
+                        dataLoadingRange.setWaterMarkEnd(waterMarkEnd);
+                        needUpdateWaterMark = true;
                     }
-                    SegmentRange segmentRange = segment.getSegRange();
-                    if (segmentRange == null) {
-                        return;
-                    }
-                    long end = (Long) segmentRange.getEnd();
-                    newWaterMark = Math.min(end, newWaterMark);
                 }
             }
 
-            SegmentRange.TimePartitionedDataLoadingRange loadingRange = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
-            long currentWaterMark = loadingRange.getWaterMark();
-            long currentEnd = loadingRange.getEnd();
-
-            if (newWaterMark > currentWaterMark && newWaterMark <= currentEnd) {
-                loadingRange.setWaterMark(newWaterMark);
+            if (needUpdateWaterMark) {
                 updateDataLoadingRange(dataLoadingRange);
             }
         }
+    }
+
+    private Pair<SegmentRange, SegmentRange> genReadySegmentRange(List<String> models) {
+        Pair<SegmentRange, SegmentRange> readySegmentRangePair = new Pair<>();
+        if (CollectionUtils.isEmpty(models)) {
+            return readySegmentRangePair;
+        }
+        SegmentRange first;
+        SegmentRange last;
+        for (String model : models) {
+            List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project, config);
+            if (CollectionUtils.isEmpty(matchingCubePlans)) {
+                continue;
+            }
+            for (NCubePlan cubePlan : matchingCubePlans) {
+                NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
+                RealizationStatusEnum statusEnum = df.getStatus();
+                if (!RealizationStatusEnum.READY.equals(statusEnum)) {
+                    continue;
+                }
+                List<SegmentRange> readySegmentRangeList = calcReadySegmentRangeList(df);
+                if (CollectionUtils.isEmpty(readySegmentRangeList)) {
+                    return new Pair<>();
+                }
+                int size = readySegmentRangeList.size();
+                first = readySegmentRangeList.get(0);
+                last = readySegmentRangeList.get(size - 1);
+                SegmentRange firstReady = readySegmentRangePair.getFirst();
+                SegmentRange lastReady = readySegmentRangePair.getSecond();
+
+                if (firstReady == null) {
+                    readySegmentRangePair.setFirst(first);
+                } else {
+                    if (first.compareTo(firstReady) > 0) {
+                        readySegmentRangePair.setFirst(first);
+                    }
+                }
+
+                if (lastReady == null) {
+                    readySegmentRangePair.setSecond(last);
+                } else {
+                    if (last.compareTo(lastReady) < 0) {
+                        readySegmentRangePair.setSecond(last);
+                    }
+                }
+            }
+        }
+        return readySegmentRangePair;
+    }
+
+    private List<SegmentRange> calcReadySegmentRangeList(NDataflow df) {
+        List<SegmentRange> segmentRangeList = Lists.newArrayList();
+        if (df == null) {
+            return segmentRangeList;
+        }
+        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
+        if (CollectionUtils.isEmpty(readySegments)) {
+            return segmentRangeList;
+        }
+        for (NDataSegment readySegment : readySegments) {
+            segmentRangeList.add(readySegment.getSegRange());
+        }
+        Collections.sort(segmentRangeList);
+        return segmentRangeList;
+
     }
 
 }

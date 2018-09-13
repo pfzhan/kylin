@@ -28,7 +28,6 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -96,11 +95,7 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
         } else {
             // there is no models, just update the dataLoadingRange waterMark
             NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
-            SegmentRange.TimePartitionedDataLoadingRange range = (SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange.getDataLoadingRange();
-            range.setWaterMark(range.getEnd());
-            NDataLoadingRange copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-            dataLoadingRangeManager.updateDataLoadingRange(copy);
+            dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
         }
 
     }

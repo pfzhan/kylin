@@ -87,6 +87,8 @@ public class EventOrchestratorManager {
         if (!("job".equals(serverMode.toLowerCase()) || "all".equals(serverMode.toLowerCase()))) {
             logger.info("server mode: " + serverMode + ", no need to initEventOrchestrators");
             return;
+        } else {
+            logger.info("server mode: " + serverMode + ", start to initEventOrchestrators");
         }
         List<ProjectInstance> projects = NProjectManager.getInstance(kylinConfig).listAllProjects();
         for (ProjectInstance project : projects) {

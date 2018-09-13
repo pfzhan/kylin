@@ -113,7 +113,7 @@ public class NModelMasterTest extends NTestBase {
 
     private NDataLoadingRange preparePartition() throws IOException {
         String tableName = "DEFAULT.KYLIN_SALES";
-        String columnName = "PART_DT";
+        String columnName = "KYLIN_SALES.PART_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setProject(proj);
@@ -121,9 +121,7 @@ public class NModelMasterTest extends NTestBase {
         dataLoadingRange.setColumnName(columnName);
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(start,
-                end);
-        dataLoadingRange.setDataLoadingRange(range);
+
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, proj);
         NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
         return savedDataLoadingRange;

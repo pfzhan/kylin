@@ -458,11 +458,11 @@ public class FilterPushDownUtilTest {
         range.setColumnName("kylin_sales.part_dt");
         range.setTableName("default.kylin_sales");
         range.setProject("learn_kylin");
-        SegmentRange.TimePartitionedDataLoadingRange timePartitionedDataLoadingRange = new SegmentRange.TimePartitionedDataLoadingRange();
-        timePartitionedDataLoadingRange.setStart(DateFormat.stringToMillis("2012-07-08"));
-        timePartitionedDataLoadingRange.setWaterMark(DateFormat.stringToMillis("2015-09-23"));
-        timePartitionedDataLoadingRange.setEnd(DateFormat.stringToMillis("2018-09-23"));
-        range.setDataLoadingRange(timePartitionedDataLoadingRange);
+        SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange();
+        timePartitionedSegmentRange.setStart(DateFormat.stringToMillis("2012-07-08"));
+        timePartitionedSegmentRange.setEnd(DateFormat.stringToMillis("2015-09-23"));
+        range.setWaterMarkEnd(0);
+        range.getSegmentRanges().add(timePartitionedSegmentRange);
 
         final String actual = FilterPushDownUtil.applyDataLoadingRange(sql, range);
         String expected = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n" //

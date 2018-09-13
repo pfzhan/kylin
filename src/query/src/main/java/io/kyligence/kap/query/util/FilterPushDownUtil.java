@@ -64,7 +64,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentRange.TimePartitionedDataLoadingRange;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,8 +93,8 @@ public class FilterPushDownUtil {
     static String applyDataLoadingRange(String sqlToUpdate, NDataLoadingRange range)
             throws SqlParseException {
         Preconditions.checkNotNull(range);
-        SegmentRange.TimePartitionedDataLoadingRange timePartitionedDataLoadingRange = (TimePartitionedDataLoadingRange) range.getDataLoadingRange();
-        Preconditions.checkNotNull(timePartitionedDataLoadingRange);
+        SegmentRange readySegmentRange = range.getCoveredReadySegmentRange();
+        Preconditions.checkNotNull(readySegmentRange);
 
         final String tableName = range.getTableName();
         final String columnName = range.getColumnName();
@@ -103,8 +102,8 @@ public class FilterPushDownUtil {
         Preconditions.checkState(schemaAndShortName.length == 2);
 
         // use start and waterMark
-        final String start = DateFormat.formatToDateStr(timePartitionedDataLoadingRange.getStart(), DateFormat.DEFAULT_DATE_PATTERN);
-        final String waterMark = DateFormat.formatToDateStr(timePartitionedDataLoadingRange.getWaterMark(), DateFormat.DEFAULT_DATE_PATTERN);
+        final String start = DateFormat.formatToDateStr((Long) readySegmentRange.getStart(), DateFormat.DEFAULT_DATE_PATTERN);
+        final String waterMark = DateFormat.formatToDateStr((Long) readySegmentRange.getEnd(), DateFormat.DEFAULT_DATE_PATTERN);
         String extraCondition = String.format("%s >= '%s' and %s <= '%s'", columnName, start, columnName, waterMark);
 
         return applyFilterCondition(sqlToUpdate, extraCondition, tableName);

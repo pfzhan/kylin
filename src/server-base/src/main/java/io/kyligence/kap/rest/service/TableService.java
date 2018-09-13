@@ -291,14 +291,12 @@ public class TableService extends BasicService {
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange(table);
 
         if (dataLoadingRange != null) {
-            List<SegmentRange> segmentRanges = getSegmentRange(dataLoadingRange.getDataLoadingRange(), startTime,
+            List<SegmentRange> segmentRanges = getSegmentRange(dataLoadingRange, startTime,
                     endTime);
-            SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(
-                    startTime, endTime);
-            dataLoadingRange.setDataLoadingRange(range);
-            rangeManager.updateDataLoadingRange(dataLoadingRange);
+
             EventManager eventManager = getEventManager(project);
             for (SegmentRange seg : segmentRanges) {
+                rangeManager.appendSegmentRange(dataLoadingRange, seg);
                 LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
                 updateEvent.setTableName(table);
                 updateEvent.setApproved(true);
@@ -313,28 +311,27 @@ public class TableService extends BasicService {
         }
     }
 
-    private List<SegmentRange> getSegmentRange(SegmentRange dataLoadingRange, long startTime, long endTime) {
+    private List<SegmentRange> getSegmentRange(NDataLoadingRange dataLoadingRange, long startTime, long endTime) {
         List<SegmentRange> segmentRanges = new ArrayList<>();
-        SegmentRange.TimePartitionedDataLoadingRange newRange = new SegmentRange.TimePartitionedDataLoadingRange(
-                startTime, endTime);
-        if (dataLoadingRange == null || !dataLoadingRange.overlaps(newRange)) {
-            SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(
-                    newRange.getStart(), newRange.getEnd());
+        SegmentRange.TimePartitionedSegmentRange newRange = new SegmentRange.TimePartitionedSegmentRange(startTime, endTime);
+        SegmentRange coveredSegmentRange = dataLoadingRange.getCoveredSegmentRange();
+        if (dataLoadingRange == null || coveredSegmentRange == null || !coveredSegmentRange.overlaps(newRange)) {
+            SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(newRange.getStart(), newRange.getEnd());
             segmentRanges.add(timePartitionedSegmentRange);
             return segmentRanges;
         }
-        if (dataLoadingRange.contains(newRange)) {
+        if (coveredSegmentRange.contains(newRange)) {
             //do nothing but set range to new start and end
             return segmentRanges;
         }
 
-        long oldStartTime = ((SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange).getStart();
-        long oldEndTime = ((SegmentRange.TimePartitionedDataLoadingRange) dataLoadingRange).getEnd();
+        long oldStartTime = (long) coveredSegmentRange.getStart();
+        long oldEndTime = (long) coveredSegmentRange.getEnd();
         if (startTime < oldStartTime) {
-            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(startTime, oldStartTime - 1));
+            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(startTime, oldStartTime));
         }
         if (endTime > oldEndTime) {
-            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(oldEndTime + 1, endTime));
+            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(oldEndTime, endTime));
         }
 
         return segmentRanges;

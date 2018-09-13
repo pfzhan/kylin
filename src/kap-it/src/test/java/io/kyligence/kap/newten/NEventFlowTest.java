@@ -266,9 +266,9 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
-        SegmentRange.TimePartitionedDataLoadingRange range = new SegmentRange.TimePartitionedDataLoadingRange(start,
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(start,
                 end);
-        dataLoadingRange.setDataLoadingRange(range);
+        dataLoadingRange.getSegmentRanges().add(range);
         NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
 
         LoadingRangeUpdateEvent loadingRangeUpdateEvent = new LoadingRangeUpdateEvent();
@@ -286,9 +286,8 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
 //        NDataLoadingRange finalDataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
 
-//        SegmentRange.TimePartitionedDataLoadingRange range1 = (SegmentRange.TimePartitionedDataLoadingRange) finalDataLoadingRange
-//                .getDataLoadingRange();
-//        Assert.assertTrue(range1.getWaterMark().equals(end));
+//        Assert.assertTrue(finalDataLoadingRange.getWaterMarkStart() == -1);
+//        Assert.assertTrue(finalDataLoadingRange.getWaterMarkEnd() == 0);
 
 //        df = dsMgr.getDataflow("ncube_basic");
 //        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);

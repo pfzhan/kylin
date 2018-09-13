@@ -45,9 +45,13 @@ package io.kyligence.kap.cube.model;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentRange;
+
+import java.util.List;
 
 import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
 
@@ -57,14 +61,18 @@ public class NDataLoadingRange extends RootPersistentEntity {
 
     public NDataLoadingRange() {}
 
-    @JsonProperty("project")
     private String project;
-    @JsonProperty("tableName")
+    @JsonProperty("table_name")
     private String tableName;
-    @JsonProperty("columnName")
+    @JsonProperty("column_name")
     private String columnName;
-    @JsonProperty("dataLoadingRange")
-    private SegmentRange dataLoadingRange;
+    @JsonProperty("segment_ranges")
+    private List<SegmentRange> segmentRanges = Lists.newArrayList();
+    // (waterMarkStart, waterMarkEnd]
+    @JsonProperty("water_mark_start")
+    private int waterMarkStart = -1;
+    @JsonProperty("water_mark_end")
+    private int waterMarkEnd = -1;
 
     public String getProject() {
         return project;
@@ -90,12 +98,60 @@ public class NDataLoadingRange extends RootPersistentEntity {
         this.columnName = columnName;
     }
 
-    public SegmentRange getDataLoadingRange() {
-        return dataLoadingRange;
+    public List<SegmentRange> getSegmentRanges() {
+        return segmentRanges;
     }
 
-    public void setDataLoadingRange(SegmentRange dataLoadingRange) {
-        this.dataLoadingRange = dataLoadingRange;
+    public int getWaterMarkStart() {
+        return waterMarkStart;
+    }
+
+    public void setWaterMarkStart(int waterMarkStart) {
+        this.waterMarkStart = waterMarkStart;
+    }
+
+    public int getWaterMarkEnd() {
+        return waterMarkEnd;
+    }
+
+    public void setWaterMarkEnd(int waterMarkEnd) {
+        this.waterMarkEnd = waterMarkEnd;
+    }
+
+    public SegmentRange getCoveredSegmentRange(){
+        SegmentRange readySegmentRange = null;
+
+        if (CollectionUtils.isEmpty(segmentRanges)) {
+            return readySegmentRange;
+        }
+
+        SegmentRange start = segmentRanges.get(0);
+        if (segmentRanges.size() == 1) {
+            return start;
+        }
+
+        SegmentRange end = segmentRanges.get(segmentRanges.size() - 1);
+        readySegmentRange = start.coverWith(end);
+
+        return readySegmentRange;
+    }
+
+    public SegmentRange getCoveredReadySegmentRange(){
+        SegmentRange readySegmentRange = null;
+
+        if (CollectionUtils.isEmpty(segmentRanges) || (waterMarkEnd == waterMarkStart)) {
+            return readySegmentRange;
+        }
+
+        SegmentRange end = segmentRanges.get(waterMarkEnd);
+        if (segmentRanges.size() == 1) {
+            return end;
+        }
+
+        SegmentRange start = segmentRanges.get(waterMarkStart + 1);
+        readySegmentRange = start.coverWith(end);
+
+        return readySegmentRange;
     }
 
     @Override
