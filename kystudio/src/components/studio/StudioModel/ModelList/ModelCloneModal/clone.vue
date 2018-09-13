@@ -58,7 +58,7 @@
     }
     @Watch('modelDesc')
     initModelName () {
-      this.modelClone.newName = this.modelDesc.name + '_clone'
+      this.modelClone.newName = this.modelDesc.alias + '_clone'
     }
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {

@@ -48,13 +48,13 @@ Vue.directive('scroll', {
     if (el) {
       var isReactive = binding.modifiers.reactive
       // 组件更新后强制重新初始化
-      if (isReactive) {
+      var instance = Scrollbar.get(el)
+      if (!instance) {
         Scrollbar.init(el)
-      } else {
-        var instance = Scrollbar.get(el)
-        if (!instance) {
-          Scrollbar.init(el)
-        }
+        return
+      }
+      if (isReactive) {
+        Scrollbar.update(true)
       }
     }
   }
@@ -87,44 +87,43 @@ Vue.directive('search-highlight', function (el, binding) {
     })
   })
 })
-
+var list = null
+var scrollInstance = null
 Vue.directive('keyborad-select', {
   unbind: function () {
     $(document).unbind('keyup')
   },
   componentUpdated: function (el, binding) {
-    var searchKey = binding.value.searchKey
     var searchScope = binding.value.scope
-    var list = null
-    var scrollInstance = Scrollbar.get(el)
-    Vue.nextTick(() => {
-      list = $(el).find(searchScope)
-      var index = -1
-      selectList()
-      if (searchKey) {
-        $(document).keyup(function (event) {
-          if (event.keyCode === 40 || event.keyCode === 39) {
-            index = index + 1 >= list.length ? 0 : index + 1
-            selectList(index)
-          }
-          if (event.keyCode === 37 || event.keyCode === 38) {
-            index = index - 1 < 0 ? list.length - 1 : index - 1
-            selectList(index)
-          }
-          if (event.keyCode === 13 && index >= 0) {
-            list.eq(index).click()
-          }
-        })
+    list = $(el).find(searchScope)
+    scrollInstance = Scrollbar.get(el)
+  },
+  inserted: function (el, binding) {
+    var index = -1
+    selectList()
+    $(document).keyup(function (event) {
+      if (event.keyCode === 40 || event.keyCode === 39) {
+        index = index + 1 >= list.length ? 0 : index + 1
+        selectList(index)
+      }
+      if (event.keyCode === 37 || event.keyCode === 38) {
+        index = index - 1 < 0 ? list.length - 1 : index - 1
+        selectList(index)
+      }
+      if (event.keyCode === 13 && index >= 0) {
+        list.eq(index).click()
       }
     })
     function selectList (i) {
+      if (!list) {
+        return
+      }
       list.removeClass('active')
       if (i >= 0) {
         let height = $(el).height()
-        // console.log(scrollInstance, height / list.length * i, 'kkkk')
-        // scrollInstance.scrollTo(0, height / list.length * i)
-        console.log(scrollInstance, 'kkk')
-        scrollInstance.offset.y = height / list.length * i
+        if (scrollInstance) {
+          scrollInstance.scrollTo(100, height / list.length * i, 400)
+        }
         list.eq(i).addClass('active')
       }
     }

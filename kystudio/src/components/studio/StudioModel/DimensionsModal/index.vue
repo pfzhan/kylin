@@ -141,7 +141,7 @@ import store, { types } from './store'
 import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 // import { handleSuccessAsync, handleError } from '../../../util'
-
+vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   // props: {
   //   modelTables: {
@@ -249,11 +249,6 @@ export default class DimensionsModal extends Vue {
     }, 300)
   }
   handleClick () {
-  }
-  beforeCreate () {
-    if (!this.$store.state.modals.DimensionsModal) {
-      vuex.registerModule(['modals', 'DimensionsModal'], store)
-    }
   }
   destroyed () {
     if (!module.hot) {

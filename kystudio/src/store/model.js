@@ -52,8 +52,7 @@ export default {
     [types.GET_SPEED_INFO]: function ({ commit }, projectName) {
       return new Promise((resolve, reject) => {
         api.model.getSpeedModelInfo(projectName).then((response) => {
-          console.log(response.data.data.events || [])
-          commit(types.CACHE_SPEED_INFO, { list: response.data.data.events || [] })
+          commit(types.CACHE_SPEED_INFO, { list: response.data.data.unAccelerated_queries || [] })
           resolve(response)
         }, (response) => {
           commit(types.CACHE_SPEED_INFO, { list: [] })
@@ -62,13 +61,22 @@ export default {
       })
     },
     [types.APPLY_SPEED_INFO]: function ({ commit }, para) {
-      return api.model.applySpeedModelInfo(para)
+      return api.model.applySpeedModelInfo(para.project, para.size)
+    },
+    [types.IGNORE_SPEED_INFO]: function ({ commit }, projectName) {
+      return api.model.ignoreSpeedModelInfo(projectName)
     },
     [types.PURGE_MODEL]: function ({ commit }, para) {
       return api.model.purgeModel(para.project, para.modelName)
     },
     [types.RENAME_MODEL]: function ({ commit }, para) {
       return api.model.renameModel(para)
+    },
+    [types.DISABLE_MODEL]: function ({ commit }, para) {
+      return api.model.disableModel(para)
+    },
+    [types.ENABLE_MODEL]: function ({ commit }, para) {
+      return api.model.enableModel(para)
     },
     [types.LOAD_ALL_MODEL]: function ({ commit }, para) {
       return api.model.getModelList(para)

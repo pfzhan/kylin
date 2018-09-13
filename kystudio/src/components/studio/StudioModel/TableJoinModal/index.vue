@@ -1,5 +1,5 @@
 <template>
-  <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" v-event-stop  width="660px" :visible.sync="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" v-event-stop  width="660px" :visible="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select style="width:100%" v-model="selectF">
@@ -52,10 +52,7 @@ import { modelRenderConfig } from '../ModelEdit/config'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-// import { sourceTypes } from '../../../../config'
-// import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-// import { handleSuccessAsync, handleError } from '../../../util'
-
+vuex.registerModule(['modals', 'TableJoinModal'], store)
 @Component({
   computed: {
     ...mapGetters([
@@ -90,20 +87,17 @@ export default class TableJoinModal extends Vue {
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
-      this.isFormShow = true
       if (!this.currentSelectedProject) {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
-      var joinInfo = this.form.primaryTable.joinInfo[this.form.primaryTable.guid].join
-      this.joinType = joinInfo.type
-      this.selectF = this.form.foreignTable.alias
-      this.selectP = this.form.primaryTable.alias
-      this.joinColumns = joinInfo
-    } else {
-      setTimeout(() => {
-        this.isFormShow = false
-      }, 200)
+      if (this.form.primaryTable) {
+        var joinInfo = this.form.primaryTable.joinInfo[this.form.primaryTable.guid].join
+        this.joinType = joinInfo.type
+        this.selectF = this.form.foreignTable.alias
+        this.selectP = this.form.primaryTable.alias
+        this.joinColumns = joinInfo
+      }
     }
   }
 
@@ -117,11 +111,6 @@ export default class TableJoinModal extends Vue {
   handleClick () {
   }
   mounted () {
-  }
-  beforeCreate () {
-    if (!this.$store.state.modals.TableJoinModal) {
-      vuex.registerModule(['modals', 'TableJoinModal'], store)
-    }
   }
   destroyed () {
     if (!module.hot) {

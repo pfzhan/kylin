@@ -7,11 +7,14 @@ Vue.use(VueResource)
 export default {
   // 获取加速信息
   getSpeedModelInfo: (projectName) => {
-    return Vue.resource(apiUrl + 'events?project=' + projectName).get()
+    return Vue.resource(apiUrl + 'query/favorite_queries/threshold?project=' + projectName).get()
   },
   // 执行加速
-  applySpeedModelInfo: (para) => {
-    return Vue.resource(apiUrl + 'events').save(para)
+  applySpeedModelInfo: (projectName, size) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/accept?project=' + projectName + '&accelerateSize=' + size).update()
+  },
+  ignoreSpeedModelInfo: (projectName) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/ignore/' + projectName).update()
   },
   // purge
   purgeModel: (project, modelName) => {
@@ -21,7 +24,15 @@ export default {
     return Vue.resource(apiUrl + 'models').get(params)
   },
   renameModel: (params) => {
-    return Vue.resource(apiUrl + 'models').update(params)
+    return Vue.resource(apiUrl + 'models/name').update(params)
+  },
+  disableModel: (params) => {
+    params.status = 'DISABLED'
+    return Vue.resource(apiUrl + 'models/status').update(params)
+  },
+  enableModel: (params) => {
+    params.status = 'READY'
+    return Vue.resource(apiUrl + 'models/status').update(params)
   },
   measureDimensionSuggestion: (params) => {
     return Vue.resource(apiUrl + 'models/' + params.project + '/table_suggestions').get(params)

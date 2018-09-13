@@ -28,7 +28,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-
+vuex.registerModule(['modals', 'SingleDimensionModal'], store)
 @Component({
   computed: {
     ...mapGetters([
@@ -79,11 +79,6 @@ export default class SingleDimensionModal extends Vue {
       this.resetModalForm()
       this.callback && this.callback(isSubmit)
     }, 300)
-  }
-  beforeCreate () {
-    if (!this.$store.state.modals.SingleDimensionModal) {
-      vuex.registerModule(['modals', 'SingleDimensionModal'], store)
-    }
   }
   destroyed () {
     if (!module.hot) {

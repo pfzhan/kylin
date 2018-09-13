@@ -1,6 +1,6 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}">
-    <div class="notice-box" v-if="modelSpeedEvents.length">
+    <div class="notice-box" v-if="!!modelSpeedEvents.length">
       <el-alert
       type="warning"
       :closable="false"
@@ -13,11 +13,11 @@
           <el-button icon="el-icon-arrow-right" size="mini"></el-button>
         </el-button-group>
       </div>
-    </div>  
+    </div>
     <div class="ky-list-title ksd-mt-20">{{$t('kylinLang.model.modelList')}}</div>
     <div v-if="showSearchResult">
       <div  class="ksd-mb-14 ksd-fright ksd-mt-8">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:400px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.modelName"  @input="searchModels" class="show-search-btn" >
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:400px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
       <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
@@ -75,12 +75,12 @@
           width="210"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
-        <el-table-column
+      <!--   <el-table-column
           prop="capacity"
           show-overflow-tooltip
           width="210"
           :label="$t('capbility')">
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column
           prop="gmtTime"
           show-overflow-tooltip
@@ -109,8 +109,8 @@
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :tips="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.name)"></i></common-tip>
-              <common-tip :tips="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="dataLoad"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="dataLoad"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
@@ -148,15 +148,15 @@
        </div>
     </div>
 
-  <el-dialog width="440px" :title="$t('Note')" :visible.sync="applyDialogVisible">
+  <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="!!modelSpeedEvents.length" :show-close="false">
     <div>
       Hi Adora,<br/>
       <p style="text-indent:25px; line-height: 26px;">We have a nre proposal to reise model’s favorite score <span class="ky-highlight-text">15%</span>
 up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wnat to apply it?</p>
     </div>
     <div slot="footer" class="dialog-footer">
-      <!-- <el-button size="medium" @click="applyDialogVisible = false">{{$t('kylinLang.common.cancel')}}</el-button> -->
-      <el-button size="medium" type="primary" plain @click="applyDialogVisible = false">{{$t('Apply')}}</el-button>
+      <el-button size="medium" @click="ignoreSpeed">{{$t('ignore')}}</el-button>
+      <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
     </div>
   </el-dialog>
   <!-- 模型克隆 -->
@@ -285,6 +285,7 @@ up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wna
 </template>
 <script>
 import Vue from 'vue'
+import $ from 'jquery'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { permissions, NamedRegex } from '../../../../config'
@@ -297,11 +298,13 @@ import ModelAggregate from './ModelAggregate/index.vue'
 import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
 import { mockSQL } from './mock'
+import './fly.js'
 @Component({
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'modelsPagerRenderData'
+      'modelsPagerRenderData',
+      'briefMenuGet'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -315,8 +318,10 @@ import { mockSQL } from './mock'
       checkModelName: 'CHECK_MODELNAME',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       purgeModel: 'PURGE_MODEL',
-      disableModel: 'RENAME_MODEL',
-      enableModel: 'RENAME_MODEL'
+      disableModel: 'DISABLE_MODEL',
+      enableModel: 'ENABLE_MODEL',
+      getSpeedInfo: 'GET_SPEED_INFO',
+      ignoreSpeedInfo: 'IGNORE_SPEED_INFO'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -365,8 +370,8 @@ export default class ModelList extends Vue {
   filterArgs = {
     pageOffset: 0,
     pageSize: 10,
-    exactMatch: false,
-    modelName: '',
+    exact: false,
+    model: '',
     sortBy: '',
     reverse: true
   }
@@ -375,18 +380,71 @@ export default class ModelList extends Vue {
   showSearchResult = false
   searchLoading = false
   modelArray = []
-  applySpeed () {
+  loadSpeedInfo () {
+    this.getSpeedInfo(this.currentSelectedProject).then(() => {
+      this.btnLoading = false
+    }, (res) => {
+      this.btnLoading = false
+      handleError(res)
+    })
+  }
+  applySpeed (event) {
     var eventId = []
     this.modelSpeedEvents.forEach((ev) => {
       eventId.push(ev.uuid)
     })
-    this.applySpeedInfo({
-      event_id: eventId,
-      project: this.currentSelectedProject
-    }).then(() => {
-      this.loadModelsList()
+    this.btnLoading = true
+    this.applySpeedInfo({size: this.modelSpeedEvents.length, project: this.currentSelectedProject}).then(() => {
+      this.flyEvent(event)
+      this.loadSpeedInfo()
     }, (res) => {
+      this.btnLoading = false
       handleError(res)
+    })
+    this.applyDialogVisible = false
+  }
+  // 忽略此次加速
+  ignoreSpeed () {
+    this.btnLoading = true
+    this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
+      this.loadSpeedInfo()
+    }, (res) => {
+      this.btnLoading = false
+      handleError(res)
+    })
+  }
+  flyEvent (event) {
+    var targetArea = $('#monitor')
+    var targetDom = targetArea.find('.menu-icon')
+    var offset = targetDom.offset()
+    var flyer = $('<span class="fly-box"></span>')
+    let leftOffset = 60
+    if (this.briefMenuGet) {
+      leftOffset = 20
+    }
+    flyer.fly({
+      start: {
+        left: event.pageX,
+        top: event.pageY
+      },
+      end: {
+        left: offset.left + leftOffset,
+        top: offset.top,
+        width: 4,
+        height: 4
+      },
+      onEnd: function () {
+        targetDom.addClass('rotateY')
+        setTimeout(() => {
+          targetDom.fadeTo('slow', 0.5, function () {
+            targetDom.removeClass('rotateY')
+            targetDom.fadeTo('fast', 1)
+          })
+          flyer.fadeOut(1500, () => {
+            flyer.remove()
+          })
+        }, 3000)
+      }
     })
   }
   checkName (rule, value, callback) {
@@ -403,7 +461,8 @@ export default class ModelList extends Vue {
     if (command === 'dataCheck') {
       this.modelCheckModeVisible = true
     } else if (command === 'rename') {
-      this.callRenameModelDialog(objectClone(modelInstance))
+      const isSubmit = await this.callRenameModelDialog(objectClone(modelInstance))
+      isSubmit && this.loadModelsList()
     } else if (command === 'delete') {
       kapConfirm(this.$t('delModelTip')).then(() => {
         this.handleDrop(modelInstance)
@@ -428,18 +487,16 @@ export default class ModelList extends Vue {
   handleDisableModel (modelInstance) {
     let model = objectClone(modelInstance)
     model.status = 'DISABLED'
-    this.disableModel({modelDescData: JSON.stringify(model), project: this.currentSelectedProject}).then(() => {
-      kapMessage('disbaleModelSuccessTip')
+    this.disableModel({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
+      kapMessage(this.$t('disbaleModelSuccessTip'))
       this.loadModelsList()
     }, (res) => {
       handleError(res)
     })
   }
   handleEnableModel (modelInstance) {
-    let model = objectClone(modelInstance)
-    model.status = 'READY'
-    this.disableModel({modelDescData: JSON.stringify(model), project: this.currentSelectedProject}).then(() => {
-      kapMessage('enabledModelSuccessTip')
+    this.enableModel({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
+      kapMessage(this.$t('enabledModelSuccessTip'))
       this.loadModelsList()
     }, (res) => {
       handleError(res)
@@ -455,10 +512,7 @@ export default class ModelList extends Vue {
   }
   handleDrop (model) {
     this.delModel({modelName: model.name, project: this.currentSelectedProject}).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.delSuccess')
-      })
+      kapMessage(this.$t('deleteModelSuccessTip'))
       this.loadModelsList()
     }, (res) => {
       handleError(res)
@@ -466,6 +520,7 @@ export default class ModelList extends Vue {
   }
   handlePurge (model) {
     this.purgeModel({project: this.currentSelectedProject, modelName: model.name}).then(() => {
+      kapMessage(this.$t('purgeModelSuccessTip'))
     }, (res) => {
       handleError(res)
     })
@@ -480,13 +535,6 @@ export default class ModelList extends Vue {
       })
     })
   }
-  onSortChange ({ column, prop, order }) {
-    if (prop === 'gmtTime') {
-      this.filterArgs.sortBy = 'last_modify'
-      this.filterArgs.reverse = !(order === 'ascending')
-    }
-    this.loadModelsList()
-  }
   // 全凭查看模型附属信息
   toggleShowFull (index) {
     this.showFull = true
@@ -498,7 +546,7 @@ export default class ModelList extends Vue {
   // 加载模型列表
   loadModelsList () {
     return this.loadModels(this.filterArgs).then(() => {
-      if (this.filterArgs.modelName || this.modelsPagerRenderData.list.length) {
+      if (this.filterArgs.model || this.modelsPagerRenderData.list.length) {
         this.showSearchResult = true
       } else {
         this.showSearchResult = false
@@ -545,6 +593,24 @@ export default class ModelList extends Vue {
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
+@range: 2160deg;
+@timer:3s;
+.rotateY{
+  -webkit-transform: rotate3d(0,1,0,@range);
+  -moz-transform: rotate3d(0,1,0,@range);
+  transform: rotate3d(0,1,0,@range);
+  transition: -webkit-transform @timer ease-out;
+  transition: -moz-transform @timer ease-out;
+  transition: transform @timer ease-out;
+}
+.fly-box {
+  position:absolute;
+  width:14px;
+  height:14px;
+  border-radius: 50%;
+  background-color:@error-color-1;
+  z-index:99999;
+}
 .mode-list{
   .model-detail-tabs {
     &>.el-tabs__header{

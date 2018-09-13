@@ -147,7 +147,7 @@
 
     <!-- 搜索面板 -->
     <transition name="bouncecenter">
-     <div class="panel-search-box panel-box"  v-event-stop :style="panelStyle('search')" v-show="panelAppear.search.display">
+     <div class="panel-search-box panel-box"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
       <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
        <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
        <transition name="bounceleft">
@@ -170,7 +170,7 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapActions, mapGetters, mapMutations } from 'vuex'
+import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, loadingBox } from '../../../../util/business'
@@ -188,7 +188,16 @@ import { modelRenderConfig } from './config'
     ...mapGetters([
       'currentSelectedProject',
       'isFullScreen'
-    ])
+    ]),
+    ...mapState('TableJoinModal', {
+      tableJoinDialogShow: state => state.isShow
+    }),
+    ...mapState('SingleDimensionModal', {
+      singleDimensionDialogShow: state => state.isShow
+    }),
+    ...mapState('DimensionsModal', {
+      dimensionDialogShow: state => state.isShow
+    })
   },
   methods: {
     ...mapActions({
@@ -476,7 +485,9 @@ export default class ModelEdit extends Vue {
     e.preventDefault()
     this.removeDragInClass()
   }
+  searchHandleStart = false // 标识业务弹窗是不是通过搜索弹出的
   selectResult (e, select) {
+    this.searchHandleStart = true
     this.showSearchResult = false
     this.modelGlobalSearch = ''
     if (select.action === 'adddimension') {
@@ -501,6 +512,18 @@ export default class ModelEdit extends Vue {
       this.showJoinDialog()
     }
     this.panelAppear.search.display = false
+  }
+  @Watch('dimensionDialogShow')
+  @Watch('singleDimensionDialogShow')
+  @Watch('tableJoinDialogShow')
+  @Watch('measureVisible')
+  tableJoinDialogClose (val) {
+    if (!val) {
+      if (this.searchHandleStart) {
+        this.searchHandleStart = false
+        this.panelAppear.search.display = true
+      }
+    }
   }
   searchModelEverything (val) {
     this.modelGlobalSearchResult = []

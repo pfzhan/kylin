@@ -8,7 +8,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit">32323{{$t('kylinLang.common.save')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -29,7 +29,8 @@
       ]),
       ...mapState('ModelRenameModal', {
         isShow: state => state.isShow,
-        modelDesc: state => state.form.modelDesc
+        modelDesc: state => state.form.modelDesc,
+        callback: state => state.callback
       })
     },
     methods: {
@@ -55,9 +56,9 @@
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
-    @Watch('modelName')
+    @Watch('modelDesc')
     initModelName () {
-      this.modelEdit.newName = this.modelName
+      this.modelEdit.newName = this.modelDesc.alias
     }
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {
@@ -66,10 +67,11 @@
         callback()
       }
     }
-    closeModal () {
+    closeModal (isSubmit) {
       this.hideModal()
       this.modelEdit.newName = ''
       setTimeout(() => {
+        this.callback && this.callback(isSubmit)
         this.resetModalForm()
       }, 200)
     }
@@ -77,11 +79,10 @@
       this.$refs.renameForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        this.modelDesc.alias = this.modelEdit.newName
-        this.renameModel({modelDescData: JSON.stringify(this.modelDesc), project: this.currentSelectedProject}).then(() => {
+        this.renameModel({modelName: this.modelDesc.name, newModelName: this.modelEdit.newName, project: this.currentSelectedProject}).then(() => {
           this.btnLoading = false
           kapMessage(this.$t('updateSuccessful'))
-          this.closeModal()
+          this.closeModal(true)
         }, (res) => {
           this.btnLoading = false
           res && handleError(res)
@@ -101,5 +102,5 @@
   }
 </script>
 <style lang="less">
-  
+
 </style>

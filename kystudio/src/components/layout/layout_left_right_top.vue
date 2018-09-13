@@ -1,20 +1,20 @@
 <template>
   <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen}">
-  <el-row class="panel" :class="{'brief_menu':briefMenu}">
+  <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
     <el-col :span="24" class="panel-center">
       <aside class="left-menu">
-        <img v-show="!briefMenu" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
-        <img v-show="briefMenu" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
+        <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
+        <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
         <div class="ky-line"></div>
-        <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenu">
+        <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenuGet">
           <template v-for="(item,index) in menus" >
             <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
               <i :class="item.icon" class="ksd-fs-16"></i>
               <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
             </el-menu-item>
-            <el-submenu :index="item.path" v-if="item.children">
+            <el-submenu :index="item.path" v-if="item.children" :id="item.name">
               <template slot="title">
-                <i :class="item.icon" class="ksd-fs-16"></i>
+                <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
                 <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && modelSpeedEvents.length" class="dot-icon"></div>
               </template>
               <el-menu-item-group>
@@ -25,7 +25,7 @@
         </el-menu>
       </aside>
       <div class="topbar">
-        <i class="ksd-fs-14" :class="[!briefMenu ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
+        <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
         <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
         <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
           <i class="el-icon-ksd-project_list"></i>
@@ -161,7 +161,8 @@ import $ from 'jquery'
     ...mapGetters([
       'currentPathNameGet',
       'isFullScreen',
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'briefMenuGet'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -201,7 +202,7 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/overview'
-    console.log(this.modelSpeedEvents, 900)
+
     // for newten
     // this.getEncoding().then(() => {}, (res) => {
     //   handleError(res)
@@ -287,7 +288,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   toggleLeftMenu () {
-    this.toggleMenu(!this.briefMenu)
+    this.toggleMenu(!this.briefMenuGet)
   }
   logoutConfirm () {
     return kapConfirm(this.$t('confirmLoginOut'))
@@ -361,9 +362,6 @@ export default class LayoutLeftRightTop extends Vue {
   get hasAdminPermissionOfProject () {
     return this.hasAdminProjectPermission()
   }
-  get briefMenu () {
-    return this.$store.state.config.layoutConfig.briefMenu
-  }
   get gloalProjectSelectShow () {
     return this.$store.state.config.layoutConfig.gloalProjectSelectShow
   }
@@ -434,14 +432,16 @@ export default class LayoutLeftRightTop extends Vue {
     return 0
   }
   ST = null
+  async loadSpeedInfo () {
+    return await this.getSpeedInfo(this.currentSelectedProject)
+  }
   circleLoadSpeedInfo () {
     this.ST = setTimeout(() => {
-      this.getSpeedInfo(this.currentSelectedProject).then(() => {
-        if (this._isDestroyed) {
-          return
-        }
-        this.circleLoadSpeedInfo()
-      })
+      this.loadSpeedInfo()
+      if (this._isDestroyed) {
+        return
+      }
+      this.circleLoadSpeedInfo()
     }, 5000)
   }
   mounted () {
@@ -464,6 +464,8 @@ export default class LayoutLeftRightTop extends Vue {
         this.defaultActive = menu.path
       }
     })
+    // 获取加速信息
+    this.loadSpeedInfo()
   }
   destroyed () {
     clearTimeout(this.ST)
