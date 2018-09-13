@@ -87,11 +87,11 @@ export default {
     [types.SAVE_RULE]: function ({commit}, para) {
       return api.datasource.saveRule(para)
     },
-    [types.DELETE_RULE]: function ({commit}, ruleId) {
-      return api.datasource.deleteRule(ruleId)
+    [types.DELETE_RULE]: function ({commit}, para) {
+      return api.datasource.deleteRule(para)
     },
-    [types.ENABLE_RULE]: function ({commit}, ruleId) {
-      return api.datasource.enableRule(ruleId)
+    [types.ENABLE_RULE]: function ({commit}, para) {
+      return api.datasource.enableRule(para)
     },
     [types.APPLY_RULE]: function ({commit}, para) {
       return api.datasource.applyRule(para)

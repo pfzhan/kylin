@@ -1,6 +1,6 @@
 <template>
   <div id="queryHistory">
-    <query_history_table :queryHistoryData="queryHistoryData" v-on:openAgg="openAgg"></query_history_table>
+    <query_history_table :queryHistoryData="queryHistoryData" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
     <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Aggregate Index"
@@ -86,6 +86,15 @@ export default class QueryHistory extends Vue {
     dateFrom: 1524829437628,
     dateTo: 1524829437628,
     amount: 12
+  }
+  filterData = {
+    startTimeFrom: null,
+    startTimeTo: null,
+    latencyFrom: null,
+    latencyTo: null,
+    realization: [],
+    accelerateStatus: [],
+    sql: ''
   }
   /* eslint-disable */
   flowerJson = {
@@ -510,13 +519,20 @@ export default class QueryHistory extends Vue {
   }
 
   async loadHistoryList (pageIndex, pageSize) {
-    const res = await this.getHistoryList({
+    const pageData = {
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
       offset: pageIndex || 0
-    })
+    }
+    const resData =  Object.assign(pageData, this.filterData)
+    const res = await this.getHistoryList(resData)
     const data = await handleSuccessAsync(res)
     this.queryHistoryData = data.query_histories
+  }
+
+  loadFilterList (data) {
+    this.filterData = data
+    this.loadHistoryList()
   }
 
   created () {

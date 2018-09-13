@@ -99,13 +99,22 @@ export default class FavoriteQuery extends Vue {
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10}
   ]
-  statusFilteArr = [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
   checkedStatus = []
   candidateVisible = false
   favoriteCurrentPage = 1
   candidateCurrentPage = 1
   selectToUnFav = {}
   selectToFav = {}
+  filterData = {
+    startTimeFrom: null,
+    startTimeTo: null,
+    latencyFrom: null,
+    latencyTo: null,
+    realization: [],
+    accelerateStatus: [],
+    sql: ''
+  }
   queryHistoryData = [
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
@@ -123,7 +132,8 @@ export default class FavoriteQuery extends Vue {
     const res = await this.getFavoriteList({
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
-      offset: pageIndex || 0
+      offset: pageIndex || 0,
+      accelerateStatus: this.checkedStatus
     })
     const data = await handleSuccessAsync(res)
     this.favQueList = data.favorite_queries
@@ -134,12 +144,23 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
+  filterFav () {
+    this.loadFavoriteList()
+  }
+
+  loadFilterList (data) {
+    this.filterData = data
+    this.loadCandidateList()
+  }
+
   async loadCandidateList (pageIndex, pageSize) {
-    const res = await this.getCandidateList({
+    const pageData = {
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
       offset: pageIndex || 0
-    })
+    }
+    const resData = Object.assign(pageData, this.filterData)
+    const res = await this.getCandidateList(resData)
     const data = await handleSuccessAsync(res)
     this.queryHistoryData = data.candidates
   }
@@ -214,9 +235,7 @@ export default class FavoriteQuery extends Vue {
   renderColumn (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {
-      const keyName = Object.keys(this.statusFilteArr[i])[0]
-      const labelClass = this.statusFilteArr[i][keyName]
-      items.push(<el-checkbox key={keyName}><slot><i class={labelClass}></i></slot></el-checkbox>)
+      items.push(<el-checkbox label={this.statusFilteArr[i].name} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.common.status')}</span>
@@ -224,7 +243,7 @@ export default class FavoriteQuery extends Vue {
         ref="ipFilterPopover"
         placement="bottom"
         popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)}>
+        <el-checkbox-group class="filter-groups" value={this.checkedStatus} onInput={val => (this.checkedStatus = val)} onChange={this.filterFav}>
           {items}
         </el-checkbox-group>
         <i class="el-icon-ksd-filter" slot="reference"></i>
@@ -244,7 +263,8 @@ export default class FavoriteQuery extends Vue {
       line-height: 32px;
     }
     .candidateDialog .el-dialog > .el-dialog__body {
-      height: 520px;
+      height: 78vh;
+      box-sizing:border-box;
       overflow-y: scroll;
     }
     .favorite-table {

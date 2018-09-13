@@ -5,13 +5,13 @@
         <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite">Mark Favorite</el-button>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="inputHasVal" prefix-icon="el-icon-search" placeholder="请输入内容" size="medium"></el-input>
+        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" placeholder="请输入内容" size="medium"></el-input>
       </div>
       <el-dropdown v-if="isCandidate" @command="handleCommand" class="fav-dropdown ksd-fright" trigger="click">
         <el-button size="medium" icon="el-icon-ksd-table_setting" plain type="primary">{{$t('kylinLang.query.applyRule')}}</el-button>
         <el-dropdown-menu slot="dropdown">
           <el-dropdown-item v-for="item in rules" :key="item.ruleId" class="fav-dropdown-item">
-            <el-checkbox v-model="item.enabled" v-event-stop:click @click="toggleRule(item.uuid)">{{item.name}}</el-checkbox>
+            <el-checkbox v-model="item.enabled" v-event-stop:click @change="toggleRule(item.uuid)">{{item.name}}</el-checkbox>
             <i class="el-icon-ksd-table_edit" @click="editRule(item)"></i>
             <i class="el-icon-ksd-table_delete" v-event-stop:click @click="delRule(item.uuid)"></i>
           </el-dropdown-item>
@@ -92,20 +92,23 @@
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
+        <template slot-scope="props">
+          <span v-if="props.row.latency < 1 && props.row.query_status === 'SUCCEEDED'">< 1s</span>
+          <span v-if="props.row.latency > 1 && props.row.query_status === 'SUCCEEDED'">{{props.row.latency / 1000}}s</span>
+          <span v-if="props.row.query_status === 'FAILED'">Failed</span>
+        </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent')" prop="sql" header-align="center" show-overflow-tooltip>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn4" prop="query_node" header-align="center" width="200">
+      <el-table-column label="IP" prop="query_node" header-align="center" width="200">
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="100" v-if="!isCandidate">
         <template slot-scope="props">
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
-            'el-icon-ksd-acclerate_portion': props.row.accelerate_status === 'PARTLY_ACCELERATED',
-            'el-icon-ksd-acclerate_ready': props.row.accelerate_status === 'WAITING',
-            'el-icon-ksd-acclerate_ongoing': props.row.accelerate_status === 'ACCELERATING'
+            'el-icon-ksd-acclerate_ready': props.row.accelerate_status === 'NEW'
           }"></i>
         </template>
       </el-table-column>
@@ -172,7 +175,7 @@
 
 <script>
 import { handleSuccessAsync } from '../../util/index'
-import { transToUtcTimeFormat } from '../../util/business'
+import { transToUtcTimeFormat, handleSuccess } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
@@ -200,23 +203,22 @@ import { Component, Watch } from 'vue-property-decorator'
   }
 })
 export default class QueryHistoryTable extends Vue {
-  inputHasVal = ''
   datetimerange = ''
   startSec = 0
   endSec = 10
   latencyFilterPopoverVisible = false
-  realFilteArr = [{name: 'Pushdown to Hive', value: 'pushdown1'}, {name: 'Pushdown to Greenplum', value: 'pushdown2'}, {name: 'Model Name', value: 'modelName'}]
-  ipFilteArr= ['node1']
-  statusFilteArr = [{speed: 'el-icon-ksd-acclerate'}, {unSpeed: 'el-icon-ksd-acclerate_ready'}, {partSpeed: 'el-icon-ksd-acclerate_portion'}, {speeding: 'el-icon-ksd-acclerate_ongoing'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'NEW'}]
+  realFilteArr = [{name: 'Pushdown', value: 'pushdown'}, {name: 'Model Name', value: 'modelName'}]
   filterData = {
-    startTime: null,
-    endTime: null,
-    startSec: -1,
-    endSec: -1,
-    checkedRealization: [],
-    checkedIP: [],
-    checkedStatus: []
+    startTimeFrom: null,
+    startTimeTo: null,
+    latencyFrom: null,
+    latencyTo: null,
+    realization: [],
+    accelerateStatus: [],
+    sql: ''
   }
+  timer = null
   multipleSelection = []
   userGroups = []
   ruleVisible = false
@@ -239,8 +241,9 @@ export default class QueryHistoryTable extends Vue {
   @Watch('datetimerange')
   onDateRangeChange (val) {
     if (val) {
-      this.filterData.startTime = new Date(val[0]).getTime()
-      this.filterData.endTime = new Date(val[1]).getTime()
+      this.filterData.startTimeFrom = new Date(val[0]).getTime()
+      this.filterData.startTimeTo = new Date(val[1]).getTime()
+      this.filterList()
     }
   }
 
@@ -258,6 +261,17 @@ export default class QueryHistoryTable extends Vue {
 
   markFavorite () {
     this.$emit('markToFav')
+  }
+
+  onSqlFilterChange () {
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.filterList()
+    }, 500)
+  }
+
+  filterList () {
+    this.$emit('loadFilterList', this.filterData)
   }
 
   addCon () {
@@ -290,26 +304,41 @@ export default class QueryHistoryTable extends Vue {
     this.$refs['formRule'].validate((valid) => {
       if (valid) {
         if (this.isEditRule) {
-          this.updateRule({project: this.currentSelectedProject, rules: this.formRule})
+          this.updateRule({project: this.currentSelectedProject, rules: this.formRule}).then((res) => {
+            handleSuccess(res, () => {
+              this.filterList()
+            })
+          })
         } else {
-          this.saveRule({project: this.currentSelectedProject, rules: this.formRule})
+          this.saveRule({project: this.currentSelectedProject, rules: this.formRule}).then((res) => {
+            handleSuccess(res, () => {
+              this.filterList()
+            })
+          })
         }
       }
     })
   }
 
   delRule (ruleId) {
-    this.deleteRule(ruleId).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.delSuccess')
+    this.deleteRule({project: this.currentSelectedProject, uuid: ruleId}).then((res) => {
+      handleSuccess(res, () => {
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.delSuccess')
+        })
+        this.loadAllRules()
+        this.filterList()
       })
-      this.loadAllRules()
     })
   }
 
   toggleRule (ruleId) {
-    this.enableRule(ruleId)
+    this.enableRule({project: this.currentSelectedProject, uuid: ruleId}).then((res) => {
+      handleSuccess(res, () => {
+        this.filterList()
+      })
+    })
   }
 
   handleCommand (command) {
@@ -328,9 +357,9 @@ export default class QueryHistoryTable extends Vue {
     this.$emit('openAgg')
   }
   renderColumn (h) {
-    if (this.filterData.startTime && this.filterData.endTime) {
-      const startTime = transToUtcTimeFormat(this.filterData.startTime)
-      const endTime = transToUtcTimeFormat(this.filterData.endTime)
+    if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
+      const startTime = transToUtcTimeFormat(this.filterData.startTimeFrom)
+      const endTime = transToUtcTimeFormat(this.filterData.startTimeTo)
       return (<span onClick={e => (e.stopPropagation())}>
         <span>{this.$t('kylinLang.query.startTimeFilter')}</span>
         <el-tooltip placement="top" class="ksd-fright">
@@ -369,19 +398,20 @@ export default class QueryHistoryTable extends Vue {
     this.endSec = -1
   }
   saveLatencyRange () {
-    this.filterData.startSec = this.startSec
-    this.filterData.endSec = this.endSec
+    this.filterData.latencyFrom = this.startSec
+    this.filterData.latencyTo = this.endSec
     this.latencyFilterPopoverVisible = false
+    this.filterList()
   }
   renderColumn2 (h) {
-    if (this.filterData.startSec >= 0 && this.filterData.endSec >= 0) {
+    if (this.filterData.latencyFrom && this.filterData.latencyTo) {
       return (<span>
         <span>{this.$t('kylinLang.query.latency')}</span>
         <el-tooltip placement="top" class="ksd-fright">
           <div slot="content">
             <span>
               <i class='el-icon-time'></i>
-              <span> {this.filterData.startSec}s To {this.filterData.endSec}s</span>
+              <span> {this.filterData.latencyFrom}s To {this.filterData.latencyTo}s</span>
             </span>
           </div>
           <el-popover
@@ -452,26 +482,7 @@ export default class QueryHistoryTable extends Vue {
         ref="realFilterPopover"
         placement="bottom"
         width="200">
-        <el-checkbox-group class="filter-groups" value={this.filterData.checkedRealization} onInput={val => (this.filterData.checkedRealization = val)}>
-          {items}
-        </el-checkbox-group>
-        <i class="el-icon-ksd-filter" slot="reference"></i>
-      </el-popover>
-    </span>)
-  }
-  renderColumn4 (h) {
-    let items = []
-    for (let i = 0; i < this.ipFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.ipFilteArr[i]} key={this.ipFilteArr[i]}>{this.ipFilteArr[i]}</el-checkbox>)
-    }
-    return (<span>
-      <span>IP</span>
-      <el-popover
-        ref="ipFilterPopover"
-        placement="bottom"
-        popperClass="filter-popover"
-        width="100">
-        <el-checkbox-group class="filter-groups" value={this.filterData.checkedIP} onInput={val => (this.filterData.checkedIP = val)}>
+        <el-checkbox-group class="filter-groups" value={this.filterData.realization} onInput={val => (this.filterData.realization = val)} onChange={this.filterList}>
           {items}
         </el-checkbox-group>
         <i class="el-icon-ksd-filter" slot="reference"></i>
@@ -481,9 +492,7 @@ export default class QueryHistoryTable extends Vue {
   renderColumn5 (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {
-      const keyName = Object.keys(this.statusFilteArr[i])[0]
-      const labelClass = this.statusFilteArr[i][keyName]
-      items.push(<el-checkbox key={keyName}><slot><i class={labelClass}></i></slot></el-checkbox>)
+      items.push(<el-checkbox label={this.statusFilteArr[i].name} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.common.status')}</span>
@@ -491,7 +500,7 @@ export default class QueryHistoryTable extends Vue {
         ref="ipFilterPopover"
         placement="bottom"
         popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filterData.checkedStatus} onInput={val => (this.filterData.checkedStatus = val)}>
+        <el-checkbox-group class="filter-groups" value={this.filterData.accelerateStatus} onInput={val => (this.filterData.accelerateStatus = val)} onChange={this.filterList}>
           {items}
         </el-checkbox-group>
         <i class="el-icon-ksd-filter" slot="reference"></i>
@@ -590,7 +599,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .rule-block {
     width: 100%;
-    height: 560px;
+    height: 78vh;
     position: absolute;
     top: 57px;
     left: 0;
@@ -625,7 +634,7 @@ export default class QueryHistoryTable extends Vue {
   }
   .ruleDiaglog {
     width: 660px;
-    height: 560px;
+    height: 78vh;
     position: absolute;
     top: 57px;
     right: 0;
@@ -639,7 +648,7 @@ export default class QueryHistoryTable extends Vue {
       margin-bottom: 30px;
     }
     .el-dialog__body {
-      height: 400px;
+      height: calc(~"78vh - 160px");
       overflow-y: scroll;
     }
     .con-form-item {

@@ -55,7 +55,7 @@
               <div class="ksd-mb-20"><img src="../../assets/img/save_query.png" style="height:80px;"></div>
               <span>{{$t('kylinLang.common.noData')}}</span>
             </div>
-            <div class="saved_query_content">
+            <div class="saved_query_content" v-else>
               <el-form v-for="(savequery, index) in savedList" :key="savequery.name" class="narrowForm">
                 <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
                   <span>{{savequery.name}}</span>
@@ -346,40 +346,24 @@ export default class NewQuery extends Vue {
     position: relative;
     border-top: 1px solid @line-border-color;
     height: 100%;
-    #table_layout {
-      width: 100%;
-      height: 100%;
-      display: table;
-      #left_b {
-        display: table-cell;
-        width: 250px;
-        vertical-align: top;
-        height: 100%;
-        clear: both;
-        border-right: solid 1px #cfd8dc;
-      }
-      #right_b {
-        display: table-cell;
-        vertical-align: top;
-        padding: 20px;
-        .query_panel_box {
-          border: 1px solid @line-border-color;
-          border-top-left-radius: 5px;
-          border-top-right-radius: 5px;
-          .smyles_editor_wrap {
-            margin: -1px;
-            .ace-chrome {
-              border-top-left-radius: 5px;
-              border-top-right-radius: 5px;
-              border-bottom-left-radius: 0;
-              border-bottom-right-radius: 0;
-            }
+    .layout-right {
+      .query_panel_box {
+        border: 1px solid @line-border-color;
+        border-top-left-radius: 5px;
+        border-top-right-radius: 5px;
+        .smyles_editor_wrap {
+          margin: -1px;
+          .ace-chrome {
+            border-top-left-radius: 5px;
+            border-top-right-radius: 5px;
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
           }
         }
-        .saved_query_content {
-          height: 620px;
-          overflow-y: scroll;
-        }
+      }
+      .saved_query_content {
+        height: 620px;
+        overflow-y: scroll;
       }
     }
     .nodata {

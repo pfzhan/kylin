@@ -49,16 +49,16 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
   },
   updateRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para.data)
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para)
   },
   saveRule: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').save(para)
   },
-  deleteRule: (ruleId) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + ruleId)
+  deleteRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).delete()
   },
-  enableRule: (ruleId) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + ruleId)
+  enableRule: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).update(para)
   },
   applyRule: (para) => {
     return Vue.resource(apiUrl + 'query/favorites_queries/rules/apply/' + para.project).update()
@@ -73,7 +73,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries').get(para)
   },
   getCandidateList: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/candidates').save(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/candidates').get(para)
   },
   getEncoding: () => {
     return Vue.resource(apiUrl + 'cubes/validEncodings').get()
