@@ -64,7 +64,7 @@ export default {
     [types.GET_SAVE_QUERIES]: function ({commit}, para) {
       return api.datasource.getSaveQueries(para).then((res) => {
         commit(types.SAVED_QUERIES, {
-          data: res.data.data.queries,
+          data: res.data.data.saved_queries,
           size: res.data.data.size
         })
       })
@@ -98,6 +98,9 @@ export default {
     },
     [types.AUTOMATIC_RULE]: function ({commit}, para) {
       return api.datasource.autoMaticRule(para)
+    },
+    [types.GET_AUTO_MATIC_STATUS]: function ({commit}, para) {
+      return api.datasource.getAutoMaticStatus(para)
     },
     [types.GET_HISTORY_LIST]: function ({commit}, para) {
       return api.datasource.getHistoryList(para)

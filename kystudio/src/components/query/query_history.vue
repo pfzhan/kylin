@@ -519,12 +519,18 @@ export default class QueryHistory extends Vue {
   }
 
   async loadHistoryList (pageIndex, pageSize) {
-    const pageData = {
+    const resData = {
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
-      offset: pageIndex || 0
+      offset: pageIndex || 0,
+      startTimeFrom: this.filterData.startTimeFrom,
+      startTimeTo: this.filterData.startTimeTo,
+      latencyFrom: this.filterData.latencyFrom,
+      latencyTo: this.filterData.latencyTo,
+      'realization[]': this.filterData.realization.join(','),
+      'accelerateStatus[]': this.filterData.accelerateStatus.join(','),
+      sql: null
     }
-    const resData =  Object.assign(pageData, this.filterData)
     const res = await this.getHistoryList(resData)
     const data = await handleSuccessAsync(res)
     this.queryHistoryData = data.query_histories

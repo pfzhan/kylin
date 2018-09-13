@@ -5,8 +5,7 @@
         <el-col :span="7" class="resultText">
           <p>
             <span class="label">{{$t('kylinLang.query.queryId')}}</span>
-            <!-- <span class="text">{{queryInfo.project}}</span> -->
-            <span class="text">988384845</span>
+            <span class="text">{{queryInfo.queryId}}</span>
           </p>
         </el-col>
         <el-col :span="7" class="resultText">
@@ -16,20 +15,17 @@
           </p>
           <p v-else>
             <span class="label">{{$t('kylinLang.query.modelName')}}</span>
-            <!-- <span class="text">{{transToGmtTime(queryInfo.starttime)}}</span> -->
-            <span class="text">Model_A</span>
+            <span class="text">{{queryInfo.modelName | arrayToStr}}</span>
           </p>
         </el-col>
         <el-col :span="7" class="resultText">
           <p v-if="extraoption.data.pushDown">
             <span class="label">{{$t('kylinLang.query.realization')}}</span>
-            <!-- <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span> -->
-            <span class="text">Aggregate ID / Raw set</span>
+            <span class="text">{{queryInfo.realization | arrayToStr}}</span>
           </p>
           <p v-else>
             <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
-            <!-- <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span> -->
-            <span class="text">100,000</span>
+            <span class="text">{{queryInfo.scanCount}}</span>
           </p>
         </el-col>
         <el-col :span="3" class="ksd-right" v-if="!extraoption.data.pushDown">
@@ -50,15 +46,13 @@
         <el-col :span="7" class="resultText">
           <p>
             <span class="label">{{$t('kylinLang.query.realization')}}</span>
-            <!-- <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span> -->
-            <span class="text">Aggregate ID / Raw set</span>
+            <span class="text">{{queryInfo.realization | arrayToStr}}</span>
           </p>
         </el-col>
         <el-col :span="7" class="resultText">
           <p>
             <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
-            <!-- <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span> -->
-            <span class="text">100,000</span>
+            <span class="text">{{queryInfo.resultRows}}</span>
           </p>
         </el-col>
       </el-row>
@@ -89,7 +83,7 @@
 
       <pager v-on:handleCurrentChange='pageSizeChange' class="ksd-center" ref="pager"  :totalSize="modelsTotal"  ></pager>
   	</div>
-    <save_query_dialog :show="saveQueryFormVisible" :extraoption='extraoption' v-on:closeModal="closeModal" v-on:reloadSavedProject="reloadSavedProject"></save_query_dialog>
+    <save_query_dialog :show="saveQueryFormVisible" :extraoption='extraoption' v-on:closeModal="closeModal"></save_query_dialog>
     <form name="export" class="exportTool" action="/kylin/api/query/format/csv" method="post">
       <input type="hidden" name="sql" v-model="sql"/>
       <input type="hidden" name="project" v-model="project"/>
@@ -143,9 +137,11 @@ export default class queryResult extends Vue {
   limit = ''
   queryInfo = {
     duration: '-',
-    project: this.extraoption.project,
-    cube: '-',
-    starttime: Date.now()
+    modelName: '-',
+    queryId: '',
+    realization: '-',
+    scanCount: 0,
+    resultRows: 0
   }
   showDetail = false
 
@@ -191,9 +187,7 @@ export default class queryResult extends Vue {
     this.saveQueryFormVisible = false
   }
   mounted () {
-    this.queryInfo.duration = this.extraoption.data.duration
-    this.queryInfo.cube = this.extraoption.data.cube
-    this.queryInfo.traceUrl = this.extraoption.data.traceUrl
+    this.queryInfo = this.extraoption.data
     this.transDataForGrid()
   }
   get showExportCondition () {

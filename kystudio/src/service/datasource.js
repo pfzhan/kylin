@@ -43,7 +43,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries').delete(para)
   },
   markFav: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/' + para.project).save(para.queries)
   },
   getAllrules: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
@@ -58,13 +58,16 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).delete()
   },
   enableRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).update(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/enabled/' + para.project + '/' + para.uuid).update()
   },
   applyRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorites_queries/rules/apply/' + para.project).update()
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/apply/' + para.project).update()
   },
   autoMaticRule: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic/' + para.project).update()
+  },
+  getAutoMaticStatus: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic').get(para)
   },
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries').get(para)

@@ -12,12 +12,15 @@
         <el-dropdown-menu slot="dropdown">
           <el-dropdown-item v-for="item in rules" :key="item.ruleId" class="fav-dropdown-item">
             <el-checkbox v-model="item.enabled" v-event-stop:click @change="toggleRule(item.uuid)">{{item.name}}</el-checkbox>
-            <i class="el-icon-ksd-table_edit" @click="editRule(item)"></i>
-            <i class="el-icon-ksd-table_delete" v-event-stop:click @click="delRule(item.uuid)"></i>
+            <i class="el-icon-ksd-table_delete ksd-fright" v-event-stop:click @click="delRule(item.uuid)"></i>
+            <i class="el-icon-ksd-table_edit ksd-fright" @click="editRule(item)"></i>
           </el-dropdown-item>
           <el-dropdown-item divided command="createRule">{{$t('createRule')}}</el-dropdown-item>
           <el-dropdown-item divided command="applyAll">{{$t('applyAll')}}</el-dropdown-item>
-          <el-dropdown-item command="markAll">{{$t('markAll')}}</el-dropdown-item>
+          <el-dropdown-item command="markAll">
+            <span v-if="!isAutoMatic">{{$t('markAll')}}</span>
+            <span v-else>{{$t('unMarkAll')}}</span>
+          </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
     </div>
@@ -116,7 +119,7 @@
     <div class="rule-block" v-if="ruleVisible"></div>
     <div class="ruleDiaglog translate-right transition-new" v-if="ruleVisible">
       <div class="el-dialog__header">
-        <span class="el-dialog__title">{{$t('createRule')}}</span>
+        <span class="el-dialog__title">{{ruleDiaglogTitle}}</span>
       </div>
       <div class="el-dialog__body">
         <el-form label-position="top" size="medium" :model="formRule" ref="formRule">
@@ -175,7 +178,7 @@
 
 <script>
 import { handleSuccessAsync } from '../../util/index'
-import { transToUtcTimeFormat, handleSuccess } from '../../util/business'
+import { transToUtcTimeFormat, handleSuccess, handleError } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
@@ -189,7 +192,8 @@ import { Component, Watch } from 'vue-property-decorator'
       deleteRule: 'DELETE_RULE',
       enableRule: 'ENABLE_RULE',
       applyRule: 'APPLY_RULE',
-      automaticRule: 'AUTOMATIC_RULE'
+      automaticRule: 'AUTOMATIC_RULE',
+      getAutoMaticStatus: 'GET_AUTO_MATIC_STATUS'
     })
   },
   computed: {
@@ -198,8 +202,8 @@ import { Component, Watch } from 'vue-property-decorator'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name'},
-    'zh-cn': {createRule: '新建规则', applyAll: '全部应用', markAll: '全部标记为待加速', ruleName: '规则名称'}
+    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Unmark Favorite Automatically'},
+    'zh-cn': {createRule: '新建规则', editRule: '编辑规则', applyAll: '全部应用', markAll: '全部标记为待加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -216,13 +220,14 @@ export default class QueryHistoryTable extends Vue {
     latencyTo: null,
     realization: [],
     accelerateStatus: [],
-    sql: ''
+    sql: null
   }
   timer = null
   multipleSelection = []
   userGroups = []
   ruleVisible = false
   isEditRule = false
+  isAutoMatic = false
   rules = [
     {name: 'Rule_setting_01', enabled: true, ruleId: '1'},
     {name: 'Rule_setting_02', enabled: false, ruleId: '2'},
@@ -253,9 +258,28 @@ export default class QueryHistoryTable extends Vue {
     this.rules = data && data.rules
   }
 
+  getAutoStatus () {
+    this.getAutoMaticStatus({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.isAutoMatic = data
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
+
   created () {
     if (this.isCandidate) {
       this.loadAllRules()
+      this.getAutoStatus()
+    }
+  }
+
+  get ruleDiaglogTitle () {
+    if (this.isEditRule) {
+      return this.$t('editRule')
+    } else {
+      return this.$t('createRule')
     }
   }
 
@@ -271,6 +295,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   filterList () {
+    console.log(this.filterData)
     this.$emit('loadFilterList', this.filterData)
   }
 
@@ -304,20 +329,33 @@ export default class QueryHistoryTable extends Vue {
     this.$refs['formRule'].validate((valid) => {
       if (valid) {
         if (this.isEditRule) {
-          this.updateRule({project: this.currentSelectedProject, rules: this.formRule}).then((res) => {
+          this.updateRule({project: this.currentSelectedProject, rule: this.formRule}).then((res) => {
             handleSuccess(res, () => {
+              this.resetToList()
               this.filterList()
+              this.loadAllRules()
             })
+          }, (res) => {
+            handleError(res)
           })
         } else {
-          this.saveRule({project: this.currentSelectedProject, rules: this.formRule}).then((res) => {
+          this.saveRule({project: this.currentSelectedProject, rule: this.formRule}).then((res) => {
             handleSuccess(res, () => {
+              this.resetToList()
               this.filterList()
+              this.loadAllRules()
             })
+          }, (res) => {
+            handleError(res)
           })
         }
       }
     })
+  }
+
+  resetToList () {
+    this.isEditRule = false
+    this.ruleVisible = false
   }
 
   delRule (ruleId) {
@@ -330,6 +368,8 @@ export default class QueryHistoryTable extends Vue {
         this.loadAllRules()
         this.filterList()
       })
+    }, (res) => {
+      handleError(res)
     })
   }
 
@@ -338,16 +378,38 @@ export default class QueryHistoryTable extends Vue {
       handleSuccess(res, () => {
         this.filterList()
       })
+    }, (res) => {
+      handleError(res)
     })
   }
 
   handleCommand (command) {
     if (command === 'createRule') {
       this.ruleVisible = true
+      this.formRule = {
+        name: '',
+        conds: [
+          {field: 'latency', op: 'GREATER', rightThreshold: null}
+        ],
+        enabled: false
+      }
     } else if (command === 'applyAll') {
-      this.applyRule({project: this.currentSelectedProject})
+      this.applyRule({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, () => {
+          this.loadAllRules()
+          this.filterList()
+        })
+      }, (res) => {
+        handleError(res)
+      })
     } else if (command === 'markAll') {
-      this.automaticRule({project: this.currentSelectedProject})
+      this.automaticRule({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, () => {
+          this.getAutoStatus()
+        })
+      }, (res) => {
+        handleError(res)
+      })
     }
   }
   handleSelectionChange (rows) {
@@ -474,7 +536,7 @@ export default class QueryHistoryTable extends Vue {
   renderColumn3 (h) {
     let items = []
     for (let i = 0; i < this.realFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.realFilteArr[i].name} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
+      items.push(<el-checkbox label={this.realFilteArr[i].value} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.query.realization')}</span>
@@ -492,7 +554,7 @@ export default class QueryHistoryTable extends Vue {
   renderColumn5 (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.statusFilteArr[i].name} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
+      items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.common.status')}</span>
@@ -566,6 +628,23 @@ export default class QueryHistoryTable extends Vue {
         }
         &.el-icon-ksd-acclerate_portion,
         &.el-icon-ksd-acclerate_ongoing {
+          color: @base-color;
+        }
+      }
+    }
+  }
+  .fav-dropdown-item {
+    overflow: hidden;
+    i {
+      margin-left: 5px;
+      display: inline-block;
+      position: relative;
+      top: 10px;
+    }
+    &:hover {
+      i {
+        color: @text-normal-color;
+        &:hover {
           color: @base-color;
         }
       }

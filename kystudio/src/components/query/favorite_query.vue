@@ -54,7 +54,7 @@
       width="80%"
       top="5vh"
       class="candidateDialog">
-      <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav"></query_history_table>
+      <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav" v-on:loadFilterList="loadFilterList"></query_history_table>
       <kap-pager ref="filterHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='historyCurrentChange'></kap-pager>
     </el-dialog>
   </div>
@@ -66,6 +66,7 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
+import { handleSuccess } from '../../util/business'
 import queryHistoryTable from './query_history_table'
 @Component({
   methods: {
@@ -73,7 +74,7 @@ import queryHistoryTable from './query_history_table'
       getFavoriteList: 'GET_FAVORITE_LIST',
       getCandidateList: 'GET_CANDIDATE_LIST',
       deleteFav: 'DELETE_FAV',
-      markFav: 'Mark_FAV'
+      markFav: 'MARK_FAV'
     })
   },
   computed: {
@@ -113,7 +114,7 @@ export default class FavoriteQuery extends Vue {
     latencyTo: null,
     realization: [],
     accelerateStatus: [],
-    sql: ''
+    sql: null
   }
   queryHistoryData = [
     {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
@@ -154,12 +155,18 @@ export default class FavoriteQuery extends Vue {
   }
 
   async loadCandidateList (pageIndex, pageSize) {
-    const pageData = {
+    const resData = {
       project: this.currentSelectedProject || null,
       limit: pageSize || 10,
-      offset: pageIndex || 0
+      offset: pageIndex || 0,
+      startTimeFrom: this.filterData.startTimeFrom,
+      startTimeTo: this.filterData.startTimeTo,
+      latencyFrom: this.filterData.latencyFrom,
+      latencyTo: this.filterData.latencyTo,
+      'realization[]': this.filterData.realization.join(','),
+      'accelerateStatus[]': this.filterData.accelerateStatus.join(','),
+      sql: null
     }
-    const resData = Object.assign(pageData, this.filterData)
     const res = await this.getCandidateList(resData)
     const data = await handleSuccessAsync(res)
     this.queryHistoryData = data.candidates
@@ -198,15 +205,17 @@ export default class FavoriteQuery extends Vue {
       const uuids = item.map((t) => {
         return t.uuid
       })
-      uuidArr = uuidArr.concat(uuids)
+      uuidArr = uuidArr.concat(uuids).join(',')
     })
-    this.deleteFav({project: this.currentSelectedProject, queries: uuidArr}).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.markSuccess')
+    this.deleteFav({project: this.currentSelectedProject, 'favoriteQueries[]': uuidArr}).then((res) => {
+      handleSuccess(res, () => {
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.delSuccess')
+        })
+        this.selectToUnFav = {}
+        this.loadFavoriteList()
       })
-      this.selectToUnFav = {}
-      this.loadCandidateList()
     }, (res) => {
       handleError(res)
     })
@@ -220,13 +229,16 @@ export default class FavoriteQuery extends Vue {
       })
       uuidArr = uuidArr.concat(uuids)
     })
-    this.markFav({project: this.currentSelectedProject, queries: uuidArr}).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.delSuccess')
+    this.markFav({project: this.currentSelectedProject, queries: uuidArr}).then((res) => {
+      handleSuccess(res, () => {
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.markSuccess')
+        })
+        this.selectToFav = {}
+        this.loadFavoriteList()
+        this.loadCandidateList()
       })
-      this.selectToFav = {}
-      this.loadFavoriteList()
     }, (res) => {
       handleError(res)
     })
@@ -235,7 +247,7 @@ export default class FavoriteQuery extends Vue {
   renderColumn (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.statusFilteArr[i].name} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
+      items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.common.status')}</span>
@@ -289,17 +301,4 @@ export default class FavoriteQuery extends Vue {
       }
     }
   }
-  .fav-dropdown-item {
-      i {
-        margin-left: 5px;
-      }
-      &:hover {
-        i {
-          color: @text-normal-color;
-          &:hover {
-            color: @base-color;
-          }
-        }
-      }
-    }
 </style>

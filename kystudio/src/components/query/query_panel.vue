@@ -73,8 +73,6 @@ export default class queryPanel extends Vue {
       handleError(res, (data, code, status, msg) => {
         this.errinfo = msg || 'kylinLang.common.timeOut'
         this.$emit('changeView', this.extraoption.index, data, 'el-icon-ksd-error_01', 'querypanel')
-        // const mockData = {duration: 0, cube: 'name', traceUrl: 0, results: [], columnMetas: []}
-        // this.$emit('changeView', this.extraoption.index, mockData)
       })
     })
   }
