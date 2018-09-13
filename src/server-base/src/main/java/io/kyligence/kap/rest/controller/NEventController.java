@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import java.util.HashMap;
 import java.util.List;
 
 import io.kyligence.kap.rest.request.EventRequest;
@@ -62,7 +63,8 @@ public class NEventController extends NBasicController {
             throws PersistentException {
 
         List<Event> events = eventService.listEventsNotApproved(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, events, "");
+        HashMap<String, Object> data = getDataResponse("events", events, 0, events.size());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })

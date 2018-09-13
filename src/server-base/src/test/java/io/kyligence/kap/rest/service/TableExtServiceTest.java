@@ -48,13 +48,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -80,9 +78,6 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-
-        ReflectionTestUtils.setField(tableExtService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
-        ReflectionTestUtils.setField(tableService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject("default");

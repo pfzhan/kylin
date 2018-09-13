@@ -2,6 +2,7 @@
   "uuid": "a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94",
   "name": "test_encoding",
   "fact_table": "DEFAULT.TEST_ENCODING",
+  "owner": "ADMIN",
   "all_named_columns": [
     {
       "id": 0,

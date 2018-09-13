@@ -31,7 +31,10 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.exception.UnauthorizedException;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -42,21 +45,22 @@ public class NBasicControllerTest {
 
     private MockMvc mockMvc;
 
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    @InjectMocks
+    private NBasicController nBasicController = Mockito.spy(new NBasicController());
+
     private final FixtureController fixtureController = Mockito.spy(new FixtureController());
 
     @Before
     public void setUp() {
         mockMvc = MockMvcBuilders.standaloneSetup(fixtureController)
-                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api"))
-                .build();
+                .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
 
-        Mockito.when(fixtureController.request()).thenThrow(
-                new RuntimeException(),
-                new ForbiddenException(),
-                new NotFoundException(StringUtils.EMPTY),
-                new BadRequestException(StringUtils.EMPTY),
-                new UnauthorizedException()
-        );
+        Mockito.when(fixtureController.request()).thenThrow(new RuntimeException(), new ForbiddenException(),
+                new NotFoundException(StringUtils.EMPTY), new BadRequestException(StringUtils.EMPTY),
+                new UnauthorizedException());
     }
 
     @Test
@@ -81,4 +85,30 @@ public class NBasicControllerTest {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/handleErrors"))
                 .andExpect(MockMvcResultMatchers.status().isUnauthorized());
     }
+
+    @Test
+    public void testCheckProjectException() {
+        thrown.expect(BadRequestException.class);
+        nBasicController.checkProjectName("");
+    }
+
+    @Test
+    public void testCheckProjectPass() {
+        nBasicController.checkProjectName("default");
+        assert true;
+    }
+
+    @Test
+    public void testCheckRequiredArgPass() {
+        nBasicController.checkRequiredArg("model", "modelName");
+        assert true;
+    }
+
+    @Test
+    public void testCheckRequiredArgException() {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("model is required");
+        nBasicController.checkRequiredArg("model", "");
+    }
+
 }

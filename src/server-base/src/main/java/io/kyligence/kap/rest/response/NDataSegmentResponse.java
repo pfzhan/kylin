@@ -22,49 +22,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
-import java.util.Objects;
+import io.kyligence.kap.cube.model.NDataSegment;
 
 
-public class ProjectRequest {
-    private String formerProjectName;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
-    private String projectDescData;
+public class NDataSegmentResponse extends NDataSegment {
+    @JsonProperty("size_kb")
+    private long sizeKB;
 
-    public ProjectRequest() {
+    @JsonProperty("hit_count")
+    private long hitCount;
+
+    public NDataSegmentResponse() {
+        super();
     }
 
-    public String getProjectDescData() {
-        return projectDescData;
+    public NDataSegmentResponse(NDataSegment other) {
+        super(other);
     }
 
-    public void setProjectDescData(String projectDescData) {
-        this.projectDescData = projectDescData;
+    public long getSizeKB() {
+        return sizeKB;
     }
 
-    public String getFormerProjectName() {
-        return formerProjectName;
+    public void setSizeKB(long sizeKB) {
+        this.sizeKB = sizeKB;
     }
 
-    public void setFormerProjectName(String formerProjectName) {
-        this.formerProjectName = formerProjectName;
+    public long getHitCount() {
+        return hitCount;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        ProjectRequest that = (ProjectRequest) o;
-        return Objects.equals(formerProjectName, that.formerProjectName)
-                && Objects.equals(projectDescData, that.projectDescData);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(formerProjectName, projectDescData);
+    public void setHitCount(long hitCount) {
+        this.hitCount = hitCount;
     }
 }

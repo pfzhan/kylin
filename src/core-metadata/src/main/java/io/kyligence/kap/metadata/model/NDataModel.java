@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -100,7 +99,7 @@ import java.util.Set;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public  class NDataModel extends RootPersistentEntity {
+public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
 
     public static enum TableKind implements Serializable {
@@ -115,6 +114,9 @@ public  class NDataModel extends RootPersistentEntity {
 
     @JsonProperty("name")
     private String name;
+
+    @JsonProperty("alias")
+    private String alias;
 
     @JsonProperty("owner")
     private String owner;
@@ -165,6 +167,30 @@ public  class NDataModel extends RootPersistentEntity {
      */
     private List<String> errors = new ArrayList<String>();
 
+    public NDataModel(NDataModel other) {
+        this.uuid = other.uuid;
+        this.lastModified = other.lastModified;
+        this.version = other.version;
+        this.name = other.name;
+        this.alias = other.alias;
+        this.owner = other.owner;
+        this.isDraft = other.isDraft;
+        this.description = other.description;
+        this.rootFactTable = other.rootFactTable;
+        this.joinTables = other.joinTables;
+        this.dimensions = other.dimensions;
+        this.metrics = other.metrics;
+        this.filterCondition = other.filterCondition;
+        this.partitionDesc = other.partitionDesc;
+        this.capacity = other.capacity;
+        this.allNamedColumns = other.allNamedColumns;
+        this.allMeasures = other.allMeasures;
+        this.colCorrs = other.colCorrs;
+        this.mpColStrs = other.mpColStrs;
+        this.computedColumnDescs = other.computedColumnDescs;
+
+
+    }
 
     public KylinConfig getConfig() {
         return config;
@@ -252,6 +278,14 @@ public  class NDataModel extends RootPersistentEntity {
         return joinsTree;
     }
 
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
     @Deprecated
     public List<TableDesc> getLookupTableDescs() {
         List<TableDesc> result = Lists.newArrayList();
@@ -293,8 +327,7 @@ public  class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isRootFactTable(TableDesc table) {
-        if (table == null || StringUtils.isBlank(table.getIdentity())
-                || StringUtils.isBlank(table.getProject())) {
+        if (table == null || StringUtils.isBlank(table.getIdentity()) || StringUtils.isBlank(table.getProject())) {
             return false;
         }
 
@@ -404,7 +437,9 @@ public  class NDataModel extends RootPersistentEntity {
         initDimensionsAndMetrics();
         initPartitionDesc();
         initFilterCondition();
-
+        if (StringUtils.isEmpty(this.alias)) {
+            this.alias = this.name;
+        }
         boolean reinit = validate();
         if (reinit) { // model slightly changed by validate() and must init() again
             init(config, tables, isOnlineModel);
@@ -827,10 +862,6 @@ public  class NDataModel extends RootPersistentEntity {
         copy.updateRandomUuid();
         return copy;
     }
-
-
-
-
 
     // TODO: newten:
 
@@ -1273,6 +1304,5 @@ public  class NDataModel extends RootPersistentEntity {
         return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
                 .append("/").append(getName()).append(MetadataConstants.FILE_SURFIX).toString();
     }
-
 
 }

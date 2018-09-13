@@ -24,47 +24,42 @@
 
 package io.kyligence.kap.rest.request;
 
-import java.util.Objects;
+public class ModelUpdateRequest {
 
+    private String modelName;
+    private String newModelName;
+    private String project;
+    private String status;
 
-public class ProjectRequest {
-    private String formerProjectName;
-
-    private String projectDescData;
-
-    public ProjectRequest() {
+    public String getProject() {
+        return project;
     }
 
-    public String getProjectDescData() {
-        return projectDescData;
+    public void setProject(String project) {
+        this.project = project;
     }
 
-    public void setProjectDescData(String projectDescData) {
-        this.projectDescData = projectDescData;
+    public String getModelName() {
+        return modelName;
     }
 
-    public String getFormerProjectName() {
-        return formerProjectName;
+    public void setModelName(String modelName) {
+        this.modelName = modelName;
     }
 
-    public void setFormerProjectName(String formerProjectName) {
-        this.formerProjectName = formerProjectName;
+    public String getNewModelName() {
+        return newModelName;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        ProjectRequest that = (ProjectRequest) o;
-        return Objects.equals(formerProjectName, that.formerProjectName)
-                && Objects.equals(projectDescData, that.projectDescData);
+    public void setNewModelName(String newModelName) {
+        this.newModelName = newModelName;
     }
 
-    @Override
-    public int hashCode() {
+    public String getStatus() {
+        return status;
+    }
 
-        return Objects.hash(formerProjectName, projectDescData);
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

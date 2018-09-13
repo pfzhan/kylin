@@ -47,14 +47,12 @@ import java.util.List;
 
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.security.acls.model.Permission;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -63,8 +61,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     private final ProjectService projectService = new ProjectService();
-
-    private AccessService accessService = Mockito.mock(AccessService.class);
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -78,7 +74,6 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(projectService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
-        ReflectionTestUtils.setField(projectService, "accessService", accessService);
 
     }
 
@@ -92,8 +87,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
-        Mockito.when(accessService.init(Mockito.any(ProjectInstance.class), Mockito.any(Permission.class)))
-                .thenReturn(null);
+
         try {
             ProjectInstance projectInstance1 = projectService.createProject(projectInstance);
         } catch (Exception e) {

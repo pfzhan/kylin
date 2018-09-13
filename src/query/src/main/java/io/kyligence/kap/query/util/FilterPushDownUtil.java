@@ -84,7 +84,7 @@ public class FilterPushDownUtil {
 
     /**
      * Apply time partitioned data loading range to the sqlToUpdate.
-     * 
+     *
      * @param sqlToUpdate input sql need update
      * @param range       time partitioned data loading range
      * @return            string applied data loading range
@@ -112,7 +112,7 @@ public class FilterPushDownUtil {
     /**
      * Apply the extraCondition to the sqlToUpdate with a extra condition, only if the select
      * directive contains the target table.
-     * 
+     *
      * @param sqlToUpdate    input sql need update
      * @param extraCondition the extra condition to be added
      * @param targetTable    target table
@@ -131,7 +131,7 @@ public class FilterPushDownUtil {
     }
 
     /**
-     * Quick check, ensure the target table appears in the given sql. Note that if the schema is 'DEFAULT', 
+     * Quick check, ensure the target table appears in the given sql. Note that if the schema is 'DEFAULT',
      * delete schema before return.
      *
      * @param sql         the environment sql
@@ -265,7 +265,7 @@ public class FilterPushDownUtil {
         }
 
         /**
-         * Check the node is a instance of <code>BasicSqlCall</code> and it's <code>SqlKind</code> 
+         * Check the node is a instance of <code>BasicSqlCall</code> and it's <code>SqlKind</code>
          * equals to <code>SqlKind.AS</code>.
          */
         private boolean sqlKindEqualsAs(SqlNode node) {
@@ -273,7 +273,7 @@ public class FilterPushDownUtil {
         }
 
         /**
-         * Extract the table name and alias name, if the given node is a instance of <code>SqlBasicCall</code> 
+         * Extract the table name and alias name, if the given node is a instance of <code>SqlBasicCall</code>
          * and it's <code>SqlKind</code> equals to <code>SqlKind.AS</code>.
          */
         private void extractNames(List<Pair<String, String>> nameAndAliasNames, SqlNode node) {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -140,13 +139,12 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         this.sourceType = other.sourceType;
         this.tableType = other.tableType;
         this.dataGen = other.dataGen;
-
+        this.isFact = other.isFact;
         this.columns = new ColumnDesc[other.columns.length];
         for (int i = 0; i < other.columns.length; i++) {
             this.columns[i] = new ColumnDesc(other.columns[i]);
             this.columns[i].init(this);
         }
-
         this.project = other.project;
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
@@ -292,11 +290,11 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         this.columns = columns;
     }
 
-    public Boolean getFact() {
+    public boolean getFact() {
         return isFact;
     }
 
-    public void setFact(Boolean fact) {
+    public void setFact(boolean fact) {
         isFact = fact;
     }
 

@@ -69,7 +69,7 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins[0].getJoin().getPrimaryKey());
             Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins[0].getJoin().getForeignKey());
         }
-        
+
         dataModel = modelMaster.proposePartition(dataModel);
         {
             PartitionDesc partition = dataModel.getPartitionDesc();

@@ -48,9 +48,39 @@ public class CuboidDescResponse {
 
     @JsonProperty("id")
     private long id;
+    @JsonProperty("storage_size")
+    private long storageSize;
+    @JsonProperty("start_time")
+    private long startTime;
+    @JsonProperty("end_time")
+    private long endTime;
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<NCuboidLayout> layouts = Lists.newArrayList();
+
+    public long getStorageSize() {
+        return storageSize;
+    }
+
+    public void setStorageSize(long storageSize) {
+        this.storageSize = storageSize;
+    }
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
 
     public List<String> getDimensionsRes() {
         return dimensionsRes;

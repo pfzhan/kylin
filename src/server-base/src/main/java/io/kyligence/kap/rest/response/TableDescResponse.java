@@ -25,22 +25,120 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
-/**
- * A response class to wrap TableDesc
- *
- * @author jianliu
- *
- */
 public class TableDescResponse extends TableDesc {
     @JsonProperty("exd")
     Map<String, String> descExd = new HashMap<String, String>();
+    @JsonProperty("root_fact")
+    boolean rootFact;
+    @JsonProperty("lookup")
+    boolean lookup;
     @JsonProperty("cardinality")
     Map<String, Long> cardinality = new HashMap<String, Long>();
+    @JsonProperty("primary_key")
+    Set<String> primaryKey = new HashSet<>();
+    @JsonProperty("foreign_key")
+    Set<String> foreignKey = new HashSet<>();
+    @JsonProperty("partitioned_column")
+    private String partitionedColumn;
+    @JsonProperty("segment_ranges")
+    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
+    @JsonProperty("water_mark_start")
+    private int waterMarkStart = -1;
+    @JsonProperty("water_mark_end")
+    private int waterMarkEnd = -1;
+    @JsonProperty("start_time")
+    private long startTime = -1;
+    @JsonProperty("end_time")
+    private long endTime = -1;
+
+    public long getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public int getWaterMarkStart() {
+        return waterMarkStart;
+    }
+
+    public void setWaterMarkStart(int waterMarkStart) {
+        this.waterMarkStart = waterMarkStart;
+    }
+
+    public int getWaterMarkEnd() {
+        return waterMarkEnd;
+    }
+
+    public void setWaterMarkEnd(int waterMarkEnd) {
+        this.waterMarkEnd = waterMarkEnd;
+    }
+
+    public Map<SegmentRange, SegmentStatusEnum> getSegmentRanges() {
+        return segmentRanges;
+    }
+
+    public void setSegmentRanges(Map<SegmentRange, SegmentStatusEnum> segmentRanges) {
+        this.segmentRanges = segmentRanges;
+    }
+
+    public String getPartitionedColumn() {
+        return partitionedColumn;
+    }
+
+    public void setPartitionedColumn(String partitionedColumn) {
+        this.partitionedColumn = partitionedColumn;
+    }
+
+    public Set<String> getPrimaryKey() {
+        return primaryKey;
+    }
+
+    public void setPrimaryKey(Set<String> primaryKey) {
+        this.primaryKey = primaryKey;
+    }
+
+    public Set<String> getForeignKey() {
+        return foreignKey;
+    }
+
+    public void setForeignKey(Set<String> foreignKey) {
+        this.foreignKey = foreignKey;
+    }
+
+    public boolean isRootFact() {
+        return rootFact;
+    }
+
+    public void setRootFact(boolean rootFact) {
+        this.rootFact = rootFact;
+    }
+
+    public boolean isLookup() {
+        return lookup;
+    }
+
+    public void setLookup(boolean lookup) {
+        this.lookup = lookup;
+    }
 
     /**
      * @return the cardinality
@@ -76,13 +174,7 @@ public class TableDescResponse extends TableDesc {
      * @param table
      */
     public TableDescResponse(TableDesc table) {
-        this.setColumns(table.getColumns());
-        this.setDatabase(table.getDatabase());
-        this.setName(table.getName());
-        this.setSourceType(table.getSourceType());
-        this.setUuid(table.getUuid());
-        this.setFact(table.getFact());
-        this.setTableType(table.getTableType());
+        super(table);
     }
 
 }

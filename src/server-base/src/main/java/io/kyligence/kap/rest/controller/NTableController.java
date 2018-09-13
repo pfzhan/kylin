@@ -29,7 +29,7 @@ import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
-import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -77,12 +77,9 @@ public class NTableController extends NBasicController {
 
         checkProjectName(project);
         List<TableDesc> tableDescs = new ArrayList<>();
-        if (StringUtils.isEmpty(table)) {
-            tableDescs.addAll(tableService.getTableDesc(project, withExt));
 
-        } else {
-            tableDescs.add(tableService.getTableDescByName(table, withExt, project));
-        }
+        tableDescs.addAll(tableService.getTableDesc(project, withExt, table));
+
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableDescs, "");
     }
 
@@ -98,7 +95,9 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) throws IOException {
 
         checkProjectName(factTableRequest.getProject());
-        checkRequiredArg("column", factTableRequest.getColumn());
+        if (factTableRequest.getFact()) {
+            checkRequiredArg("column", factTableRequest.getColumn());
+        }
         tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.getFact(),
                 factTableRequest.getColumn());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -125,15 +124,9 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
         checkRequiredArg("table", dateRangeRequest.getTable());
-        if (dateRangeRequest.getStartTime() >= dateRangeRequest.getEndTime()) {
-            throw new BadRequestException("Illegal starttime or endtime,endTime"+dateRangeRequest.getEndTime()+"must be larger than startTime"+dateRangeRequest.getStartTime());
-        }
-        if(dateRangeRequest.getStartTime() < 0){
-            throw new BadRequestException("Illegal starttime ,startTime"+dateRangeRequest.getStartTime()+"can not be negative");
-
-        }
-        tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest.getTable(),
-                dateRangeRequest.getStartTime(), dateRangeRequest.getEndTime());
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(dateRangeRequest.getStartTime(),
+                dateRangeRequest.getEndTime());
+        tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest.getTable(), segmentRange);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 

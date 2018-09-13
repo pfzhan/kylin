@@ -53,8 +53,12 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -73,6 +77,8 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 public class NModelControllerTest {
 
@@ -129,13 +135,24 @@ public class NModelControllerTest {
     @Test
     public void testTableIndices() throws Exception {
         Mockito.when(modelService.getTableIndices("model1", "default")).thenReturn(mockCuboidDescs());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/table_indices").contentType(MediaType.APPLICATION_JSON)
+                .param("model", "model1").param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nModelController).getTableIndices("model1", "default");
+    }
+
+    @Test
+    public void testAggIndexs() throws Exception {
+        Mockito.when(modelService.getAggIndices("model1", "default")).thenReturn(mockCuboidDescs());
         MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/table_indices").contentType(MediaType.APPLICATION_JSON)
+                .perform(MockMvcRequestBuilders.get("/api/models/agg_indices").contentType(MediaType.APPLICATION_JSON)
                         .param("model", "model1").param("project", "default")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nModelController).getTableIndices("model1", "default");
+        Mockito.verify(nModelController).getAggIndices("model1", "default");
     }
 
     @Test
@@ -153,14 +170,24 @@ public class NModelControllerTest {
     }
 
     @Test
+    public void testGetCuboidsException() throws Exception {
+
+        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(null);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/cuboids").contentType(MediaType.APPLICATION_JSON)
+                .param("id", "432323").param("project", "default").param("model", "model1")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).getCuboids(432323L, "default", "model1");
+    }
+
+    @Test
     public void testGetSegments() throws Exception {
 
         Mockito.when(modelService.getSegments("model1", "default", 432323L, 2234L)).thenReturn(mockSegments());
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
-                        .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
-                        .param("startTime", "432323").param("endTime", "2234")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
+                .param("startTime", "432323").param("endTime", "2234")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
         Mockito.verify(nModelController).getSegments("model1", "default", 0, 10, 432323L, 2234L);
     }
@@ -168,18 +195,136 @@ public class NModelControllerTest {
     @Test
     public void testGetModels() throws Exception {
 
-        Mockito.when(modelService.getModels("", "default", true)).thenReturn(mockModels());
-        MvcResult mvcResult = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
-                        .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
-                        .param("exact", "true").param("table", "")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.when(modelService.getModels("model1", "default", true, "ADMIN", "NEW", "last_modify", false))
+                .thenReturn(mockModels());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
+                .param("exact", "true").param("table", "").param("owner", "ADMIN").param("status", "NEW")
+                .param("sortBy", "last_modify").param("reverse", "true")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getModels("model1", true, "default", "", 0, 10);
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "", 0, 10, "last_modify",
+                true);
     }
 
-    private HashMap<String, Object> mockRelations() {
-        HashMap<String, Object> resultMap = new HashMap<>();
+    @Test
+    public void testGetRelatedModels() throws Exception {
+
+        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT")).thenReturn(mockModels());
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
+                .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
+                .param("reverse", "true").param("table", "TEST_KYLIN_FACT")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nModelController).getModels("model1", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
+                "last_modify", true);
+    }
+
+    @Test
+    public void testGetModelsWithOutModelName() throws Exception {
+        Mockito.when(modelService.getModels("", "default", true, "ADMIN", "NEW", "last_modify", true))
+                .thenReturn(mockModels());
+        MvcResult mvcResult = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
+                        .param("offset", "0").param("project", "default").param("model", "").param("limit", "10")
+                        .param("exact", "true").param("owner", "ADMIN").param("status", "NEW")
+                        .param("sortBy", "last_modify").param("reverse", "true").param("table", "TEST_KYLIN_FACT")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nModelController).getModels("", true, "default", "ADMIN", "NEW", "TEST_KYLIN_FACT", 0, 10,
+                "last_modify", true);
+    }
+
+    @Test
+    public void testRenameModel() throws Exception {
+        Mockito.doNothing().when(modelService).renameDataModel("default", "nmodel_basic", "newAlias");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/name").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).updateModelName(Mockito.any(ModelUpdateRequest.class));
+    }
+
+    @Test
+    public void testRenameModelException() throws Exception {
+        ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
+        modelUpdateRequest.setNewModelName("newAlias)))&&&");
+        Mockito.doNothing().when(modelService).renameDataModel("default", "nmodel_basic", "newAlias)))&&&");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/name").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(modelUpdateRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).updateModelName(Mockito.any(ModelUpdateRequest.class));
+    }
+
+    @Test
+    public void testUpdateModelStatus() throws Exception {
+        ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
+        modelUpdateRequest.setStatus("DISABLED");
+        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "nmodel_basic", "DISABLED");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/status").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).updateModelStatus(Mockito.any(ModelUpdateRequest.class));
+    }
+
+    private ModelUpdateRequest mockModelUpdateRequest() {
+        ModelUpdateRequest updateRequest = new ModelUpdateRequest();
+        updateRequest.setProject("default");
+        updateRequest.setModelName("nmodel_basic");
+        updateRequest.setNewModelName("newAlias");
+        updateRequest.setStatus("DISABLED");
+        return updateRequest;
+    }
+
+    private NDataModelResponse mockNDataModelResponse() {
+        NDataModel nDataModel = new NDataModel();
+        nDataModel.setName("model1");
+        NDataModelResponse nDataModelResponse = new NDataModelResponse(nDataModel);
+        return nDataModelResponse;
+    }
+
+    @Test
+    public void testDeleteModel() throws Exception {
+        Mockito.doNothing().when(modelService).dropModel("nmodel_basic", "default");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{project}/{model}", "default", "nmodel_basic")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).deleteModel("default", "nmodel_basic");
+    }
+
+    @Test
+    public void testPurgeModel() throws Exception {
+        Mockito.doNothing().when(modelService).purgeModel("nmodel_basic", "default");
+        mockMvc.perform(
+                MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andDo(print());
+        Mockito.verify(nModelController).purgeModel("default", "nmodel_basic");
+    }
+
+    @Test
+    public void testCloneModel() throws Exception {
+        ModelCloneRequest request = new ModelCloneRequest();
+        request.setModelName("nmodel_basic");
+        request.setNewModelName("new_model");
+        request.setProject("default");
+        Mockito.doNothing().when(modelService).cloneModel("nmodel_basic", "new_model", "default");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).cloneModel(Mockito.any(ModelCloneRequest.class));
+        request.setNewModelName("dsf gfdg fds");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+    }
+
+    private List<NForestSpanningTree> mockRelations() {
         final List<NForestSpanningTree> nSpanningTrees = new ArrayList<>();
         Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids = new HashMap<>();
         NCuboidDesc cuboidDesc = new NCuboidDesc();
@@ -191,9 +336,7 @@ public class NModelControllerTest {
         cuboids.put(cuboidDesc, layouts);
         NForestSpanningTree nSpanningTree = new NForestSpanningTree(cuboids, "test");
         nSpanningTrees.add(nSpanningTree);
-        resultMap.put("relations", nSpanningTrees);
-        resultMap.put("storage", 222);
-        return resultMap;
+        return nSpanningTrees;
     }
 
     private List<CuboidDescResponse> mockCuboidDescs() {
@@ -213,11 +356,21 @@ public class NModelControllerTest {
         return nDataSegments;
     }
 
-    private List<NDataModel> mockModels() {
-        final List<NDataModel> models = new ArrayList<>();
+    private List<NDataModelResponse> mockModels() {
+        final List<NDataModelResponse> models = new ArrayList<>();
         NDataModel model = new NDataModel();
-        model.setName("seg1");
-        models.add(model);
+        model.setName("model1");
+        models.add(new NDataModelResponse(model));
+        NDataModel model1 = new NDataModel();
+        model.setName("model2");
+        models.add(new NDataModelResponse(model1));
+        NDataModel model2 = new NDataModel();
+        model.setName("model3");
+        models.add(new NDataModelResponse(model2));
+        NDataModel model3 = new NDataModel();
+        model.setName("model4");
+        models.add(new NDataModelResponse(model3));
+
         return models;
     }
 

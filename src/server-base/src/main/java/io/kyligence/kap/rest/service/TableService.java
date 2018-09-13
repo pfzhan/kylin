@@ -31,25 +31,25 @@ import com.google.common.collect.SetMultimap;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.msg.Message;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
@@ -59,11 +59,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Component("tableService")
@@ -72,36 +74,18 @@ public class TableService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
 
     @Autowired
-    private AclEvaluate aclEvaluate;
-
-    @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
 
-    public List<TableDesc> getTableDesc(String project, boolean withExt) throws IOException {
-        aclEvaluate.checkProjectReadPermission(project);
-        List<TableDesc> tables = getProjectManager().listDefinedTables(project);
-        if (null == tables) {
-            return Collections.emptyList();
+    public List<TableDesc> getTableDesc(String project, boolean withExt, String tableName) throws IOException {
+        List<TableDesc> tables = new ArrayList<>();
+        if (StringUtils.isEmpty(tableName)) {
+            tables.addAll(getProjectManager().listDefinedTables(project));
+        } else {
+            tables.add(getTableManager(project).getTableDesc(tableName));
         }
-        if (withExt) {
-            aclEvaluate.checkProjectWritePermission(project);
-            tables = cloneTablesDesc(tables, project);
-        }
+        tables = getTablesResponse(tables, project, withExt);
         return tables;
-    }
-
-    public TableDesc getTableDescByName(String tableName, boolean withExt, String prj) {
-        aclEvaluate.checkProjectReadPermission(prj);
-        TableDesc table = getTableManager(prj).getTableDesc(tableName);
-        if (table == null) {
-            throw new BadRequestException("this table does not exsits");
-        }
-        if (withExt) {
-            aclEvaluate.checkProjectWritePermission(prj);
-            table = cloneTableDesc(table, prj);
-        }
-        return table;
     }
 
     public String[] loadTableToProject(TableDesc tableDesc, TableExtDesc extDesc, String project) throws IOException {
@@ -110,7 +94,6 @@ public class TableService extends BasicService {
 
     private String[] loadTablesToProject(List<Pair<TableDesc, TableExtDesc>> allMeta, String project)
             throws IOException {
-        aclEvaluate.checkProjectAdminPermission(project);
         final NTableMetadataManager tableMetaMgr = getTableManager(project);
         // save table meta
         List<String> saved = Lists.newArrayList();
@@ -180,39 +163,6 @@ public class TableService extends BasicService {
         getProjectManager().addTableDescToProject(tables, project);
     }
 
-    protected void removeTableFromProject(String tableName, String projectName) throws IOException {
-        tableName = normalizeHiveTableName(tableName);
-        getProjectManager().removeTableDescFromProject(tableName, projectName);
-    }
-
-    public boolean unloadTable(String tableName, String project) throws IOException {
-        aclEvaluate.checkProjectAdminPermission(project);
-        Message msg = MsgPicker.getMsg();
-        boolean rtn = false;
-        int tableType = 0;
-        tableName = normalizeHiveTableName(tableName);
-        TableDesc desc = getTableManager(project).getTableDesc(tableName);
-        // unload of legacy global table is not supported for now
-        if (desc == null || desc.getProject() == null) {
-            logger.warn("Unload Table {} in Project {} failed, could not find TableDesc or related Project", tableName,
-                    project);
-            return false;
-        }
-        tableType = desc.getSourceType();
-        if (!modelService.isTableInModel(desc, project)) {
-            removeTableFromProject(tableName, project);
-            rtn = true;
-        } else {
-            List<String> models = modelService.getModelsUsingTable(desc, project);
-            throw new BadRequestException(String.format(msg.getTABLE_IN_USE_BY_MODEL(), models));
-        }
-        // it is a project local table, ready to remove since no model is using it within the project
-        NTableMetadataManager metaMgr = getTableManager(project);
-        metaMgr.removeTableExt(tableName);
-        metaMgr.removeSourceTable(tableName);
-        return rtn;
-    }
-
     public List<String> getSourceDbNames(String project, int dataSourceType) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
@@ -225,9 +175,9 @@ public class TableService extends BasicService {
         return explr.listTables(database);
     }
 
-    private TableDescResponse cloneTableDesc(TableDesc table, String project) {
+    private TableDescResponse getTableResponse(TableDesc table, String project) {
         TableExtDesc tableExtDesc = getTableManager(project).getTableExt(table.getIdentity());
-        // Clone TableDesc
+        // get TableDescResponse
         TableDescResponse tableDescResponse = new TableDescResponse(table);
         Map<String, Long> cardinality = new HashMap<String, Long>();
         Map<String, String> dataSourceProp = new HashMap<>();
@@ -246,16 +196,83 @@ public class TableService extends BasicService {
         return tableDescResponse;
     }
 
-    private List<TableDesc> cloneTablesDesc(List<TableDesc> tables, String project) throws IOException {
+    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
+            throws IOException {
         List<TableDesc> descs = new ArrayList<TableDesc>();
+        NDataModelManager dataModelManager = getDataModelManager(project);
         Iterator<TableDesc> it = tables.iterator();
         while (it.hasNext()) {
+            TableDescResponse rtableDesc;
             TableDesc table = it.next();
-            TableDescResponse rtableDesc = cloneTableDesc(table, project);
+            List<String> models = dataModelManager.getModelsUsingRootTable(table);
+            List<String> modelsUsingTable = dataModelManager.getModelsUsingTable(table);
+            if (withExt) {
+                rtableDesc = getTableResponse(table, project);
+            } else {
+                rtableDesc = new TableDescResponse(table);
+            }
+            if (CollectionUtils.isNotEmpty(models)) {
+                rtableDesc.setRootFact(true);
+            } else if (CollectionUtils.isNotEmpty(modelsUsingTable)) {
+                rtableDesc.setLookup(true);
+            }
+            Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(table, project);
+            NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
+                    .getDataLoadingRange(table.getIdentity());
+            if (null != dataLoadingRange) {
+                rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
+                rtableDesc.setSegmentRanges(getSegmentRangesWithStatus(dataLoadingRange));
+                rtableDesc.setWaterMarkStart(dataLoadingRange.getWaterMarkStart());
+                rtableDesc.setWaterMarkEnd(dataLoadingRange.getWaterMarkEnd());
+                SegmentRange segmentRange = dataLoadingRange.getCoveredSegmentRange();
+                if (segmentRange != null) {
+                    rtableDesc.setStartTime(Long.parseLong(segmentRange.getStart().toString()));
+                    rtableDesc.setEndTime(Long.parseLong(segmentRange.getEnd().toString()));
+
+                }
+            }
+            rtableDesc.setForeignKey(tableColumnType.getSecond());
+            rtableDesc.setPrimaryKey(tableColumnType.getFirst());
             descs.add(rtableDesc);
         }
 
         return descs;
+    }
+
+    private Map<SegmentRange, SegmentStatusEnum> getSegmentRangesWithStatus(NDataLoadingRange dataLoadingRange) {
+        Map<SegmentRange, SegmentStatusEnum> segmentRangeResult = new HashMap<>();
+        List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+        for (int i = 0; i < segmentRanges.size(); i++) {
+            if (i > dataLoadingRange.getWaterMarkStart() && i <= dataLoadingRange.getWaterMarkEnd()) {
+                segmentRangeResult.put(segmentRanges.get(i), SegmentStatusEnum.READY);
+            } else {
+                segmentRangeResult.put(segmentRanges.get(i), SegmentStatusEnum.NEW);
+
+            }
+        }
+        return segmentRangeResult;
+    }
+
+    //get table's primaryKeys(pair first) and foreignKeys(pari second)
+    private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) throws IOException {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        List<String> models = dataModelManager.getModelsUsingTable(table);
+        Set<String> primaryKey = new HashSet<>();
+        Set<String> foreignKey = new HashSet<>();
+        for (String model : models) {
+            JoinTableDesc[] joinTables = dataModelManager.getDataModelDesc(model).getJoinTables();
+            for (JoinTableDesc joinTable : joinTables) {
+                if (joinTable.getTable().equals(table.getIdentity())) {
+                    foreignKey.addAll(Arrays.asList(joinTable.getJoin().getForeignKey()));
+                    primaryKey.addAll(Arrays.asList(joinTable.getJoin().getPrimaryKey()));
+                    break;
+                }
+            }
+        }
+        Pair<Set<String>, Set<String>> result = new Pair<>();
+        result.setFirst(primaryKey);
+        result.setSecond(foreignKey);
+        return result;
     }
 
     public String normalizeHiveTableName(String tableName) {
@@ -267,7 +284,8 @@ public class TableService extends BasicService {
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
-        String ColumnIdentity = table + "." + column;
+        String tableName = table.substring(table.lastIndexOf(".") + 1);
+        String ColumnIdentity = tableName + "." + column;
         boolean oldFact = tableDesc.getFact();
         if (fact && !oldFact) {
             NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
@@ -286,23 +304,24 @@ public class TableService extends BasicService {
         }
     }
 
-    public void setDataRange(String project, String table, long startTime, long endTime) throws IOException, PersistentException {
+    public void setDataRange(String project, String table, SegmentRange segmentRange)
+            throws IOException, PersistentException {
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange(table);
-
+        NTableMetadataManager tableManager = getTableManager(project);
         if (dataLoadingRange != null) {
-            List<SegmentRange> segmentRanges = getSegmentRange(dataLoadingRange, startTime,
-                    endTime);
-
+            TableDesc tableDesc = tableManager.getTableDesc(table);
+            tableManager.updateTableDesc(tableDesc);
+            List<SegmentRange> segmentRanges = getSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
             EventManager eventManager = getEventManager(project);
             for (SegmentRange seg : segmentRanges) {
-                rangeManager.appendSegmentRange(dataLoadingRange, seg);
                 LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
                 updateEvent.setTableName(table);
                 updateEvent.setApproved(true);
                 updateEvent.setProject(project);
                 updateEvent.setSegmentRange(seg);
                 eventManager.post(updateEvent);
+                dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
             }
 
         } else {
@@ -311,27 +330,25 @@ public class TableService extends BasicService {
         }
     }
 
-    private List<SegmentRange> getSegmentRange(NDataLoadingRange dataLoadingRange, long startTime, long endTime) {
+    private List<SegmentRange> getSegmentRanges(NDataLoadingRange dataLoadingRange, SegmentRange newRange) {
         List<SegmentRange> segmentRanges = new ArrayList<>();
-        SegmentRange.TimePartitionedSegmentRange newRange = new SegmentRange.TimePartitionedSegmentRange(startTime, endTime);
-        SegmentRange coveredSegmentRange = dataLoadingRange.getCoveredSegmentRange();
-        if (dataLoadingRange == null || coveredSegmentRange == null || !coveredSegmentRange.overlaps(newRange)) {
-            SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange(newRange.getStart(), newRange.getEnd());
-            segmentRanges.add(timePartitionedSegmentRange);
+        SegmentRange oldSegmentRange = dataLoadingRange.getCoveredSegmentRange();
+        if (dataLoadingRange == null || null == oldSegmentRange || !oldSegmentRange.overlaps(newRange)) {
+            segmentRanges.add(newRange);
             return segmentRanges;
         }
-        if (coveredSegmentRange.contains(newRange)) {
+
+        if (oldSegmentRange.contains(newRange)) {
             //do nothing but set range to new start and end
             return segmentRanges;
         }
 
-        long oldStartTime = (long) coveredSegmentRange.getStart();
-        long oldEndTime = (long) coveredSegmentRange.getEnd();
-        if (startTime < oldStartTime) {
-            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(startTime, oldStartTime));
+        if (newRange.getStart().compareTo(oldSegmentRange.getEnd()) < 0) {
+
+            segmentRanges.add(newRange.getStartDeviation(oldSegmentRange));
         }
-        if (endTime > oldEndTime) {
-            segmentRanges.add(new SegmentRange.TimePartitionedSegmentRange(oldEndTime, endTime));
+        if (newRange.getEnd().compareTo(oldSegmentRange.getEnd()) > 0) {
+            segmentRanges.add(oldSegmentRange.getEndDeviation(newRange));
         }
 
         return segmentRanges;

@@ -110,7 +110,8 @@ public class NJobController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) Integer[] status,
             @RequestParam(value = "job_type", required = false) String jobType,
-            @RequestParam(value = "timeFilter") Integer timeFilter, @RequestParam(value = "subjects") String[] subjects,
+            @RequestParam(value = "timeFilter", required = false) Integer timeFilter,
+            @RequestParam(value = "subjects", required = false) String[] subjects,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,

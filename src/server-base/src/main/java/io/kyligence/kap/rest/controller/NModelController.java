@@ -26,32 +26,35 @@ package io.kyligence.kap.rest.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.metadata.ModifiedOrder;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -60,13 +63,12 @@ import java.util.List;
 public class NModelController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
     private static final Message msg = MsgPicker.getMsg();
+    private static final String MODEL_NAME = "modelName";
+    private static final String NEW_MODEL_NAME = "newModelNAME";
+
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    @Qualifier("aclEvaluate")
-    private AclEvaluate aclEvaluate;
 
     @Autowired
     @Qualifier("projectService")
@@ -77,21 +79,26 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse getModels(@RequestParam(value = "model", required = false) String modelName,
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "owner", required = false) String owner,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "table", required = false) String table,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "sortby", required = false, defaultValue = "last_modify") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse)
+            throws IOException {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<NDataModel>();
         if (StringUtils.isEmpty(table)) {
-            for (NDataModel modelDesc : modelService.getModels(modelName, project, exactMatch)) {
+            for (NDataModelResponse modelDesc : modelService.getModels(modelName, project, exactMatch, owner, status,
+                    sortBy, reverse)) {
                 Preconditions.checkState(!modelDesc.isDraft());
                 models.add(modelDesc);
             }
         } else {
             models.addAll(modelService.getRelateModels(project, table));
         }
-        //todo draft
-        Collections.sort(models, new ModifiedOrder());
+
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
@@ -106,7 +113,6 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "startTime", required = false, defaultValue = "1") Long startTime,
             @RequestParam(value = "endTime", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) Long endTime) {
         checkProjectName(project);
-        List<NDataSegment> segementsResult = new ArrayList<NDataSegment>();
         Segments<NDataSegment> segments = modelService.getSegments(modelName, project, startTime, endTime);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
@@ -114,25 +120,23 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "/agg_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
     public EnvelopeResponse getAggIndices(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName)) {
-            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
-        }
+        checkRequiredArg(MODEL_NAME, modelName);
         List<CuboidDescResponse> aggIndices = modelService.getAggIndices(modelName, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndices, "");
     }
 
     @RequestMapping(value = "/cuboids", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
     public EnvelopeResponse getCuboids(@RequestParam(value = "id", required = true) Long id,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "model", required = true) String modelName) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName)) {
-            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
-        }
+        checkRequiredArg(MODEL_NAME, modelName);
         CuboidDescResponse cuboidDesc = modelService.getCuboidById(modelName, project, id);
         if (cuboidDesc == null) {
             throw new BadRequestException("Can not find this cuboid " + id);
@@ -142,24 +146,22 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "/table_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
     public EnvelopeResponse getTableIndices(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName)) {
-            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
-        }
+        checkRequiredArg(MODEL_NAME, modelName);
         List<CuboidDescResponse> tableIndices = modelService.getTableIndices(modelName, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndices, "");
     }
 
     @RequestMapping(value = "/json", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
     public EnvelopeResponse getModelJson(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
 
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName)) {
-            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
-        }
+        checkRequiredArg(MODEL_NAME, modelName);
         try {
             String json = modelService.getModelJson(modelName, project);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, json, "");
@@ -171,17 +173,78 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "/relations", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
     public EnvelopeResponse getModelRelations(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project) {
-
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName)) {
-            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
+        checkRequiredArg(MODEL_NAME, modelName);
+        List<NForestSpanningTree> modelRelations = modelService.getModelRelations(modelName, project);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
+    }
+
+    @RequestMapping(value = "/name", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateModelName(@RequestBody ModelUpdateRequest modelRenameRequest) throws IOException {
+        checkProjectName(modelRenameRequest.getProject());
+        checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
+        String newAlias = modelRenameRequest.getNewModelName();
+        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODELNAME)) {
+            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newAlias);
+            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
         }
 
-        HashMap<String, Object> relations = modelService.getModelRelations(modelName, project);
+        modelService.renameDataModel(modelRenameRequest.getProject(), modelRenameRequest.getModelName(), newAlias);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
 
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, relations, "");
+    @RequestMapping(value = "/status", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateModelStatus(@RequestBody ModelUpdateRequest modelRenameRequest) throws IOException {
+        checkProjectName(modelRenameRequest.getProject());
+        checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
+        modelService.updateDataModelStatus(modelRenameRequest.getModelName(), modelRenameRequest.getProject(),
+                modelRenameRequest.getStatus());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/{project}/{model}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse deleteModel(@PathVariable("project") String project, @PathVariable("model") String model)
+            throws IOException {
+        checkProjectName(project);
+        modelService.dropModel(model, project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/segments/{project}/{model}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse purgeModel(@PathVariable("project") String project, @PathVariable("model") String model)
+            throws IOException {
+        checkProjectName(project);
+        modelService.purgeModel(model, project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse cloneModel(@RequestBody ModelCloneRequest request) throws IOException {
+        checkProjectName(request.getProject());
+        String newModelName = request.getNewModelName();
+        String modelName = request.getModelName();
+        checkRequiredArg(MODEL_NAME, modelName);
+        checkRequiredArg(NEW_MODEL_NAME, newModelName);
+        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODELNAME)) {
+            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newModelName);
+            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
+        }
+        modelService.cloneModel(request.getModelName(), request.getNewModelName(), request.getProject());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+
     }
 
 }

@@ -34,7 +34,6 @@ import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -59,8 +58,6 @@ public class ProjectService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    @Autowired
-    private AccessService accessService;
 
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) throws IOException {
         logger.debug("Saving project " + projectRequest.getProjectDescData());

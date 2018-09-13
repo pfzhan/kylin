@@ -173,11 +173,4 @@ public class NBasicController {
         }
     }
 
-    public void checkTableName(String table) {
-        Message msg = MsgPicker.getMsg();
-        if (StringUtils.isEmpty(table)) {
-            throw new BadRequestException("table name can not be empty");
-        }
-    }
-
 }

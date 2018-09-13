@@ -22,49 +22,44 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
-import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.metadata.model.NDataModel;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import java.util.HashMap;
+import java.util.Map;
 
+public class NDataModelResponse extends NDataModel {
 
-public class ProjectRequest {
-    private String formerProjectName;
+    @JsonProperty("status")
+    private RealizationStatusEnum status;
+    @JsonProperty("segment_ranges")
+    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
 
-    private String projectDescData;
-
-    public ProjectRequest() {
+    public Map<SegmentRange, SegmentStatusEnum> getSegmentRanges() {
+        return segmentRanges;
     }
 
-    public String getProjectDescData() {
-        return projectDescData;
+    public void setSegmentRanges(Map<SegmentRange, SegmentStatusEnum> segmentRanges) {
+        this.segmentRanges = segmentRanges;
     }
 
-    public void setProjectDescData(String projectDescData) {
-        this.projectDescData = projectDescData;
+    public NDataModelResponse() {
+        super();
     }
 
-    public String getFormerProjectName() {
-        return formerProjectName;
+    public NDataModelResponse(NDataModel dataMolde) {
+        super(dataMolde);
     }
 
-    public void setFormerProjectName(String formerProjectName) {
-        this.formerProjectName = formerProjectName;
+    public RealizationStatusEnum getStatus() {
+        return status;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        ProjectRequest that = (ProjectRequest) o;
-        return Objects.equals(formerProjectName, that.formerProjectName)
-                && Objects.equals(projectDescData, that.projectDescData);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(formerProjectName, projectDescData);
+    public void setStatus(RealizationStatusEnum status) {
+        this.status = status;
     }
 }

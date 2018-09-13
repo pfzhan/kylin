@@ -43,33 +43,45 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
-    private final ModelService modelService = new ModelService();
-    private final TableService tableService = new TableService();
+
+    @InjectMocks
+    private TableService tableService = Mockito.spy(new TableService());
+
+    @InjectMocks
+    private ModelService modelService = Mockito.spy(new ModelService());
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -83,8 +95,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
-        ReflectionTestUtils.setField(modelService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
-        ReflectionTestUtils.setField(tableService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
     }
 
     @AfterClass
@@ -95,17 +105,27 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
 
-        List<NDataModel> models = modelService.getModels("", "default", false);
-        Assert.assertEquals(models.size(), 4);
+
+        List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
+                "last_modify", true);
+        Assert.assertEquals(models2.size(), 1);
+        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "", "last_modify",
+                true);
+        Assert.assertEquals(model3.size(), 1);
+        List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm", "",
+                "last_modify", true);
+        Assert.assertEquals(model4.size(), 1);
+        List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm", "DISABLED",
+                "last_modify", true);
+        Assert.assertEquals(model5.size(), 0);
 
     }
 
     @Test
     public void testGetSegments() throws Exception {
 
-        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, 9223372036854775807L);
+        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, Long.MAX_VALUE);
         Assert.assertEquals(segments.size(), 2);
-
     }
 
     @Test
@@ -113,14 +133,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         List<CuboidDescResponse> indices = modelService.getAggIndices("nmodel_basic", "default");
         Assert.assertEquals(indices.size(), 7);
+        Assert.assertTrue(indices.get(0).getId() < NCuboidDesc.TABLE_INDEX_START_ID);
 
     }
 
     @Test
     public void testIsTableInModel() throws Exception {
-        TableDesc tableDesc = tableService.getTableDescByName("DEFAULT.TEST_KYLIN_FACT", false, "default");
-        boolean result = modelService.isTableInModel(tableDesc, "default");
+        List<TableDesc> tableDescs = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
+        boolean result = modelService.isTableInModel(tableDescs.get(0), "default");
         Assert.assertTrue(result);
+        boolean result2 = modelService.isTableInModel(new TableDesc(), "default");
+        Assert.assertTrue(!result2);
 
     }
 
@@ -129,6 +152,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         List<CuboidDescResponse> indices = modelService.getTableIndices("nmodel_basic", "default");
         Assert.assertEquals(indices.size(), 3);
+        Assert.assertTrue(indices.get(0).getId() >= NCuboidDesc.TABLE_INDEX_START_ID);
 
     }
 
@@ -144,6 +168,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         CuboidDescResponse cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
         Assert.assertTrue(cuboid.getId() == 0L);
+
+        CuboidDescResponse cuboid2 = modelService.getCuboidById("nmodel_basic", "default", 1000L);
+        Assert.assertTrue(cuboid2.getId() == 1000L);
+
     }
 
     @Test
@@ -154,7 +182,103 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelRelations() {
-        HashMap<String, Object> relations = modelService.getModelRelations("nmodel_basic", "default");
-        Assert.assertTrue(relations.size() == 4);
+        List<NForestSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
+        Assert.assertTrue(relations.size() == 2);
+    }
+
+    @Test
+    public void testDropModelException() throws IOException {
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("You should purge your model first before you delete it");
+        modelService.dropModel("nmodel_basic_inner", "default");
+    }
+
+    @Test
+    public void testDropModelExceptionName() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        modelService.dropModel("nmodel_basic2222", "default");
+    }
+
+    @Test
+    public void testDropModelPass() throws IOException {
+        modelService.dropModel("test_encoding", "default");
+        List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
+                "last_modify", true);
+        Assert.assertTrue(CollectionUtils.isEmpty(models));
+
+    }
+
+    @Test
+    public void testPurgeModel() throws IOException {
+        modelService.purgeModel("nmodel_basic", "default");
+        List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, Long.MAX_VALUE);
+        Assert.assertTrue(CollectionUtils.isEmpty(segments));
+    }
+
+    @Test
+    public void testPurgeModelExceptionName() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        modelService.purgeModel("nmodel_basic2222", "default");
+    }
+
+    @Test
+    public void testCloneModelException() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("model alias nmodel_basic_inner already exists");
+        modelService.cloneModel("nmodel_basic", "nmodel_basic_inner", "default");
+    }
+
+    @Test
+    public void testCloneModelExceptionName() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
+        modelService.cloneModel("nmodel_basic2222", "nmodel_basic_inner222", "default");
+    }
+
+    @Test
+    public void testCloneModel() throws IOException {
+        modelService.cloneModel("nmodel_basic", "nmodel_basic_new", "default");
+        List<NDataModelResponse> models = modelService.getModels("", "default", true, "", "", "last_modify", true);
+        Assert.assertTrue(models.size() == 5);
+    }
+
+    @Test
+    public void testRenameModel() throws IOException {
+        modelService.renameDataModel("default", "nmodel_basic", "new_name");
+        List<NDataModelResponse> models = modelService.getModels("new_name", "default", true, "", "", "last_modify",
+                true);
+        Assert.assertTrue(models.get(0).getAlias().equals("new_name"));
+    }
+
+    @Test
+    public void testRenameModelException() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
+        modelService.renameDataModel("default", "nmodel_basic222", "new_name");
+    }
+
+    @Test
+    public void testRenameModelException2() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("model alias nmodel_basic_inner already exists");
+        modelService.renameDataModel("default", "nmodel_basic", "nmodel_basic_inner");
+    }
+
+    @Test
+    public void testUpdateDataModelStatus() throws IOException {
+        modelService.updateDataModelStatus("nmodel_full_measure_test", "default", "DISABLED");
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
+                "last_modify", true);
+        Assert.assertTrue(models.get(0).getName().equals("nmodel_full_measure_test")
+                && models.get(0).getStatus().equals(RealizationStatusEnum.DISABLED));
+    }
+
+    @Test
+    public void testUpdateDataModelStatusException() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
+        modelService.updateDataModelStatus("nmodel_basic222", "default", "DISABLED");
     }
 }

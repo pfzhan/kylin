@@ -42,24 +42,31 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.NTableDesc;
+import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -68,9 +75,18 @@ import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class TableServiceTest extends NLocalFileMetadataTestCase {
-    private final TableService tableService = new TableService();
-    private final ModelService modelService = new ModelService();
-    private final ProjectService projectService = new ProjectService();
+
+    @InjectMocks
+    private TableService tableService = Mockito.spy(new TableService());
+
+    @InjectMocks
+    private ModelService modelService = Mockito.spy(new ModelService());
+
+    @InjectMocks
+    private ProjectService projectService = Mockito.spy(new ProjectService());
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -84,7 +100,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
-        ReflectionTestUtils.setField(tableService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(tableService, "modelService", modelService);
         ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
                 .getProject("default");
@@ -105,27 +120,31 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetTableDesc() throws Exception {
 
-        List<TableDesc> tableDesc = tableService.getTableDesc("default", true);
+        List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "");
 
         Assert.assertEquals(true, tableDesc.size() > 0);
-
-    }
-
-    @Test
-    public void testGetTableDescByName() throws Exception {
-
-        TableDesc tableDesc = tableService.getTableDescByName("DEFAULT.TEST_ACCOUNT", true, "default");
-        Assert.assertEquals(true, tableDesc.getName().equals("TEST_ACCOUNT"));
-
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "DEFAULT.TEST_COUNTRY");
+        Assert.assertEquals(true, tables.get(0).getName().equals("TEST_COUNTRY"));
     }
 
     @Test
     public void testExtractTableMeta() throws Exception {
-        String[] tables = { "DEFAULT.TEST_ACCOUNT" };
+        String[] tables = { "DEFAULT.TEST_ACCOUNT", "DEFAULT.TEST_KYLIN_FACT" };
         List<Pair<TableDesc, TableExtDesc>> result = tableService.extractTableMeta(tables, "default", 11);
+        Assert.assertEquals(true, result.size() == 2);
 
-        Assert.assertEquals(true, result != null);
+    }
 
+    @Test
+    public void testLoadTableToProject() throws IOException {
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "DEFAULT.TEST_COUNTRY");
+        NTableDesc nTableDesc = new NTableDesc(tables.get(0));
+        TableExtDesc tableExt = new TableExtDesc();
+        tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
+        tableExt.updateRandomUuid();
+        NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
+        String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
+        Assert.assertTrue(result.length == 1);
     }
 
     @Test
@@ -142,12 +161,38 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testNormalizeHiveTableName() {
+        String tableName = tableService.normalizeHiveTableName("DEFaULT.TeST_ACCOUNT");
+        Assert.assertTrue(tableName.equals("DEFAULT.TEST_ACCOUNT"));
+    }
+
+    @Test
     public void testSetFactAndSetDataRange() throws Exception {
 
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
-        TableDesc desc = tableService.getTableDescByName("DEFAULT.TEST_KYLIN_FACT", false, "default");
-        tableService.setDataRange("default", "DEFAULT.TEST_KYLIN_FACT", 1L, 1534824000000L);
-        Assert.assertTrue(desc.getFact() && desc.getName().equals("TEST_KYLIN_FACT"));
+        List<TableDesc> tables = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.setDataRange("default", "DEFAULT.TEST_KYLIN_FACT",
+                new SegmentRange.TimePartitionedSegmentRange(1L, 1534824000000L));
+        Assert.assertTrue(tables.get(0).getFact() && tables.get(0).getName().equals("TEST_KYLIN_FACT"));
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("NDataLoadingRange is related in models");
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
+
+        //set Account fact true and false
+        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "ACCOUNT_BUYER_LEVEL");
+        List<TableDesc> tables2 = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
+        tableService.setDataRange("default", "DEFAULT.TEST_ACCOUNT",
+                new SegmentRange.TimePartitionedSegmentRange(1L, 1534824000000L));
+        Assert.assertTrue(tables2.get(0).getFact() && tables2.get(0).getName().equals("DEFAULT.TEST_ACCOUNT"));
+        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", false, "");
+        Assert.assertTrue(!tables2.get(0).getFact() && tables2.get(0).getName().equals("DEFAULT.TEST_ACCOUNT"));
+    }
+
+    @Test
+    public void testSetDateRangeException() throws IOException, PersistentException {
+        thrown.expect(IllegalArgumentException.class);
+        thrown.expectMessage("this table can not set date range, plz check table");
+        tableService.setDataRange("default", "TEST_ACCOUNT", new SegmentRange.TimePartitionedSegmentRange(0L, 10000L));
     }
 
 }

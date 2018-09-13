@@ -91,6 +91,23 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private transient NDataSegDetails segDetails; // transient, not required by spark cubing
     private transient Map<Long, NDataCuboid> cuboidsMap = Collections.emptyMap(); // transient, not required by spark cubing
 
+    public NDataSegment() {
+    }
+
+    public NDataSegment(NDataSegment other) {
+        this.id = other.id;
+        this.name = other.name;
+        this.createTimeUTC = other.createTimeUTC;
+        this.status = other.status;
+        this.segmentRange = other.segmentRange;
+        this.timeRange = other.timeRange;
+        this.dictionaries = other.dictionaries;
+        this.snapshots = other.snapshots;
+        this.lastBuildTime = other.lastBuildTime;
+        this.sourceCount = other.sourceCount;
+        this.additionalInfo = other.additionalInfo;
+    }
+
     void initAfterReload() {
         segDetails = NDataSegDetailsManager.getInstance(getConfig(), dataflow.getProject()).getForSegment(this);
         if (segDetails == null) {

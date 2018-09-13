@@ -416,6 +416,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
+    public long getSegmentSize(NDataSegment segment) {
+        long size = 0L;
+        Collection<NDataCuboid> nDataCuboids = segment.getCuboidsMap().values();
+        for (NDataCuboid nDataCuboid : nDataCuboids) {
+            size += nDataCuboid.getSizeKB();
+        }
+        return size;
+    }
+
     private NDataflow updateDataflowWithRetry(String dfName, NDataflowUpdater updater, int retry) throws IOException {
         RuntimeException firstException = null;
 

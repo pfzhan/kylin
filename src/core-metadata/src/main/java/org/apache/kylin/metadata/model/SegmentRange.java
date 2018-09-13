@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -87,6 +86,10 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
     abstract public boolean shareStart(SegmentRange o);
 
     abstract public boolean shareEnd(SegmentRange o);
+
+    abstract public SegmentRange getStartDeviation(SegmentRange o);
+
+    abstract public SegmentRange getEndDeviation(SegmentRange o);
 
     /**
      * create a new SegmentRange which will start from this.start and end at o.end
@@ -243,6 +246,18 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         @Override
+        public SegmentRange getStartDeviation(SegmentRange o) {
+            TimePartitionedSegmentRange other = convert(o);
+            return new TimePartitionedSegmentRange(this.start, other.start);
+        }
+
+        @Override
+        public SegmentRange getEndDeviation(SegmentRange o) {
+            TimePartitionedSegmentRange other = convert(o);
+            return new TimePartitionedSegmentRange(this.end, other.end);
+        }
+
+        @Override
         public SegmentRange gapTill(SegmentRange o) {
             TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.end, other.start);
@@ -289,9 +304,9 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         public KafkaOffsetPartitionedSegmentRange(Long startOffset, Long endOffset,
                 Map<Integer, Long> sourcePartitionOffsetStart, Map<Integer, Long> sourcePartitionOffsetEnd) {
             super(startOffset, endOffset);
-            this.sourcePartitionOffsetStart = sourcePartitionOffsetStart == null ? Maps.<Integer, Long>newHashMap()
+            this.sourcePartitionOffsetStart = sourcePartitionOffsetStart == null ? Maps.<Integer, Long> newHashMap()
                     : sourcePartitionOffsetStart;
-            this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd == null ? Maps.<Integer, Long>newHashMap()
+            this.sourcePartitionOffsetEnd = sourcePartitionOffsetEnd == null ? Maps.<Integer, Long> newHashMap()
                     : sourcePartitionOffsetEnd;
         }
 
@@ -312,6 +327,20 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.end, other.start, this.getSourcePartitionOffsetEnd(),
                     other.getSourcePartitionOffsetStart());
+        }
+
+        @Override
+        public SegmentRange getStartDeviation(SegmentRange o) {
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
+            return new KafkaOffsetPartitionedSegmentRange(this.start, other.start, this.getSourcePartitionOffsetStart(),
+                    other.getSourcePartitionOffsetStart());
+        }
+
+        @Override
+        public SegmentRange getEndDeviation(SegmentRange o) {
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
+            return new KafkaOffsetPartitionedSegmentRange(this.end, other.end, this.getSourcePartitionOffsetEnd(),
+                    other.getSourcePartitionOffsetEnd());
         }
 
         @Override

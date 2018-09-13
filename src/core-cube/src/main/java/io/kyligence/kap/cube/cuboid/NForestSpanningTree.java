@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.cube.cuboid;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -56,6 +57,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     private final Map<Long, NCuboidLayout> layoutMap = Maps.newHashMap();
 
     /* If base cuboid exists, forest will become tree. */
+    @JsonProperty("roots")
     private final List<TreeNode> roots = Lists.newArrayList();
     private int treeLevels;
 
@@ -159,11 +161,13 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     private void init() {
         new TreeBuilder(cuboids.keySet()).build();
     }
-
-    private class TreeNode {
+    private class TreeNode implements Serializable {
+        @JsonProperty("cuboid")
         private final NCuboidDesc cuboidDesc;
+        @JsonProperty("children")
         private final List<TreeNode> children = Lists.newLinkedList();
         private TreeNode parent;
+        @JsonProperty("level")
         private int level;
 
         private void addChild(TreeNode child) {

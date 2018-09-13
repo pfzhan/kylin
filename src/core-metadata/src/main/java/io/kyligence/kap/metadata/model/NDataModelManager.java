@@ -313,6 +313,10 @@ public class NDataModelManager {
         return parts[1];
     }
 
+    public NDataModel copyForWrite(NDataModel nDataModel) throws IOException {
+        return crud.copyForWrite(nDataModel);
+    }
+
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
     }

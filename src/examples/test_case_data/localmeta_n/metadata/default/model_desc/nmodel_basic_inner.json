@@ -2,6 +2,7 @@
   "uuid": "741ca86a-1f13-46da-a59f-95fb68615e3a",
   "name": "nmodel_basic_inner",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
+  "owner": "ADMIN",
   "join_tables": [
     {
       "table": "DEFAULT.TEST_ORDER",
