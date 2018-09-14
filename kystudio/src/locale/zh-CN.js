@@ -143,7 +143,8 @@ exports.default = {
     removeAll: '移除已读',
     clearAll: '全部删除',
     remove: '移除',
-    import: '导入'
+    import: '导入',
+    back: '返回'
   },
   model: {
     modelName: '模型名称：',

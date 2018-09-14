@@ -144,7 +144,8 @@ exports.default = {
     removeAll: 'Remove All Readed',
     clearAll: 'Clear All',
     remove: 'Remove',
-    import: 'Import'
+    import: 'Import',
+    back: 'Back'
   },
   model: {
     draft: 'Draft',

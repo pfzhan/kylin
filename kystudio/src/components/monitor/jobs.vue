@@ -293,7 +293,7 @@ export default class JobsList extends Vue {
     jobName: this.$store.state.monitor.filter.jobName,
     sortby: this.$store.state.monitor.filter.sortby,
     status: this.$store.state.monitor.filter.status,
-    'subjects': '2323'
+    subjects: ''
   }
   allStatus = [
     {name: 'PENDING', value: 1},

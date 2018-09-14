@@ -2,7 +2,7 @@
   <div id="messages">
     <div class="critical-messages">
       <div class="mess-title ksd-mb-20 clearfix">
-        <span>Messages (23)</span>
+        <span>Messages (23)</span><el-button plain size="small" class="ksd-left ksd-ml-20" @click="backToDashBoard">{{$t('kylinLang.common.back')}}</el-button>
         <el-button plain size="small" class="ksd-fright ksd-ml-20">{{$t('kylinLang.common.removeAll')}}</el-button>
         <el-button plain size="small" class="ksd-fright">{{$t('kylinLang.common.readedAll')}}</el-button>
       </div>
@@ -50,6 +50,9 @@ export default class Messages extends Vue {
     {message: 'I\'m sorry,  Cube 「test_01_BX」 build errors, please check.', status: 'error', timestamp: 1524829437628, isReaded: false}
   ]
 
+  backToDashBoard () {
+    this.$router.push({name: 'Overview'})
+  }
   pageCurrentChange1 (currentPage) {
     this.currentPage1 = currentPage
   }

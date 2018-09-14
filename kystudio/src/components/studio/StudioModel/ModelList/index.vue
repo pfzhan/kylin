@@ -5,7 +5,7 @@
       type="warning"
       :closable="false"
       show-icon>
-       <span slot="title">Release 2.75 TB storage with only 3% favorite score down! <a @click="applySpeed">Apply</a></span>
+       <p slot="title"><span v-html="$t('speedTip', {queryCount: modelSpeedEvents.length ,modelCount: modelSpeedModelsCount})"></span><a @click="applySpeed">{{$t('apply')}}</a></p>
       </el-alert>
       <div class="tip-toggle-btnbox">
         <el-button-group>
