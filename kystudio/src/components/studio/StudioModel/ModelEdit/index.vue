@@ -951,8 +951,10 @@ export default class ModelEdit extends Vue {
     .icon-lock-status {
       top:10px;
       right:10px;
-      display: block;
-      line-height: 32px;
+      i {
+         display: block;
+         line-height: 32px;
+      }
       border:solid 1px @text-normal-color;
       &:hover{
         color: #fff;
@@ -961,7 +963,6 @@ export default class ModelEdit extends Vue {
       }
     }
     .unlock-icon {
-      border:solid solid 1px @base-color;
       &:hover{
         color: #fff;
         background-color:@base-color;

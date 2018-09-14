@@ -38,7 +38,6 @@
         :label="$t('JobType')"
         sortable
         :width="200"
-        prop="jobname"
       >
         <template slot-scope="scope">
           <i class="el-icon-arrow-right" ></i> {{scope.row.job_type}}
