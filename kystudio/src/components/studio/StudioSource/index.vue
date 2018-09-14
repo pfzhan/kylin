@@ -8,6 +8,7 @@
         :is-show-settings="true"
         :is-expand-on-click-node="false"
         :expand-node-types="['datasouce', 'database']"
+        :searchable-node-types="['table', 'column']"
         :datasource="datasouce"
         @click="handleClick"
         @source-update="handleSourceUpdate">

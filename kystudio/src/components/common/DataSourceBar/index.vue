@@ -21,6 +21,7 @@
         :placeholder="$t('searchTable')"
         :default-expanded-keys="defaultExpandedKeys"
         :draggable-node-keys="draggableNodeKeys"
+        :searchable-node-keys="searchableNodeKeys"
         :is-expand-all="isExpandAll"
         :is-show-filter="isShowFilter"
         :is-expand-on-click-node="isExpandOnClickNode"
@@ -48,6 +49,10 @@ import { getDatasourceTree, getAutoCompleteWords } from './handler'
       default: () => []
     },
     expandNodeTypes: {
+      type: Array,
+      default: () => []
+    },
+    searchableNodeTypes: {
       type: Array,
       default: () => []
     },
@@ -102,6 +107,7 @@ export default class DataSourceBar extends Vue {
   autoCompleteWords = []
   defaultExpandedKeys = []
   draggableNodeKeys = []
+  searchableNodeKeys = []
 
   get foreignKeyArray () {
     let foreignKeyArray = []
@@ -133,6 +139,9 @@ export default class DataSourceBar extends Vue {
       .map(word => `${word.meta}-${word.caption}`)
     this.draggableNodeKeys = autoCompleteWords
       .filter(word => this.draggableNodeTypes.includes(word.meta))
+      .map(word => `${word.meta}-${word.caption}`)
+    this.searchableNodeKeys = autoCompleteWords
+      .filter(word => this.searchableNodeTypes.includes(word.meta))
       .map(word => `${word.meta}-${word.caption}`)
     this.$emit('autoComplete', autoCompleteWords)
   }

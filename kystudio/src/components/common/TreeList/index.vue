@@ -46,6 +46,10 @@ import { isIE } from '../../../util'
       type: Array,
       default: () => []
     },
+    searchableNodeKeys: {
+      type: Array,
+      default: () => []
+    },
     isGroupTrees: {
       type: Boolean,
       default: false
@@ -118,7 +122,13 @@ export default class TreeList extends Vue {
   }
 
   nodeFilter (value, data, node) {
-    return node.isLeaf && data.label.toUpperCase().includes(value.toUpperCase())
+    // 如果有配置searchableNodeKeys，则只搜索key中内容
+    if (this.searchableNodeKeys.length) {
+      return this.searchableNodeKeys.includes(data.id) && data.label.toUpperCase().includes(value.toUpperCase())
+    } else {
+      // 如果没有设置，只搜索叶子节点
+      return node.isLeaf && data.label.toUpperCase().includes(value.toUpperCase())
+    }
   }
 
   onNodeClick (data, node) {
