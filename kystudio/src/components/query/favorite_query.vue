@@ -1,7 +1,7 @@
 <template>
   <div id="favoriteQuery">
     <div class="clearfix ksd-mb-10">
-      <div class="ksd-fleft table-title">
+      <div class="ksd-fleft ksd-title-label ksd-mt-10">
         <span>{{$t('kylinLang.menu.favorite_query')}}</span>
         <el-tooltip placement="right">
           <div slot="content">{{$t('favDesc')}}</div>
@@ -193,6 +193,9 @@ export default class FavoriteQuery extends Vue {
       })
       uuidArr = uuidArr.concat(uuids)
     })
+    if (!uuidArr.length) {
+      return
+    }
     this.deleteFav({project: this.currentSelectedProject, 'uuids': uuidArr}).then((res) => {
       handleSuccess(res, () => {
         this.$message({
@@ -215,6 +218,9 @@ export default class FavoriteQuery extends Vue {
       })
       uuidArr = uuidArr.concat(uuids)
     })
+    if (!uuidArr.length) {
+      return
+    }
     this.markFav({project: this.currentSelectedProject, uuids: uuidArr}).then((res) => {
       handleSuccess(res, () => {
         this.$message({
@@ -254,7 +260,7 @@ export default class FavoriteQuery extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   #favoriteQuery {
-    padding: 0 20px 50px 20px;
+    padding: 20px 20px 50px 20px;
     .table-title {
       color: @text-title-color;
       font-size: 16px;

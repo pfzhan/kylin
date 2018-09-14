@@ -1,6 +1,6 @@
 <template>
   <div id="queryHistoryTable">
-    <div class="clearfix ksd-mb-6">
+    <div class="clearfix ksd-mb-10">
       <div class="btn-group ksd-fleft">
         <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite" v-if="isCandidate">{{$t('markFavorite')}}</el-button>
         <div v-else class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
@@ -174,7 +174,7 @@
       </div>
       <div class="el-dialog__footer">
         <span class="dialog-footer">
-          <el-checkbox v-model="formRule.enabled" class="ksd-fleft ksd-mt-6">Enabled</el-checkbox>
+          <el-checkbox v-model="formRule.enabled" class="ksd-fleft ksd-mt-6">{{$t('enabled')}}</el-checkbox>
           <el-button size="medium" @click="ruleVisible = false">取 消</el-button>
           <el-button size="medium" type="primary" plain @click="submitRuleFrom">{{$t('kylinLang.common.save')}}</el-button>
         </span>
@@ -209,8 +209,8 @@ import { Component, Watch } from 'vue-property-decorator'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.'},
-    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。'}
+    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', enabled: 'Enabled'},
+    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', enabled: '应用规则'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -587,6 +587,7 @@ export default class QueryHistoryTable extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   #queryHistoryTable {
+    margin-top: 20px;
     .el-table__expanded-cell {
       padding: 20px;
       .detail-title {
