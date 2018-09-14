@@ -19,16 +19,12 @@ export function formatFlowerJson (data) {
     }
   })
 
-  if (flowers.length === 1) {
-    return flowers
-  } else {
-    return [{
-      name: 'root',
-      id: 'root',
-      size: (rootLevel + 1) ** 2 * 200 + 2500,
-      children: flowers
-    }]
-  }
+  return [{
+    name: 'root',
+    id: 'root',
+    size: (rootLevel + 1) ** 2 * 200 + 2500,
+    children: flowers
+  }]
 }
 
 export function getCuboidCounts (data) {

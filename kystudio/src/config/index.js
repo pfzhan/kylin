@@ -633,7 +633,7 @@ export const sourceNameMapping = {
   RDBMS2: 'RDBMS',
   CSV: 'CSV',
   // should remove
-  HIVE: 'Hive(CSV)'
+  HIVE: 'Hive'
 }
 
 export const partitionColumnTypes = [

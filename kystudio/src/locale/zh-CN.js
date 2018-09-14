@@ -347,7 +347,7 @@ exports.default = {
     overview: '概览',
     messages: '消息',
     security: '安全',
-    query: '查询',
+    query: '分析',
     new_query: '新查询',
     query_history: '查询历史',
     favorite_query: '加速查询',

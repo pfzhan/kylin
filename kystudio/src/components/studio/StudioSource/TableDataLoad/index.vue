@@ -44,7 +44,7 @@
               <span>:</span>
             </div>
             <div class="load-range">
-              <DateRangeBar :date-ranges="tableDateRange" />
+              <DateRangeBar :date-ranges="tableDateRange" :is-show-start-to-end="true" />
             </div>
           </div>
           <!-- 选择时间区间 -->
@@ -337,7 +337,7 @@ export default class TableDataLoad extends Vue {
     padding: 10px 10px 20px 10px;
   }
   .row-item {
-    margin-bottom: 20px;
+    margin-bottom: 35px;
     &:last-child {
       margin-bottom: 0px;
       .info-label {

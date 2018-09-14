@@ -19,9 +19,11 @@ export function getTableDataRanges (table, models) {
     model.dataRanges.forEach(modelRange => {
       if (modelRange.status === 'NEW') {
         const currentTableRange = tableRanges.find(tableRange => modelRange.startTime === tableRange.startTime)
-        currentTableRange.status = 'NEW'
-        currentTableRange.color = 'transparent'
-        currentTableRange.pointColor = '#8E9FA8'
+        if (currentTableRange) {
+          currentTableRange.status = 'NEW'
+          currentTableRange.color = 'transparent'
+          currentTableRange.pointColor = '#8E9FA8'
+        }
       }
     })
   }

@@ -1,15 +1,17 @@
 <template>
   <div class="date-range-bar">
     <div class="date-range"
-      v-for="range in ranges"
+      v-for="(range, index) in ranges"
       :key="range.startTime"
       :style="getRangeStyle(range)">
-      <el-tooltip effect="dark" :content="getDateText(range.startTime)" placement="top">
+      <el-tooltip effect="dark" :content="getDateText(range.startTime)" placement="top" :disabled="index === 0 && isShowStartToEnd">
         <div class="range-point left" :style="getRangePointStyle(range)"></div>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="getDateText(range.endTime)" placement="top">
+      <el-tooltip effect="dark" :content="getDateText(range.endTime)" placement="top" :disabled="index === ranges.length - 1 && isShowStartToEnd">
         <div class="range-point right" :style="getRangePointStyle(range)"></div>
       </el-tooltip>
+      <div class="range-start-text" v-if="index === 0 && isShowStartToEnd">{{getDateText(range.startTime)}}</div>
+      <div class="range-end-text" v-if="index === ranges.length - 1 && isShowStartToEnd">{{getDateText(range.endTime)}}</div>
     </div>
   </div>
 </template>
@@ -25,6 +27,10 @@ import { handleAutoGroup, handleCalcRangeSize } from './handle'
     dateRanges: {
       type: Array,
       default: () => []
+    },
+    isShowStartToEnd: {
+      type: Boolean,
+      default: false
     }
   }
 })
@@ -114,6 +120,18 @@ export default class DateRangeBar extends Vue {
     background-size: 10px 8px;
     background-image: url('./bg.png');
     background-repeat: repeat-x;
+  }
+  .range-start-text {
+    position: absolute;
+    top: calc(~'100% + 13px');
+    left: 0;
+    transform: translateX(-50%);
+  }
+  .range-end-text {
+    position: absolute;
+    top: calc(~'100% + 13px');
+    right: 0;
+    transform: translateX(50%);
   }
   .date-range {
     position: absolute;
