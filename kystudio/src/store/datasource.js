@@ -6,8 +6,6 @@ export default {
     encodings: null,
     encodingMatchs: null,
     encodingCache: {},
-    savedQueries: [],
-    savedQueriesSize: 0,
     currentShowTableData: null
   },
   getters: {
@@ -21,10 +19,6 @@ export default {
     },
     [types.CACHE_ENCODINGMATCHS]: function (state, { data, project }) {
       state.encodingMatchs = data
-    },
-    [types.SAVED_QUERIES]: function (state, { data, size }) {
-      state.savedQueries = data
-      state.savedQueriesSize = size
     },
     [types.SET_CURRENT_TABLE] (state, { tableData }) {
       state.currentShowTableData = tableData
@@ -62,15 +56,10 @@ export default {
       return api.datasource.saveQuery(para)
     },
     [types.GET_SAVE_QUERIES]: function ({commit}, para) {
-      return api.datasource.getSaveQueries(para).then((res) => {
-        commit(types.SAVED_QUERIES, {
-          data: res.data.data.saved_queries,
-          size: res.data.data.size
-        })
-      })
+      return api.datasource.getSaveQueries(para)
     },
-    [types.DELETE_QUERY]: function ({commit}, queryId) {
-      return api.datasource.deleteQuery(queryId)
+    [types.DELETE_QUERY]: function ({commit}, para) {
+      return api.datasource.deleteQuery(para)
     },
     [types.DELETE_FAV]: function ({commit}, para) {
       return api.datasource.deleteFav(para)

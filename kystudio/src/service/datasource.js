@@ -36,14 +36,14 @@ export default {
   getSaveQueries: (para) => {
     return Vue.resource(apiUrl + 'query/saved_queries').get(para)
   },
-  deleteQuery: (id) => {
-    return Vue.resource(apiUrl + 'saved_queries/' + id).delete()
+  deleteQuery: (para) => {
+    return Vue.resource(apiUrl + 'query/saved_queries/' + para.project + '/' + para.id).delete()
   },
   deleteFav: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries').delete(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/unfavorite').save(para)
   },
   markFav: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/' + para.project).save(para.queries)
+    return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
   },
   getAllrules: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
@@ -58,7 +58,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).delete()
   },
   enableRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/enabled/' + para.project + '/' + para.uuid).update()
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/enable/' + para.project + '/' + para.uuid).update()
   },
   applyRule: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/apply/' + para.project).update()

@@ -13,6 +13,7 @@
       </div>
       <div class="layout-right">
         <div class="ksd_right_box">
+          <div class="ksd-title-label ksd-mb-10">{{$t('queryBox')}}</div>
           <div class="query_panel_box ksd-mb-20">
             <kap_editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema">
             </kap_editor>
@@ -80,6 +81,7 @@
                   <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button>
                 </div>
               </el-form>
+              <el-button plain size="small" class="reload-more-btn" @click="pageCurrentChange" v-if="savedList.length < savedSize">{{$t('more')}}</el-button>
             </div>
           </el-dialog>
         </div>
@@ -96,7 +98,7 @@ import querypanel from './query_panel'
 import queryresult from './query_result'
 import saveQueryDialog from './save_query_dialog'
 import DataSourceBar from '../common/DataSourceBar'
-import { kapConfirm, hasRole, hasPermission } from '../../util/business'
+import { kapConfirm, hasRole, hasPermission, handleSuccess, handleError } from '../../util/business'
 import { mapActions, mapGetters } from 'vuex'
 import { handleSuccessAsync } from '../../util/index'
 import { permissions, insightKeyword } from '../../config'
@@ -121,8 +123,8 @@ import { permissions, insightKeyword } from '../../config'
     ])
   },
   locales: {
-    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries'},
-    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询'}
+    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More'},
+    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多'}
   }
 })
 export default class NewQuery extends Vue {
@@ -142,6 +144,8 @@ export default class NewQuery extends Vue {
   showDetailInd = -1
   extraoptionObj = null
   datasource = []
+  savedList = []
+  savedSize = 0
 
   handleAutoComplete (data) {
     this.setCompleteData([...data, ...insightKeyword])
@@ -155,6 +159,13 @@ export default class NewQuery extends Vue {
       project: this.currentSelectedProject || null,
       limit: 10,
       offset: pageIndex
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.savedList = this.savedList.concat(data.saved_queries)
+        this.savedSize = data.size
+      })
+    }, (res) => {
+      handleError(res)
     })
   }
   addTab (targetName, componentName, extraData) {
@@ -220,17 +231,18 @@ export default class NewQuery extends Vue {
       kapConfirm(this.$t('htraceTips'))
     }
   }
-  pageCurrentChange (currentPage) {
-    this.queryCurrentPage = currentPage
-    this.loadSavedQuery(currentPage - 1)
+  pageCurrentChange () {
+    this.queryCurrentPage++
+    this.loadSavedQuery(this.queryCurrentPage - 1)
   }
   removeQuery (queryId) {
     kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
-      this.delQuery(queryId).then((response) => {
+      this.delQuery({project: this.currentSelectedProject, id: queryId}).then((response) => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
         })
+        this.savedList = []
         this.loadSavedQuery(this.queryCurrentPage - 1)
       })
     })
@@ -270,6 +282,7 @@ export default class NewQuery extends Vue {
   }
   openSaveQueryListDialog () {
     this.savedQueryListVisible = true
+    this.savedList = []
     this.loadSavedQuery()
   }
   submitQuery () {
@@ -305,12 +318,6 @@ export default class NewQuery extends Vue {
   }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
-  }
-  get savedSize () {
-    return this.$store.state.datasource.savedQueriesSize
-  }
-  get savedList () {
-    return this.$store.state.datasource.savedQueries
   }
   get showHtrace () {
     return this.$store.state.system.showHtrace === 'true'
@@ -452,6 +459,12 @@ export default class NewQuery extends Vue {
     .el-icon-ksd-error_01 {
       color: red;
       font-size: 12px;
+    }
+    .reload-more-btn {
+      width: 100px;
+      margin: 0 auto;
+      display: block;
+      margin-top: 20px;
     }
   }
 </style>

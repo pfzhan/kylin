@@ -1,11 +1,12 @@
 <template>
   <div id="queryHistoryTable">
-    <div class="clearfix ksd-mb-16">
-      <div class="btn-group ksd-fleft" v-if="isCandidate">
-        <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite">Mark Favorite</el-button>
+    <div class="clearfix ksd-mb-6">
+      <div class="btn-group ksd-fleft">
+        <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite" v-if="isCandidate">{{$t('markFavorite')}}</el-button>
+        <div v-else class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" placeholder="请输入内容" size="medium"></el-input>
+        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
       </div>
       <el-dropdown v-if="isCandidate" @command="handleCommand" class="fav-dropdown ksd-fright" trigger="click">
         <el-button size="medium" icon="el-icon-ksd-table_setting" plain type="primary">{{$t('kylinLang.query.applyRule')}}</el-button>
@@ -33,54 +34,54 @@
       <el-table-column type="expand" v-if="!isCandidate">
         <template slot-scope="props">
           <div class="detail-title">
-            <span class="ksd-fleft ksd-fs-16">Query Details</span>
+            <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
             <span class="ksd-fright">Help <i class="el-icon-question"></i></span>
           </div>
           <div class="detail-content">
             <el-row :gutter="20">
               <el-col :span="10">
                 <div>
-                  <span class="label">Query ID:</span>
+                  <span class="label">{{$t('kylinLang.query.queryId')}}</span>
                   <span>{{props.row.query_id}}</span>
                 </div>
                 <div>
-                  <span class="label">Duration:</span>
+                  <span class="label">{{$t('kylinLang.query.duration')}}</span>
                   <span>{{props.row.latency}}s</span>
                 </div>
                 <div>
-                  <span class="label">Query Countent:</span>
+                  <span class="label">{{$t('kylinLang.query.sqlContent')}}</span>
                   <kap_editor height="130" width="80%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
                   </kap_editor>
                 </div>
               </el-col>
               <el-col :span="10">
                 <div>
-                  <span class="label">Model Name:</span>
+                  <span class="label">{{$t('kylinLang.query.modelName')}}</span>
                   <span>{{props.row.model_name}}</span>
                 </div>
                 <div>
-                  <span class="label">Realization:</span>
+                  <span class="label">{{$t('kylinLang.query.realization')}}</span>
                   <span class="realization-detail" @click="openAgg(props.row)">{{props.row.realization | arrayToStr}}</span>
                 </div>
                 <div>
-                  <span class="label">Content:</span>
+                  <span class="label">{{$t('kylinLang.query.content')}}</span>
                   <span>{{props.row.content | arrayToStr}}</span>
                 </div>
                 <div>
-                  <span class="label">Total Scan Count:</span>
+                  <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
                   <span>{{props.row.total_scan_count}}</span>
                 </div>
                 <div>
-                  <span class="label">Total Scan Bytes:</span>
+                  <span class="label">{{$t('kylinLang.query.scanBytes')}}</span>
                   <span>{{props.row.total_scan_bytes}}</span>
                 </div>
                 <br/>
                 <div>
-                  <span class="label">Result Row Count:</span>
+                  <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
                   <span>{{props.row.result_row_count}}</span>
                 </div>
                 <div>
-                  <span class="label">If Hit Cache:</span>
+                  <span class="label">{{$t('kylinLang.query.isCubeHit')}}</span>
                   <span>{{props.row.is_cubeHit}}</span>
                 </div>
               </el-col>
@@ -101,13 +102,13 @@
           <span v-if="props.row.query_status === 'FAILED'">Failed</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent')" prop="sql" header-align="center" show-overflow-tooltip>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250">
       </el-table-column>
-      <el-table-column label="IP" prop="query_node" header-align="center" width="200">
+      <el-table-column :label="$t('kylinLang.query.ip_th')" prop="query_node" header-align="center" width="200">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="100" v-if="!isCandidate">
+      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120" v-if="!isCandidate">
         <template slot-scope="props">
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
@@ -128,7 +129,7 @@
           </el-form-item>
           <hr></hr>
           <div class="ksd-mb-16">
-            <span>When a new SQL query that meets all these conditions : </span>
+            <span>{{$t('ruleConditions')}}</span>
             <i class="el-icon-ksd-what"></i>
           </div>
           <el-form-item v-for="(con, index) in formRule.conds" :key="index" class="con-form-item">
@@ -163,6 +164,7 @@
               </el-col>
             </el-row>
           </el-form-item>
+          <div class="ksd-mb-16 ksd-mt-20">{{$t('toMark')}}</div>
         </el-form>
       </div>
       <div class="el-dialog__footer">
@@ -202,8 +204,8 @@ import { Component, Watch } from 'vue-property-decorator'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Unmark Favorite Automatically'},
-    'zh-cn': {createRule: '新建规则', editRule: '编辑规则', applyAll: '全部应用', markAll: '全部标记为待加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速'}
+    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.'},
+    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -216,8 +218,8 @@ export default class QueryHistoryTable extends Vue {
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
-    latencyFrom: null,
-    latencyTo: null,
+    latencyFrom: -1,
+    latencyTo: -1,
     realization: [],
     accelerateStatus: [],
     sql: null
@@ -248,8 +250,11 @@ export default class QueryHistoryTable extends Vue {
     if (val) {
       this.filterData.startTimeFrom = new Date(val[0]).getTime()
       this.filterData.startTimeTo = new Date(val[1]).getTime()
-      this.filterList()
+    } else {
+      this.filterData.startTimeFrom = null
+      this.filterData.startTimeTo = null
     }
+    this.filterList()
   }
 
   async loadAllRules () {
@@ -295,12 +300,11 @@ export default class QueryHistoryTable extends Vue {
   }
 
   filterList () {
-    console.log(this.filterData)
     this.$emit('loadFilterList', this.filterData)
   }
 
   addCon () {
-    const con = {field: '', op: '', rightThreshold: null}
+    const con = {field: 'sql', op: '', rightThreshold: null}
     this.formRule.conds.push(con)
   }
   removeCon (index) {
@@ -425,7 +429,7 @@ export default class QueryHistoryTable extends Vue {
       const startTime = transToUtcTimeFormat(this.filterData.startTimeFrom)
       const endTime = transToUtcTimeFormat(this.filterData.startTimeTo)
       return (<span onClick={e => (e.stopPropagation())}>
-        <span>{this.$t('kylinLang.query.startTimeFilter')}</span>
+        <span>{this.$t('kylinLang.query.startTime_th')}</span>
         <el-tooltip placement="top" class="ksd-fright">
           <div slot="content">
             <span>
@@ -445,7 +449,7 @@ export default class QueryHistoryTable extends Vue {
       </span>)
     } else {
       return (<span onClick={e => (e.stopPropagation())}>
-        <span>{this.$t('kylinLang.query.startTimeFilter')}</span>
+        <span>{this.$t('kylinLang.query.startTime_th')}</span>
         <el-date-picker
           value={this.datetimerange}
           onInput={val => (this.datetimerange = val)}
@@ -460,6 +464,10 @@ export default class QueryHistoryTable extends Vue {
   resetLatency () {
     this.startSec = -1
     this.endSec = -1
+    this.filterData.latencyFrom = this.startSec
+    this.filterData.latencyTo = this.endSec
+    this.latencyFilterPopoverVisible = false
+    this.filterList()
   }
   saveLatencyRange () {
     this.filterData.latencyFrom = this.startSec
@@ -468,9 +476,9 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
   renderColumn2 (h) {
-    if (this.filterData.latencyFrom && this.filterData.latencyTo) {
+    if (this.filterData.latencyFrom > 0 && this.filterData.latencyTo > 0) {
       return (<span>
-        <span>{this.$t('kylinLang.query.latency')}</span>
+        <span>{this.$t('kylinLang.query.latency_th')}</span>
         <el-tooltip placement="top" class="ksd-fright">
           <div slot="content">
             <span>
@@ -506,7 +514,7 @@ export default class QueryHistoryTable extends Vue {
       </span>)
     } else {
       return (<span>
-        <span>{this.$t('kylinLang.query.latency')}</span>
+        <span>{this.$t('kylinLang.query.latency_th')}</span>
         <el-popover
           ref="latencyFilterPopover"
           placement="bottom"
@@ -541,7 +549,7 @@ export default class QueryHistoryTable extends Vue {
       items.push(<el-checkbox label={this.realFilteArr[i].value} key={this.realFilteArr[i].value}>{this.realFilteArr[i].name}</el-checkbox>)
     }
     return (<span>
-      <span>{this.$t('kylinLang.query.realization')}</span>
+      <span>{this.$t('kylinLang.query.realization_th')}</span>
       <el-popover
         ref="realFilterPopover"
         placement="bottom"
@@ -559,7 +567,7 @@ export default class QueryHistoryTable extends Vue {
       items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
-      <span>{this.$t('kylinLang.common.status')}</span>
+      <span>{this.$t('kylinLang.query.acceleration_th')}</span>
       <el-popover
         ref="ipFilterPopover"
         placement="bottom"
@@ -621,7 +629,7 @@ export default class QueryHistoryTable extends Vue {
       }
       .el-icon-ksd-filter {
         position: relative;
-        top: 2px;
+        top: 1px;
       }
       .status-icon {
         font-size: 20px;

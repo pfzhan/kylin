@@ -2,12 +2,12 @@
   <div id="favoriteQuery">
     <div class="clearfix ksd-mb-10">
       <div class="ksd-fleft table-title">
-        <span>Favorite Query <i class="el-icon-ksd-what"></i></span>
+        <span>{{$t('kylinLang.menu.favorite_query')}} <i class="el-icon-ksd-what"></i></span>
       </div>
       <div class="ksd-fright btn-group">
-        <el-button size="medium" icon="el-icon-ksd-query_add" plain type="primary" @click="openCandidateList">{{$t('kylinLang.common.add')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-query_import" plain>{{$t('kylinLang.common.import')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="removeFav">{{$t('kylinLang.common.remove')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-query_add" plain type="primary" @click="openCandidateList">{{$t('addCandidate')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-query_import" plain>{{$t('import')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="removeFav">{{$t('remove')}}</el-button>
       </div>
     </div>
     <el-table
@@ -18,7 +18,7 @@
       ref="favoriteTable"
       style="width: 100%">
       <el-table-column type="selection" width="55" align="center"></el-table-column>
-      <el-table-column label="SQL" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_modified" sortable header-align="center" width="250">
         <template slot-scope="props">
           {{props.row.last_modified | gmtTime}}
@@ -36,7 +36,7 @@
           {{props.row.average_duration}}s
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" prop="status" align="center" width="100">
+      <el-table-column :renderHeader="renderColumn" prop="status" align="center" width="120">
         <template slot-scope="props">
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.status === 'FULLY_ACCELERATED',
@@ -49,7 +49,7 @@
     </el-table>
     <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
-      title="Candidate Query"
+      :title="$t('candidateQuery')"
       :visible.sync="candidateVisible"
       width="80%"
       top="5vh"
@@ -84,22 +84,14 @@ import queryHistoryTable from './query_history_table'
   },
   components: {
     'query_history_table': queryHistoryTable
+  },
+  locales: {
+    'en': {addCandidate: 'Add Candidate Query', import: 'Input', remove: 'Remove', candidateQuery: 'Candidate Query'},
+    'zh-cn': {addCandidate: '添加查询', import: '导入查询文件', remove: '删除查询', candidateQuery: '待选查询'}
   }
 })
 export default class FavoriteQuery extends Vue {
-  favQueList = [
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'ACCELERATING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'PARTLY_ACCELERATED', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'FULLY_ACCELERATED', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'parttern1', last_executing_time: 543535, success_rate: 0.89, frequency: 1, average_duration: 2.1, model_name: 'models1', status: 'WAITING', success_query_count: 10}
-  ]
+  favQueList = []
   statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
   checkedStatus = []
   candidateVisible = false
@@ -116,18 +108,7 @@ export default class FavoriteQuery extends Vue {
     accelerateStatus: [],
     sql: null
   }
-  queryHistoryData = [
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'ACCELERATING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'PARTLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'FULLY_ACCELERATED', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false},
-    {uuid: 'fdsf23534', version: 'version1', id: 1, project: 'kylin', sql: 'select * from', start_time: 543535, latency: 0.9, realization: 'realization1', queryNode: 'node1', thread: 'thread1', user: 'ADMIN', history_queries_status_enum: 'NEW', favorite: 'favorite1', accelerate_status: 'WAITING', queryId: 'FFDS6-R5345', model_name: 'model1', content: ['select1', 'select2'], total_scan_count: 435, total_scan_bytes: 65464, result_row_count: 43, is_cubeHit: false}
-  ]
+  queryHistoryData = []
 
   async loadFavoriteList (pageIndex, pageSize) {
     const res = await this.getFavoriteList({
@@ -165,7 +146,7 @@ export default class FavoriteQuery extends Vue {
       latencyTo: this.filterData.latencyTo,
       'realization[]': this.filterData.realization.join(','),
       'accelerateStatus[]': this.filterData.accelerateStatus.join(','),
-      sql: null
+      sql: this.filterData.sql
     }
     const res = await this.getCandidateList(resData)
     const data = await handleSuccessAsync(res)
@@ -205,9 +186,9 @@ export default class FavoriteQuery extends Vue {
       const uuids = item.map((t) => {
         return t.uuid
       })
-      uuidArr = uuidArr.concat(uuids).join(',')
+      uuidArr = uuidArr.concat(uuids)
     })
-    this.deleteFav({project: this.currentSelectedProject, 'favoriteQueries[]': uuidArr}).then((res) => {
+    this.deleteFav({project: this.currentSelectedProject, 'uuids': uuidArr}).then((res) => {
       handleSuccess(res, () => {
         this.$message({
           type: 'success',
@@ -229,7 +210,7 @@ export default class FavoriteQuery extends Vue {
       })
       uuidArr = uuidArr.concat(uuids)
     })
-    this.markFav({project: this.currentSelectedProject, queries: uuidArr}).then((res) => {
+    this.markFav({project: this.currentSelectedProject, uuids: uuidArr}).then((res) => {
       handleSuccess(res, () => {
         this.$message({
           type: 'success',
@@ -250,7 +231,7 @@ export default class FavoriteQuery extends Vue {
       items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
     }
     return (<span>
-      <span>{this.$t('kylinLang.common.status')}</span>
+      <span>{this.$t('kylinLang.query.acceleration_th')}</span>
       <el-popover
         ref="ipFilterPopover"
         placement="bottom"

@@ -55,7 +55,7 @@
       </div>
       <div class="panel-content" id="scrollBox" >
         <div class="grid-content bg-purple-light">
-          <el-col :span="24" style="padding:20px 0; background: #f9fafc;" v-show="gloalProjectSelectShow">
+          <el-col :span="24" style="padding:20px 0; background: #f9fafc;" v-show="gloalProjectSelectShow" class="ksd-mb-20">
             <!-- 面包屑在dashboard页面不显示 -->
             <el-breadcrumb separator="/" class="ksd-ml-30">
               <el-breadcrumb-item>

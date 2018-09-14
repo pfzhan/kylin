@@ -58,7 +58,8 @@
       </el-row>
     </div>
     <div class="clearfix">
-      <div class="resultOperator ksd-mt-20 ksd-fright ksd-inline">
+      <div class="ksd-title-label ksd-fleft ksd-mt-30">{{$t('queryInformation')}}</div>
+      <div class="resultOperator ksd-mt-20 ksd-fright">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
         </el-input>
         <kap-icon-button v-if="showExportCondition" size="small" icon="el-icon-ksd-download" @click.native="exportData">
@@ -110,8 +111,8 @@ import saveQueryDialog from './save_query_dialog'
     'save_query_dialog': saveQueryDialog
   },
   locales: {
-    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:'},
-    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：'}
+    'en': {username: 'Username', role: 'Role', analyst: 'Analyst', modeler: 'Modeler', admin: 'Admin', save: 'Save', restore: 'Restore', lineChart: 'Line Chart', barChart: 'Bar Chart', pieChart: 'Pie Chart', traceUrl: 'Trace Url:', queryInformation: 'Query Information'},
+    'zh-cn': {username: '用户名', role: '角色', analyst: '分析人员', modeler: '建模人员', admin: '管理人员', save: '保存', restore: '还原', lineChart: '折线图', barChart: '柱状图', pieChart: '饼状图', traceUrl: '追踪链接：', queryInformation: '查询信息'}
   }
 })
 export default class queryResult extends Vue {
