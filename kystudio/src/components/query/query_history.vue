@@ -1,7 +1,7 @@
 <template>
   <div id="queryHistory">
-    <query_history_table :queryHistoryData="queryHistoryData" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
-    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <query_history_table :queryHistoryData="queryHistoryData.query_histories" v-on:openAgg="openAgg" v-on:loadFilterList="loadFilterList"></query_history_table>
+    <kap-pager ref="queryHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       title="Aggregate Index"
       :visible.sync="aggDetailVisible"
@@ -67,7 +67,7 @@ import PartitionChart from '../common/PartitionChart'
 export default class QueryHistory extends Vue {
   aggDetailVisible = false
   queryCurrentPage = 1
-  queryHistoryData = []
+  queryHistoryData = {}
   cuboidCount = 0
   cuboids = []
   cuboidDetail = {
@@ -134,7 +134,7 @@ export default class QueryHistory extends Vue {
     }
     const res = await this.getHistoryList(resData)
     const data = await handleSuccessAsync(res)
-    this.queryHistoryData = data.query_histories
+    this.queryHistoryData = data
   }
 
   loadFilterList (data) {

@@ -15,7 +15,7 @@
       </div>
     </div>
     <el-table
-      :data="favQueList"
+      :data="favQueList.favorite_queries"
       border
       class="favorite-table"
       @selection-change="handleSelectionChange"
@@ -37,7 +37,7 @@
       <el-table-column :label="$t('kylinLang.query.frequency')" prop="frequency" sortable align="center" width="200"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="200">
         <template slot-scope="props">
-          {{props.row.average_duration}}s
+          {{props.row.average_duration / 1000}}s
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn" prop="status" align="center" width="120">
@@ -51,15 +51,15 @@
         </template>
       </el-table-column>
     </el-table>
-    <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.length"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
+    <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
       :title="$t('candidateQuery')"
       :visible.sync="candidateVisible"
       width="80%"
       top="5vh"
       class="candidateDialog">
-      <query_history_table :queryHistoryData="queryHistoryData" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav" v-on:loadFilterList="loadFilterList"></query_history_table>
-      <kap-pager ref="filterHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.length"  v-on:handleCurrentChange='historyCurrentChange'></kap-pager>
+      <query_history_table :queryHistoryData="queryHistoryData.candidates" :isCandidate="true" v-on:selectionChanged="selectionChanged" v-on:markToFav="markToFav" v-on:loadFilterList="loadFilterList"></query_history_table>
+      <kap-pager ref="filterHistoryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="queryHistoryData.size"  v-on:handleCurrentChange='historyCurrentChange'></kap-pager>
     </el-dialog>
   </div>
 </template>
@@ -95,7 +95,7 @@ import queryHistoryTable from './query_history_table'
   }
 })
 export default class FavoriteQuery extends Vue {
-  favQueList = []
+  favQueList = {}
   statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
   checkedStatus = []
   candidateVisible = false
@@ -112,7 +112,7 @@ export default class FavoriteQuery extends Vue {
     accelerateStatus: [],
     sql: null
   }
-  queryHistoryData = []
+  queryHistoryData = {}
 
   async loadFavoriteList (pageIndex, pageSize) {
     const res = await this.getFavoriteList({
@@ -122,7 +122,7 @@ export default class FavoriteQuery extends Vue {
       accelerateStatus: this.checkedStatus
     })
     const data = await handleSuccessAsync(res)
-    this.favQueList = data.favorite_queries
+    this.favQueList = data
     if (this.selectToUnFav[this.favoriteCurrentPage]) {
       this.$nextTick(() => {
         this.$refs.favoriteTable.toggleRowSelection(this.selectToUnFav[this.favoriteCurrentPage])
@@ -154,7 +154,7 @@ export default class FavoriteQuery extends Vue {
     }
     const res = await this.getCandidateList(resData)
     const data = await handleSuccessAsync(res)
-    this.queryHistoryData = data.candidates
+    this.queryHistoryData = data
   }
 
   created () {
