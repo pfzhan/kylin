@@ -489,7 +489,7 @@ export default class LayoutLeftRightTop extends Vue {
       overflow: auto;
       height: 100%;
       .main-content {
-        height: calc(~"100% - 74px");
+        height: calc(~"100% - 54px");
         box-sizing: border-box;
       }
     }

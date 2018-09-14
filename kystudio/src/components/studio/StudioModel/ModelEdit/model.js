@@ -149,9 +149,13 @@ class NModel {
   searchColumn (keywords) {
     var columns = []
     for (var i in this.tables) {
+      this.tables[i].columns.forEach((co) => {
+        co.alias = this.tables[i].alias + '.' + co.name
+        co.guid = this.tables[i].guid
+      })
       columns = columns.concat(this.tables[i].columns)
     }
-    return this.mixResult(columns, 'column', 'name', keywords)
+    return this.mixResult(columns, 'column', 'alias', keywords)
   }
   renderSearchResult (t, key, kind, a) {
     let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}

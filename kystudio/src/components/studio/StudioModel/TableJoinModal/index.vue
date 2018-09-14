@@ -99,7 +99,7 @@ export default class TableJoinModal extends Vue {
         this.joinType = joinInfo.type
       } else {
         this.joinType = 'INNER'
-        this.joinColumns.foreign_key = ['']
+        this.joinColumns.foreign_key = this.form.ftableName ? [this.form.ftableName] : []
         this.joinColumns.primary_key = ['']
       }
       if (this.form.foreignTable) {

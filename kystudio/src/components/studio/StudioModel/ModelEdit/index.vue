@@ -125,7 +125,7 @@
             </div>
             <div class="panel-main-content" style="top:36px;" data-scrollbar>
               <div :class="{active:autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="true">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
+                <div><el-radio v-model="autoSetting" :label="true">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock ksd-ml-4"></i></el-radio></div>
                 <ul>
                   <li>{{$t('userMaintainedTip1')}}</li>
                   <li>{{$t('userMaintainedTip2')}}</li>
@@ -133,7 +133,7 @@
                 </ul>
               </div>
               <div :class="{active:!autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="false">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-lock"></i></el-radio></div>
+                <div><el-radio v-model="autoSetting" :label="false">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-unlock ksd-ml-4"></i></el-radio></div>
                 <ul>
                   <li>{{$t('systemMaintainedTip1')}}</li>
                   <li>{{$t('systemMaintainedTip2')}}</li>
@@ -525,13 +525,13 @@ export default class ModelEdit extends Vue {
       this.showJoinDialog()
     }
     if (select.action === 'addjoin') {
-      // console
-      // let pguid = moreInfo.guid
-      // this.setLinkDialogData({
-      //   foreignTable: moreInfo.joinInfo[pguid].foreignTable,
-      //   primaryTable: moreInfo.joinInfo[pguid].table,
-      //   tables: this.modelRender.tables
-      // })
+      let pguid = moreInfo.guid
+      this.setLinkDialogData({
+        foreignTable: this.modelRender.tables[pguid],
+        primaryTable: {},
+        tables: this.modelRender.tables,
+        ftableName: moreInfo.name
+      })
       this.showJoinDialog()
     }
     if (select.action === 'tableeditjoin') {

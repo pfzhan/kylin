@@ -12,7 +12,8 @@ const initialState = JSON.stringify({
   form: {
     foreignTable: null,
     primaryTable: null,
-    tables: null
+    tables: null,
+    ftableName: ''
   },
   callback: null
 })
@@ -33,6 +34,7 @@ export default {
       state.form.foreignTable = payload.foreignTable
       state.form.primaryTable = payload.primaryTable
       state.form.tables = payload.tables
+      state.form.ftableName = payload.ftableName
     },
     // 还原Modal中的值为初始值
     [types.RESET_MODAL_FORM]: (state) => {
