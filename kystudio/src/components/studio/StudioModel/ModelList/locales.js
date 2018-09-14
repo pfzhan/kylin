@@ -28,7 +28,9 @@ export default {
     inputModelName: 'Please input new model name',
     inputCloneName: 'Please input clone model name',
     segment: 'Segment',
-    aggregate: 'Aggregate Index'
+    aggregate: 'Aggregate Index',
+    speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models ! Do you want to apply it ?',
+    hello: 'Hi {user},'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -59,6 +61,8 @@ export default {
     inputModelName: '请输入新的模型名字',
     inputCloneName: '请输入克隆模型的名字',
     segment: 'Segment',
-    aggregate: '聚合索引'
+    aggregate: '聚合索引',
+    speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个 ！同意此次加速吗？',
+    hello: '{user} 你好，'
   }
 }

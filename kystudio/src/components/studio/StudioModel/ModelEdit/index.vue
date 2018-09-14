@@ -45,6 +45,7 @@
             :is-expand-on-click-node="false"
             :expand-node-types="['datasouce', 'database']"
             :draggable-node-types="['table']"
+            :searchable-node-types="['table']"
             @drag="dragTable"
             :datasource="datasource">
           </DataSourceBar>
@@ -75,12 +76,12 @@
           <div class="panel-box panel-dimension" @mousedown="activePanel('dimension')" v-event-stop :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
             <div class="panel-title" @mousedown="activePanel('dimension')" v-drag:change.right.top="panelAppear.dimension">
               <span><i class="el-icon-ksd-dimansion"></i></span>
-              <span class="title">Dimension</span>
+              <span class="title">{{$t('kylinLang.common.dimension')}}</span>
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
               <span @click="batchDimension"><i class="el-icon-ksd-add"></i></span>
-              <span @click="addDimension"><i class="el-icon-ksd-computed"></i></span>
+              <span @click="addCCDimension"><i class="el-icon-ksd-computed"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
@@ -98,17 +99,17 @@
           <div class="panel-box panel-measure" @mousedown="activePanel('measure')" v-event-stop :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
             <div class="panel-title" @mousedown="activePanel('measure')" v-drag:change.right.top="panelAppear.measure">
               <span><i class="el-icon-ksd-measure"></i></span>
-              <span class="title">Measure</span>
+              <span class="title">{{$t('kylinLang.common.measure')}}</span>
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
               <span><i class="el-icon-ksd-add" @click="measureVisible = true"></i></span>
-              <span @click="addDimension"><i class="el-icon-ksd-computed"></i></span>
+              <span @click="addCCMeasure"><i class="el-icon-ksd-computed"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures">{{m.name|omit(18,'...')}}</li>
+                <li v-for="m in modelRender.all_measures">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -368,10 +369,19 @@ export default class ModelEdit extends Vue {
   batchDimension () {
     this.showDimensionDialog([], [])
   }
-  addDimension () {
+  addCCDimension () {
+    this.showSingleDimensionDialog({
+      addType: 'cc'
+    })
+  }
+  addCCMeasure () {
+    this.measureVisible = true
   }
   editDimension () {
     this.showSingleDimensionDialog()
+  }
+  editMeasure () {
+    this.measureVisible = true
   }
   // 拖动画布
   dragBox (x, y) {
@@ -490,7 +500,10 @@ export default class ModelEdit extends Vue {
     this.searchHandleStart = true
     this.showSearchResult = false
     this.modelGlobalSearch = ''
+    var moreInfo = select.more
     if (select.action === 'adddimension') {
+      var columnName = moreInfo.column
+      console.log(columnName)
       this.showSingleDimensionDialog()
     }
     if (select.action === 'addmeasure') {

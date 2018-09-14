@@ -10,7 +10,8 @@ export default {
     modelAccess: {},
     modelEndAccess: {},
     activeMenuName: '',
-    modelSpeedEvents: []
+    modelSpeedEvents: [],
+    modelSpeedModelsCount: 0
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
@@ -33,8 +34,9 @@ export default {
     [types.CACHE_MODEL_END_ACCESS]: function (state, { access, id }) {
       state.modelEndAccess[id] = access
     },
-    [types.CACHE_SPEED_INFO]: function (state, { list }) {
+    [types.CACHE_SPEED_INFO]: function (state, { list, modelCount }) {
       state.modelSpeedEvents = list
+      state.modelSpeedModelsCount = modelCount
     }
   },
   actions: {
@@ -52,10 +54,10 @@ export default {
     [types.GET_SPEED_INFO]: function ({ commit }, projectName) {
       return new Promise((resolve, reject) => {
         api.model.getSpeedModelInfo(projectName).then((response) => {
-          commit(types.CACHE_SPEED_INFO, { list: response.data.data.unAccelerated_queries || [] })
+          commit(types.CACHE_SPEED_INFO, {list: response.data.data.unAccelerated_queries || [], modelCount: response.data.data.optimized_model_num})
           resolve(response)
         }, (response) => {
-          commit(types.CACHE_SPEED_INFO, { list: [] })
+          commit(types.CACHE_SPEED_INFO, {list: [], modelCount: 0})
           reject(response)
         })
       })

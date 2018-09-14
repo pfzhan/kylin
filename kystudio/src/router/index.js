@@ -2,7 +2,6 @@ import Vue from 'vue'
 import Router from 'vue-router'
 import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
-import dashboard from 'components/dashbord'
 import projectList from 'components/project/project_list'
 // import modelTab from 'components/model/model_tab'
 import cubeList from 'components/cube/cube_list'
@@ -47,7 +46,7 @@ export default new Router({
       children: [{
         name: 'Dashboard',
         path: 'dashboard',
-        component: dashboard
+        component: overview
       }, {
         name: 'Project',
         path: 'project',

@@ -1,15 +1,41 @@
 <template>
-  <el-dialog :title="$t('Add Dimension')" @close="isShow && handleClose(false)" v-event-stop  width="660px" :visible.sync="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="$t('adddimension')" @close="isShow && handleClose(false)" v-event-stop  width="440px" :visible.sync="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <div>
       <el-form  status-icon  ref="ruleForm2" label-width="100px" label-position="top" class="demo-ruleForm">
-        <el-form-item label="Dimension Name" prop="pass">
+        <el-form-item :label="$t('dimensionName')" prop="pass">
           <el-input></el-input>
         </el-form-item>
-        <el-form-item label="Dimension Candidate" prop="checkPass">
-          <el-select :popper-append-to-body="false" style="width:100%"></el-select>
+        <el-form-item :label="$t('dimensionCandidate')" prop="checkPass">
+          <el-select :popper-append-to-body="false" style="width:350px"></el-select>
+
+          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button>
+          <el-form  class="cc-area" label-position="top" ref="ccForm" v-if="addType === 'cc'" >
+            <el-form-item prop="name" class="ksd-mb-10">
+              <span slot="label">{{$t('name')}}</span>
+              <el-input class="measures-width" size="medium"></el-input>
+            </el-form-item>
+            <el-form-item prop="returnType" class="ksd-mb-10">
+              <span slot="label">{{$t('returnType')}}</span>
+              <el-select size="medium" class="measures-width">
+              </el-select>
+            </el-form-item>
+            <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
+              <kap_editor ref="dimensionCCExpression" height="100" lang="sql" theme="chrome" >
+              </kap_editor>
+            </el-form-item>
+            <div class="btn-group clearfix">
+              <el-button size="small" plain  class="ksd-fleft">{{$t('kylinLang.common.delete')}}</el-button>
+              <el-button type="primary" size="small" plain  class="ksd-fright">
+                {{$t('kylinLang.common.save')}}
+              </el-button>
+              <el-button size="small" plain  class="ksd-fright">
+                {{$t('kylinLang.common.edit')}}
+              </el-button>
+            </div>
+        </el-form>
         </el-form-item>
-        <el-form-item label="Dimension Comment" prop="age">
-          <el-input ></el-input>
+        <el-form-item :label="$t('dimensionComment')" prop="age">
+          <el-input type="textarea"></el-input>
         </el-form-item>
       </el-form>
     </div>
@@ -36,7 +62,9 @@ vuex.registerModule(['modals', 'SingleDimensionModal'], store)
     ]),
     // Store数据注入
     ...mapState('SingleDimensionModal', {
-      isShow: state => state.isShow
+      isShow: state => state.isShow,
+      addType: state => state.addType,
+      dimensionColumn: state => state.form.dimensionColumn
     })
   },
   methods: {
@@ -57,6 +85,9 @@ export default class SingleDimensionModal extends Vue {
   isLoading = false
   isFormShow = false
   selectVal = ''
+  dimensionInfo = {
+    dimensionColumn: ''
+  }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -90,4 +121,13 @@ export default class SingleDimensionModal extends Vue {
 
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
+.add-dimension-dialog{
+  .cc-area{
+    background-color: @table-stripe-color;
+    border:solid 1px @line-split-color;
+    padding:24px 20px 20px 20px;
+    margin-top: 10px;
+  }
+}
+
 </style>

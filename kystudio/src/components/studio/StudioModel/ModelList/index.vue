@@ -51,15 +51,6 @@
                     :readonly="true">
                   </el-input>
                 </el-tab-pane>
-                <el-tab-pane label="SQL" name="fifth">
-                  <el-input
-                    class="model-json"
-                    :value="mockSQL"
-                    type="textarea"
-                    :rows="18"
-                    :readonly="true">
-                  </el-input>
-                </el-tab-pane>
               </el-tabs>
             </div>
           </template>
@@ -150,12 +141,11 @@
 
   <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="!!modelSpeedEvents.length" :show-close="false">
     <div>
-      Hi Adora,<br/>
-      <p style="text-indent:25px; line-height: 26px;">We have a nre proposal to reise model’s favorite score <span class="ky-highlight-text">15%</span>
-up with <span class="ky-highlight-text">32.75 GB</span> storage cost. Do you wnat to apply it?</p>
+      {{$t('hello', {user: currentUser.username})}}<br/>
+      <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents.length ,modelCount: modelSpeedModelsCount})"></p>
     </div>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="ignoreSpeed">{{$t('ignore')}}</el-button>
+      <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
       <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
     </div>
   </el-dialog>
@@ -308,6 +298,12 @@ import './fly.js'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
+    },
+    modelSpeedModelsCount () {
+      return this.$store.state.model.modelSpeedModelsCount
+    },
+    currentUser () {
+      return this.$store.state.user.currentUser
     }
   },
   methods: {
@@ -347,6 +343,7 @@ export default class ModelList extends Vue {
   modelCheckModeVisible = false
   dataLoadingModeVisible = false
   btnLoading = false
+  btnLoadingCancel = false
   createModelFormRule = {
     modelName: [
       {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
@@ -380,11 +377,12 @@ export default class ModelList extends Vue {
   showSearchResult = false
   searchLoading = false
   modelArray = []
-  loadSpeedInfo () {
+  loadSpeedInfo (loadingname) {
+    var loadingName = loadingname || 'btnLoading'
     this.getSpeedInfo(this.currentSelectedProject).then(() => {
-      this.btnLoading = false
+      this[loadingName] = false
     }, (res) => {
-      this.btnLoading = false
+      this[loadingName] = false
       handleError(res)
     })
   }
@@ -405,11 +403,12 @@ export default class ModelList extends Vue {
   }
   // 忽略此次加速
   ignoreSpeed () {
-    this.btnLoading = true
+    this.btnLoadingCancel = true
     this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
-      this.loadSpeedInfo()
+      this.btnLoadingCancel = false
+      this.loadSpeedInfo('btnLoadingCancel')
     }, (res) => {
-      this.btnLoading = false
+      this.btnLoadingCancel = false
       handleError(res)
     })
   }
@@ -418,7 +417,10 @@ export default class ModelList extends Vue {
     var targetDom = targetArea.find('.menu-icon')
     var offset = targetDom.offset()
     var flyer = $('<span class="fly-box"></span>')
-    let leftOffset = 60
+    let leftOffset = 64
+    if (this.$lang === 'en') {
+      leftOffset = 74
+    }
     if (this.briefMenuGet) {
       leftOffset = 20
     }
@@ -534,6 +536,13 @@ export default class ModelList extends Vue {
         tabTypes: 'first'
       })
     })
+  }
+  onSortChange ({ column, prop, order }) {
+    if (prop === 'gmtTime') {
+      this.filterArgs.sortBy = 'last_modify'
+      this.filterArgs.reverse = !(order === 'ascending')
+    }
+    this.loadModelsList()
   }
   // 全凭查看模型附属信息
   toggleShowFull (index) {

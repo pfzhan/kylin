@@ -144,10 +144,10 @@ class NModel {
     return this.mixResult(this.all_named_columns, 'column', 'name', keywords)
   }
   renderSearchResult (data, kind, action) {
-    if (kind === 'table' && action === 'tableeditjoin') {
+    if (kind === 'table') {
       let joinInfo = data.joinInfo[data.guid]
       if (joinInfo) {
-        return ' [' + joinInfo.join.type + ']    <i class="el-icon-ksd-auto"></i>' + joinInfo.foreignTable.name
+        return ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
       }
     }
     return ''
@@ -162,7 +162,7 @@ class NModel {
     data && data.forEach((t) => {
       actionsConfig.forEach((a) => {
         if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
-          let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n}
+          let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
           item.extraInfo = this.renderSearchResult(t, kind, a.action)
           result.push(item)
         }

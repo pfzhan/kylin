@@ -25,7 +25,7 @@
                 <img src="../../assets/img/renderUp.gif" height="63" width="48">
                 <div class="data-flow"><span>50,000</span><span>Query / Month</span></div>
               </div>
-              <div class="kap-layer">Kyligence Analytics Platform</div>
+              <div class="kap-layer">Kyligence Enterprise</div>
               <div class="gif-layer">
                 <img src="../../assets/img/renderDown.gif" height="240" width="620">
               </div>
@@ -34,8 +34,8 @@
                   <el-row>
                      <el-col :span="12">
                         <div class="percent"><span>15</span><span>%</span></div>
-                        <div><img src="../../assets/img/Hive.png" height="118" width="136"></div>
-                        <div class="type">Hive</div>
+                        <div><img src="../../assets/img/RDBMs.png" height="118" width="136"></div>
+                        <div class="type">RDBMS</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
                           <span>60.00</span><span>s</span>
@@ -43,8 +43,8 @@
                      </el-col>
                      <el-col :span="12">
                        <div class="percent"><span>15</span><span>%</span></div>
-                        <div><img src="../../assets/img/RDBMs.png" height="118" width="136"></div>
-                        <div class="type">RDBMs</div>
+                        <div><img src="../../assets/img/Hive.png" height="118" width="136"></div>
+                        <div class="type">Hive</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
                           <span>99.00</span><span>s</span>
@@ -132,7 +132,7 @@ import Scrollbar from 'smooth-scrollbar'
     })
   },
   locales: {
-    'en': {'kapManual': 'KAP manual', 'kylinManual': 'Apache Kylin document', 'statistics': 'Total Query Statistics', 'messages': 'Messages', 'documentation': 'Documentation', 'viewAll': 'View All'},
+    'en': {'kapManual': 'Kyligence Enterprise Manual', 'kylinManual': 'Apache Kylin Document', 'statistics': 'Total Query Statistics', 'messages': 'Messages', 'documentation': 'Documentation', 'viewAll': 'View All'},
     'zh-cn': {'kapManual': 'KAP 操作手册', 'kylinManual': 'Apache Kylin 文档', 'statistics': '查询流量图', 'messages': '消息盒子', 'documentation': '使用文档', 'viewAll': '查看更多'}
   }
 })

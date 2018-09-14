@@ -9,8 +9,11 @@ const types = {
 // 声明：初始state状态
 const initialState = JSON.stringify({
   isShow: false,
-  dimensionTable: '',
-  callback: null
+  addType: '',
+  callback: null,
+  form: {
+    dimensionColumn: ''
+  }
 })
 
 export default {
@@ -25,15 +28,21 @@ export default {
     [types.HIDE_MODAL]: (state) => {
       state.isShow = false
     },
-    [types.SET_MODAL]: (state, payload) => {
+    [types.SET_MODAL_FORM]: (state, payload) => {
+      state.addType = payload.addType
+      state.callback = payload.callback
+      state.form.dimensionColumn = payload.dimensionColumn
     },
     // 还原Modal中的值为初始值
     [types.RESET_MODAL_FORM]: (state) => {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }) {
+    [types.CALL_MODAL] ({ commit }, options) {
       return new Promise(resolve => {
+        if (options) {
+          commit(types.SET_MODAL_FORM, {callback: resolve, addType: options.addType, dimensionColumn: options.dimensionColumn})
+        }
         commit(types.SHOW_MODAL)
       })
     }

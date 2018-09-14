@@ -5,8 +5,8 @@
     <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
     <div class="footer">
       <div class="btn-group">
-        <el-button @click="goModelList">Cancel</el-button>
-          <el-button type="primary" @click="openSaveDialog">Save</el-button>
+        <el-button @click="goModelList">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" @click="openSaveDialog">{{$t('kylinLang.common.save')}}</el-button>
         </div>
     </div>
     <PartitionModal/>
