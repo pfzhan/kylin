@@ -103,8 +103,23 @@ export default class DataSourceBar extends Vue {
   defaultExpandedKeys = []
   draggableNodeKeys = []
 
+  get foreignKeyArray () {
+    let foreignKeyArray = []
+    this.datasource.forEach((table) => {
+      foreignKeyArray = foreignKeyArray.concat(table.foreign_key)
+    })
+    return foreignKeyArray
+  }
+  get primaryKeyArray () {
+    let primaryKeyArray = []
+    this.datasource.forEach((table) => {
+      primaryKeyArray = primaryKeyArray.concat(table.primary_key)
+    })
+    return primaryKeyArray
+  }
   get datasourceTree () {
-    return getDatasourceTree(this, this.datasource, this.currentProjectData)
+    const { datasource, currentProjectData } = this
+    return getDatasourceTree(this, datasource, currentProjectData)
   }
   get isShowBtnLoad () {
     return (this.isAdminRole || this.isProjectAdmin) && !this.datasourceTree.length

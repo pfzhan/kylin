@@ -33,10 +33,10 @@
               <i class="el-icon-ksd-full_screen ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
               <i class="el-icon-ksd-collapse ksd-fright full-model-box" v-else @click="showFull = false"></i>
               <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
-                <el-tab-pane label="Segment" name="first">
+                <el-tab-pane :label="$t('segment')" name="first">
                   <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
                 </el-tab-pane>
-                <el-tab-pane label="Aggregate" name="second">
+                <el-tab-pane :label="$t('aggregate')" name="second">
                   <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
                 </el-tab-pane>
                 <el-tab-pane label="Table Index" name="third">

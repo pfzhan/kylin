@@ -1,5 +1,4 @@
 import { sourceTypes, sourceNameMapping } from '../../../config'
-import { getColumnMockTags } from './mock'
 
 export const render = {
   datasource: {
@@ -35,6 +34,7 @@ export const render = {
   table: {
     render (h, { node, data, store }) {
       const { label, tags, dateRange } = data
+      const dataRangeTitle = this.$t('dataRange')
 
       return (
         <div class="table font-medium">
@@ -56,7 +56,7 @@ export const render = {
             { dateRange ? (
               <el-popover
                 placement="right"
-                title="Data Range:"
+                title={dataRangeTitle}
                 trigger="hover"
                 content={dateRange}>
                 <i class="tree-icon table-date-tip el-icon-ksd-data_range" slot="reference"></i>
@@ -133,7 +133,7 @@ export function getDatasourceObj (that, table, project) {
 
   return {
     id: `datasouce-Source: ${datasourceName}`,
-    label: `Source: ${datasourceName}`,
+    label: `${that.$t('source')} : ${datasourceName}`,
     render: render.datasource.render.bind(that),
     children: [
       getDatabaseObj(that, table)
@@ -170,12 +170,12 @@ function getTableObj (that, table) {
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
-  const dateRange = table.start_time && table.end_time ? getDateRangeStr(table) : null
+  const dateRange = table.start_time !== -1 && table.end_time !== -1 ? getDateRangeStr(that, table) : null
 
   return {
     id: `table-${table.name}`,
     label: table.name,
-    children: getColumnObjArray(that, table.columns),
+    children: getColumnObjArray(that, table.name, table.columns),
     render: render.table.render.bind(that),
     tags,
     type: 'table',
@@ -185,14 +185,22 @@ function getTableObj (that, table) {
   }
 }
 
-function getColumnObjArray (that, columnArray) {
-  return columnArray.map(column => ({
-    id: `column-${column.name}`,
-    label: column.name,
-    render: render.column.render.bind(that),
-    tags: getColumnMockTags() || [],
-    type: 'column'
-  }))
+function getColumnObjArray (that, tableName, columnArray) {
+  const { foreignKeyArray, primaryKeyArray } = that
+  return columnArray.map(column => {
+    const columnFullName = `${tableName}.${column.name}`
+    const tags = [
+      ...(foreignKeyArray.includes(columnFullName) ? ['FK'] : []),
+      ...(primaryKeyArray.includes(columnFullName) ? ['PK'] : [])
+    ]
+    return {
+      id: `column-${column.name}`,
+      label: column.name,
+      render: render.column.render.bind(that),
+      tags,
+      type: 'column'
+    }
+  })
 }
 
 export function getAutoCompleteWords (datasourceTree) {
@@ -237,11 +245,11 @@ function getChildrenWords (parent) {
   return words
 }
 
-function getDateRangeStr (table) {
+function getDateRangeStr (that, table) {
   const startDate = new Date(table.start_time)
   const endDate = new Date(table.end_time)
 
-  return `${getDateStr(startDate)} to ${getDateStr(endDate)}`
+  return `${getDateStr(startDate)} ${that.$t('to')} ${getDateStr(endDate)}`
 }
 
 function getDateStr (date) {

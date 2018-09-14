@@ -26,7 +26,9 @@ export default {
     ignore: 'Ignore',
     apply: 'Apply',
     inputModelName: 'Please input new model name',
-    inputCloneName: 'Please input clone model name'
+    inputCloneName: 'Please input clone model name',
+    segment: 'Segment',
+    aggregate: 'Aggregate Index'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -55,6 +57,8 @@ export default {
     ignore: '忽略建议',
     apply: '同意',
     inputModelName: '请输入新的模型名字',
-    inputCloneName: '请输入克隆模型的名字'
+    inputCloneName: '请输入克隆模型的名字',
+    segment: 'Segment',
+    aggregate: '聚合索引'
   }
 }

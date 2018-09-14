@@ -26,6 +26,22 @@ export function getSelectedTableDetail (tableInfo, tableDetail) {
     mapper_rows: tableDetail.mapper_rows || [],
     sample_rows: tableDetail.sample_rows || [],
     total_rows: tableDetail.total_rows || [],
+    dataRanges: getDateRangeSegments(tableDetail),
     columns
   }
+}
+
+function getDateRangeSegments (tableDetail) {
+  return Object.entries(tableDetail.segment_ranges).map(([dateRangeKey, status]) => {
+    const [startTime, endTime] = dateRangeKey.replace(/^TimePartitionedSegmentRange\[|\)$/g, '').split(',')
+    return {
+      startTime: +startTime,
+      endTime: +endTime,
+      status: 'READY',
+      color: '#4cb050',
+      pointColor: '#1A731E'
+    }
+  }).filter((segment) => {
+    return !(segment.startTime === segment.endTime || segment.startTime === 0 || segment.startTime === 1309891513770)
+  })
 }

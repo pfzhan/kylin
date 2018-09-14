@@ -6,14 +6,20 @@
     @close="hideModal">
     <div class="body">
       <div class="row">
-        <h1 class="title">源数据表的加载类型</h1>
-        <el-radio v-model="isCentral" :label="true" :disabled="!partitionColumns.length">中心表</el-radio>
-        <el-radio v-model="isCentral" :label="false">普通表</el-radio>
+        <h1 class="title font-medium">
+          <span>{{$t('tableType')}}</span>
+          <i class="el-icon-ksd-what"></i>
+        </h1>
+        <el-radio v-model="isCentral" :label="true" :disabled="!partitionColumns.length">{{$t('centralTable')}}</el-radio>
+        <el-radio v-model="isCentral" :label="false">{{$t('normalTable')}}</el-radio>
       </div>
 
       <div class="row">
-        <h1 class="title">中心表的分区列</h1>
-        <el-select v-model="partition" filterable :disabled="!isCentral">
+        <h1 class="title font-medium">
+          <span>{{$t('partition')}}</span>
+          <i class="el-icon-ksd-what"></i>
+        </h1>
+        <el-select size="medium" v-model="partition" filterable :disabled="!isCentral">
           <el-option
             v-for="column in partitionColumns"
             :key="column.id"
@@ -24,19 +30,30 @@
       </div>
 
       <div class="row">
-        <h1 class="title">初始的数据范围</h1>
-        <el-date-picker
-          :disabled="!isCentral"
-          v-model="dateRange"
-          type="datetimerange"
-          range-separator="-"
-          start-placeholder="开始日期"
-          end-placeholder="结束日期">
-        </el-date-picker>
+        <h1 class="title font-medium">
+          <span>{{$t('dataRange')}}</span>
+          <i class="el-icon-ksd-what"></i>
+        </h1>
+        <div>
+          <label class="font-medium">
+            <span>{{$t('dateRange')}}</span>
+            <i class="el-icon-ksd-what"></i>
+            <span>:</span>
+          </label>
+          <el-date-picker
+            :disabled="!isDateRangeEditable"
+            v-model="dateRange"
+            type="datetimerange"
+            size="medium"
+            range-separator="-"
+            :start-placeholder="$t('startTime')"
+            :end-placeholder="$t('endTime')">
+          </el-date-picker>
+        </div>
       </div>
     </div>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="hideModal">{{$t('cancel')}}</el-button>
+      <el-button size="medium" @click="hideModal">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" plain type="primary" @click="submit" :disabled="!isFormVaild">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
@@ -89,6 +106,9 @@ export default class CentralSettingModal extends Vue {
   get isFormVaild () {
     return (this.isCentral && this.partition && this.startDate && this.endDate) || !this.isCentral
   }
+  get isDateRangeEditable () {
+    return !this.table.fact && this.isCentral
+  }
   showModal () {
     this.resetModal()
     this.isShow = true
@@ -99,8 +119,8 @@ export default class CentralSettingModal extends Vue {
   resetModal () {
     this.isCentral = this.table.fact || false
     this.partition = this.table.partition_column || ''
-    this.startDate = this.table.start_time ? new Date(this.table.start_time) : ''
-    this.endDate = this.table.end_time ? new Date(this.table.end_time) : ''
+    this.startDate = this.table.start_time !== -1 ? new Date(this.table.start_time) : ''
+    this.endDate = this.table.end_time !== -1 ? new Date(this.table.end_time) : ''
   }
   async submit () {
     try {
@@ -141,6 +161,9 @@ export default class CentralSettingModal extends Vue {
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  .el-date-editor {
+    // width: 340px;
   }
   .el-date-editor .el-flex-box {
     width: 100%;

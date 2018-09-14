@@ -25,7 +25,7 @@
             <span>{{$t('partition')}}</span><span>:</span>
           </div>
           <div class="info-value">
-            <div>{{table.name}}.{{table.partition_column}}</div>
+            <div>{{table.partitioned_column}}</div>
           </div>
         </div>
         <!-- 标题 -->
@@ -44,7 +44,7 @@
               <span>:</span>
             </div>
             <div class="load-range">
-              <DateRangeBar :date-ranges="dateRanges" />
+              <DateRangeBar :date-ranges="tableDateRange" />
             </div>
           </div>
           <!-- 选择时间区间 -->
@@ -60,35 +60,35 @@
               v-model="dateRange"
               type="datetimerange"
               range-separator="-"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期"
+              :start-placeholder="$t('startTime')"
+              :end-placeholder="$t('endTime')"
               :picker-options="{ disabledDate: getDisabledDate }">
             </el-date-picker>
-            <el-button size="medium" type="primary" @click="handleSubmitRange">递交</el-button>
+            <el-button size="medium" type="primary" @click="handleSubmitRange">{{$t('kylinLang.common.submit')}}</el-button>
           </div>
         </div>
       </template>
     </div>
 
     <template v-if="isCentral">
-      <h1 class="related-model-title font-medium">Related Model</h1>
+      <h1 class="related-model-title font-medium">{{$t('relatedModel')}}</h1>
       <el-table class="table" :data="relatedModels" border>
         <el-table-column
           prop="alias"
-          label="Model Name"
+          :label="$t('modelName')"
           width="275px"
           sortable
           align="center">
         </el-table-column>
         <el-table-column
           prop="progress"
-          label="Status"
+          :label="$t('status')"
           align="center">
           <template slot-scope="scope">
             <div class="load-range">
-              <DateRangeBar :date-ranges="dateRanges" />
+              <DateRangeBar :date-ranges="scope.row.dataRanges" />
             </div>
-            <span class="status" v-if="scope.row.progress === 100">Ready</span>
+            <span class="status" v-if="isDateRangeReady(scope.row.dataRanges, 'model')">Ready</span>
             <span class="status" v-else>In Progress</span>
           </template>
         </el-table-column>
@@ -102,12 +102,12 @@
 
     <div class="table-remind">
       <div class="table-remind-row">
-        <h1 class="remind-header font-medium">中心表（Centrel Table）:</h1>
-        <p>被标记为中心表的源数据表，需要设定映射的数据范围/将来数据加载的范围（Data Range）</p>
+        <h1 class="remind-header font-medium">{{$t('centralTableTitle')}}:</h1>
+        <p>{{$t('centralTableDesc')}}</p>
       </div>
       <div class="table-remind-row">
-        <h1 class="remind-header font-medium">普通表（Normal Table）:</h1>
-        <p>标记为普通表的源数据表，作为系统默认存储全部数据</p>
+        <h1 class="remind-header font-medium">{{$t('normalTableTitle')}}:</h1>
+        <p>{{$t('normalTableDesc')}}</p>
       </div>
     </div>
 
@@ -119,10 +119,10 @@ import Vue from 'vue'
 import { mapActions } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { dateRanges } from './mock'
 import locales from './locales'
 import DateRangeBar from '../../../common/DateRangeBar/index.vue'
 import { handleSuccessAsync } from '../../../../util'
+import { getModelDataRanges, getTableDataRanges } from './handle'
 
 @Component({
   props: {
@@ -151,7 +151,7 @@ export default class TableDataLoad extends Vue {
     pageOffset: 0,
     pageSize: 50
   }
-  dateRanges = dateRanges
+  tableDateRange = []
   relatedModels = []
   get isCentral () {
     return this.table.fact
@@ -165,11 +165,19 @@ export default class TableDataLoad extends Vue {
   get dateRange () {
     return [this.startDate, this.endDate]
   }
-  set dateRange ([startDate, endDate]) {
-    this.startDate = startDate
-    this.endDate = endDate
+  set dateRange (val) {
+    if (val) {
+      const [startDate, endDate] = val
+      this.startDate = startDate
+      this.endDate = endDate
+    } else {
+      this.startDate = ''
+      this.endDate = ''
+    }
   }
-
+  isDateRangeReady (dateRanges, type) {
+    return dateRanges.every((dateRange) => dateRange.status === 'READY')
+  }
   mounted () {
     if (this.isCentral) {
       this.resetDateRange()
@@ -179,8 +187,8 @@ export default class TableDataLoad extends Vue {
   @Watch('table')
   async onTableChange (table) {
     if (this.isCentral) {
-      this.resetDateRange()
       await this.getRelatedModel()
+      this.resetDateRange()
     }
   }
   async handleSubmitRange () {
@@ -195,11 +203,14 @@ export default class TableDataLoad extends Vue {
     } else {
       this.$message('不可选择比数据表更小的时间区间。')
     }
+
+    this.$emit('on-data-range-change')
   }
   handlePagination (val) {
     this.pagination.pageOffset = val - 1
   }
   resetDateRange () {
+    this.tableDateRange = getTableDataRanges(this.table, this.relatedModels) || []
     this.startDate = new Date(this.table.start_time)
     this.endDate = new Date(this.table.end_time)
   }
@@ -209,11 +220,14 @@ export default class TableDataLoad extends Vue {
 
     const res = await this.fetchRelatedModels({ projectName, tableFullName })
     const { models } = await handleSuccessAsync(res)
-    this.relatedModels = models
+    this.relatedModels = models.map(model => {
+      model.dataRanges = getModelDataRanges(model)
+      return model
+    })
   }
   getDisabledDate (time) {
-    return this.table.start_time <= time.getTime() &&
-      time.getTime() <= this.table.end_time
+    return this.table.start_time < time.getTime() &&
+      time.getTime() < this.table.end_time
   }
   isDateRangeVaild () {
     const startTime = this.startDate.getTime()
@@ -221,7 +235,7 @@ export default class TableDataLoad extends Vue {
     const tableStartTime = this.table.start_time
     const tableEndTime = this.table.end_time
 
-    return startTime < tableStartTime && endTime > tableEndTime
+    return startTime <= tableStartTime && endTime >= tableEndTime
   }
 }
 </script>

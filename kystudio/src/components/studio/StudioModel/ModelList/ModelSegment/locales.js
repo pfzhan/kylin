@@ -8,9 +8,7 @@ export default {
     chooseStartDate: 'Choose Start Time',
     chooseEndDate: 'Choose End Time',
     primaryPartition: 'Primary Partition',
-    viewType: 'View Type',
     pleaseChoose: 'Please Choose',
-    zoomTool: 'Zoom Tool',
     merge: 'Merge',
     segmentSetting: 'Segment Setting'
   },
@@ -19,14 +17,12 @@ export default {
     retension: 'Retension',
     volatile: 'Volatile',
     textInput: 'Text Input',
-    segmentPeriod: 'Segment Period',
-    chooseStartDate: 'Choose Start Time',
-    chooseEndDate: 'Choose End Time',
-    primaryPartition: 'Primary Partition',
-    viewType: 'View Type',
-    pleaseChoose: 'Please Choose',
-    zoomTool: 'Zoom Tool',
+    segmentPeriod: 'Segment 范围',
+    chooseStartDate: '开始时间',
+    chooseEndDate: '结束时间',
+    primaryPartition: '一级分区',
+    pleaseChoose: '请选择',
     merge: 'Merge',
-    segmentSetting: 'Segment Setting'
+    segmentSetting: 'Segment 设置'
   }
 }

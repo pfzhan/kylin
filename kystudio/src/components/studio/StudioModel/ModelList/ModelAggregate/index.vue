@@ -22,26 +22,38 @@
                 <el-input v-model.trim="cuboidCount" size="small"></el-input>
               </div>
             </div>
-            <PartitionChart :data="cuboids" @on-click-node="handleClickNode" />
+            <PartitionChart :data="cuboids" @on-click-node="handleClickNode" :search-id="searchCuboidId" />
           </el-card>
         </el-col>
         <el-col :span="8">
           <el-card class="agg-detail-card">
             <div slot="header" class="clearfix">
-              <div class="left font-medium">Aggregate Detail</div>
-              <div class="right" style="opacity: 0; pointer-events: none;">
-                <el-input v-model.trim="cuboidCount" size="small"></el-input>
+              <div class="left font-medium">{{$t('aggregateDetail')}}</div>
+              <div class="right">
+                <el-input class="search-input" v-model.trim="searchCuboidId" size="small" placeholder="Search Aggregate ID" prefix-icon="el-icon-search"></el-input>
               </div>
             </div>
             <div class="detail-content">
-              <el-row :gutter="5"><el-col :span="11" class="label">ID:</el-col><el-col :span="13">{{cuboidDetail.id}}</el-col></el-row>
               <el-row :gutter="5">
-                <el-col :span="11" class="label">Dimension and Order:</el-col>
+                <el-col :span="11" class="label">ID:</el-col>
+                <el-col :span="13">{{cuboidDetail.id}}</el-col>
+              </el-row>
+              <el-row :gutter="5">
+                <el-col :span="11" class="label">{{$t('dimensionAndOrder')}}:</el-col>
                 <el-col :span="13"><div v-for="item in cuboidDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
               </el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Data Size:</el-col><el-col :span="13">{{cuboidDetail.dataSize}}</el-col></el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Data Range:</el-col><el-col :span="13">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col></el-row>
-              <el-row :gutter="5"><el-col :span="11" class="label">Served Query amount:</el-col><el-col :span="13">{{cuboidDetail.amount}} Query</el-col></el-row>
+              <el-row :gutter="5">
+                <el-col :span="11" class="label">{{$t('dataSize')}}:</el-col>
+                <el-col :span="13">{{cuboidDetail.dataSize}}</el-col>
+              </el-row>
+              <el-row :gutter="5">
+                <el-col :span="11" class="label">{{$t('dataRange')}}:</el-col>
+                <el-col :span="13">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col>
+              </el-row>
+              <el-row :gutter="5">
+                <el-col :span="11" class="label">{{$t('servedQueryAmount')}}:</el-col>
+                <el-col :span="13">{{cuboidDetail.amount}} Query</el-col>
+              </el-row>
             </div>
           </el-card>
         </el-col>
@@ -104,6 +116,7 @@ export default class ModelAggregate extends Vue {
     dateTo: 0,
     amount: 0
   }
+  searchCuboidId = ''
 
   async handleClickNode (node) {
     const cuboidId = node.cuboid.id
@@ -115,7 +128,7 @@ export default class ModelAggregate extends Vue {
     const cuboid = await handleSuccessAsync(res)
     this.cuboidDetail.id = cuboid.id
     this.cuboidDetail.dim = cuboid.dimensions_res
-    this.cuboidDetail.dataSize = cuboid.storage < 1024 ? `${cuboid.storage}KB` : `${(cuboid.storage / 1024).toFixed(2)}MB`
+    this.cuboidDetail.dataSize = cuboid.storage_size < 1024 ? `${cuboid.storage_size}KB` : `${(cuboid.storage_size / 1024).toFixed(2)}MB`
     this.cuboidDetail.dateFrom = transToGmtTime(cuboid.start_time)
     this.cuboidDetail.dateTo = transToGmtTime(cuboid.end_time)
     if (this.cuboidDetail.dateFrom) {
@@ -199,6 +212,9 @@ export default class ModelAggregate extends Vue {
       font-size: 14px;
       .el-input {
         width: 100px;
+        &.search-input {
+          width: 200px;
+        }
       }
     }
     .label {

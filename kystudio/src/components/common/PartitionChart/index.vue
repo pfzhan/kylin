@@ -23,7 +23,7 @@ import * as d3 from 'd3'
 import { Component, Watch } from 'vue-property-decorator'
 
 @Component({
-  props: ['data']
+  props: ['data', 'searchId']
 })
 export default class PartitionChart extends Vue {
   isChartCreated = false
@@ -32,6 +32,14 @@ export default class PartitionChart extends Vue {
   tip = ''
   tipX = 0
   tipY = 0
+  @Watch('searchId')
+  async onSearchIdChange (searchId) {
+    this.d3data.path.each(function (d) {
+      if (d.cuboid && String(d.cuboid.id) === searchId) {
+        this.dispatchEvent(new Event('click'))
+      }
+    })
+  }
   @Watch('data')
   async onDataChange () {
     if (this.data[0]) {

@@ -20,7 +20,7 @@ export function handleAutoGroup (dataArray = [], groupMap = []) {
   let minGroupTypeId = null
   for (const item of newDataArray) {
     // 获取每个数据当前分组类型
-    const groupType = getGroupTypeObj(groupTypes, item.endDate - item.startDate)
+    const groupType = getGroupTypeObj(groupTypes, item.endTime - item.startTime)
     item.groupType = groupType
     // 找出最小groupType
     if (!minGroupTypeId || groupMap[groupType] < minGroupTypeId) {
@@ -40,11 +40,11 @@ export function handleAutoGroup (dataArray = [], groupMap = []) {
         lastItem.color !== item.color ||
         lastItem.groupType !== item.groupType)
 
-      duringAcc += item.endDate - item.startDate
+      duringAcc += item.endTime - item.startTime
 
       if (!result.length || isItemDifferent || duringAcc > groupMax) {
         result.push([item])
-        duringAcc = item.endDate - item.startDate
+        duringAcc = item.endTime - item.startTime
       } else {
         result[result.length - 1].push(item)
       }
@@ -57,13 +57,13 @@ export function handleAutoGroup (dataArray = [], groupMap = []) {
     groupArray.forEach(group => {
       const firstItem = group[0]
       const lastItem = group[group.length - 1]
-      const isMerge = lastItem && lastItem.endDate - firstItem.startDate >= groupMax
+      const isMerge = lastItem && (lastItem.endTime - firstItem.startTime >= groupMax)
       if (!isMerge) {
         newDataArray = [...newDataArray, ...group]
       } else {
         const firstItem = group[0]
         const lastItem = group[group.length - 1]
-        newDataArray = [...newDataArray, { ...firstItem, groupType, endDate: lastItem.endDate }]
+        newDataArray = [...newDataArray, { ...firstItem, groupType, endTime: lastItem.endTime }]
       }
     })
   }
@@ -71,16 +71,20 @@ export function handleAutoGroup (dataArray = [], groupMap = []) {
   return newDataArray
 }
 
-export function handleCalcRangeSize (ranges, groupMap, totalWidth) {
-  const firstRange = ranges[0]
-  const lastRange = ranges[ranges.length - 1]
-  const total = lastRange.endDate - firstRange.startDate
+export function handleCalcRangeSize (groupedRanges = [], totalWidth) {
+  const firstRange = groupedRanges[0]
+  const lastRange = groupedRanges[groupedRanges.length - 1]
+  if (firstRange && lastRange) {
+    const totalTime = lastRange.endTime - firstRange.startTime
 
-  let lastX = 0
-  for (const range of ranges) {
-    range.width = groupMap[range.groupType] / total * totalWidth
-    range.left = lastX
-    lastX += range.width
+    let lastX = 0
+    for (const range of groupedRanges) {
+      range.width = (range.endTime - range.startTime) / totalTime * totalWidth
+      range.left = lastX
+      lastX += range.width
+    }
+    return groupedRanges
+  } else {
+    return {}
   }
-  return ranges
 }

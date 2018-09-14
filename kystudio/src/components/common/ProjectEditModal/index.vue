@@ -102,6 +102,8 @@ import { validate, validateTypes, handleError, fromObjToArr } from '../../../uti
 
 const { PROJECT_NAME } = validateTypes
 
+vuex.registerModule(['modals', 'ProjectEditModal'], store)
+
 @Component({
   computed: {
     ...mapState({
@@ -275,18 +277,6 @@ export default class ProjectEditModal extends Vue {
       return this.$t('propertyEmptyKey')
     } else if (emptyValueProperty) {
       return this.$t('propertyEmptyValue')
-    }
-  }
-  // Hook: 如果没有挂载store，则挂载组件store
-  beforeCreate () {
-    if (!this.$store.state.modals.ProjectEditModal) {
-      vuex.registerModule(['modals', 'ProjectEditModal'], store)
-    }
-  }
-  // Hook: 如果HRM状态，则不实时清除store；反之则清除
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'ProjectEditModal'])
     }
   }
 }

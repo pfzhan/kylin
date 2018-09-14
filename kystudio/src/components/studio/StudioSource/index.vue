@@ -30,7 +30,7 @@
           <div class="table-details">
             <el-tabs v-model="viewType">
               <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-                <TableDataLoad :project="currentProjectData" :table="selectedTable"></TableDataLoad>
+                <TableDataLoad :project="currentProjectData" :table="selectedTable" @on-data-range-change="handleFreshTable"></TableDataLoad>
               </el-tab-pane>
               <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
                 <TableColumns :table="selectedTable"></TableColumns>
@@ -204,6 +204,9 @@ export default class StudioSource extends Vue {
     font-size: 16px;
     color: #263238;
     margin-bottom: 15px;
+  }
+  .table-details {
+    padding-bottom: 20px;
   }
   .table-update-at {
     font-size: 12px;

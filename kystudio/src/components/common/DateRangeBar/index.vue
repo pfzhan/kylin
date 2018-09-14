@@ -2,12 +2,12 @@
   <div class="date-range-bar">
     <div class="date-range"
       v-for="range in ranges"
-      :key="range.startDate"
+      :key="range.startTime"
       :style="getRangeStyle(range)">
-      <el-tooltip effect="dark" :content="getDateText(range.startDate)" placement="top">
+      <el-tooltip effect="dark" :content="getDateText(range.startTime)" placement="top">
         <div class="range-point left" :style="getRangePointStyle(range)"></div>
       </el-tooltip>
-      <el-tooltip effect="dark" :content="getDateText(range.endDate)" placement="top">
+      <el-tooltip effect="dark" :content="getDateText(range.endTime)" placement="top">
         <div class="range-point right" :style="getRangePointStyle(range)"></div>
       </el-tooltip>
     </div>
@@ -66,9 +66,9 @@ export default class DateRangeBar extends Vue {
   }
   get ranges () {
     const dateRanges = JSON.parse(JSON.stringify(this.dateRanges))
-    const sortedDateRanges = dateRanges.sort((rangeA, rangeB) => rangeA.startDate > rangeB.startDate ? 1 : -1)
-    const ranges = handleAutoGroup(sortedDateRanges, this.groupMap)
-    return handleCalcRangeSize(ranges, this.groupMap, this.elementWidth)
+    const sortedDateRanges = dateRanges.sort((rangeA, rangeB) => rangeA.startTime > rangeB.startTime ? 1 : -1)
+    const groupedRanges = handleAutoGroup(sortedDateRanges, this.groupMap)
+    return handleCalcRangeSize(groupedRanges, this.elementWidth)
   }
   initRatios () {
     this.groupMap.minute = 1000 * 60
