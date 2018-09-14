@@ -11,8 +11,9 @@
           <span>error</span></p>
         </el-col>
       </el-row>
-      <kap_editor height="170" lang="sql" theme="chrome" v-model="extraoption.sql" class="ksd-mt-6">
-      </kap_editor>
+      <div class="error-block">{{errinfo}}</div>
+      <!-- <kap_editor height="170" lang="sql" theme="chrome" v-model="errinfo" class="ksd-mt-6">
+      </kap_editor> -->
     </div>
     <div v-show="!errinfo" class="ksd-center ksd-mt-10">
       <el-progress type="circle" :percentage="percent"></el-progress>
@@ -107,6 +108,14 @@ export default class queryPanel extends Vue {
   #queryPanelBox {
     .el-progress{
       margin-bottom: 10px;
+    }
+    .error-block {
+      height: 200px;
+      overflow-y: scroll;
+      background-color: @fff;
+      border: 1px solid @grey-2;
+      padding: 10px;
+      margin-top: 6px;
     }
   }
 </style>
