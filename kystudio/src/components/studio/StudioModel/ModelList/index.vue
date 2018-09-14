@@ -39,8 +39,11 @@
                 <el-tab-pane :label="$t('aggregate')" name="second">
                   <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
                 </el-tab-pane>
-                <el-tab-pane label="Table Index" name="third">
-                  <TableIndex></TableIndex>
+                <el-tab-pane :label="$t('tableIndex')" name="third">
+                  <div style="height:80px;background-color: #fff">
+                    <!-- 临时 -->
+                  </div>
+                  <!-- <TableIndex></TableIndex> -->
                 </el-tab-pane>
                 <el-tab-pane label="JSON" name="forth">
                   <el-input

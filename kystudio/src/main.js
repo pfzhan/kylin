@@ -85,7 +85,7 @@ Vue.prototype.__KY_DIALOG_CLOSE_EVENT__ = () => {
 }
 var from = getQueryString('from')
 var token = getQueryString('token')
-// var selectedProject = store.state.project.selected_project // 等api通了恢复
+var selectedProject = store.state.project.selected_project
 store.state.config.platform = from
 if (from === 'cloud') {
   var projectName = getQueryString('projectName')
@@ -147,26 +147,24 @@ router.beforeEach((to, from, next) => {
     // 如果是从登陆过来的，所有信息都要重新获取
     if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
       rootPromise.then(() => {
-        // let configPromise = store.dispatch(types.GET_CONF, {
-        //   projectName: selectedProject
-        // })
-        next()
-        // configPromise.then(() => {  // 等api通了恢复
-        //   next()
-        // })
+        let configPromise = store.dispatch(types.GET_CONF, {
+          projectName: selectedProject
+        })
+        configPromise.then(() => {
+          next()
+        })
       })
     } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
       // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
       if (store.state.system.authentication === null && store.state.system.serverConfig === null) {
         rootPromise.then(() => {
           store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
-          // let configPromise = store.dispatch(types.GET_CONF, { // 等api通了恢复
-          //   projectName: selectedProject
-          // })
-          // configPromise.then(() => {
-          //   next()
-          // })
-          next()
+          let configPromise = store.dispatch(types.GET_CONF, {
+            projectName: selectedProject
+          })
+          configPromise.then(() => {
+            next()
+          })
         }, (res) => {
           next()
         })

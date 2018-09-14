@@ -123,7 +123,7 @@
           <div class="panel-box panel-setting" v-event-stop @mousedown="activePanel('setting')" :style="panelStyle('setting')" v-if="panelAppear.setting.display">
             <div class="panel-title" @mousedown="activePanel('setting')" v-drag:change.right.top="panelAppear.setting">
               <span><i class="el-icon-ksd-setting"></i></span>
-              <span class="title">Model Setting</span>
+              <span class="title">{{$t('modelSetting')}}</span>
               <span class="close" @click="toggleMenu('setting')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-main-content" style="top:36px;" data-scrollbar>
