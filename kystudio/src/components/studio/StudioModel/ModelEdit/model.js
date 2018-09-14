@@ -135,22 +135,35 @@ class NModel {
     return this.mixResult(this.all_measures, 'measure', 'name', keywords)
   }
   searchDimension (keywords) {
-    return this.mixResult(this.dimensions, 'dimension', 'table', keywords)
+    var dimensionColumns = []
+    this.dimensions.forEach((x) => {
+      x.columns.forEach((c) => {
+        dimensionColumns.push({name: c, table: x.table})
+      })
+    })
+    return this.mixResult(dimensionColumns, 'dimension', 'name', keywords)
   }
   searchJoin (keywords) {
     return this.mixResult(this.lookups, 'join', 'table', keywords)
   }
   searchColumn (keywords) {
-    return this.mixResult(this.all_named_columns, 'column', 'name', keywords)
+    var columns = []
+    for (var i in this.tables) {
+      columns = columns.concat(this.tables[i].columns)
+    }
+    return this.mixResult(columns, 'column', 'name', keywords)
   }
-  renderSearchResult (data, kind, action) {
-    if (kind === 'table') {
-      let joinInfo = data.joinInfo[data.guid]
+  renderSearchResult (t, key, kind, a) {
+    let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
+    if (kind === 'table' && a.action === 'tableeditjoin') {
+      let joinInfo = t.joinInfo[t.guid]
       if (joinInfo) {
-        return ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
+        item.extraInfo = ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
+      } else {
+        return ''
       }
     }
-    return ''
+    return item
   }
   searchRule (content, keywords) {
     var reg = new RegExp(keywords, 'i')
@@ -162,9 +175,11 @@ class NModel {
     data && data.forEach((t) => {
       actionsConfig.forEach((a) => {
         if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
-          let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
-          item.extraInfo = this.renderSearchResult(t, kind, a.action)
-          result.push(item)
+          // let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
+          let item = this.renderSearchResult(t, key, kind, a)
+          if (item) {
+            result.push(item)
+          }
         }
       })
     })

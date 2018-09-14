@@ -6,9 +6,9 @@
           <el-input></el-input>
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="checkPass">
-          <el-select :popper-append-to-body="false" style="width:350px"></el-select>
+          <el-select :popper-append-to-body="false" style="width:350px" place-holder="" v-model="dimensionInfo.dimensionColumn"></el-select>
 
-          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button>
+          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain  v-if="addType === 'cc'"></el-button>
           <el-form  class="cc-area" label-position="top" ref="ccForm" v-if="addType === 'cc'" >
             <el-form-item prop="name" class="ksd-mb-10">
               <span slot="label">{{$t('name')}}</span>
@@ -87,6 +87,10 @@ export default class SingleDimensionModal extends Vue {
   selectVal = ''
   dimensionInfo = {
     dimensionColumn: ''
+  }
+  @Watch('dimensionColumn')
+  initDimensionColumn () {
+    this.dimensionInfo.dimensionColumn = this.dimensionColumn
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {

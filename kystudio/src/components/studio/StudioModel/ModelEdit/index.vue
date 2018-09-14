@@ -156,7 +156,7 @@
         <div>
          <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
            <ul>
-             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{x.kind}}][{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
+             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
            </ul>
            <div class="ky-line"></div>
          </div>
@@ -502,15 +502,21 @@ export default class ModelEdit extends Vue {
     this.modelGlobalSearch = ''
     var moreInfo = select.more
     if (select.action === 'adddimension') {
-      var columnName = moreInfo.column
-      console.log(columnName)
-      this.showSingleDimensionDialog()
+      let columnName = moreInfo.name
+      this.showSingleDimensionDialog({
+        addType: '',
+        dimensionColumn: columnName
+      })
     }
     if (select.action === 'addmeasure') {
       this.measureVisible = true
     }
     if (select.action === 'editdimension') {
-      this.showSingleDimensionDialog()
+      let columnName = moreInfo.name
+      this.showSingleDimensionDialog({
+        addType: '',
+        dimensionColumn: columnName
+      })
     }
     if (select.action === 'editmeasure') {
       this.measureVisible = true
@@ -519,9 +525,31 @@ export default class ModelEdit extends Vue {
       this.showJoinDialog()
     }
     if (select.action === 'addjoin') {
+      // console
+      // let pguid = moreInfo.guid
+      // this.setLinkDialogData({
+      //   foreignTable: moreInfo.joinInfo[pguid].foreignTable,
+      //   primaryTable: moreInfo.joinInfo[pguid].table,
+      //   tables: this.modelRender.tables
+      // })
       this.showJoinDialog()
     }
     if (select.action === 'tableeditjoin') {
+      let pguid = moreInfo.guid
+      this.setLinkDialogData({
+        foreignTable: moreInfo.joinInfo[pguid].foreignTable,
+        primaryTable: moreInfo.joinInfo[pguid].table,
+        tables: this.modelRender.tables
+      })
+      this.showJoinDialog()
+    }
+    if (select.action === 'tableaddjoin') {
+      let pguid = moreInfo.guid
+      this.setLinkDialogData({
+        foreignTable: this.modelRender.tables[pguid],
+        primaryTable: {},
+        tables: this.modelRender.tables
+      })
       this.showJoinDialog()
     }
     this.panelAppear.search.display = false

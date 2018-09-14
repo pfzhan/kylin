@@ -7,7 +7,7 @@
         </div>
       </el-form-item>
       <el-form-item :label="$t('expression')">
-        <el-select class="measures-width" size="medium" v-model="measure.function.expression" @change="changeExpression">
+        <el-select :popper-append-to-body="false" class="measures-width" size="medium" v-model="measure.function.expression" @change="changeExpression">
           <el-option
             v-for="item in expressionsConf"
             :key="item.value"
@@ -17,7 +17,7 @@
         </el-select>
       </el-form-item>
       <el-form-item v-if="measure.function.expression === 'TOP_N'|| measure.function.expression === 'PERCENTILE_APPROX' || measure.function.expression === 'COUNT_DISTINCT'" :label="$t('returnType')" >
-        <el-select size="medium" v-model="measure.function.returntype" class="measures-width">
+        <el-select :popper-append-to-body="false" size="medium" v-model="measure.function.returntype" class="measures-width">
           <el-option
             v-for="(item, index) in getSelectDataType"
             :key="index"
@@ -31,7 +31,7 @@
         <el-tag type="info" class="measures-width" v-if="measure.function.parameter.type === 'constant'">1</el-tag>
         <el-row :gutter="10" v-else>
           <el-col :span="isHaveConverColumns ? 21 : 24">
-            <el-select :class="{
+            <el-select :popper-append-to-body="false" :class="{
             'measures-addCC': measure.function.expression !== 'COUNT_DISTINCT' && measure.function.expression !== 'TOP_N',
             'measures-width': measure.function.expression === 'COUNT_DISTINCT' || measure.function.expression === 'TOP_N'}"
             size="medium" v-model="measure.function.parameter.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
@@ -67,7 +67,7 @@
           </el-form-item>
           <el-form-item prop="returnType" class="ksd-mb-10">
             <span slot="label">Return Type <span v-if="!isEdit">: {{ccObject.returnType}}</span></span>
-            <el-select size="medium" v-model="ccObject.returnType" class="measures-width" v-if="isEdit">
+            <el-select :popper-append-to-body="false" size="medium" v-model="ccObject.returnType" class="measures-width" v-if="isEdit">
               <el-option
                 v-for="(item, index) in allReturnTypes"
                 :key="index"

@@ -133,7 +133,7 @@ import Scrollbar from 'smooth-scrollbar'
   },
   locales: {
     'en': {'kapManual': 'Kyligence Enterprise Manual', 'kylinManual': 'Apache Kylin Document', 'statistics': 'Total Query Statistics', 'messages': 'Messages', 'documentation': 'Documentation', 'viewAll': 'View All'},
-    'zh-cn': {'kapManual': 'KAP 操作手册', 'kylinManual': 'Apache Kylin 文档', 'statistics': '查询流量图', 'messages': '消息盒子', 'documentation': '使用文档', 'viewAll': '查看更多'}
+    'zh-cn': {'kapManual': 'Kyligence Enterprise 操作手册', 'kylinManual': 'Apache Kylin 文档', 'statistics': '查询流量图', 'messages': '消息盒子', 'documentation': '使用文档', 'viewAll': '查看更多'}
   }
 })
 export default class Overview extends Vue {

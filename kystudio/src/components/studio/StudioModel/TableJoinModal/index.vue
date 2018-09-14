@@ -2,24 +2,24 @@
   <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" v-event-stop  width="660px" :visible="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
-        <el-select style="width:100%" v-model="selectF">
+        <el-select :popper-append-to-body="false" style="width:100%" v-model="selectF">
           <el-option  v-for="(key, val) in form.tables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select style="width:100%" v-model="joinType">
+        <el-select :popper-append-to-body="false" style="width:100%" v-model="joinType">
           <el-option :value="key" v-for="(key, value) in linkKind" :key="key">{{key}}</el-option>
         </el-select>
       </el-col>
       <el-col :span="10">
-        <el-select style="width:100%" v-model="selectP">
+        <el-select :popper-append-to-body="false" style="width:100%" v-model="selectP">
           <el-option v-for="(key, val) in form.tables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
     </el-row>
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
-         <el-select  style="width:100%" v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+         <el-select :popper-append-to-body="false"  style="width:100%" v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in form.foreignTable.columns" :value="form.foreignTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
@@ -27,13 +27,14 @@
       <el-col :span="1" class="ksd-center" style="font-size:20px;">
          =
       </el-col>
-      <el-col :span="10">
-        <el-select style="width:100%" v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+      <el-col :span="9">
+        <el-select :popper-append-to-body="false" style="width:100%" v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="p in form.primaryTable.columns" :value="form.primaryTable.alias+'.'+p.name" :key="p.name" :label="p.name">
             </el-option>
           </el-select>
       </el-col>
-      <el-col :span="3" class="ksd-center">
+      <el-col :span="4" class="ksd-center">
+        <el-button  icon="el-icon-plus"></el-button>
           <el-button  icon="el-icon-delete"></el-button>
       </el-col>
     </el-row>
@@ -91,12 +92,18 @@ export default class TableJoinModal extends Vue {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
-      if (this.form.primaryTable) {
+      if (Object.keys(this.form.primaryTable).length) {
         var joinInfo = this.form.primaryTable.joinInfo[this.form.primaryTable.guid].join
-        this.joinType = joinInfo.type
-        this.selectF = this.form.foreignTable.alias
         this.selectP = this.form.primaryTable.alias
         this.joinColumns = joinInfo
+        this.joinType = joinInfo.type
+      } else {
+        this.joinType = 'INNER'
+        this.joinColumns.foreign_key = ['']
+        this.joinColumns.primary_key = ['']
+      }
+      if (this.form.foreignTable) {
+        this.selectF = this.form.foreignTable.alias
       }
     }
   }

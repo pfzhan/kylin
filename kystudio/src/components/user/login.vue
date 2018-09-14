@@ -18,8 +18,8 @@
             <p>{{$t('kapMsg')}}</p>
             <div class="ky-line"></div>
             <ul>
-              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">KAP Introduction</a></li>
-              <li><i class="el-icon-ksd-login_manual ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">KAP Manual</a></li>
+              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">Kyligence Enterprise Introduction</a></li>
+              <li><i class="el-icon-ksd-login_manual ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">Kyligence Enterprise Manual</a></li>
               <li><i class="el-icon-ksd-login_email ksd-fs-12"></i><a href="mailto:info@Kyligence.io">Contact Us</a></li>
             </ul>
           </div>
@@ -341,7 +341,7 @@ export default {
   },
   locales: {
     'en': {
-      welcome: 'Welcome to KAP',
+      welcome: 'Welcome to Kyligence Enterprise',
       kapMsg: 'Speed up Mission Critical Analytics Intelligently',
       loginIn: 'Login',
       userName: 'Username',
@@ -369,7 +369,7 @@ export default {
       expiredOn: 'Expired On:'
     },
     'zh-cn': {
-      welcome: '欢迎使用KAP',
+      welcome: '欢迎使用Kyligence Enterprise',
       kapMsg: '智能加速关键业务分析',
       loginIn: '登录',
       userName: '用户名',

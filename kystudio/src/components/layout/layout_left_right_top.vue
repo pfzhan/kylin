@@ -55,7 +55,7 @@
       </div>
       <div class="panel-content" id="scrollBox" >
         <div class="grid-content bg-purple-light">
-          <el-col :span="24" style="padding:20px 0; background: #f9fafc;" v-show="gloalProjectSelectShow" class="ksd-mb-20">
+          <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box">
             <!-- 面包屑在dashboard页面不显示 -->
             <el-breadcrumb separator="/" class="ksd-ml-30">
               <el-breadcrumb-item>
@@ -480,11 +480,16 @@ export default class LayoutLeftRightTop extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   .full-layout{
+    .bread-box {
+      padding:20px 0;
+      background: #f9fafc;
+      height: 54px;
+    }
     .grid-content.bg-purple-light {
       overflow: auto;
       height: 100%;
       .main-content {
-        height: calc(~"100% - 54px");
+        height: calc(~"100% - 74px");
         box-sizing: border-box;
       }
     }

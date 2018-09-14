@@ -37,7 +37,7 @@
       <el-table-column
         :label="$t('JobType')"
         sortable
-        :width="320"
+        :width="200"
         prop="jobname"
       >
         <template slot-scope="scope">
@@ -49,7 +49,7 @@
         sortable
         :min-width="180"
         show-overflow-tooltip
-        prop="display_cube_name">
+        prop="target_subject">
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
@@ -57,7 +57,7 @@
         :min-width="180"
         show-overflow-tooltip>
         <template slot-scope="scope">
-            {{scope.row.setDataRangeStart}} - {{scope.row.setDataRangeEnd}}
+            {{transToGmtTime(scope.row.data_range_start)}} - {{transToGmtTime(scope.row.data_range_end)}}
         </template>
       </el-table-column>
       <el-table-column
@@ -77,7 +77,7 @@
         </template>
       </el-table-column>
       <el-table-column
-        :width="180"
+        :width="140"
         :label="$t('Duration')">
         <template slot-scope="scope">
           {{scope.row.duration/60 | number(2) }}  mins
@@ -121,12 +121,6 @@
       <div class="timeline-item">
         <div class="timeline-body">
           <table class="table table-striped table-bordered ksd-table" cellpadding="0" cellspacing="0">
-            <tr>
-              <td class="single-line">{{$t('jobName')}}</td>
-              <td class="single-line greyd0">
-                {{selectedJob.name}}
-              </td>
-            </tr>
             <tr>
               <td>Job ID</td>
               <td class="single-line greyd0">
