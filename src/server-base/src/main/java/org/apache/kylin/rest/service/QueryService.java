@@ -93,6 +93,7 @@ import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.SetThreadName;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ModelDimensionDesc;
@@ -179,7 +180,7 @@ public class QueryService extends BasicService {
     }
 
     private static String getQueryKeyById(String project, String creator) {
-        return "/" + project + QUERY_STORE_PATH_PREFIX + creator;
+        return "/" + project + QUERY_STORE_PATH_PREFIX + creator + MetadataConstants.FILE_SURFIX;
     }
 
     @PostConstruct
@@ -267,8 +268,7 @@ public class QueryService extends BasicService {
                 QueryRecordSerializer.getInstance());
         if (record != null) {
             for (Query query : record.getQueries()) {
-                if (project == null || query.getProject().equals(project))
-                    queries.add(query);
+                queries.add(query);
             }
         }
         return queries;
@@ -1115,28 +1115,29 @@ public class QueryService extends BasicService {
         }
     }
 
-    @SuppressWarnings("serial")
-    class QueryRecord extends RootPersistentEntity {
+}
 
-        @JsonProperty()
-        private Query[] queries;
+@SuppressWarnings("serial")
+class QueryRecord extends RootPersistentEntity {
 
-        public QueryRecord() {
+    @JsonProperty()
+    private Query[] queries;
 
-        }
+    public QueryRecord() {
+        updateRandomUuid();
+    }
 
-        public QueryRecord(Query[] queries) {
-            this.queries = queries;
-        }
+    public QueryRecord(Query[] queries) {
+        updateRandomUuid();
+        this.queries = queries;
+    }
 
-        public Query[] getQueries() {
-            return queries;
-        }
+    public Query[] getQueries() {
+        return queries;
+    }
 
-        public void setQueries(Query[] queries) {
-            this.queries = queries;
-        }
-
+    public void setQueries(Query[] queries) {
+        this.queries = queries;
     }
 
 }

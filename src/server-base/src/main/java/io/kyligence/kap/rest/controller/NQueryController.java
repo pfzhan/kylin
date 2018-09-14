@@ -38,6 +38,8 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -50,7 +52,6 @@ import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -144,15 +145,15 @@ public class NQueryController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getSavedQueries(@RequestParam(value = "project", required = false) String project,
-            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit)
             throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
         List<Query> savedQueries = queryService.getSavedQueries(creator, project);
 
-        data.put("saved_queries", PagingUtil.cutPage(savedQueries, pageOffset, pageSize));
+        data.put("saved_queries", PagingUtil.cutPage(savedQueries, offset, limit));
         data.put("size", savedQueries.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
@@ -161,30 +162,26 @@ public class NQueryController extends NBasicController {
     @RequestMapping(value = "/history_queries", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAllQueryHistories(@RequestParam(value = "project", required = false) String project,
-                                              @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
-                                              @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize)
-        throws IOException {
-        HashMap<String, Object> data = new HashMap<>();
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(project);
-
-        data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
-        data.put("size", queryHistories.size());
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
-    }
-
-    @RequestMapping(value = "/history_queries", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
-    @ResponseBody
-    public EnvelopeResponse getFilteredQueryHistories(@RequestBody QueryFilterRequest request,
-                                                      @RequestParam(value = "pageOffset", required = false, defaultValue = "0") int pageOffset,
-                                                      @RequestParam(value = "pageSize", required = false, defaultValue = "10") int pageSize)
+    public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
+                                              @RequestParam(value = "startTimeFrom", required = false, defaultValue = "-1") long startTimeFrom,
+                                              @RequestParam(value = "startTimeTo", required = false, defaultValue = "-1") long startTimeTo,
+                                              @RequestParam(value = "latencyFrom", required = false, defaultValue = "-1") long latencyFrom,
+                                              @RequestParam(value = "latencyTo", required = false, defaultValue = "-1") long latencyTo,
+                                              @RequestParam(value = "sql", required = false) String sql,
+                                              @RequestParam(value = "realization[]", required = false) List<String> realizations,
+                                              @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
+                                              @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+                                              @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit)
             throws IOException {
         HashMap<String, Object> data = new HashMap<>();
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(request.getRules(), queryHistoryService.getQueryHistories(request.getProject()));
+        QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
+        List<QueryHistory> queryHistories;
+        if (rule != null)
+            queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(rule), queryHistoryService.getQueryHistories(project));
+        else
+            queryHistories = queryHistoryService.getQueryHistories(project);
 
-        data.put("query_histories", PagingUtil.cutPage(queryHistories, pageOffset, pageSize));
+        data.put("query_histories", PagingUtil.cutPage(queryHistories, offset, limit));
         data.put("size", queryHistories.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");

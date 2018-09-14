@@ -54,13 +54,16 @@ import java.util.Objects;
 public class QueryHistory extends RootPersistentEntity implements Comparable<QueryHistory> {
     public static final String ADJ_SLOW = "Slow";
     public static final String ADJ_PUSHDOWN = "Pushdown";
+    public static final String QUERY_HISTORY_UNACCELERATED = "NEW";
+    public static final String QUERY_HISTORY_ACCELERATED = "FULLY_ACCELERATED";
 
     @JsonProperty("sql")
     private String sql;
     @JsonProperty("start_time")
     private long startTime;
     @JsonProperty("latency")
-    private float latency;
+    //todo: change to long
+    private long latency;
     @JsonProperty("realization")
     private List<String> realization;
     @JsonProperty("query_node")
@@ -92,8 +95,8 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     @JsonProperty("cube_hit")
     private boolean isCubeHit = false;
 
-    public QueryHistory(String queryId, String sql, long startTime, float latency, String queryNode, String thread,
-            String user) {
+    public QueryHistory(String queryId, String sql, long startTime, long latency, String queryNode, String thread,
+                        String user) {
         this.queryId = queryId;
         this.updateRandomUuid();
         this.sql = sql;
@@ -132,11 +135,11 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
         this.startTime = startTime;
     }
 
-    public float getLatency() {
+    public long getLatency() {
         return latency;
     }
 
-    public void setLatency(float latency) {
+    public void setLatency(long latency) {
         this.latency = latency;
     }
 

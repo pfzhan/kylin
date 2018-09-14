@@ -148,8 +148,10 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                     if (CollectionUtils.isEmpty(segmentRangeList)) {
                         return null;
                     }
-                    NDataSegment oneSeg = NDataflowManager.getInstance(kylinConfig, project).appendSegment(df, segmentRange);
-                    toBeProcessedSegments.add(oneSeg);
+                    for (SegmentRange range : segmentRangeList) {
+                        NDataSegment oneSeg = NDataflowManager.getInstance(kylinConfig, project).appendSegment(df, range);
+                        toBeProcessedSegments.add(oneSeg);
+                    }
                 }
             }
         }

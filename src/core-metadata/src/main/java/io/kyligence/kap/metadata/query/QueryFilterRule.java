@@ -87,6 +87,17 @@ public class QueryFilterRule extends RootPersistentEntity {
         private String rightThreshold;
         private String leftThreshold;
 
+        public QueryHistoryCond() {
+
+        }
+
+        public QueryHistoryCond(Operation op, String field, String leftThreshold, String rightThreshold) {
+            this.op = op;
+            this.field = field;
+            this.leftThreshold = leftThreshold;
+            this.rightThreshold = rightThreshold;
+        }
+
         public Operation getOp() {
             return op;
         }

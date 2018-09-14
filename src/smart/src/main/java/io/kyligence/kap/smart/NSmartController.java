@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.commons.lang.StringUtils;
@@ -46,7 +45,7 @@ public class NSmartController {
         List<String> sqls = new ArrayList<>(entries.size());
         for (QueryHistory entry : entries) {
             // TODO
-            if (!StringUtils.equals(entry.getAccelerateStatus(), FavoriteQueryStatusEnum.FULLY_ACCELERATED.toString()) &&
+            if (!StringUtils.equals(entry.getAccelerateStatus(), QueryHistory.QUERY_HISTORY_ACCELERATED) &&
                     entry.getRealization() != null && StringUtils.equals(entry.getRealization().get(0), QueryHistory.ADJ_PUSHDOWN)) {
                 sqls.add(entry.getSql());
                 toOptimize.add(entry);
@@ -57,7 +56,7 @@ public class NSmartController {
         master.runAll();
 
         for (QueryHistory entry : toOptimize) {
-            entry.setAccelerateStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED.toString());
+            entry.setAccelerateStatus(QueryHistory.QUERY_HISTORY_ACCELERATED);
         }
 
         manager.saveAll(toOptimize);

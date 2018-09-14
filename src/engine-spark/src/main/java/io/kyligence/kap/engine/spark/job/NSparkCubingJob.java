@@ -53,8 +53,8 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
         job.setJobType(JobTypeEnum.SPARKING_CUBING.toString());
-        long startTime = 0L;
-        long endTime = Long.MAX_VALUE - 1;
+        long startTime = Long.MAX_VALUE - 1;
+        long endTime = 0L;
         for (NDataSegment segment : segments) {
             startTime = startTime < Long.parseLong(segment.getSegRange().getStart().toString()) ? startTime
                     : Long.parseLong(segment.getSegRange().getStart().toString());

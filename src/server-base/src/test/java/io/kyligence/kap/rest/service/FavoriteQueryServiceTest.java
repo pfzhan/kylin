@@ -48,6 +48,7 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -218,7 +219,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAll() throws IOException {
+    public void testGetAllFavorites() throws IOException {
         final QueryHistoryManager queryHistoryManager = Mockito.mock(QueryHistoryManager.class);
         final FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
 
@@ -249,6 +250,28 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetAutomaticConfig() throws IOException {
+        Assert.assertFalse(favoriteQueryService.getMarkAutomatic(PROJECT));
+        favoriteQueryService.markAutomatic(PROJECT);
+        Assert.assertTrue(favoriteQueryService.getMarkAutomatic(PROJECT));
+        favoriteQueryService.markAutomatic(PROJECT);
+        Assert.assertFalse(favoriteQueryService.getMarkAutomatic(PROJECT));
+    }
+
+    @Test
+    public void testDeleteRule() throws IOException {
+        try {
+            favoriteQueryService.deleteQueryFilterRule(PROJECT, "not_existing_rule_id");
+        } catch (Throwable e) {
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), "not_existing_rule_id"), e.getMessage());
+        }
+
+        QueryFilterRule rule = favoriteQueryService.getQueryFilterRules(PROJECT).get(0);
+        favoriteQueryService.deleteQueryFilterRule(PROJECT, rule.getUuid());
+        Assert.assertEquals(0, favoriteQueryService.getQueryFilterRules(PROJECT).size());
+    }
+
+    @Test
     public void testApplyAll() throws IOException {
         List<QueryFilterRule> rules = rulesForTest();
         stubQueryFilterRule(rules);
@@ -260,17 +283,38 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAccelerateTips() {
-        stubUnAcceleratedFavorites();
+    public void testEnableRule() throws IOException {
+        QueryFilterRule rule = new QueryFilterRule();
+        rule.setName("test_rule");
+        rule.setEnabled(false);
 
-        HashMap<String, Object> data = favoriteQueryService.getAccelerateTips("newten");
-        Assert.assertEquals(4, data.get("size"));
-        Assert.assertEquals(false, data.get("reach_threshold"));
-        Assert.assertEquals(1, data.get("optimized_model_num"));
+        QueryFilterRuleManager queryFilterRuleManager = Mockito.mock(QueryFilterRuleManager.class);
+        Mockito.when(queryFilterRuleManager.get(rule.getUuid())).thenReturn(rule);
+        Mockito.when(favoriteQueryService.getQueryFilterRuleManager(PROJECT)).thenReturn(queryFilterRuleManager);
+
+        favoriteQueryService.enableQueryFilterRule(PROJECT, rule.getUuid());
+        Assert.assertTrue(rule.isEnabled());
     }
 
     @Test
-    public void acceptAccelerate() {
+    public void testGetAccelerateTips() {
+        stubUnAcceleratedFavorites();
+
+        HashMap<String, Object> newten_data = favoriteQueryService.getAccelerateTips("newten");
+        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(false, newten_data.get("reach_threshold"));
+        Assert.assertEquals(1, newten_data.get("optimized_model_num"));
+
+        // if there is no unAcceleratedQueries
+        Mockito.when(favoriteQueryService.getUnAcceleratedQueries(PROJECT)).thenReturn(new ArrayList<FavoriteQuery>());
+        HashMap<String, Object> default_data = favoriteQueryService.getAccelerateTips(PROJECT);
+        Assert.assertEquals(0, default_data.get("size"));
+        Assert.assertEquals(false, default_data.get("reach_threshold"));
+        Assert.assertEquals(0, default_data.get("optimized_model_num"));
+    }
+
+    @Test
+    public void testAcceptAccelerate() {
         getTestConfig().setProperty("kylin.server.mode", "query");
         Mockito.when(favoriteQueryService.getUnAcceleratedQueries(PROJECT)).thenReturn(favoritesForTest());
         try {
@@ -289,6 +333,15 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testIgnoreAccelerateTips() {
+        Assert.assertFalse(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
+        favoriteQueryService.getAccelerateTips(PROJECT);
+        Assert.assertTrue(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
+        favoriteQueryService.ignoreAccelerate(PROJECT);
+        Assert.assertEquals(2, (int) favoriteQueryService.getIgnoreCountMap().get(PROJECT));
+    }
+
+    @Test
     public void testAutoMarkFavorite() throws Exception {
         FavoriteQueryService.AutoMarkFavorite autoMarkFavorite = favoriteQueryService.new AutoMarkFavorite();
         QueryHistory queryHistory = new QueryHistory();
@@ -302,7 +355,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         cond.setField("queryId");
         cond.setRightThreshold("auto-mark-favorite-query-id");
         QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond), "test_rule", true);
-        favoriteQueryService.saveQueryFilterRule(PROJECT, Lists.newArrayList(rule));
+        favoriteQueryService.saveQueryFilterRule(PROJECT, rule);
         System.setProperty("kylin.favorite.auto-mark-detection-interval", "1");
         favoriteQueryService.markAutomatic(PROJECT);
 
@@ -312,7 +365,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertNotNull(queryHistoryManager.findQueryHistory(queryHistory.getUuid()).getFavorite());
         autoMarkFavorite.interrupt();
-        favoriteQueryService.deleteQueryFilterRule(PROJECT, Lists.newArrayList(rule.getUuid()));
+        favoriteQueryService.deleteQueryFilterRule(PROJECT, rule.getUuid());
         favoriteQueryService.markAutomatic(PROJECT);
         System.clearProperty("kylin.favorite.auto-mark-detection-interval");
     }

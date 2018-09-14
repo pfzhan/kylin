@@ -29,7 +29,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
@@ -51,6 +51,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Component("queryHistoryService")
@@ -76,6 +77,7 @@ public class QueryHistoryService extends BasicService {
 
         if (sqlResponse.getIsException()) {
             queryHistory.setQueryStatus(QueryHistoryStatusEnum.FAILED);
+            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
             getQueryHistoryManager(project).save(queryHistory);
             return;
         }
@@ -85,7 +87,7 @@ public class QueryHistoryService extends BasicService {
 
         if (sqlResponse.isPushDown()) {
             queryHistory.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-            queryHistory.setAccelerateStatus(FavoriteQueryStatusEnum.WAITING.toString());
+            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
         } else {
             queryHistory.setCubeHit(true);
 
@@ -102,7 +104,7 @@ public class QueryHistoryService extends BasicService {
 
             queryHistory.setRealization(realization);
             queryHistory.setModelName(modelNames.toString());
-            queryHistory.setAccelerateStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED.toString());
+            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_ACCELERATED);
         }
 
         queryHistory.setQueryStatus(QueryHistoryStatusEnum.SUCCEEDED);
@@ -149,30 +151,24 @@ public class QueryHistoryService extends BasicService {
 
         switch (cond.getOp()) {
             case GREATER:
-                if (value instanceof Float) {
-                    return (float) value > Float.valueOf(cond.getRightThreshold());
-                } else if (value instanceof Long) {
+                if (value instanceof Long) {
                     return (long) value > Long.valueOf(cond.getRightThreshold());
                 } else
                     throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
             case LESS:
-                if (value instanceof Float) {
-                    return (float) value < Float.valueOf(cond.getRightThreshold());
-                } else if (value instanceof Long) {
+                if (value instanceof Long) {
                     return (long) value < Long.valueOf(cond.getRightThreshold());
                 } else
                     throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
             case EQUAL:
-                if (value instanceof Float) {
-                    return (float) value == Float.valueOf(cond.getRightThreshold());
+                if (value instanceof Long) {
+                    return (long) value == Long.valueOf(cond.getRightThreshold());
                 } else
                     return value.toString().equals(cond.getRightThreshold());
             case CONTAIN:
                 return value.toString().contains(cond.getRightThreshold());
             case TO:
-                if (value instanceof Float) {
-                    return (float) value > Float.valueOf(cond.getLeftThreshold()) && (float) value < Float.valueOf(cond.getRightThreshold());
-                } else if (value instanceof Long) {
+                if (value instanceof Long) {
                     return (long) value > Long.valueOf(cond.getLeftThreshold()) && (long) value < Long.valueOf(cond.getRightThreshold());
                 } else
                     throw new IllegalArgumentException("Wrong field type " + value.getClass().getName());
@@ -184,17 +180,37 @@ public class QueryHistoryService extends BasicService {
     public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules, final List<QueryHistory> queryHistories) throws IOException {
         List<Predicate<QueryHistory>> andPredicates = Lists.newArrayList();
         List<Predicate<QueryHistory>> orPredicates = Lists.newArrayList();
+        Predicate<QueryHistory> predicate = null;
 
-        if (rules == null)
+        if (rules == null || rules.size() == 0)
             return queryHistories;
 
         for (final QueryFilterRule rule : rules) {
             andPredicates.clear();
-            for (final QueryFilterRule.QueryHistoryCond cond : rule.getConds()) {
-                Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+            // handle the case when multiple conds filter the same field
+            Map<String, List<QueryFilterRule.QueryHistoryCond>> condsMap = Maps.newHashMap();
+            for (QueryFilterRule.QueryHistoryCond cond : rule.getConds()) {
+                if (!condsMap.containsKey(cond.getField())) {
+                    condsMap.put(cond.getField(), Lists.newArrayList(cond));
+                } else {
+                    List<QueryFilterRule.QueryHistoryCond> conds = condsMap.get(cond.getField());
+                    conds.add(cond);
+                    condsMap.put(cond.getField(), conds);
+                }
+            }
+
+            for (final Map.Entry<String, List<QueryFilterRule.QueryHistoryCond>> entry : condsMap.entrySet()) {
+                predicate = new Predicate<QueryHistory>() {
                     @Override
                     public boolean apply(@Nullable QueryHistory queryHistory) {
-                        return compare(cond, queryHistory, queryHistories);
+                        boolean result = false;
+                        for (QueryFilterRule.QueryHistoryCond cond : entry.getValue()) {
+                            result = result || compare(cond, queryHistory, queryHistories);
+                            if (result)
+                                return result;
+                        }
+
+                        return result;
                     }
                 };
 
@@ -202,12 +218,15 @@ public class QueryHistoryService extends BasicService {
                     andPredicates.add(predicate);
             }
 
-            orPredicates.add(Predicates.and(andPredicates));
+            if (andPredicates != null && andPredicates.size() != 0)
+                orPredicates.add(Predicates.and(andPredicates));
         }
 
-        List<QueryHistory> filteredQueries = Lists.newArrayList(Iterables.filter(queryHistories, Predicates.or(orPredicates)));
+        if (orPredicates != null && orPredicates.size() != 0) {
+            return Lists.newArrayList(Iterables.filter(queryHistories, Predicates.or(orPredicates)));
+        } else
+            return queryHistories;
 
-        return filteredQueries;
     }
 
     private List<String> getDailyQueriesSqls(List<QueryHistory> queryHistories) {
@@ -223,5 +242,73 @@ public class QueryHistoryService extends BasicService {
         }
 
         return sqls;
+    }
+
+    public QueryFilterRule parseQueryFilterRuleRequest(long startTimeFrom, long startTimeTo, long latencyFrom, long latencyTo, String sql, List<String> realizations, List<String> accelerateStatuses) {
+        List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList();
+        if (startTimeFrom != -1 && startTimeTo != -1) {
+            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+            cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.TO);
+            cond.setField("startTime");
+            cond.setLeftThreshold(String.valueOf(startTimeFrom));
+            cond.setRightThreshold(String.valueOf(startTimeTo));
+            conds.add(cond);
+        }
+
+        if (latencyFrom != -1 && latencyTo != -1) {
+            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+            cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.TO);
+            cond.setField("latency");
+            cond.setLeftThreshold(String.valueOf(latencyFrom*1000));
+            cond.setRightThreshold(String.valueOf(latencyTo*1000));
+            conds.add(cond);
+        }
+
+        if (sql != null && StringUtils.isNotBlank(sql)) {
+            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+            cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.CONTAIN);
+            cond.setField("sql");
+            cond.setRightThreshold(sql);
+            conds.add(cond);
+        }
+
+        if (realizations != null && realizations.size() != 0) {
+            for (String realization : realizations) {
+                if (realization != null) {
+                    QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+                    cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
+                    cond.setField("isCubeHit");
+                    if (realization.equals("pushdown")) {
+                        cond.setRightThreshold("false");
+                        conds.add(cond);
+                    } else if(realization.equals("modelName")) {
+                        cond.setRightThreshold("true");
+                        conds.add(cond);
+                    } else
+                        throw new IllegalArgumentException();
+                }
+            }
+
+        }
+
+        if (accelerateStatuses != null && accelerateStatuses.size() != 0) {
+            for (String accelerateStatus : accelerateStatuses) {
+                if (accelerateStatus != null) {
+                    QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+                    cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
+                    cond.setField("accelerateStatus");
+                    cond.setRightThreshold(accelerateStatus);
+                    conds.add(cond);
+                }
+            }
+
+        }
+
+        if (conds.size() == 0)
+            return null;
+
+        QueryFilterRule rule = new QueryFilterRule();
+        rule.setConds(conds);
+        return rule;
     }
 }

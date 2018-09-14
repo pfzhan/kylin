@@ -25,9 +25,7 @@
 package io.kyligence.kap.server;
 
 
-import com.google.common.collect.Lists;
 import com.jayway.jsonpath.JsonPath;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
@@ -36,7 +34,6 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
-import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.Assert;
 import org.junit.Test;
@@ -176,39 +173,15 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
     @Test
     public void testGetQueryHistory() throws Exception {
-        QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), "default");
-        List<QueryHistory> queryHistories = manager.getAllQueryHistories();
-
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default")
+                .param("startTimeFrom", "1459362230010")
+                .param("startTimeTo", "1459362239990")
+                .param("accelerateStatus[]", QueryHistory.QUERY_HISTORY_UNACCELERATED)
+                .param("accelerateStatus[]", QueryHistory.QUERY_HISTORY_ACCELERATED)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(queryHistories.size()))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].uuid").value(queryHistories.get(0).getUuid()));
-    }
-
-    @Test
-    public void testGetFilterQueryHistory() throws Exception {
-        QueryFilterRequest request = new QueryFilterRequest();
-        request.setProject("default");
-        QueryFilterRule.QueryHistoryCond cond1 = new QueryFilterRule.QueryHistoryCond();
-        cond1.setOp(QueryFilterRule.QueryHistoryCond.Operation.TO);
-        cond1.setField("startTime");
-        cond1.setLeftThreshold("1459362230010");
-        cond1.setRightThreshold("1459362239990");
-        QueryFilterRule.QueryHistoryCond cond2 = new QueryFilterRule.QueryHistoryCond();
-        cond2.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
-        cond2.setField("realization");
-        cond2.setRightThreshold("[Pushdown]");
-        QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond1, cond2), "test_rule", false);
-        request.setRules(Lists.newArrayList(rule));
-
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", "default")
-                .content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(2))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].query_id").value("query-1"));
 
     }

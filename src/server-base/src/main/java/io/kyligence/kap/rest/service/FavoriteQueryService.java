@@ -64,6 +64,7 @@ import java.util.Map;
 @Component("favoriteQueryService")
 public class FavoriteQueryService extends BasicService {
     AutoMarkFavorite autoMarkFavorite = new AutoMarkFavorite();
+    private Map<String, Integer> ignoreCountMap = Maps.newHashMap();
 
     @Autowired
     @Qualifier("queryHistoryService")
@@ -122,7 +123,6 @@ public class FavoriteQueryService extends BasicService {
                 }
 
                 queryHistory.setFavorite(favoriteQuery.getUuid());
-                queryHistory.setAccelerateStatus(favoriteQuery.getStatus().toString());
                 getQueryHistoryManager(project).save(queryHistory);
             }
         }
@@ -228,30 +228,37 @@ public class FavoriteQueryService extends BasicService {
     public HashMap<String, Object> getAccelerateTips(String project) {
         HashMap<String, Object> data = Maps.newHashMap();
         List<FavoriteQuery> unAcceleratedQueries = getUnAcceleratedQueries(project);
-        String[] sqls = new String[unAcceleratedQueries.size()];
-        for (int i = 0; i < unAcceleratedQueries.size(); i++) {
-            sqls[i] = unAcceleratedQueries.get(i).getSql();
-        }
         int optimized_model_num = 0;
-        NSmartMaster smartMaster = getSmartMaster(project, sqls);
-        smartMaster.analyzeSQLs();
-        smartMaster.selectModel();
-        smartMaster.optimizeModel();
 
-        for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
-            if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
-                    || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
-                optimized_model_num ++;
+        if (unAcceleratedQueries.size() > 0) {
+            String[] sqls = new String[unAcceleratedQueries.size()];
+            for (int i = 0; i < unAcceleratedQueries.size(); i++) {
+                sqls[i] = unAcceleratedQueries.get(i).getSql();
+            }
+            NSmartMaster smartMaster = getSmartMaster(project, sqls);
+            smartMaster.analyzeSQLs();
+            smartMaster.selectModel();
+            smartMaster.optimizeModel();
+
+            for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
+                if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
+                        || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
+                    optimized_model_num ++;
+                }
             }
         }
 
         data.put("size", unAcceleratedQueries.size());
-        data.put("unAccelerated_queries", unAcceleratedQueries);
         data.put("reach_threshold", false);
         data.put("optimized_model_num", optimized_model_num);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
-        if (unAcceleratedQueries.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold())
+        int ignoreCount = 1;
+        if (ignoreCountMap.containsKey(project))
+            ignoreCount = ignoreCountMap.get(project);
+        else
+            ignoreCountMap.put(project, 1);
+        if (unAcceleratedQueries.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold() * ignoreCount)
             data.put("reach_threshold", true);
 
         return data;
@@ -270,7 +277,24 @@ public class FavoriteQueryService extends BasicService {
             getFavoriteQueryManager(project).update(favoriteQuery);
         }
 
+        if (ignoreCountMap.containsKey(project))
+            ignoreCountMap.put(project, 1);
+
         post(project, sqls, true);
+    }
+
+    public void ignoreAccelerate(String project) {
+        if (!ignoreCountMap.containsKey(project)) {
+            ignoreCountMap.put(project, 1);
+        } else {
+            int ignoreCount = ignoreCountMap.get(project);
+            ignoreCount ++;
+            ignoreCountMap.put(project, ignoreCount);
+        }
+    }
+
+    Map<String, Integer> getIgnoreCountMap() {
+        return ignoreCountMap;
     }
 
     void post(String project, Map<String, String> sqls, boolean favoriteMark) throws PersistentException {
@@ -287,24 +311,31 @@ public class FavoriteQueryService extends BasicService {
         return getQueryFilterRuleManager(project).getAll();
     }
 
-    public void saveQueryFilterRule(String project, List<QueryFilterRule> rules) throws IOException {
+    public void saveQueryFilterRule(String project, QueryFilterRule rule) throws IOException {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
-        QueryFilterRuleManager manager = getQueryFilterRuleManager(project);
-        for (QueryFilterRule rule : rules) {
-            manager.save(rule);
-        }
+        getQueryFilterRuleManager(project).save(rule);
     }
 
-    public void deleteQueryFilterRule(String project, List<String> ruleIds) throws IOException {
+    public void enableQueryFilterRule(String project, String uuid) throws IOException {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
         QueryFilterRuleManager manager = getQueryFilterRuleManager(project);
-        for (String ruleId : ruleIds) {
-            QueryFilterRule rule = manager.get(ruleId);
-            if (rule != null)
-                manager.delete(rule);
-            else
-                throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), ruleId));
-        }
+        QueryFilterRule rule = manager.get(uuid);
+        if (rule == null)
+            throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), uuid));
+
+        boolean isEnabled = rule.isEnabled();
+        rule.setEnabled(!isEnabled);
+        manager.save(rule);
+    }
+
+    public void deleteQueryFilterRule(String project, String ruleId) throws IOException {
+        Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
+        QueryFilterRuleManager manager = getQueryFilterRuleManager(project);
+        QueryFilterRule rule = manager.get(ruleId);
+        if (rule != null)
+            manager.delete(rule);
+        else
+            throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), ruleId));
     }
 
     public List<QueryHistory> getCandidates(String project) throws IOException {
@@ -337,6 +368,12 @@ public class FavoriteQueryService extends BasicService {
         overrideConfig.put("kylin.favorite.auto-mark", String.valueOf(!isMarkAutomatic));
         getProjectManager().updateProject(projectInstance, projectInstance.getName(), projectInstance.getDescription(),
                 overrideConfig);
+    }
+
+    public boolean getMarkAutomatic(String project) {
+        Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
+        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        return projectInstance.getConfig().isAutoMarkFavorite();
     }
 
     public class AutoMarkFavorite extends Thread {

@@ -24,27 +24,35 @@
 
 package org.apache.kylin.rest.request;
 
-import io.kyligence.kap.metadata.query.QueryFilterRule;
 import java.io.Serializable;
+import java.util.List;
 
-public class QueryFilterRequest implements Serializable {
-
+public class FavoriteRequest implements Serializable {
     private String project;
-    private QueryFilterRule rule;
+    private List<String> uuids;
+
+    public FavoriteRequest() {
+
+    }
+
+    public FavoriteRequest(String project, List<String> uuids) {
+        this.project = project;
+        this.uuids = uuids;
+    }
 
     public String getProject() {
         return project;
-    }
-
-    public QueryFilterRule getRule() {
-        return rule;
     }
 
     public void setProject(String project) {
         this.project = project;
     }
 
-    public void setRule(QueryFilterRule rule) {
-        this.rule = rule;
+    public List<String> getUuids() {
+        return uuids;
+    }
+
+    public void setUuids(List<String> uuids) {
+        this.uuids = uuids;
     }
 }

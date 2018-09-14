@@ -11,6 +11,6 @@
       "user" : "ADMIN",
       "query_status" : "SUCCEEDED",
       "favorite" : "bd3285c9-55e3-4f2d-a12c-742a8d631195",
-      "accelerate_status": "WAITING",
+      "accelerate_status": "FULLY_ACCELERATED",
       "query_id": "query-1"
 }

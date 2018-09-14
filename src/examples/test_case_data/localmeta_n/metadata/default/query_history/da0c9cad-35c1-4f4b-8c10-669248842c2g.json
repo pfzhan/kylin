@@ -10,6 +10,6 @@
       "thread": "t-0",
       "user": "ADMIN",
       "query_status": "FAILED",
-      "accelerate_status": "WAITING",
+      "accelerate_status": "NEW",
       "query_id": "query-4"
 }

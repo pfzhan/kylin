@@ -237,7 +237,7 @@ public class SlowQueryDetector extends Thread {
 
         @Override
         public void slowQueryFound(float runningSec, long startTime, String project, String sql, String user, Thread t) throws IOException {
-                QueryHistory entry = new QueryHistory(QueryContext.current().getQueryId(), sql, startTime, runningSec,
+                QueryHistory entry = new QueryHistory(QueryContext.current().getQueryId(), sql, startTime, (long) runningSec,
                         serverHostname, t.getName(), user);
                 entry.setQueryStatus(QueryHistoryStatusEnum.FAILED);
                 QueryHistoryManager.getInstance(kylinConfig, project).save(entry);
