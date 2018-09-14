@@ -60,7 +60,7 @@
                 </div>
                 <div>
                   <span class="label">Realization:</span>
-                  <span class="realization-detail" @click="openAgg">{{props.row.realization | arrayToStr}}</span>
+                  <span class="realization-detail" @click="openAgg(props.row)">{{props.row.realization | arrayToStr}}</span>
                 </div>
                 <div>
                   <span class="label">Content:</span>
@@ -415,8 +415,10 @@ export default class QueryHistoryTable extends Vue {
   handleSelectionChange (rows) {
     this.$emit('selectionChanged', rows)
   }
-  openAgg () {
-    this.$emit('openAgg')
+  openAgg (queryHistory) {
+    if (queryHistory.realization.length && queryHistory.realization.includes('Aggregate Index')) {
+      this.$emit('openAgg', queryHistory)
+    }
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
