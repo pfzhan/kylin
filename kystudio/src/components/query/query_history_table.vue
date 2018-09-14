@@ -35,7 +35,9 @@
         <template slot-scope="props">
           <div class="detail-title">
             <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
-            <span class="ksd-fright">Help <i class="el-icon-question"></i></span>
+            <!-- <span class="ksd-fright">Help 
+              <i class="el-icon-question"></i>
+            </span> -->
           </div>
           <div class="detail-content">
             <el-row :gutter="20">
@@ -50,9 +52,9 @@
                 </div>
                 <div>
                   <span class="label">{{$t('kylinLang.query.sqlContent')}}</span>
+                </div>
                   <kap_editor height="130" width="80%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
                   </kap_editor>
-                </div>
               </el-col>
               <el-col :span="10">
                 <div>
@@ -112,7 +114,7 @@
         <template slot-scope="props">
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
-            'el-icon-ksd-acclerate_ready': props.row.accelerate_status === 'NEW'
+            'el-icon-ksd-negative': props.row.accelerate_status === 'NEW'
           }"></i>
         </template>
       </el-table-column>
@@ -130,7 +132,10 @@
           <hr></hr>
           <div class="ksd-mb-16">
             <span>{{$t('ruleConditions')}}</span>
-            <i class="el-icon-ksd-what"></i>
+            <el-tooltip placement="right">
+              <div slot="content" v-html="$t('ruleDesc')"></div>
+              <i class="el-icon-ksd-what"></i>
+            </el-tooltip>
           </div>
           <el-form-item v-for="(con, index) in formRule.conds" :key="index" class="con-form-item">
             <el-row :gutter="10">
@@ -204,8 +209,8 @@ import { Component, Watch } from 'vue-property-decorator'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.'},
-    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。'}
+    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.'},
+    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。'}
   }
 })
 export default class QueryHistoryTable extends Vue {

@@ -27,7 +27,7 @@
               </div>
               <div class="kap-layer">Kyligence Enterprise</div>
               <div class="gif-layer">
-                <img src="../../assets/img/renderDown.gif" height="240" width="620">
+                <img src="../../assets/img/renderDown.gif" height="240" width="570">
               </div>
               <el-row class="analysis-layer">
                 <el-col :span="12" class="analysis-before">
@@ -210,9 +210,9 @@ export default class Overview extends Vue {
       height: 843px;
       .statistics-body {
         text-align: center;
-        padding: 30px;
+        padding: 30px 0;
         .statistics-center {
-          width: 760px;
+          width: 700px;
           height: 700px;
           margin: 0 auto;
           // border: 1px solid @line-border-color;
@@ -260,7 +260,7 @@ export default class Overview extends Vue {
           }
           .analysis-layer {
             margin: 0 auto;
-            width: 760px;
+            width: 700px;
             height: 270px;
             overflow: hidden;
             .percent {
@@ -307,7 +307,7 @@ export default class Overview extends Vue {
             .analysis-after {
               padding: 15px 10px;
               height: 270px;
-              margin-left: 31px;
+              margin-left: 29px;
               border: 1px solid @base-color;
               background-color: @base-color-9;
               color: @base-color;

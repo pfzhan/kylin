@@ -268,7 +268,7 @@ exports.default = {
     status: '状态：',
     startTime: '开始时间：',
     duration: '查询执行时间：',
-    sqlContent: 'SQL语句:',
+    sqlContent: 'SQL语句：',
     realization: '查询对象：',
     content: '内容：',
     project: '项目：',

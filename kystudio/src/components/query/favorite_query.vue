@@ -2,7 +2,11 @@
   <div id="favoriteQuery">
     <div class="clearfix ksd-mb-10">
       <div class="ksd-fleft table-title">
-        <span>{{$t('kylinLang.menu.favorite_query')}} <i class="el-icon-ksd-what"></i></span>
+        <span>{{$t('kylinLang.menu.favorite_query')}}</span>
+        <el-tooltip placement="right">
+          <div slot="content">{{$t('favDesc')}}</div>
+          <i class="el-icon-ksd-what"></i>
+        </el-tooltip>
       </div>
       <div class="ksd-fright btn-group">
         <el-button size="medium" icon="el-icon-ksd-query_add" plain type="primary" @click="openCandidateList">{{$t('addCandidate')}}</el-button>
@@ -86,8 +90,8 @@ import queryHistoryTable from './query_history_table'
     'query_history_table': queryHistoryTable
   },
   locales: {
-    'en': {addCandidate: 'Add Candidate Query', import: 'Input', remove: 'Remove', candidateQuery: 'Candidate Query'},
-    'zh-cn': {addCandidate: '添加查询', import: '导入查询文件', remove: '删除查询', candidateQuery: '待选查询'}
+    'en': {addCandidate: 'Add Candidate Query', import: 'Input', remove: 'Remove', candidateQuery: 'Candidate Query', favDesc: 'Critical SQL statement for business. System will create aggregate index or table index to serve them and do pre-computing to improve query performance.'},
+    'zh-cn': {addCandidate: '添加查询', import: '导入查询文件', remove: '删除查询', candidateQuery: '待选查询', favDesc: '重要SQL语句的列表。系统针对加速查询中的SQL对应生成聚合索引（agggregate index）或明细表索引（table index），通过预计算索引提升SQL查询响应速度。'}
   }
 })
 export default class FavoriteQuery extends Vue {
