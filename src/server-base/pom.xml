@@ -224,7 +224,7 @@
             <artifactId>swagger-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-event</artifactId>
         </dependency>
     </dependencies>

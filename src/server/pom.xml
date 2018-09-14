@@ -354,7 +354,7 @@
         </dependency>
 
         <dependency>
-            <groupId>io.kyligence.kap</groupId>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-source-hive</artifactId>
         </dependency>
         <dependency>
