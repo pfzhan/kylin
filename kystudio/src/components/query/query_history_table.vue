@@ -99,8 +99,8 @@
       </el-table-column>
       <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
         <template slot-scope="props">
-          <span v-if="props.row.latency < 1 && props.row.query_status === 'SUCCEEDED'">< 1s</span>
-          <span v-if="props.row.latency > 1 && props.row.query_status === 'SUCCEEDED'">{{props.row.latency / 1000}}s</span>
+          <span v-if="props.row.latency < 1000 && props.row.query_status === 'SUCCEEDED'">< 1s</span>
+          <span v-if="props.row.latency >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.latency / 1000 | fixed(2)}}s</span>
           <span v-if="props.row.query_status === 'FAILED'">Failed</span>
         </template>
       </el-table-column>
