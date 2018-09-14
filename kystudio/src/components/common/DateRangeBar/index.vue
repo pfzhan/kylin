@@ -49,7 +49,8 @@ export default class DateRangeBar extends Vue {
     return {
       width: `${range.width}px`,
       left: `${range.left}px`,
-      background: range.color
+      backgroundColor: range.color,
+      backgroundImage: `url(${range.backgroundImage})`
     }
   }
   getRangePointStyle (range) {
@@ -111,21 +112,13 @@ export default class DateRangeBar extends Vue {
   position: relative;
   width: 100%;
   height: 8px;
-  background: #cfd8dc;
-  &:after {
-    content: '';
-    width: 100%;
-    height: 8px;
-    display: block;
-    background-size: 10px 8px;
-    background-image: url('./bg.png');
-    background-repeat: repeat-x;
-  }
+  background: #EEEEEE;
   .range-start-text {
     position: absolute;
     top: calc(~'100% + 13px');
     left: 0;
     transform: translateX(-50%);
+    white-space: nowrap;
   }
   .range-end-text {
     position: absolute;
@@ -136,6 +129,9 @@ export default class DateRangeBar extends Vue {
   .date-range {
     position: absolute;
     height: 100%;
+    background-color: #EEEEEE;
+    background-size: 10px 8px;
+    background-repeat: repeat-x;
   }
   .right {
     right: -6px;

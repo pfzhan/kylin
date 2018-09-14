@@ -88,7 +88,8 @@
             <div class="load-range">
               <DateRangeBar :date-ranges="scope.row.dataRanges" />
             </div>
-            <span class="status" v-if="isDateRangeReady(scope.row.dataRanges, 'model')">Ready</span>
+            <span class="status" v-if="scope.row.dataRanges.length === 0">Disable</span>
+            <span class="status" v-else-if="isDateRangeReady(scope.row.dataRanges, 'model')">Ready</span>
             <span class="status" v-else>In Progress</span>
           </template>
         </el-table-column>
@@ -180,8 +181,8 @@ export default class TableDataLoad extends Vue {
   }
   mounted () {
     if (this.isCentral) {
-      this.resetDateRange()
       this.getRelatedModel()
+      this.resetDateRange()
     }
   }
   @Watch('table')

@@ -1,3 +1,5 @@
+import bgImage from './bg.png'
+
 export const viewTypes = {
   DATA_LOAD: 'data-load',
   COLUMNS: 'columns',
@@ -37,9 +39,10 @@ function getDateRangeSegments (tableDetail) {
     return {
       startTime: +startTime,
       endTime: +endTime,
-      status: 'READY',
-      color: '#4cb050',
-      pointColor: '#1A731E'
+      status: 'NEW',
+      color: '#CFD8DC',
+      pointColor: '#8E9FA8',
+      backgroundImage: bgImage
     }
   }).filter((segment) => {
     return !(segment.startTime === segment.endTime || segment.startTime === 0 || segment.startTime === 1309891513770)
