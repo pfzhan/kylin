@@ -52,7 +52,10 @@
         </div>
       </transition>
       <!-- datasource面板  end-->
-      <div class="tool-icon icon-lock-status" v-event-stop><i class="el-icon-ksd-lock"></i></div>
+      <div class="tool-icon icon-lock-status" :class="{'unlock-icon': autoSetting}" v-event-stop>
+        <common-tip class="name" :content="$t('avoidSysChange')" placement="left" v-if="autoSetting"><i class="el-icon-ksd-lock" v-if="autoSetting"></i></common-tip>
+        <common-tip class="name" :content="$t('allowSysChange')" placement="left" v-else><i class="el-icon-ksd-unlock"></i></common-tip>
+      </div>
       <div class="tool-icon-group" v-event-stop>
         <div class="tool-icon" :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
         <div class="tool-icon" :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
@@ -948,7 +951,22 @@ export default class ModelEdit extends Vue {
     .icon-lock-status {
       top:10px;
       right:10px;
+      display: block;
+      line-height: 32px;
       border:solid 1px @text-normal-color;
+      &:hover{
+        color: #fff;
+        background-color:@normal-color-1;
+        border:solid 1px @normal-color-1;
+      }
+    }
+    .unlock-icon {
+      border:solid solid 1px @base-color;
+      &:hover{
+        color: #fff;
+        background-color:@base-color;
+        border:solid 1px @base-color;
+      }
     }
   }
   .model-edit{

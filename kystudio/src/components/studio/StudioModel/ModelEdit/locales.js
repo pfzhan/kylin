@@ -14,7 +14,9 @@ export default {
     'userMaintainedTip3': 'System is not able to delete this model',
     'systemMaintainedTip1': 'System can change the model definition: dimension, measure or join tree',
     'systemMaintainedTip2': 'System can change the model index: aggregate index or table index',
-    'systemMaintainedTip3': 'System can delete this model'
+    'systemMaintainedTip3': 'System can delete this model',
+    'avoidSysChange': 'Avoid system change semantics',
+    'allowSysChange': 'Allow system change semantics'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -31,6 +33,8 @@ export default {
     'userMaintainedTip3': '系统不能删除模型',
     'systemMaintainedTip1': '系统可以更改模型的语义：维度、度量、表关联关系（Join tree）',
     'systemMaintainedTip2': '系统可以更改模型下属的索引（聚合索引&明细表索引）',
-    'systemMaintainedTip3': '系统可以删除模型'
+    'systemMaintainedTip3': '系统可以删除模型',
+    'avoidSysChange': '禁止系统修改模型语义',
+    'allowSysChange': '允许系统修改模型语义'
   }
 }
