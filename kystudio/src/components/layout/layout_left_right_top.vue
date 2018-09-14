@@ -15,10 +15,10 @@
             <el-submenu :index="item.path" v-if="item.children" :id="item.name">
               <template slot="title">
                 <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
-                <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && modelSpeedEvents.length" class="dot-icon"></div>
+                <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
               </template>
               <el-menu-item-group>
-                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">{{$t('kylinLang.menu.' + child.name)}}<div class="number-icon" v-if="child.name === 'model'  && modelSpeedEvents.length">{{modelSpeedEvents.length}}</div></el-menu-item>
+                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">{{$t('kylinLang.menu.' + child.name)}}<div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div></el-menu-item>
               </el-menu-item-group>
             </el-submenu>
           </template>
@@ -164,8 +164,8 @@ import $ from 'jquery'
       'currentSelectedProject',
       'briefMenuGet'
     ]),
-    modelSpeedEvents () {
-      return this.$store.state.model.modelSpeedEvents
+    reachThreshold () {
+      return this.$store.state.model.reachThreshold
     }
   },
   locales: {

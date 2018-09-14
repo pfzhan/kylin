@@ -1,11 +1,11 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}">
-    <div class="notice-box" v-if="!!modelSpeedEvents.length">
+    <div class="notice-box" v-if="!!reachThreshold">
       <el-alert
       type="warning"
       :closable="false"
       show-icon>
-       <p slot="title"><span v-html="$t('speedTip', {queryCount: modelSpeedEvents.length ,modelCount: modelSpeedModelsCount})"></span><a @click="applySpeed">{{$t('apply')}}</a></p>
+       <p slot="title"><span v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></span><a @click="applySpeed">{{$t('apply')}}</a></p>
       </el-alert>
       <div class="tip-toggle-btnbox">
         <el-button-group>
@@ -139,10 +139,10 @@
        </div>
     </div>
 
-  <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="!!modelSpeedEvents.length" :show-close="false">
+  <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="reachThreshold" :show-close="false">
     <div>
       {{$t('hello', {user: currentUser.username})}}<br/>
-      <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents.length ,modelCount: modelSpeedModelsCount})"></p>
+      <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
     </div>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
@@ -299,6 +299,9 @@ import './fly.js'
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
     },
+    reachThreshold () {
+      return this.$store.state.model.reachThreshold
+    },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
     },
@@ -387,12 +390,8 @@ export default class ModelList extends Vue {
     })
   }
   applySpeed (event) {
-    var eventId = []
-    this.modelSpeedEvents.forEach((ev) => {
-      eventId.push(ev.uuid)
-    })
     this.btnLoading = true
-    this.applySpeedInfo({size: this.modelSpeedEvents.length, project: this.currentSelectedProject}).then(() => {
+    this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
       this.flyEvent(event)
       this.loadSpeedInfo()
     }, (res) => {

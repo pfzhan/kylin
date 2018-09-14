@@ -56,7 +56,7 @@
         :min-width="180"
         show-overflow-tooltip>
         <template slot-scope="scope">
-            {{transToGmtTime(scope.row.data_range_start)}} - {{transToGmtTime(scope.row.data_range_end)}}
+            {{transToGmtTime(scope.row.data_range_start/1000)}} - {{transToGmtTime(scope.row.data_range_end/1000)}}
         </template>
       </el-table-column>
       <el-table-column
@@ -79,7 +79,7 @@
         :width="140"
         :label="$t('Duration')">
         <template slot-scope="scope">
-          {{scope.row.duration/60 | number(2) }}  mins
+          {{scope.row.duration/60000 | number(2) }}  mins
         </template>
       </el-table-column>
       <el-table-column
@@ -340,7 +340,7 @@ export default class JobsList extends Vue {
   }
   get jobsList () {
     return this.$store.state.monitor.jobsList.map((m) => {
-      m.gmtTime = transToGmtTime(m.last_modified, this)
+      m.gmtTime = transToGmtTime(m.exec_start_time / 1000, this)
       if (this.selectedJob) {
         if (m.uuid === this.selectedJob.uuid) {
           this.selectedJob = m
