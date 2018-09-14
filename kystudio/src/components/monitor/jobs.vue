@@ -162,7 +162,7 @@
                :class="{
               'el-icon-ksd-more_05' : step.step_status=='PENDING',
               'el-icon-loading' : step.step_status=='WAITING' || step.step_status=='RUNNING',
-              'el-icon-ksd-good-health' : step.step_status=='FINISHED',
+              'el-icon-ksd-good_health' : step.step_status=='FINISHED',
               'el-icon-ksd-error_01' : step.step_status=='ERROR',
               'el-icon-ksd-table_discard' : step.step_status=='DISCARDED'
             }">
@@ -707,7 +707,7 @@ export default class JobsList extends Vue {
             text-align: center;
             font-size: 30px;
             color: @color-info;
-            &.el-icon-ksd-good-health {
+            &.el-icon-ksd-good_health {
               color: @color-success;
             }
             &.el-icon-ksd-error_01 {
