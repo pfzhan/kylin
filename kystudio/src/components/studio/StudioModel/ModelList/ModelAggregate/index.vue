@@ -30,7 +30,7 @@
             <div slot="header" class="clearfix">
               <div class="left font-medium">{{$t('aggregateDetail')}}</div>
               <div class="right">
-                <el-input class="search-input" v-model.trim="searchCuboidId" size="small" placeholder="Search Aggregate ID" prefix-icon="el-icon-search"></el-input>
+                <el-input class="search-input" v-model.trim="searchCuboidId" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search"></el-input>
               </div>
             </div>
             <div class="detail-content">

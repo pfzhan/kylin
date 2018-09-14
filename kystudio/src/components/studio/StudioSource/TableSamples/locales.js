@@ -3,6 +3,6 @@ export default {
     total: 'Total Columns:'
   },
   'zh-cn': {
-    total: 'Total Columns:'
+    total: '总列数：'
   }
 }

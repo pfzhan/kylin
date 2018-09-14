@@ -13,7 +13,7 @@
         </filter>
       </defs>
     </svg>
-    <div class="tip" v-if="tip" :style="{ left: `${tipX + 20}px`, top: `${tipY + 48}px` }">{{tip}}</div>
+    <div class="tip" v-if="tip !== ''" :style="{ left: `${tipX + 20}px`, top: `${tipY + 48}px` }">{{tip}}</div>
   </div>
 </template>
 
@@ -137,7 +137,7 @@ export default class PartitionChart extends Vue {
       this.addEventListener('mousemove', (event) => {
         self.tipX = event.offsetX
         self.tipY = event.offsetY
-        self.tip = d.name || d.id
+        self.tip = d.name
       })
     })
 

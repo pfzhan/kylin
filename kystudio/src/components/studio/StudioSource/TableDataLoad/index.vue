@@ -102,11 +102,11 @@
 
     <div class="table-remind">
       <div class="table-remind-row">
-        <h1 class="remind-header font-medium">{{$t('centralTableTitle')}}:</h1>
+        <h1 class="remind-header font-medium">{{$t('centralTableTitle')}}</h1>
         <p>{{$t('centralTableDesc')}}</p>
       </div>
       <div class="table-remind-row">
-        <h1 class="remind-header font-medium">{{$t('normalTableTitle')}}:</h1>
+        <h1 class="remind-header font-medium">{{$t('normalTableTitle')}}</h1>
         <p>{{$t('normalTableDesc')}}</p>
       </div>
     </div>

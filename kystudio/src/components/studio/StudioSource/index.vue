@@ -23,7 +23,7 @@
             <div class="table-actions">
               <el-button size="small" icon="el-icon-ksd-table_assign" type="primary" @click="handleChangeType">{{$t('changeType')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
-              <el-button size="small" icon="el-icon-ksd-download" @click="handleSampling">{{$t('sampling')}}</el-button>
+              <!-- <el-button size="small" icon="el-icon-ksd-download" @click="handleSampling">{{$t('sampling')}}</el-button> -->
               <el-button size="small" icon="el-icon-ksd-download" @click="handleUnload">{{$t('unload')}}</el-button>
             </div>
           </div>

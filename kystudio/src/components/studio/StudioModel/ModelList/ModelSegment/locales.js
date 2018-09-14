@@ -22,7 +22,7 @@ export default {
     chooseEndDate: '结束时间',
     primaryPartition: '一级分区',
     pleaseChoose: '请选择',
-    merge: 'Merge',
-    segmentSetting: 'Segment 设置'
+    merge: '合并',
+    segmentSetting: 'Segment管理参数'
   }
 }

@@ -19,7 +19,7 @@
           <span>{{$t('partition')}}</span>
           <i class="el-icon-ksd-what"></i>
         </h1>
-        <el-select size="medium" v-model="partition" filterable :disabled="!isCentral">
+        <el-select size="medium" v-model="partition" filterable :disabled="!isCentral" :placeholder="$t('pleaseChoose')">
           <el-option
             v-for="column in partitionColumns"
             :key="column.id"
