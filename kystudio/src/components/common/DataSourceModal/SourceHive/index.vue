@@ -32,7 +32,7 @@
           :datamap="{label: 'label', value: 'value'}">
         </arealabel>
         <div class="ksd-mt-22 ksd-extend-tips" v-html="selectedType === '0' ? $t('loadHiveTip') : $t('loadTip')"></div>
-        <div class="ksd-mt-20">
+        <div class="ksd-mt-20" v-if="false">
           <slider @changeBar="changeBar" class="ksd-mr-20 ksd-mb-20">
             <span slot="checkLabel">{{$t('sampling')}}</span>
               <span slot="tipLabel">
@@ -108,7 +108,7 @@ export default class SourceHive extends Vue {
   }
 
   removeSelectedHive (val) {
-    const selectedTables = this.selectedTables.filter(selectedTable => selectedTable.id === val)
+    const selectedTables = this.selectedTables.filter(selectedTable => selectedTable.value !== val)
 
     this.$refs.subtree.cancelNodeChecked(val)
     this.$emit('input', { selectedTables })

@@ -8,7 +8,7 @@
       <div class="row">
         <h1 class="title font-medium">
           <span>{{$t('tableType')}}</span>
-          <i class="el-icon-ksd-what"></i>
+          <i v-if="false" class="el-icon-ksd-what"></i>
         </h1>
         <el-radio v-model="isCentral" :label="true" :disabled="!partitionColumns.length">{{$t('centralTable')}}</el-radio>
         <el-radio v-model="isCentral" :label="false">{{$t('normalTable')}}</el-radio>
@@ -17,7 +17,7 @@
       <div class="row">
         <h1 class="title font-medium">
           <span>{{$t('partition')}}</span>
-          <i class="el-icon-ksd-what"></i>
+          <i v-if="false" class="el-icon-ksd-what"></i>
         </h1>
         <el-select size="medium" v-model="partition" filterable :disabled="!isCentral" :placeholder="$t('pleaseChoose')">
           <el-option
@@ -32,12 +32,12 @@
       <div class="row">
         <h1 class="title font-medium">
           <span>{{$t('dataRange')}}</span>
-          <i class="el-icon-ksd-what"></i>
+          <i v-if="false" class="el-icon-ksd-what"></i>
         </h1>
         <div>
           <label class="font-medium">
             <span>{{$t('dateRange')}}</span>
-            <i class="el-icon-ksd-what"></i>
+            <i v-if="false" class="el-icon-ksd-what"></i>
             <span>:</span>
           </label>
           <el-date-picker
