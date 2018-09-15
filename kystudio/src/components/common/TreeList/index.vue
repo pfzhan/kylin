@@ -139,7 +139,6 @@ export default class TreeList extends Vue {
 
 <style lang="less">
 .tree-list {
-  height: 100%;
   .filter-box {
     margin-bottom: 10px;
   }
