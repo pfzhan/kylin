@@ -37,6 +37,8 @@ import { validate, validateTypes, handleError } from '../../../util'
 
 const { USERNAME } = validateTypes
 
+vuex.registerModule(['modals', 'DemoModal'], store)
+
 @Component({
   computed: {
     // Store数据注入
@@ -141,20 +143,6 @@ export default class DemoModal extends Vue {
   validate (type) {
     // TODO: 这里的this是vue的实例，而data却是class的实例
     return validate[type].bind(this)
-  }
-
-  // Hook: 如果没有挂载store，则挂载组件store
-  beforeCreate () {
-    if (!this.$store.state.modals.DemoModal) {
-      vuex.registerModule(['modals', 'DemoModal'], store)
-    }
-  }
-
-  // Hook: 如果HRM状态，则不实时清除store；反之则清除
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'DemoModal'])
-    }
   }
 }
 </script>

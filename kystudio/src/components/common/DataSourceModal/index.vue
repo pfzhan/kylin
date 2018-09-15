@@ -53,6 +53,8 @@ import SourceHive from './SourceHive/index.vue'
 import SourceKafka from '../../kafka/create_kafka'
 import SourceSetting from './SourceSetting/index.vue'
 
+vuex.registerModule(['modals', 'DataSourceModal'], store)
+
 @Component({
   components: {
     SourceNew,
@@ -202,17 +204,6 @@ export default class DataSourceModal extends Vue {
       e && handleError(e)
     }
     this.isLoading = false
-  }
-
-  beforeCreate () {
-    if (!this.$store.state.modals.DataSourceModal) {
-      vuex.registerModule(['modals', 'DataSourceModal'], store)
-    }
-  }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'DataSourceModal'])
-    }
   }
 }
 </script>

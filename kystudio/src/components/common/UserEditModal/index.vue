@@ -88,6 +88,8 @@ import { validate, validateTypes, handleError } from '../../../util'
 
 const { USERNAME, PASSWORD, CONFIRM_PASSWORD } = validateTypes
 
+vuex.registerModule(['modals', 'UserEditModal'], store)
+
 @Component({
   computed: {
     // 全局getter注入
@@ -226,20 +228,6 @@ export default class UserEditModal extends Vue {
     const { data: { data: totalGroups } } = await this.getGroupList({ project })
 
     this.setModal({ totalGroups })
-  }
-
-  // Hook: 如果没有挂载store，则挂载组件store
-  beforeCreate () {
-    if (!this.$store.state.modals.UserEditModal) {
-      vuex.registerModule(['modals', 'UserEditModal'], store)
-    }
-  }
-
-  // Hook: 如果HRM状态，则不实时清除store；反之则清除
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'UserEditModal'])
-    }
   }
 }
 </script>

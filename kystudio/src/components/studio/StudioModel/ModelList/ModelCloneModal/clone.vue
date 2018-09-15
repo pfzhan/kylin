@@ -22,6 +22,8 @@
   import locales from './locales'
   import store, { types } from './store'
 
+  vuex.registerModule(['modals', 'ModelCloneModal'], store)
+
   @Component({
     computed: {
       ...mapGetters([
@@ -88,16 +90,6 @@
           res && handleError(res)
         })
       })
-    }
-    beforeCreate () {
-      if (!this.$store.state.modals.ModelCloneModal) {
-        vuex.registerModule(['modals', 'ModelCloneModal'], store)
-      }
-    }
-    destroyed () {
-      if (!module.hot) {
-        vuex.unregisterModule(['modals', 'ModelCloneModal'])
-      }
     }
   }
 </script>

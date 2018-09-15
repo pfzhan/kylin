@@ -13,7 +13,7 @@
     </div>
     <div class="aggregate-view">
       <el-row :gutter="20">
-        <el-col :span="16">
+        <el-col :span="15">
           <el-card class="agg-detail-card agg_index">
             <div slot="header" class="clearfix">
               <div class="left font-medium">{{$t('aggregateIndexTree')}}</div>
@@ -25,35 +25,37 @@
             <PartitionChart :data="cuboids" @on-click-node="handleClickNode" :search-id="searchCuboidId" />
           </el-card>
         </el-col>
-        <el-col :span="8">
+        <el-col :span="9">
           <el-card class="agg-detail-card">
             <div slot="header" class="clearfix">
-              <div class="left font-medium">{{$t('aggregateDetail')}}</div>
-              <div class="right">
+              <div class="left font-medium fix">{{$t('aggregateDetail')}}</div>
+              <div class="right fix">
                 <el-input class="search-input" v-model.trim="searchCuboidId" size="small" :placeholder="$t('searchAggregateID')" prefix-icon="el-icon-search"></el-input>
               </div>
             </div>
             <div class="detail-content">
-              <el-row :gutter="5">
-                <el-col :span="11" class="label">ID:</el-col>
-                <el-col :span="13">{{cuboidDetail.id}}</el-col>
-              </el-row>
-              <el-row :gutter="5">
-                <el-col :span="11" class="label">{{$t('dimensionAndOrder')}}:</el-col>
-                <el-col :span="13"><div v-for="item in cuboidDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
-              </el-row>
-              <el-row :gutter="5">
-                <el-col :span="11" class="label">{{$t('dataSize')}}:</el-col>
-                <el-col :span="13">{{cuboidDetail.dataSize}}</el-col>
-              </el-row>
-              <el-row :gutter="5">
-                <el-col :span="11" class="label">{{$t('dataRange')}}:</el-col>
-                <el-col :span="13">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col>
-              </el-row>
-              <el-row :gutter="5">
-                <el-col :span="11" class="label">{{$t('servedQueryAmount')}}:</el-col>
-                <el-col :span="13">{{cuboidDetail.amount}} Query</el-col>
-              </el-row>
+              <template v-if="cuboidDetail.id !== ''">
+                <el-row :gutter="5">
+                  <el-col :span="10" class="label">ID:</el-col>
+                  <el-col :span="14">{{cuboidDetail.id}}</el-col>
+                </el-row>
+                <el-row :gutter="5">
+                  <el-col :span="10" class="label">{{$t('dimensionAndOrder')}}:</el-col>
+                  <el-col :span="14"><div v-for="item in cuboidDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
+                </el-row>
+                <el-row :gutter="5">
+                  <el-col :span="10" class="label">{{$t('dataSize')}}:</el-col>
+                  <el-col :span="14">{{cuboidDetail.dataSize}}</el-col>
+                </el-row>
+                <el-row :gutter="5">
+                  <el-col :span="10" class="label">{{$t('dataRange')}}:</el-col>
+                  <el-col :span="14">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col>
+                </el-row>
+                <el-row :gutter="5">
+                  <el-col :span="10" class="label">{{$t('servedQueryAmount')}}:</el-col>
+                  <el-col :span="14">{{cuboidDetail.amount}} Query</el-col>
+                </el-row>
+              </template>
             </div>
           </el-card>
         </el-col>
@@ -203,17 +205,24 @@ export default class ModelAggregate extends Vue {
       display: block;
       float: left;
       padding-top: 3px;
+      &.fix {
+        width: 130px;
+      }
     }
     .right {
       display: block;
       float: right;
       white-space: nowrap;
       font-size: 14px;
+      &.fix {
+        width: calc(~'100% - 130px');
+        max-width: 200px;
+        .el-input.search-input {
+          width: 100%;
+        }
+      }
       .el-input {
         width: 100px;
-        &.search-input {
-          width: 200px;
-        }
       }
     }
     .label {

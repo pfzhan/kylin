@@ -22,6 +22,8 @@
   import locales from './locales'
   import store, { types } from './store'
 
+  vuex.registerModule(['modals', 'ModelRenameModal'], store)
+
   @Component({
     computed: {
       ...mapGetters([
@@ -88,16 +90,6 @@
           res && handleError(res)
         })
       })
-    }
-    beforeCreate () {
-      if (!this.$store.state.modals.ModelRenameModal) {
-        vuex.registerModule(['modals', 'ModelRenameModal'], store)
-      }
-    }
-    destroyed () {
-      if (!module.hot) {
-        vuex.unregisterModule(['modals', 'ModelRenameModal'])
-      }
     }
   }
 </script>

@@ -161,6 +161,8 @@ import store, { types, initialAggregateData } from './store'
 import { titleMaps, getSubmitData, getPlaintDimensions, findIncludeDimension } from './handler'
 import { handleError, get, set, push } from '../../../../../../util'
 
+vuex.registerModule(['modals', 'AggregateModal'], store)
+
 @Component({
   computed: {
     ...mapState('AggregateModal', {
@@ -308,16 +310,6 @@ export default class AggregateModal extends Vue {
       this.handleClose(true)
     } catch (e) {
       e && handleError(e)
-    }
-  }
-  beforeCreate () {
-    if (!this.$store.state.modals.AggregateModal) {
-      vuex.registerModule(['modals', 'AggregateModal'], store)
-    }
-  }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'AggregateModal'])
     }
   }
 }

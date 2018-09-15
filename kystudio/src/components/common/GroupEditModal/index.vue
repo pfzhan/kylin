@@ -41,6 +41,8 @@ import { validate, validateTypes, handleError } from '../../../util'
 
 const { GROUP_NAME } = validateTypes
 
+vuex.registerModule(['modals', 'GroupEditModal'], store)
+
 @Component({
   computed: {
     ...mapGetters([
@@ -181,20 +183,6 @@ export default class GroupEditModal extends Vue {
     this.setModal({
       totalUsers: [ ...selectedUsersNotInRemote, ...remoteUsers ]
     })
-  }
-
-  // Hook: 如果没有挂载store，则挂载组件store
-  beforeCreate () {
-    if (!this.$store.state.modals.GroupEditModal) {
-      vuex.registerModule(['modals', 'GroupEditModal'], store)
-    }
-  }
-
-  // Hook: 如果HRM状态，则不实时清除store；反之则清除
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'GroupEditModal'])
-    }
   }
 }
 </script>

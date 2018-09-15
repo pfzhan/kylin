@@ -74,6 +74,8 @@ import store, { types } from './store'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 // import { handleSuccessAsync, handleError } from '../../../util'
 
+vuex.registerModule(['modals', 'ModelPartitionModal'], store)
+
 @Component({
   // props: {
   //   modelTables: {
@@ -137,16 +139,6 @@ export default class ModelPartitionModal extends Vue {
     }, 300)
   }
   handleClick () {
-  }
-  beforeCreate () {
-    if (!this.$store.state.modals.ModelPartitionModal) {
-      vuex.registerModule(['modals', 'ModelPartitionModal'], store)
-    }
-  }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'ModelPartitionModal'])
-    }
   }
 }
 </script>

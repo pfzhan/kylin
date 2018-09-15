@@ -18,6 +18,7 @@ export function getTableDataRanges (table, models) {
   const tableRanges = table.dataRanges
   let minRangeStartTime = Infinity
   let minRangeEndTime = -Infinity
+  let enabledModelCount = 0
 
   for (const model of models) {
     model.dataRanges.forEach(modelRange => {
@@ -30,9 +31,12 @@ export function getTableDataRanges (table, models) {
         }
       }
     })
+    if (model.dataRanges.length) {
+      enabledModelCount += 1
+    }
   }
   tableRanges.forEach(tableRange => {
-    if (tableRange.startTime >= minRangeStartTime && tableRange.endTime <= minRangeEndTime) {
+    if ((tableRange.startTime >= minRangeStartTime && tableRange.endTime <= minRangeEndTime) || enabledModelCount === 0) {
       tableRange.status = 'READY'
       tableRange.color = '#4CB050'
       tableRange.pointColor = '#1A731E'
