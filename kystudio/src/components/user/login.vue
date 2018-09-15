@@ -110,7 +110,7 @@ import license from './license'
 import help from '../common/help'
 import Vue from 'vue'
 import { Base64 } from 'js-base64'
-import { SystemPwdRegex, personalEmail } from '../../config/index'
+import { personalEmail } from '../../config/index'
 export default {
   name: 'login',
   data () {
@@ -164,11 +164,13 @@ export default {
     handleClose () {
       if (this.$store.state.system.serverAboutKap['code'] === '001' && this.loginSuccess === true) {
         this.showLicenseCheck = false
-        if (!SystemPwdRegex.test(this.user.password) && this.user.username === 'ADMIN') {
-          this.$router.push('/security/user')
-        } else {
-          this.$router.push('/overview')
-        }
+        // 一期先屏蔽该逻辑
+        // if (!SystemPwdRegex.test(this.user.password) && this.user.username === 'ADMIN') {
+        //   this.$router.push('/security/user')
+        // } else {
+        //   this.$router.push('/overview')
+        // }
+        this.$router.push('/overview')
       } else {
         this.showLicenseCheck = false
       }
@@ -187,11 +189,13 @@ export default {
               if (this.$store.state.system.serverAboutKap['code'] === '001' && this.hasLicenseMsg === false) {
                 this.showLicenseCheck = true
               } else {
-                if (!SystemPwdRegex.test(this.user.password) && this.user.username === 'ADMIN') {
-                  this.$router.push('/security/user')
-                } else {
-                  this.$router.push('/overview')
-                }
+                // 一期先屏蔽该逻辑
+                // if (!SystemPwdRegex.test(this.user.password) && this.user.username === 'ADMIN') {
+                //   this.$router.push('/security/user')
+                // } else {
+                //   this.$router.push('/overview')
+                // }
+                this.$router.push('/overview')
               }
               localStorage.setItem('username', this.user.username)
               this.$store.state.config.overLock = false
