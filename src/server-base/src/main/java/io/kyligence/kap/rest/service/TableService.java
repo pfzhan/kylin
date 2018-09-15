@@ -343,7 +343,7 @@ public class TableService extends BasicService {
             return segmentRanges;
         }
 
-        if (newRange.getStart().compareTo(oldSegmentRange.getEnd()) < 0) {
+        if (newRange.getStart().compareTo(oldSegmentRange.getStart()) < 0) {
 
             segmentRanges.add(newRange.getStartDeviation(oldSegmentRange));
         }

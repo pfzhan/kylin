@@ -208,7 +208,7 @@ public class ModelService extends BasicService {
         Segments<NDataSegment> segments = dataflow.getSegments();
         List<NCuboidLayout> layouts = cuboidDesc.getLayouts();
         long storage = 0L;
-        long startTime = 0L;
+        long startTime = Long.MAX_VALUE;
         long endTime = 0L;
         for (NDataSegment segment : segments) {
             for (NCuboidLayout layout : layouts) {

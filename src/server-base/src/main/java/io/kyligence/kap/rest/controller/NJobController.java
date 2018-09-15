@@ -113,8 +113,8 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "timeFilter", required = false) Integer timeFilter,
             @RequestParam(value = "subjects", required = false) String[] subjects,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortby", required = false, defaultValue = "last_modify") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse)
             throws IOException, PersistentException {
@@ -150,7 +150,7 @@ public class NJobController extends NBasicController {
                 Collections.sort(executables, durationComparator);
             }
         }
-        List<JobInstance> jobInstances = jobService.parseToJobInstance(executables, offset, limit, project);
+        List<JobInstance> jobInstances = jobService.parseToJobInstance(executables, pageOffset, pageSize, project);
         HashMap<String, Object> response = new HashMap<>();
         response.put("size", executables.size());
         response.put("jobs", jobInstances);
