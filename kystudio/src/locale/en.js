@@ -278,7 +278,7 @@ exports.default = {
     dimension: 'Dimensions:',
     metrics: 'Metrics:',
     modelName: 'Model Name:',
-    content: 'Content',
+    content: 'Content:',
     resultRows: 'Result Row Count:',
     scanBytes: 'Total Scan Bytes:',
     scanCount: 'Total Scan Count:',

@@ -42,13 +42,13 @@
           <div class="detail-content">
             <el-row :gutter="20">
               <el-col :span="10">
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.queryId')}}</span>
                   <span>{{props.row.query_id}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.duration')}}</span>
-                  <span>{{props.row.latency}}s</span>
+                  <span>{{props.row.latency / 1000 | fixed(2)}}s</span>
                 </div>
                 <div>
                   <span class="label">{{$t('kylinLang.query.sqlContent')}}</span>
@@ -57,32 +57,32 @@
                   </kap_editor>
               </el-col>
               <el-col :span="10">
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.modelName')}}</span>
                   <span>{{props.row.model_name}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.realization')}}</span>
                   <span class="realization-detail" @click="openAgg(props.row)">{{props.row.realization | arrayToStr}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.content')}}</span>
                   <span>{{props.row.content | arrayToStr}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
                   <span>{{props.row.total_scan_count}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.scanBytes')}}</span>
                   <span>{{props.row.total_scan_bytes}}</span>
                 </div>
                 <br/>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
                   <span>{{props.row.result_row_count}}</span>
                 </div>
-                <div>
+                <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.isCubeHit')}}</span>
                   <span>{{props.row.is_cubeHit}}</span>
                 </div>
