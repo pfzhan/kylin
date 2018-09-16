@@ -116,6 +116,7 @@ Vue.filter('readableNumber', function (value) {
 })
 // the time mins and seconds
 Vue.filter('tofixedTimer', function (value, fix) {
+  value = value / 1000
   if (value > 60) {
     return (value / 60).toFixed(fix) + ' mins'
   } else {
