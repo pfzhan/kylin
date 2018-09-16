@@ -92,9 +92,9 @@
         </template>
       </el-table-column>
       <el-table-column type="selection" width="55" align="center" v-if="isCandidate"></el-table-column>
-      <el-table-column :renderHeader="renderColumn" sortable prop="start_time" header-align="center" width="160">
+      <el-table-column :renderHeader="renderColumn" sortable prop="start_time" header-align="center" width="210">
         <template slot-scope="props">
-          {{props.row.start_time | gmtTime}}
+          {{transToGmtTime(props.row.start_time)}}
         </template>
       </el-table-column>
       <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
@@ -185,13 +185,14 @@
 
 <script>
 import { handleSuccessAsync } from '../../util/index'
-import { transToUtcTimeFormat, handleSuccess, handleError } from '../../util/business'
+import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 @Component({
   props: ['queryHistoryData', 'isCandidate'],
   methods: {
+    transToGmtTime: transToGmtTime,
     ...mapActions({
       getAllRules: 'GET_ALL_RULES',
       saveRule: 'SAVE_RULE',

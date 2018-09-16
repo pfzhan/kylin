@@ -23,9 +23,9 @@
       style="width: 100%">
       <el-table-column type="selection" width="55" align="center"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
-      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_modified" sortable header-align="center" width="160">
+      <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="210">
         <template slot-scope="props">
-          {{props.row.last_modified | gmtTime}}
+          {{transToGmtTime(props.row.last_query_time)}}
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.rate')" prop="success_rate" sortable align="center" width="135">
@@ -71,10 +71,11 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
-import { handleSuccess } from '../../util/business'
+import { handleSuccess, transToGmtTime } from '../../util/business'
 import queryHistoryTable from './query_history_table'
 @Component({
   methods: {
+    transToGmtTime: transToGmtTime,
     ...mapActions({
       getFavoriteList: 'GET_FAVORITE_LIST',
       getCandidateList: 'GET_CANDIDATE_LIST',
