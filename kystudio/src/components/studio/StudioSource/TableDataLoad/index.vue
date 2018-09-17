@@ -200,9 +200,12 @@ export default class TableDataLoad extends Vue {
 
     if (this.isDateRangeVaild()) {
       await this.saveDateRange({ projectName, tableFullName, startDate, endDate })
-      this.$message('更新成功。')
+      this.$message({
+        message: this.$t('kylinLang.common.updateSuccess'),
+        type: 'success'
+      })
     } else {
-      this.$message('不可选择比数据表更小的时间区间。')
+      this.$message(this.$t('dataRangeTooSmall'))
     }
 
     this.$emit('on-data-range-change')

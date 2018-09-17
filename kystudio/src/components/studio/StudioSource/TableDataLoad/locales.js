@@ -16,7 +16,8 @@ export default {
     normalTableDesc: 'If source table serves as normal table, it means system will allow full data loading and query upon it.',
     relatedModel: 'Related Model',
     modelName: 'Model Name',
-    status: 'Status'
+    status: 'Status',
+    dataRangeTooSmall: 'Cannot select the date range smaller than the table\'s.'
   },
   'zh-cn': {
     tableName: '源表名称',
@@ -35,6 +36,7 @@ export default {
     normalTableDesc: '标记为普通表的源数据表，作为系统默认存储全部数据',
     relatedModel: '相关模型',
     modelName: '模型名称',
-    status: '模型状态'
+    status: '模型状态',
+    dataRangeTooSmall: '不可选择比数据表更小的时间区间。'
   }
 }
