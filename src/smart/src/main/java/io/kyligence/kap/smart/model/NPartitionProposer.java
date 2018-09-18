@@ -24,15 +24,16 @@
 
 package io.kyligence.kap.smart.model;
 
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.NSmartContext;
 
 public class NPartitionProposer extends NAbstractModelProposer {
     

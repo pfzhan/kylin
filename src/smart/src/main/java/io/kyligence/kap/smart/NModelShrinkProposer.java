@@ -26,12 +26,15 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -53,70 +56,86 @@ public class NModelShrinkProposer extends NAbstractProposer {
             return;
 
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null) {
-                continue;
-            }
-            if (modelCtx.getOrigCubePlan() == null) {
-                continue;
-            }
-            if (modelCtx.getTargetCubePlan() == null) {
+            if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
+                    || modelCtx.getTargetCubePlan() == null) {
                 continue;
             }
 
             NDataModel model = modelCtx.getTargetModel();
-            Map<String, NCubePlan> modelCubePlans = Maps.newHashMap();
+            Map<Integer, NamedColumn> namedColumnsById = Maps.newHashMap();
+            Map<String, NamedColumn> namedColumnsByName = Maps.newHashMap();
+            Map<Integer, Measure> measures = Maps.newHashMap();
+            truncateModel(model, namedColumnsById, namedColumnsByName, measures);
 
-            List<NCubePlan> allCubePlans = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject()).listAllCubePlans();
+            Map<String, NCubePlan> modelCubePlans = Maps.newHashMap();
+            List<NCubePlan> allCubePlans = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject())
+                    .listAllCubePlans();
             for (NCubePlan cubePlan : allCubePlans) {
                 if (model.getName().equals(cubePlan.getModelName())) {
                     modelCubePlans.put(cubePlan.getName(), cubePlan);
                 }
             }
-
-            Map<Integer, NamedColumn> namedColumnsById = Maps.newHashMap();
-            Map<String, NamedColumn> namedColumnsByName = Maps.newHashMap();
-            for (NamedColumn namedColumn : model.getAllNamedColumns()) {
-                namedColumn.tomb = true;
-                namedColumnsById.put(namedColumn.id, namedColumn);
-                namedColumnsByName.put(namedColumn.name, namedColumn);
-            }
-            Map<Integer, Measure> measures = Maps.newHashMap();
-            for (Measure measure : model.getAllMeasures()) {
-                if (measure.getFunction().isCount()) {
-                    continue;
-                }
-                measure.tomb = true;
-                measures.put(measure.id, measure);
-            }
-
             NCubePlan targetCubePlan = modelCtx.getTargetCubePlan();
             modelCubePlans.put(targetCubePlan.getName(), targetCubePlan);
+            refillModel(modelCubePlans, namedColumnsById, namedColumnsByName, measures);
 
-            for (NCubePlan cubePlan : modelCubePlans.values()) {
-                for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-                    for (int id : cuboidDesc.getDimensions()) {
-                        NamedColumn used = namedColumnsById.get(id);
-                        if (used != null) {
-                            used.tomb = false;
-                        }
-                    }
-                    for (int id : cuboidDesc.getMeasures()) {
-                        Measure used = measures.get(id);
-                        if (used == null) {
-                            continue;
-                        }
-                        used.tomb = false;
-                        for (TblColRef param : used.getFunction().getParameter().getColRefs()) {
-                            if (namedColumnsByName.containsKey(param.getIdentity())) {
-                                namedColumnsByName.get(param.getIdentity()).tomb = false;
-                            }
-                        }
-                    }
-                }
-            }
             initModel(model);
         }
 
+    }
+
+    private void truncateModel(NDataModel model, Map<Integer, NamedColumn> colsById,
+            Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
+        for (NamedColumn namedColumn : model.getAllNamedColumns()) {
+            namedColumn.tomb = true;
+            colsById.put(namedColumn.id, namedColumn);
+            colsByName.put(namedColumn.name, namedColumn);
+        }
+        for (Measure measure : model.getAllMeasures()) {
+            if (measure.getFunction().isCount()) {
+                continue;
+            }
+            measure.tomb = true;
+            measures.put(measure.id, measure);
+        }
+
+        // Keep partition column in named columns
+        PartitionDesc partitionDesc = model.getPartitionDesc();
+        if (partitionDesc != null && partitionDesc.getPartitionDateColumn() != null) {
+            String partitionColName = partitionDesc.getPartitionDateColumn();
+            if (colsByName.containsKey(partitionColName)) {
+                NamedColumn namedColumn = colsByName.get(partitionColName);
+                namedColumn.tomb = false;
+            }
+        }
+    }
+    
+    private void refillModel(Map<String, NCubePlan> modelCubePlans, Map<Integer, NamedColumn> colsById,
+            Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
+        Set<NamedColumn> usedCols = Sets.newHashSet();
+        Set<Measure> usedMeasures = Sets.newHashSet();
+        for (NCubePlan cubePlan : modelCubePlans.values()) {
+            for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+                for (int id : cuboidDesc.getDimensions()) {
+                    usedCols.add(colsById.get(id));
+                }
+                for (int id : cuboidDesc.getMeasures()) {
+                    usedMeasures.add(measures.get(id));
+                }
+            }
+        }
+        
+        usedMeasures.remove(null);
+        for (Measure used : usedMeasures) {
+            used.tomb = false;
+            for (TblColRef param : used.getFunction().getParameter().getColRefs()) {
+                usedCols.add(colsByName.get(param.getIdentity()));
+            }
+        }
+        usedCols.remove(null);
+        for (NamedColumn used : usedCols) {
+            used.tomb = false;
+        }
     }
 
     private void initModel(NDataModel modelDesc) {

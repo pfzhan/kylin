@@ -41,10 +41,23 @@ import io.kyligence.kap.smart.common.NTestBase;
 
 public class NModelMasterTest extends NTestBase {
     @Test
-    public void test() throws IOException {
+    public void testNormal() throws IOException {
         preparePartition();
 
-        NSmartContext.NModelContext mdCtx = getModelContext();
+        String[] sqls = new String[] { //
+                "select 1", // not effective olap_context
+                "create table a", // not effective olap_context
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-01' group by part_dt, lstg_format_name", //
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-02' group by part_dt, lstg_format_name", //
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name", //
+                "select part_dt, sum(item_count), count(*) from kylin_sales left join kylin_cal_dt on cal_dt = part_dt group by part_dt" //
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.analyzeSQLs();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx);
 
         NModelMaster modelMaster = new NModelMaster(mdCtx);
@@ -70,6 +83,10 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins[0].getJoin().getForeignKey());
         }
 
+        // propose again, should return same result
+        NDataModel dm1 = modelMaster.proposeJoins(dataModel);
+        Assert.assertEquals(dm1, dataModel);
+
         dataModel = modelMaster.proposePartition(dataModel);
         {
             PartitionDesc partition = dataModel.getPartitionDesc();
@@ -77,10 +94,6 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertTrue(partition.isPartitioned());
             Assert.assertEquals("KYLIN_SALES.PART_DT", partition.getPartitionDateColumn());
         }
-
-        // propose again, should return same result
-        NDataModel dm1 = modelMaster.proposeJoins(dataModel);
-        Assert.assertEquals(dm1, dataModel);
 
         dataModel = modelMaster.proposeScope(dataModel);
         {
@@ -94,21 +107,52 @@ public class NModelMasterTest extends NTestBase {
         Assert.assertEquals(dm2, dataModel);
     }
 
-    private NSmartContext.NModelContext getModelContext() throws IOException {
-        String[] sqls = new String[] { //
-                "select 1", // not effective olap_context
-                "create table a", // not effective olap_context
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-01' group by part_dt, lstg_format_name", //
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-02' group by part_dt, lstg_format_name", //
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name", //
-                "select part_dt, sum(item_count), count(*) from kylin_sales left join kylin_cal_dt on cal_dt = part_dt group by part_dt" //
+    @Test
+    public void testSqlWithoutPartition() throws IOException {
+
+        String[] sqls = new String[] {
+                "SELECT kylin_category_groupings.meta_categ_name, kylin_category_groupings.categ_lvl2_name, "
+                + " sum(kylin_sales.price) as GMV, count(*) as trans_cnt"
+                + " FROM kylin_sales inner JOIN kylin_category_groupings"
+                + " ON kylin_sales.leaf_categ_id = kylin_category_groupings.leaf_categ_id"
+                + " AND kylin_sales.lstg_site_id = kylin_category_groupings.site_id"
+                + " group by kylin_category_groupings.meta_categ_name ,kylin_category_groupings.categ_lvl2_name" //
         };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         smartMaster.analyzeSQLs();
 
         NSmartContext ctx = smartMaster.getContext();
-        return ctx.getModelContexts().get(0);
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        Assert.assertNotNull(mdCtx);
+
+        NModelMaster modelMaster = new NModelMaster(mdCtx);
+
+        // propose model without partition column
+        NDataModel dataModel = modelMaster.proposeInitialModel();
+        dataModel = modelMaster.proposeJoins(dataModel);
+        dataModel = modelMaster.proposePartition(dataModel);
+        dataModel = modelMaster.proposeScope(dataModel);
+        {
+            Assert.assertNotNull(dataModel);
+            Assert.assertEquals(5, dataModel.getAllNamedColumns().size());
+            Assert.assertEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
+            Assert.assertEquals(2, dataModel.getAllMeasures().size());
+            Assert.assertEquals(1, dataModel.getJoinTables().length);
+        }
+
+        // propose model with partition column
+        preparePartition();
+        dataModel = modelMaster.proposeJoins(dataModel);
+        dataModel = modelMaster.proposePartition(dataModel);
+        dataModel = modelMaster.proposeScope(dataModel);
+        {
+            Assert.assertNotNull(dataModel);
+            Assert.assertEquals(6, dataModel.getAllNamedColumns().size());
+            Assert.assertNotEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
+            Assert.assertEquals(2, dataModel.getAllMeasures().size());
+            Assert.assertEquals(1, dataModel.getJoinTables().length);
+        }
     }
 
     private NDataLoadingRange preparePartition() throws IOException {
