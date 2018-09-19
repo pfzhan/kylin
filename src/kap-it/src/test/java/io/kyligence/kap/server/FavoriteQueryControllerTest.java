@@ -193,7 +193,7 @@ public class FavoriteQueryControllerTest extends AbstractMVCIntegrationTestCase 
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
         // save a new rule
-        QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.QueryHistoryCond.Operation.EQUAL, "realization", null, "[Pushdown]");
+        QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.ANSWERED_BY, null, "pushdown");
         QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond), "test_rule_1", true);
         QueryFilterRequest request = new QueryFilterRequest();
         request.setProject(PROJECT);
@@ -238,7 +238,7 @@ public class FavoriteQueryControllerTest extends AbstractMVCIntegrationTestCase 
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value(false));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value(true));
 
         // set project's config to opposite
         mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules/automatic/{project}", PROJECT)
@@ -246,23 +246,24 @@ public class FavoriteQueryControllerTest extends AbstractMVCIntegrationTestCase 
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        // now it's true
+        // now it's false
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/automatic")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value(true));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data").value(false));
     }
 
     @Test
     public void testGetAccelerateTips() throws Exception {
+        // when there is no favorite query waiting for accelerate
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/threshold")
                 .contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
+                .param("project", "newten")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(1))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(0))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.reach_threshold").value(false))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.optimized_model_num").value(0));
     }

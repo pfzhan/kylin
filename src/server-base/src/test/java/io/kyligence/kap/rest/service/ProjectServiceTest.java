@@ -99,7 +99,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         QueryFilterRuleManager queryFilterRuleManager = QueryFilterRuleManager.getInstance(getTestConfig(), projectInstance.getName());
         Assert.assertEquals(1, queryFilterRuleManager.getAll().size());
-        Assert.assertEquals("default_rule", queryFilterRuleManager.getAll().get(0).getName());
+        Assert.assertEquals("Pushdown_all_query", queryFilterRuleManager.getAll().get(0).getName());
     }
 
     @Test

@@ -45,15 +45,13 @@ package io.kyligence.kap.metadata.query;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
-
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Objects;
 
 @SuppressWarnings("serial")
 public class QueryHistory extends RootPersistentEntity implements Comparable<QueryHistory> {
     public static final String ADJ_SLOW = "Slow";
-    public static final String ADJ_PUSHDOWN = "Pushdown";
+    public static final String ADJ_PUSHDOWN = "pushdown";
     public static final String QUERY_HISTORY_UNACCELERATED = "NEW";
     public static final String QUERY_HISTORY_ACCELERATED = "FULLY_ACCELERATED";
 
@@ -62,7 +60,6 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     @JsonProperty("start_time")
     private long startTime;
     @JsonProperty("latency")
-    //todo: change to long
     private long latency;
     @JsonProperty("realization")
     private List<String> realization;
@@ -76,6 +73,8 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     private QueryHistoryStatusEnum queryStatus;
     @JsonProperty("favorite")
     private String favorite;
+    @JsonProperty("unfavorite")
+    private boolean unfavorite = false;
     @JsonProperty("accelerate_status")
     private String accelerateStatus;
 
@@ -195,6 +194,14 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
         return this.favorite != null;
     }
 
+    public boolean isUnfavorite() {
+        return unfavorite;
+    }
+
+    public void setUnfavorite(boolean unfavorite) {
+        this.unfavorite = unfavorite;
+    }
+
     public String getAccelerateStatus() {
         return accelerateStatus;
     }
@@ -233,10 +240,6 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
 
     public void setTotalScanBytes(long totalScanBytes) {
         this.totalScanBytes = totalScanBytes;
-    }
-
-    public long getResultRowCount() {
-        return resultRowCount;
     }
 
     public void setResultRowCount(long resultRowCount) {
@@ -287,29 +290,5 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     public String toString() {
         return "QueryHistory [ realization =" + realization + ", query node =" + queryNode + ", startTime="
                 + DateFormat.formatToTimeStr(startTime) + " ]";
-    }
-
-    private Field getFieldByFieldName(String fieldName) throws NoSuchFieldException {
-        for (Class<?> superClass = this.getClass(); superClass != Object.class; superClass = superClass
-                .getSuperclass()) {
-            return superClass.getDeclaredField(fieldName);
-        }
-        return null;
-    }
-
-    public Object getValueByFieldName(String fieldName)
-            throws SecurityException, NoSuchFieldException, IllegalArgumentException, IllegalAccessException {
-        Field field = getFieldByFieldName(fieldName);
-        Object value = null;
-        if (field != null) {
-            if (field.isAccessible()) {
-                value = field.get(this);
-            } else {
-                field.setAccessible(true);
-                value = field.get(this);
-                field.setAccessible(false);
-            }
-        }
-        return value;
     }
 }

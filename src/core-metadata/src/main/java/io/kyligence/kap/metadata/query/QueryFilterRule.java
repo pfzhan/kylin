@@ -30,6 +30,13 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import java.util.List;
 
 public class QueryFilterRule extends RootPersistentEntity {
+    public static final String START_TIME = "startTime";
+    public static final String FREQUENCY = "frequency";
+    public static final String LATENCY = "latency";
+    public static final String ACCELERATE_STATUS = "accelerateStatus";
+    public static final String SQL = "sql";
+    public static final String ANSWERED_BY = "answeredBy";
+    public static final String USER = "user";
 
     public QueryFilterRule() {
         updateRandomUuid();
@@ -74,15 +81,6 @@ public class QueryFilterRule extends RootPersistentEntity {
     }
 
     public static class QueryHistoryCond {
-        public enum Operation {
-            LESS,
-            GREATER,
-            EQUAL,
-            CONTAIN,
-            TO,
-        }
-
-        private Operation op;
         private String field;
         private String rightThreshold;
         private String leftThreshold;
@@ -91,19 +89,10 @@ public class QueryFilterRule extends RootPersistentEntity {
 
         }
 
-        public QueryHistoryCond(Operation op, String field, String leftThreshold, String rightThreshold) {
-            this.op = op;
+        public QueryHistoryCond(String field, String leftThreshold, String rightThreshold) {
             this.field = field;
             this.leftThreshold = leftThreshold;
             this.rightThreshold = rightThreshold;
-        }
-
-        public Operation getOp() {
-            return op;
-        }
-
-        public void setOp(Operation op) {
-            this.op = op;
         }
 
         public String getField() {

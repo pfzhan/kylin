@@ -1452,7 +1452,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public boolean isAutoMarkFavorite() {
-        return Boolean.parseBoolean(this.getOptional("kylin.favorite.auto-mark", "false"));
+        return Boolean.parseBoolean(this.getOptional("kylin.favorite.auto-mark", "true"));
     }
 
     public int getAutoMarkFavoriteDetectionInterval() {

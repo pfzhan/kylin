@@ -55,33 +55,28 @@ public class QueryFilterRuleManagerTest extends NLocalFileMetadataTestCase {
         List<QueryFilterRule> rules = manager.getAll();
         Assert.assertEquals(1, rules.size());
         Assert.assertEquals("test", rules.get(0).getName());
-        Assert.assertEquals(5, rules.get(0).getConds().size());
+        Assert.assertEquals(4, rules.get(0).getConds().size());
         Assert.assertTrue(rules.get(0).isEnabled());
 
         QueryFilterRule.QueryHistoryCond cond1 = new QueryFilterRule.QueryHistoryCond();
-        cond1.setOp(QueryFilterRule.QueryHistoryCond.Operation.TO);
-        cond1.setField("startTime");
+        cond1.setField(QueryFilterRule.START_TIME);
         cond1.setLeftThreshold("0");
         cond1.setRightThreshold(String.valueOf(System.currentTimeMillis()));
 
         QueryFilterRule.QueryHistoryCond cond2 = new QueryFilterRule.QueryHistoryCond();
-        cond2.setOp(QueryFilterRule.QueryHistoryCond.Operation.LESS);
-        cond2.setField("latency");
-        cond2.setRightThreshold("1000");
+        cond2.setField(QueryFilterRule.LATENCY);
+        cond2.setRightThreshold("100");
 
         QueryFilterRule.QueryHistoryCond cond3 = new QueryFilterRule.QueryHistoryCond();
-        cond3.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
-        cond3.setField("accelerateStatus");
-        cond3.setRightThreshold("WAITING");
+        cond3.setField(QueryFilterRule.ACCELERATE_STATUS);
+        cond3.setRightThreshold(QueryHistory.QUERY_HISTORY_UNACCELERATED);
 
         QueryFilterRule.QueryHistoryCond cond4 = new QueryFilterRule.QueryHistoryCond();
-        cond4.setOp(QueryFilterRule.QueryHistoryCond.Operation.CONTAIN);
-        cond4.setField("sql");
+        cond4.setField(QueryFilterRule.SQL);
         cond4.setRightThreshold("test_table_1");
 
         QueryFilterRule.QueryHistoryCond cond5 = new QueryFilterRule.QueryHistoryCond();
-        cond5.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
-        cond5.setField("frequency");
+        cond5.setField(QueryFilterRule.FREQUENCY);
         cond5.setRightThreshold("4");
 
         List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList(cond1, cond2, cond3, cond4, cond5);

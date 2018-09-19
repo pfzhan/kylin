@@ -71,7 +71,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), "default");
         List<QueryHistory> queryHistories = manager.getAllQueryHistories();
-        QueryHistory newRecordedQuery = queryHistories.get(queryHistories.size() - 1);
+        QueryHistory newRecordedQuery = queryHistories.get(0);
 
         // assert if query history was saved
         Assert.assertEquals(5, queryHistories.size());
@@ -126,7 +126,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
 
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), "default");
         List<QueryHistory> queryHistories = manager.getAllQueryHistories();
-        QueryHistory newRecordedQuery = queryHistories.get(queryHistories.size() - 1);
+        QueryHistory newRecordedQuery = queryHistories.get(0);
 
         // assert if query history was saved
         Assert.assertEquals(5, queryHistories.size());
@@ -182,7 +182,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(2))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].query_id").value("query-1"));
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].query_id").value("query-2"));
 
     }
 }

@@ -460,26 +460,22 @@ public class CnMessage extends Message {
 
     // Favorite Query
     public String getQUERY_HISTORY_NOT_FOUND() {
-        return "无法找到相应的查询历史";
+        return "无法找到相应的查询历史 '%s' ";
     }
 
     public String getQUERY_HISTORY_IS_FAVORITED(){
-        return "查询历史已经被标记为加速查询";
-    }
-
-    public String getQUERY_HISTORY_IS_NOT_FAVORITED() {
-        return "查询历史未标记为加速查询";
+        return "查询历史 '%s' 已经被标记为加速查询";
     }
 
     public String getFAVORITE_QUERY_NOT_FOUND() {
-        return "无法找到相应的查询 [%s]";
+        return "无法找到相应的查询 '%s'";
     }
 
     public String getFAVORITE_RULE_NOT_FOUND() {
-        return "无法找到相应的加速规则 [%s]";
+        return "无法找到相应的加速规则 '%s' ";
     }
 
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
-        return "目前待加速的加速查询未达到[%s]条";
+        return "目前待加速的加速查询未达到 '%s' 条";
     }
 }

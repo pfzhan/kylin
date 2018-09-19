@@ -4,27 +4,17 @@
   "version" : "3.0.0.0",
   "enabled" : "true",
   "conds" : [ {
-    "op" : "TO",
-    "field" : "startTime",
-    "rightThreshold" : "1459362230010",
-    "leftThreshold" : "1459362239990"
+    "field" : "user",
+    "rightThreshold" : "ADMIN"
   }, {
-    "op" : "LESS",
     "field" : "latency",
     "rightThreshold" : "1000",
     "leftThreshold" : null
   }, {
-    "op" : "EQUAL",
-    "field" : "queryStatus",
-    "rightThreshold" : "FAILED",
-    "leftThreshold" : null
-  }, {
-    "op" : "CONTAIN",
     "field" : "sql",
     "rightThreshold" : "test_table_1",
     "leftThreshold" : null
   }, {
-    "op" : "GREATER",
     "field" : "frequency",
     "rightThreshold" : "4",
     "leftThreshold" : null

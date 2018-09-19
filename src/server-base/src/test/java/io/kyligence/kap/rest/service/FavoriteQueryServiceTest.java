@@ -36,6 +36,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import io.kyligence.kap.smart.NSmartMaster;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -126,20 +127,14 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(favoriteQueryService.getQueryFilterRuleManager(PROJECT)).thenReturn(manager);
     }
 
-    private void stubUnAcceleratedFavorites() {
-        String[] sqls = new String[] { //
-                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
-                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
-                "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
-                "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
-        };
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqls[0]);
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqls[1]);
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqls[2]);
-        FavoriteQuery favoriteQuery4 = new FavoriteQuery(sqls[3]);
+    private void stubUnAcceleratedFavorites(String[] sqls) {
+        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+        for (String sql : sqls) {
+            favoriteQueries.add(new FavoriteQuery(sql));
+        }
+
         final FavoriteQueryManager manager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.when(manager.getAll()).thenReturn(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3, favoriteQuery4));
-        Mockito.when(favoriteQueryService.getSmartMaster("newten", sqls)).thenReturn(new NSmartMaster(getTestConfig(), "newten", sqls));
+        Mockito.when(manager.getAll()).thenReturn(favoriteQueries);
         Mockito.when(favoriteQueryService.getFavoriteQueryManager("newten")).thenReturn(manager);
     }
 
@@ -201,8 +196,21 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.unFavorite(PROJECT, Lists.newArrayList(favoriteQuery));
         Assert.assertFalse(queryHistories.get(0).isFavorite());
         Assert.assertFalse(queryHistories.get(1).isFavorite());
+        Assert.assertTrue(queryHistories.get(0).isUnfavorite());
+        Assert.assertTrue(queryHistories.get(1).isUnfavorite());
         Mockito.verify(favoriteQueryService).post(PROJECT, new HashMap<String, String>(){{put("select * from existing_table", "favorite-query-0");}}, false);
         getTestConfig().setProperty("kylin.server.mode", "all");
+
+        // exception case
+        try {
+            FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
+            Mockito.when(favoriteQueryManager.get("not_existing_favorite")).thenReturn(null);
+            Mockito.when(favoriteQueryService.getFavoriteQueryManager(PROJECT)).thenReturn(favoriteQueryManager);
+            favoriteQueryService.unFavorite(PROJECT, Lists.newArrayList("not_existing_favorite"));
+        } catch (Throwable ex) {
+            Assert.assertEquals(NotFoundException.class, ex.getClass());
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_FOUND(), "not_existing_favorite"), ex.getMessage());
+        }
     }
 
     @Test
@@ -216,6 +224,28 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("select * from existing_table_2", favoriteQueries.get(0).getSql());
         Assert.assertEquals("select * from existing_table_1", favoriteQueries.get(1).getSql());
         Assert.assertEquals("test_uuid", favoriteQueries.get(1).getUuid());
+
+        // exception case
+        try {
+            favoriteQueryService.favorite(PROJECT, Lists.newArrayList("not_existing_query_1", "not_existing_query_2"));
+        } catch (Throwable ex) {
+            Assert.assertEquals(NotFoundException.class, ex.getClass());
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getQUERY_HISTORY_NOT_FOUND(), "not_existing_query_1"), ex.getMessage());
+        }
+
+        try {
+            QueryHistory queryHistory = Mockito.mock(QueryHistory.class);
+            Mockito.when(queryHistory.isFavorite()).thenReturn(true);
+            Mockito.when(queryHistory.getUuid()).thenReturn("existing_query");
+            QueryHistoryManager queryHistoryManager = Mockito.mock(QueryHistoryManager.class);
+            Mockito.when(queryHistoryManager.findQueryHistory("existing_query")).thenReturn(queryHistory);
+            Mockito.when(favoriteQueryService.getQueryHistoryManager(PROJECT)).thenReturn(queryHistoryManager);
+
+            favoriteQueryService.favorite(PROJECT, Lists.newArrayList("existing_query"));
+        } catch (Throwable ex) {
+            Assert.assertEquals(IllegalStateException.class, ex.getClass());
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getQUERY_HISTORY_IS_FAVORITED(), "existing_query"), ex.getMessage());
+        }
     }
 
     @Test
@@ -239,23 +269,62 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0.5f, favoriteQueries.get(1).getSuccessRate(), 0.1);
         Assert.assertEquals(50f, favoriteQueries.get(1).getAverageDuration(), 0.1);
         Assert.assertEquals(now + 1, favoriteQueries.get(1).getLastQueryTime());
+
+        // case of history queries are not queried in today
+        List<QueryHistory> queryHistoriesNotInToday = Lists.newArrayList();
+        for (QueryHistory queryHistory : queriesForTest()) {
+            queryHistory.setStartTime(0);
+            queryHistoriesNotInToday.add(queryHistory);
+        }
+        Mockito.when(queryHistoryManager.getAllQueryHistories()).thenReturn(queryHistoriesNotInToday);
+        favoriteQueryService.getAllFavoriteQueries(PROJECT);
+
+        Assert.assertEquals(0, favoriteQueries.get(0).getFrequency());
+        Assert.assertEquals(0f, favoriteQueries.get(0).getSuccessRate(), 0.1);
+        Assert.assertEquals(0, favoriteQueries.get(0).getAverageDuration(), 0.1);
+
+        Assert.assertEquals(0, favoriteQueries.get(1).getFrequency());
+        Assert.assertEquals(0f, favoriteQueries.get(1).getSuccessRate(), 0.1);
+        Assert.assertEquals(0, favoriteQueries.get(1).getAverageDuration(), 0.1);
+    }
+
+    @Test
+    public void testGetCandidates() throws IOException {
+        System.setProperty("kylin.favorite.auto-mark", "false");
+
+        List<QueryHistory> queryHistories = favoriteQueryService.getCandidates(PROJECT);
+        Assert.assertEquals(0, queryHistories.size());
+
+        System.clearProperty("kylin.favorite.auto-mark");
     }
 
     @Test
     public void testMarkAutomatic() throws IOException {
         favoriteQueryService.markAutomatic(PROJECT);
         ProjectInstance projectInstance = NProjectManager.getInstance(getTestConfig()).getProject(PROJECT);
-        Assert.assertTrue(projectInstance.getConfig().isAutoMarkFavorite());
+        Assert.assertFalse(projectInstance.getConfig().isAutoMarkFavorite());
         favoriteQueryService.markAutomatic(PROJECT);
+
+        // case of exception
+        NProjectManager projectManager = Mockito.mock(NProjectManager.class);
+        Mockito.when(projectManager.getProject("not_existing_project")).thenReturn(null);
+        Mockito.when(favoriteQueryService.getProjectManager()).thenReturn(projectManager);
+
+        try {
+            favoriteQueryService.markAutomatic("not_existing_project");
+        } catch (Throwable ex) {
+            Assert.assertEquals(NotFoundException.class, ex.getClass());
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), "not_existing_project"), ex.getMessage());
+        }
     }
 
     @Test
     public void testGetAutomaticConfig() throws IOException {
-        Assert.assertFalse(favoriteQueryService.getMarkAutomatic(PROJECT));
-        favoriteQueryService.markAutomatic(PROJECT);
         Assert.assertTrue(favoriteQueryService.getMarkAutomatic(PROJECT));
         favoriteQueryService.markAutomatic(PROJECT);
         Assert.assertFalse(favoriteQueryService.getMarkAutomatic(PROJECT));
+        favoriteQueryService.markAutomatic(PROJECT);
+        Assert.assertTrue(favoriteQueryService.getMarkAutomatic(PROJECT));
     }
 
     @Test
@@ -294,15 +363,44 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         favoriteQueryService.enableQueryFilterRule(PROJECT, rule.getUuid());
         Assert.assertTrue(rule.isEnabled());
+
+        Mockito.when(queryFilterRuleManager.get("not_existing_rule")).thenReturn(null);
+        try {
+            favoriteQueryService.enableQueryFilterRule(PROJECT, "not_existing_rule");
+        } catch (Throwable ex) {
+            Assert.assertEquals(NotFoundException.class, ex.getClass());
+            Assert.assertEquals(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), "not_existing_rule"), ex.getMessage());
+        }
     }
 
     @Test
-    public void testGetAccelerateTips() {
-        stubUnAcceleratedFavorites();
+    public void testGetAccelerateTips() throws IOException {
+        String[] sqls = new String[] { //
+                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
+                "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
+                "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
+                "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
+        };
 
+        stubUnAcceleratedFavorites(sqls);
+
+        // case of no model
         HashMap<String, Object> newten_data = favoriteQueryService.getAccelerateTips("newten");
         Assert.assertEquals(4, newten_data.get("size"));
         Assert.assertEquals(false, newten_data.get("reach_threshold"));
+        Assert.assertEquals(1, newten_data.get("optimized_model_num"));
+
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), "newten", sqls);
+        smartMaster.runAll();
+
+        String[] sqlsForAddCuboidTest = new String[] {
+                "select order_id from test_kylin_fact"
+        };
+
+        // case of adding a new cuboid
+        stubUnAcceleratedFavorites(sqlsForAddCuboidTest);
+        newten_data = favoriteQueryService.getAccelerateTips("newten");
+        Assert.assertEquals(1, newten_data.get("size"));
         Assert.assertEquals(1, newten_data.get("optimized_model_num"));
 
         // if there is no unAcceleratedQueries
@@ -311,6 +409,15 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, default_data.get("size"));
         Assert.assertEquals(false, default_data.get("reach_threshold"));
         Assert.assertEquals(0, default_data.get("optimized_model_num"));
+
+        stubUnAcceleratedFavorites(sqls);
+
+        System.setProperty("kylin.favorite.query-accelerate-threshold", "1");
+        newten_data = favoriteQueryService.getAccelerateTips("newten");
+        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(true, newten_data.get("reach_threshold"));
+        Assert.assertEquals(0, newten_data.get("optimized_model_num"));
+        System.clearProperty("kylin.favorite.query-accelerate-threshold");
     }
 
     @Test
@@ -335,6 +442,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testIgnoreAccelerateTips() {
         Assert.assertFalse(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
+        Mockito.when(favoriteQueryService.getUnAcceleratedQueries(PROJECT)).thenReturn(Lists.<FavoriteQuery>newArrayList());
         favoriteQueryService.getAccelerateTips(PROJECT);
         Assert.assertTrue(favoriteQueryService.getIgnoreCountMap().containsKey(PROJECT));
         favoriteQueryService.ignoreAccelerate(PROJECT);
@@ -345,19 +453,16 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void testAutoMarkFavorite() throws Exception {
         FavoriteQueryService.AutoMarkFavorite autoMarkFavorite = favoriteQueryService.new AutoMarkFavorite();
         QueryHistory queryHistory = new QueryHistory();
-        queryHistory.updateRandomUuid();
-        queryHistory.setQueryId("auto-mark-favorite-query-id");
+        queryHistory.setSql("sql for test");
         QueryHistoryManager queryHistoryManager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
         queryHistoryManager.save(queryHistory);
 
         QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-        cond.setOp(QueryFilterRule.QueryHistoryCond.Operation.EQUAL);
-        cond.setField("queryId");
-        cond.setRightThreshold("auto-mark-favorite-query-id");
+        cond.setField(QueryFilterRule.SQL);
+        cond.setRightThreshold("sql for test");
         QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond), "test_rule", true);
         favoriteQueryService.saveQueryFilterRule(PROJECT, rule);
         System.setProperty("kylin.favorite.auto-mark-detection-interval", "1");
-        favoriteQueryService.markAutomatic(PROJECT);
 
         autoMarkFavorite.start();
 
@@ -366,7 +471,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(queryHistoryManager.findQueryHistory(queryHistory.getUuid()).getFavorite());
         autoMarkFavorite.interrupt();
         favoriteQueryService.deleteQueryFilterRule(PROJECT, rule.getUuid());
-        favoriteQueryService.markAutomatic(PROJECT);
         System.clearProperty("kylin.favorite.auto-mark-detection-interval");
     }
 }

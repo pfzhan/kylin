@@ -477,26 +477,22 @@ public class Message {
     // Favorite Query
 
     public String getQUERY_HISTORY_NOT_FOUND() {
-        return "Can not find query history";
+        return "Cannot find query history '%s' ";
     }
 
     public String getQUERY_HISTORY_IS_FAVORITED(){
-        return "Query history is already marked as favorite query";
-    }
-
-    public String getQUERY_HISTORY_IS_NOT_FAVORITED() {
-        return "Query history is not yet marked as favorite query";
+        return "Query history '%s' is already marked as favorite query";
     }
 
     public String getFAVORITE_QUERY_NOT_FOUND() {
-        return "Can find favorite query [%s]";
+        return "Cannot find favorite query '%s' ";
     }
 
     public String getFAVORITE_RULE_NOT_FOUND() {
-        return "Cannot find favorite rule [%s]";
+        return "Cannot find favorite rule '%s' ";
     }
 
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
-        return "Current number of unAccelerated favorite queries has not reached to [%s]";
+        return "Current number of unAccelerated favorite queries has not reached to '%s' ";
     }
 }

@@ -4,7 +4,7 @@
       "version" : "3.0.0.0",
       "sql" : "select * from test_kylin_fact limit 3",
       "start_time" : 1459362230222,
-      "latency" : 1000.0,
+      "latency" : 1000,
       "realization": ["Pushdown"],
       "query_node" : "sandbox.hortonworks.com",
       "thread" : "t-0",

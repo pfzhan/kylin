@@ -42,19 +42,15 @@ public class FavoriteQuery extends RootPersistentEntity implements Comparable<Fa
     private String modelName;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
-    @JsonProperty("createTime")
-    private long createTime;
 
     public FavoriteQuery() {
         updateRandomUuid();
-        this.createTime = System.currentTimeMillis();
     }
 
     public FavoriteQuery(final String sql) {
         this.updateRandomUuid();
         this.sql = sql;
         this.setStatus(FavoriteQueryStatusEnum.WAITING);
-        this.createTime = System.currentTimeMillis();
     }
 
     public String getSql() {
@@ -113,17 +109,9 @@ public class FavoriteQuery extends RootPersistentEntity implements Comparable<Fa
         this.status = status;
     }
 
-    public long getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
-
     @Override
     public int compareTo(FavoriteQuery obj) {
-        int comp = Long.compare(this.createTime, obj.getCreateTime());
+        int comp = Long.compare(this.lastQueryTime, obj.getLastQueryTime());
         if (comp != 0)
             return comp;
         else

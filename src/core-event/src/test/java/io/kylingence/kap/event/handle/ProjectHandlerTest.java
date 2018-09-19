@@ -57,6 +57,7 @@ public class ProjectHandlerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "query");
         getTestConfig().setProperty("kylin.event.wait-for-job-finished", "false");
 
+        EventOrchestratorManager.destroyInstance();
         EventOrchestratorManager eventOrchestratorManager = EventOrchestratorManager.getInstance(getTestConfig());
 
         Class<?> clazz = eventOrchestratorManager.getClass();

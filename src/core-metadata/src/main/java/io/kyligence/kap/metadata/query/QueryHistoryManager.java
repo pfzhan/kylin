@@ -77,13 +77,11 @@ public class QueryHistoryManager {
 
     private KylinConfig kylinConfig;
     private String project;
-    private String queryHistoryResourcePath;
 
     public QueryHistoryManager(KylinConfig config, String project) {
         logger.info("Initializing QueryHistoryManager with config " + config);
         this.kylinConfig = config;
         this.project = project;
-        this.queryHistoryResourcePath = "/" + project + ResourceStore.QUERY_HISTORY_RESOURCE_ROOT;
     }
 
     public QueryHistory findQueryHistory(String queryHistoryId) throws IOException {
@@ -98,10 +96,23 @@ public class QueryHistoryManager {
         return null;
     }
 
-    public List<QueryHistory> getUnFavoriteQueryHistory() throws IOException {
+    public List<QueryHistory> getUnFavoriteQueryHistoryForAuto() throws IOException {
         Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
             @Override
-            public boolean apply(@Nullable QueryHistory queryHistory) {
+            public boolean apply(QueryHistory queryHistory) {
+                Preconditions.checkArgument(queryHistory != null);
+                return !queryHistory.isFavorite() && !queryHistory.isUnfavorite();
+            }
+        };
+
+        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
+    }
+
+    public List<QueryHistory> getUnFavoriteQueryHistoryForManual() throws IOException {
+        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
+            @Override
+            public boolean apply(QueryHistory queryHistory) {
+                Preconditions.checkArgument(queryHistory != null);
                 return !queryHistory.isFavorite();
             }
         };
@@ -126,27 +137,28 @@ public class QueryHistoryManager {
     }
 
     public List<QueryHistory> getAllQueryHistories() throws IOException {
-        List<QueryHistory> queryHistories = getStore().getAllResources(queryHistoryResourcePath,
+        List<QueryHistory> queryHistories = getStore().getAllResources(getRootPath(),
                 QueryHistory.class, QUERY_HISTORY_INSTANCE_SERIALIZER);
-        Collections.sort(queryHistories);
+        Collections.sort(queryHistories, Collections.reverseOrder());
 
         logger.debug("Loaded " + queryHistories.size() + " Query(s)");
         return queryHistories;
     }
 
+    private String getRootPath() {
+        return "/" + project + ResourceStore.QUERY_HISTORY_RESOURCE_ROOT;
+    }
+
     public String getResourcePathForQueryHistory(String resouceName) {
-        return queryHistoryResourcePath + "/" + resouceName + MetadataConstants.FILE_SURFIX;
+        return getRootPath() + "/" + resouceName + MetadataConstants.FILE_SURFIX;
     }
 
     public void save(QueryHistory queryHistory) throws IOException {
         saveAll(Lists.newArrayList(queryHistory));
     }
 
-    public void saveAll(Collection<QueryHistory> queryHistoryEntries) throws IOException {
-        if (StringUtils.isEmpty(project) || queryHistoryEntries == null)
-            throw new IllegalArgumentException();
-
-        for (QueryHistory queryHistory : queryHistoryEntries) {
+    public void saveAll(Collection<QueryHistory> queryHistories) throws IOException {
+        for (QueryHistory queryHistory : queryHistories) {
             Preconditions.checkArgument(queryHistory != null && queryHistory.resourceName() != null);
             getStore().putResource(getResourcePathForQueryHistory(queryHistory.resourceName()), queryHistory, QUERY_HISTORY_INSTANCE_SERIALIZER);
         }

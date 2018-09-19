@@ -109,9 +109,9 @@ public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
         assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
 
         List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories("default");
-        QueryHistory slowQuery = queryHistories.get(queryHistories.size() - 1);
+        QueryHistory slowQuery = queryHistories.get(0);
 
         assertEquals(mockSql, slowQuery.getSql());
-        assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(queryHistories.size() - 1).getQueryStatus());
+        assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(0).getQueryStatus());
     }
 }

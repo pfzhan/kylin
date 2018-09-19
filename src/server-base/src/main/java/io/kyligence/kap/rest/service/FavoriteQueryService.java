@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
@@ -42,7 +43,6 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
@@ -55,6 +55,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -79,8 +80,11 @@ public class FavoriteQueryService extends BasicService {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
         List<QueryHistory> queryHistories = Lists.newArrayList();
         QueryHistoryManager manager = getQueryHistoryManager(project);
-        for (String query : queryUuids) {
-            queryHistories.add(manager.findQueryHistory(query));
+        for (String queryUuid : queryUuids) {
+            QueryHistory queryHistory = manager.findQueryHistory(queryUuid);
+            if (queryHistory == null)
+                throw new NotFoundException(String.format(MsgPicker.getMsg().getQUERY_HISTORY_NOT_FOUND(), queryUuid));
+            queryHistories.add(queryHistory);
         }
 
         return internalFavorite(project, queryHistories);
@@ -93,9 +97,6 @@ public class FavoriteQueryService extends BasicService {
 
         // get distinct sqls
         for (QueryHistory queryHistory : queryHistories) {
-            if (queryHistory == null) {
-                throw new NotFoundException(MsgPicker.getMsg().getQUERY_HISTORY_NOT_FOUND());
-            }
 
             if (!sqlMap.containsKey(queryHistory.getSql())) {
                 sqlMap.put(queryHistory.getSql(), Lists.newArrayList(queryHistory));
@@ -119,7 +120,7 @@ public class FavoriteQueryService extends BasicService {
 
             for (QueryHistory queryHistory : entry.getValue()) {
                 if (queryHistory.isFavorite()) {
-                    throw new IllegalStateException(MsgPicker.getMsg().getQUERY_HISTORY_IS_FAVORITED());
+                    throw new IllegalStateException(String.format(MsgPicker.getMsg().getQUERY_HISTORY_IS_FAVORITED(), queryHistory.getUuid()));
                 }
 
                 queryHistory.setFavorite(favoriteQuery.getUuid());
@@ -141,7 +142,7 @@ public class FavoriteQueryService extends BasicService {
 
             if (favoriteQuery == null) {
                 throw new NotFoundException(
-                        String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_FOUND(), favoriteQuery.getSql()));
+                        String.format(MsgPicker.getMsg().getFAVORITE_QUERY_NOT_FOUND(), favoriteUuid));
             }
 
             favoriteQueryManager.unFavor(favoriteQuery);
@@ -150,11 +151,9 @@ public class FavoriteQueryService extends BasicService {
             List<QueryHistory> queryHistories = queryHistoryManager.findQueryHistoryByFavorite(favoriteUuid);
 
             for (QueryHistory queryHistory : queryHistories) {
-                if (!queryHistory.isFavorite()) {
-                    throw new IllegalStateException(MsgPicker.getMsg().getQUERY_HISTORY_IS_NOT_FAVORITED());
-                }
 
                 queryHistory.setFavorite(null);
+                queryHistory.setUnfavorite(true);
                 queryHistoryManager.save(queryHistory);
             }
         }
@@ -207,6 +206,7 @@ public class FavoriteQueryService extends BasicService {
             favoriteQueries.add(favoriteQuery);
         }
 
+        Collections.sort(favoriteQueries, Collections.reverseOrder());
         return favoriteQueries;
     }
 
@@ -221,36 +221,75 @@ public class FavoriteQueryService extends BasicService {
         return result;
     }
 
-    NSmartMaster getSmartMaster(String project, String[] sqls) {
-        return new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);
+    private int getOptimizedModelNum(String project, String[] sqls) {
+        int optimizedModelNum = 0;
+        NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+
+        List<NSmartContext.NModelContext> modelContexts = Lists.newArrayList();
+
+        for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
+            if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null) ||
+                    !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
+                optimizedModelNum ++;
+            } else
+                modelContexts.add(modelContext);
+        }
+
+        if (optimizedModelNum == smartMaster.getContext().getModelContexts().size())
+            return optimizedModelNum;
+
+        smartMaster.selectCubePlan();
+        smartMaster.optimizeCubePlan();
+
+        for (NSmartContext.NModelContext modelContext : modelContexts) {
+            List<NCuboidLayout> origCuboidLayouts = Lists.newArrayList();
+            List<NCuboidLayout> targetCuboidLayouts = Lists.newArrayList();
+
+            if (modelContext.getOrigCubePlan() != null)
+                origCuboidLayouts = modelContext.getOrigCubePlan().getAllCuboidLayouts();
+
+            if (modelContext.getTargetCubePlan() != null)
+                targetCuboidLayouts = modelContext.getTargetCubePlan().getAllCuboidLayouts();
+
+            if (!doTwoCubiodLayoutsEqual(origCuboidLayouts, targetCuboidLayouts))
+                optimizedModelNum ++;
+        }
+
+        return optimizedModelNum;
+    }
+
+    private boolean doTwoCubiodLayoutsEqual(List<NCuboidLayout> origCuboidLayouts, List<NCuboidLayout> targetCuboidLayouts) {
+        if (origCuboidLayouts.size() != targetCuboidLayouts.size())
+            return false;
+
+        for (int i = 0; i < origCuboidLayouts.size(); i++) {
+            if (origCuboidLayouts.get(i).getId() != targetCuboidLayouts.get(i).getId())
+                return false;
+        }
+
+        return true;
     }
 
     public HashMap<String, Object> getAccelerateTips(String project) {
         HashMap<String, Object> data = Maps.newHashMap();
         List<FavoriteQuery> unAcceleratedQueries = getUnAcceleratedQueries(project);
-        int optimized_model_num = 0;
+        int optimizedModelNum = 0;
 
-        if (unAcceleratedQueries.size() > 0) {
+        if (!unAcceleratedQueries.isEmpty()) {
             String[] sqls = new String[unAcceleratedQueries.size()];
             for (int i = 0; i < unAcceleratedQueries.size(); i++) {
                 sqls[i] = unAcceleratedQueries.get(i).getSql();
             }
-            NSmartMaster smartMaster = getSmartMaster(project, sqls);
-            smartMaster.analyzeSQLs();
-            smartMaster.selectModel();
-            smartMaster.optimizeModel();
 
-            for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
-                if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
-                        || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
-                    optimized_model_num ++;
-                }
-            }
+            optimizedModelNum = getOptimizedModelNum(project, sqls);
         }
 
         data.put("size", unAcceleratedQueries.size());
         data.put("reach_threshold", false);
-        data.put("optimized_model_num", optimized_model_num);
+        data.put("optimized_model_num", optimizedModelNum);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         int ignoreCount = 1;
@@ -258,6 +297,7 @@ public class FavoriteQueryService extends BasicService {
             ignoreCount = ignoreCountMap.get(project);
         else
             ignoreCountMap.put(project, 1);
+
         if (unAcceleratedQueries.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold() * ignoreCount)
             data.put("reach_threshold", true);
 
@@ -284,13 +324,9 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public void ignoreAccelerate(String project) {
-        if (!ignoreCountMap.containsKey(project)) {
-            ignoreCountMap.put(project, 1);
-        } else {
-            int ignoreCount = ignoreCountMap.get(project);
-            ignoreCount ++;
-            ignoreCountMap.put(project, ignoreCount);
-        }
+        int ignoreCount = ignoreCountMap.get(project);
+        ignoreCount ++;
+        ignoreCountMap.put(project, ignoreCount);
     }
 
     Map<String, Integer> getIgnoreCountMap() {
@@ -321,7 +357,7 @@ public class FavoriteQueryService extends BasicService {
         QueryFilterRuleManager manager = getQueryFilterRuleManager(project);
         QueryFilterRule rule = manager.get(uuid);
         if (rule == null)
-            throw new IllegalArgumentException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), uuid));
+            throw new NotFoundException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), uuid));
 
         boolean isEnabled = rule.isEnabled();
         rule.setEnabled(!isEnabled);
@@ -340,7 +376,12 @@ public class FavoriteQueryService extends BasicService {
 
     public List<QueryHistory> getCandidates(String project) throws IOException {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
-        List<QueryHistory> unFavoriteQueries = getQueryHistoryManager(project).getUnFavoriteQueryHistory();
+        List<QueryHistory> unFavoriteQueries = Lists.newArrayList();
+        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        if (projectInstance.getConfig().isAutoMarkFavorite())
+            unFavoriteQueries = getQueryHistoryManager(project).getUnFavoriteQueryHistoryForAuto();
+        else
+            unFavoriteQueries = getQueryHistoryManager(project).getUnFavoriteQueryHistoryForManual();
         return queryHistoryService.getQueryHistoriesByRules(getQueryFilterRuleManager(project).getAllEnabled(), unFavoriteQueries);
     }
 
@@ -359,7 +400,7 @@ public class FavoriteQueryService extends BasicService {
         ProjectInstance projectInstance = getProjectManager().getProject(project);
 
         if (projectInstance == null) {
-            throw new InternalErrorException(MsgPicker.getMsg().getPROJECT_NOT_FOUND());
+            throw new NotFoundException(String.format(MsgPicker.getMsg().getPROJECT_NOT_FOUND(), project));
         }
 
         boolean isMarkAutomatic = projectInstance.getConfig().isAutoMarkFavorite();

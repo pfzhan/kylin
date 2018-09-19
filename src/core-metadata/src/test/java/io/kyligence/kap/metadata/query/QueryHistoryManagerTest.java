@@ -79,12 +79,12 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
         assertEquals(4, queryHistories.size());
 
         QueryHistory entry1 = queryHistories.get(0);
-        assertEquals("Pushdown", entry1.getRealization().get(0));
+        assertEquals("Slow", entry1.getRealization().get(0));
         assertEquals("sandbox.hortonworks.com", entry1.getQueryNode());
-        assertEquals("select * from test_kylin_fact limit 10", entry1.getSql());
+        assertEquals("select * from test_kylin_fact limit 1", entry1.getSql());
 
         QueryHistory entry2 = queryHistories.get(1);
-        assertTrue(entry2.getStartTime() > entry1.getStartTime());
+        assertTrue(entry2.getStartTime() < entry1.getStartTime());
     }
 
     @Test
@@ -98,7 +98,7 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
         List<QueryHistory> entries = manager.getAllQueryHistories();
         assertEquals(5, entries.size());
 
-        QueryHistory newEntry = entries.get(entries.size() - 1);
+        QueryHistory newEntry = entries.get(0);
 
         assertEquals("sql", newEntry.getSql());
         assertEquals(1459362239992L, newEntry.getStartTime());
@@ -118,6 +118,15 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
         assertEquals("Pushdown", queryHistory.getRealization().get(0));
         assertEquals("query-3", queryHistory.getQueryId());
 
+        try {
+            manager.findQueryHistory("");
+        } catch (Throwable ex) {
+            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+        }
+
+        QueryHistory notExistingQuery = manager.findQueryHistory("not_existing");
+        Assert.assertNull(notExistingQuery);
+
         List<QueryHistory> favoritedQuery = manager.findQueryHistoryByFavorite(FAVORITE_QUERY);
 
         assertNotNull(favoritedQuery);
@@ -128,12 +137,19 @@ public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetUnFavoriteQueries() throws IOException {
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
-        List<QueryHistory> unFavoriteQueries = manager.getUnFavoriteQueryHistory();
+        List<QueryHistory> unFavoriteQueries = manager.getUnFavoriteQueryHistoryForManual();
 
         Assert.assertEquals(3, unFavoriteQueries.size());
         for (QueryHistory queryHistory : unFavoriteQueries) {
             Assert.assertFalse(queryHistory.isFavorite());
         }
+
+        QueryHistory queryHistory = manager.findQueryHistory(QUERY);
+        queryHistory.setUnfavorite(true);
+
+        manager.save(queryHistory);
+        unFavoriteQueries = manager.getUnFavoriteQueryHistoryForAuto();
+        Assert.assertEquals(2, unFavoriteQueries.size());
     }
 
 }

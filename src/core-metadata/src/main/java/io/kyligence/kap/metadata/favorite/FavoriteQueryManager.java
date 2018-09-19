@@ -38,7 +38,6 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -131,7 +130,6 @@ public class FavoriteQueryManager implements IKeepNames {
             }
         }
 
-        Collections.sort(favoriteQueries);
         return favoriteQueries;
     }
 
