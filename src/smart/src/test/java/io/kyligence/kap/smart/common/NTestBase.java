@@ -29,6 +29,7 @@ import java.util.Collection;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Before;
 
@@ -55,6 +56,7 @@ public abstract class NTestBase {
     public void tearDown() throws Exception {
         if (tmpMeta != null)
             FileUtils.forceDelete(tmpMeta);
+        ResourceStore.clearCache(kylinConfig);
     }
 
     protected <T> int countInnerObj(Collection<T>... list) {

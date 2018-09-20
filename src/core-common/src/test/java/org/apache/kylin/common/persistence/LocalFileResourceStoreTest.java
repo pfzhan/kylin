@@ -76,6 +76,18 @@ public class LocalFileResourceStoreTest {
     }
 
     @Test
+    public void testMemoryLeak() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ResourceStoreTest.testPotentialMemoryLeak(config);
+    }
+
+    @Test
+    public void testUUID() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ResourceStoreTest.testGetUUID(config);
+    }
+
+    @Test
     public void testRollback() throws Exception {
         ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         byte[] bytes = new byte[] { 0, 1, 2 };

@@ -75,6 +75,10 @@
             <artifactId>kylin-external-htrace</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-tomcat-ext</artifactId>
+        </dependency>
 
         <!-- these plug-in modules, should not have API dependencies -->
 

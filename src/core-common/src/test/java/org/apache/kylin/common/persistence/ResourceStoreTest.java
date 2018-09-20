@@ -90,10 +90,10 @@ public class ResourceStoreTest {
     private static void testPerformance(ResourceStore store) throws IOException {
         logger.info("Test basic functions");
         testAStore(store);
-        logger.info("Basic function ok. Start to test performance for class : " + store.getClass());
-        logger.info("Write metadata time : " + testWritePerformance(store));
-        logger.info("Read metadata time  " + testReadPerformance(store));
-        logger.info("Performance test end. Class : " + store.getClass());
+        logger.info("Basic function ok. Start to test performance for class : {}", store.getClass());
+        logger.info("Write metadata time : {}", testWritePerformance(store));
+        logger.info("Read metadata time {}", testReadPerformance(store));
+        logger.info("Performance test end. Class : {}", store.getClass());
     }
 
     private static void testGetAllResources(ResourceStore store) throws IOException {
@@ -170,17 +170,17 @@ public class ResourceStoreTest {
         list = store.listResources(dir1);
         System.out.println(list);
         Assert.assertTrue(list.contains(path1));
-        Assert.assertTrue(list.contains(path2) == false);
+        Assert.assertFalse(list.contains(path2));
 
         list = store.listResources(dir2);
         Assert.assertTrue(list.contains(path2));
-        Assert.assertTrue(list.contains(path1) == false);
+        Assert.assertFalse(list.contains(path1));
 
         list = store.listResources("/");
         Assert.assertTrue(list.contains(dir1));
         Assert.assertTrue(list.contains(dir2));
-        Assert.assertTrue(list.contains(path1) == false);
-        Assert.assertTrue(list.contains(path2) == false);
+        Assert.assertFalse(list.contains(path1));
+        Assert.assertFalse(list.contains(path2));
 
         list = store.listResources(path1);
         Assert.assertNull(list);
@@ -189,14 +189,14 @@ public class ResourceStoreTest {
 
         // delete/exist
         store.deleteResource(path1);
-        Assert.assertTrue(store.exists(path1) == false);
+        Assert.assertFalse(store.exists(path1));
         list = store.listResources(dir1);
-        Assert.assertTrue(list == null || list.contains(path1) == false);
+        Assert.assertTrue(list == null || !list.contains(path1));
 
         store.deleteResource(path2);
-        Assert.assertTrue(store.exists(path2) == false);
+        Assert.assertFalse(store.exists(path2));
         list = store.listResources(dir2);
-        Assert.assertTrue(list == null || list.contains(path2) == false);
+        Assert.assertTrue(list == null || !list.contains(path2));
     }
 
     private static long testWritePerformance(ResourceStore store) throws IOException {
@@ -218,7 +218,7 @@ public class ResourceStoreTest {
             StringEntity t = store.getResource(resourcePath, StringEntity.class, StringEntity.serializer);
             step |= t.toString().length();
         }
-        logger.info("step : " + step);
+        logger.info("step : {}", step);
         return System.currentTimeMillis() - startTime;
     }
 
@@ -228,4 +228,35 @@ public class ResourceStoreTest {
         return oldUrl;
     }
 
+    public static void testPotentialMemoryLeak(KylinConfig kylinConfig) {
+        ResourceStore.clearCache();
+        Assert.assertFalse(ResourceStore.isPotentialMemoryLeak());
+        ResourceStore.getKylinMetaStore(kylinConfig);
+        // Put 100 caches into resource store
+        for (int i = 0; i < TEST_RESOURCE_COUNT; ++i) {
+            // Make a deep copy of kylinConfig is important
+            ResourceStore.getKylinMetaStore(KylinConfig.createKylinConfig(kylinConfig));
+        }
+        Assert.assertTrue(ResourceStore.isPotentialMemoryLeak());
+        // Clear one cache
+        ResourceStore.clearCache(kylinConfig);
+        Assert.assertFalse(ResourceStore.isPotentialMemoryLeak());
+        // Clear all cache
+        ResourceStore.clearCache();
+        Assert.assertFalse(ResourceStore.isPotentialMemoryLeak());
+    }
+
+    public static void testGetUUID(KylinConfig kylinConfig) throws IOException {
+        ResourceStore store = ResourceStore.getKylinMetaStore(kylinConfig);
+        // Generate new UUID
+        String uuid1 = store.getMetaStoreUUID();
+        Assert.assertNotNull(uuid1);
+        store.deleteResource("UUID");
+        // Delete the UUID, then generate new UUID
+        String uuid2 = store.getMetaStoreUUID();
+        Assert.assertNotEquals(uuid1, uuid2);
+        String uuid3 = store.getMetaStoreUUID();
+        // UUID exists, so it should be consistent to the previous one
+        assertEquals(uuid2, uuid3);
+    }
 }

@@ -143,8 +143,8 @@ public class NProjectManager {
             if (resource.equals("/UUID") || resource.equals("/user") || resource.equals("/user_group")
                     || resource.contains(".crc") || resource.contains(".properties") || resource.contains(".DS_Store"))
                 continue;
-            //remove "/" before driName
-            String dirName = resource.substring(1, resource.length());
+            //remove "/" before dirName
+            String dirName = resource.substring(1);
             projects.add(dirName);
         }
         return projects;

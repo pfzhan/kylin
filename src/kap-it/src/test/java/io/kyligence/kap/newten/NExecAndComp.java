@@ -138,7 +138,7 @@ public class NExecAndComp {
             } else {
                 cubeResult.persist();
                 System.out
-                        .println("result comparision is not available, part of the cube results:" + cubeResult.count());
+                        .println("result comparision is not available, part of the cube results: " + cubeResult.count());
                 cubeResult.show();
                 cubeResult.unpersist();
             }
@@ -215,8 +215,7 @@ public class NExecAndComp {
     static List<Pair<String, String>> fetchPartialQueries(String folder, int start, int end) throws IOException {
         File sqlFolder = new File(folder);
         List<Pair<String, String>> originalSqls = retrieveITSqls(sqlFolder);
-        return doFilter(originalSqls.subList(start, end));
-
+        return originalSqls.subList(start, end);
     }
 
     @SuppressWarnings("unused")
@@ -270,14 +269,14 @@ public class NExecAndComp {
                                        CompareLevel compareLevel) {
         boolean good = true;
         if (compareLevel == CompareLevel.SAME) {
-            if(expectedResult.size() == actualResult.size()){
+            if (expectedResult.size() == actualResult.size()) {
                 for (Row eRow: expectedResult){
-                    if(!actualResult.contains(eRow)){
+                    if (!actualResult.contains(eRow)) {
                         good = false;
                         break;
                     }
                 }
-            }else {
+            } else {
                 good = false;
             }
         }
@@ -298,10 +297,10 @@ public class NExecAndComp {
         }
 
         if (!good) {
-            logger.error("result not match");
-            printRows("excepted", expectedResult);
+            logger.error("Result not match");
+            printRows("expected", expectedResult);
             printRows("actual", actualResult);
-            throw new IllegalStateException("not match");
+            throw new IllegalStateException("Result not match");
         }
     }
 
@@ -344,7 +343,7 @@ public class NExecAndComp {
             }
 
             if (!good) {
-                logger.error("result not match");
+                logger.error("Result not match");
                 expectedResult.show(10000);
                 actualResult.show(10000);
                 throw new IllegalStateException();
@@ -356,17 +355,14 @@ public class NExecAndComp {
 
     }
 
-    private static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources) {
-
-        @SuppressWarnings("MismatchedReadAndWriteOfArray")
-        final String[] EXCLUDE_SQL_LIST = {};
-
+    static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources, final String[] exclusionList) {
         Preconditions.checkArgument(sources != null);
         return Lists.newArrayList(Collections2.filter(sources, new Predicate<Pair<String, String>>() {
             @Override
             public boolean apply(Pair<String, String> input) {
-                for (String sql : EXCLUDE_SQL_LIST) {
-                    if (input.getSecond().contains(sql))
+                String fullPath = input.getFirst();
+                for (String excludeFile : exclusionList) {
+                    if (fullPath.endsWith(excludeFile))
                         return false;
                 }
                 return true;

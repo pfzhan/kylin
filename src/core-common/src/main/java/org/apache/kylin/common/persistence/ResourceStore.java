@@ -76,7 +76,7 @@ import com.google.common.collect.Lists;
  * In additional to raw bytes save and load, the store takes special care for concurrent modifications
  * by using a timestamp based test-and-set mechanism to detect (and refuse) dirty writes.
  */
-abstract public class ResourceStore {
+public abstract class ResourceStore {
 
     private static final Logger logger = LoggerFactory.getLogger(ResourceStore.class);
 
@@ -100,7 +100,6 @@ abstract public class ResourceStore {
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite_query";
 
-
     public static final String METASTORE_UUID_TAG = "/UUID";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
@@ -123,8 +122,8 @@ abstract public class ResourceStore {
                 store = createKylinMetaStore(config);
                 META_CACHE.put(config, store);
 
-                if (META_CACHE.size() > 100) {
-                    logger.warn("Cached " + META_CACHE.size() + " kylin meta stores, memory leak?",
+                if (isPotentialMemoryLeak()) {
+                    logger.warn("Cached {} kylin meta stores, memory leak?", META_CACHE.size(),
                             new RuntimeException());
                 }
             }
@@ -132,8 +131,16 @@ abstract public class ResourceStore {
         return store;
     }
 
+    public static boolean isPotentialMemoryLeak() {
+        return META_CACHE.size() > 100;
+    }
+
     public static void clearCache() {
         META_CACHE.clear();
+    }
+
+    public static void clearCache(KylinConfig config) {
+        META_CACHE.remove(config);
     }
 
     private static ResourceStore createKylinMetaStore(KylinConfig config) {
@@ -162,12 +169,11 @@ abstract public class ResourceStore {
      * Create a resource store for general purpose, according specified by given StorageURL.
      */
     public static ResourceStore createResourceStore(KylinConfig config, StorageURL url) {
-        logger.info("Creating resource store by " + url);
+        logger.info("Creating resource store by {}", url);
         String clsName = config.getResourceStoreImpls().get(url.getScheme());
         try {
             Class<? extends ResourceStore> cls = ClassUtil.forName(clsName, ResourceStore.class);
-            ResourceStore store = cls.getConstructor(KylinConfig.class, StorageURL.class).newInstance(config, url);
-            return store;
+            return cls.getConstructor(KylinConfig.class, StorageURL.class).newInstance(config, url);
         } catch (Throwable e) {
             throw new IllegalArgumentException("Failed to create metadata store by url: " + url, e);
         }
@@ -175,31 +181,31 @@ abstract public class ResourceStore {
 
     // ============================================================================
 
-    final protected KylinConfig kylinConfig;
-    final protected StorageURL storageUrl;
+    protected final KylinConfig kylinConfig;
+    protected final StorageURL storageUrl;
 
     protected ResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) {
         this.kylinConfig = kylinConfig;
         this.storageUrl = storageUrl;
     }
 
-    final public KylinConfig getConfig() {
+    public final KylinConfig getConfig() {
         return kylinConfig;
     }
 
-    final public StorageURL getStorageUrl() {
+    public final StorageURL getStorageUrl() {
         return storageUrl;
     }
 
     /**
      * List resources and sub-folders under a given folder, return null if given path is not a folder
      */
-    final public NavigableSet<String> listResources(String folderPath) throws IOException {
+    public final NavigableSet<String> listResources(String folderPath) throws IOException {
         String path = norm(folderPath);
         return listResourcesImpl(path, false);
     }
 
-    final public NavigableSet<String> listResourcesRecursively(String folderPath) throws IOException {
+    public final NavigableSet<String> listResourcesRecursively(String folderPath) throws IOException {
         String path = norm(folderPath);
         return listResourcesImpl(path, true);
     }
@@ -207,10 +213,10 @@ abstract public class ResourceStore {
     /**
      * return null if given path is not a folder or not exists
      */
-    abstract protected NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive) throws IOException;
+    protected abstract NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive) throws IOException;
 
-    protected String createMetaStoreUUID() throws IOException {
-        return UUID.randomUUID().toString();
+    protected String createMetaStoreUUID() {
+        return String.valueOf(UUID.randomUUID());
     }
 
     public String getMetaStoreUUID() throws IOException {
@@ -218,22 +224,22 @@ abstract public class ResourceStore {
             putResource(ResourceStore.METASTORE_UUID_TAG, new StringEntity(createMetaStoreUUID()), 0, StringEntity.serializer);
         }
         StringEntity entity = getResource(ResourceStore.METASTORE_UUID_TAG, StringEntity.class, StringEntity.serializer);
-        return entity.toString();
+        return String.valueOf(entity);
     }
 
     /**
      * Return true if a resource exists, return false in case of folder or non-exist
      */
-    final public boolean exists(String resPath) throws IOException {
+    public final boolean exists(String resPath) throws IOException {
         return existsImpl(norm(resPath));
     }
 
-    abstract protected boolean existsImpl(String resPath) throws IOException;
+    protected abstract boolean existsImpl(String resPath) throws IOException;
 
     /**
      * Read a resource, return null in case of not found or is a folder.
      */
-    final public <T extends RootPersistentEntity> T getResource(String resPath, Class<T> clz, Serializer<T> serializer) throws IOException {
+    public final <T extends RootPersistentEntity> T getResource(String resPath, Class<T> clz, Serializer<T> serializer) throws IOException {
         resPath = norm(resPath);
         RawResource res = getResourceImpl(resPath);
         if (res == null)
@@ -250,25 +256,25 @@ abstract public class ResourceStore {
         }
     }
 
-    final public RawResource getResource(String resPath) throws IOException {
+    public final RawResource getResource(String resPath) throws IOException {
         return getResourceImpl(norm(resPath));
     }
 
-    final public long getResourceTimestamp(String resPath) throws IOException {
+    public final long getResourceTimestamp(String resPath) throws IOException {
         return getResourceTimestampImpl(norm(resPath));
     }
 
     /**
      * Read all resources under a folder. Return empty list if folder not exist.
      */
-    final public <T extends RootPersistentEntity> List<T> getAllResources(String folderPath, Class<T> clazz, Serializer<T> serializer) throws IOException {
+    public final <T extends RootPersistentEntity> List<T> getAllResources(String folderPath, Class<T> clazz, Serializer<T> serializer) throws IOException {
         return getAllResources(folderPath, Long.MIN_VALUE, Long.MAX_VALUE, clazz, serializer);
     }
 
     /**
      * Read all resources under a folder having last modified time between given range. Return empty list if folder not exist.
      */
-    final public <T extends RootPersistentEntity> List<T> getAllResources(String folderPath, long timeStart, long timeEndExclusive, Class<T> clazz, Serializer<T> serializer) throws IOException {
+    public final <T extends RootPersistentEntity> List<T> getAllResources(String folderPath, long timeStart, long timeEndExclusive, Class<T> clazz, Serializer<T> serializer) throws IOException {
         final List<RawResource> allResources = getAllResourcesImpl(folderPath, timeStart, timeEndExclusive);
         if (allResources == null || allResources.isEmpty()) {
             return Collections.emptyList();
@@ -292,25 +298,25 @@ abstract public class ResourceStore {
     /**
      * return empty list if given path is not a folder or not exists
      */
-    abstract protected List<RawResource> getAllResourcesImpl(String folderPath, long timeStart, long timeEndExclusive) throws IOException;
+    protected abstract List<RawResource> getAllResourcesImpl(String folderPath, long timeStart, long timeEndExclusive) throws IOException;
 
     /**
      * returns null if not exists
      */
-    abstract protected RawResource getResourceImpl(String resPath) throws IOException;
+    protected abstract RawResource getResourceImpl(String resPath) throws IOException;
 
     /**
      * returns 0 if not exists
      */
-    abstract protected long getResourceTimestampImpl(String resPath) throws IOException;
+    protected abstract long getResourceTimestampImpl(String resPath) throws IOException;
 
     /**
      * overwrite a resource without write conflict check
      */
-    final public <T extends RootPersistentEntity> void putResourceWithoutCheck(String resPath, T obj, long ts,
+    public final <T extends RootPersistentEntity> void putResourceWithoutCheck(String resPath, T obj, long ts,
                                                                                Serializer<T> serializer) throws IOException {
         resPath = norm(resPath);
-        logger.trace("Directly saving resource " + resPath + " (Store " + kylinConfig.getMetadataUrl() + ")");
+        logger.trace("Directly saving resource {} (Store {})", resPath, kylinConfig.getMetadataUrl());
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         DataOutputStream dout = new DataOutputStream(buf);
         serializer.serialize(obj, dout);
@@ -324,9 +330,9 @@ abstract public class ResourceStore {
     /**
      * overwrite a resource without write conflict check
      */
-    final public void putResource(String resPath, InputStream content, long ts) throws IOException {
+    public final void putResource(String resPath, InputStream content, long ts) throws IOException {
         resPath = norm(resPath);
-        logger.trace("Directly saving resource " + resPath + " (Store " + kylinConfig.getMetadataUrl() + ")");
+        logger.trace("Directly saving resource {} (Store {})", resPath, kylinConfig.getMetadataUrl());
         putResourceCheckpoint(resPath, content, ts);
     }
 
@@ -335,21 +341,20 @@ abstract public class ResourceStore {
         putResourceImpl(resPath, content, ts);
     }
 
-    abstract protected void putResourceImpl(String resPath, InputStream content, long ts) throws IOException;
+    protected abstract void putResourceImpl(String resPath, InputStream content, long ts) throws IOException;
 
     /**
      * check & set, overwrite a resource
      */
-    final public <T extends RootPersistentEntity> long putResource(String resPath, T obj, Serializer<T> serializer) throws IOException {
+    public final <T extends RootPersistentEntity> long putResource(String resPath, T obj, Serializer<T> serializer) throws IOException {
         return putResource(resPath, obj, System.currentTimeMillis(), serializer);
     }
 
     /**
      * check & set, overwrite a resource
      */
-    final public <T extends RootPersistentEntity> long putResource(String resPath, T obj, long newTS, Serializer<T> serializer) throws IOException {
+    public final <T extends RootPersistentEntity> long putResource(String resPath, T obj, long newTS, Serializer<T> serializer) throws IOException {
         resPath = norm(resPath);
-        //logger.debug("Saving resource " + resPath + " (Store " + kylinConfig.getMetadataUrl() + ")");
 
         long oldTS = obj.getLastModified();
         obj.setLastModified(newTS);
@@ -364,10 +369,7 @@ abstract public class ResourceStore {
             newTS = checkAndPutResourceCheckpoint(resPath, buf.toByteArray(), oldTS, newTS);
             obj.setLastModified(newTS); // update again the confirmed TS
             return newTS;
-        } catch (IOException e) {
-            obj.setLastModified(oldTS); // roll back TS when write fail
-            throw e;
-        } catch (RuntimeException e) {
+        } catch (Exception e) {
             obj.setLastModified(oldTS); // roll back TS when write fail
             throw e;
         }
@@ -381,13 +383,13 @@ abstract public class ResourceStore {
     /**
      * checks old timestamp when overwriting existing
      */
-    abstract protected long checkAndPutResourceImpl(String resPath, byte[] content, long oldTS, long newTS) throws IOException, IllegalStateException;
+    protected abstract long checkAndPutResourceImpl(String resPath, byte[] content, long oldTS, long newTS) throws IOException, IllegalStateException;
 
     /**
      * delete a resource, does nothing on a folder
      */
-    final public void deleteResource(String resPath) throws IOException {
-        logger.trace("Deleting resource " + resPath + " (Store " + kylinConfig.getMetadataUrl() + ")");
+    public final void deleteResource(String resPath) throws IOException {
+        logger.trace("Deleting resource {} (Store {})", resPath, kylinConfig.getMetadataUrl());
         deleteResourceCheckpoint(norm(resPath));
     }
 
@@ -396,16 +398,16 @@ abstract public class ResourceStore {
         deleteResourceImpl(resPath);
     }
 
-    abstract protected void deleteResourceImpl(String resPath) throws IOException;
+    protected abstract void deleteResourceImpl(String resPath) throws IOException;
 
     /**
      * get a readable string of a resource path
      */
-    final public String getReadableResourcePath(String resPath) {
+    public final String getReadableResourcePath(String resPath) {
         return getReadableResourcePathImpl(norm(resPath));
     }
 
-    abstract protected String getReadableResourcePathImpl(String resPath);
+    protected abstract String getReadableResourcePathImpl(String resPath);
 
     private String norm(String resPath) {
         resPath = resPath.trim();
@@ -413,7 +415,7 @@ abstract public class ResourceStore {
             resPath = resPath.substring(1);
         while (resPath.endsWith("/"))
             resPath = resPath.substring(0, resPath.length() - 1);
-        if (resPath.startsWith("/") == false)
+        if (!resPath.startsWith("/"))
             resPath = "/" + resPath;
         return resPath;
     }
@@ -468,15 +470,17 @@ abstract public class ResourceStore {
         public void rollback() {
             checkThread();
 
-            for (String resPath : origResData.keySet()) {
-                logger.debug("Rollbacking " + resPath);
+            for (Map.Entry<String, byte[]> entry : origResData.entrySet()) {
+                String resPath = entry.getKey();
+                logger.debug("Rollbacking {}", resPath);
                 try {
-                    byte[] data = origResData.get(resPath);
+                    byte[] data = entry.getValue();
                     Long ts = origResTimestamp.get(resPath);
-                    if (data == null || ts == null)
+                    if (data == null || ts == null) {
                         deleteResourceImpl(resPath);
-                    else
+                    } else {
                         putResourceImpl(resPath, new ByteArrayInputStream(data), ts);
+                    }
                 } catch (IOException ex) {
                     logger.error("Failed to rollback " + resPath, ex);
                 }

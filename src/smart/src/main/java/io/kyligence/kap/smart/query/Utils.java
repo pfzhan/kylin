@@ -34,8 +34,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.query.util.DefaultQueryTransformer;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -43,12 +41,21 @@ import io.kyligence.kap.query.util.CognosParenthesesEscape;
 import io.kyligence.kap.query.util.EscapeTransformer;
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import io.kyligence.kap.smart.query.mockup.MockupStorage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Utils {
     private static final Logger logger = LoggerFactory.getLogger(Utils.class);
+    private Utils() { }
 
     public static KylinConfig newKylinConfig(String metadataUrl) {
-        Properties props = new Properties();
+        Properties props;
+        try {
+            props = KylinConfig.getInstanceFromEnv().exportToProperties();
+        } catch (Exception e) {
+            logger.warn("Pass KylinConfig export exception", e);
+            props = new Properties();
+        }
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.storage.provider.0", MockupStorage.class.getName());
         props.setProperty("kylin.storage.provider.1", MockupStorage.class.getName());
@@ -62,7 +69,6 @@ public class Utils {
         props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.KapModel");
 
         List<String> queryTransformers = Lists.newArrayList();
-        //queryTransformers.add(NConvertToComputedColumn.class.getName());
         queryTransformers.add(EscapeTransformer.class.getName());
         queryTransformers.add(DefaultQueryTransformer.class.getName());
         queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
@@ -73,7 +79,13 @@ public class Utils {
     }
 
     public static KylinConfig smartKylinConfig(String metadataUrl) {
-        Properties props = new Properties();
+        Properties props;
+        try {
+            props = KylinConfig.getInstanceFromEnv().exportToProperties();
+        } catch (Exception e) {
+            logger.warn("Pass KylinConfig export exception", e);
+            props = new Properties();
+        }
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
@@ -84,7 +96,6 @@ public class Utils {
         props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
 
         List<String> queryTransformers = Lists.newArrayList();
-        //queryTransformers.add(NConvertToComputedColumn.class.getName());
         queryTransformers.add(EscapeTransformer.class.getName());
         queryTransformers.add(DefaultQueryTransformer.class.getName());
         queryTransformers.add(KeywordDefaultDirtyHack.class.getName());

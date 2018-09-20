@@ -32,14 +32,15 @@ import java.util.Set;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 
 import io.kyligence.kap.smart.util.MetaStoreUtil;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
-    final private Set<String> dumpResources;
-    final private Map<String, RootPersistentEntity> mockupResources;
+    private final Set<String> dumpResources;
+    private final Map<String, RootPersistentEntity> mockupResources;
     final KylinConfig srcKylinConfig;
 
     NLocalQueryRunner(KylinConfig srcKylinConfig, String projectName, String[] sqls, Set<String> dumpResources,
@@ -89,10 +90,10 @@ class NLocalQueryRunner extends AbstractQueryRunner {
     @Override
     public void cleanupConfig(KylinConfig config) throws Exception {
         Utils.clearCacheForKylinConfig(config);
-
         File metaDir = new File(config.getMetadataUrl().toString());
         if (metaDir.exists() && metaDir.isDirectory()) {
             FileUtils.forceDelete(metaDir);
         }
+        ResourceStore.clearCache(config);
     }
 }

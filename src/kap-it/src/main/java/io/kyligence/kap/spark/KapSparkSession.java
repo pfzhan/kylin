@@ -165,6 +165,7 @@ public class KapSparkSession extends SparkSession {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         final QueryHistoryManager manager = QueryHistoryManager.getInstance(config, project);
         QueryHistory queryEntry = new QueryHistory();
+        queryEntry.updateRandomUuid();
         queryEntry.setSql(sql);
         queryEntry.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
         manager.save(queryEntry);

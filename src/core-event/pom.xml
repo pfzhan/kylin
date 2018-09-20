@@ -41,6 +41,7 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-common</artifactId>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
@@ -57,6 +58,10 @@
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
