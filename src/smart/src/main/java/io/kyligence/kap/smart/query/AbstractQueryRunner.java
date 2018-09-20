@@ -61,7 +61,6 @@ public abstract class AbstractQueryRunner implements Closeable {
     private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
 
     private final ExecutorService executorService;
-    //    private final QueryStatsRecorder queryRecorder = new QueryStatsRecorder();
 
     public AbstractQueryRunner(String projectName, String[] sqls, int threads) {
         this.projectName = projectName;
@@ -135,7 +134,8 @@ public abstract class AbstractQueryRunner implements Closeable {
         try {
             executorService.awaitTermination(120, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
-            throw new RuntimeException("Failed to interrupt.", e);
+            logger.error("Interrupted at close phase.", e);
+            Thread.currentThread().interrupt();
         }
     }
 }

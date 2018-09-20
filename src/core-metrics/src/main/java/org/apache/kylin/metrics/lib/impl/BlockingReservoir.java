@@ -95,7 +95,8 @@ public class BlockingReservoir extends AbstractActiveReservoir {
         try {
             recordsQueue.put(record);
         } catch (InterruptedException e) {
-            logger.warn("Thread is interrupted during putting value to blocking queue. \n" + e.toString());
+            logger.warn("Thread is interrupted during putting value to blocking queue. \n", e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -139,11 +140,13 @@ public class BlockingReservoir extends AbstractActiveReservoir {
         return true;
     }
 
+    @Override
     public void start() {
         super.start();
         scheduledReporter.start();
     }
 
+    @Override
     public void stop() {
         super.stop();
         scheduledReporter.interrupt();
@@ -151,7 +154,7 @@ public class BlockingReservoir extends AbstractActiveReservoir {
             scheduledReporter.join();
         } catch (InterruptedException e) {
             logger.warn("Interrupted during join");
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -185,6 +188,7 @@ public class BlockingReservoir extends AbstractActiveReservoir {
                 Thread.sleep(60 * 1000);
             } catch (InterruptedException e) {
                 logger.warn("Interrupted during running");
+                Thread.currentThread().interrupt();
             }
         }
     }

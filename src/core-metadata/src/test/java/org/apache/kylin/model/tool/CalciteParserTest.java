@@ -101,7 +101,7 @@ public class CalciteParserTest {
     }
 
     @Test
-    public void testCasewhen() {
+    public void testCaseWhen() {
         String expr = "(CASE LSTG_FORMAT_NAME  WHEN 'Auction' THEN 'x'  WHEN 'y' THEN '222' ELSE 'z' END)";
         String alias = "TEST_KYLIN_FACT";
         String s = CalciteParser.insertAliasInExpr(expr, alias);

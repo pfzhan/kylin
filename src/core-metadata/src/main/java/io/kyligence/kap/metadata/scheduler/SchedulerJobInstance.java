@@ -73,6 +73,7 @@ public class SchedulerJobInstance extends RootPersistentEntity implements Compar
     @JsonProperty("partition_interval")
     private long partitionInterval;
 
+    @Override
     public String getResourcePath() {
         return concatResourcePath(name);
     }

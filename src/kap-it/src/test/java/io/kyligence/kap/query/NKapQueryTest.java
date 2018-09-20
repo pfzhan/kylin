@@ -88,13 +88,13 @@ public class NKapQueryTest extends NKylinTestBase {
     }
 
     @Test
-    public void testQuery_cubeNonaggDisabled_throwNoRealization() throws Exception {
+    public void testQuery_cubeNonAggDisabled_throwNoRealization() throws Exception {
         thrown.expect(SQLException.class);
         thrown.expectMessage("No realization");
         try {
             KylinConfig.getInstanceFromEnv().setProperty("kylin.query.disable-cube-noagg-sql", "true");
 
-            File tempFile = File.createTempFile("testQuery_cubeNonaggDisabled_throwNoRealization", "sqlfile");
+            File tempFile = File.createTempFile("testQuery_cubeNonAggDisabled_throwNoRealization", "sqlfile");
             tempFile.deleteOnExit();
             FileUtils.writeStringToFile(tempFile, "select * from test_kylin_fact", false);
             runSQL(tempFile, false, false);

@@ -309,7 +309,7 @@ public class RestClient {
     }
 
     private HttpGet newGet(String url) {
-        HttpGet get = new HttpGet();
+        HttpGet get = new HttpGet(url);
         addHttpHeaders(get);
         return get;
     }

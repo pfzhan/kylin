@@ -119,7 +119,7 @@ public class ITKapSparderQueryTest extends KapTestBase {
 
     //h2 cannot run these queries
     @Test
-    public void testH2Uncapable() throws Exception {
+    public void testH2Incapable() throws Exception {
         batchExecuteQuery(getQueryFolderPrefix() + "src/test/resources/query/sql_h2_uncapable");
     }
 
