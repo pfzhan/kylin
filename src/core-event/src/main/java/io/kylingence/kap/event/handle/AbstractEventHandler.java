@@ -147,6 +147,9 @@ public abstract class AbstractEventHandler implements EventHandler {
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
         return this.getClass().equals(obj.getClass());
     }
 }

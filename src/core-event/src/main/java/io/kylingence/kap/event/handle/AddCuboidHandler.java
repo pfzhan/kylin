@@ -83,7 +83,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
     }
 
     @Override
-    protected AbstractExecutable createJob(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
         AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();

@@ -74,7 +74,11 @@ public class NSizeEstimator {
         }, org.apache.spark.sql.catalyst.encoders.RowEncoder.apply(schema)).agg(sum("RowSize")).collectAsList();
 
         Preconditions.checkArgument(ret.size() == 1);
-        return ret.get(0).getLong(0) * frequency;
+        Row rowSizeStats = ret.get(0);
+        if (rowSizeStats.isNullAt(0)) {
+            return 0;
+        }
+        return rowSizeStats.getLong(0) * frequency;
     }
 
     public static Pair<Long, Long> estimate(Dataset<Row> ds, float ratio, SparkSession ss) {

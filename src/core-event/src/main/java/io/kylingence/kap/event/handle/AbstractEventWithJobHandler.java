@@ -68,7 +68,8 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
             job = NExecutableManager.getInstance(kylinConfig, project).getJob(event.getJobId());
         }
 
-        waitForJobFinished(job, eventContext, false);
+        boolean needWait = kylinConfig.getEventWaitForJobFinished();
+        waitForJobFinished(job, eventContext, needWait);
 
         ExecutableState jobStatus = job.getStatus();
         eventContext.setJobStatus(jobStatus);

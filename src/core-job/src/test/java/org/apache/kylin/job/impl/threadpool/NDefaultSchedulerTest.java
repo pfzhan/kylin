@@ -25,6 +25,7 @@
 package org.apache.kylin.job.impl.threadpool;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -166,16 +167,35 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testSchedulerStop() throws Exception {
         logger.info("testSchedulerStop");
 
-        thrown.expect(RuntimeException.class);
-        thrown.expectMessage("too long wait time");
-
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         FiveSecondSucceedTestExecutable task1 = new FiveSecondSucceedTestExecutable();
         job.addTask(task1);
         executableManager.addJob(job);
 
+        // make sure the job is running
+        Thread.sleep(2 * 1000);
         //scheduler failed due to some reason
         scheduler.shutdown();
+
+        AbstractExecutable job1 = executableManager.getJob(job.getId());
+        ExecutableState status = job1.getStatus();
+        Assert.assertEquals(status, ExecutableState.SUCCEED);
+    }
+
+    @Test
+    public void testSchedulerStopCase2() throws Exception {
+        logger.info("testSchedulerStop case 2");
+
+        thrown.expect(RuntimeException.class);
+        thrown.expectMessage("too long wait time");
+
+        // testSchedulerStopCase2 shutdown first, then the job added will not be scheduled
+        scheduler.shutdown();
+
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        FiveSecondSucceedTestExecutable task1 = new FiveSecondSucceedTestExecutable();
+        job.addTask(task1);
+        executableManager.addJob(job);
 
         waitForJobFinish(job.getId(), 6000);
     }

@@ -23,30 +23,29 @@
  */
 package io.kyligence.kap.newten;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
-import io.kylingence.kap.event.handle.MergeSegmentHandler;
 import io.kylingence.kap.event.handle.RemoveCuboidHandler;
-import io.kylingence.kap.event.handle.RemoveSegmentHandler;
-import io.kylingence.kap.event.model.RemoveSegmentEvent;
-import org.apache.commons.lang.StringUtils;
+import io.kylingence.kap.event.model.EventContext;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,16 +60,13 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
 import io.kylingence.kap.event.handle.ModelUpdateHandler;
-import io.kylingence.kap.event.handle.ProjectHandler;
 import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.manager.EventOrchestratorManager;
-import io.kylingence.kap.event.model.AddProjectEvent;
 import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventStatus;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
-import io.kylingence.kap.event.model.MergeSegmentEvent;
 import io.kylingence.kap.event.model.ModelUpdateEvent;
 
 public class NEventFlowTest extends NLocalWithSparkSessionTest {
@@ -78,22 +74,26 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     public static final String DEFAULT_PROJECT = "default";
     private static final Logger logger = LoggerFactory.getLogger(NEventFlowTest.class);
 
-    EventOrchestratorManager manager;
     EventManager eventManager;
     NDataflowManager dsMgr;
 
     KylinConfig config ;
 
+    @Override
+    protected void init() throws Exception{
+        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        this.createTestMetadata();
+    }
 
     @Before
     public void setup() throws Exception {
         init();
+        EventOrchestratorManager.destroyInstance();
         config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
-        manager = EventOrchestratorManager.getInstance(config);
         eventManager = EventManager.getInstance(config, DEFAULT_PROJECT);
         dsMgr= NDataflowManager.getInstance(config, DEFAULT_PROJECT);
 
@@ -101,96 +101,70 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         System.setProperty("isDeveloperMode", "false");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "30");
 
-        new ProjectHandler();
-        new AddSegmentHandler();
-        new MergeSegmentHandler();
         new RemoveCuboidHandler();
-        new RemoveSegmentHandler();
-        new AddCuboidHandler();
         new ModelUpdateHandler();
         new LoadingRangeUpdateHandler();
     }
 
     @After
     public void after() {
-        manager.destroyInstance();
+        EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
+    private List<DefaultChainedExecutable> genMockJobs(int size, ExecutableState state) {
+        List<DefaultChainedExecutable> jobs = Lists.newArrayList();
+        if (size <= 0) {
+            return jobs;
+        }
+        for (int i = 0; i < size; i++) {
+            DefaultChainedExecutable job = Mockito.spy(DefaultChainedExecutable.class);
+            Mockito.doReturn(state).when(job).getStatus();
+            jobs.add(job);
+        }
+        return jobs;
+    }
+
     @Test
     @SuppressWarnings("MethodLength")
     public void testEventFlow() throws Exception {
+        // mock success job
+        List<DefaultChainedExecutable> successJobs = genMockJobs(7, ExecutableState.SUCCEED);
+
+        AddSegmentHandler addSegmentHandler = Mockito.spy(AddSegmentHandler.class);
+        AddCuboidHandler addCuboidHandler = Mockito.spy(AddCuboidHandler.class);
+
+        Mockito.doReturn(successJobs.get(0), successJobs.get(1), successJobs.get(2), successJobs.get(3)).when(addSegmentHandler).createJob(Mockito.any(EventContext.class));
+        Mockito.doReturn(successJobs.get(4), successJobs.get(5), successJobs.get(6)).when(addCuboidHandler).createJob(Mockito.any(EventContext.class));
+
         testLoadingRangeFlow();
-//        testSegEventFlow();
-//        testCuboidEventFlow();
-//        testMergeEventFlow();
-//        testRemoveEventFlow();
+        testCuboidEventFlow();
+        testRemoveEventFlow();
+        testEventErrorFlow();
     }
 
-    public void testSegEventFlow() throws Exception {
+    private void testEventErrorFlow() throws PersistentException, InterruptedException {
+        LoadingRangeUpdateEvent loadingRangeUpdateEvent = new LoadingRangeUpdateEvent();
+        loadingRangeUpdateEvent.setApproved(true);
+        loadingRangeUpdateEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeUpdateEvent.setTableName("errorTable");
+        loadingRangeUpdateEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-        Event event = new AddProjectEvent(DEFAULT_PROJECT);
-        eventManager.post(event);
-
-        long start = SegmentRange.dateToLong("2012-06-01");
-        long end = SegmentRange.dateToLong("2013-01-01");
-
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment dataSegment = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
-        AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setProject(DEFAULT_PROJECT);
-        addSegmentEvent.setApproved(true);
-        addSegmentEvent.setModelName("nmodel_basic");
-        addSegmentEvent.setCubePlanName("ncube_basic");
-        addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
-        eventManager.post(addSegmentEvent);
-
-        start = SegmentRange.dateToLong("2013-01-01");
-        end = SegmentRange.dateToLong("2014-01-01");
-        df = dsMgr.getDataflow("ncube_basic");
-        dataSegment = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(start, end));
-        addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setApproved(true);
-        addSegmentEvent.setProject(DEFAULT_PROJECT);
-        addSegmentEvent.setModelName("nmodel_basic");
-        addSegmentEvent.setCubePlanName("ncube_basic");
-        addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
-
-        eventManager.post(addSegmentEvent);
-
+        eventManager.post(loadingRangeUpdateEvent);
         waitForEventFinished(config);
-        // now, there should be three ready segments
-//        df = dsMgr.getDataflow("ncube_basic");
-//        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 3);
 
-
-    }
-
-    private void testMergeEventFlow() throws PersistentException, InterruptedException {
-
-        Event event = new MergeSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
-        event.setApproved(true);
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
-        event.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
-                SegmentRange.dateToLong("2013-01-01")));
-
-        eventManager.post(event);
-        waitForEventFinished(config);
-        // after merge, there should be only one segment
-//        NDataflow df = dsMgr.getDataflow("ncube_basic");
-//        Assert.assertTrue(df.getSegments(SegmentStatusEnum.READY).size() == 2);
-
+        Event updatedEvent = EventDao.getInstance(config, DEFAULT_PROJECT).getEvent(loadingRangeUpdateEvent.getUuid());
+        Assert.assertEquals(updatedEvent.getStatus(), EventStatus.ERROR);
+        Assert.assertTrue(updatedEvent.getMsg().contains("TableDesc 'errorTable' does not exist"));
     }
 
     private void testRemoveEventFlow() throws PersistentException, InterruptedException {
-//        int layoutCount = 0;
-//        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-//        NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
-//        layoutCount += cubePlan1.getAllCuboidLayouts().size();
+        int layoutCount = 0;
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
+        layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
         ModelUpdateEvent event = new ModelUpdateEvent();
         event.setProject(DEFAULT_PROJECT);
@@ -202,32 +176,13 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         waitForEventFinished(config);
 
-//        int newLayoutCount = 0;
-//        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
-//        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
+        int newLayoutCount = 0;
+        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
+        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
 
         // the num of cuboidLayouts should be reduced by one
-//        Assert.assertEquals(layoutCount - 1, newLayoutCount);
+        Assert.assertEquals(layoutCount - 1, newLayoutCount);
 
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataSegment readySeg = df.getSegments(SegmentStatusEnum.READY).get(0);
-        Integer tobeRemoveSegId = readySeg.getId();
-
-        RemoveSegmentEvent removeSegmentEvent = new RemoveSegmentEvent();
-        removeSegmentEvent.setProject(DEFAULT_PROJECT);
-        removeSegmentEvent.setApproved(true);
-        removeSegmentEvent.setModelName("nmodel_basic");
-        removeSegmentEvent.setCubePlanName("ncube_basic");
-        List<Integer> segmentIds = new ArrayList<>();
-        segmentIds.add(tobeRemoveSegId);
-        removeSegmentEvent.setSegmentIds(segmentIds);
-        eventManager.post(removeSegmentEvent);
-
-        waitForEventFinished(config);
-        // tobeRemoveSeg should be removed
-//        df = dsMgr.getDataflow("ncube_basic");
-//        NDataSegment updatedSeg = df.getSegment(tobeRemoveSegId);
-//        Assert.assertNull(updatedSeg);
     }
 
     public void testLoadingRangeFlow() throws Exception {
@@ -274,9 +229,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         LoadingRangeUpdateEvent loadingRangeUpdateEvent = new LoadingRangeUpdateEvent();
         loadingRangeUpdateEvent.setApproved(true);
         loadingRangeUpdateEvent.setProject(DEFAULT_PROJECT);
-        List<String> modelNames = new ArrayList<>();
-        modelNames.add("nmodel_basic");
-        loadingRangeUpdateEvent.setModelNames(modelNames);
         loadingRangeUpdateEvent.setTableName(tableName);
         loadingRangeUpdateEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
 
@@ -284,36 +236,20 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         waitForEventFinished(config);
 
-//        NDataLoadingRange finalDataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
+        Map<Class, List<Event>> eventsMap = getEventsMap();
+        List<Event> addSegmentEvents = eventsMap.get(AddSegmentEvent.class);
 
-//        Assert.assertTrue(finalDataLoadingRange.getWaterMarkStart() == -1);
-//        Assert.assertTrue(finalDataLoadingRange.getWaterMarkEnd() == 0);
-
-//        df = dsMgr.getDataflow("ncube_basic");
-//        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
-//        Assert.assertEquals(readySegments.size(), 1);
-
-//        df = dsMgr.getDataflow("all_fixed_length");
-//        readySegments = df.getSegments(SegmentStatusEnum.READY);
-//        Assert.assertEquals(readySegments.size(), 1);
-
-//        df = dsMgr.getDataflow("ut_inner_join_cube_partial");
-//        readySegments = df.getSegments(SegmentStatusEnum.READY);
-//        Assert.assertEquals(readySegments.size(), 1);
-
-//        df = dsMgr.getDataflow("ncube_basic_inner");
-//        readySegments = df.getSegments(SegmentStatusEnum.READY);
-//        Assert.assertEquals(readySegments.size(), 1);
+        Assert.assertNotNull(addSegmentEvents);
+        Assert.assertEquals(addSegmentEvents.size(), 4);
     }
 
     public void testCuboidEventFlow() throws Exception {
 
-//        int layoutCount = 0;
+        int layoutCount = 0;
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
-//        layoutCount += cubePlan1.getAllCuboidLayouts().size();
+        layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
-        // cleanup all segments first
         ModelUpdateEvent event = new ModelUpdateEvent();
         event.setProject(DEFAULT_PROJECT);
         event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
@@ -334,12 +270,12 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         waitForEventFinished(config);
 
-//        int newLayoutCount = 0;
-//        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
-//        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
+        int newLayoutCount = 0;
+        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
+        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
 
         // the num of cuboidLayouts should be added by three
-//        Assert.assertEquals(layoutCount + 3 , newLayoutCount);
+        Assert.assertEquals(layoutCount + 3 , newLayoutCount);
     }
 
     private void waitForEventFinished(KylinConfig config) throws PersistentException, InterruptedException {
@@ -347,32 +283,19 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         EventDao eventDao = EventDao.getInstance(config, DEFAULT_PROJECT);
         List<Event> events;
         while (wait) {
-            int successEventNum = 0;
+            int finishedEventNum = 0;
             events = eventDao.getEvents();
             for (Event event : events) {
                 EventStatus status = event.getStatus();
-                if (status.equals(EventStatus.ERROR)) {
-                    throw new RuntimeException("Event run error : " + event.getMsg());
-                } else if (status.equals(EventStatus.SUCCEED)) {
-                    successEventNum++;
+                if (status.equals(EventStatus.SUCCEED) || status.equals(EventStatus.ERROR)) {
+                    finishedEventNum++;
                 } else {
-                    String jobId = event.getJobId();
-                    if (StringUtils.isNotBlank(jobId)) {
-                        AbstractExecutable job = NExecutableManager.getInstance(config, DEFAULT_PROJECT).getJob(jobId);
-                        if (job != null) {
-                            if (ExecutableState.ERROR.equals(job.getStatus()) && event.getJobRetry() <= 0) {
-                                logger.error("Job " + jobId + " error : " + event.getMsg());
-                                //FIXME: overwrite conflict problem
-                                wait = false;
-                            }
-                        }
-                    }
                     Thread.sleep(5 * 1000);
                     break;
                 }
 
             }
-            if (successEventNum == events.size()) {
+            if (finishedEventNum == events.size()) {
                 wait = false;
             }
 
@@ -380,4 +303,21 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
     }
 
+    public Map<Class, List<Event>> getEventsMap() throws PersistentException {
+        Map<Class, List<Event>> eventsMap = Maps.newHashMap();
+        List<Event> eventList = EventDao.getInstance(config, DEFAULT_PROJECT).getEvents();
+        if (CollectionUtils.isEmpty(eventList)) {
+            return eventsMap;
+        }
+        for (Event event : eventList) {
+            List<Event> events = eventsMap.get(event.getClass());
+            if (CollectionUtils.isEmpty(events)) {
+                events = Lists.newArrayList();
+                eventsMap.put(event.getClass(), events);
+            }
+            events.add(event);
+        }
+
+        return eventsMap;
+    }
 }

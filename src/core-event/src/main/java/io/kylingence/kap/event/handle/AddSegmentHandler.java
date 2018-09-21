@@ -67,7 +67,7 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
     }
 
     @Override
-    protected AbstractExecutable createJob(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
         AddSegmentEvent event = (AddSegmentEvent) eventContext.getEvent();
 
         String project = event.getProject();

@@ -55,6 +55,7 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
     public void testHandlerIdempotent() throws Exception {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
+
         ModelUpdateEvent event = new ModelUpdateEvent();
         event.setFavoriteMark(true);
         event.setProject(DEFAULT_PROJECT);

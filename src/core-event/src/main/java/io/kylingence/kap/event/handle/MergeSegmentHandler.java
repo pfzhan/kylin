@@ -52,7 +52,7 @@ public class MergeSegmentHandler extends AbstractEventWithJobHandler {
     private static final Logger logger = LoggerFactory.getLogger(MergeSegmentHandler.class);
 
     @Override
-    protected AbstractExecutable createJob(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
         MergeSegmentEvent event = (MergeSegmentEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();

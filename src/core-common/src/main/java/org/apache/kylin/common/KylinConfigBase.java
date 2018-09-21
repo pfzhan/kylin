@@ -1497,4 +1497,8 @@ abstract public class KylinConfigBase implements Serializable {
     public boolean getEventAutoApproved() {
         return Boolean.valueOf(getOptional("kylin.event.auto-approved", "true"));
     }
+
+    public boolean getEventWaitForJobFinished() {
+        return Boolean.valueOf(getOptional("kylin.event.wait-for-job-finished", "false"));
+    }
 }
