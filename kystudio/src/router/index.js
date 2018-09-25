@@ -48,10 +48,6 @@ export default new Router({
         path: 'dashboard',
         component: overview
       }, {
-        name: 'Project',
-        path: 'project',
-        component: projectList
-      }, {
         name: 'Studio',
         path: 'studio/source',
         component: () => import('../components/studio/StudioSource/index.vue')
