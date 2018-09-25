@@ -7,7 +7,7 @@ import projectList from 'components/project/project_list'
 import cubeList from 'components/cube/cube_list'
 import cubeEdit from 'components/cube/edit/cube_desc_edit'
 import login from 'components/user/login'
-import insight from 'components/insight/insight'
+// import insight from 'components/insight/insight'
 import setting from 'components/security/reset_password'
 import newQuery from 'components/query/new_query'
 import queryHistory from 'components/query/query_history'
@@ -96,11 +96,11 @@ export default new Router({
         path: 'security/group/:groupName',
         component: () => import('../components/security/SecurityUser/index.vue')
       },
-      {
-        name: 'Insight',
-        path: 'insight',
-        component: insight
-      },
+      // {
+      //   name: 'Insight',
+      //   path: 'insight',
+      //   component: insight
+      // },
       {
         name: 'Job',
         path: 'monitor/job',
