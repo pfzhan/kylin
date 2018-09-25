@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
@@ -157,6 +158,13 @@ public class CsvSource implements ISource {
     @Override
     public ISampleDataDeployer getSampleDataDeployer() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SegmentRange getSegmentRange(String start, String end) {
+        start = StringUtils.isEmpty(start) ? "0" : start;
+        end = StringUtils.isEmpty(end) ? "" + Long.MAX_VALUE : end;
+        return new SegmentRange.TimePartitionedSegmentRange(Long.parseLong(start), Long.parseLong(end));
     }
 
     private String getUtMetaDir() {

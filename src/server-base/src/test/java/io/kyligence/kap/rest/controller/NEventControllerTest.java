@@ -48,7 +48,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.rest.request.EventRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.service.EventService;
 import io.kylingence.kap.event.model.Event;
 
@@ -76,12 +75,6 @@ public class NEventControllerTest {
 
     @After
     public void tearDown() {
-    }
-
-    private ProjectRequest mockProjectRequest() {
-        ProjectRequest projectRequest = new ProjectRequest();
-        projectRequest.setProjectDescData("{\"name\":\"test\"}");
-        return projectRequest;
     }
 
     @Test

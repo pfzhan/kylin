@@ -45,17 +45,18 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.ModifiedOrder;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -79,10 +80,6 @@ public class ModelService extends BasicService {
 
     public static final char[] VALID_MODELNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
-
-    public boolean isTableInModel(TableDesc table, String project) throws IOException {
-        return getDataModelManager(project).getModelsUsingTable(table).size() > 0;
-    }
 
     public List<NDataModelResponse> getModels(final String modelName, final String projectName, boolean exactMatch,
             String owner, String status, String sortBy, boolean reverse) {
@@ -118,21 +115,6 @@ public class ModelService extends BasicService {
         return filterModels;
     }
 
-    private Pair<Long, Long> getModelRange(List<NDataSegment> segments) {
-        long startTime = 0L;
-        long endTime = Long.MAX_VALUE - 1;
-        for (NDataSegment segment : segments) {
-            startTime = startTime < Long.parseLong(segment.getSegRange().getStart().toString()) ? startTime
-                    : Long.parseLong(segment.getSegRange().getStart().toString());
-            endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
-                    : Long.parseLong(segment.getSegRange().getEnd().toString());
-        }
-        Pair<Long, Long> pair = new Pair<>();
-        pair.setFirst(startTime);
-        pair.setSecond(endTime);
-        return pair;
-    }
-
     private RealizationStatusEnum getModelStatus(String modelName, String projectName) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, projectName);
         if (CollectionUtils.isNotEmpty(cubePlans)) {
@@ -142,12 +124,11 @@ public class ModelService extends BasicService {
         }
     }
 
-    public Segments<NDataSegment> getSegments(String modelName, String project, long startTime, long endTime) {
+    public Segments<NDataSegment> getSegments(String modelName, String project, String start, String end) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         NDataflowManager dataflowManager = getDataflowManager(project);
+        SegmentRange filterRange = getSegmentRangeByModel(project, modelName, start, end);
         Segments<NDataSegment> segments = new Segments<NDataSegment>();
-        final SegmentRange.TimePartitionedSegmentRange filterRange = new SegmentRange.TimePartitionedSegmentRange(
-                startTime, endTime);
         for (NCubePlan cubeplan : cubePlans) {
             NDataflow dataflow = dataflowManager.getDataflow(cubeplan.getName());
             for (NDataSegment segment : dataflow.getSegments()) {
@@ -258,7 +239,7 @@ public class ModelService extends BasicService {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
             NDataModelResponse nDataSegmentResponse = new NDataModelResponse(dataModelDesc);
-            Segments<NDataSegment> segments = getSegments(model, project, 0L, Long.MAX_VALUE);
+            Segments<NDataSegment> segments = getSegments(model, project, "", "");
             for (NDataSegment segment : segments) {
                 segmentRanges.put(segment.getSegRange(), segment.getStatus());
             }
@@ -396,7 +377,7 @@ public class ModelService extends BasicService {
             boolean needChangeStatus = (status.equals(RealizationStatusEnum.DISABLED.name())
                     && dataflow.getStatus().equals(RealizationStatusEnum.READY))
                     || (status.equals(RealizationStatusEnum.READY.name())
-                            && dataflow.getStatus().equals(RealizationStatusEnum.DISABLED));
+                    && dataflow.getStatus().equals(RealizationStatusEnum.DISABLED));
             if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)
                     && !status.equals(RealizationStatusEnum.DESCBROKEN.name())) {
                 throw new BadRequestException(
@@ -408,5 +389,11 @@ public class ModelService extends BasicService {
                 dataflowManager.updateDataflow(nDataflowUpdate);
             }
         }
+    }
+
+    public SegmentRange getSegmentRangeByModel(String project, String modelName, String start, String end) {
+        TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelName).getRootFactTable();
+        TableDesc tableDesc = getTableManager(project).getTableDesc(tableRef.getTableIdentity());
+        return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 }

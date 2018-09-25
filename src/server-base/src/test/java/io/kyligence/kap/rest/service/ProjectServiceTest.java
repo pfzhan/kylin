@@ -45,24 +45,34 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
-    private final ProjectService projectService = new ProjectService();
+
+    @InjectMocks
+    private final ProjectService projectService = Mockito.spy(ProjectService.class);
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
+    private NProjectManager projectManager;
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -75,8 +85,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        ReflectionTestUtils.setField(projectService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
-
+        projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     @AfterClass
@@ -89,28 +98,37 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
+        projectService.createProject(projectInstance);
+        ProjectInstance projectInstance2 = projectManager.getProject("project11");
+        Assert.assertTrue(projectInstance2 != null);
+        projectManager.removeProjectLocal("project11");
 
-        try {
-            ProjectInstance projectInstance1 = projectService.createProject(projectInstance);
-        } catch (Exception e) {
-            throw e;
-        }
-        assert true;
+    }
 
-        QueryFilterRuleManager queryFilterRuleManager = QueryFilterRuleManager.getInstance(getTestConfig(), projectInstance.getName());
-        Assert.assertEquals(1, queryFilterRuleManager.getAll().size());
-        Assert.assertEquals("Pushdown_all_query", queryFilterRuleManager.getAll().get(0).getName());
+    @Test
+    public void testCreateProjectException() throws Exception {
+
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName("default");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("The project named 'default' already exists.");
+        projectService.createProject(projectInstance);
+
+    }
+
+    @Test
+    public void testGetReadableProjectsByName() throws Exception {
+
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
+        Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals("default"));
+
     }
 
     @Test
     public void testGetReadableProjects() throws Exception {
 
-        try {
-            List<ProjectInstance> readableProjects = projectService.getReadableProjects("default");
-        } catch (Exception e) {
-            throw e;
-        }
-        assert true;
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        Assert.assertTrue(projectInstances.size() == 6);
 
     }
 

@@ -32,17 +32,13 @@ import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -57,17 +53,12 @@ public class ProjectService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
 
-    @Autowired
-    private AclEvaluate aclEvaluate;
-
-
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) throws IOException {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
         ProjectInstance projectDesc = JsonUtil.readValue(projectRequest.getProjectDescData(), ProjectInstance.class);
         return projectDesc;
     }
 
-    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public ProjectInstance createProject(ProjectInstance newProject) throws IOException, PersistentException {
         Message msg = MsgPicker.getMsg();
         String projectName = newProject.getName();
@@ -95,7 +86,6 @@ public class ProjectService extends BasicService {
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName) {
-        List<ProjectInstance> readableProjects = new ArrayList<ProjectInstance>();
         List<ProjectInstance> projectInstances = new ArrayList<ProjectInstance>();
         if (!Strings.isEmpty(projectName)) {
             ProjectInstance projectInstance = getProjectManager().getProject(projectName);
@@ -103,21 +93,7 @@ public class ProjectService extends BasicService {
         } else {
             projectInstances = getProjectManager().listAllProjects();
         }
-        //list all projects first
-
-        for (ProjectInstance projectInstance : projectInstances) {
-
-            if (projectInstance == null) {
-                continue;
-            }
-            boolean hasProjectPermission = aclEvaluate.hasProjectReadPermission(projectInstance);
-            if (hasProjectPermission) {
-                readableProjects.add(projectInstance);
-            }
-
-        }
-
-        return readableProjects;
+        return projectInstances;
     }
 
     public ProjectInstance updateProject(ProjectInstance newProject, ProjectInstance currentProject)

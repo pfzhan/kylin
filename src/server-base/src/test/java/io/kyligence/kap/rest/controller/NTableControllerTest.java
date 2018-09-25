@@ -48,7 +48,6 @@ import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -114,7 +113,7 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = new TableLoadRequest();
         tableLoadRequest.setProject("default");
         tableLoadRequest.setDatasourceType(11);
-        String[] tables = { "table1", "table2" };
+        String[] tables = {"table1", "table2"};
         tableLoadRequest.setTables(tables);
 
         return tableLoadRequest;
@@ -198,9 +197,7 @@ public class NTableControllerTest {
     @Test
     public void testSetDateRangePass() throws Exception {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        Mockito.doNothing().when(tableService).setDataRange(dateRangeRequest.getProject(), dateRangeRequest.getTable(),
-                new SegmentRange.TimePartitionedSegmentRange(dateRangeRequest.getStartTime(),
-                        dateRangeRequest.getEndTime()));
+        Mockito.doNothing().when(tableService).setDataRange(dateRangeRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/date_range").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(dateRangeRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -211,8 +208,8 @@ public class NTableControllerTest {
 
     private DateRangeRequest mockDateRangeRequest() {
         DateRangeRequest request = new DateRangeRequest();
-        request.setStartTime(0L);
-        request.setEndTime(Long.MAX_VALUE);
+        request.setStart("0");
+        request.setEnd("" + Long.MAX_VALUE);
         request.setProject("default");
         request.setTable("TEST_KYLIN_FACT");
         return request;
@@ -220,7 +217,7 @@ public class NTableControllerTest {
 
     @Test
     public void testLoadTables() throws Exception {
-        String[] tables = { "table1", "table2" };
+        String[] tables = {"table1", "table2"};
         Set<String> loaded = new HashSet<String>();
         loaded.add("table1");
         Set<String>[] result = new Set[3];

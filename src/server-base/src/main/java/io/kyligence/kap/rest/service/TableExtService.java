@@ -29,7 +29,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.service.BasicService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,8 +42,6 @@ import java.util.Set;
 public class TableExtService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(TableExtService.class);
 
-    @Autowired
-    private AclEvaluate aclEvaluate;
 
     @Autowired
     @Qualifier("tableService")
@@ -52,7 +49,7 @@ public class TableExtService extends BasicService {
 
     /**
      * Load a group of  tables
-     * 
+     *
      * @return an array of table name sets:
      *         [0] : tables that loaded successfully
      *         [1] : tables that didn't load due to running sample job todo
@@ -85,7 +82,7 @@ public class TableExtService extends BasicService {
 
     /**
      * Load given table to project
-     * 
+     *
      * @throws IOException on error
      */
     public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) throws IOException {
@@ -97,7 +94,6 @@ public class TableExtService extends BasicService {
             throw new IllegalStateException();
 
     }
-
 
 
 }

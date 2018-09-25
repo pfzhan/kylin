@@ -53,8 +53,8 @@ import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -73,9 +73,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
-
-    @InjectMocks
-    private TableService tableService = Mockito.spy(new TableService());
 
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
@@ -105,18 +102,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() throws Exception {
 
-
         List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
                 "last_modify", true);
         Assert.assertEquals(models2.size(), 1);
-        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "", "last_modify",
-                true);
+        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
+                "last_modify", true);
         Assert.assertEquals(model3.size(), 1);
-        List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm", "",
-                "last_modify", true);
+        List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
+                "", "last_modify", true);
         Assert.assertEquals(model4.size(), 1);
-        List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm", "DISABLED",
-                "last_modify", true);
+        List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
+                "DISABLED", "last_modify", true);
         Assert.assertEquals(model5.size(), 0);
 
     }
@@ -124,7 +120,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
 
-        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, Long.MAX_VALUE);
+        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertEquals(segments.size(), 2);
     }
 
@@ -134,16 +130,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<CuboidDescResponse> indices = modelService.getAggIndices("nmodel_basic", "default");
         Assert.assertEquals(indices.size(), 7);
         Assert.assertTrue(indices.get(0).getId() < NCuboidDesc.TABLE_INDEX_START_ID);
-
-    }
-
-    @Test
-    public void testIsTableInModel() throws Exception {
-        List<TableDesc> tableDescs = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
-        boolean result = modelService.isTableInModel(tableDescs.get(0), "default");
-        Assert.assertTrue(result);
-        boolean result2 = modelService.isTableInModel(new TableDesc(), "default");
-        Assert.assertTrue(!result2);
 
     }
 
@@ -212,7 +198,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testPurgeModel() throws IOException {
         modelService.purgeModel("nmodel_basic", "default");
-        List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", 0L, Long.MAX_VALUE);
+        List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
     }
 
@@ -239,7 +225,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCloneModel() throws IOException {
-        modelService.cloneModel("nmodel_basic", "nmodel_basic_new", "default");
+        modelService.cloneModel("test_encoding", "test_encoding_new", "default");
         List<NDataModelResponse> models = modelService.getModels("", "default", true, "", "", "last_modify", true);
         Assert.assertTrue(models.size() == 5);
     }
@@ -280,5 +266,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
         modelService.updateDataModelStatus("nmodel_basic222", "default", "DISABLED");
+    }
+
+    @Test
+    public void testGetSegmentRangeByModel() {
+        SegmentRange segmentRange = modelService.getSegmentRangeByModel("default", "nmodel_basic", "0", "2322442");
+        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange);
+        SegmentRange segmentRange2 = modelService.getSegmentRangeByModel("default", "nmodel_basic", "", "");
+        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void testGetRelatedModels() throws IOException {
+        List<NDataModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT");
+        Assert.assertTrue(models.size() == 2);
     }
 }

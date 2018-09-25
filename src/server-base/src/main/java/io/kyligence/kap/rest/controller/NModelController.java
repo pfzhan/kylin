@@ -34,7 +34,6 @@ import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
-import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -69,10 +68,6 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
-
-    @Autowired
-    @Qualifier("projectService")
-    private ProjectService projectService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -110,10 +105,10 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-            @RequestParam(value = "startTime", required = false, defaultValue = "1") Long startTime,
-            @RequestParam(value = "endTime", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) Long endTime) {
+            @RequestParam(value = "start", required = false, defaultValue = "1") String start,
+            @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end) {
         checkProjectName(project);
-        Segments<NDataSegment> segments = modelService.getSegments(modelName, project, startTime, endTime);
+        Segments<NDataSegment> segments = modelService.getSegments(modelName, project, start, end);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }

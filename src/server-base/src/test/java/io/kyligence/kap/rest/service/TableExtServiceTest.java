@@ -42,30 +42,36 @@
 
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import org.apache.kylin.common.KylinConfig;
+
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
-
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
-    private final TableService tableService = new TableService();
-    private final TableExtService tableExtService = new TableExtService();
-    private final ProjectService projectService = new ProjectService();
+
+    @Mock
+    private TableService tableService = Mockito.spy(TableService.class);
+
+    @InjectMocks
+    private TableExtService tableExtService = Mockito.spy(new TableExtService());
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -79,15 +85,6 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(tableExtService, "tableService", tableService);
-        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .getProject("default");
-        LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
-        overrideKylinProps.put("kylin.query.force-limit", "-1");
-        overrideKylinProps.put("kylin.source.default", "11");
-        ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                projectInstance.getRealizationEntries(), projectInstance.getModels());
-        projectService.updateProject(projectInstanceUpdate, projectInstance);
     }
 
     @AfterClass
@@ -97,15 +94,26 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testLoadTables() throws Exception {
-        NTableMetadataManager nTableMetadataManager = NTableMetadataManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        String[] tables = { "DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_ACCOUNT" };
+        String[] tables = {"DEFAULT.TEST_KYLIN_FACT", "DEFAULT.TEST_ACCOUNT"};
+        List<Pair<TableDesc, TableExtDesc>> result = mockTablePair();
+        Mockito.doReturn(result).when(tableService).extractTableMeta(tables, "default", 11);
+        Mockito.doNothing().when(tableExtService).loadTable(result.get(0).getFirst(), result.get(0).getSecond(), "default");
+        Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(), "default");
+        Set<String>[] resultSet = tableExtService.loadTables(tables, "default", 11);
+        Assert.assertTrue(resultSet[0].size() == 2);
+    }
 
-        tableExtService.loadTables(tables, "default", 11);
-        TableDesc tableDesc = nTableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        TableDesc tableDesc2 = nTableMetadataManager.getTableDesc("DEFAULT.TEST_ACCOUNT");
-        Assert.assertTrue(tableDesc.getIdentity().equals("DEFAULT.TEST_KYLIN_FACT")
-                && tableDesc2.getIdentity().equals("DEFAULT.TEST_ACCOUNT"));
+    private List<Pair<TableDesc, TableExtDesc>> mockTablePair() {
+        List<Pair<TableDesc, TableExtDesc>> result = new ArrayList<>();
+        TableDesc table1 = new TableDesc();
+        table1.setName("table1");
+        TableExtDesc tableExt1 = new TableExtDesc();
+        TableDesc table2 = new TableDesc();
+        table2.setName("table2");
+        TableExtDesc tableExt2 = new TableExtDesc();
+        result.add(Pair.newPair(table1, tableExt1));
+        result.add(Pair.newPair(table2, tableExt2));
+        return result;
     }
 
 }

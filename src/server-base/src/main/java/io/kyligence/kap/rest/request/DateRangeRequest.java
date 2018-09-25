@@ -24,31 +24,30 @@
 
 package io.kyligence.kap.rest.request;
 
-import java.util.Objects;
 
 public class DateRangeRequest {
-    private long startTime;
+    private String start;
 
-    private long endTime;
+    private String end;
 
     private String project;
 
     private String table;
 
-    public long getStartTime() {
-        return startTime;
+    public String getStart() {
+        return start;
     }
 
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
+    public void setStart(String start) {
+        this.start = start;
     }
 
-    public long getEndTime() {
-        return endTime;
+    public String getEnd() {
+        return end;
     }
 
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
+    public void setEnd(String end) {
+        this.end = end;
     }
 
     public String getProject() {
@@ -68,23 +67,6 @@ public class DateRangeRequest {
     }
 
     public DateRangeRequest() {
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        DateRangeRequest that = (DateRangeRequest) o;
-        return startTime == that.startTime && endTime == that.endTime && Objects.equals(project, that.project)
-                && Objects.equals(table, that.table);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(startTime, endTime, project, table);
     }
 
 }

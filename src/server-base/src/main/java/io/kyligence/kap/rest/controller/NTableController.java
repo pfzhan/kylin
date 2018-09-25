@@ -29,7 +29,6 @@ import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -124,9 +123,7 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
         checkRequiredArg("table", dateRangeRequest.getTable());
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(dateRangeRequest.getStartTime(),
-                dateRangeRequest.getEndTime());
-        tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest.getTable(), segmentRange);
+        tableService.setDataRange(dateRangeRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 

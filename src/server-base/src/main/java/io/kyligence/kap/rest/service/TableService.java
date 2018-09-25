@@ -34,6 +34,7 @@ import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
@@ -54,9 +55,8 @@ import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,9 +73,6 @@ public class TableService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
 
-    @Autowired
-    @Qualifier("modelService")
-    private ModelService modelService;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, String tableName) throws IOException {
         List<TableDesc> tables = new ArrayList<>();
@@ -304,8 +301,10 @@ public class TableService extends BasicService {
         }
     }
 
-    public void setDataRange(String project, String table, SegmentRange segmentRange)
-            throws IOException, PersistentException {
+    public void setDataRange(DateRangeRequest dateRangeRequest) throws IOException, PersistentException {
+        String project = dateRangeRequest.getProject();
+        String table = dateRangeRequest.getTable();
+        SegmentRange segmentRange = getSegmentRangeByTable(dateRangeRequest);
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange(table);
         NTableMetadataManager tableManager = getTableManager(project);
@@ -354,4 +353,12 @@ public class TableService extends BasicService {
         return segmentRanges;
     }
 
+    public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
+        String project = dateRangeRequest.getProject();
+        String table = dateRangeRequest.getTable();
+        NTableMetadataManager nProjectManager = getTableManager(project);
+        TableDesc tableDesc = nProjectManager.getTableDesc(table);
+        return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+
+    }
 }

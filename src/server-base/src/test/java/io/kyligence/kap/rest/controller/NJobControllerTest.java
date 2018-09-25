@@ -67,8 +67,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import io.kyligence.kap.rest.request.ProjectRequest;
-
 public class NJobControllerTest {
 
     private MockMvc mockMvc;
@@ -92,12 +90,6 @@ public class NJobControllerTest {
 
     @After
     public void tearDown() {
-    }
-
-    private ProjectRequest mockProjectRequest() {
-        ProjectRequest projectRequest = new ProjectRequest();
-        projectRequest.setProjectDescData("{\"name\":\"test\"}");
-        return projectRequest;
     }
 
     @Test

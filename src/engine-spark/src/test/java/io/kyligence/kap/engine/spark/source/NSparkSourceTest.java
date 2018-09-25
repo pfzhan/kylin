@@ -28,6 +28,7 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.NTableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
@@ -57,5 +58,11 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(field.name(), colDescs[i].getName());
             Assert.assertEquals(field.dataType(), DataTypes.StringType);
         }
+    }
+
+    @Test
+    public void testGetSegmentRange() {
+        SegmentRange segmentRange = new NSparkDataSource().getSegmentRange("0", "21423423");
+        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
     }
 }

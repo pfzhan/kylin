@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.source;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.IBuildable;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -71,4 +72,13 @@ public class NSparkDataSource implements ISource, IKeepNames {
     public ISampleDataDeployer getSampleDataDeployer() {
         return new NSparkMetadataExplorer(ss);
     }
+
+    @Override
+    public SegmentRange getSegmentRange(String start, String end) {
+        start = StringUtils.isEmpty(start) ? "0" : start;
+        end = StringUtils.isEmpty(end) ? "" + Long.MAX_VALUE : end;
+        return new SegmentRange.TimePartitionedSegmentRange(Long.parseLong(start), Long.parseLong(end));
+    }
+
+
 }

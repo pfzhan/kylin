@@ -59,6 +59,7 @@ import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
@@ -116,7 +117,6 @@ public class NModelControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nModelController).getModelRelations("model1", "default");
-        System.out.println(mvcResult.getResponse().getContentAsString());
     }
 
     @Test
@@ -182,14 +182,14 @@ public class NModelControllerTest {
 
     @Test
     public void testGetSegments() throws Exception {
-
-        Mockito.when(modelService.getSegments("model1", "default", 432323L, 2234L)).thenReturn(mockSegments());
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(432L, 2234L);
+        Mockito.when(modelService.getSegments("nmodel_basic", "default", "432", "2234")).thenReturn(mockSegments());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
-                .param("startTime", "432323").param("endTime", "2234")
+                .param("offset", "0").param("project", "default").param("model", "nmodel_basic").param("limit", "10")
+                .param("start", "432").param("end", "2234")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getSegments("model1", "default", 0, 10, 432323L, 2234L);
+        Mockito.verify(nModelController).getSegments("nmodel_basic", "default", 0, 10, "432", "2234");
     }
 
     @Test
@@ -277,13 +277,6 @@ public class NModelControllerTest {
         updateRequest.setNewModelName("newAlias");
         updateRequest.setStatus("DISABLED");
         return updateRequest;
-    }
-
-    private NDataModelResponse mockNDataModelResponse() {
-        NDataModel nDataModel = new NDataModel();
-        nDataModel.setName("model1");
-        NDataModelResponse nDataModelResponse = new NDataModelResponse(nDataModel);
-        return nDataModelResponse;
     }
 
     @Test

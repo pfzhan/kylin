@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,7 +52,7 @@ import org.apache.kylin.metadata.model.TableDesc;
  */
 public interface ISource {
 
-    /** 
+    /**
      * Return an explorer to sync table metadata from the data source.
      */
     ISourceMetadataExplorer getSourceMetadataExplorer();
@@ -79,4 +79,6 @@ public interface ISource {
      * For testing purpose.
      */
     ISampleDataDeployer getSampleDataDeployer();
+
+    SegmentRange getSegmentRange(String start, String end);
 }
