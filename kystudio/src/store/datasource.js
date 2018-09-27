@@ -26,10 +26,11 @@ export default {
   },
   actions: {
     [types.LOAD_DATASOURCE]: function ({ commit }, para) {
-      return api.datasource.loadDataSource(para).then((response) => {
-        commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.project })
-        return response
-      })
+      return api.datasource.loadDataSource(para.isExt, para.project, para.datasource)
+        .then((response) => {
+          commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.project })
+          return response
+        })
     },
     [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
@@ -166,10 +167,13 @@ export default {
       return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isCentral, para.column)
     },
     [types.SAVE_DATE_RANGE]: function ({commit}, para) {
-      return api.datasource.saveDateRange(para.projectName, para.tableFullName, para.startDate, para.endDate)
+      return api.datasource.saveDateRange(para.projectName, para.tableFullName, String(para.startDate), String(para.endDate))
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName)
+    },
+    [types.LOAD_DATABASE]: function ({commit}, para) {
+      return api.datasource.fetchDatabases(para.projectName)
     }
   }
 }

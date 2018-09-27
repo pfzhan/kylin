@@ -1,50 +1,52 @@
 <template>
   <div class="about-kap">
     <div class="header">
-	  <a href="http://kyligence.io/" target="_blank">
-		<img src="../../assets/img/kyligence-logo.png" alt="" />
-	  </a>
-	  <el-row>
-		<label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
-	  </el-row>
-	  <el-row>
-		<label for="">{{$t('validPeriod')}}</label>
-		{{license(serverAboutKap && serverAboutKap['kap.dates'])}}
-	  </el-row>
-    <el-row>
-    <label for="">{{$t('dataVolume')}}</label>
-      <span v-if="license(serverAboutKap && serverAboutKap['kap.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['kap.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['kap.license.source.total'])}} TB</span>
-      <span v-else>Unlimited</span>
-    </el-row>
-	  <el-row>
-	    <label for="">{{$t('licenseStatement')}}</label>
-	    {{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}
-	  </el-row>	
-	</div>
-	<div class="container">
-	  <h3>{{$t('statement')}}</h3>
+      <el-row class="logo text-center">
+        <a href="http://kyligence.io/" target="_blank">
+          <img src="../../assets/img/kyligence-logo.png" alt="" />
+        </a>
+      </el-row>
+      <el-row>
+        <label for="">{{$t('version')}}</label>{{license(serverAboutKap && serverAboutKap['kap.version'])}}
+      </el-row>
+      <el-row>
+        <label for="">{{$t('validPeriod')}}</label>{{license(serverAboutKap && serverAboutKap['kap.dates'])}}
+      </el-row>
+      <el-row>
+        <label for="">{{$t('dataVolume')}}</label>
+        <span v-if="license(serverAboutKap && serverAboutKap['kap.license.source.total']) !== 'Unlimited'">{{license(serverAboutKap && serverAboutKap['kap.license.source.used'])}} TB / {{license(serverAboutKap && serverAboutKap['kap.license.source.total'])}} TB</span>
+        <span v-else>Unlimited</span>
+      </el-row>
+      <el-row>
+        <label for="">{{$t('licenseStatement')}}</label>
+        {{license(serverAboutKap&&serverAboutKap['kap.license.statement'])}}
+      </el-row>	
+	  </div>
+	  <div class="container">
+	    <h3>{{$t('statement')}}</h3>
       <p v-if="serverAboutKap['kap.license.isEvaluation']=='true'" v-html="$t('kylinLang.system.evaluationStatement')"></p>
       <p v-if="serverAboutKap['kap.license.isEvaluation']!=='true'" v-html="$t('kylinLang.system.statement')"></p>
-	  <el-row>
-		<label for="">{{$t('serviceEnd')}}</label>
-		{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
-	  </el-row>
-	  <el-row>
-		<label for="">KAP Commit:</label>
-		{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
-	  </el-row>
-    <el-row>
-    <label for="">Kyligence Account: </label>
-    <span v-if="$store.state.kybot.hasLoginAccount">{{$store.state.kybot.hasLoginAccount}} <a href="#" @click.prevent="logOut">{{$t('quit')}}</a></span>
-    <a v-if="!$store.state.kybot.hasLoginAccount" href="#" @click.prevent="loginKyaccount">{{$t('login')}}</a>
-    </el-row>
-	</div>
-	<div class="footer">
-	  <p class="details" v-html="$t('sendFile')"></p>
-	  <!-- <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a> -->
-    <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
-	  <el-row class="gray">Copyright 2016 Kyligence Inc. All rights reserved.</el-row>
-	</div>
+      <div class="margin-split"></div>
+      <el-row>
+        <label for="">{{$t('serviceEnd')}}</label>{{license(serverAboutKap&&serverAboutKap['kap.license.serviceEnd'])}}
+      </el-row>
+      <el-row>
+        <label for="">KAP Commit:</label>{{license(serverAboutKap&&serverAboutKap['kap.commit'])}}
+      </el-row>
+      <el-row>
+        <label for="">Kyligence Account: </label>
+        <span v-if="$store.state.kybot.hasLoginAccount">{{$store.state.kybot.hasLoginAccount}} <a href="#" @click.prevent="logOut">{{$t('quit')}}</a></span>
+        <a v-if="!$store.state.kybot.hasLoginAccount" href="#" @click.prevent="loginKyaccount">{{$t('login')}}</a>
+      </el-row>
+    </div>
+    <div class="footer">
+      <p class="details" v-html="$t('sendFile')"></p>
+      <!-- <a class="buttonLink" href="api/kap/system/requestLicense">{{$t('generateLicense')}}</a> -->
+      <el-row class="text-center">
+        <el-button type="primary" @click="requestLicense">{{$t('generateLicense')}}</el-button>
+      </el-row>
+      <el-row class="gray text-center">Copyright 2016 Kyligence Inc. All rights reserved.</el-row>
+    </div>
   </div>
 </template>
 <script>
@@ -131,6 +133,12 @@ export default {
 <style lang="less">
 @import '../../assets/styles/variables.less';
   .about-kap {
+    .logo {
+      margin-bottom: 26px;
+    }
+    .text-center {
+      text-align: center;
+    }
     .el-dialog__header{
       height: 55px;
       line-height: 55px;
@@ -138,25 +146,22 @@ export default {
     .el-icon-close{
       margin-top: 15px;
     }
-    .header{
-      margin-top: 20px;
-    }
     // .buttonLink{
     //   width: 300px!important;
     //   display: block;
     //   margin: 0 auto;
     //   background: @base-color;
     // }
-	line-height:30px;
+	line-height:20px;
 	font-size:14px;
-	text-align: center;
-	img {width: 120px;}
+	text-align: left;
+	img {width: 88px;}
 	label {font-weight:bold;}
 	// .header, 
 	// .container {padding-bottom:20px;border-bottom:1px solid #424860;}
 	h3 {margin-top:20px;font-size:14px;}
-	.details {line-height:24px;margin:20px 0 30px;}
-	.gray {margin:6px 0 30px;color:#a2a2a2;font-size:12px;}
+	.details {line-height:24px;margin:20px 0 25px;}
+	.gray {margin-top:30px;color:#a2a2a2;font-size:12px;}
 	// .buttonLink {padding:10px;color: #fff;border-radius:2px;background: #35a8fe;text-decoration: none;}
   .el-input{
     width: 100%;
@@ -187,6 +192,9 @@ export default {
   .uploadButton {
     position: absolute;
     display: block;
+  }
+  .margin-split {
+    margin-top: 20px;
   }
 }
 </style>

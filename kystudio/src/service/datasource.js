@@ -5,8 +5,8 @@ import { apiUrl } from '../config'
 Vue.use(VueResource)
 
 export default {
-  loadDataSource: (para) => {
-    return Vue.resource(apiUrl + 'tables?ext=' + para.isExt + '&project=' + para.project).get()
+  loadDataSource: (ext, project, database) => {
+    return Vue.resource(apiUrl + 'tables').get({ext, project, database})
   },
   loadDataSourceExt: (para) => {
     return Vue.resource(apiUrl + 'tables').get(para)
@@ -141,10 +141,13 @@ export default {
   saveFactTable (project, table, fact, column) {
     return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column})
   },
-  saveDateRange (project, table, startTime, endTime) {
-    return Vue.resource(apiUrl + 'tables/date_range').save({project, table, startTime, endTime})
+  saveDateRange (project, table, start, end) {
+    return Vue.resource(apiUrl + 'tables/date_range').save({project, table, start, end})
   },
   fetchRelatedModels (project, table) {
     return Vue.resource(apiUrl + 'models').get({project, table})
+  },
+  fetchDatabases (project, datasourceType) {
+    return Vue.resource(apiUrl + 'tables/databases').get({project})
   }
 }

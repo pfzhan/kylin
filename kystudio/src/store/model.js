@@ -169,7 +169,7 @@ export default {
       return api.model.fetchAggregates(params.modelName, params.projectName)
     },
     [types.FETCH_SEGMENTS] ({ commit }, params) {
-      return api.model.fetchSegments(params.modelName, params.projectName, params.startDate, params.endDate)
+      return api.model.fetchSegments(params.modelName, params.projectName, String(params.startDate), String(params.endDate))
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelName, params.projectName, params.cuboidId)

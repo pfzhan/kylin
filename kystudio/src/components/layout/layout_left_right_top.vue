@@ -36,7 +36,7 @@
 
         <ul class="top-ul ksd-fright">
           <li v-if="isAdmin"><canary></canary></li>
-          <!-- <li><help></help></li> -->
+          <li><help></help></li>
           <li><change_lang ref="changeLangCom"></change_lang></li>
           <li>
             <el-dropdown @command="handleCommand" trigger="click">
@@ -208,9 +208,9 @@ export default class LayoutLeftRightTop extends Vue {
     //   handleError(res)
     // })
     // for newten
-    // this.getAboutKap(() => {}, (res) => {
-    //   handleError(res)
-    // })
+    this.getAboutKap(() => {}, (res) => {
+      handleError(res)
+    })
   }
   showMenuByRole (menuName) {
     if ((menuName === 'system' && this.isAdmin === false) || (menuName === 'monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) || (menuName === 'auto' && this.isAdmin === false && !this.hasAdminPermissionOfProject)) {

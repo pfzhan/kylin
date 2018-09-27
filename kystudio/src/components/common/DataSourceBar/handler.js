@@ -94,7 +94,17 @@ export function sortDatasource (datasourceArray) {
   datasourceArray.forEach(datasource => {
     datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
     datasource.children.forEach(database => {
-      database.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+      database.children.sort((itemA, itemB) => {
+        if (itemA.isTopSet !== itemB.isTopSet) {
+          return itemA.isTopSet && !itemB.isTopSet ? -1 : 1
+        } else {
+          if (itemA.isCentral !== itemB.isCentral) {
+            return itemA.isCentral && !itemB.isCentral ? -1 : 1
+          } else {
+            return itemA.label < itemB.label ? -1 : 1
+          }
+        }
+      })
       database.children.forEach(table => {
         table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
       })
@@ -181,6 +191,8 @@ function getTableObj (that, table) {
     type: 'table',
     database: table.database,
     datasource: datasourceName,
+    isCentral: table.fact,
+    isTopSet: table.isTopSet,
     dateRange
   }
 }

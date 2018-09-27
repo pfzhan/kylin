@@ -11,7 +11,8 @@
         :searchable-node-types="['table', 'column']"
         :datasource="datasouce"
         @click="handleClick"
-        @source-update="handleSourceUpdate">
+        @source-update="handleSourceUpdate"
+        @click-more="handleClickMore">
       </DataSourceBar>
       <!-- Source Table展示 -->
       <div class="layout-right">
@@ -114,6 +115,7 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
       setCurrentTableData: 'SET_CURRENT_TABLE'
     }),
     ...mapActions({
+      fetchDatabases: 'LOAD_DATABASE',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
       loadTableExt: 'LOAD_DATASOURCE_EXT'
     })
@@ -147,6 +149,8 @@ export default class StudioSource extends Vue {
     if (this.datasouce[0]) {
       await this.fetchTableDetail({ label: this.datasouce[0].name, type: 'table' })
     }
+    // const resp = await this.fetchDatabases({projectName: this.currentSelectedProject})
+    // console.log(resp)
   }
   handleClick (data) {
     this.fetchTableDetail(data)
@@ -154,6 +158,9 @@ export default class StudioSource extends Vue {
   handleKafkaClick () {
     const { currentProjectData: project } = this
     this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
+  }
+  handleClickMore (data, node) {
+    console.log(data, node)
   }
   handleReload () {
     this.$refs['ReloadModal'].showModal()
