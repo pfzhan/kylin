@@ -24,8 +24,161 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+import java.util.Stack;
+
+import org.apache.calcite.rel.BiRel;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.SingleRel;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OLAPTableScan;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 public interface KapRel extends OLAPRel {
+    /**
+     * visitor pattern for cutting OLAP query contexts
+     */
+    class OLAPContextImplementor {
+        private Stack<RelNode> parentNodeStack = new Stack<>();
+        private int ctxSeq = 0;
+        private Queue<RelNode> aggRelQueue = new LinkedList<>();
 
+        /**
+         * @param input      child rel node
+         * @param parentNode parent rel node
+         * @param state      it's actually return value
+         */
+        public void visitChild(RelNode input, RelNode parentNode, ContextVisitorState state) {
+            this.parentNodeStack.push(parentNode);
+            ((KapRel) input).implementContext(this, state);
+            if (input instanceof KapAggregateRel)
+                addAgg(input);
+            this.parentNodeStack.pop();
+        }
+
+        public RelNode getParentNode() {
+            return parentNodeStack.peek();
+        }
+
+        public OLAPContext allocateContext() {
+            OLAPContext context = new OLAPContext(ctxSeq++);
+            OLAPContext.registerContext(context);
+            return context;
+        }
+
+        public void fixSharedOlapTableScan(SingleRel parent) {
+            OLAPTableScan copy = copyTableScanIfNeeded(parent.getInput());
+            if (copy != null)
+                parent.replaceInput(0, copy);
+        }
+
+        public void fixSharedOlapTableScanOnTheLeft(BiRel parent) {
+            OLAPTableScan copy = copyTableScanIfNeeded(parent.getLeft());
+            if (copy != null)
+                parent.replaceInput(0, copy);
+        }
+
+        public void fixSharedOlapTableScanOnTheRight(BiRel parent) {
+            OLAPTableScan copy = copyTableScanIfNeeded(parent.getRight());
+            if (copy != null)
+                parent.replaceInput(1, copy);
+        }
+
+        public void fixSharedOlapTableScanAt(RelNode parent, int ordinalInParent) {
+            OLAPTableScan copy = copyTableScanIfNeeded(parent.getInputs().get(ordinalInParent));
+            if (copy != null)
+                parent.replaceInput(ordinalInParent, copy);
+        }
+
+        public Stack<RelNode> getParentNodeStack() {
+            return parentNodeStack;
+        }
+
+        private OLAPTableScan copyTableScanIfNeeded(RelNode input) {
+            if (input instanceof KapTableScan) {
+                KapTableScan tableScan = (KapTableScan) input;
+                if (tableScan.contextVisited) { // this node has been visited before, should copy it
+                    OLAPTableScan copy = (OLAPTableScan) tableScan.copy(tableScan.getTraitSet(), tableScan.getInputs());
+                    return copy;
+                }
+            }
+            return null;
+        }
+
+        // collect every Agg rel to optimize the logic execution plan
+        public void addAgg(RelNode relNode) {
+            this.aggRelQueue.add(relNode);
+        }
+
+        public void optimizeContextCut() {
+            RelNode rel = this.aggRelQueue.poll();
+            while (rel != null) {
+                ((KapAggregateRel) rel).optimizeContextCut();
+                rel = this.aggRelQueue.poll();
+            }
+        }
+    }
+
+    class ContextVisitorState {
+        public boolean hasFilter; // filter exists in the child
+        public boolean hasFreeTable; // free table (not in any context) exists in the child
+
+        public ContextVisitorState(boolean hasFilter, boolean hasFreeTable) {
+            this.hasFilter = hasFilter;
+            this.hasFreeTable = hasFreeTable;
+        }
+
+        // TODO: Maybe cache is required to improve performance
+        public static ContextVisitorState of(boolean hasFilter, boolean hasFreeTable) {
+            return new ContextVisitorState(hasFilter, hasFreeTable);
+        }
+
+        public static ContextVisitorState init() {
+            return of(false, false);
+        }
+
+        public ContextVisitorState merge(ContextVisitorState that) {
+            this.hasFilter = that.hasFilter || this.hasFilter;
+            this.hasFreeTable = that.hasFreeTable || this.hasFreeTable;
+            return this;
+        }
+    }
+
+    /**
+     * To allocate context for the nodes before OLAP implement.
+     * Some nodes don't have a context.
+     * @param olapContextImplementor the visitor
+     * @param state the state returned after visit
+     */
+    void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state);
+
+    /**
+     * To cut off context if context is too big and no realization can serve it
+     *
+     * @param implementor
+     */
+    void implementCutContext(ICutContextStrategy.CutContextImplementor implementor);
+
+    /**
+     * Set context to this node and all children nodes, even the undirected children.
+     * @param context The context to be set.
+     */
+    void setContext(OLAPContext context);
+
+    /**
+     * add rel to some context
+     * case1 :
+     *      when AggRel above INNER JOIN rel not belong to any Context and
+     *      its all agg derived from the same one of subContext.
+     * @param context
+     */
+    boolean pushRelInfoToContext(OLAPContext context);
+
+    Set<OLAPContext> getSubContext();
+
+    void setSubContexts(Set<OLAPContext> contexts);
 }

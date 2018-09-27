@@ -110,6 +110,10 @@ public class BackdoorToggles {
         return getBoolean(DEBUG_TOGGLE_DISABLE_FUZZY_KEY);
     }
 
+    public static boolean getIsQueryFromAutoModeling() {
+        return getBoolean(QUERY_FROM_AUTO_MODELING);
+    }
+
     public static boolean getRunLocalCoprocessor() {
         return getBoolean(DEBUG_TOGGLE_LOCAL_COPROCESSOR);
     }
@@ -338,4 +342,6 @@ public class BackdoorToggles {
      }
      */
     public final static String DEBUG_TOGGLE_HTRACE_ENABLED = "DEBUG_TOGGLE_HTRACE_ENABLED";
+
+    public final static String QUERY_FROM_AUTO_MODELING = "QUERY_FROM_AUTO_MODELING";
 }

@@ -47,10 +47,15 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Holds per query information and statistics.
  */
 public class QueryContext {
+
+    private static final Logger logger = LoggerFactory.getLogger(QueryContext.class);
 
     public static final String PUSHDOWN_RDBMS = "RDBMS";
     public static final String PUSHDOWN_HIVE = "HIVE";
@@ -63,17 +68,29 @@ public class QueryContext {
         }
     };
 
+    public static QueryContext current() {
+        return contexts.get();
+    }
+
+    public static void reset() {
+        contexts.remove();
+    }
+
+    // ============================================================================
+
     private String queryId;
     private String username;
     private Set<String> groups;
     private AtomicLong scannedRows = new AtomicLong();
     private AtomicLong scannedBytes = new AtomicLong();
-
+    private String sql;
     private Object calcitePlan;
+    private boolean hasRuntimeAgg;
+    private boolean hasLike;
+    private boolean isTimeout;
+
     private long queryStartMillis;
-
     private Throwable errorCause;
-
     private String pushdownEngine;
 
     private QueryContext() {
@@ -82,24 +99,12 @@ public class QueryContext {
         queryId = UUID.randomUUID().toString();
     }
 
-    public static QueryContext current() {
-        return contexts.get();
-    }
-
     public long getQueryStartMillis() {
         return queryStartMillis;
     }
 
-    public static void reset() {
-        contexts.remove();
-    }
-
     public String getQueryId() {
         return queryId == null ? "" : queryId;
-    }
-
-    public void setQueryId(String queryId) {
-        this.queryId = queryId;
     }
 
     public String getUsername() {
@@ -118,6 +123,14 @@ public class QueryContext {
         this.groups = groups;
     }
 
+    public Object getCalcitePlan() {
+        return calcitePlan;
+    }
+
+    public void setCalcitePlan(Object calcitePlan) {
+        this.calcitePlan = calcitePlan;
+    }
+
     public long getScannedRows() {
         return scannedRows.get();
     }
@@ -134,14 +147,38 @@ public class QueryContext {
         return scannedBytes.addAndGet(deltaBytes);
     }
 
-    public Object getCalcitePlan() {
-        return calcitePlan;
+    public String getSql() {
+        return sql;
     }
 
-    public void setCalcitePlan(Object calcitePlan) {
-        this.calcitePlan = calcitePlan;
+    public void setSql(String sql) {
+        this.sql = sql;
     }
-    
+
+    public boolean isTimeout() {
+        return isTimeout;
+    }
+
+    public void setTimeout(boolean timeout) {
+        isTimeout = timeout;
+    }
+
+    public boolean hasRuntimeAgg() {
+        return hasRuntimeAgg;
+    }
+
+    public void setHasRuntimeAgg(Boolean hasRuntimeAgg) {
+        this.hasRuntimeAgg = hasRuntimeAgg;
+    }
+
+    public boolean isHasLike() {
+        return hasLike;
+    }
+
+    public void setHasLike(boolean hasLike) {
+        this.hasLike = hasLike;
+    }
+
     public Throwable getErrorCause() {
         return errorCause;
     }

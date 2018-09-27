@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
@@ -50,25 +51,25 @@ public class KapProjectRule extends ConverterRule {
     public static final RelOptRule INSTANCE = new KapProjectRule();
 
     public KapProjectRule() {
-        super(LogicalProject.class, Convention.NONE, KapRel.CONVENTION, "KapProjectRule");
+        super(LogicalProject.class, RelOptUtil.PROJECT_PREDICATE, Convention.NONE, KapRel.CONVENTION, "KapProjectRule");
     }
 
     @Override
-    public RelNode convert(RelNode call) {
-        final LogicalProject project = (LogicalProject) call;
+    public RelNode convert(final RelNode rel) {
 
-        final RelNode convertInput = convert(project.getInput(),
+        final LogicalProject project = (LogicalProject) rel;
+        final RelNode convert = convert(project.getInput(),
                 project.getInput().getTraitSet().replace(KapRel.CONVENTION));
-        final RelOptCluster cluster = convertInput.getCluster();
+        final RelOptCluster cluster = convert.getCluster();
         final RelMetadataQuery mq = cluster.getMetadataQuery();
         final RelTraitSet traitSet = cluster.traitSet().replace(KapRel.CONVENTION)
                 .replaceIfs(RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
                     public List<RelCollation> get() {
-                        return RelMdCollation.project(mq, convertInput, project.getProjects());
+                        return RelMdCollation.project(mq, convert, project.getProjects());
                     }
                 });
-        return new KapProjectRel(project.getCluster(), traitSet, //
-                convertInput, project.getProjects(), project.getRowType());
+        KapProjectRel kapProjectRel = new KapProjectRel(convert.getCluster(), traitSet, convert, project.getProjects(),
+                project.getRowType());
+        return kapProjectRel;
     }
-
 }

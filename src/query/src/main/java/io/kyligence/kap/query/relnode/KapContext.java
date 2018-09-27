@@ -24,7 +24,12 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.Set;
+
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.OLAPContext;
 
 public class KapContext {
     static final ThreadLocal<KapRel> _inputRel = new ThreadLocal<>();
@@ -51,4 +56,32 @@ public class KapContext {
         _resultType.set(null);
     }
 
+    public static void amendAllColsIfNoAgg(RelNode kapRel) {
+        if (kapRel == null || ((KapRel) kapRel).getContext() == null || kapRel instanceof KapTableScan)
+            return;
+
+        OLAPContext context = ((KapRel) kapRel).getContext();
+        //add columns of context's TopNode to context when there are no agg rel
+        if (kapRel instanceof KapProjectRel) {
+            for (Set<TblColRef> colRefs : ((KapRel) kapRel).getColumnRowType().getSourceColumns()) {
+                for (TblColRef colRef : colRefs) {
+                    if (context.isOriginAndBelongToCtxTables(colRef))
+                        context.allColumns.add(colRef);
+                }
+            }
+
+        } else if (kapRel instanceof KapValuesRel) {
+            for (TblColRef colRef : ((KapRel) kapRel).getColumnRowType().getAllColumns()) {
+                if (context.isOriginAndBelongToCtxTables(colRef)) {
+                    context.allColumns.add(colRef);
+                }
+            }
+
+        } else if (kapRel instanceof KapJoinRel) {
+            amendAllColsIfNoAgg(kapRel.getInput(0));
+            amendAllColsIfNoAgg(kapRel.getInput(1));
+        } else {
+            amendAllColsIfNoAgg(kapRel.getInput(0));
+        }
+    }
 }

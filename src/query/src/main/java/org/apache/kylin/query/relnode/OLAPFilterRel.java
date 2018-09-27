@@ -103,7 +103,7 @@ import com.google.common.collect.Sets;
  */
 public class OLAPFilterRel extends Filter implements OLAPRel {
 
-    static class TupleFilterVisitor extends RexVisitorImpl<TupleFilter> {
+    protected static class TupleFilterVisitor extends RexVisitorImpl<TupleFilter> {
 
         final ColumnRowType inputRowType;
 
@@ -204,7 +204,7 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
             return filter;
         }
 
-        //KYLIN-2597 - Deal with trivial expression in filters like x = 1 + 2 
+        //KYLIN-2597 - Deal with trivial expression in filters like x = 1 + 2
         TupleFilter dealWithTrivialExpr(RexCall call) {
             ImmutableList<RexNode> operators = call.operands;
             if (operators.size() != 2) {
@@ -350,8 +350,8 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
         }
     }
 
-    ColumnRowType columnRowType;
-    OLAPContext context;
+    protected ColumnRowType columnRowType;
+    protected OLAPContext context;
 
     public OLAPFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
         super(cluster, traits, child, condition);
@@ -391,13 +391,13 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
         }
     }
 
-    ColumnRowType buildColumnRowType() {
+    protected ColumnRowType buildColumnRowType() {
         OLAPRel olapChild = (OLAPRel) getInput();
         ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
         return inputColumnRowType;
     }
 
-    void translateFilter(OLAPContext context) {
+    protected void translateFilter(OLAPContext context) {
         if (this.condition == null) {
             return;
         }
@@ -417,7 +417,29 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
             }
         }
 
-        context.filter = TupleFilter.and(context.filter, filter);
+        context.filter = and(context.filter, filter);
+    }
+
+    private TupleFilter and(TupleFilter f1, TupleFilter f2) {
+        if (f1 == null)
+            return f2;
+        if (f2 == null)
+            return f1;
+
+        if (f1.getOperator() == FilterOperatorEnum.AND) {
+            f1.addChild(f2);
+            return f1;
+        }
+
+        if (f2.getOperator() == FilterOperatorEnum.AND) {
+            f2.addChild(f1);
+            return f2;
+        }
+
+        LogicalTupleFilter and = new LogicalTupleFilter(FilterOperatorEnum.AND);
+        and.addChild(f1);
+        and.addChild(f2);
+        return and;
     }
 
     @Override

@@ -66,7 +66,6 @@ import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -104,7 +103,7 @@ public class OLAPValuesRel extends Values implements OLAPRel {
 
     @Override
     public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        Preconditions.checkArgument(inputs.isEmpty(), "The input of LogicRel cannot be empty!");
+        assert inputs.isEmpty();
         return create(getCluster(), rowType, tuples);
     }
 

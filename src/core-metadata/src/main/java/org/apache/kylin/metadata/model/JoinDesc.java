@@ -242,7 +242,8 @@ public class JoinDesc implements Serializable {
 
     @Override
     public String toString() {
-        return "JoinDesc [type=" + type + ", primary_key=" + Arrays.toString(primaryKey) + ", foreign_key=" + Arrays.toString(foreignKey) + "]";
+        return "JoinDesc [type=" + type + ", primary_key=" + Arrays.toString(primaryKey) + ", foreign_key="
+                + Arrays.toString(foreignKey) + "]";
     }
 
 }

@@ -33,7 +33,6 @@ import org.apache.calcite.rel.core.AggregateCall;
 import org.apache.calcite.rel.logical.LogicalAggregate;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.fun.SqlAvgAggFunction;
-import org.apache.kylin.query.relnode.OLAPRel;
 
 import io.kyligence.kap.query.relnode.KapAggregateRel;
 import io.kyligence.kap.query.relnode.KapRel;
@@ -45,7 +44,7 @@ public class KapAggregateRule extends ConverterRule {
     public static final ConverterRule INSTANCE = new KapAggregateRule();
 
     public KapAggregateRule() {
-        super(LogicalAggregate.class, Convention.NONE, OLAPRel.CONVENTION, "KapAggregateRule");
+        super(LogicalAggregate.class, Convention.NONE, KapRel.CONVENTION, "KapAggregateRule");
     }
 
     @Override
@@ -61,8 +60,7 @@ public class KapAggregateRule extends ConverterRule {
         RelTraitSet traitSet = agg.getTraitSet().replace(KapRel.CONVENTION);
         try {
             return new KapAggregateRel(agg.getCluster(), traitSet, convert(agg.getInput(), KapRel.CONVENTION),
-                    agg.indicator,
-                    agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
+                    agg.indicator, agg.getGroupSet(), agg.getGroupSets(), agg.getAggCallList());
         } catch (InvalidRelException e) {
             throw new IllegalStateException("Can't create OLAPAggregateRel!", e);
         }

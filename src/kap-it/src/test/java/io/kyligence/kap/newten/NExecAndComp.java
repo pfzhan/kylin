@@ -59,12 +59,12 @@ public class NExecAndComp {
     }
 
     public static void execLimitAndValidate(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                            String joinType) {
+            String joinType) {
         execLimitAndValidateNew(queries, kapSparkSession, joinType);
     }
 
     public static void execLimitAndValidateOld(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                               String joinType) {
+            String joinType) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
@@ -89,7 +89,7 @@ public class NExecAndComp {
     }
 
     public static void execLimitAndValidateNew(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                               String joinType) {
+            String joinType) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
@@ -109,44 +109,51 @@ public class NExecAndComp {
             List<Row> kapRows = kapResult.toJavaRDD().collect();
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-            compareResults(sparkRows, kapRows, CompareLevel.SUBSET);
+            if (!compareResults(sparkRows, kapRows, CompareLevel.SUBSET)) {
+                throw new IllegalArgumentException("Result not match");
+            }
         }
         logger.info("Queries appended with limit: " + appendLimitQueries);
     }
 
-
     public static void execAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                      CompareLevel compareLevel, String joinType) {
-//        execAndCompareOld(queries, kapSparkSession, compareLevel, joinType);
+            CompareLevel compareLevel, String joinType) {
+        //        execAndCompareOld(queries, kapSparkSession, compareLevel, joinType);
         execAndCompareNew(queries, kapSparkSession, compareLevel, joinType);
     }
 
     public static void execAndCompareNew(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                         CompareLevel compareLevel, String joinType) {
+            CompareLevel compareLevel, String joinType) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
 
             String sql = changeJoinType(query.getSecond(), joinType);
 
             // Query from Cube
+            long startTime = System.currentTimeMillis();
             Dataset<Row> cubeResult = queryWithKap(kapSparkSession, joinType, sql);
             List<Row> kapRows = cubeResult.toJavaRDD().collect();
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                compareResults(sparkRows, kapRows, compareLevel);
+                if (!compareResults(kapRows, sparkRows, compareLevel)) {
+                    logger.error("Failed on compare query (" + joinType + ") :" + query);
+                    throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
+                }
             } else {
                 cubeResult.persist();
-                System.out
-                        .println("result comparision is not available, part of the cube results: " + cubeResult.count());
+                System.out.println(
+                        "result comparision is not available, part of the cube results: " + cubeResult.count());
                 cubeResult.show();
                 cubeResult.unpersist();
             }
+            logger.info("The query (" + joinType + ") : {} cost {} (ms)", query,
+                    System.currentTimeMillis() - startTime);
         }
     }
 
     public static void execAndCompareOld(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-                                         CompareLevel compareLevel, String joinType) {
+            CompareLevel compareLevel, String joinType) {
 
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
@@ -263,17 +270,23 @@ public class NExecAndComp {
         for (File sqlFile : sqlFiles) {
             String sqlStatement = FileUtils.readFileToString(sqlFile, "UTF-8").trim();
             int semicolonIndex = sqlStatement.lastIndexOf(";");
-            String sql = semicolonIndex == sqlStatement.length() - 1 ? sqlStatement.substring(0, semicolonIndex) : sqlStatement;
+            String sql = semicolonIndex == sqlStatement.length() - 1 ? sqlStatement.substring(0, semicolonIndex)
+                    : sqlStatement;
             ret.add(Pair.newPair(sqlFile.getCanonicalPath(), sql + '\n'));
         }
         return ret;
     }
 
-    private static void compareResults(List<Row> expectedResult, List<Row> actualResult,
+    private static boolean compareResults(List<Row> expectedResult, List<Row> actualResult,
                                        CompareLevel compareLevel) {
         boolean good = true;
         if (compareLevel == CompareLevel.SAME) {
             if (expectedResult.size() == actualResult.size()) {
+                if (expectedResult.size() > 15000 || actualResult.size() > 15000) {
+                    throw new RuntimeException(
+                            "please modify the sql to control the result size that less than 15000 and it has "
+                                    + actualResult.size() + " rows");
+                }
                 for (Row eRow: expectedResult){
                     if (!actualResult.contains(eRow)) {
                         good = false;
@@ -304,20 +317,20 @@ public class NExecAndComp {
             logger.error("Result not match");
             printRows("expected", expectedResult);
             printRows("actual", actualResult);
-            throw new IllegalStateException("Result not match");
         }
+        return good;
     }
 
-    private static void printRows(String source, List<Row> rows){
+    private static void printRows(String source, List<Row> rows) {
         System.out.println("***********" + source + " start**********");
-        for (Row row: rows){
-            System.out.println(row.mkString("|"));
+        for (Row row : rows) {
+            System.out.println(row.mkString(" | "));
         }
         System.out.println("***********" + source + " end**********");
     }
 
     private static void compareResults(Dataset<Row> expectedResult, Dataset<Row> actualResult,
-                                       CompareLevel compareLevel) {
+            CompareLevel compareLevel) {
         Preconditions.checkArgument(expectedResult != null);
         Preconditions.checkArgument(actualResult != null);
 

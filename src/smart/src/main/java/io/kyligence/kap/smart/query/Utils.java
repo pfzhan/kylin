@@ -94,6 +94,7 @@ public class Utils {
                 "io.kyligence.kap.metadata.model.NDataModelManager");
         props.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
         props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
+        props.setProperty("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
 
         List<String> queryTransformers = Lists.newArrayList();
         queryTransformers.add(EscapeTransformer.class.getName());

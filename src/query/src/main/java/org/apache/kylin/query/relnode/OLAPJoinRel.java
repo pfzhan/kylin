@@ -197,7 +197,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         this.columnRowType = buildColumnRowType();
 
         if (isTopJoin) {
-            this.context.afterJoin = true;
+            this.context.afterTopJoin = true;
         }
 
         if (!this.hasSubQuery) {
@@ -211,7 +211,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
             JoinRelType joinRelType = this.getJoinType();
             String joinType = joinRelType == JoinRelType.INNER ? "INNER"
-                    : joinRelType == JoinRelType.LEFT ? "LEFT" : null;
+                    : joinRelType == JoinRelType.LEFT ? "LEFT" : joinRelType == JoinRelType.RIGHT ? "RIGHT" : "FULL";
             join.setType(joinType);
 
             this.context.joins.add(join);
@@ -336,7 +336,6 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
     @Override
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-
         context.setReturnTupleInfo(rowType, columnRowType);
 
         PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray(), false);
@@ -358,11 +357,8 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
         this.rowType = this.deriveRowType();
 
-        if (this.isTopJoin && RewriteImplementor.needRewrite(this.context)) {
+        if (RewriteImplementor.needRewrite(this.context)) {
             if (this.context.hasPrecalculatedFields()) {
-
-
-                //seems not necessary to do so in JOIN REL???
 
                 // find missed rewrite fields
                 int paramIndex = this.rowType.getFieldList().size();

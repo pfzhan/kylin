@@ -48,9 +48,10 @@ public class NRawQueryLastHacker {
 
         // If it's select * from ...,
         // We need to retrieve cube to manually add columns into sqlDigest, so that we have full-columns results as output.
-        boolean isSelectAll = sqlDigest.allColumns.isEmpty() || sqlDigest.allColumns.equals(sqlDigest.filterColumns);
+
+        // @TODO refactor select-star judge
         for (TblColRef col : nDataflow.getAllColumns()) {
-            if (nDataflow.getCubePlan().listDimensionColumnsExcludingDerived(null).contains(col) || isSelectAll) {
+            if (nDataflow.getCubePlan().listDimensionColumnsExcludingDerived(null).contains(col)) {
                 sqlDigest.allColumns.add(col);
             }
         }

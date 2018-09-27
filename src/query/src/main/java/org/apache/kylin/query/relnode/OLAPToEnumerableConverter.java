@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -58,6 +57,7 @@ import org.apache.calcite.rel.convert.ConverterImpl;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.sql.SqlExplainLevel;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.kylin.query.security.QueryInterceptor;
@@ -100,11 +100,12 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
 
         // identify model & realization
         List<OLAPContext> contexts = listContextsHavingScan();
-
         // intercept query
-        List<QueryInterceptor> intercepts = QueryInterceptorUtil.getQueryInterceptors();
-        for (QueryInterceptor intercept : intercepts) {
-            intercept.intercept(contexts);
+        if (contexts.size() > 0) {
+            List<QueryInterceptor> intercepts = QueryInterceptorUtil.getQueryInterceptors();
+            for (QueryInterceptor intercept : intercepts) {
+                intercept.intercept(contexts);
+            }
         }
 
         if (System.getProperty("calcite.debug") != null) {
@@ -115,7 +116,7 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
 
         RealizationChooser.selectLayoutCandidate(contexts);
 
-        doAccessControl(contexts);
+        doAccessControl(contexts, (OLAPRel) getInput());
 
         // rewrite query if necessary
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
@@ -130,31 +131,32 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
             String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
             System.out.println("EXECUTION PLAN AFTER REWRITE");
             System.out.println(dumpPlan);
+            QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
         }
 
         return impl.visitChild(this, 0, inputAsEnum, pref);
     }
 
-     protected List<OLAPContext> listContextsHavingScan() {
+    protected List<OLAPContext> listContextsHavingScan() {
         // Context has no table scan is created by OLAPJoinRel which looks like
         //     (sub-query) as A join (sub-query) as B
         // No realization needed for such context.
         int size = OLAPContext.getThreadLocalContexts().size();
         List<OLAPContext> result = Lists.newArrayListWithCapacity(size);
-        for (int i = 0; i < size; i++) {
-            OLAPContext ctx = OLAPContext.getThreadLocalContextById(i);
+        for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
             if (ctx.firstTableScan != null)
                 result.add(ctx);
         }
         return result;
     }
 
-    protected void doAccessControl(List<OLAPContext> contexts) {
+    protected void doAccessControl(List<OLAPContext> contexts, OLAPRel tree) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         String controllerCls = config.getQueryAccessController();
         if (null != controllerCls && !controllerCls.isEmpty()) {
-            OLAPContext.IAccessController accessController = (OLAPContext.IAccessController) ClassUtil.newInstance(controllerCls);
-            accessController.check(contexts, config);
+            OLAPContext.IAccessController accessController = (OLAPContext.IAccessController) ClassUtil
+                    .newInstance(controllerCls);
+            accessController.check(contexts, tree, config);
         }
     }
 }

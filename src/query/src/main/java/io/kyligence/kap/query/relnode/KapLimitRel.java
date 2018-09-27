@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableLimit;
@@ -35,18 +36,35 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPLimitRel;
 import org.apache.kylin.query.relnode.OLAPRel;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
+
 public class KapLimitRel extends OLAPLimitRel implements KapRel {
+
+    private Set<OLAPContext> subContexts = Sets.newHashSet();
+
     public KapLimitRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, RexNode offset, RexNode fetch) {
         super(cluster, traitSet, child, offset, fetch);
     }
 
     @Override
-    public OLAPLimitRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
+    public KapLimitRel copy(RelTraitSet traitSet, List<RelNode> inputs) {
         return new KapLimitRel(getCluster(), traitSet, sole(inputs), localOffset, localFetch);
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+        this.context = null;
+        this.columnRowType = null;
+        implementor.visitChild(getInput());
     }
 
     @Override
@@ -64,4 +82,88 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         return EnumerableLimit.create(input, localOffset, localFetch);
     }
 
+    @Override
+    public void setContext(OLAPContext context) {
+        this.context = context;
+        ((KapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OLAPContext context) {
+        if (this.context == null && ((KapRel) getInput()).pushRelInfoToContext(context)) {
+            this.context = context;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+        olapContextImplementor.fixSharedOlapTableScan(this);
+        ContextVisitorState tempState = ContextVisitorState.init();
+        olapContextImplementor.visitChild(getInput(), this, tempState);
+        if (tempState.hasFreeTable) {
+            OLAPContext context = olapContextImplementor.allocateContext();
+            context.topNode = this;
+            this.setContext(context);
+            tempState.hasFreeTable = false;
+        }
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+
+        if (context == null && subContexts.size() == 1
+                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).topNode) {
+            this.context = Lists.newArrayList(this.subContexts).get(0);
+            this.context.topNode = this;
+        }
+        state.merge(tempState);
+    }
+
+    @Override
+    public void implementOLAP(OLAPImplementor olapContextImplementor) {
+        olapContextImplementor.visitChild(getInput(), this);
+
+        // ignore limit after having clause
+        // ignore limit after another limit, e.g. select A, count(*) from (select A,B from fact group by A,B limit 100) limit 10
+        this.columnRowType = buildColumnRowType();
+        if (context != null) {
+            if (!context.afterHavingClauseFilter && !context.afterLimit) {
+                Number limitValue = (Number) (((RexLiteral) localFetch).getValue());
+                int limit = limitValue.intValue();
+                this.context.storageContext.setLimit(limit);
+
+                if (localOffset != null) {
+                    Number offsetValue = (Number) (((RexLiteral) localOffset).getValue());
+                    int offset = offsetValue.intValue();
+                    this.context.storageContext.setOffset(offset);
+                }
+                context.afterLimit = true;
+
+            } else {
+                this.context.storageContext.setOverlookOuterLimit();
+            }
+            if (this == context.topNode && !context.hasAgg)
+                KapContext.amendAllColsIfNoAgg(this);
+        }
+    }
+
+    @Override
+    public void implementRewrite(RewriteImplementor implementor) {
+        implementor.visitChild(this, getInput());
+
+        if (context != null) {
+            this.rowType = this.deriveRowType();
+            this.columnRowType = buildColumnRowType();
+        }
+    }
+
+    @Override
+    public Set<OLAPContext> getSubContext() {
+        return subContexts;
+    }
+
+    @Override
+    public void setSubContexts(Set<OLAPContext> contexts) {
+        this.subContexts = contexts;
+    }
 }

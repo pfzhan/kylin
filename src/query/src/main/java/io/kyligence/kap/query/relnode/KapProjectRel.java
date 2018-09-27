@@ -24,7 +24,11 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -34,13 +38,37 @@ import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.ColumnRowType;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPProjectRel;
+import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
  */
 public class KapProjectRel extends OLAPProjectRel implements KapRel {
     List<RexNode> exps;
+    private boolean isTopProject = false;
+    private boolean beforeTopPreCalcJoin = false;
+    private Set<OLAPContext> subContexts = Sets.newHashSet();
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+        this.context = null;
+        this.columnRowType = null;
+        implementor.visitChild(getInput());
+    }
 
     public KapProjectRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode child, List<RexNode> exps,
             RelDataType rowType) {
@@ -58,4 +86,162 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         return new KapProjectRel(getCluster(), traitSet, child, exps, rowType);
     }
 
+    @Override
+    public void setContext(OLAPContext context) {
+        this.context = context;
+        if (!context.metProject) {
+            this.isTopProject = true;
+            context.metProject = true;
+        } else {
+            this.isTopProject = false;
+        }
+        ((KapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OLAPContext context) {
+        if (this.context == null && ((KapRel) getInput()).pushRelInfoToContext(context)) {
+            this.context = context;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+        olapContextImplementor.fixSharedOlapTableScan(this);
+        ContextVisitorState tempState = ContextVisitorState.init();
+        olapContextImplementor.visitChild(getInput(), this, tempState);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+        if (context == null && subContexts.size() == 1
+                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).topNode
+                && !(this.getInput() instanceof KapWindowRel)) {
+            this.context = Lists.newArrayList(this.subContexts).get(0);
+            this.context.topNode = this;
+        }
+        state.merge(tempState);
+    }
+
+    @Override
+    public void implementOLAP(OLAPImplementor implementor) {
+        if (this.getPermutation() != null && !(implementor.getParentNode() instanceof OLAPToEnumerableConverter))
+            isMerelyPermutation = true;
+        // @beforeTopPreCalcJoin refer to this rel is under a preCalcJoin Rel and need not be rewrite. eg.
+        //        JOIN
+        //       /    \
+        //     Proj   TableScan
+        //    /
+        //  TableScan
+        this.beforeTopPreCalcJoin = context != null && context.hasPreCalcJoin;
+        implementor.visitChild(getInput(), this);
+
+        this.columnRowType = buildColumnRowType();
+        if (context != null) {
+            this.hasJoin = context.hasJoin;
+            this.afterAggregate = context.afterAggregate;
+            if (this == context.topNode && !context.hasAgg)
+                KapContext.amendAllColsIfNoAgg(this);
+        } else {
+            updateSubContexts(subContexts);
+        }
+    }
+
+    protected TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
+            Set<TblColRef> sourceCollector) {
+        int index = inputRef.getIndex();
+        // check it for rewrite count
+        if (index < inputColumnRowType.size()) {
+            TblColRef column = inputColumnRowType.getColumnByIndex(index);
+            if (!column.isInnerColumn() && !this.rewriting && !this.afterAggregate) {
+                sourceCollector.add(column);
+            }
+            return column;
+        } else {
+            throw new IllegalStateException("Can't find " + inputRef + " from child columnrowtype " + inputColumnRowType
+                    + " with fieldname " + fieldName);
+        }
+    }
+
+    @Override
+    public void implementRewrite(RewriteImplementor implementor) {
+        implementor.visitChild(this, getInput());
+        if (this.context == null) {
+            return;
+        }
+        this.rewriting = true;
+
+        // project before join or is just after OLAPToEnumerableConverter
+        if (!RewriteImplementor.needRewrite(this.context) || this.afterAggregate
+                || !(this.context.hasPrecalculatedFields())
+                || (this.getContext().hasJoin && this.beforeTopPreCalcJoin)) {
+            this.columnRowType = this.buildColumnRowType();
+            return;
+        }
+
+        // find missed rewrite fields
+        int paramIndex = this.rowType.getFieldList().size();
+        List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
+        List<RexNode> newExpList = new LinkedList<RexNode>();
+        ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
+        for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
+            String rewriteFieldName = rewriteField.getKey();
+            int rowIndex = this.columnRowType.getIndexByName(rewriteFieldName);
+            if (rowIndex >= 0) {
+                continue;
+            }
+            int inputIndex = inputColumnRowType.getIndexByName(rewriteFieldName);
+            if (inputIndex >= 0) {
+                // new field
+                RelDataType fieldType = rewriteField.getValue();
+                RelDataTypeField newField = new RelDataTypeFieldImpl(rewriteFieldName, paramIndex++, fieldType);
+                newFieldList.add(newField);
+                // new project
+                RelDataTypeField inputField = getInput().getRowType().getFieldList().get(inputIndex);
+                RexInputRef newFieldRef = new RexInputRef(inputField.getIndex(), inputField.getType());
+                newExpList.add(newFieldRef);
+            }
+        }
+
+        if (!newFieldList.isEmpty()) {
+            // rebuild projects
+            List<RexNode> newProjects = new ArrayList<RexNode>(this.rewriteProjects);
+            newProjects.addAll(newExpList);
+            this.rewriteProjects = newProjects;
+            // rebuild row type
+            RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
+            fieldInfo.addAll(this.rowType.getFieldList());
+            fieldInfo.addAll(newFieldList);
+            this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
+        }
+
+        // rebuild columns
+        this.columnRowType = this.buildColumnRowType();
+        this.rewriting = false;
+    }
+
+    private void updateSubContexts(Set<OLAPContext> subContexts) {
+        if (isMerelyPermutation || this.rewriting || this.afterAggregate)
+            return;
+
+        for (Set<TblColRef> colRefs : this.columnRowType.getSourceColumns()) {
+            for (TblColRef colRef : colRefs) {
+                for (OLAPContext context : subContexts) {
+                    if (colRef != null && context.belongToContextTables(colRef)) {
+                        context.allColumns.add(colRef);
+                    }
+                }
+            }
+        }
+    }
+
+    @Override
+    public Set<OLAPContext> getSubContext() {
+        return subContexts;
+    }
+
+    @Override
+    public void setSubContexts(Set<OLAPContext> contexts) {
+        this.subContexts = contexts;
+    }
 }

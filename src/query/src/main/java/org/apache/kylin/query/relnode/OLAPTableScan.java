@@ -67,6 +67,7 @@ import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTrait;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.RelWriter;
 import org.apache.calcite.rel.core.TableScan;
@@ -189,17 +190,23 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
 
         // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES
-        planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
+        if (kylinConfig.isReduceExpressionsRulesEnabled()) {
+            planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
+        }
         // the ValuesReduceRule breaks query test somehow...
         //        planner.addRule(ValuesReduceRule.FILTER_INSTANCE);
         //        planner.addRule(ValuesReduceRule.PROJECT_FILTER_INSTANCE);
         //        planner.addRule(ValuesReduceRule.PROJECT_INSTANCE);
 
         removeRules(planner, kylinConfig.getCalciteRemoveRule());
-
+        if (!kylinConfig.isEnumerableRulesEnabled()) {
+            for (RelOptRule rule : CalcitePrepareImpl.ENUMERABLE_RULES) {
+                planner.removeRule(rule);
+            }
+        }
         // since join is the entry point, we can't push filter past join
         planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
         planner.removeRule(FilterJoinRule.JOIN);
@@ -321,7 +328,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
             context.firstTableScan = this;
         }
 
-        if (needCollectionColumns(implementor)) {
+        if (needCollectionColumns(implementor.getParentNodeStack())) {
             // OLAPToEnumerableConverter on top of table scan, should be a select * from table
             for (TblColRef tblColRef : columnRowType.getAllColumns()) {
                 if (!tblColRef.getName().startsWith("_KY_")) {
@@ -339,8 +346,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
      *      * OLAPProjectRel -> skip column collection
      *      * OLAPToEnumerableConverter and OLAPUnionRel -> require column collection
      */
-    private boolean needCollectionColumns(OLAPImplementor implementor) {
-        Stack<RelNode> allParents = implementor.getParentNodeStack();
+    protected boolean needCollectionColumns(Stack<RelNode> allParents) {
         int index = allParents.size() - 1;
 
         while (index >= 0) {
@@ -368,8 +374,8 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return alias;
     }
 
-    private ColumnRowType buildColumnRowType() {
-        this.alias = Integer.toHexString(System.identityHashCode(this));
+    protected ColumnRowType buildColumnRowType() {
+        this.alias = context.allTableScans.size() + "_" + Integer.toHexString(System.identityHashCode(this));
         TableRef tableRef = TblColRef.tableForUnknownModel(this.alias, olapTable.getSourceTable());
 
         List<TblColRef> columns = new ArrayList<TblColRef>();
@@ -468,6 +474,10 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         RelTraitSet oldTraitSet = this.traitSet;
         this.traitSet = this.traitSet.replace(trait);
         return oldTraitSet;
+    }
+
+    public void setColumnRowType(ColumnRowType columnRowType) {
+        this.columnRowType = columnRowType;
     }
 
 }

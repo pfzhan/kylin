@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -64,6 +65,7 @@ public class NDataflowCapabilityChecker {
 
         // try custom measure types
         tryCustomMeasureTypes(unmatchedDimensions, unmatchedAggregations, digest, dataflow, result);
+        removeUnmatchedGroupingAgg(unmatchedAggregations);
 
         //more tricks
         String rootFactTable = dataflow.getModel().getRootFactTableName();
@@ -155,8 +157,6 @@ public class NDataflowCapabilityChecker {
             }
         }
 
-        // TODO: 3. ensure the wanted cuboid exists
-
         // cost will be minded by caller
         result.capable = true;
         return result;
@@ -235,5 +235,17 @@ public class NDataflowCapabilityChecker {
         if (influencingMeasures.size() != 0)
             logger.info("NDataflow {} CapabilityInfluences: {}", dataflow.getCanonicalName(),
                     StringUtils.join(influencingMeasures, ","));
+    }
+
+    private static void removeUnmatchedGroupingAgg(Collection<FunctionDesc> unmatchedAggregations) {
+        if (CollectionUtils.isEmpty(unmatchedAggregations))
+            return;
+
+        Iterator<FunctionDesc> iterator = unmatchedAggregations.iterator();
+        while (iterator.hasNext()) {
+            if (FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(iterator.next().getExpression())) {
+                iterator.remove();
+            }
+        }
     }
 }

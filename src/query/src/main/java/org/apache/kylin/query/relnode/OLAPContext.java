@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
@@ -73,8 +72,12 @@ import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.util.JoinsGraph;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NDataModel;
 
 /**
  */
@@ -117,9 +120,15 @@ public class OLAPContext {
         _localContexts.remove();
     }
 
+    public static void clearThreadLocalContextById(int id) {
+        Map<Integer, OLAPContext> map = _localContexts.get();
+        map.remove(id);
+        _localContexts.set(map);
+    }
+
     public OLAPContext(int seq) {
         this.id = seq;
-        this.storageContext = new StorageContext();
+        this.storageContext = new StorageContext(seq);
         this.sortColumns = Lists.newArrayList();
         this.sortOrders = Lists.newArrayList();
         Map<String, String> parameters = _localPrarameters.get();
@@ -140,23 +149,29 @@ public class OLAPContext {
     // query info
     public OLAPSchema olapSchema = null;
     public OLAPTableScan firstTableScan = null; // to be fact table scan except "select * from lookupTable"
+    public OLAPRel topNode = null; // the context's toppest node
+    public OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
     public Set<OLAPTableScan> allTableScans = new HashSet<>();
     public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
     public Set<MeasureDesc> involvedMeasure = new HashSet<>();
     public TupleInfo returnTupleInfo = null;
-    public OLAPQuery.EnumeratorTypeEnum enumeratorType;
     public boolean afterAggregate = false;
     public boolean afterHavingClauseFilter = false;
     public boolean afterLimit = false;
     public boolean limitPrecedesAggr = false;
-    public boolean afterJoin = false;
+    public boolean afterTopJoin = false;
     public boolean hasJoin = false;
+    public boolean hasPreCalcJoin = false;
+    public boolean hasAgg = false;
     public boolean hasWindow = false;
+    public boolean metProject = false;
+    public OLAPQuery.EnumeratorTypeEnum enumeratorType;
 
     // cube metadata
     public IRealization realization;
     public RealizationCheck realizationCheck = new RealizationCheck();
     public boolean fixedModel;
+    public boolean hasSelected = false;
 
     public Set<TblColRef> allColumns = new HashSet<>();
     public List<TblColRef> groupByColumns = new ArrayList<>();
@@ -170,6 +185,7 @@ public class OLAPContext {
     public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
     public JoinsTree joinsTree;
+    public JoinsGraph joinsGraph;
     List<TblColRef> sortColumns;
     List<SQLDigest.OrderEnum> sortOrders;
 
@@ -189,17 +205,19 @@ public class OLAPContext {
 
     public SQLDigest getSQLDigest() {
         if (sqlDigest == null)
-            sqlDigest = new SQLDigest(firstTableScan.getTableName(), allColumns, joins, // model
-                    groupByColumns, subqueryJoinParticipants, // group by
-                    metricsColumns, aggregations, aggrSqlCalls, // aggregation
-                    filterColumns, filter, havingFilter, // filter
-                    sortColumns, sortOrders, limitPrecedesAggr, // sort & limit
-                    involvedMeasure);
+            sqlDigest = new SQLDigest(firstTableScan.getTableName(), Sets.newHashSet(allColumns),
+                    Lists.newLinkedList(joins), // model
+                    Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
+                    Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), Lists.newArrayList(aggrSqlCalls), // aggregation
+                    Sets.newHashSet(filterColumns), filter, havingFilter, // filter
+                    Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limitPrecedesAggr, // sort & limit
+                    Sets.newHashSet(involvedMeasure));
         return sqlDigest;
     }
 
     public boolean hasPrecalculatedFields() {
-        return realization != null && realization.hasPrecalculatedFields();
+        //        return realization instanceof DataFlow;
+        return true;
     }
 
     public void resetSQLDigest() {
@@ -214,6 +232,10 @@ public class OLAPContext {
         }
 
         return false;
+    }
+
+    public boolean isOriginAndBelongToCtxTables(TblColRef tblColRef) {
+        return belongToContextTables(tblColRef) && !tblColRef.getName().startsWith("_KY_");
     }
 
     public void setReturnTupleInfo(RelDataType rowType, ColumnRowType columnRowType) {
@@ -254,6 +276,44 @@ public class OLAPContext {
         fixedModel = false;
     }
 
+    public void clearCtxInfo() {
+        //query info
+        this.afterAggregate = false;
+        this.afterHavingClauseFilter = false;
+        this.afterLimit = false;
+        this.limitPrecedesAggr = false;
+        this.afterTopJoin = false;
+        this.hasJoin = false;
+        this.hasPreCalcJoin = false;
+        this.hasAgg = false;
+        this.hasWindow = false;
+        this.metProject = false;
+
+        this.allColumns.clear();
+        this.groupByColumns.clear();
+        this.aggrOutCols.clear();
+        this.subqueryJoinParticipants.clear();
+        this.metricsColumns.clear();
+        this.involvedMeasure.clear();
+        this.allOlapJoins.clear();
+        this.joins.clear();
+        this.allTableScans.clear();
+        this.filter = null;
+        this.havingFilter = null;
+        this.filterColumns.clear();
+
+        this.aggregations.clear();
+        this.aggrSqlCalls.clear();
+
+        this.sortColumns.clear();
+        this.sortOrders.clear();
+
+        this.joinsGraph = null;
+        this.joinsTree = null;
+
+        this.sqlDigest = null;
+    }
+
     public void bindVariable(DataContext dataContext) {
         bindVariable(this.filter, dataContext);
     }
@@ -286,7 +346,7 @@ public class OLAPContext {
     // ============================================================================
 
     public interface IAccessController {
-        public void check(List<OLAPContext> contexts, KylinConfig config) throws IllegalStateException;
+        public void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config) throws IllegalStateException;
     }
 
 }

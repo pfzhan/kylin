@@ -65,6 +65,7 @@ import com.google.common.collect.Range;
 public class StorageContext {
     private static final Logger logger = LoggerFactory.getLogger(StorageContext.class);
 
+    public int ctxId;
     private StorageURL connUrl;
     private int limit = Integer.MAX_VALUE;
     private boolean overlookOuterLimit = false;
@@ -82,14 +83,23 @@ public class StorageContext {
 
     private IStorageQuery storageQuery;
     private Long cuboidId;
+
     private AtomicLong processedRowCount = new AtomicLong();
     private boolean partialResultReturned = false;
+
     private Range<Long> reusedPeriod;
 
     private NLayoutCandidate candidate;
     private TupleFilter filter;
     private Set<TblColRef> dimensions;
     private Set<FunctionDesc> metrics;
+
+    public StorageContext() {
+    }
+
+    public StorageContext(int ctxId) {
+        this.ctxId = ctxId;
+    }
 
     public StorageURL getConnUrl() {
         return connUrl;
@@ -318,4 +328,3 @@ public class StorageContext {
         this.enableStreamAggregate = true;
     }
 }
-

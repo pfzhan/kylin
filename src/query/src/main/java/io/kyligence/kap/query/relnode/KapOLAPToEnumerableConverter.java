@@ -30,33 +30,46 @@ import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
-import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.calcite.rel.rules.FilterMergeRule;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.QueryContext;
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
-import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.kylin.query.security.QueryInterceptor;
-import org.apache.kylin.query.security.QueryInterceptorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
+import io.kyligence.kap.query.optrule.JoinFilterRule;
+import io.kyligence.kap.query.optrule.KapFilterRule;
+import io.kyligence.kap.query.optrule.KapProjectRule;
+import io.kyligence.kap.query.util.HepUtils;
+import io.kyligence.kap.query.util.QueryContextCutter;
 
 /**
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
 public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel {
-
     private static final Logger logger = LoggerFactory.getLogger(KapOLAPToEnumerableConverter.class);
+
+    public static final int MAX_RETRY_TIMES_OF_CONTEXT_CUT = 10;
 
     public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);
+    }
+
+    @Override
+    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
+        return new KapOLAPToEnumerableConverter(getCluster(), traitSet, sole(inputs));
     }
 
     @Override
@@ -66,47 +79,33 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
     }
 
     @Override
-    public RelNode copy(RelTraitSet traitSet, List<RelNode> inputs) {
-        return new KapOLAPToEnumerableConverter(getCluster(), traitSet, sole(inputs));
-    }
-
-    private void dumpCalcitePlan(String msg) {
-        if (System.getProperty("calcite.debug") != null) {
-            String dumpPlan = RelOptUtil.dumpPlan("", this, false, SqlExplainLevel.DIGEST_ATTRIBUTES);
-            System.out.println(msg);
-            System.out.println(dumpPlan);
-        }
-    }
-
-    @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
         Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
-        dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor");
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
 
-        // post-order travel children
-        OLAPRel.OLAPImplementor KAPImplementor = new OLAPRel.OLAPImplementor();
-        KAPImplementor.visitChild(getInput(), this);
+        // filter up, project push down
+        this.replaceInput(0, HepUtils.runRuleCollection(getInput(), Lists.newArrayList(
+                // Transpose Rule
+                //                ProjectJoinTransposeRule.INSTANCE,
+                KapProjectRule.INSTANCE, KapFilterRule.INSTANCE, ProjectFilterTransposeRule.INSTANCE,
+                //                AggregateJoinTransposeRule.EXTENDED,
+                //                AggregateFilterTransposeRule.INSTANCE,
+                JoinFilterRule.JOIN_LEFT_FILTER, JoinFilterRule.JOIN_RIGHT_FILTER, JoinFilterRule.JOIN_BOTH_FILTER,
+                // Merge Rule
+                ProjectMergeRule.INSTANCE, FilterMergeRule.INSTANCE)));
 
-        dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS SET");
+        List<OLAPContext> contexts = QueryContextCutter.selectRealization(this,
+                BackdoorToggles.getIsQueryFromAutoModeling());
 
-        // identify model
-        List<OLAPContext> contexts = listContextsHavingScan();
-
-        // intercept query
-        List<QueryInterceptor> intercepts = QueryInterceptorUtil.getQueryInterceptors();
-        for (QueryInterceptor intercept : intercepts) {
-            intercept.intercept(contexts);
-        }
-
-        RealizationChooser.selectLayoutCandidate(contexts);
-
-        dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET");
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", this);
 
         // identify realization for each context
-        doAccessControl(contexts);
+        doAccessControl(contexts, (KapRel) getInput());
         // rewrite query if necessary
         OLAPRel.RewriteImplementor rewriteImplementor = new OLAPRel.RewriteImplementor();
         rewriteImplementor.visitChild(this, getInput());
+        QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
+
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
         if (sparderEnabled) {
             sparderEnabled = isSparderAppliable(contexts);

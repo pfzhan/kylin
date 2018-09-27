@@ -49,6 +49,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.query.relnode.KapFilterRel;
 import io.kyligence.kap.query.relnode.KapJoinRel;
 import io.kyligence.kap.query.relnode.KapRel;
@@ -70,7 +71,7 @@ public class KapJoinRule extends ConverterRule implements IKeep {
 
         RelTraitSet traitSet = join.getTraitSet().replace(KapRel.CONVENTION);
         left = convert(left, left.getTraitSet().replace(KapRel.CONVENTION));
-        right = convert(right, right.getTraitSet().replace(KapRel.CONVENTION));
+        right = convert(right, left.getTraitSet().replace(KapRel.CONVENTION));
 
         final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
 
@@ -80,33 +81,30 @@ public class KapJoinRule extends ConverterRule implements IKeep {
             return tmpJoin;
         }
 
-        if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
-            // EnumerableJoinRel only supports equi-join. We can put a filter on top
-            // if it is an inner join.
-            return null;
-        }
-
         RelNode newRel;
-        RelOptCluster cluster = join.getCluster();
         try {
-            newRel = new KapJoinRel(cluster, traitSet, left, right, //
-                    info.getEquiCondition(left, right, cluster.getRexBuilder()), //
-                    info.leftKeys, info.rightKeys, join.getVariablesSet(), join.getJoinType());
+            if (!info.isEqui() && join.getJoinType() != JoinRelType.INNER) {
+                throw new NotSupportedSQLException("Currently, Non-equi SQL is not supported by KE");
+            } else {
+                // if it is an inner equi-join, we can put a filter on top and it will be converted an EnumerableJoinRel in runtime-calculate
+                newRel = new KapJoinRel(join.getCluster(), traitSet, left, right,
+                        info.getEquiCondition(left, right, join.getCluster().getRexBuilder()), info.leftKeys,
+                        info.rightKeys, join.getVariablesSet(), join.getJoinType());
+            }
+            if (!info.isEqui()) {
+                newRel = new KapFilterRel(join.getCluster(), newRel.getTraitSet(), newRel,
+                        info.getRemaining(join.getCluster().getRexBuilder()));
+            }
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to internal error.
             throw new AssertionError(e);
             // LOGGER.fine(e.toString());
-            // return null;
-        }
-        if (!info.isEqui()) {
-            newRel = new KapFilterRel(cluster, newRel.getTraitSet(), newRel,
-                    info.getRemaining(cluster.getRexBuilder()));
         }
         return newRel;
     }
 
     private Join transformJoinCondition(LogicalJoin join, JoinInfo info, RelTraitSet traitSet, RelNode left,
-                                        RelNode right) {
+            RelNode right) {
         List<RexInputRef> refs = isPowerBiInnerJoin(info);
         if (refs == null) {
             return join;

@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
@@ -35,13 +36,17 @@ import org.apache.calcite.rel.core.Window;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
-import org.apache.kylin.query.relnode.ColumnRowType;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPWindowRel;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
  */
 public class KapWindowRel extends OLAPWindowRel implements KapRel {
-    ColumnRowType columnRowType;
+    private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     public KapWindowRel(RelOptCluster cluster, RelTraitSet traitSet, RelNode input, List<RexLiteral> constants,
             RelDataType rowType, List<Group> groups) {
@@ -56,5 +61,69 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
     @Override
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
         return super.computeSelfCost(planner, mq);
+    }
+
+    @Override
+    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+        olapContextImplementor.fixSharedOlapTableScan(this);
+        ContextVisitorState tempState = ContextVisitorState.init();
+        olapContextImplementor.visitChild(getInput(), this, tempState);
+
+        // window rel need a separate context
+        if (tempState.hasFreeTable) {
+            setContext(olapContextImplementor.allocateContext());
+            context.topNode = this;
+            tempState.hasFreeTable = false;
+        }
+
+        state.merge(tempState);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+        this.context = null;
+        implementor.visitChild(getInput());
+    }
+
+    @Override
+    public void setContext(OLAPContext context) {
+        this.context = context;
+        ((KapRel) getInput()).setContext(context);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OLAPContext context) {
+        return true;
+    }
+
+    @Override
+    public void implementOLAP(OLAPImplementor olapContextImplementor) {
+        olapContextImplementor.visitChild(getInput(), this);
+
+        this.columnRowType = buildColumnRowType();
+        if (context != null) {
+            this.context.hasWindow = true;
+            if (this == context.topNode && !context.hasAgg)
+                KapContext.amendAllColsIfNoAgg(this);
+        }
+    }
+
+    @Override
+    public void implementRewrite(RewriteImplementor implementor) {
+        for (RelNode child : getInputs()) {
+            implementor.visitChild(this, child);
+        }
+    }
+
+    @Override
+    public Set<OLAPContext> getSubContext() {
+        return subContexts;
+    }
+
+    @Override
+    public void setSubContexts(Set<OLAPContext> contexts) {
+        this.subContexts = contexts;
     }
 }

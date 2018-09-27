@@ -80,6 +80,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.util.JoinsGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -200,6 +201,7 @@ public class NDataModel extends RootPersistentEntity {
     private Map<String, TableRef> tableNameMap = Maps.newHashMap(); // name => TableRef, a table maybe referenced by multiple names
 
     private JoinsTree joinsTree;
+    private JoinsGraph joinsGraph;
 
     /**
      * Error messages during resolving json metadata
@@ -359,6 +361,10 @@ public class NDataModel extends RootPersistentEntity {
         this.alias = alias;
     }
 
+    public JoinsGraph getJoinsGraph() {
+        return joinsGraph;
+    }
+
     @Deprecated
     public List<TableDesc> getLookupTableDescs() {
         List<TableDesc> result = Lists.newArrayList();
@@ -507,6 +513,7 @@ public class NDataModel extends RootPersistentEntity {
         initJoinColumns();
         reorderJoins(tables);
         initJoinsTree();
+        initJoinsGraph();
         initDimensionsAndMetrics();
         initPartitionDesc();
         initFilterCondition();
@@ -725,6 +732,14 @@ public class NDataModel extends RootPersistentEntity {
             joins.add(joinTable.getJoin());
         }
         joinsTree = new JoinsTree(rootFactTableRef, joins);
+    }
+
+    private void initJoinsGraph() {
+        List<JoinDesc> joins = new ArrayList<>();
+        for (JoinTableDesc joinTable : joinTables) {
+            joins.add(joinTable.getJoin());
+        }
+        joinsGraph = new JoinsGraph(rootFactTableRef, joins);
     }
 
     private void reorderJoins(Map<String, TableDesc> tables) {

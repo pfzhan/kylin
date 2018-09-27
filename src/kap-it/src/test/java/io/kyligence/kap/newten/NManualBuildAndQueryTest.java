@@ -65,7 +65,7 @@ import io.kyligence.kap.spark.KapSparkSession;
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
-    
+
     private boolean succeed = true;
 
     @Before
@@ -93,7 +93,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         buildCubes();
         KapSparkSession kapSparkSession = prepareSS(config);
         List<Pair<String, Throwable>> results = execAndGetResults(
-                Lists.newArrayList(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "temp"))); //
+                Lists.newArrayList(new QueryCallable(kapSparkSession, CompareLevel.SAME, "left", "temp"))); //
         report(results);
     }
 
@@ -180,6 +180,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_raw"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_rawtable"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_value"));
+            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_magine"));
+            //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_cross_join"));
 
             // same row count
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_ROWCOUNT, joinType, "sql_tableau"));
@@ -196,6 +198,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SUBSET, joinType, "sql"));
         }
 
+        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_inner"));
+        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_window"));
         tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_multi_model"));
         logger.info("Total {} tasks.", tasks.size());
         return tasks;

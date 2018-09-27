@@ -43,17 +43,22 @@
 
 package org.apache.kylin.query.routing;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -72,6 +77,7 @@ import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.storage.StorageContext;
+import org.apache.kylin.util.JoinsGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,12 +105,14 @@ public class RealizationChooser {
         // try different model for different context
 
         for (OLAPContext ctx : contexts) {
+            ctx.realizationCheck = new RealizationCheck();
             attemptSelectCandidate(ctx);
             Preconditions.checkNotNull(ctx.realization);
         }
     }
 
     private static void attemptSelectCandidate(OLAPContext context) {
+        context.hasSelected = true;
         Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
 
         if (modelMap.size() == 0) {
@@ -138,7 +146,7 @@ public class RealizationChooser {
                 }
 
                 context.realization = realization;
-                if (!chooseLayoutCandidate(context)) {
+                if (!chooseLayout(context)) {
                     context.realization = null;
                     context.unfixModel();
                     logger.info("Give up on realization {} because no suitable layout candidate is found.",
@@ -153,20 +161,20 @@ public class RealizationChooser {
 
     }
 
-    private static boolean chooseLayoutCandidate(OLAPContext context) {
+    private static boolean chooseLayout(OLAPContext context) {
+        context.resetSQLDigest();
         SQLDigest sqlDigest = context.getSQLDigest();
         NDataflow dataflow = (NDataflow) context.realization;
-        //cope with queries with no aggregations
-//        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow);
         // Customized measure taking effect: e.g. allow custom measures to help raw queries
-        notifyBeforeStorageQuery(sqlDigest, dataflow);
+        adjustSqlDigestForAdvanceMeasure(sqlDigest, dataflow);
         // build dimension & metrics
         Set<TblColRef> dimensions = new LinkedHashSet<>();
-        Set<FunctionDesc > metrics = new LinkedHashSet<>();
+        Set<FunctionDesc> metrics = new LinkedHashSet<>();
         buildDimensionsAndMetrics(sqlDigest, dimensions, metrics, dataflow);
-        Segments<NDataSegment > dataSegments = dataflow.getSegments(SegmentStatusEnum.READY);
         Set<TblColRef> filterColumns = Sets.newHashSet();
         TupleFilter.collectColumns(sqlDigest.filter, filterColumns);
+
+        Segments<NDataSegment> dataSegments = dataflow.getSegments(SegmentStatusEnum.READY);
         // TODO: in future, segment's cuboid may differ
         NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
                 dataSegments.get(0) //
@@ -182,26 +190,30 @@ public class RealizationChooser {
             storageContext.setDimensions(dimensions);
             storageContext.setMetrics(metrics);
             logger.info("Choose model name: {}", cuboidLayout.getCuboidDesc().getModel().getName());
-            logger.info("Choose dataflow name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
-            logger.info("Choose cuboid layout ID: {}", cuboidLayout.getId());
+            logger.info("Choose cubePlan name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
+            logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
+                    cuboidLayout.getOrderedDimensions(),
+                    cuboidLayout.getOrderedMeasures());
             return true;
         } else {
             return false;
         }
     }
-    private static void notifyBeforeStorageQuery(SQLDigest sqlDigest, NDataflow dataflow) {
-        Map<String, List<MeasureDesc>> map = Maps.newHashMap();
-        for (MeasureDesc measure : dataflow.getMeasures()) {
+
+    private static void adjustSqlDigestForAdvanceMeasure(SQLDigest sqlDigest, NDataflow selectedDataflow) {
+        Map<String, List<MeasureDesc>> clazzToMeasuresMap = Maps.newHashMap();
+        for (MeasureDesc measure : selectedDataflow.getMeasures()) {
             MeasureType<?> measureType = measure.getFunction().getMeasureType();
             String key = measureType.getClass().getCanonicalName();
             List<MeasureDesc> temp;
-            if ((temp = map.get(key)) != null) {
+            if ((temp = clazzToMeasuresMap.get(key)) != null) {
                 temp.add(measure);
             } else {
-                map.put(key, Lists.newArrayList(measure));
+                clazzToMeasuresMap.put(key, Lists.newArrayList(measure));
             }
         }
-        for (List<MeasureDesc> sublist : map.values()) {
+
+        for (List<MeasureDesc> sublist : clazzToMeasuresMap.values()) {
             sublist.get(0).getFunction().getMeasureType().adjustSqlDigest(sublist, sqlDigest);
         }
     }
@@ -210,11 +222,18 @@ public class RealizationChooser {
                                                   Collection<FunctionDesc> metrics, NDataflow dataflow) {
         Set<TblColRef> metricColumns = new HashSet<>();
         for (FunctionDesc func : sqlDigest.aggregations) {
-            if (!func.isDimensionAsMetric()) {
+            if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
                 FunctionDesc aggrFuncFromDataflowDesc = findAggrFuncFromDataflowDesc(func, dataflow);
                 metrics.add(aggrFuncFromDataflowDesc);
                 metricColumns.addAll(aggrFuncFromDataflowDesc.getParameter().getColRefs());
+            } else if (func.isDimensionAsMetric()) {
+                FunctionDesc funcUsedDimenAsMetric = findAggrFuncFromDataflowDesc(func, dataflow);
+                dimensions.addAll(funcUsedDimenAsMetric.getParameter().getColRefs());
+
+                Set<TblColRef> groupbyCols = Sets.newLinkedHashSet(sqlDigest.groupbyColumns);
+                groupbyCols.addAll(funcUsedDimenAsMetric.getParameter().getColRefs());
+                sqlDigest.groupbyColumns = Lists.newArrayList(groupbyCols);
             }
         }
         for (TblColRef column : sqlDigest.allColumns) {
@@ -252,16 +271,15 @@ public class RealizationChooser {
     }
 
     public static Map<String, String> matches(NDataModel model, OLAPContext ctx) {
-        Map<String, String> result = Maps.newHashMap();
-
+        Map<String, String> matchUp = Maps.newHashMap();
         TableRef firstTable = ctx.firstTableScan.getTableRef();
-
-        Map<String, String> matchUp = null;
+        boolean matched;
 
         if (ctx.joins.isEmpty() && model.isLookupTable(firstTable.getTableIdentity())) {
             // one lookup table
             String modelAlias = model.findFirstTable(firstTable.getTableIdentity()).getAlias();
             matchUp = ImmutableMap.of(firstTable.getAlias(), modelAlias);
+            matched = true;
         } else if (ctx.joins.size() != ctx.allTableScans.size() - 1) {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
@@ -269,22 +287,64 @@ public class RealizationChooser {
             throw new IllegalStateException("Please adjust the sequence of join tables. " + toErrorMsg(ctx));
         } else {
             // normal big joins
-            if (ctx.joinsTree == null) {
-                ctx.joinsTree = new JoinsTree(firstTable, ctx.joins);
+            if (ctx.joinsGraph == null) {
+                ctx.joinsGraph = new JoinsGraph(firstTable, ctx.joins);
             }
-            matchUp = ctx.joinsTree.matches(model.getJoinsTree(), result);
+            // TODO: finally we should remove joinsTree, it's only used in Auto-Modelling.
+            if (ctx.joinsTree == null) {
+                Pair<TableRef, List<JoinDesc>> reordered = reorderJoins(firstTable, ctx.joins);
+                ctx.joinsTree = new JoinsTree(reordered.getFirst(), reordered.getSecond());
+            }
+            matched = JoinsGraph.match(ctx.joinsGraph, model.getJoinsGraph(), matchUp);
         }
 
-        if (matchUp == null) {
+        if (!matched) {
             ctx.realizationCheck.addModelIncapableReason(model,
                     RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.MODEL_UNMATCHED_JOIN));
             return null;
         }
+        ctx.realizationCheck.addCapableModel(model, matchUp);
+        return matchUp;
+    }
 
-        result.putAll(matchUp);
+    private static Pair<TableRef, List<JoinDesc>> reorderJoins(TableRef root, List<JoinDesc> joins) {
+        if (joins.isEmpty()) {
+            return new Pair(root, joins);
+        }
 
-        ctx.realizationCheck.addCapableModel(model, result);
-        return result;
+        Set<TableRef> fkSides = new HashSet<>();
+        Set<TableRef> pkSides = new HashSet<>();
+        Map<TableRef, List<JoinDesc>> fkMap = new HashMap<>();
+        for (JoinDesc join : joins) {
+            fkSides.add(join.getFKSide());
+            pkSides.add(join.getPKSide());
+            if (fkMap.containsKey(join.getFKSide())) {
+                fkMap.get(join.getFKSide()).add(join);
+            } else {
+                fkMap.put(join.getFKSide(), Lists.newArrayList(join));
+            }
+        }
+        fkSides.removeAll(pkSides);
+        if (fkSides.size() > 1) {
+            throw new IllegalArgumentException("joins is not a valid join tree: " + joins);
+        }
+
+        TableRef newRoot = fkSides.iterator().next();
+        Queue<TableRef> pending = new LinkedList();
+        pending.offer(newRoot);
+        List<JoinDesc> reordered = new ArrayList<>();
+
+        while (!pending.isEmpty()) {
+            TableRef cur = pending.poll();
+            if (fkMap.containsKey(cur)) {
+                reordered.addAll(fkMap.get(cur));
+                for (JoinDesc join : fkMap.get(cur)) {
+                    pending.offer(join.getPKSide());
+                }
+            }
+        }
+
+        return new Pair(newRoot, reordered);
     }
 
     private static Map<NDataModel, Set<IRealization>> makeOrderedModelMap(OLAPContext context) {

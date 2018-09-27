@@ -292,6 +292,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
             }
 
+            if (functionDesc.isGrouping()) {
+                return false;
+            }
+
             return true;
         }
 

@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -61,9 +63,9 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.smart.NSmartController;
+
+//import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -133,10 +135,8 @@ public class KapSparkSession extends SparkSession {
         } catch (Throwable e) {
             logger.error("There is no cube can be used for query [{}]", sqlText);
             logger.error("Reasons:", e);
+            throw new RuntimeException("Error in running query [ " + sqlText.trim() + " ]", e);
         }
-
-        return null;
-
     }
 
     public Dataset<Row> queryFromCube(String sqlText) {

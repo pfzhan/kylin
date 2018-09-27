@@ -227,37 +227,33 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testAllQueries() throws Exception {
         executeTestScenario(
-//                new TestScenario("sql", CompareLevel.SAME),
-//                new TestScenario("sql_lookup", CompareLevel.SAME),
-                new TestScenario("sql_casewhen", CompareLevel.SAME),
-                new TestScenario("sql_like", CompareLevel.SAME),
-                new TestScenario("sql_cache", CompareLevel.SAME),
-                new TestScenario("sql_derived", CompareLevel.SAME),
+                //                new TestScenario("sql", CompareLevel.SAME),
+                //                new TestScenario("sql_lookup", CompareLevel.SAME),
+                new TestScenario("sql_casewhen", CompareLevel.SAME), new TestScenario("sql_like", CompareLevel.SAME),
+                new TestScenario("sql_cache", CompareLevel.SAME), new TestScenario("sql_derived", CompareLevel.SAME),
                 new TestScenario("sql_datetime", CompareLevel.SAME),
-//                new TestScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT),
-//                new TestScenario("sql_distinct", CompareLevel.SAME),
-//                new TestScenario("sql_distinct_dim", CompareLevel.SAME),
-//                new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left"),
+                //                new TestScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT),
+                //                new TestScenario("sql_distinct", CompareLevel.SAME),
+                //                new TestScenario("sql_distinct_dim", CompareLevel.SAME),
+                //                new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left"),
                 new TestScenario("sql_timestamp", CompareLevel.NONE),
                 new TestScenario("sql_multi_model", CompareLevel.SAME),
                 new TestScenario("sql_orderby", CompareLevel.SAME),
                 new TestScenario("sql_snowflake", CompareLevel.SAME),
                 new TestScenario("sql_topn", CompareLevel.SAME, "left"),
-                new TestScenario("sql_join", CompareLevel.SAME),
-                new TestScenario("sql_union", CompareLevel.SAME),
+                new TestScenario("sql_join", CompareLevel.SAME), new TestScenario("sql_union", CompareLevel.SAME),
                 new TestScenario("sql_window", CompareLevel.NONE),
                 new TestScenario("sql_h2_uncapable", CompareLevel.NONE),
-                new TestScenario("sql_grouping", CompareLevel.SAME),
-                new TestScenario("sql_hive", CompareLevel.SAME),
+                new TestScenario("sql_grouping", CompareLevel.SAME), new TestScenario("sql_hive", CompareLevel.SAME),
                 new TestScenario("sql_intersect_count", CompareLevel.NONE, "left"),
                 new TestScenario("sql_percentile", CompareLevel.NONE)//,
-//                new TestScenario("sql_powerbi", CompareLevel.SAME),
-//                new TestScenario("sql_raw", CompareLevel.SAME),
-//                new TestScenario("sql_rawtable", CompareLevel.SAME),
-//                new TestScenario("sql_subquery", CompareLevel.SAME)
-                );
+        //                new TestScenario("sql_powerbi", CompareLevel.SAME),
+        //                new TestScenario("sql_raw", CompareLevel.SAME),
+        //                new TestScenario("sql_rawtable", CompareLevel.SAME),
+        //                new TestScenario("sql_subquery", CompareLevel.SAME)
+        );
     }
-    
+
     @Test
     public void testTemp() throws Exception {
         String[] exclusionList = new String[] {};
@@ -268,12 +264,13 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
      * Test Kylin test queries with auto modeling
      */
 
-//    @Ignore("passed with query[90,91].sql excluded")
+    //    @Ignore("passed with query[90,91].sql excluded")
     // FIXME to be fixed in #6812, failed in query[90,91,111].sql, because countColumn() does not merge into newten
     // FIXME query02 will be fixed in #7257
     @Test
     public void testCommonQuery() throws Exception {
-        String[] exclusionList = new String[] { "query02.sql", "query90.sql", "query91.sql", "query111.sql" };
+        String[] exclusionList = new String[] { "query02.sql", "query90.sql", "query91.sql", "query110.sql",
+                "query111.sql" };
         new TestScenario("sql", CompareLevel.SAME, exclusionList).execute();
     }
 

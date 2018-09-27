@@ -50,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -64,6 +63,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NDataModel;
 
 /**
  */
@@ -86,6 +87,7 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_COUNT = "COUNT";
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
+    public static final String FUNC_GROUPING = "GROUPING";
     public static final Set<String> BUILT_IN_AGGREGATIONS = Sets.newHashSet();
 
     static {
@@ -227,6 +229,10 @@ public class FunctionDesc implements Serializable {
 
     public boolean isCountDistinct() {
         return FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression);
+    }
+
+    public boolean isGrouping() {
+        return FUNC_GROUPING.equalsIgnoreCase(expression);
     }
 
     /**

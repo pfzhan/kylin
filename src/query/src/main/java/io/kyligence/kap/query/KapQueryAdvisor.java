@@ -26,11 +26,14 @@ package io.kyligence.kap.query;
 
 import java.util.List;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.relnode.OLAPJoinRel;
+import org.apache.kylin.query.relnode.OLAPRel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,33 +41,38 @@ public class KapQueryAdvisor implements OLAPContext.IAccessController {
     private final static Logger logger = LoggerFactory.getLogger(KapQueryAdvisor.class);
 
     @Override
-    public void check(List<OLAPContext> contexts, KylinConfig config) throws IllegalStateException {
+    public void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config) throws IllegalStateException {
 
-        checkCalciteCost(contexts, config);
+        checkCalciteCost(contexts, tree, config);
     }
 
     // Check cost within calcite context, route to pushdown if cost is too high
-    private void checkCalciteCost(List<OLAPContext> kylinContexts, KylinConfig config) {
+    private void checkCalciteCost(List<OLAPContext> kylinContexts, OLAPRel tree, KylinConfig config) {
         int calciteJoinThreshold = getCalciteJoinThreshold(config);
         if (calciteJoinThreshold < 0) {
             return;
         }
 
-        int nJoins = 0;
-
-        for (int i = 0; i < OLAPContext.getThreadLocalContexts().size(); i++) {
-            OLAPContext ctx = OLAPContext.getThreadLocalContextById(i);
-
-            if (kylinContexts.contains(ctx))
-                continue;
-
-            nJoins += ctx.allOlapJoins.size();
-        }
-
+        int nJoins = countNoContextJoin(tree);
         if (nJoins > calciteJoinThreshold) {
             throw new RoutingIndicatorException("Detect high calcite cost, " + nJoins + " joins exceeding threshold "
                     + calciteJoinThreshold + ", route to pushdown");
         }
+    }
+
+    private int countNoContextJoin(OLAPRel rel) {
+        int cnt = 0;
+        if (rel.getContext() == null && rel instanceof OLAPJoinRel) {
+            cnt++;
+        }
+
+        for (RelNode child : rel.getInputs()) {
+            if (child instanceof OLAPRel) {
+                cnt += countNoContextJoin((OLAPRel) child);
+            }
+        }
+
+        return cnt;
     }
 
     private int getCalciteJoinThreshold(KylinConfig config) {

@@ -47,6 +47,7 @@ import com.google.common.base.Throwables;
 
 import io.grpc.StatusRuntimeException;
 import io.kyligence.kap.junit.SparkTestRunner;
+import io.kyligence.kap.query.exception.NotSupportedSQLException;
 
 @RunWith(SparkTestRunner.class)
 public class ITKapPushDownQueryTest extends KapTestBase {
@@ -335,5 +336,21 @@ public class ITKapPushDownQueryTest extends KapTestBase {
         Assert.assertTrue(result.getFirst().size() == 0);
         Assert.assertTrue(result.getSecond().size() == 0);
         tryPushDownNonSelectQuery(dropSql, false);
+    }
+
+    @Test
+    public void testPushDownNonEquiSql() throws Exception {
+        File sqlFile = new File("src/test/resources/query/sql_pushdown/query11.sql");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        try {
+            runSQL(sqlFile, true, false);
+        } catch (SQLException e) {
+            logger.debug("stacktrace for the SQLException: ", e);
+            Assert.assertEquals(NotSupportedSQLException.class, Throwables.getRootCause(e).getClass());
+        }
+
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY,
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+        runSQL(sqlFile, true, false);
     }
 }

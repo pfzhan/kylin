@@ -26,6 +26,7 @@ package io.kyligence.kap.query.optrule;
 
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
+import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
@@ -41,7 +42,7 @@ public class KapFilterRule extends ConverterRule {
     public static final RelOptRule INSTANCE = new KapFilterRule();
 
     public KapFilterRule() {
-        super(LogicalFilter.class, Convention.NONE, KapRel.CONVENTION, "KapFilterRule");
+        super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE, KapRel.CONVENTION, "KapFilterRule");
     }
 
     @Override

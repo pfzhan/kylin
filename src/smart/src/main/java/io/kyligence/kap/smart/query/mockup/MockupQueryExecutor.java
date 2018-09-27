@@ -66,6 +66,7 @@ public class MockupQueryExecutor {
         //set to check all models, rather than skip models when finding a realization in RealizationChooser#attemptSelectRealization
         BackdoorToggles.addToggle(BackdoorToggles.DEBUG_TOGGLE_CHECK_ALL_MODELS, "true");
         BackdoorToggles.addToggle(BackdoorToggles.DISABLE_RAW_QUERY_HACKER, "true");
+        BackdoorToggles.addToggle(BackdoorToggles.QUERY_FROM_AUTO_MODELING, "true");
 
         QueryRecord record = getCurrentRecord();
         SQLResult sqlResult = new SQLResult();

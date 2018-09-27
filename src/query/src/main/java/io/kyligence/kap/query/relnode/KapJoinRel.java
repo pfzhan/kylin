@@ -24,9 +24,16 @@
 
 package io.kyligence.kap.query.relnode;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
+import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -37,11 +44,31 @@ import org.apache.calcite.rel.core.CorrelationId;
 import org.apache.calcite.rel.core.JoinInfo;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rel.type.RelDataTypeFieldImpl;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.util.ImmutableIntList;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.relnode.ColumnRowType;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPJoinRel;
+import org.apache.kylin.query.relnode.OLAPRel;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.exception.NotSupportedSQLException;
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 public class KapJoinRel extends OLAPJoinRel implements KapRel {
+    private Set<OLAPContext> subContexts = Sets.newHashSet();
+    private boolean isPreCalJoin = true;
+    private boolean isTopPreCalcJoin = false;
 
     public KapJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
             ImmutableIntList leftKeys, ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
@@ -69,4 +96,265 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         }
     }
 
+    @Override
+    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+        ContextVisitorState leftState = ContextVisitorState.init();
+        olapContextImplementor.fixSharedOlapTableScanOnTheLeft(this);
+        olapContextImplementor.visitChild(getInput(0), this, leftState);
+
+        ContextVisitorState rightState = ContextVisitorState.init();
+        olapContextImplementor.fixSharedOlapTableScanOnTheRight(this);
+        olapContextImplementor.visitChild(getInput(1), this, rightState);
+
+        if (getJoinType() == JoinRelType.INNER || getJoinType() == JoinRelType.LEFT) {
+            // special case for left join
+            if (getJoinType() == JoinRelType.LEFT && rightState.hasFilter && rightState.hasFreeTable) {
+                OLAPContext context = olapContextImplementor.allocateContext();
+                context.topNode = (KapRel) getInput(1);
+                ((KapRel) getInput(1)).setContext(context);
+                rightState.hasFreeTable = false;
+                context.parentOfTopNode = this;
+            }
+
+            // if one side of join has no free table, the other side should have separate context
+            if (!leftState.hasFreeTable && rightState.hasFreeTable) {
+                OLAPContext context = olapContextImplementor.allocateContext();
+                context.topNode = (KapRel) getInput(1);
+                ((KapRel) getInput(1)).setContext(context);
+                rightState.hasFreeTable = false;
+                context.parentOfTopNode = this;
+            } else if (leftState.hasFreeTable && !rightState.hasFreeTable) {
+                OLAPContext context = olapContextImplementor.allocateContext();
+                context.topNode = (KapRel) getInput(0);
+                ((KapRel) getInput(0)).setContext(context);
+                leftState.hasFreeTable = false;
+                context.parentOfTopNode = this;
+            }
+
+            state.merge(leftState).merge(rightState);
+            subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.left));
+            subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.right));
+            return;
+        }
+
+        // other join types, two sides two contexts
+        if (leftState.hasFreeTable) {
+            OLAPContext context = olapContextImplementor.allocateContext();
+            context.topNode = (KapRel) getInput(0);
+            ((KapRel) getInput(0)).setContext(context);
+            leftState.hasFreeTable = false;
+            context.parentOfTopNode = this;
+        }
+
+        if (rightState.hasFreeTable) {
+            OLAPContext context = olapContextImplementor.allocateContext();
+            context.topNode = (KapRel) getInput(1);
+            ((KapRel) getInput(1)).setContext(context);
+            rightState.hasFreeTable = false;
+            context.parentOfTopNode = this;
+        }
+
+        state.merge(leftState).merge(rightState);
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.left));
+        subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.right));
+        return;
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+        if (!this.isPreCalJoin) {
+            RelNode input = this.context == ((KapRel) this.left).getContext() ? this.left : this.right;
+            implementor.visitChild(input);
+            this.context = null;
+            this.columnRowType = null;
+        } else {
+            this.context = null;
+            this.columnRowType = null;
+            OLAPContext leftCtx = implementor.allocateContext();
+            ((KapRel) getInput(0)).setContext(leftCtx);
+            leftCtx.topNode = (KapRel) getInput(0);
+            leftCtx.parentOfTopNode = this;
+            OLAPContext rightCtx = implementor.allocateContext();
+            ((KapRel) getInput(1)).setContext(rightCtx);
+            rightCtx.topNode = (KapRel) getInput(1);
+            rightCtx.parentOfTopNode = this;
+        }
+
+    }
+
+    @Override
+    public void setContext(OLAPContext context) {
+        this.context = context;
+        for (RelNode input : getInputs()) {
+            ((KapRel) input).setContext(context);
+            subContexts.addAll(ContextUtil.collectSubContext((KapRel) input));
+        }
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OLAPContext context) {
+        if (this.context != null)
+            return false;
+        if (this == context.parentOfTopNode || ((KapRel) getLeft()).pushRelInfoToContext(context)
+                || ((KapRel) getRight()).pushRelInfoToContext(context)) {
+            this.context = context;
+            this.isPreCalJoin = false;
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public void implementOLAP(OLAPImplementor olapContextImplementor) {
+        if (context != null) {
+            if (this.isPreCalJoin && !(this.getCondition() instanceof RexCall))
+                throw new NotSupportedSQLException("Cartesian Join is not supported");
+            this.context.allOlapJoins.add(this);
+            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.hasPreCalcJoin;
+            this.context.hasJoin = true;
+            this.context.hasPreCalcJoin = this.context.hasPreCalcJoin || this.isPreCalJoin;
+        }
+
+        // as we keep the first table as fact table, we need to visit from left to right
+        olapContextImplementor.visitChild(this.left, this);
+        olapContextImplementor.visitChild(this.right, this);
+        //parent context
+        Preconditions.checkState(!this.hasSubQuery, "there should be no subquery in context");
+
+        this.columnRowType = buildColumnRowType();
+        if (context != null) {
+            collectCtxOlapInfoIfExist();
+        } else {
+            pushDownConditionCols();
+        }
+    }
+
+    private void collectCtxOlapInfoIfExist() {
+        if (isPreCalJoin || this.context.parentOfTopNode.getContext() != this.context) {
+            // build JoinDesc for pre-calculate join
+            JoinDesc join = buildJoin((RexCall) this.getCondition());
+            String joinType = this.getJoinType() == JoinRelType.INNER ? "INNER"
+                    : this.getJoinType() == JoinRelType.LEFT ? "LEFT" : null;
+            join.setType(joinType);
+            this.context.joins.add(join);
+
+        } else {
+            Map<TblColRef, TblColRef> joinCol = new HashMap<TblColRef, TblColRef>();
+            translateJoinColumn(this.getCondition(), joinCol);
+            for (Map.Entry<TblColRef, TblColRef> columnPair : joinCol.entrySet()) {
+                TblColRef fromCol = context.belongToContextTables(columnPair.getKey()) ? columnPair.getKey()
+                        : columnPair.getValue();
+                this.context.subqueryJoinParticipants.add(fromCol);
+            }
+            joinCol.clear();
+        }
+        if (this == context.topNode && !context.hasAgg)
+            KapContext.amendAllColsIfNoAgg(this);
+    }
+
+    private void pushDownConditionCols() {
+        // push down the join condition info，except the cross Join\
+        if (!(this.getCondition() instanceof RexCall)) {
+            return;
+        }
+        for (OLAPContext context : subContexts) {
+            for (TblColRef colRef : collectJoinConditionCols((RexCall) this.getCondition())) {
+                if (context.belongToContextTables(colRef))
+                    context.allColumns.add(colRef);
+            }
+        }
+    }
+
+    @Override
+    public void implementRewrite(RewriteImplementor implementor) {
+        implementor.visitChild(this, this.left);
+        implementor.visitChild(this, this.right);
+
+        if (context != null) {
+            this.rowType = deriveRowType();
+
+            if (this.context.hasPrecalculatedFields() && this.isTopPreCalcJoin
+                    && RewriteImplementor.needRewrite(this.context)) {
+                // find missed rewrite fields
+                int paramIndex = this.rowType.getFieldList().size();
+                List<RelDataTypeField> newFieldList = new LinkedList<RelDataTypeField>();
+                for (Map.Entry<String, RelDataType> rewriteField : this.context.rewriteFields.entrySet()) {
+                    String fieldName = rewriteField.getKey();
+                    if (this.rowType.getField(fieldName, true, false) == null) {
+                        RelDataType fieldType = rewriteField.getValue();
+                        RelDataTypeField newField = new RelDataTypeFieldImpl(fieldName, paramIndex++, fieldType);
+                        newFieldList.add(newField);
+                    }
+                }
+
+                // rebuild row type
+                RelDataTypeFactory.FieldInfoBuilder fieldInfo = getCluster().getTypeFactory().builder();
+                fieldInfo.addAll(this.rowType.getFieldList());
+                fieldInfo.addAll(newFieldList);
+                this.rowType = getCluster().getTypeFactory().createStructType(fieldInfo);
+                // rebuild columns
+                this.columnRowType = this.rebuildColumnRowType(newFieldList);
+            }
+
+        }
+    }
+
+    @Override
+    public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
+        if (this.context == null || ((KapRel) left).getContext() != ((KapRel) right).getContext()) {
+            try {
+                return constr.newInstance(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
+                        inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet, joinType);
+            } catch (Exception e) {
+                throw new IllegalStateException("Can't create EnumerableJoin!", e);
+            }
+        } else {
+            return this;
+        }
+    }
+
+    private List<TblColRef> collectJoinConditionCols(RexCall condition) {
+        Map<TblColRef, TblColRef> joinColumns = new HashMap<TblColRef, TblColRef>();
+        translateJoinColumn(condition, joinColumns);
+
+        Set<TblColRef> conditionCols = Sets.newHashSet();
+        for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
+            TblColRef fromCol = columnPair.getKey();
+            TblColRef toCol = columnPair.getValue();
+            conditionCols.add(fromCol);
+            conditionCols.add(toCol);
+        }
+        return Lists.newArrayList(conditionCols);
+    }
+
+    @Override
+    public Set<OLAPContext> getSubContext() {
+        return subContexts;
+    }
+
+    @Override
+    public void setSubContexts(Set<OLAPContext> contexts) {
+        this.subContexts = contexts;
+    }
+
+    private ColumnRowType rebuildColumnRowType(List<RelDataTypeField> missingFields) {
+        List<TblColRef> columns = new ArrayList<TblColRef>();
+        OLAPRel olapLeft = (OLAPRel) this.left;
+        OLAPRel olapRight = (OLAPRel) this.right;
+        columns.addAll(olapLeft.getColumnRowType().getAllColumns());
+        columns.addAll(olapRight.getColumnRowType().getAllColumns());
+
+        for (RelDataTypeField dataTypeField : missingFields) {
+            String fieldName = dataTypeField.getName();
+            TblColRef aggOutCol = TblColRef.newInnerColumn(fieldName, TblColRef.InnerDataTypeEnum.LITERAL);
+            aggOutCol.getColumnDesc().setId("" + dataTypeField.getIndex());
+            columns.add(aggOutCol);
+        }
+
+        if (columns.size() != this.rowType.getFieldCount()) {
+            throw new IllegalStateException(
+                    "RowType=" + this.rowType.getFieldCount() + ", ColumnRowType=" + columns.size());
+        }
+        return new ColumnRowType(columns);
+    }
 }

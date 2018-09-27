@@ -146,6 +146,11 @@ public class SQLDigest {
         }
     }
 
+    public SQLDigest updateDigestFilter(TupleFilter filter) {
+        this.filter = filter;
+        return this;
+    }
+
     @Override
     public String toString() {
         return "fact table " + this.factTable + "," + //

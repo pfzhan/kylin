@@ -1,0 +1,226 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package io.kyligence.kap.query.relnode;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.calcite.plan.RelOptUtil;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.core.AggregateCall;
+import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rex.RexCall;
+import org.apache.calcite.rex.RexInputRef;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlExplainFormat;
+import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.kylin.query.relnode.OLAPContext;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+public class ContextUtil {
+    /**
+     * used for collect a rel node's all subContext, which contain the context of itself
+     *
+     * @param subRel
+     */
+    public static Set<OLAPContext> collectSubContext(RelNode subRel) {
+        Set<OLAPContext> subContexts = Sets.newHashSet();
+        if (subRel == null)
+            return subContexts;
+
+        subContexts.addAll(((KapRel) subRel).getSubContext());
+        if (((KapRel) subRel).getContext() != null)
+            subContexts.add(((KapRel) subRel).getContext());
+        return subContexts;
+    }
+
+    //pre-order travel to set subContexts
+    public static Set<OLAPContext> setSubContexts(RelNode relNode) {
+        Set<OLAPContext> subContexts = Sets.newHashSet();
+        if (relNode == null)
+            return subContexts;
+
+        for (RelNode inputNode : relNode.getInputs()) {
+            setSubContexts(inputNode);
+            subContexts.addAll(collectSubContext(inputNode));
+        }
+
+        ((KapRel) relNode).setSubContexts(subContexts);
+        return subContexts;
+    }
+
+    public static List<OLAPContext> listContextsHavingScan() {
+        // Context has no table scan is created by OLAPJoinRel which looks like
+        //     (sub-query) as A join (sub-query) as B
+        // No realization needed for such context.
+        int size = OLAPContext.getThreadLocalContexts().size();
+        java.util.List<OLAPContext> result = Lists.newArrayListWithCapacity(size);
+        for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
+            if (ctx.firstTableScan != null)
+                result.add(ctx);
+        }
+        return result;
+    }
+
+    public static boolean qualifiedForAggInfoPushDown(RelNode currentRel, OLAPContext subContext) {
+        // 1. the parent node of TopRel in subContext is not NULL and is instance Of KapJoinRel.
+        // 2. JoinRels in the path from currentNode to the ParentOfContextTopRel node are all of the same type (left/inner/cross)
+        // 3. all aggregate is derived from the same subContext
+        return subContext.parentOfTopNode instanceof KapJoinRel
+                && areSubJoinRelsSameType(currentRel, subContext, null, null)
+                && derivedFromSameContext(new HashSet<Integer>(), currentRel, subContext);
+    }
+
+    public static void dumpCalcitePlan(String msg, RelNode relNode) {
+        if (System.getProperty("calcite.debug") != null) {
+            String dumpPlan = RelOptUtil.dumpPlan("", relNode, SqlExplainFormat.TEXT,
+                    SqlExplainLevel.DIGEST_ATTRIBUTES);
+            System.out.println(msg);
+            System.out.println(dumpPlan);
+        }
+    }
+
+    public static void resetContext(KapRel kapRel) {
+        kapRel.setContext(null);
+
+    }
+
+    private static boolean derivedFromSameContext(Collection<Integer> indexOfInputCols, RelNode currentNode,
+            OLAPContext subContext) {
+        if (currentNode instanceof KapAggregateRel) {
+            Set<Integer> inputColsIndex = collectAggInputIndex(((KapAggregateRel) currentNode));
+            return derivedFromSameContext(inputColsIndex, ((KapAggregateRel) currentNode).getInput(), subContext);
+
+        } else if (currentNode instanceof KapProjectRel) {
+            Set<Integer> indexOfInputRel = Sets.newHashSet();
+            indexOfInputCols.stream().map(index -> ((KapProjectRel) currentNode).rewriteProjects.get(index))
+                    .filter(inputRef -> inputRef instanceof RexInputRef)
+                    .forEach(inputRef -> indexOfInputRel.add(((RexInputRef) inputRef).getIndex()));
+            return derivedFromSameContext(indexOfInputRel, ((KapProjectRel) currentNode).getInput(), subContext);
+
+        } else if (currentNode instanceof KapJoinRel) {
+            return isJoinFromSameContext(indexOfInputCols, (KapJoinRel) currentNode, subContext);
+
+        } else if (currentNode instanceof KapFilterRel) {
+            RexNode condition = ((KapFilterRel) currentNode).getCondition();
+            if (condition instanceof RexCall)
+                indexOfInputCols.addAll(collectColsFromFilterRel((RexCall) condition));
+            return derivedFromSameContext(indexOfInputCols, ((KapFilterRel) currentNode).getInput(), subContext);
+
+        } else {
+            return currentNode.getInputs().size() > 0
+                    && derivedFromSameContext(indexOfInputCols, currentNode.getInput(0), subContext);
+        }
+    }
+
+    private static Set<Integer> collectAggInputIndex(KapAggregateRel aggRel) {
+        Set<Integer> inputColsIndex = Sets.newHashSet();
+        for (AggregateCall aggregateCall : aggRel.aggCalls) {
+            if (aggregateCall.getArgList() == null)
+                continue;
+            inputColsIndex.addAll(aggregateCall.getArgList());
+        }
+        for (int i = aggRel.groupSet.nextSetBit(0); i >= 0; i = aggRel.groupSet.nextSetBit(i + 1)) {
+            inputColsIndex.add(i);
+        }
+        return inputColsIndex;
+    }
+
+    private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, KapJoinRel joinRel,
+            OLAPContext subContext) {
+        //now support Cartesian Join if children are from different contexts
+        int maxIndex = Collections.max(indexOfInputCols);
+        int leftLength = joinRel.getLeft().getRowType().getFieldList().size();
+        if (maxIndex < leftLength) {
+            KapRel potentialSubRel = (KapRel) joinRel.getLeft();
+            if (subContext == potentialSubRel.getContext()) {
+                return true;
+            }
+            if (potentialSubRel.getContext() != null) {
+                return false;
+            }
+            return derivedFromSameContext(indexOfInputCols, potentialSubRel, subContext);
+        }
+
+        int minIndex = Collections.min(indexOfInputCols);
+        if (minIndex >= leftLength) {
+            KapRel potentialSubRel = (KapRel) joinRel.getRight();
+            if (subContext == potentialSubRel.getContext()) {
+                return true;
+            }
+            if (potentialSubRel.getContext() != null) {
+                return false;
+            }
+            Set<Integer> indexOfInputRel = Sets.newHashSet();
+            for (Integer indexOfInputCol : indexOfInputCols) {
+                indexOfInputRel.add(indexOfInputCol - leftLength);
+            }
+            return derivedFromSameContext(indexOfInputRel, potentialSubRel, subContext);
+        }
+        return false;
+    }
+
+    private static boolean areSubJoinRelsSameType(RelNode kapRel, OLAPContext subContext, JoinRelType expectedJoinType,
+            Class joinCondClz) {
+        OLAPContext ctx = ((KapRel) kapRel).getContext();
+        if (ctx != null && ctx != subContext)
+            return false;
+
+        if (kapRel instanceof KapJoinRel) {
+            KapJoinRel joinRel = (KapJoinRel) kapRel;
+            if (joinCondClz == null) {
+                joinCondClz = joinRel.getCondition().getClass();
+            }
+            if (expectedJoinType == null) {
+                expectedJoinType = joinRel.getJoinType();
+            }
+            if (joinRel.getJoinType() == expectedJoinType && joinRel.getCondition().getClass().equals(joinCondClz)) {
+                return kapRel == subContext.parentOfTopNode
+                        || areSubJoinRelsSameType(joinRel.getLeft(), subContext, expectedJoinType, joinCondClz)
+                        || areSubJoinRelsSameType(joinRel.getRight(), subContext, expectedJoinType, joinCondClz);
+            }
+            return false;
+        }
+        return kapRel.getInputs().size() == 0
+                || areSubJoinRelsSameType(kapRel.getInput(0), subContext, expectedJoinType, joinCondClz);
+    }
+
+    private static Set<Integer> collectColsFromFilterRel(RexCall filterCondition) {
+        Set<Integer> filterColsIndexes = Sets.newHashSet();
+        for (RexNode rel : filterCondition.getOperands()) {
+            if (rel instanceof RexInputRef) {
+                filterColsIndexes.add(((RexInputRef) rel).getIndex());
+            } else if (rel instanceof RexCall) {
+                filterColsIndexes.addAll(collectColsFromFilterRel((RexCall) rel));
+            }
+        }
+        return filterColsIndexes;
+    }
+}

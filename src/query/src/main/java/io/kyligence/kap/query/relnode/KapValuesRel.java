@@ -25,6 +25,7 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.List;
+import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -37,13 +38,18 @@ import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rex.RexLiteral;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPValuesRel;
 
 import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 public class KapValuesRel extends OLAPValuesRel implements KapRel {
+    private Set<OLAPContext> subContexts = Sets.newHashSet();
 
     private KapValuesRel(RelOptCluster cluster, RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples,
             RelTraitSet traitSet) {
@@ -64,5 +70,44 @@ public class KapValuesRel extends OLAPValuesRel implements KapRel {
                     }
                 });
         return new KapValuesRel(cluster, rowType, tuples, traitSet);
+    }
+
+    @Override
+    public void setContext(OLAPContext context) {
+        this.context = context;
+    }
+
+    @Override
+    public boolean pushRelInfoToContext(OLAPContext context) {
+        return true;
+    }
+
+    @Override
+    public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
+        state.merge(ContextVisitorState.of(false, false));
+        OLAPContext context = olapContextImplementor.allocateContext();
+        context.topNode = this;
+        this.setContext(context);
+    }
+
+    @Override
+    public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
+        return;
+    }
+
+    @Override
+    public void implementOLAP(OLAPImplementor olapContextImplementor) {
+        // donot need to collect olapInfo
+        return;
+    }
+
+    @Override
+    public Set<OLAPContext> getSubContext() {
+        return subContexts;
+    }
+
+    @Override
+    public void setSubContexts(Set<OLAPContext> contexts) {
+        this.subContexts = contexts;
     }
 }

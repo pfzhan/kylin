@@ -32,6 +32,7 @@ import java.util.List;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -45,6 +46,7 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
 
+@Ignore
 public class NSmartMasterTest extends NTestBase {
 
     NTableMetadataManager tableMetadataManager;
@@ -370,7 +372,7 @@ public class NSmartMasterTest extends NTestBase {
                 Assert.assertNull(modelContext.getOrigCubePlan());
             }
         }
-        
+
         // opt CubePlan
         {
             smartMaster.optimizeCubePlan();
@@ -388,7 +390,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(1, dataModelManager.listModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
-            
+
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
@@ -444,7 +446,7 @@ public class NSmartMasterTest extends NTestBase {
                 Assert.assertNotNull(modelContext.getOrigModel());
             }
         }
-        
+
         // select cube_plan
         {
             smartMaster.selectCubePlan();
@@ -484,6 +486,7 @@ public class NSmartMasterTest extends NTestBase {
         }
     }
 
+    @Ignore
     @Test
     public void test() throws Exception {
 
@@ -495,10 +498,10 @@ public class NSmartMasterTest extends NTestBase {
 
         // 3rd round - shrink model and cube_plan
         test3rdRound();
-        
+
         // 4th round - input complex SQLs, update model and cube_plan
         test4thRound();
-        
+
         // 5th round - unload all queries
         test5thRound();
     }
@@ -609,6 +612,7 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3Alias);
     }
 
+    @Ignore
     @Test
     public void testRenameAllColumns() throws Exception {
         // test all named columns rename

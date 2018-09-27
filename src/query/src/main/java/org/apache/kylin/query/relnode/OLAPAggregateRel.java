@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -72,6 +71,7 @@ import org.apache.calcite.schema.FunctionParameter;
 import org.apache.calcite.schema.impl.AggregateFunctionImpl;
 import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.InferTypes;
@@ -108,6 +108,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         AGGR_FUNC_MAP.put("COUNT_DISTINCT", "COUNT_DISTINCT");
         AGGR_FUNC_MAP.put("MAX", "MAX");
         AGGR_FUNC_MAP.put("MIN", "MIN");
+        AGGR_FUNC_MAP.put("GROUPING", "GROUPING");
 
         Map<String, MeasureTypeFactory> udafFactories = MeasureTypeFactory.getUDAFFactories();
         for (Map.Entry<String, MeasureTypeFactory> entry : udafFactories.entrySet()) {
@@ -134,6 +135,10 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     }
 
     public static String getAggrFuncName(AggregateCall aggCall) {
+        // issue 4337
+        if (aggCall.getAggregation().kind.equals(SqlKind.SINGLE_VALUE)) {
+            return SqlKind.SINGLE_VALUE.sql;
+        }
         String sqlName = getSqlFuncName(aggCall);
         String funcName = AGGR_FUNC_MAP.get(sqlName);
         if (funcName == null) {
@@ -142,12 +147,12 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         return funcName;
     }
 
-    OLAPContext context;
-    ColumnRowType columnRowType;
-    private boolean afterAggregate;
-    private List<AggregateCall> rewriteAggCalls;
-    private List<TblColRef> groups;
-    private List<FunctionDesc> aggregations;
+    protected OLAPContext context;
+    protected ColumnRowType columnRowType;
+    protected boolean afterAggregate;
+    protected List<AggregateCall> rewriteAggCalls;
+    protected List<TblColRef> groups;
+    protected List<FunctionDesc> aggregations;
 
     public OLAPAggregateRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, boolean indicator,
             ImmutableBitSet groupSet, List<ImmutableBitSet> groupSets, List<AggregateCall> aggCalls)
@@ -215,7 +220,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
     }
 
-    ColumnRowType buildColumnRowType() {
+    protected ColumnRowType buildColumnRowType() {
         buildGroups();
         buildAggregations();
 
@@ -303,6 +308,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                     parameter = ParameterDesc.newInstance(columns.toArray(new TblColRef[columns.size()]));
                 }
             }
+
             String expression = getAggrFuncName(aggCall);
             FunctionDesc aggFunc = FunctionDesc.newInstance(expression, parameter, null);
             this.aggregations.add(aggFunc);
@@ -310,8 +316,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     }
 
     public boolean needRewrite() {
-        boolean hasRealization = (null != this.context.realization);
-        return hasRealization && !this.afterAggregate;
+        return this.context.realization != null && !this.afterAggregate;
     }
 
     @Override
@@ -329,6 +334,11 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             this.rewriteAggCalls = new ArrayList<AggregateCall>(aggCalls.size());
             for (int i = 0; i < this.aggCalls.size(); i++) {
                 AggregateCall aggCall = this.aggCalls.get(i);
+                if (SqlStdOperatorTable.GROUPING == aggCall.getAggregation()) {
+                    this.rewriteAggCalls.add(aggCall);
+                    continue;
+                }
+
                 FunctionDesc cubeFunc = this.context.aggregations.get(i);
                 // filter needn,t rewrite aggfunc
                 // if it's not a cube, then the "needRewriteField func" should not resort to any rewrite fields,
@@ -359,7 +369,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
 
     }
 
-    SQLCall toSqlCall(AggregateCall aggCall) {
+    protected SQLCall toSqlCall(AggregateCall aggCall) {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
 
         String function = getSqlFuncName(aggCall);
@@ -371,13 +381,22 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         return new SQLCall(function, args);
     }
 
-    void translateAggregation() {
+    protected void translateAggregation() {
         if (!noPrecaculatedFieldsAvailable()) {
             // now the realization is known, replace aggregations with what's defined on MeasureDesc
             List<MeasureDesc> measures = this.context.realization.getMeasures();
             List<FunctionDesc> newAggrs = Lists.newArrayList();
             for (FunctionDesc aggFunc : this.aggregations) {
-                newAggrs.add(findInMeasures(aggFunc, measures));
+                FunctionDesc newAgg = findInMeasures(aggFunc, measures);
+                //                if (newAgg == null && aggFunc.isCount()
+                //                        && this.context.realization.getConfig().isReplaceColCountWithCountStar()) {
+                //                    newAgg = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"),
+                //                            "bigint");
+                //                } else 
+                if (newAgg == null) {
+                    newAgg = aggFunc;
+                }
+                newAggrs.add(newAgg);
             }
             this.aggregations.clear();
             this.aggregations.addAll(newAggrs);
@@ -388,22 +407,27 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
     }
 
-    FunctionDesc findInMeasures(FunctionDesc aggFunc, List<MeasureDesc> measures) {
+    private FunctionDesc findInMeasures(FunctionDesc aggFunc, List<MeasureDesc> measures) {
         for (MeasureDesc m : measures) {
             if (aggFunc.equals(m.getFunction()))
                 return m.getFunction();
         }
-        return aggFunc;
+        if (aggFunc.getExpression().equalsIgnoreCase("intersect_count")) {
+            for (MeasureDesc m : measures) {
+                if (m.getFunction().getReturnType().equals("bitmap")
+                        && aggFunc.getParameter().equals(m.getFunction().getParameter()))
+                    return m.getFunction();
+            }
+        }
+        return null;
     }
 
-    void buildRewriteFieldsAndMetricsColumns() {
+    protected void buildRewriteFieldsAndMetricsColumns() {
         ColumnRowType inputColumnRowType = ((OLAPRel) getInput()).getColumnRowType();
         RelDataTypeFactory typeFactory = getCluster().getTypeFactory();
         for (int i = 0; i < this.aggregations.size(); i++) {
             FunctionDesc aggFunc = this.aggregations.get(i);
-
             if (aggFunc.isDimensionAsMetric()) {
-                addToContextGroupBy(aggFunc.getParameter().getColRefs());
                 continue; // skip rewrite, let calcite handle
             }
 
@@ -429,7 +453,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         }
     }
 
-    void addToContextGroupBy(List<TblColRef> colRefs) {
+    protected void addToContextGroupBy(List<TblColRef> colRefs) {
         for (TblColRef col : colRefs) {
             if (col.isInnerColumn() == false && this.context.belongToContextTables(col))
                 this.context.groupByColumns.add(col);
@@ -441,11 +465,12 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     }
 
     @SuppressWarnings("deprecation")
-    private AggregateCall rewriteAggregateCall(AggregateCall aggCall, FunctionDesc func) {
+    protected AggregateCall rewriteAggregateCall(AggregateCall aggCall, FunctionDesc func) {
         // rebuild function
         String callName = getSqlFuncName(aggCall);
         RelDataType fieldType = aggCall.getType();
         SqlAggFunction newAgg = aggCall.getAggregation();
+
         Map<String, Class<?>> udafMap = func.getMeasureType().getRewriteCalciteAggrFunctions();
         if (func.isCount()) {
             newAgg = SqlStdOperatorTable.SUM0;
@@ -499,7 +524,8 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             typeFamilies.add(Util.first(type.getSqlTypeName().getFamily(), SqlTypeFamily.ANY));
         }
         return new SqlUserDefinedAggFunction(sqlIdentifier, ReturnTypes.explicit(returnType),
-                InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies), aggFunction, false, false);
+                InferTypes.explicit(argTypes), OperandTypes.family(typeFamilies), aggFunction, false, false,
+                typeFactory);
     }
 
     @Override
