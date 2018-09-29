@@ -84,7 +84,7 @@
                 </div>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.isCubeHit')}}</span>
-                  <span>{{props.row.is_cubeHit}}</span>
+                  <span>{{props.row.cube_hit}}</span>
                 </div>
               </el-col>
             </el-row>

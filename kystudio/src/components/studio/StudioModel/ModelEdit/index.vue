@@ -30,7 +30,13 @@
     </div>
     <DimensionModal/>
     <TableJoinModal/>
-    <AddMeasure :isShow="measureVisible" v-on:closeAddMeasureDia="closeAddMeasureDia"></AddMeasure>
+    <AddMeasure
+      :isShow="measureVisible"
+      :modelTables="modelRender && modelRender.tables || []"
+      :allMeasures="modelRender && modelRender.all_measures"
+      :measureObj="measureObj"
+      v-on:closeAddMeasureDia="closeAddMeasureDia">
+    </AddMeasure>
     <SingleDimensionModal/>
     <!-- datasource面板  index 3-->
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click="toggleMenu('datasource')" v-event-stop><i class="el-icon-ksd-data_source"></i></div>
@@ -112,7 +118,7 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
+                <li v-for="m in modelRender.all_measures">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -250,6 +256,13 @@ export default class ModelEdit extends Vue {
   measureVisible = false
   baseIndex = 100
   autoSetting = true
+  measureObj = {
+    name: '',
+    expression: 'COUNT(column)',
+    parameterValue: '',
+    convertedColumns: [],
+    returntype: ''
+  }
   panelAppear = {
     dimension: {
       top: 72,
@@ -383,7 +396,10 @@ export default class ModelEdit extends Vue {
   editDimension () {
     this.showSingleDimensionDialog()
   }
-  editMeasure () {
+  editMeasure (m) {
+    this.$nextTick(() => {
+      this.measureObj = m
+    })
     this.measureVisible = true
   }
   // 拖动画布
