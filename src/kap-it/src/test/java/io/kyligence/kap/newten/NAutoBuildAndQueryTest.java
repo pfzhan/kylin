@@ -98,13 +98,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         String targetModelName;
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 1, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -119,16 +113,10 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             Assert.assertNotNull(cubePlan);
         }
 
-        // 2. Feed query with left join same fact table, should update same model
+        // 2. Feed query with left join using same fact table, should update same model
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 1, 2, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -158,13 +146,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 4. Feed bad queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql_bad", 0, 0, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -172,16 +154,10 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             Assert.assertEquals(0, modelContexts.size());
         }
 
-        // 5. Feed query with inner join same fact table, should create another model
+        // 5. Feed query with inner join using same fact table, should create another model
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 3, 4, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -200,7 +176,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
 
-        // 6. Final run of all queries
+        // 6. Finally, run all queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 4, "default");
             kapSparkSession.use(DEFAULT_PROJECT);
@@ -223,13 +199,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 1. Feed queries part1
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 2, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -243,13 +213,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 2. Feed queries part2
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 2, 4, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -263,13 +227,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 3. Retry all queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 4, "default");
-            List<String> sqlList = new ArrayList<>();
-            for (Pair<String, String> queryPair : queries) {
-                sqlList.add(queryPair.getSecond());
-            }
-
-            NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
-            master.runAll();
+            NSmartMaster master = buildCubeWithSmartMaster(queries);
             kapSparkSession.use(DEFAULT_PROJECT);
             kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
 
@@ -392,7 +350,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @Test
     public void testLimitCorrectness() throws Exception {
         List<Pair<String, String>> queries = fetchPartialQueries("sql", 0, 0, JOIN_TYPE);
-        buildCube(queries);
+        buildCubeWithSparkSession(queries);
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
         populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
@@ -538,7 +496,7 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             queries.addAll(test.queries);
         }
 
-        buildCube(queries);
+        buildCubeWithSparkSession(queries);
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
@@ -558,7 +516,18 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         kapSparkSession.close();
     }
 
-    private void buildCube(List<Pair<String, String>> queries) throws Exception {
+    private NSmartMaster buildCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
+        List<String> sqlList = new ArrayList<>();
+        for (Pair<String, String> queryPair : queries) {
+            sqlList.add(queryPair.getSecond());
+        }
+
+        NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+        master.runAll();
+        return master;
+    }
+
+    private void buildCubeWithSparkSession(List<Pair<String, String>> queries) throws Exception {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(DEFAULT_PROJECT);
         for (Pair<String, String> query : queries) {
