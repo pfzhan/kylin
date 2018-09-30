@@ -94,7 +94,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 import { scToFloat, showNull } from '../../util/index'
 import { hasRole, transToGmtTime } from '../../util/business'
@@ -145,6 +145,8 @@ export default class queryResult extends Vue {
     resultRows: 0
   }
   showDetail = false
+  modelsTotal = this.extraoption.data.results.length
+  timer = null
 
   refreshQuery () {
     this.$emit('changeView', this.extraoption.index, this.extraoption, 'circle-o-notch', 'querypanel')
@@ -168,8 +170,24 @@ export default class queryResult extends Vue {
   toggleDetail () {
     this.showDetail = !this.showDetail
   }
+  filterTableData () {
+    if (this.resultFilter) {
+      const filteredData = this.extraoption.data.results.filter((item) => {
+        const cur = item
+        const trans = scToFloat(cur)
+        const finalItem = showNull(trans)
+        return finalItem.toString().toLocaleUpperCase().indexOf(this.resultFilter.toLocaleUpperCase()) !== -1
+      })
+      this.modelsTotal = filteredData.length
+      return filteredData
+    } else {
+      this.modelsTotal = this.extraoption.data.results.length
+      return this.extraoption.data.results
+    }
+  }
   pageSizeChange (size) {
-    this.tableData = this.extraoption.data.results.slice((size - 1) * this.$refs.pager.pageSize, size * this.$refs.pager.pageSize)
+    const filteredData = this.filterTableData()
+    this.tableData = filteredData.slice((size - 1) * this.$refs.pager.pageSize, size * this.$refs.pager.pageSize)
     var len = this.tableData.length
     for (let i = 0; i < len; i++) {
       var innerLen = this.tableData[i].length
@@ -180,6 +198,13 @@ export default class queryResult extends Vue {
       }
     }
     this.pagerTableData = Object.assign([], this.tableData)
+  }
+  @Watch('resultFilter')
+  onResultFilterChange (val) {
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.pageSizeChange(1)
+    }, 500)
   }
   openSaveQueryDialog () {
     this.saveQueryFormVisible = true
@@ -193,9 +218,6 @@ export default class queryResult extends Vue {
   }
   get showExportCondition () {
     return this.$store.state.system.allowAdminExport === 'true' && this.isAdmin || this.$store.state.system.allowNotAdminExport === 'true' && !this.isAdmin
-  }
-  get modelsTotal () {
-    return this.extraoption.data.results.length
   }
   get showHtrace () {
     return this.$store.state.system.showHtrace
@@ -270,12 +292,6 @@ export default class queryResult extends Vue {
         .text{
           color:@color-text-primary;
         }
-        .blue{
-          color:#20a0ff;
-        }
-      }
-      .projectText{
-        border-right:1px solid #9095ab;
       }
     }
   }

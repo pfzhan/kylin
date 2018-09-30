@@ -129,7 +129,7 @@ import { permissions, insightKeyword } from '../../config'
 })
 export default class NewQuery extends Vue {
   hasLimit = true
-  listRows = 50000
+  listRows = 500
   project = localStorage.getItem('selected_project')
   sourceSchema = ''
   isHtrace = false
