@@ -79,7 +79,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Test
     public void testMeasures() throws Exception {
         final String cubeName = "ncube_full_measure_test";
-        builCuboid(cubeName);
+        buildCuboid(cubeName);
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -129,7 +129,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         }
     }
 
-    private void builCuboid(String cubeName) throws Exception {
+    private void buildCuboid(String cubeName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");

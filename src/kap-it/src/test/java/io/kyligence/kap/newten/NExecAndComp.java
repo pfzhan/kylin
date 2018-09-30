@@ -260,7 +260,10 @@ public class NExecAndComp {
             }
         });
         for (File sqlFile : sqlFiles) {
-            ret.add(Pair.newPair(sqlFile.getCanonicalPath(), FileUtils.readFileToString(sqlFile, "UTF-8")));
+            String sqlStatement = FileUtils.readFileToString(sqlFile, "UTF-8").trim();
+            int semicolonIndex = sqlStatement.lastIndexOf(";");
+            String sql = semicolonIndex == sqlStatement.length() - 1 ? sqlStatement.substring(0, semicolonIndex) : sqlStatement;
+            ret.add(Pair.newPair(sqlFile.getCanonicalPath(), sql + '\n'));
         }
         return ret;
     }

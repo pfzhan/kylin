@@ -357,11 +357,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout>newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout>newLinkedHashSet(layouts));
         df = dsMgr.getDataflow("ncube_basic");
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
@@ -481,7 +481,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         String cubeName = "ncube_full_measure_test";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(cubeName);
-        builCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
+        buildCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                 Sets.<NCuboidLayout> newLinkedHashSet(df.getCubePlan().getAllCuboidLayouts()));
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
                 NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegment(1), 1);
@@ -535,19 +535,19 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
 
         /**

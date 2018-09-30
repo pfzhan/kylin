@@ -293,11 +293,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
 
         /**
@@ -342,20 +342,20 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
 
         /**

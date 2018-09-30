@@ -245,16 +245,16 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         df = dsMgr.getDataflow(dfName);
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
-        builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
+        buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
                 prj);
     }
 
-    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
             throws Exception {
-        builCuboid(cubeName, segmentRange, toBuildLayouts, getProject());
+        buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject());
     }
 
-    protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, String prj)
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, String prj)
             throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
