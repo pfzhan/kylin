@@ -60,7 +60,6 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NAutoBuildAndQueryTest.class);
     private static KylinConfig kylinConfig;
-    private static final String DEFAULT_PROJECT = "newten";
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
 
     private static String JOIN_TYPE = "default";
@@ -73,8 +72,6 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
         kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
-//        For stability, set max-concurrent-job to 2, this is a workaround
-        kylinConfig.setProperty("kylin.job.max-concurrent-jobs", "2");
     }
 
     @After
@@ -88,6 +85,11 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
+    @Override
+    public String getProject() {
+        return "newten";
+    }
+
 //    @Ignore("passed")
     @Test
     public void testAutoSingleModel() throws Exception {
@@ -99,8 +101,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 1, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -117,8 +119,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 1, 2, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -138,8 +140,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 3. Auto suggested model is able to serve related query
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 3, "default");
-            kapSparkSession.use(DEFAULT_PROJECT);
-            populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+            kapSparkSession.use(getProject());
+            populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
             NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
         }
 
@@ -147,8 +149,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql_bad", 0, 0, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(0, modelContexts.size());
@@ -158,8 +160,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 3, 4, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             Assert.assertEquals(1, modelContexts.size());
@@ -179,8 +181,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // 6. Finally, run all queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 4, "default");
-            kapSparkSession.use(DEFAULT_PROJECT);
-            populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+            kapSparkSession.use(getProject());
+            populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
             NExecAndComp.execAndCompare(queries, kapSparkSession, CompareLevel.SAME, "default");
         }
 
@@ -200,8 +202,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 2, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NModelContext nModelContext : modelContexts) {
@@ -214,8 +216,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 2, 4, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NModelContext nModelContext : modelContexts) {
@@ -228,8 +230,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 4, "default");
             NSmartMaster master = buildCubeWithSmartMaster(queries);
-            kapSparkSession.use(DEFAULT_PROJECT);
-            kapSparkSession.buildAllCubes(kylinConfig, DEFAULT_PROJECT);
+            kapSparkSession.use(getProject());
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
             List<NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NModelContext nModelContext : modelContexts) {
@@ -353,8 +355,8 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<Pair<String, String>> queries = fetchPartialQueries("sql", 0, 0, JOIN_TYPE);
         buildCubeWithSparkSession(queries);
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
-        populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+        kapSparkSession.use(getProject());
+        populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
         NExecAndComp.execLimitAndValidate(queries, kapSparkSession, JOIN_TYPE);
     }
 
@@ -500,10 +502,10 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
         buildCubeWithSparkSession(queries);
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
+        kapSparkSession.use(getProject());
 
         // Validate results between SparkSQL and cube
-        populateSSWithCSVData(kylinConfig, DEFAULT_PROJECT, kapSparkSession);
+        populateSSWithCSVData(kylinConfig, getProject(), kapSparkSession);
 
         for (TestScenario test : tests) {
             try {
@@ -523,14 +525,14 @@ public class NAutoBuildAndQueryTest extends NLocalWithSparkSessionTest {
             sqlList.add(queryPair.getSecond());
         }
 
-        NSmartMaster master = new NSmartMaster(kylinConfig, DEFAULT_PROJECT, sqlList.toArray(new String[0]));
+        NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
         master.runAll();
         return master;
     }
 
     private void buildCubeWithSparkSession(List<Pair<String, String>> queries) throws Exception {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
+        kapSparkSession.use(getProject());
         for (Pair<String, String> query : queries) {
             kapSparkSession.collectQueries(query.getSecond());
         }

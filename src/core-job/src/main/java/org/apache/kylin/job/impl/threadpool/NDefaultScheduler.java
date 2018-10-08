@@ -73,8 +73,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     volatile boolean fetchFailed = false;
     private JobEngineConfig jobEngineConfig;
 
-    //TODO: concurrent issue?
-    private static volatile Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newHashMap();
+    private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
     public NDefaultScheduler() {
     }
@@ -87,6 +86,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             throw new IllegalStateException(
                     "DefaultScheduler for project " + project + " has been initiated. Use getInstance() instead.");
 
+        logger.debug("New NDefaultScheduler created by project '{}': {}", project,
+                System.identityHashCode(NDefaultScheduler.this));
     }
 
     public static void stopThread(String jobId) {
@@ -100,33 +101,30 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private class FetcherRunner implements Runnable {
 
         @Override
-        synchronized public void run() {
+        public synchronized void run() {
             try {
-                // logger.debug("Job Fetcher is running...");
                 Map<String, Executable> runningJobs = context.getRunningJobs();
                 if (isJobPoolFull()) {
                     return;
                 }
 
-                int nRunning = 0, nReady = 0, nStopped = 0, nOthers = 0, nError = 0, nDiscarded = 0, nSUCCEED = 0;
-                for (final String path : executableManager.getAllJobPathes()) {
+                int nRunning = 0, nReady = 0, nStopped = 0, nOthers = 0, nError = 0, nDiscarded = 0, nSucceed = 0;
+                for (final String path : executableManager.getJobPathes(project)) {
                     if (isJobPoolFull()) {
                         return;
                     }
                     if (runningJobs.containsKey(NExecutableManager.extractId(path))) {
-                        // logger.debug("Job id:" + id + " is already running");
                         nRunning++;
                         continue;
                     }
                     final Output output = executableManager.getOutputByJobPath(path);
                     if ((output.getState() != ExecutableState.READY)) {
-                        // logger.debug("Job id:" + id + " not runnable");
                         if (output.getState() == ExecutableState.DISCARDED) {
                             nDiscarded++;
                         } else if (output.getState() == ExecutableState.ERROR) {
                             nError++;
                         } else if (output.getState() == ExecutableState.SUCCEED) {
-                            nSUCCEED++;
+                            nSucceed++;
                         } else if (output.getState() == ExecutableState.STOPPED) {
                             nStopped++;
                         } else {
@@ -145,10 +143,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     try {
                         executable = executableManager.getJobByPath(path);
                         jobDesc = executable.toString();
-                        logger.info(jobDesc + " prepare to schedule");
+                        logger.info("{} prepare to schedule", jobDesc);
                         context.addRunningJob(executable);
                         jobPool.execute(new JobRunner(executable));
-                        logger.info(jobDesc + " scheduled");
+                        logger.info("{} scheduled", jobDesc);
                     } catch (Exception ex) {
                         if (executable != null)
                             context.removeRunningJob(executable);
@@ -157,25 +155,24 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 }
 
                 fetchFailed = false;
-                logger.info("Job Fetcher: " + nRunning + " should running, " + runningJobs.size() + " actual running, "
-                        + nStopped + " stopped, " + nReady + " ready, " + nSUCCEED + " already succeed, " + nError
-                        + " error, " + nDiscarded + " discarded, " + nOthers + " others");
+                logger.info(
+                        "Job Fetcher: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
+                        nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
             } catch (Exception e) {
                 fetchFailed = true;
                 logger.warn("Job Fetcher caught a exception ", e);
             }
         }
 
-    }
+        private boolean isJobPoolFull() {
+            Map<String, Executable> runningJobs = context.getRunningJobs();
+            if (runningJobs.size() >= jobEngineConfig.getMaxConcurrentJobLimit()) {
+                logger.warn("There are too many jobs running, Job Fetch will wait until next schedule time");
+                return true;
+            }
 
-    private boolean isJobPoolFull() {
-        Map<String, Executable> runningJobs = context.getRunningJobs();
-        if (runningJobs.size() >= jobEngineConfig.getMaxConcurrentJobLimit()) {
-            logger.warn("There are too many jobs running, Job Fetch will wait until next schedule time");
-            return true;
+            return false;
         }
-
-        return false;
     }
 
     private class JobRunner implements Runnable {
@@ -216,7 +213,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         }
     }
 
-    public synchronized static NDefaultScheduler getInstance(String project) {
+    public static synchronized NDefaultScheduler getInstance(String project) {
         NDefaultScheduler ret = INSTANCE_MAP.get(project);
         if (ret == null) {
             ret = new NDefaultScheduler(project);
@@ -225,7 +222,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         return ret;
     }
 
-    public synchronized static void destroyInstance() {
+    public static synchronized void destroyInstance() {
 
         for (Map.Entry<String, NDefaultScheduler> entry : INSTANCE_MAP.entrySet()) {
 

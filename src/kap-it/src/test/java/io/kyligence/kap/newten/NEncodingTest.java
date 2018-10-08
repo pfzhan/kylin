@@ -57,8 +57,6 @@ import io.kyligence.kap.spark.KapSparkSession;
 
 public class NEncodingTest extends NLocalWithSparkSessionTest {
 
-    public static final String DEFAULT_PROJECT = "default";
-
     @Before
     public void setup() throws Exception {
         init();
@@ -78,8 +76,8 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow("test_encoding");
@@ -133,9 +131,9 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
         ss.close();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
+        kapSparkSession.use(getProject());
 
-        populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
+        populateSSWithCSVData(config, getProject(), kapSparkSession);
 
         List<Pair<String, String>> queries = new ArrayList<>();
         queries.add(Pair.newPair("int_dict", "select int_dict from test_encoding group by int_dict"));

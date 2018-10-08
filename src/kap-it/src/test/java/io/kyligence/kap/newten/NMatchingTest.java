@@ -45,13 +45,11 @@ import io.kyligence.kap.spark.KapSparkSession;
 
 public class NMatchingTest extends NLocalWithSparkSessionTest {
 
-    private static final String DEFAULT_PROJECT = "match";
-
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -64,6 +62,11 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
+    
+    @Override
+    public String getProject() {
+        return "match";
+    }
 
     @Test
     public void testCanNotAnswer() throws Exception {
@@ -72,14 +75,14 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("match", DEFAULT_PROJECT);
+        fullBuildCube("match", getProject());
         ss.close();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
+        kapSparkSession.use(getProject());
 
         try {
-            populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
+            populateSSWithCSVData(config, getProject(), kapSparkSession);
 
             List<Pair<String, String>> query = new ArrayList<>();
             query.add(
@@ -99,14 +102,14 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         existingCxt.stop();
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("match", DEFAULT_PROJECT);
-        fullBuildCube("match_copy", DEFAULT_PROJECT);
+        fullBuildCube("match", getProject());
+        fullBuildCube("match_copy", getProject());
         ss.close();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
+        kapSparkSession.use(getProject());
 
-        populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
+        populateSSWithCSVData(config, getProject(), kapSparkSession);
 
         List<Pair<String, String>> query = new ArrayList<>();
         query.add(Pair.newPair("can_not_answer", "select sum(price) from TEST_KYLIN_FACT group by LSTG_FORMAT_NAME"));

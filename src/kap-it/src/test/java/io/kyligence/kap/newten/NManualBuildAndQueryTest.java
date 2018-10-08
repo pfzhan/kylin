@@ -66,7 +66,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
 
-    private static final String DEFAULT_PROJECT = "default";
     private boolean succceed = true;
 
     @Before
@@ -208,8 +207,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         existingCxt.stop();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(DEFAULT_PROJECT);
-        populateSSWithCSVData(config, DEFAULT_PROJECT, kapSparkSession);
+        kapSparkSession.use(getProject());
+        populateSSWithCSVData(config, getProject(), kapSparkSession);
         kapSparkSession.sparkContext().setLogLevel("ERROR");
         return kapSparkSession;
     }
@@ -218,8 +217,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
-            fullBuildCube("ncube_basic", DEFAULT_PROJECT);
-            fullBuildCube("ncube_basic_inner", DEFAULT_PROJECT);
+            fullBuildCube("ncube_basic", getProject());
+            fullBuildCube("ncube_basic_inner", getProject());
         } else {
             buildAndMergeCube("ncube_basic");
             buildAndMergeCube("ncube_basic_inner");
@@ -277,8 +276,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow(dfName);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -327,8 +326,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow(dfName);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

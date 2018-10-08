@@ -57,13 +57,12 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
-    public static final String DEFAULT_PROJECT = "default";
 
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -88,7 +87,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
-                NDataflowManager.getInstance(config, DEFAULT_PROJECT).getDataflow(cubeName).getSegment(1), 1);
+                NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegment(1), 1);
         for (Object[] row : resultFromLayout) {
             if (row[0].equals("10000000158")) {
                 Assert.assertEquals("4", row[1].toString());// COUNT(*)
@@ -135,8 +134,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(cubeName);
 
         // cleanup all segments first

@@ -60,7 +60,7 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
         ss.close();
         KapSparkSession ksc = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         ksc.use("default");
-        populateSSWithCSVData(config, DEFAULT_PROJECT, ksc);
+        populateSSWithCSVData(config, getProject(), ksc);
 
         List<Pair<String, String>> queries = new ArrayList<>();
         String[] joinTypes = new String[] { "left", "inner" };

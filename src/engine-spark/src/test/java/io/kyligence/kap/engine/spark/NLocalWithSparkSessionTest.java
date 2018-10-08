@@ -85,8 +85,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 @SuppressWarnings("serial")
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
 
-    public static final String DEFAULT_PROJECT = "default";
-
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
     protected static final String KAP_SQL_BASE_DIR = "../kap-it/src/test/resources/query";
@@ -127,10 +125,14 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         this.cleanupTestMetadata();
     }
 
-    protected void init() throws Exception {
+    public String getProject() {
+        return "default";
+    }
+
+    protected void init() throws Exception{
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -249,7 +251,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
             throws Exception {
-        builCuboid(cubeName, segmentRange, toBuildLayouts, DEFAULT_PROJECT);
+        builCuboid(cubeName, segmentRange, toBuildLayouts, getProject());
     }
 
     protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, String prj)

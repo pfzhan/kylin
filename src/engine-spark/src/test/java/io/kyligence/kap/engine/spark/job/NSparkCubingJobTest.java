@@ -73,7 +73,6 @@ import io.kyligence.kap.engine.spark.builder.NSnapshotBuilder;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
-    public static final String DEFAULT_PROJECT = "default";
 
     private KylinConfig config;
 
@@ -82,7 +81,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
@@ -126,7 +125,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testBuildDictionary() throws Exception {
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
 
         NDataSegment seg = df.copy().getLastSegment();
@@ -147,7 +146,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
 
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
 
         NDataSegment seg = df.copy().getLastSegment();
@@ -223,8 +222,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testBuildJob() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -299,8 +298,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCancelCubingJob() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -346,8 +345,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCancelMergingJob() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -384,7 +383,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(false, thread.isInterrupted());
         firstMergeJob.cancelJob();
         Assert.assertEquals(false, threadToInterrupt.containsKey(firstMergeJob.getId()));
-        waitThreadInterupt(thread, 100000);
+        waitThreadInterupt(thread, 600000);
         Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("ncube_basic");
         Assert.assertEquals(df.getSegment(firstMergeJob.getSparkCubingStep().getSegmentIds()), null);
@@ -408,8 +407,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     //should it test merge case?
     public void testRuleBasedCube() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow("rule_based_cube");
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -480,12 +479,12 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("the build process is tested in NMeasuresTest, no need to build again")
     public void testMeasuresFullBuild() throws Exception {
         String cubeName = "ncube_full_measure_test";
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(cubeName);
         builCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
                 Sets.<NCuboidLayout> newLinkedHashSet(df.getCubePlan().getAllCuboidLayouts()));
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
-                NDataflowManager.getInstance(config, DEFAULT_PROJECT).getDataflow(cubeName).getSegment(1), 1);
+                NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegment(1), 1);
         for (Object[] row : resultFromLayout) {
             if (row[0].equals("10000000158")) {
                 Assert.assertEquals("4", row[1].toString());// COUNT(*)
@@ -520,8 +519,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         config.setProperty("kylin.metadata.distributed-lock-impl",
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
-        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
 
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
@@ -588,7 +587,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     private void validateCube(int segmentId) {
-        NDataflow df = NDataflowManager.getInstance(config, DEFAULT_PROJECT).getDataflow("ncube_basic");
+        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow("ncube_basic");
         NDataSegment seg = df.getSegment(segmentId);
 
         // check row count in NDataSegDetails
@@ -623,7 +622,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
     private void validateTableIndex(int segmentId) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataSegment seg = df.getSegment(segmentId);
         NDataSegDetails segCuboids = seg.getSegDetails();

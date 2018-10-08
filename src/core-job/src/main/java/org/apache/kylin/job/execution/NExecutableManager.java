@@ -312,18 +312,22 @@ public class NExecutableManager {
         }
     }
 
+    public List<String> getJobPathes(String project) {
+        try {
+            return Lists.newArrayList(executableDao.getJobPathes(project));
+        } catch (PersistentException e) {
+            logger.error("error get all job path of project '{}'", project, e);
+            throw new IllegalStateException(e);
+        }
+    }
+
     public List<String> getAllJobPathes() {
         NProjectManager prjMgr = NProjectManager.getInstance(config);
         List<String> result = Lists.newArrayList();
-        try {
-            for (ProjectInstance prj : prjMgr.listAllProjects()) {
-                result.addAll(executableDao.getJobPathes(prj.getName()));
-            }
-            return result;
-        } catch (PersistentException e) {
-            logger.error("error get All Job Ids", e);
-            throw new RuntimeException(e);
+        for (ProjectInstance prj : prjMgr.listAllProjects()) {
+            result.addAll(getJobPathes(prj.getName()));
         }
+        return result;
     }
 
     public void updateAllRunningJobsToError() {

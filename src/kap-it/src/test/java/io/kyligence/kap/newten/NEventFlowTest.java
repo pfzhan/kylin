@@ -77,7 +77,6 @@ import io.kylingence.kap.event.model.ModelUpdateEvent;
 
 public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
-    public static final String DEFAULT_PROJECT = "default";
     private static final Logger logger = LoggerFactory.getLogger(NEventFlowTest.class);
 
     EventManager eventManager;
@@ -100,8 +99,8 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
                 "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
-        eventManager = EventManager.getInstance(config, DEFAULT_PROJECT);
-        dsMgr= NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        eventManager = EventManager.getInstance(config, getProject());
+        dsMgr= NDataflowManager.getInstance(config, getProject());
 
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
@@ -158,7 +157,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     private void testRefreshFlow() throws PersistentException, InterruptedException, IOException, NoSuchFieldException, IllegalAccessException {
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
 
-        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(config, DEFAULT_PROJECT).getDataLoadingRange(tableName);
+        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(config, getProject()).getDataLoadingRange(tableName);
         Class<?> clazz = dataLoadingRange.getClass();
         Field field = clazz.getDeclaredField("waterMarkEnd");
         field.setAccessible(true);
@@ -169,7 +168,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         LoadingRangeRefreshEvent loadingRangeRefreshEvent = new LoadingRangeRefreshEvent();
         loadingRangeRefreshEvent.setApproved(true);
-        loadingRangeRefreshEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeRefreshEvent.setProject(getProject());
         loadingRangeRefreshEvent.setTableName(tableName);
         loadingRangeRefreshEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
 
@@ -177,7 +176,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         waitForEventFinished(config);
 
-        Event updatedEvent = EventDao.getInstance(config, DEFAULT_PROJECT).getEvent(loadingRangeRefreshEvent.getUuid());
+        Event updatedEvent = EventDao.getInstance(config, getProject()).getEvent(loadingRangeRefreshEvent.getUuid());
         Assert.assertEquals(EventStatus.ERROR, updatedEvent.getStatus());
         Assert.assertTrue(updatedEvent.getMsg().contains("is out of range the coveredReadySegmentRange of dataLoadingRange"));
 
@@ -186,7 +185,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         loadingRangeRefreshEvent = new LoadingRangeRefreshEvent();
         loadingRangeRefreshEvent.setApproved(true);
-        loadingRangeRefreshEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeRefreshEvent.setProject(getProject());
         loadingRangeRefreshEvent.setTableName(tableName);
         loadingRangeRefreshEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
 
@@ -204,26 +203,26 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     private void testEventErrorFlow() throws PersistentException, InterruptedException {
         LoadingRangeUpdateEvent loadingRangeUpdateEvent = new LoadingRangeUpdateEvent();
         loadingRangeUpdateEvent.setApproved(true);
-        loadingRangeUpdateEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeUpdateEvent.setProject(getProject());
         loadingRangeUpdateEvent.setTableName("errorTable");
         loadingRangeUpdateEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
         eventManager.post(loadingRangeUpdateEvent);
         waitForEventFinished(config);
 
-        Event updatedEvent = EventDao.getInstance(config, DEFAULT_PROJECT).getEvent(loadingRangeUpdateEvent.getUuid());
+        Event updatedEvent = EventDao.getInstance(config, getProject()).getEvent(loadingRangeUpdateEvent.getUuid());
         Assert.assertEquals(EventStatus.ERROR, updatedEvent.getStatus());
         Assert.assertTrue(updatedEvent.getMsg().contains("TableDesc 'errorTable' does not exist"));
     }
 
     private void testRemoveEventFlow() throws PersistentException, InterruptedException {
         int layoutCount = 0;
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), getProject());
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
         layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
         ModelUpdateEvent event = new ModelUpdateEvent();
-        event.setProject(DEFAULT_PROJECT);
+        event.setProject(getProject());
         event.setFavoriteMark(false);
         event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "1");}});
         event.setApproved(true);
@@ -244,7 +243,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     public void testLoadingRangeFlow() throws Exception {
 
         // cleanup all segments first
-        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
@@ -269,12 +268,12 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         long end = SegmentRange.dateToLong("2012-06-01");
 
         NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(),
-                DEFAULT_PROJECT);
+                getProject());
         String tableName = "DEFAULT.TEST_KYLIN_FACT";
         String columnName = "TEST_KYLIN_FACT.CAL_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
+        dataLoadingRange.setProject(getProject());
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
         SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(start,
@@ -284,7 +283,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
         LoadingRangeUpdateEvent loadingRangeUpdateEvent = new LoadingRangeUpdateEvent();
         loadingRangeUpdateEvent.setApproved(true);
-        loadingRangeUpdateEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeUpdateEvent.setProject(getProject());
         loadingRangeUpdateEvent.setTableName(tableName);
         loadingRangeUpdateEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
 
@@ -302,24 +301,24 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     public void testCuboidEventFlow() throws Exception {
 
         int layoutCount = 0;
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), getProject());
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
         layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
         ModelUpdateEvent event = new ModelUpdateEvent();
-        event.setProject(DEFAULT_PROJECT);
+        event.setProject(getProject());
         event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
         event.setApproved(true);
         eventManager.post(event);
 
         event = new ModelUpdateEvent();
-        event.setProject(DEFAULT_PROJECT);
+        event.setProject(getProject());
         event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
         event.setApproved(true);
         eventManager.post(event);
 
         event = new ModelUpdateEvent();
-        event.setProject(DEFAULT_PROJECT);
+        event.setProject(getProject());
         event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
         event.setApproved(true);
         eventManager.post(event);
@@ -336,7 +335,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
     private void waitForEventFinished(KylinConfig config) throws PersistentException, InterruptedException {
         boolean wait = true;
-        EventDao eventDao = EventDao.getInstance(config, DEFAULT_PROJECT);
+        EventDao eventDao = EventDao.getInstance(config, getProject());
         List<Event> events;
         while (wait) {
             int finishedEventNum = 0;
@@ -361,7 +360,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
     public Map<Class, List<Event>> getEventsMap() throws PersistentException {
         Map<Class, List<Event>> eventsMap = Maps.newHashMap();
-        List<Event> eventList = EventDao.getInstance(config, DEFAULT_PROJECT).getEvents();
+        List<Event> eventList = EventDao.getInstance(config, getProject()).getEvents();
         if (CollectionUtils.isEmpty(eventList)) {
             return eventsMap;
         }

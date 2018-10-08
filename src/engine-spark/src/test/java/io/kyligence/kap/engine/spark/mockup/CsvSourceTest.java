@@ -58,7 +58,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testGetTable() {
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), getProject());
         TableDesc fact = tableMgr.getTableDesc(DEFAULT_TABLE);
         ColumnDesc[] colDescs = fact.getColumns();
         NSparkCubingSource cubingSource = new CsvSource().adaptToBuildEngine(NSparkCubingSource.class);
@@ -78,12 +78,12 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         CsvSource csvSource = new CsvSource();
         ISourceMetadataExplorer sourceMetadataExplorer = csvSource.getSourceMetadataExplorer();
         List<String> databases = sourceMetadataExplorer.listDatabases();
-        String database = DEFAULT_PROJECT.toUpperCase();
+        String database = getProject().toUpperCase();
         Assert.assertTrue(databases.contains(database));
-        List<String> tables = sourceMetadataExplorer.listTables(DEFAULT_PROJECT.toUpperCase());
+        List<String> tables = sourceMetadataExplorer.listTables(getProject().toUpperCase());
         String table = DEFAULT_TABLE.split("\\.")[1];
         Assert.assertTrue(tables.contains(table));
-        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database, table, DEFAULT_PROJECT);
+        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database, table, getProject());
         TableDesc tableDesc = tableDescTableExtDescPair.getFirst();
 
         IReadableTable readableTable = csvSource.createReadableTable(tableDesc);
