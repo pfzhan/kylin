@@ -370,8 +370,8 @@ exports.default = {
     tip_password_unsafe: 'The password should contain at least one number, letter and special character（~!@#$%^&*(){}|:"<>?[];\',./`).'
   },
   system: {
-    evaluationStatement: 'You are using KAP with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io" style="font-weight:bold">contact us</a>. We’ll get you the help you need from Apache Kylin core team.',
-    statement: 'You have purchased KAP with Enterprise License and services. If you encounter any problems in the course of use, please feel free to <a href="mailto:g-ent-lic@kyligence.io" style="font-weight:bold">contact us</a>. We will provide you with consistent quality products and services.',
+    evaluationStatement: 'You are using Kyligence Enterprise with Evaluation License. For more product information, expert consulting and services, please <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We’ll get you the help you need from Apache Kylin core team.',
+    statement: 'You have purchased Kyligence Enterprise with Enterprise License and services. If you encounter any problems in the course of use, please feel free to <a href="mailto:g-ent-lic@kyligence.io">contact us</a>. We will provide you with consistent quality products and services.',
     hostName: 'Host Name',
     type: 'Type',
     status: 'Status'

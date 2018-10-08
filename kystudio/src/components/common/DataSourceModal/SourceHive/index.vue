@@ -1,48 +1,29 @@
 <template>
-  <div class="source-hive">
-    <div class="left-tree-part">
-      <div class="dialog_tree_box">
-        <tree
-          @lazyload="loadChildNode"
-          :multiple="true"
-          @nodeclick="clickHiveTable"
-          :lazy="true"
-          :treedata="hiveData"
-          :emptyText="$t('dialogHiveTreeLoading')"
-          maxlevel="3"
-          ref="subtree"
-          :maxLabelLen="20"
-          :showfilter="false"
-          :allowdrag="false" >
-        </tree>
-      </div>
-    </div>
-
-    <div class="right-tree-part">
-      <div class="tree_check_content ksd-mt-20">
-        <arealabel
-          :validateRegex="regex"
-          @validateFail="$message($t('selectedHiveValidateFailText'))"
-          @refreshData="changeHiveData"
-          splitChar=","
-          :selectedlabels="selectedTableNames"
-          :allowcreate="true"
-          placeholder=" "
-          @removeTag="removeSelectedHive"
-          :datamap="{label: 'label', value: 'value'}">
-        </arealabel>
-        <div class="ksd-mt-22 ksd-extend-tips" v-html="selectedType === '0' ? $t('loadHiveTip') : $t('loadTip')"></div>
-        <div class="ksd-mt-20" v-if="false">
-          <slider @changeBar="changeBar" class="ksd-mr-20 ksd-mb-20">
-            <span slot="checkLabel">{{$t('sampling')}}</span>
-              <span slot="tipLabel">
-                <common-tip placement="right" :content="$t('kylinLang.dataSource.collectStatice')" >
-                  <i class="el-icon-question"></i>
-                </common-tip>
-              </span>
-          </slider>
-        </div>
-      </div> 
+  <div class="source-hive clearfix">
+    <TreeList
+      class="table-tree"
+      :data="treeData"
+      :is-show-filter="true"
+      :is-show-resize-bar="true"
+      :on-filter="handleFilter"
+      @resize="handleResize"
+      @click="handleClickNode"
+      @node-expand="handleNodeExpand"
+      @load-more="handleLoadMore"
+    />
+    <div class="content" :style="contentStyle">
+      <arealabel
+        splitChar=","
+        placeholder=" "
+        :validateRegex="tableRegex"
+        :selectedlabels="selectedTables"
+        :allowcreate="true"
+        :datamap="{label: 'label', value: 'value'}"
+        @refreshData="handleAddTable"
+        @removeTag="handleRemoveTable"
+        @validateFail="handleValidateFail">
+      </arealabel>
+      <div class="tips" v-html="sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip') : $t('loadTip')"></div>
     </div>
   </div>
 </template>
@@ -50,21 +31,24 @@
 <script>
 import Vue from 'vue'
 import { mapGetters, mapActions } from 'vuex'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import arealabel from '../../area_label'
-import { objectClone } from '../../../../util'
-import { handleError, handleSuccess } from '../../../../util/business'
+import TreeList from '../../TreeList'
+import { sourceTypes } from '../../../../config'
+import { getDatabaseTree, getTableTree } from './handler'
+import { handleSuccessAsync } from '../../../../util'
+import arealabel from '../../area_label.vue'
 
 @Component({
   props: {
     selectedTables: {
       default: () => []
     },
-    selectedType: Number
+    sourceType: Number
   },
   components: {
+    TreeList,
     arealabel
   },
   computed: {
@@ -75,141 +59,125 @@ import { handleError, handleSuccess } from '../../../../util/business'
   },
   methods: {
     ...mapActions({
-      loadDatabase: 'LOAD_HIVEBASIC_DATABASE',
-      loadTablesByDatabse: 'LOAD_HIVE_TABLES'
+      fetchDatabase: 'LOAD_HIVEBASIC_DATABASE',
+      fetchTables: 'LOAD_HIVE_TABLES'
     })
   },
   locales
 })
 export default class SourceHive extends Vue {
-  hiveData = []
-  regex = /^\s*;?(\w+\.\w+)\s*(,\s*\w+\.\w+)*;?\s*$/
-
-  get selectedTableNames () {
-    return this.selectedTables.map(selectedTable => selectedTable.value)
+  treeData = []
+  databases = []
+  contentStyle = {
+    marginLeft: null,
+    width: null
   }
+  sourceTypes = sourceTypes
+  tableRegex = /^\s*;?(\w+\.\w+)\s*(,\s*\w+\.\w+)*;?\s*$/
+  timer = null
+  get selectedTableOptions () {
+    return this.selectedTables.map(tableId => ({
+      label: tableId,
+      value: tableId
+    }))
+  }
+  @Watch('selectedTables')
+  onSelectedTablesChange () {
+    for (const database of this.databases) {
+      for (const table of database.children) {
+        table.isSelected = this.selectedTables.includes(table.id)
+      }
+    }
+  }
+  setNextPagination (pagination) {
+    pagination.pageOffset++
+  }
+  clearPagination (pagination) {
+    pagination.pageOffset = 0
+  }
+  hideNodeLoading (data) {
+    data.isLoading = false
+  }
+  async mounted () {
+    await this.loadDatabase()
+  }
+  async loadDatabase () {
+    const projectName = this.currentSelectedProject
+    const sourceType = this.sourceType
+    const res = await this.fetchDatabase({ projectName, sourceType })
+    this.databases = getDatabaseTree(await handleSuccessAsync(res))
+    this.treeData = [{
+      id: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
+      label: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
+      type: 'text',
+      children: this.databases
+    }]
+  }
+  async loadTables ({database, tableName = '', isTableReset = false}) {
+    const projectName = this.currentSelectedProject
+    const sourceType = this.sourceType
+    const databaseName = database.id
+    const pagination = database.pagination
+    const res = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
+    // hard code size
+    const data = { size: 7, tables: await handleSuccessAsync(res) }
+    getTableTree(database, data, isTableReset)
+    this.setNextPagination(pagination)
+  }
+  handleFilter (tableName) {
+    clearInterval(this.timer)
 
-  mounted () {
-    this.$emit('input', {
-      selectedTables: [],
-      tableStaticsRange: 0,
-      openCollectRange: false
+    return new Promise(async resolve => {
+      this.timer = setTimeout(async () => {
+        const requests = this.databases.map(async database => {
+          const { pagination } = database
+          this.clearPagination(pagination)
+
+          await this.loadTables({ database, tableName, isTableReset: true })
+        })
+        await Promise.all(requests)
+
+        this.onSelectedTablesChange()
+        resolve()
+      }, 1000)
     })
   }
-
-  changeHiveData (selectedNames) {
-    const newSelectedTableNames = selectedNames.filter(selectedName => {
-      return !this.selectedTables.some(selectedTable => selectedTable.value === selectedName)
-    })
-    const newSelectedTables = newSelectedTableNames.map(name => ({label: name, value: name}))
-    const selectedTables = [ ...this.selectedTables, ...newSelectedTables ]
-
+  handleClickNode (data) {
+    if (data.type === 'table') {
+      const isSelected = this.selectedTables.includes(data.id)
+      if (isSelected) {
+        this.handleRemoveTable(data.id)
+      } else {
+        this.handleAddTable(data.id)
+      }
+    }
+  }
+  handleResize (treeWidth) {
+    this.contentStyle.marginLeft = `${treeWidth}px`
+    this.contentStyle.width = `${this.$el.clientWidth - treeWidth}px`
+  }
+  async handleNodeExpand (data) {
+    if (data.isLoading) {
+      if (data.type === 'database') {
+        await this.loadTables({ database: data })
+      }
+      this.hideNodeLoading(data)
+    }
+  }
+  handleLoadMore (data) {
+    const database = this.databases.find(database => database.id === data.parent.id)
+    this.loadTables({ database })
+  }
+  handleAddTable (addTableId) {
+    const selectedTables = addTableId instanceof Array ? addTableId : [...this.selectedTables, addTableId]
     this.$emit('input', { selectedTables })
   }
-
-  removeSelectedHive (val) {
-    const selectedTables = this.selectedTables.filter(selectedTable => selectedTable.value !== val)
-
-    this.$refs.subtree.cancelNodeChecked(val)
+  handleRemoveTable (removeTableId) {
+    const selectedTables = this.selectedTables.filter(tableId => tableId !== removeTableId)
     this.$emit('input', { selectedTables })
   }
-
-  changeBar (val) {
-    this.$emit('input', {
-      tableStaticsRange: val,
-      openCollectRange: !!val
-    })
-  }
-
-  loadChildNode (node, resolve) {
-    if (node.level === 0) {
-      return resolve([{label: this.selectedProjectDatasource === '0' ? 'Hive Table' : 'Table'}])
-    } else if (node.level === 1) {
-      this.loadDatabase({ projectName: this.currentSelectedProject, sourceType: this.selectedType }).then((res) => {
-        handleSuccess(res, (data) => {
-          var datasourceTreeData = []
-          for (var i = 0; i < data.length; i++) {
-            datasourceTreeData.push({id: data[i], label: data[i], children: [], fullData: data})
-          }
-          resolve(datasourceTreeData)
-        })
-      }, (res) => {
-        node.loading = false
-        handleError(res)
-      })
-    } else if (node.level === 2) {
-      var subData = []
-      this.loadTablesByDatabse({
-        databaseName: node.label,
-        projectName: this.currentSelectedProject,
-        sourceType: this.selectedType
-      }).then((res) => {
-        handleSuccess(res, (data) => {
-          var len = data && data.length || 0
-          var pagerLen = len > this.treePerPage ? this.treePerPage : len
-          for (var k = 0; k < pagerLen; k++) {
-            subData.push({
-              id: node.label + '.' + data[k],
-              label: data[k]
-            })
-          }
-          if (pagerLen < len) {
-            subData.push({
-              id: node.label + '...',
-              label: '。。。',
-              children: [],
-              parentNode: node,
-              parentLabel: node.label,
-              fullData: data,
-              index: this.treePerPage,
-              isMore: true
-            })
-          }
-          resolve(subData)
-        })
-      }, (res) => {
-        node.loading = false
-        handleError(res)
-      })
-    } else {
-      resolve([])
-    }
-  }
-
-  clickHiveTable (data, vnode) {
-    if (data.id && data.id.indexOf('.') > 0 && !data.isMore) {
-      const newArr = this.selectedTables.filter(item => item.value === data.id)
-      if (!newArr || newArr.length <= 0) {
-        const selectedTables = [ ...this.selectedTables, { label: data.id, value: data.id } ]
-        this.$emit('input', { selectedTables })
-      }
-    }
-    var node = data
-    if (node.index) {
-      // 加载更多
-      vnode.store.remove(vnode.data)
-      var addData = node.fullData.slice(0, node.index + this.treePerPage)
-      var moreNodes = []
-      for (var k = 0; k < addData.length; k++) {
-        moreNodes.push({
-          id: node.parentLabel + '.' + addData[k],
-          label: addData[k]
-        })
-      }
-      var renderChildrens = objectClone(moreNodes)
-      if (node.index + this.treePerPage < node.fullData.length) {
-        renderChildrens.push({
-          id: node.parentLabel + '...',
-          label: '。。。',
-          parentLabel: node.parentLabel,
-          fullData: node.fullData,
-          children: [],
-          index: node.index + this.treePerPage,
-          isMore: true
-        })
-      }
-      node.parentNode.children = renderChildrens
-    }
+  handleValidateFail () {
+    this.$message(this.$t('selectedHiveValidateFailText'))
   }
 }
 </script>
@@ -218,20 +186,27 @@ export default class SourceHive extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-hive {
-  display:flex;
-  .el-dialog__body {
-    padding: 0;
+  .table-tree {
+    width: 218px;
+    float: left;
+    border-right: 1px solid #cfd8dc;
   }
-  .left-tree-part{
-    width:218px;
-    max-height:600px;
-    overflow-y:auto;
-    overflow-x:hidden;
+  .filter-tree {
+    min-height: 220px;
+    max-height: 400px;
+    overflow: auto;
   }
-  .right-tree-part{
-    border-left: solid 1px @line-border-color;
-    flex:1;
-    padding: 0 20px 20px;
+  .content {
+    margin-left: 218px;
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  .filter-box {
+    padding: 10px 10px 0 10px;
+    box-sizing: border-box;
+  }
+  .tips {
+    margin-top: 22px;
   }
 }
 </style>

@@ -44,9 +44,8 @@
     <div class="segment-views">
       <div class="segment-charts">
         <SegmentChart
-          :segments-data="segments"
-          :scale="scaleTypes[scaleTypeIdx]"
-          v-model="zoom"
+          :data="segments"
+          :scaleType="scaleTypes[scaleTypeIdx]"
           @select="handleSelectSegment"
         />
         <div class="chart-actions">
@@ -112,11 +111,12 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import SegmentChart from './SegmentChart'
+import SegmentChart from './SegmentChart/SegmentChart.vue'
 import { handleSuccessAsync } from '../../../../../util'
 import iconAdd from './icon_add.svg'
 import iconReduce from './icon_reduce.svg'
 import { formatSegments } from './handle'
+// import mockSegments from './mock'
 
 @Component({
   props: {
@@ -159,14 +159,6 @@ export default class ModelSegment extends Vue {
         value: ''
       }]
     },
-    retension: {
-      isEnabled: true,
-      isAddible: true,
-      settings: [{
-        key: 'Day',
-        value: ''
-      }]
-    },
     volatile: {
       isEnabled: true,
       isAddible: false,
@@ -183,14 +175,16 @@ export default class ModelSegment extends Vue {
     value: 'Day'
   }]
   filter = {
-    pageOffset: 0,
-    pageSize: 999,
     mpValues: '',
     startDate: '',
     endDate: ''
   }
-  scaleTypes = ['Hour', 'Day', 'Season', 'Month', 'Year']
+  scaleTypes = ['hour', 'day', 'month', 'year']
   scaleTypeIdx = 1
+  pagination = {
+    pageOffset: 0,
+    pageSize: 999
+  }
   get selectedSegments () {
     return this.segments.filter(segment => segment.isSelected)
   }
@@ -208,11 +202,13 @@ export default class ModelSegment extends Vue {
       projectName: this.currentSelectedProject,
       modelName: this.model.name,
       startDate: startDate && startDate.getTime(),
-      endDate: endDate && endDate.getTime()
+      endDate: endDate && endDate.getTime(),
+      ...this.pagination
     })
     const { segments } = await handleSuccessAsync(res)
 
     this.segments = formatSegments(segments)
+    // formatSegments(mockSegments.segments)
   }
   getStartDateLimit (time) {
     return this.filter.endDate ? time.getTime() > this.filter.endDate.getTime() : false

@@ -44,7 +44,7 @@ export function getSubmitData (that, kafkaData) {
       return {
         projectName: currentSelectedProject,
         sourceType,
-        tableNames: form.selectedTables.map(table => table.value)
+        tableNames: form.selectedTables
       }
     case sourceTypes.KAFKA: {
       const data = kafkaData

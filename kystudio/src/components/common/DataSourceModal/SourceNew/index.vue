@@ -34,7 +34,7 @@ import locales from './locales'
 import { sourceTypes } from '../../../../config'
 
 @Component({
-  props: [ 'selectedType' ],
+  props: [ 'sourceType' ],
   computed: {
     ...mapGetters([
       'globalDefaultDatasource'
@@ -47,7 +47,7 @@ export default class SourceNew extends Vue {
 
   getSourceClass (sourceTypes = []) {
     return {
-      active: sourceTypes.includes(this.selectedType)
+      active: sourceTypes.includes(this.sourceType)
     }
   }
 

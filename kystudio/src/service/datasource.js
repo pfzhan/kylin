@@ -15,8 +15,8 @@ export default {
     // return Vue.resource(apiUrl + 'tables/hive').get()
     return Vue.resource(apiUrl + 'tables/databases').get({project, datasourceType})
   },
-  loadChildTablesOfDatabase: (project, datasourceType, database) => {
-    return Vue.resource(apiUrl + 'tables/names').get({project, datasourceType, database})
+  loadChildTablesOfDatabase: (project, datasourceType, database, table, pageOffset, pageSize) => {
+    return Vue.resource(apiUrl + 'tables/names').get({project, datasourceType, database, table, pageOffset, pageSize})
   },
   loadHiveInProject: (project, datasourceType, tables) => {
     return Vue.resource(apiUrl + 'tables').save({project, datasourceType, tables})

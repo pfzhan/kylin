@@ -39,7 +39,7 @@ export default {
       return api.datasource.loadBasicLiveDatabase(para.projectName, para.sourceType)
     },
     [types.LOAD_HIVE_TABLES]: function ({commit}, para) {
-      return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName)
+      return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName, para.tableName, para.pageOffset, para.pageSize)
     },
     [types.LOAD_HIVE_IN_PROJECT]: function ({commit}, para) {
       return api.datasource.loadHiveInProject(para.projectName, para.sourceType, para.tableNames)
