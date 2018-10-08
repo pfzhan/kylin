@@ -27,7 +27,7 @@
         :is-expand-on-click-node="isExpandOnClickNode"
         @click="handleClick"
         @drag="handleDrag"
-        @click-more="handleClickMore">
+        @load-more="handleLoadMore">
       </TreeList>
     </section>
   </aside>
@@ -153,8 +153,8 @@ export default class DataSourceBar extends Vue {
   handleDrag (node, data) {
     this.$emit('drag', data, node)
   }
-  handleClickMore (node, data) {
-    this.$emit('click-more', data, node)
+  handleLoadMore (node, data) {
+    this.$emit('load-more', data, node)
   }
   async loadDataSource (sourceType, project, event) {
     event && event.stopPropagation()

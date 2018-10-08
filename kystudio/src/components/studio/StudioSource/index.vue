@@ -12,7 +12,7 @@
         :datasource="datasource"
         @click="handleClick"
         @source-update="handleSourceUpdate"
-        @click-more="handleClickMore">
+        @load-more="handleLoadMore">
       </DataSourceBar>
       <!-- Source Table展示 -->
       <div class="layout-right">
@@ -72,7 +72,7 @@
 <script>
 import Vue from 'vue'
 import { mapGetters, mapActions, mapMutations } from 'vuex'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { viewTypes, getSelectedTableDetail } from './handler'
@@ -141,6 +141,12 @@ export default class StudioSource extends Vue {
     return transToGmtTime(this.selectedTable.last_modified, this)
   }
 
+  @Watch('selectedTable')
+  onSelectedTableChange () {
+    for (const table of this.datasource) {
+      table.isSelected = table.uuid === this.selectedTable.uuid
+    }
+  }
   async mounted () {
     await this.handleSourceUpdate()
     this.viewType = viewTypes.DATA_LOAD
@@ -158,7 +164,7 @@ export default class StudioSource extends Vue {
     const { currentProjectData: project } = this
     this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
   }
-  handleClickMore (data, node) {
+  handleLoadMore (data, node) {
     console.log(data, node)
   }
   handleReload () {
@@ -174,7 +180,11 @@ export default class StudioSource extends Vue {
   }
   async handleSourceUpdate () {
     const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
-    this.datasource = await handleSuccessAsync(res)
+    const datasource = await handleSuccessAsync(res)
+    this.datasource = datasource.map(table => ({
+      ...table,
+      isSelected: false
+    }))
   }
   async handleFreshTable () {
     await this.handleSourceUpdate()

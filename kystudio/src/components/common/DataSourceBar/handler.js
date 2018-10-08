@@ -193,7 +193,8 @@ function getTableObj (that, table) {
     datasource: datasourceName,
     isCentral: table.fact,
     isTopSet: table.isTopSet,
-    dateRange
+    dateRange,
+    isSelected: table.isSelected
   }
 }
 
