@@ -49,7 +49,7 @@
             :is-show-settings="false"
             :is-show-action-group="false"
             :is-expand-on-click-node="false"
-            :expand-node-types="['datasouce', 'database']"
+            :expand-node-types="['datasource', 'database']"
             :draggable-node-types="['table']"
             :searchable-node-types="['table']"
             @drag="dragTable"

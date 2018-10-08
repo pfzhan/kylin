@@ -6,9 +6,10 @@
           :is-show-load-source="true"
           :is-expand-on-click-node="false"
           :datasource="datasource"
-          :expand-node-types="['datasouce', 'database']"
+          :expand-node-types="['datasource', 'database']"
           @autoComplete="handleAutoComplete"
-          @click="clickTable">
+          @click="clickTable"
+          @source-update="handleSourceUpdate">
         </DataSourceBar>
       </div>
       <div class="layout-right">
@@ -341,6 +342,9 @@ export default class NewQuery extends Vue {
     if (!this.currentSelectedProject) {
       return
     }
+    await this.handleSourceUpdate()
+  }
+  async handleSourceUpdate () {
     const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
     this.datasource = await handleSuccessAsync(res)
   }

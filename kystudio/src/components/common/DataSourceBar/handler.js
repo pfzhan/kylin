@@ -142,7 +142,7 @@ export function getDatasourceObj (that, table, project) {
   const datasourceName = sourceNameMapping[datasourceType]
 
   return {
-    id: `datasouce-Source: ${datasourceName}`,
+    id: `datasource-Source: ${datasourceName}`,
     label: `${that.$t('source')} : ${datasourceName}`,
     render: render.datasource.render.bind(that),
     children: [

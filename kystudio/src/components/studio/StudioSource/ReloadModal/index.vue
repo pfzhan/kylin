@@ -82,7 +82,7 @@ export default class ReloadModal extends Vue {
     //     needProfile: this.openCollectRange
     //   }
     // })
-    // this.datasouce = await handleSuccessAsync(res)
+    // this.datasource = await handleSuccessAsync(res)
   }
   async checkTableHasJob (tableName) {
     const res = await this.getTableJob({tableName: tableName, project: this.currentSelectedProject})

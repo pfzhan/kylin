@@ -5,11 +5,11 @@
       <DataSourceBar
         class="layout-left"
         :is-show-load-source="true"
-        :is-show-settings="true"
+        :is-show-settings="false"
         :is-expand-on-click-node="false"
-        :expand-node-types="['datasouce', 'database']"
+        :expand-node-types="['datasource', 'database']"
         :searchable-node-types="['table', 'column']"
-        :datasource="datasouce"
+        :datasource="datasource"
         @click="handleClick"
         @source-update="handleSourceUpdate"
         @click-more="handleClickMore">
@@ -37,9 +37,9 @@
               <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
                 <TableColumns :table="selectedTable"></TableColumns>
               </el-tab-pane>
-              <el-tab-pane :label="$t('sample')" :name="viewTypes.SAMPLE">
+              <!-- <el-tab-pane :label="$t('sample')" :name="viewTypes.SAMPLE">
                 <TableSamples :table="selectedTable"></TableSamples>
-              </el-tab-pane>
+              </el-tab-pane> -->
               <el-tab-pane :label="$t('statistics')" :name="viewTypes.STATISTICS" v-if="isShowStatistic">
                 <TableStatistics :table="selectedTable"></TableStatistics>
               </el-tab-pane>
@@ -50,9 +50,9 @@
                 <el-button type="primary" plain size="medium" icon="edit" @click="handleKafkaClick" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
                 <ViewKafka ref="addkafkaForm" @validSuccess="kafkaValidSuccess" :streamingData="currentStreamingTableData" :tableName="currentStreamingTable" ></ViewKafka>
               </el-tab-pane>
-              <el-tab-pane :label="$t('access')" :name="viewTypes.ACCESS">
+              <!-- <el-tab-pane :label="$t('access')" :name="viewTypes.ACCESS">
                 <Access></Access>
-              </el-tab-pane>
+              </el-tab-pane> -->
             </el-tabs>
           </div>
           <!-- Source Table动作弹框 -->
@@ -124,7 +124,7 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
 })
 export default class StudioSource extends Vue {
   viewType = ''
-  datasouce = []
+  datasource = []
   selectedTable = null
   tableDetail = null
 
@@ -142,12 +142,11 @@ export default class StudioSource extends Vue {
   }
 
   async mounted () {
-    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: false})
-    this.datasouce = await handleSuccessAsync(res)
+    await this.handleSourceUpdate()
     this.viewType = viewTypes.DATA_LOAD
 
-    if (this.datasouce[0]) {
-      await this.fetchTableDetail({ label: this.datasouce[0].name, type: 'table' })
+    if (this.datasource[0]) {
+      await this.fetchTableDetail({ label: this.datasource[0].name, type: 'table' })
     }
     // const resp = await this.fetchDatabases({projectName: this.currentSelectedProject})
     // console.log(resp)
@@ -175,19 +174,18 @@ export default class StudioSource extends Vue {
   }
   async handleSourceUpdate () {
     const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
-    this.datasouce = await handleSuccessAsync(res)
+    this.datasource = await handleSuccessAsync(res)
   }
   async handleFreshTable () {
-    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: false})
-    this.datasouce = await handleSuccessAsync(res)
-    this.fetchTableDetail({ label: this.selectedTable.name, type: 'table' })
+    await this.handleSourceUpdate()
+    await this.fetchTableDetail({ label: this.selectedTable.name, type: 'table' })
   }
   async fetchTableDetail (data) {
     const { label: selectedTableName, type } = data
 
     if (type === 'table') {
       const project = this.currentSelectedProject
-      const tableInfo = this.datasouce.find(table => table.name === selectedTableName)
+      const tableInfo = this.datasource.find(table => table.name === selectedTableName)
       const tableName = `${tableInfo.database}.${tableInfo.name}`
       const res = await this.loadTableExt({tableName, project})
       const tableDetail = await handleSuccessAsync(res)
