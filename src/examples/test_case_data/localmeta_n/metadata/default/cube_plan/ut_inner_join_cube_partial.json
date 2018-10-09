@@ -5,155 +5,32 @@
   "name": "ut_inner_join_cube_partial",
   "model_name": "nmodel_basic_inner",
   "description": "refer to ut_inner_join_cube_partial in pre-newten, it's a converted version",
-  "dimensions": [
-    {
-      "id": 9,
-      "encoding": {
-        "name": "int:4",
-        "version": "1"
-      }
+  "cubeplan_override_encodings": {
+    "9": {
+      "name": "int:4",
+      "version": "1"
     },
-    {
-      "id": 13,
-      "encoding": {
-        "name": "int:4",
-        "version": "1"
-      }
+    "13": {
+      "name": "int:4",
+      "version": "1"
     },
-    {
-      "id": 2,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "3": {
+      "name": "fixed_length:12",
+      "version": "1"
     },
-    {
-      "id": 8,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "15": {
+      "name": "time",
+      "version": "1"
     },
-    {
-      "id": 5,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "14": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 6,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 7,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 3,
-      "encoding": {
-        "name": "fixed_length:12",
-        "version": "1"
-      }
-    },
-    {
-      "id": 4,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 16,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 15,
-      "encoding": {
-        "name": "time",
-        "version": "1"
-      }
-    },
-    {
-      "id": 14,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 17,
-      "encoding": {
-        "name": "int:4",
-        "version": "1"
-      }
-    },
-    {
-      "id": 22,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 23,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 24,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 25,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 18,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 19,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 20,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    },
-    {
-      "id": 21,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "17": {
+      "name": "int:4",
+      "version": "1"
     }
-  ],
+  },
   "rule_based_cuboids": {
     "dimensions": [
       9,

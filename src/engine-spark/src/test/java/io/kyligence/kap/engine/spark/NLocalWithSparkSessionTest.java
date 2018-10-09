@@ -27,10 +27,10 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -75,6 +75,7 @@ import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.storage.NParquetStorage;
@@ -126,7 +127,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         this.cleanupTestMetadata();
     }
 
-    protected void init() throws Exception{
+    protected void init() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
@@ -242,8 +243,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         df = dsMgr.getDataflow(dfName);
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
-        builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                Sets.newLinkedHashSet(round1), prj);
+        builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
+                prj);
     }
 
     protected void builCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
@@ -269,6 +270,10 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         // launch the job
         execMgr.addJob(job);
 
-        Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+        if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
+            throw new IllegalStateException();
+        }
+
+        //Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
     }
 }

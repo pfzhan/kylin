@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,13 +42,13 @@
 
 package io.kylingence.kap.event.manager;
 
+import static io.kylingence.kap.event.manager.EventManager.GLOBAL;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import io.kylingence.kap.event.handle.EventHandler;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -58,8 +57,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
-
-import static io.kylingence.kap.event.manager.EventManager.GLOBAL;
+import io.kylingence.kap.event.handle.EventHandler;
 
 /**
  */
@@ -105,14 +103,11 @@ public class EventOrchestratorManager {
 
     public synchronized static void destroyInstance() {
         for (Map.Entry<String, EventOrchestrator> entry : INSTANCE_MAP.entrySet()) {
-
-            try {
-                entry.getValue().shutdown();
-            } catch (SchedulerException ex) {
-                logger.error("Error shutting down NDefaultScheduler for project " + entry.getKey(), ex);
-            }
+            logger.info("shutting down EventOrchestrator for {}", entry.getKey());
+            entry.getValue().shutdown();
         }
         INSTANCE_MAP.clear();
+        instance = null;
     }
 
     public synchronized void register(EventHandler handler) {
@@ -125,7 +120,8 @@ public class EventOrchestratorManager {
         if (!INSTANCE_MAP.containsKey(project)) {
             EventOrchestrator eventOrchestrator = new EventOrchestrator(project, KylinConfig.getInstanceFromEnv());
             INSTANCE_MAP.put(project, eventOrchestrator);
-            for (Map.Entry<Class<?>, CopyOnWriteArraySet<EventHandler>> handleSetEntry : INSTANCE_MAP.get(GLOBAL).getSubscribers().entrySet()) {
+            for (Map.Entry<Class<?>, CopyOnWriteArraySet<EventHandler>> handleSetEntry : INSTANCE_MAP.get(GLOBAL)
+                    .getSubscribers().entrySet()) {
                 for (EventHandler eventHandler : handleSetEntry.getValue()) {
                     eventOrchestrator.register(eventHandler);
                 }

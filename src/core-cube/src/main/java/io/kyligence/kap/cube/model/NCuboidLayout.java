@@ -30,21 +30,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.common.util.MapUtil;
+import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -54,12 +59,13 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
 
     @JsonProperty("id")
     private long id;
-    @JsonProperty("rowkeys")
-    private NRowkeyColumnDesc[] rowkeys = new NRowkeyColumnDesc[0];
-    @JsonProperty("dim_cf")
-    private NColumnFamilyDesc.DimensionCF[] dimensionCFs = new NColumnFamilyDesc.DimensionCF[0];
-    @JsonProperty("measure_cf")
-    private NColumnFamilyDesc.MeasureCF[] measureCFs = new NColumnFamilyDesc.MeasureCF[0];
+
+    @JsonProperty("col_order")
+    private List<Integer> colOrder = Lists.newArrayList();
+
+    @JsonProperty("layout_override_indexes")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Map<Integer, String> layoutOverrideIndexes = Maps.newHashMap();
     @JsonProperty("shard_by_columns")
     private int[] shardByColumns = new int[0];
     @JsonProperty("sort_by_columns")
@@ -69,9 +75,14 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
 
     // computed fields below
 
+    /**
+     * https://stackoverflow.com/questions/3810738/google-collections-immutablemap-iteration-order
+     * <p>
+     * the ImmutableMap factory methods and builder return instances that follow the iteration order of the inputs provided when the map in constructed.
+     * However, an ImmutableSortedMap, which is a subclass of ImmutableMap. sorts the keys.
+     */
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
-    private Map<Integer, String> dimensionIndexMap;
-    private Map<Integer, Integer> dimensionPosMap;
+    private ImmutableBiMap<Integer, Measure> orderedMeasures;
 
     public NCuboidLayout() {
     }
@@ -85,33 +96,40 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
                 return orderedDimensions;
 
             ImmutableBiMap.Builder<Integer, TblColRef> dimsBuilder = ImmutableBiMap.builder();
-            for (NRowkeyColumnDesc rowkeyColDesc : rowkeys) {
-                dimsBuilder.put(rowkeyColDesc.getDimensionId(),
-                        cuboidDesc.getEffectiveDimCols().get(rowkeyColDesc.getDimensionId()));
+
+            for (int colId : colOrder) {
+                if (colId < NDataModel.MEASURE_ID_BASE)
+                    dimsBuilder.put(colId, cuboidDesc.getEffectiveDimCols().get(colId));
             }
+
             orderedDimensions = dimsBuilder.build();
             return orderedDimensions;
         }
     }
 
-    public ImmutableBiMap<Integer, NDataModel.Measure> getOrderedMeasures() { // measure order abides by column family
-        return cuboidDesc.getOrderedMeasures();
-    }
-
-    public Map<Integer, String> getDimensionIndexMap() {
-        if (dimensionIndexMap != null)
-            return dimensionIndexMap;
+    public ImmutableBiMap<Integer, Measure> getOrderedMeasures() { // measure order abides by column family
+        if (orderedMeasures != null)
+            return orderedMeasures;
 
         synchronized (this) {
-            if (dimensionIndexMap != null)
-                return dimensionIndexMap;
+            if (orderedMeasures != null)
+                return orderedMeasures;
 
-            dimensionIndexMap = Maps.newHashMapWithExpectedSize(rowkeys.length);
-            for (NRowkeyColumnDesc rowkey : rowkeys) {
-                dimensionIndexMap.put(rowkey.getDimensionId(), rowkey.getIndex());
+            ImmutableBiMap.Builder<Integer, Measure> measureBuilder = ImmutableBiMap.builder();
+
+            for (int colId : colOrder) {
+                if (colId >= NDataModel.MEASURE_ID_BASE)
+                    measureBuilder.put(colId, cuboidDesc.getEffectiveMeasures().get(colId));
             }
-            return dimensionIndexMap;
+
+            orderedMeasures = measureBuilder.build();
+            return orderedMeasures;
         }
+    }
+
+    public String getColIndexType(int colId) {
+        return MapUtil.getOrElse(this.layoutOverrideIndexes, colId,
+                MapUtil.getOrElse(getCuboidDesc().getCubePlan().getCubePlanOverrideIndexes(), colId, "eq"));
     }
 
     public Integer getDimensionPos(TblColRef tblColRef) {
@@ -151,13 +169,22 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         this.id = id;
     }
 
-    public NRowkeyColumnDesc[] getRowkeyColumns() {
-        return isCachedAndShared() ? Arrays.copyOf(rowkeys, rowkeys.length) : rowkeys;
+    public ImmutableList<Integer> getColOrder() {
+        return ImmutableList.copyOf(colOrder);
     }
 
-    public void setRowkeyColumns(NRowkeyColumnDesc[] rowkeys) {
+    public void setColOrder(List<Integer> l) {
         checkIsNotCachedAndShared();
-        this.rowkeys = rowkeys;
+        this.colOrder = l;
+    }
+
+    public ImmutableMap<Integer, String> getLayoutOverrideIndexes() {
+        return ImmutableMap.copyOf(this.layoutOverrideIndexes);
+    }
+
+    public void setLayoutOverrideIndexes(Map<Integer, String> m) {
+        checkIsNotCachedAndShared();
+        this.layoutOverrideIndexes = m;
     }
 
     public int[] getShardByColumns() {
@@ -194,24 +221,6 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     public void setCuboidDesc(NCuboidDesc cuboidDesc) {
         checkIsNotCachedAndShared();
         this.cuboidDesc = cuboidDesc;
-    }
-
-    public NColumnFamilyDesc.DimensionCF[] getDimensionCFs() {
-        return isCachedAndShared() ? Arrays.copyOf(dimensionCFs, dimensionCFs.length) : dimensionCFs;
-    }
-
-    public void setDimensionCFs(NColumnFamilyDesc.DimensionCF[] dimensionCFs) {
-        checkIsNotCachedAndShared();
-        this.dimensionCFs = dimensionCFs;
-    }
-
-    public NColumnFamilyDesc.MeasureCF[] getMeasureCFs() {
-        return isCachedAndShared() ? Arrays.copyOf(measureCFs, measureCFs.length) : measureCFs;
-    }
-
-    public void setMeasureCFs(NColumnFamilyDesc.MeasureCF[] measureCFs) {
-        checkIsNotCachedAndShared();
-        this.measureCFs = measureCFs;
     }
 
     public boolean isCachedAndShared() {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -58,10 +57,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 /**
  * Marks the root entity of JSON persistence. Unit of read, write, cache, and
  * refresh.
- * 
+ * <p>
  * - CubeInstance - CubeDesc - SourceTable - JobMeta - Dictionary (not JSON but
  * also top level persistence)
- * 
+ *
  * @author yangli9
  */
 @SuppressWarnings("serial")
@@ -83,13 +82,13 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     @JsonProperty("last_modified")
     protected long lastModified;
-    
+
     // if cached and shared, the object MUST NOT be modified (call setXXX() for example)
     protected boolean isCachedAndShared = false;
 
     /**
      * Metadata model version
-     *
+     * <p>
      * User info only, we don't do version control
      */
     @JsonProperty("version")
@@ -129,7 +128,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     public void updateRandomUuid() {
         setUuid(UUID.randomUUID().toString());
     }
-    
+
     public boolean isCachedAndShared() {
         return isCachedAndShared;
     }
@@ -137,10 +136,10 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     public void setCachedAndShared(boolean isCachedAndShared) {
         if (this.isCachedAndShared && isCachedAndShared == false)
             throw new IllegalStateException();
-            
+
         this.isCachedAndShared = isCachedAndShared;
     }
-    
+
     public void checkIsNotCachedAndShared() {
         if (isCachedAndShared)
             throw new IllegalStateException();
@@ -148,7 +147,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     /**
      * The name as a part of the resource path used to save the entity.
-     * 
+     * <p>
      * E.g. /resource-root-dir/{RESOURCE_NAME}.json
      */
     public String resourceName() {

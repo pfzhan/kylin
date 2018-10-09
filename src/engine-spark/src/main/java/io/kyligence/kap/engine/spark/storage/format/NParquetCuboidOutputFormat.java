@@ -65,7 +65,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NBatchConstants;
-import io.kyligence.kap.cube.model.NColumnFamilyDesc;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -120,7 +119,6 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
             String[] columnName = new String[columnNum];
             boolean[] onlyEQIndex = new boolean[columnNum];
 
-            Map<Integer, String> indexMap = cuboidLayout.getDimensionIndexMap();
             int col = 0;
             for (Map.Entry<Integer, TblColRef> dim : orderedDimensions.entrySet()) {
                 int colCardinality = -1;
@@ -132,7 +130,7 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
                     }
                 }
                 cardinality[col] = colCardinality;
-                onlyEQIndex[col] = "eq".equalsIgnoreCase(indexMap.get(dim.getKey()));
+                onlyEQIndex[col] = "eq".equalsIgnoreCase(cuboidLayout.getColIndexType(dim.getKey()));
                 columnLength[col] = rowKeyColumnIO.getColumnLength(dim.getValue());
                 columnName[col] = dim.getValue().getIdentity();
 
@@ -224,17 +222,14 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
 
         @Override
         protected ParquetRawWriter newWriter() throws IOException, InterruptedException {
-            NColumnFamilyDesc[] dimCFs = cuboidLayout.getDimensionCFs();
-            NColumnFamilyDesc[] measureCFs = cuboidLayout.getMeasureCFs();
 
-            List<Type> types = Lists.newArrayListWithExpectedSize(dimCFs.length + measureCFs.length);
-            for (NColumnFamilyDesc cf : dimCFs) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
-                        cf.getName()));
-            }
-            for (NColumnFamilyDesc cf : measureCFs) {
-                types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY,
-                        cf.getName()));
+            List<Type> types = Lists.newArrayList();
+            //for now, all dimensions share a column:
+            types.add(new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "D"));
+            // and each measure has its own column:
+            for (int i = 0; i < cuboidLayout.getOrderedMeasures().size(); i++) {
+                types.add(
+                        new PrimitiveType(Type.Repetition.REQUIRED, PrimitiveType.PrimitiveTypeName.BINARY, "M" + (i)));
             }
 
             curLocalParquet = File.createTempFile(UUID.randomUUID().toString(), ".parquet");
@@ -249,34 +244,28 @@ public class NParquetCuboidOutputFormat extends FileOutputFormat<Text, Text> {
         }
 
         @Override
+        //TODO: servere performance issue!
         protected void writeData(Text key, Text value) throws IOException {
             byte[] bytes = key.getBytes().clone();
 
-            NColumnFamilyDesc[] dimCFs = cuboidLayout.getDimensionCFs();
-            NColumnFamilyDesc[] measureCFs = cuboidLayout.getMeasureCFs();
-            int[] valueLengths = new int[dimCFs.length + measureCFs.length];
+            int[] valueLengths = new int[1 + cuboidLayout.getOrderedMeasures().size()];
             int i = 0;
             int measureOffset = 0;
-            for (NColumnFamilyDesc dimCF : dimCFs) {
-                valueLengths[i] = 0;
-                for (int c : dimCF.getColumns()) {
-                    valueLengths[i] += rowKeyColumnIO.getColumnLength(orderedDimensions.get(c));
-                }
-                measureOffset += valueLengths[i];
-                i++;
+
+            //dim
+            valueLengths[i] = 0;
+            for (TblColRef c : cuboidLayout.getOrderedDimensions().values()) {
+                valueLengths[i] += rowKeyColumnIO.getColumnLength(c);
             }
+            measureOffset += valueLengths[i];
+            i++;
 
             ByteBuffer measureBuf = ByteBuffer.wrap(bytes);
             measureBuf.position(measureOffset);
-            int[] valueLength = measureCodec.getPeekLength(measureBuf);
-            int measureIdx = 0;
-            for (NColumnFamilyDesc measureCF : measureCFs) {
-                valueLengths[i] = 0;
-                for (int c : measureCF.getColumns()) {
-                    valueLengths[i] += valueLength[measureIdx++];
-                }
-                i++;
-            }
+            int[] peekedLengths = measureCodec.getPeekLength(measureBuf);
+
+            System.arraycopy(peekedLengths, 0, valueLengths, 1, peekedLengths.length);
+
             writer.writeRow(bytes, valueLengths);
             indexBundleWriter.write(bytes, writer.getPageCntSoFar());
             lineCounter++;

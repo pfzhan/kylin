@@ -106,7 +106,10 @@ public class BasicTest {
 
     @Test
     public void testxx() throws InterruptedException {
-        System.out.println(Long.MAX_VALUE);
+        List<String> x = Lists.newArrayList();
+        x.add("a");
+        x.add("b");
+        System.out.println(x.toString());
     }
 
     @Test
@@ -182,8 +185,8 @@ public class BasicTest {
     @Ignore("convenient trial tool for dev")
     public void test1() throws Exception {
 
-        System.out.println(org.apache.kylin.common.util.DateFormat.formatToTimeStr(1433833611000L));
-        System.out.println(org.apache.kylin.common.util.DateFormat.formatToTimeStr(1433250517000L));
+        System.out.println(org.apache.kylin.common.util.DateFormat.formatToTimeStr(1538904204000L));
+        System.out.println(org.apache.kylin.common.util.DateFormat.formatToTimeStr(1538905495000L));
         System.out.println(org.apache.kylin.common.util.DateFormat.stringToMillis("2015-06-01 00:00:00"));
         System.out.println(org.apache.kylin.common.util.DateFormat.stringToMillis("2015-05-15 17:00:00"));
 

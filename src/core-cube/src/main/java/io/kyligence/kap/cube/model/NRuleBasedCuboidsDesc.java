@@ -66,14 +66,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
     @JsonProperty("measures")
     private int[] measures = new int[0];
 
-    @JsonProperty("rowkeys")
-    private NRowkeyColumnDesc[] rowkeys = new NRowkeyColumnDesc[0];
-
-    //dim_cf of rule based cuboid is skipped
-
-    @JsonProperty("measure_cf")
-    private NColumnFamilyDesc.MeasureCF[] measureCFs = new NColumnFamilyDesc.MeasureCF[0];
-
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> nAggregationGroups;
 
@@ -124,11 +116,11 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         this.measureSet = orderedMeasures.values();
 
         dim2bitIndex = Maps.newHashMap();
-        for (int i = 0; i < rowkeys.length; i++) {
-            dim2bitIndex.put(rowkeys[i].getDimensionId(), rowkeys.length - i - 1);
+        for (int i = 0; i < dimensions.length; i++) {
+            dim2bitIndex.put(dimensions[i], dimensions.length - i - 1);
         }
 
-        for (int i = 0; i < rowkeys.length; i++) {
+        for (int i = 0; i < dimensions.length; i++) {
             fullMask |= 1L << i;
         }
 
@@ -225,10 +217,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         this.cubePlan = cubePlan;
     }
 
-    public NRowkeyColumnDesc[] getRowkeys() {
-        return rowkeys;
-    }
-
     public int[] getDimensions() {
         return isCachedAndShared() ? Arrays.copyOf(dimensions, dimensions.length) : dimensions;
     }
@@ -271,9 +259,5 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
 
     public boolean isBlackedCuboid(long cuboidID) {
         return cuboidBlackSet.contains(cuboidID);
-    }
-
-    public NColumnFamilyDesc.MeasureCF[] getMeasureCFs() {
-        return measureCFs;
     }
 }

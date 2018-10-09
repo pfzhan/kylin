@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.Scheduler;
@@ -268,14 +269,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     public void shutdown() throws SchedulerException {
         logger.info("Shutting down DefaultScheduler ....");
         jobLock.unlockJobEngine();
-        try {
-            fetcherPool.shutdown();
-            fetcherPool.awaitTermination(1, TimeUnit.MINUTES);
-            jobPool.shutdown();
-            jobPool.awaitTermination(1, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            //ignore it
-        }
+        ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
+        ExecutorServiceUtil.shutdownGracefully(jobPool, 60);
     }
 
     @Override

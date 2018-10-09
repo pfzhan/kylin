@@ -122,7 +122,9 @@ public class NCuboidAggregator {
     }
 
     public static class CuboidAggregateUdf extends UserDefinedAggregateFunction {
-        private static final int DEFAULT_BUFFER_SIZE = 256;
+
+        //TODO: what is the optimal default size?
+        private static final int DEFAULT_BUFFER_SIZE = 1024;
         private int measureNum;
         private MeasureAggregators aggregators;
         private boolean[] needAggs;
@@ -177,7 +179,9 @@ public class NCuboidAggregator {
                     System.arraycopy(buf.array(), 0, ret, 0, buf.position());
                     return ret;
                 } catch (BufferOverflowException e) {
-                    logger.info("Buffer size {} cannot hold the filter, resizing to 2 times", estimateSize);
+                    if (estimateSize >= (1 << 20))
+                        logger.info("Buffer size {} cannot hold the filter, resizing to 2 times", estimateSize);
+
                     if (estimateSize == (1 << 30))
                         throw e;
                     estimateSize = estimateSize << 1;

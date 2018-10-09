@@ -47,6 +47,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -99,22 +100,7 @@ public abstract class BaseScheduledReporter implements Closeable {
      * Uses the shutdown pattern from http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/ExecutorService.html
      */
     public void stop() {
-        executor.shutdown(); // Disable new tasks from being submitted
-        try {
-            // Wait a while for existing tasks to terminate
-            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                executor.shutdownNow(); // Cancel currently executing tasks
-                // Wait a while for tasks to respond to being cancelled
-                if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                    System.err.println(getClass().getSimpleName() + ": ScheduledExecutorService did not terminate");
-                }
-            }
-        } catch (InterruptedException ie) {
-            // (Re-)Cancel if current thread also interrupted
-            executor.shutdownNow();
-            // Preserve interrupt status
-            Thread.currentThread().interrupt();
-        }
+        ExecutorServiceUtil.shutdownGracefully(executor, 60);
     }
 
     /**

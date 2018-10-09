@@ -5,35 +5,16 @@
   "name": "match_copy",
   "model_name": "match_copy",
   "description": "test_description",
-  "dimensions": [
-    {
-      "id": 1,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+  "cubeplan_override_encodings": {
+    "2": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 2,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 3,
-      "encoding": {
-        "name": "fixed_length:10",
-        "version": "1"
-      }
-    },
-    {
-      "id": 11,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
-    }],
+    "3": {
+      "name": "fixed_length:10",
+      "version": "1"
+    }
+  },
   "cuboids": [
     {
       "id": 0,
@@ -50,23 +31,13 @@
       "layouts": [
         {
           "id": 1,
-          "rowkeys": [
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 2,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 3,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 11,
-              "index": "eq"
-            }
+          "col_order": [
+            1,
+            2,
+            3,
+            11,
+            1000,
+            1001
           ],
           "dim_cf": [
             {
@@ -91,8 +62,10 @@
           "storage_type": 20
         }
       ]
-    }],
-  "override_properties": {},
+    }
+  ],
+  "override_properties": {
+  },
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

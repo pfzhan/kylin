@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
 import io.kyligence.kap.cube.model.NBatchConstants;
@@ -109,6 +108,7 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
         @SuppressWarnings("resource")
         JavaSparkContext ctx = new JavaSparkContext(ss.sparkContext());
 
+        //TODO: not using column storage AT ALL!!!
         Configuration jobConf = new Configuration(ctx.hadoopConfiguration());
         jobConf.set(BatchConstants.CFG_CUBE_NAME, cuboid.getSegDetails().getDataflowName());
         jobConf.set(BatchConstants.CFG_CUBE_SEGMENT_ID, Integer.toString(cuboid.getSegDetails().getSegmentId()));
@@ -153,11 +153,11 @@ public class NParquetStorage implements NSparkCubingEngine.NSparkCubingStorage, 
 
         final int columns = data.schema().length();
         boolean expression = columns == cuboidDesc.getEffectiveDimCols().size()
-                + cuboidDesc.getOrderedMeasures().size();
+                + cuboidDesc.getEffectiveMeasures().size();
         Preconditions.checkArgument(expression, "Dataset schema not match with cuboid layout.");
 
-        final Map<Integer, TblColRef> dimensions = Maps.newLinkedHashMap(layout.getOrderedDimensions());
-        final Map<Integer, NDataModel.Measure> measures = Maps.newLinkedHashMap(cuboidDesc.getOrderedMeasures());
+        final ImmutableBiMap<Integer, TblColRef> dimensions = layout.getOrderedDimensions();
+        final ImmutableBiMap<Integer, NDataModel.Measure> measures = layout.getOrderedMeasures();
         final IDimensionEncodingMap dimEncMap = new NCubeDimEncMap(cuboid.getSegDetails().getDataSegment());
         final RowKeyColumnIO rowKeyColumnIO = new RowKeyColumnIO(dimEncMap);
         final MeasureCodec measureCodec = new MeasureCodec(measures.values().toArray(new MeasureDesc[0]));

@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -68,7 +69,7 @@ public class H2Database {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(H2Database.class);
 
-    private static final String[] ALL_TABLES = new String[]{ //
+    private static final String[] ALL_TABLES = new String[] { //
             "edw.test_cal_dt", //
             "default.test_category_groupings", //
             "default.test_kylin_fact", //
@@ -76,7 +77,7 @@ public class H2Database {
             "edw.test_seller_type_dim", //
             "edw.test_sites", //
             "default.test_account", //
-            "default.test_country"}; //
+            "default.test_country" }; //
     private static final Map<String, String> javaToH2DataTypeMapping = new HashMap<String, String>();
 
     static {
@@ -105,39 +106,40 @@ public class H2Database {
     private void loadH2Table(String tableName) throws SQLException {
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
         TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
-        File tempFile = null;
 
+        String path = path(tableDesc);
+        FileOutputStream tempFileStream = null;
+        InputStream csvStream = null;
+        File tempFile = null;
         try {
             tempFile = File.createTempFile("tmp_h2", ".csv");
-            FileOutputStream tempFileStream = new FileOutputStream(tempFile);
-            String path = path(tableDesc);
-            InputStream csvStream = metaMgr.getStore().getResource(path).inputStream;
+            tempFileStream = new FileOutputStream(tempFile);
+            csvStream = metaMgr.getStore().getResource(path).inputStream;
 
             IOUtils.copy(csvStream, tempFileStream);
 
-            csvStream.close();
-            tempFileStream.close();
+            String cvsFilePath = tempFile.getPath();
+            try (Statement stmt = h2Connection.createStatement()) {
+
+                String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\nCREATE SCHEMA IF NOT EXISTS EDW;\nSET SCHEMA DEFAULT;\n";
+                stmt.executeUpdate(createDBSql);
+
+                String sql = generateCreateH2TableSql(tableDesc, cvsFilePath);
+                stmt.executeUpdate(sql);
+
+                List<String> createIndexStatements = generateCreateH2IndexSql(tableDesc);
+                for (String indexSql : createIndexStatements) {
+                    stmt.executeUpdate(indexSql);
+                }
+            }
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new IllegalStateException(e);
+        } finally {
+            IOUtils.closeQuietly(csvStream);
+            IOUtils.closeQuietly(tempFileStream);
+            FileUtils.deleteQuietly(tempFile);
         }
-
-        String cvsFilePath = tempFile.getPath();
-        Statement stmt = h2Connection.createStatement();
-
-        String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\nCREATE SCHEMA IF NOT EXISTS EDW;\nSET SCHEMA DEFAULT;\n";
-        stmt.executeUpdate(createDBSql);
-
-        String sql = generateCreateH2TableSql(tableDesc, cvsFilePath);
-        stmt.executeUpdate(sql);
-
-        List<String> createIndexStatements = generateCreateH2IndexSql(tableDesc);
-        for (String indexSql : createIndexStatements) {
-            stmt.executeUpdate(indexSql);
-        }
-
-        if (tempFile != null)
-            tempFile.delete();
     }
 
     private String path(TableDesc tableDesc) {

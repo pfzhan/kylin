@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,7 +39,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 
 package io.kylingence.kap.event.manager;
 
@@ -62,17 +60,12 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Sets;
-import io.kylingence.kap.event.model.EventStatus;
-import io.kylingence.kap.event.handle.EventHandler;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.EventContext;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -84,6 +77,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.MoreObjects;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Sets;
+import io.kylingence.kap.event.handle.EventHandler;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.EventContext;
+import io.kylingence.kap.event.model.EventStatus;
 
 /**
  */
@@ -153,7 +151,8 @@ public class EventOrchestrator {
 
             String groupKey;
             for (Event event : events) {
-                if (event.getStatus().equals(EventStatus.SUCCEED) || event.getStatus().equals(EventStatus.ERROR) || !event.isApproved()) {
+                if (event.getStatus().equals(EventStatus.SUCCEED) || event.getStatus().equals(EventStatus.ERROR)
+                        || !event.isApproved()) {
                     continue;
                 }
                 groupKey = genGroupKey(event);
@@ -175,7 +174,8 @@ public class EventOrchestrator {
                 eventSetManager = eventSetManagerList.get(lastIndex);
             }
 
-            if (eventSetManager != null && event.getClass().equals(eventSetManager.getEventClassType()) && event.isParallel()) {
+            if (eventSetManager != null && event.getClass().equals(eventSetManager.getEventClassType())
+                    && event.isParallel()) {
                 eventSetManager.addEvent(event);
             } else {
                 eventSetManager = new EventSetManager();
@@ -189,10 +189,11 @@ public class EventOrchestrator {
         private void filterEvents(List<Event> events) {
             Iterator<Event> iterator = events.iterator();
             Event event;
-            while (iterator.hasNext()){
+            while (iterator.hasNext()) {
                 event = iterator.next();
                 String groupKey = genGroupKey(event);
-                if (event.getStatus().equals(EventStatus.SUCCEED) || !event.isApproved() || blackList.contains(groupKey)){
+                if (event.getStatus().equals(EventStatus.SUCCEED) || !event.isApproved()
+                        || blackList.contains(groupKey)) {
                     iterator.remove();
                 }
             }
@@ -221,7 +222,6 @@ public class EventOrchestrator {
         return key.toString();
     }
 
-
     private class EventWorker implements Runnable {
 
         private final List<EventSetManager> eventSetManagers;
@@ -234,7 +234,7 @@ public class EventOrchestrator {
         public void run() {
             try {
                 for (EventSetManager eventSetManager : eventSetManagers) {
-                    if (!eventSetManager.execute()){
+                    if (!eventSetManager.execute()) {
                         return;
                     }
                 }
@@ -295,16 +295,12 @@ public class EventOrchestrator {
         fetcherPool.scheduleAtFixedRate(fetcher, pollSecond / 10, pollSecond, TimeUnit.SECONDS);
     }
 
-    public void shutdown() throws SchedulerException {
+    public void shutdown() {
         logger.info("Shutting down EventOrchestrator ....");
-        try {
-            fetcherPool.shutdown();
-            fetcherPool.awaitTermination(1, TimeUnit.MINUTES);
-            eventProcessPool.shutdown();
-            eventProcessPool.awaitTermination(1, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            //ignore it
-        }
+        if (fetcherPool != null)
+            ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);
+        if (eventProcessPool != null)
+            ExecutorServiceUtil.shutdownGracefully(eventProcessPool, 60);
     }
 
     public synchronized void register(EventHandler handler) {
@@ -361,7 +357,8 @@ public class EventOrchestrator {
                 if (EventStatus.RUNNING.equals(status)) {
                     String jobId = updatedEvent.getJobId();
                     if (StringUtils.isNotBlank(jobId)) {
-                        AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, event.getProject()).getJob(jobId);
+                        AbstractExecutable job = NExecutableManager.getInstance(kylinConfig, event.getProject())
+                                .getJob(jobId);
                         if (job != null) {
                             ExecutableState jobStatus = job.getStatus();
                             if (ExecutableState.ERROR.equals(jobStatus)) {
@@ -382,7 +379,7 @@ public class EventOrchestrator {
 
     }
 
-    public void cleanBlackList(){
+    public void cleanBlackList() {
         blackList.clear();
     }
 }

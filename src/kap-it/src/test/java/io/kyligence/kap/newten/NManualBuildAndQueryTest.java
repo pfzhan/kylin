@@ -77,7 +77,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
-        super.cleanupTestMetadata();
+        //super.cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
         System.clearProperty("noBuild");
         System.clearProperty("isDeveloperMode");

@@ -24,9 +24,11 @@
 
 package io.kyligence.kap.cube.model;
 
+import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.junit.After;
@@ -34,7 +36,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.BiMap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -50,6 +55,16 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+    }
+
+    @Test
+    public void foo() throws JsonProcessingException {
+
+        Map<Long, String> defaultEncodings = Maps.newHashMap();
+        defaultEncodings.put(1L, "xxxxx");
+        defaultEncodings.put(2L, "rrrr");
+        String s = JsonUtil.writeValueAsString(defaultEncodings);
+        System.out.println(s);
     }
 
     @Test
@@ -78,16 +93,86 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("COUNT", m.getFunction().getExpression());
         Assert.assertEquals("1", m.getFunction().getParameter().getValue());
 
-        NCuboidDesc cuboidDesc = Iterables.getLast(cube.getCuboids(), null);
-        Assert.assertNotNull(cuboidDesc);
-        Assert.assertEquals(1000002000, cuboidDesc.getId());
-        Assert.assertEquals(1, cuboidDesc.getLayouts().size());
+        {
+            NCuboidDesc first = Iterables.getFirst(cube.getCuboids(), null);
+            Assert.assertNotNull(first);
+            Assert.assertEquals(1000000, first.getId());
+            Assert.assertEquals(1, first.getLayouts().size());
+            Assert.assertEquals(1, first.getLayouts().size());
+            NCuboidLayout cuboidLayout = first.getLastLayout();
+            Assert.assertEquals(1000001, cuboidLayout.getId());
+            Assert.assertEquals(23, cuboidLayout.getOrderedDimensions().size());
+            Assert.assertEquals(23, cuboidLayout.getOrderedDimensions().size()); //test lazy init
+            Assert.assertEquals(11, cuboidLayout.getOrderedMeasures().size());
+            Assert.assertEquals(11, cuboidLayout.getOrderedMeasures().size()); //test lazy init
+        }
 
-        NCuboidLayout cuboidLayout = cuboidDesc.getLastLayout();
-        Assert.assertNotNull(cuboidLayout);
-        Assert.assertEquals(1000002001, cuboidLayout.getId());
-        Assert.assertEquals(26, cuboidLayout.getOrderedDimensions().size());
-        Assert.assertEquals(1, cuboidLayout.getDimensionCFs().length);
+        {
+            NCuboidDesc last = Iterables.getLast(cube.getCuboids(), null);
+            Assert.assertNotNull(last);
+            Assert.assertEquals(1000002000, last.getId());
+            Assert.assertEquals(1, last.getLayouts().size());
+            NCuboidLayout cuboidLayout = last.getLastLayout();
+            Assert.assertNotNull(cuboidLayout);
+            Assert.assertEquals(1000002001, cuboidLayout.getId());
+            Assert.assertEquals(26, cuboidLayout.getOrderedDimensions().size());
+            Assert.assertEquals(0, cuboidLayout.getOrderedMeasures().size());
+        }
+    }
+
+    @Test
+    public void testEncodingOverride() {
+        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        NCubePlan cubePlan = mgr.getCubePlan("ncube_basic");
+
+        NEncodingDesc dimensionEncoding = cubePlan.getDimensionEncoding(cubePlan.getModel().getColRef(1));
+        Assert.assertEquals("dict", dimensionEncoding.getName());
+
+        NEncodingDesc dimensionEncoding1 = cubePlan.getDimensionEncoding(cubePlan.getModel().getColRef(2));
+        Assert.assertEquals("date", dimensionEncoding1.getName());
+    }
+
+    @Test
+    public void testIndexOverride() throws IOException {
+        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        {
+            NCubePlan cubePlan = mgr.getCubePlan("ncube_basic");
+            NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(1000001L);
+            final String colIndexType = cuboidLayout.getColIndexType(1);
+            Assert.assertEquals("eq", colIndexType);
+        }
+
+        {
+            NCubePlan cubePlan = mgr.updateCubePlan("ncube_basic", new NCubePlanManager.NCubePlanUpdater() {
+                @Override
+                public void modify(NCubePlan copyForWrite) {
+                    Map<Integer, String> map = Maps.newHashMap();
+                    map.put(1, "non-eq");
+                    copyForWrite.setCubePlanOverrideIndexes(map);
+                }
+            });
+            NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(1000001L);
+            final String colIndexType = cuboidLayout.getColIndexType(1);
+            Assert.assertEquals("non-eq", colIndexType);
+        }
+        {
+            NCubePlan cubePlan = mgr.updateCubePlan("ncube_basic", new NCubePlanManager.NCubePlanUpdater() {
+                @Override
+                public void modify(NCubePlan copyForWrite) {
+                    Map<Integer, String> map = Maps.newHashMap();
+                    map.put(1, "non-eq");
+                    copyForWrite.setCubePlanOverrideIndexes(map);
+
+                    Map<Integer, String> map2 = Maps.newHashMap();
+                    map.put(1, "non-eq-2");
+                    copyForWrite.getCuboidLayout(1000001L).setLayoutOverrideIndexes(map2);
+                }
+            });
+            NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(1000001L);
+            final String colIndexType = cuboidLayout.getColIndexType(1);
+            Assert.assertEquals("non-eq-2", colIndexType);
+        }
+
     }
 
     @Test

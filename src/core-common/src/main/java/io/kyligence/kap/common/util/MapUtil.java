@@ -21,49 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.util;
 
-package io.kyligence.kap.cube.model;
+import java.util.Map;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.metadata.model.TblColRef;
+import com.google.common.base.Preconditions;
 
-import java.io.Serializable;
-
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class NDimensionDesc implements Serializable, IKeep {
-
-    @JsonProperty("id")
-    private int id;
-
-    @JsonProperty("encoding")
-    private NEncodingDesc encoding;
-
-    public NDimensionDesc() {
+public class MapUtil<K, V> {
+    public static <K, V> V getOrElse(Map<K, V> map, K key, V defaultValue) {
+        Preconditions.checkNotNull(map);
+        V v = map.get(key);
+        if (v == null) {
+            return defaultValue;
+        } else {
+            return v;
+        }
     }
-
-    public void init(NCubePlan nCubePlan) {
-        TblColRef colRef = nCubePlan.getModel().getEffectiveColsMap().get(id);
-        encoding.init(colRef);
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public NEncodingDesc getEncoding() {
-        return encoding;
-    }
-
-    public void setEncoding(NEncodingDesc encoding) {
-        this.encoding = encoding;
-    }
-
 }

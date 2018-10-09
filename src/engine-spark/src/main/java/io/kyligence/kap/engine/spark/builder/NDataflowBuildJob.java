@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Preconditions;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -47,6 +46,8 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -58,7 +59,7 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 public class NDataflowBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowBuildJob.class);
@@ -113,8 +114,7 @@ public class NDataflowBuildJob extends NDataflowJob {
                     source.setSegment(seg);
                     for (NCuboidDesc root : source.getToBuildCuboids()) {
                         recursiveBuildCuboid(seg, root, source.getDataset(),
-                                cubePlan.getCuboidLayout(source.getLayoutId()).getCuboidDesc().getOrderedMeasures(),
-                                nSpanningTree);
+                                cubePlan.getCuboidLayout(source.getLayoutId()).getOrderedMeasures(), nSpanningTree);
                     }
                     source.getDataset().unpersist();
                 }
@@ -126,7 +126,7 @@ public class NDataflowBuildJob extends NDataflowJob {
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
-            Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+            Map<Integer, Measure> measures, NSpanningTree nSpanningTree) throws IOException {
 
         if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().length == 0);
@@ -153,11 +153,11 @@ public class NDataflowBuildJob extends NDataflowJob {
             long cuboidRowCnt = afterAgg.count();
 
             int partition = estimatePartitions(afterAgg, config);
-            Set<Integer> meas = cuboid.getOrderedMeasures().keySet();
             for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
-                Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
-                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
-                        .repartition(partition).sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
+                Set<Integer> dimIds = layout.getOrderedDimensions().keySet();
+                Set<Integer> measureIds = layout.getOrderedMeasures().keySet();
+                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(dimIds, measureIds))
+                        .repartition(partition).sortWithinPartitions(NSparkCubingUtil.getColumns(dimIds));
                 saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
             }
             for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {

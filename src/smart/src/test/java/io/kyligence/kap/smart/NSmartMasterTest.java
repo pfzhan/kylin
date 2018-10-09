@@ -225,7 +225,7 @@ public class NSmartMasterTest extends NTestBase {
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
             Assert.assertEquals(4, cuboidDescs.size());
-            Assert.assertEquals(6, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts(),
+            Assert.assertEquals(5, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts(),
                     cuboidDescs.get(2).getLayouts(), cuboidDescs.get(3).getLayouts()));
         }
 

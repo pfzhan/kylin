@@ -24,18 +24,18 @@
 
 package io.kyligence.kap.smart.cube;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NColumnFamilyDesc;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.smart.NSmartContext;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.SortedSet;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Pair;
@@ -46,16 +46,19 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.model.NColumnFamilyDesc;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.smart.NSmartContext;
 
 public class CuboidSuggester {
 
@@ -78,10 +81,10 @@ public class CuboidSuggester {
         }
     }
 
-    private class RowkeySuggester {
+    private class ColIndexSuggestor {
         OLAPContext olapContext;
 
-        private RowkeySuggester(OLAPContext olapContext) {
+        private ColIndexSuggestor(OLAPContext olapContext) {
             this.olapContext = olapContext;
         }
 
@@ -113,11 +116,8 @@ public class CuboidSuggester {
             return "eq";
         }
 
-        NRowkeyColumnDesc suggest(int dimId, TblColRef colRef) {
-            NRowkeyColumnDesc desc = new NRowkeyColumnDesc();
-            desc.setDimensionId(dimId);
-            desc.setIndex(suggestIndex(colRef));
-            return desc;
+        String suggest(int dimId, TblColRef colRef) {
+            return suggestIndex(colRef);
         }
     }
 
@@ -176,17 +176,18 @@ public class CuboidSuggester {
         }
     }
 
-    private NRowkeyColumnDesc[] suggestRowkeys(OLAPContext ctx, final Map<Integer, Double> dimScores,
+    private Map<Integer, String> suggestIndexMap(OLAPContext ctx, final Map<Integer, Double> dimScores,
             Map<Integer, TblColRef> colRefMap) {
-        RowkeySuggester suggester = new RowkeySuggester(ctx);
-        NRowkeyColumnDesc[] descs = new NRowkeyColumnDesc[dimScores.size()];
-        int i = 0;
+        ColIndexSuggestor suggester = new ColIndexSuggestor(ctx);
+        Map<Integer, String> ret = Maps.newHashMap();
         for (Map.Entry<Integer, Double> dimEntry : dimScores.entrySet()) {
             int dimId = dimEntry.getKey();
-            descs[i++] = suggester.suggest(dimId, colRefMap.get(dimId));
+            String index = suggester.suggest(dimId, colRefMap.get(dimId));
+            if (!"eq".equals(index)) {
+                ret.put(dimId, index);
+            }
         }
-        Arrays.sort(descs, new RowkeyComparator(dimScores));
-        return descs;
+        return ret;
     }
 
     private int[] suggestShardBy(Collection<Integer> dimIds) {
@@ -265,9 +266,12 @@ public class CuboidSuggester {
     public static boolean compareLayouts(NCuboidLayout l1, NCuboidLayout l2) {
         // TODO: currently it's exact equals, we should tolerate some order
         // and cf inconsistency
-        return Arrays.equals(l1.getRowkeyColumns(), l2.getRowkeyColumns())
-                && Arrays.equals(l1.getDimensionCFs(), l2.getDimensionCFs())
-                && Arrays.equals(l1.getMeasureCFs(), l2.getMeasureCFs())
+
+        //TODO: https://stackoverflow.com/questions/124585/java-equals-to-reflect-or-not-to-reflect
+        //use EqualsBuilder
+        return Objects.equals(l1.getColOrder(), l2.getColOrder())
+                && Objects.equals(l1.getLayoutOverrideIndexes(), l2.getLayoutOverrideIndexes())
+                && Objects.equals(l1.getStorageType(), l2.getStorageType())
                 && Arrays.equals(l1.getShardByColumns(), l2.getShardByColumns())
                 && Arrays.equals(l1.getSortByColumns(), l2.getSortByColumns());
     }
@@ -335,9 +339,11 @@ public class CuboidSuggester {
         if (dimScores.isEmpty() && measureIds.isEmpty())
             return;
 
-        NRowkeyColumnDesc[] rowkeyColumnDescs = suggestRowkeys(ctx, dimScores, model.getEffectiveColsMap());
-        NColumnFamilyDesc.DimensionCF[] dimCFs = new DimensionCFClusterer().cluster(dimScores.keySet());
-        NColumnFamilyDesc.MeasureCF[] measureCFS = new MeasureCFClusterer().cluster(measureIds);
+        Map<Integer, String> layoutOverrideIndexes = suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap());
+        List<Integer> colOrder = Lists.newArrayList();
+        colOrder.addAll(dimScores.keySet());
+        colOrder.addAll(measureIds);
+
         int[] shardBy = suggestShardBy(dimScores.keySet());
         int[] sortBy = suggestSortBy(dimScores.keySet(), useTableIndex);
 
@@ -351,9 +357,8 @@ public class CuboidSuggester {
 
         NCuboidLayout layout = new NCuboidLayout();
         layout.setId(suggestLayoutId(cuboidDesc));
-        layout.setRowkeyColumns(rowkeyColumnDescs);
-        layout.setDimensionCFs(dimCFs);
-        layout.setMeasureCFs(measureCFS);
+        layout.setLayoutOverrideIndexes(layoutOverrideIndexes);
+        layout.setColOrder(colOrder);
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);

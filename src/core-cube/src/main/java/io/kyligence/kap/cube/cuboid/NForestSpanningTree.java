@@ -152,7 +152,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     private void collectMeasures(Set<Integer> measures, NCuboidDesc parent) {
-        measures.addAll(parent.getOrderedMeasures().keySet());
+        measures.addAll(parent.getEffectiveMeasures().keySet());
         for (NCuboidDesc cuboid : getSpanningCuboidDescs(parent)) {
             collectMeasures(measures, cuboid);
         }

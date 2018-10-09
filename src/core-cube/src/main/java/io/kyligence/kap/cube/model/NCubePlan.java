@@ -63,10 +63,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
-import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -97,11 +98,17 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private String modelName;
     @JsonProperty("description")
     private String description;
-    @JsonProperty("dimensions")
-    private List<NDimensionDesc> dimensions = Lists.newArrayList();
+    @JsonProperty("cubeplan_override_encodings")
+    private Map<Integer, NEncodingDesc> cubePlanOverrideEnc = Maps.newHashMap();
+
+    @JsonProperty("cubeplan_override_indexes")
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Map<Integer, String> cubePlanOverrideIndexes = Maps.newHashMap();
+
     @JsonManagedReference
     @JsonProperty("rule_based_cuboids")
     private NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
+
     @JsonManagedReference
     @JsonProperty("cuboids")
     private List<NCuboidDesc> cuboids = Lists.newArrayList();
@@ -137,7 +144,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     //TODO: should move allColumns and allColumnDescs to model? no need to exist in cubeplan
     private LinkedHashSet<TblColRef> allColumns = Sets.newLinkedHashSet();
     private LinkedHashSet<ColumnDesc> allColumnDescs = Sets.newLinkedHashSet();
-    private Map<Integer, NDimensionDesc.NEncodingDesc> dimEncodingMap = Maps.newLinkedHashMap();
+    private Map<Integer, NEncodingDesc> dimEncodingMap = Maps.newHashMap();
 
     private List<NCuboidDesc> ruleBasedCuboids = Lists.newArrayList();
 
@@ -153,7 +160,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
-        this.model = (NDataModel) NDataModelManager.getInstance(config, project).getDataModelDesc(modelName);
+        this.model = NDataModelManager.getInstance(config, project).getDataModelDesc(modelName);
         ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
 
         // cube inherit the project override props
@@ -196,13 +203,10 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
             //mock a NCuboidLayout for one legacy cuboid
             NCuboidLayout layout = new NCuboidLayout();
             layout.setId(nlayoutId);
-            layout.setRowkeyColumns(tailor(nRuleBasedCuboidsDesc.getRowkeys(), cuboidId));
-            NColumnFamilyDesc.DimensionCF dimensionCF = new NColumnFamilyDesc.DimensionCF();
-            dimensionCF.setName("D1");
-            dimensionCF.setColumns(ArrayUtils.toPrimitive(//
-                    tailor(ArrayUtils.toObject(nRuleBasedCuboidsDesc.getDimensions()), cuboidId)));
-            layout.setDimensionCFs(new NColumnFamilyDesc.DimensionCF[] { dimensionCF });
-            layout.setMeasureCFs(nRuleBasedCuboidsDesc.getMeasureCFs());
+
+            List<Integer> colOrder = Lists.newArrayList(tailor(ArrayUtils.toObject(nRuleBasedCuboidsDesc.getDimensions()), cuboidId));
+            Collections.addAll(colOrder, ArrayUtils.toObject(nRuleBasedCuboidsDesc.getMeasures()));
+            layout.setColOrder(colOrder);
             layout.setStorageType(IKapStorageAware.ID_NDATA_STORAGE);
 
             //mock a NCuboidDesc for one legacy cuboid
@@ -300,15 +304,23 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         }
     }
 
+    //currently layout level override is not supported
     private void initDimEncodings() {
         dimEncodingMap.clear();
-        for (NDimensionDesc dimensionDesc : dimensions) {
-            dimensionDesc.init(this);
-            dimEncodingMap.put(dimensionDesc.getId(), dimensionDesc.getEncoding());
+
+        for (Map.Entry<Integer, NEncodingDesc> entry : cubePlanOverrideEnc.entrySet()) {
+            TblColRef colRef = getModel().getEffectiveColsMap().get(entry.getKey());
+            entry.getValue().init(colRef);
+            dimEncodingMap.put(entry.getKey(), entry.getValue());
         }
 
-        Preconditions.checkState(dimEncodingMap.keySet().containsAll(effectiveDimCols.keySet()),
-                "Some dimensions do not have encoding configuration.");
+        ImmutableSet<Integer> missing = Sets.difference(effectiveDimCols.keySet(), dimEncodingMap.keySet())
+                .immutableCopy();
+        for (Integer id : missing) {
+            NEncodingDesc encodingDesc = new NEncodingDesc("dict", 1);
+            encodingDesc.init(effectiveDimCols.get(id));
+            dimEncodingMap.put(id, encodingDesc);
+        }
     }
 
     @Override
@@ -356,7 +368,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return Joiner.on(" ").join(errors);
     }
 
-    public NDimensionDesc.NEncodingDesc getDimensionEncoding(TblColRef dimColRef) {
+    public NEncodingDesc getDimensionEncoding(TblColRef dimColRef) {
         return dimEncodingMap.get(model.getColId(dimColRef));
     }
 
@@ -390,7 +402,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
         // dictionaries in dimensions
         for (Map.Entry<Integer, TblColRef> dimEntry : effectiveDimCols.entrySet()) {
-            NDimensionDesc.NEncodingDesc encodingDesc = dimEncodingMap.get(dimEntry.getKey());
+            NEncodingDesc encodingDesc = dimEncodingMap.get(dimEntry.getKey());
             if (isUsingDictionary(encodingDesc.getEncodingName())) {
                 result.add(dimEntry.getValue());
             }
@@ -579,13 +591,22 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         this.description = description;
     }
 
-    public List<NDimensionDesc> getDimensions() {
-        return isCachedAndShared ? ImmutableList.copyOf(dimensions) : dimensions;
+    public ImmutableMap<Integer, String> getCubePlanOverrideIndexes() {
+        return ImmutableMap.copyOf(this.cubePlanOverrideIndexes);
     }
 
-    public void setDimensions(List<NDimensionDesc> dimensions) {
+    public void setCubePlanOverrideIndexes(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
-        this.dimensions = dimensions;
+        this.cubePlanOverrideIndexes = m;
+    }
+
+    public ImmutableMap<Integer, NEncodingDesc> getCubePlanOverrideEncodings() {
+        return ImmutableMap.copyOf(cubePlanOverrideEnc);
+    }
+
+    public void setCubePlanOverrideEncodings(Map<Integer, NEncodingDesc> m) {
+        checkIsNotCachedAndShared();
+        this.cubePlanOverrideEnc = m;
     }
 
     public LinkedHashMap<String, String> getOverrideProps() {

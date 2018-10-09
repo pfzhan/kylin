@@ -26,23 +26,24 @@ package io.kyligence.kap.smart.cube;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
+
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDimensionDesc;
+import io.kyligence.kap.cube.model.NEncodingDesc;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
 
-@Ignore
 public class NCubeMasterTest extends NTestBase {
+
     @Test
     public void test() throws IOException {
         NSmartContext.NModelContext mdCtx = getModelContext();
@@ -55,18 +56,18 @@ public class NCubeMasterTest extends NTestBase {
         {
             Assert.assertNotNull(cubePlan);
             Assert.assertTrue(cubePlan.getCuboids().isEmpty());
-            Assert.assertTrue(cubePlan.getDimensions().isEmpty());
+            Assert.assertTrue(cubePlan.getCubePlanOverrideEncodings().isEmpty());
         }
 
         cubePlan = cubeMaster.proposeDimensions(cubePlan);
         {
             Assert.assertNotNull(cubePlan);
-            List<NDimensionDesc> dims = cubePlan.getDimensions();
-            Assert.assertFalse(dims.isEmpty());
-            Assert.assertEquals("dict", dims.get(0).getEncoding().getName());
-            Assert.assertEquals("date", dims.get(1).getEncoding().getName());
-            Assert.assertEquals("dict", dims.get(2).getEncoding().getName());
-            Assert.assertEquals("integer:8", dims.get(3).getEncoding().getName());
+            Map<Integer, NEncodingDesc> encs = cubePlan.getCubePlanOverrideEncodings();
+            Assert.assertFalse(encs.isEmpty());
+            Assert.assertEquals("dict", encs.get(0).getName());
+            Assert.assertEquals("date", encs.get(1).getName());
+            Assert.assertEquals("dict", encs.get(2).getName());
+            Assert.assertEquals("integer:8", encs.get(3).getName());
         }
 
         // propose again, should return same result
@@ -86,23 +87,15 @@ public class NCubeMasterTest extends NTestBase {
 
                     NCuboidLayout c11 = c.getLayouts().get(0);
                     Assert.assertSame(c11.getCuboidDesc(), c);
-                    Assert.assertEquals(2, c11.getRowkeyColumns().length);
-                    Assert.assertEquals(1, c11.getDimensionCFs().length);
-                    Assert.assertEquals(2, c11.getDimensionCFs()[0].getColumns().length);
-                    Assert.assertEquals(1, c11.getMeasureCFs().length);
-                    Assert.assertEquals(1, c11.getMeasureCFs()[0].getColumns().length);
+                    Assert.assertEquals(3, c11.getColOrder().size());
 
                     NCuboidLayout c12 = c.getLayouts().get(1);
                     Assert.assertSame(c12.getCuboidDesc(), c);
-                    Assert.assertEquals(2, c12.getRowkeyColumns().length);
+                    Assert.assertEquals(3, c12.getColOrder().size());
                     Set<String> indexes = Sets.newHashSet();
-                    indexes.add(c12.getRowkeyColumns()[0].getIndex());
-                    indexes.add(c12.getRowkeyColumns()[1].getIndex());
+                    indexes.add(c12.getColIndexType(0));
+                    indexes.add(c12.getColIndexType(1));
                     Assert.assertEquals(2, indexes.size());
-                    Assert.assertEquals(1, c12.getDimensionCFs().length);
-                    Assert.assertEquals(2, c12.getDimensionCFs()[0].getColumns().length);
-                    Assert.assertEquals(1, c12.getMeasureCFs().length);
-                    Assert.assertEquals(1, c12.getMeasureCFs()[0].getColumns().length);
 
                 } else if (c.getLayouts().size() == 1) {
                     Assert.assertEquals(1, c.getDimensions().length);
@@ -111,14 +104,9 @@ public class NCubeMasterTest extends NTestBase {
 
                     NCuboidLayout c21 = c.getLayouts().get(0);
                     Assert.assertSame(c21.getCuboidDesc(), c);
-                    Assert.assertEquals(1, c21.getRowkeyColumns().length);
-                    Assert.assertEquals(1, c21.getRowkeyColumns()[0].getDimensionId());
-                    Assert.assertEquals("eq", c21.getRowkeyColumns()[0].getIndex());
-                    Assert.assertEquals(1, c21.getDimensionCFs().length);
-                    Assert.assertEquals(1, c21.getDimensionCFs()[0].getColumns().length);
-                    Assert.assertEquals(2, c21.getMeasureCFs().length);
-                    Assert.assertEquals(1, c21.getMeasureCFs()[0].getColumns().length);
-                    Assert.assertEquals(1, c21.getMeasureCFs()[1].getColumns().length);
+                    Assert.assertEquals(3, c21.getColOrder().size());
+                    Assert.assertEquals(new Integer(1), c21.getColOrder().get(0));
+                    Assert.assertEquals("eq", c21.getColIndexType(0));
                 } else {
                     throw new IllegalStateException("Should not come here");
                 }

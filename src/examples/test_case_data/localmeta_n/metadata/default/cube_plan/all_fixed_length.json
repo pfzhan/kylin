@@ -5,50 +5,32 @@
   "name": "all_fixed_length",
   "model_name": "nmodel_basic",
   "description": "test_description",
-  "dimensions": [
-    {
-      "id": 0,
-      "encoding": {
-        "name": "fixed_length:32",
-        "version": "1"
-      }
+  "cubeplan_override_encodings": {
+    "0": {
+      "name": "fixed_length:32",
+      "version": "1"
     },
-    {
-      "id": 1,
-      "encoding": {
-        "name": "fixed_length:32",
-        "version": "1"
-      }
+    "1": {
+      "name": "fixed_length:32",
+      "version": "1"
     },
-    {
-      "id": 2,
-      "encoding": {
-        "name": "fixed_length:32",
-        "version": "1"
-      }
+    "2": {
+      "name": "fixed_length:32",
+      "version": "1"
     },
-    {
-      "id": 3,
-      "encoding": {
-        "name": "fixed_length:10",
-        "version": "1"
-      }
+    "3": {
+      "name": "fixed_length:10",
+      "version": "1"
     },
-    {
-      "id": 4,
-      "encoding": {
-        "name": "fixed_length:10",
-        "version": "1"
-      }
+    "4": {
+      "name": "fixed_length:10",
+      "version": "1"
     },
-    {
-      "id": 5,
-      "encoding": {
-        "name": "fixed_length:10",
-        "version": "1"
-      }
+    "5": {
+      "name": "fixed_length:10",
+      "version": "1"
     }
-  ],
+  },
   "cuboids": [
     {
       "id": 0,
@@ -63,70 +45,21 @@
       "layouts": [
         {
           "id": 1,
-          "rowkeys": [
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 0,
-              "index": "eq"
-            }
-          ],
-          "dim_cf": [
-            {
-              "name": "D1",
-              "columns": [
-                0,
-                1
-              ]
-            }
-          ],
-          "measure_cf": [
-            {
-              "name": "M1",
-              "columns": [
-                1000,
-                1004
-              ]
-            }
+          "col_order": [
+            1,
+            0,
+            1000,
+            1004
           ],
           "storage_type": 20
         },
         {
           "id": 2,
-          "rowkeys": [
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 0,
-              "index": "eq"
-            }
-          ],
-          "dim_cf": [
-            {
-              "name": "D1",
-              "columns": [
-                0,
-                1
-              ]
-            }
-          ],
-          "measure_cf": [
-            {
-              "name": "M1",
-              "columns": [
-                1000
-              ]
-            },
-            {
-              "name": "M2",
-              "columns": [
-                1004
-              ]
-            }
+          "col_order": [
+            1,
+            0,
+            1000,
+            1004
           ],
           "storage_type": 20
         }
@@ -145,73 +78,21 @@
       "layouts": [
         {
           "id": 1001,
-          "rowkeys": [
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 0,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 2,
-              "index": "eq"
-            }
-          ],
-          "dim_cf": [
-            {
-              "name": "D1",
-              "columns": [
-                0,
-                1,
-                2
-              ]
-            }
-          ],
-          "measure_cf": [
-            {
-              "name": "M1",
-              "columns": [
-                1000
-              ]
-            }
+          "col_order": [
+            1,
+            0,
+            2,
+            1000
           ],
           "storage_type": 20
         },
         {
           "id": 1002,
-          "rowkeys": [
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 2,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 0,
-              "index": "eq"
-            }
-          ],
-          "dim_cf": [
-            {
-              "name": "D1",
-              "columns": [
-                0,
-                1,
-                2
-              ]
-            }
-          ],
-          "measure_cf": [
-            {
-              "name": "M1",
-              "columns": [
-                1000
-              ]
-            }
+          "col_order": [
+            1,
+            2,
+            0,
+            1000
           ],
           "storage_type": 20
         }

@@ -41,7 +41,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NColumnFamilyDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 
@@ -76,12 +75,13 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
 
         // column blocks of metrics
         ArrayList<BitSet> metricsColBlocks = Lists.newArrayList();
-        for (NColumnFamilyDesc.MeasureCF familyDesc : cuboidLayout.getMeasureCFs()) {
+        for (int i = 0; i < cuboidLayout.getOrderedMeasures().size(); i++) {
             metricsColBlocks.add(new BitSet());
         }
 
         // metrics
         metrics2gt = Maps.newHashMap();
+        int mColBlock = 0;
         for (NDataModel.Measure measure : cuboidLayout.getOrderedMeasures().values()) {
             // Count distinct & holistic count distinct are equals() but different.
             // Ensure the holistic version if exists is always the first.
@@ -90,17 +90,7 @@ public class NCuboidToGridTableMapping extends GridTableMapping {
             gtDataTypes.add(func.getReturnDataType());
 
             // map to column block
-            int cbIdx = 0;
-            for (NColumnFamilyDesc.MeasureCF familyDesc : cuboidLayout.getMeasureCFs()) {
-                for (int measureId : familyDesc.getColumns()) {
-                    if (measureId == measure.id) {
-                        metricsColBlocks.get(cbIdx).set(gtColIdx);
-                    }
-                }
-                cbIdx++;
-            }
-
-            gtColIdx++;
+            metricsColBlocks.get(mColBlock++).set(gtColIdx++);
         }
 
         for (BitSet set : metricsColBlocks) {

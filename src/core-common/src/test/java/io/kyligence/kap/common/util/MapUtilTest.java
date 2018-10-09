@@ -22,48 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package io.kyligence.kap.common.util;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.metadata.model.TblColRef;
+import java.util.Map;
 
-import java.io.Serializable;
+import org.junit.Assert;
+import org.junit.Test;
 
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class NDimensionDesc implements Serializable, IKeep {
+import com.google.common.collect.Maps;
 
-    @JsonProperty("id")
-    private int id;
+public class MapUtilTest {
 
-    @JsonProperty("encoding")
-    private NEncodingDesc encoding;
-
-    public NDimensionDesc() {
+    @Test
+    public void testNomal() {
+        Map<String, String> x = Maps.newHashMap();
+        x.put("a", "aa");
+        Assert.assertEquals("aa", MapUtil.getOrElse(x, "a", "default"));
+        Assert.assertEquals("default", MapUtil.getOrElse(x, "b", "default"));
     }
 
-    public void init(NCubePlan nCubePlan) {
-        TblColRef colRef = nCubePlan.getModel().getEffectiveColsMap().get(id);
-        encoding.init(colRef);
+    @Test(expected = NullPointerException.class)
+    public void testError() {
+        MapUtil.getOrElse(null, "a", "default");
     }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public NEncodingDesc getEncoding() {
-        return encoding;
-    }
-
-    public void setEncoding(NEncodingDesc encoding) {
-        this.encoding = encoding;
-    }
-
 }

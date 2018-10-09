@@ -177,7 +177,7 @@ public class NDataflowScanRangePlanner extends ScanRangePlannerBase {
                     .setAggCacheMemThreshold(dataSegment.getConfig().getQueryCoprocessorMemGB()).//
                     setStoragePushDownLimit(context.getFinalPushDownLimit())
                     .setStorageLimitLevel(context.getStorageLimitLevel()).setHavingFilterPushDown(havingFilter)
-                    .setTimeout(dataSegment.getConfig().getQueryTimeoutSeconds() * 1000)
+                    .setTimeout(dataSegment.getConfig().getQueryTimeoutSeconds() * 1000L)
                     .createGTScanRequest();
         } else {
             scanRequest = null;

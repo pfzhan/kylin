@@ -34,9 +34,9 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -89,7 +89,7 @@ public abstract class AbstractQueryRunner implements Closeable {
                     SQLResult result = record.getSqlResult();
                     Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                     queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
-                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext>newArrayList() : olapCtxs);
+                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext> newArrayList() : olapCtxs);
                 } finally {
                     counter.countDown();
                     KylinConfig.removeKylinConfigThreadLocal();
@@ -130,12 +130,6 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     @Override
     public void close() throws IOException {
-        executorService.shutdown();
-        try {
-            executorService.awaitTermination(120, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Interrupted at close phase.", e);
-            Thread.currentThread().interrupt();
-        }
+        ExecutorServiceUtil.shutdownGracefully(executorService, 120);
     }
 }

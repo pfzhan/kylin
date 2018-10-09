@@ -23,8 +23,10 @@
  */
 package io.kyligence.kap.cube.kv;
 
-import java.util.Map;
-
+import com.google.common.collect.Maps;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NEncodingDesc;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.DimensionEncoding;
@@ -35,11 +37,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Maps;
-
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDimensionDesc;
+import java.util.Map;
 
 public class NCubeDimEncMap implements IDimensionEncodingMap, java.io.Serializable {
 
@@ -69,7 +67,7 @@ public class NCubeDimEncMap implements IDimensionEncodingMap, java.io.Serializab
     public DimensionEncoding get(TblColRef col) {
         DimensionEncoding result = encMap.get(col);
         if (result == null) {
-            NDimensionDesc.NEncodingDesc encodingDesc = cubePlan.getDimensionEncoding(col);
+            NEncodingDesc encodingDesc = cubePlan.getDimensionEncoding(col);
             if (encodingDesc.getName().equals(DictionaryDimEnc.ENCODING_NAME)) {
                 // special dictionary encoding
                 Dictionary<String> dict = getDictionary(col);

@@ -35,11 +35,10 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NDimensionDesc;
+import io.kyligence.kap.cube.model.NEncodingDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
@@ -51,27 +50,23 @@ public class NDimensionProposer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        Map<Integer, NDimensionDesc> dimDescMap = Maps.newTreeMap();
+        Map<Integer, NEncodingDesc> encs = Maps.newTreeMap();
 
         // keep old dimensions
-        for (NDimensionDesc dimensionDesc : cubePlan.getDimensions()) {
-            dimDescMap.put(dimensionDesc.getId(), dimensionDesc);
-        }
+        encs.putAll(cubePlan.getCubePlanOverrideEncodings());
 
         NDataModel model = context.getTargetModel();
         for (Map.Entry<Integer, TblColRef> colEntry : model.getEffectiveColsMap().entrySet()) {
-            if (dimDescMap.containsKey(colEntry.getKey()))
+            if (encs.containsKey(colEntry.getKey()))
                 continue; // TODO: for those existing dimension but not used in any ready cuboids, we still can modify the encoding.
 
-            NDimensionDesc dimDesc = new NDimensionDesc();
-            dimDesc.setId(colEntry.getKey());
-            dimDesc.setEncoding(suggestEncoding(colEntry.getValue()));
-            dimDescMap.put(colEntry.getKey(), dimDesc);
+            encs.put(colEntry.getKey(), suggestEncoding(colEntry.getValue()));
         }
-        cubePlan.setDimensions(Lists.newArrayList(dimDescMap.values()));
+
+        cubePlan.setCubePlanOverrideEncodings(encs);
     }
 
-    private NDimensionDesc.NEncodingDesc suggestEncoding(TblColRef colRef) {
+    private NEncodingDesc suggestEncoding(TblColRef colRef) {
         // select encoding according to column type
         // eg. date, tinyint, integer, smallint, bigint
         // TODO: we can set boolean encoding according to column type and cardinality, but cardinality is not precise.
@@ -114,12 +109,12 @@ public class NDimensionProposer extends NAbstractCubeProposer {
         return newEnc(defaultEnc);
     }
 
-    private NDimensionDesc.NEncodingDesc newEnc(String name) {
+    private NEncodingDesc newEnc(String name) {
         return newEnc(name, 1);
     }
 
-    private NDimensionDesc.NEncodingDesc newEnc(String name, int ver) {
-        NDimensionDesc.NEncodingDesc encodingDesc = new NDimensionDesc.NEncodingDesc();
+    private NEncodingDesc newEnc(String name, int ver) {
+        NEncodingDesc encodingDesc = new NEncodingDesc();
         encodingDesc.setName(name);
         encodingDesc.setVersion(ver);
         return encodingDesc;

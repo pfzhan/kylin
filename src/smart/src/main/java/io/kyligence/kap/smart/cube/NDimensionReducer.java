@@ -24,18 +24,18 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.util.List;
-import java.util.Set;
-
-import org.apache.commons.lang3.ArrayUtils;
-
+import com.google.common.base.Predicates;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NDimensionDesc;
+import io.kyligence.kap.cube.model.NEncodingDesc;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import org.apache.commons.lang3.ArrayUtils;
+
+import java.util.Map;
+import java.util.Set;
 
 public class NDimensionReducer extends NAbstractCubeProposer {
 
@@ -45,19 +45,14 @@ public class NDimensionReducer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        Set<Integer> usedDimensionIds = Sets.newHashSet();
+        final Set<Integer> usedDimensionIds = Sets.newHashSet();
         for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
             usedDimensionIds.addAll(Lists.newArrayList(ArrayUtils.toObject(cuboidDesc.getDimensions())));
         }
 
-        List<NDimensionDesc> usedDimensions = Lists.newArrayList();
-        for (NDimensionDesc dimensionDesc : cubePlan.getDimensions()) {
-            if (usedDimensionIds.contains(dimensionDesc.getId())) {
-                usedDimensions.add(dimensionDesc);
-            }
-        }
+        Map<Integer, NEncodingDesc> newMap = Maps.filterKeys(cubePlan.getCubePlanOverrideEncodings(), Predicates.in(usedDimensionIds));
 
-        cubePlan.setDimensions(usedDimensions);
+        cubePlan.setCubePlanOverrideEncodings(newMap);
     }
 
 }

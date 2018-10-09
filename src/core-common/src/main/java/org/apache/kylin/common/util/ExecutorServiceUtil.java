@@ -22,48 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.cube.model;
+package org.apache.kylin.common.util;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.common.obf.IKeep;
-import org.apache.kylin.metadata.model.TblColRef;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
-import java.io.Serializable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("serial")
-@JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class NDimensionDesc implements Serializable, IKeep {
+//https://www.baeldung.com/java-executor-wait-for-threads
+public class ExecutorServiceUtil {
+    private static final Logger logger = LoggerFactory.getLogger(ExecutorServiceUtil.class);
 
-    @JsonProperty("id")
-    private int id;
-
-    @JsonProperty("encoding")
-    private NEncodingDesc encoding;
-
-    public NDimensionDesc() {
+    public static void shutdownGracefully(ExecutorService threadPool, int timeoutSeconds) {
+        threadPool.shutdown();
+        try {
+            if (!threadPool.awaitTermination(timeoutSeconds, TimeUnit.SECONDS)) {
+                threadPool.shutdownNow();
+            }
+        } catch (InterruptedException ex) {
+            logger.info("interrrupted while shutting down");
+            threadPool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
-
-    public void init(NCubePlan nCubePlan) {
-        TblColRef colRef = nCubePlan.getModel().getEffectiveColsMap().get(id);
-        encoding.init(colRef);
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    public NEncodingDesc getEncoding() {
-        return encoding;
-    }
-
-    public void setEncoding(NEncodingDesc encoding) {
-        this.encoding = encoding;
-    }
-
 }

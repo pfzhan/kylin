@@ -42,22 +42,20 @@
 
 package io.kyligence.kap.metadata.model;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Function;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.Serializable;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -84,18 +82,23 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import java.io.Serializable;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Function;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
@@ -188,7 +191,6 @@ public class NDataModel extends RootPersistentEntity {
         this.colCorrs = other.colCorrs;
         this.mpColStrs = other.mpColStrs;
         this.computedColumnDescs = other.computedColumnDescs;
-
 
     }
 
@@ -947,7 +949,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-                     boolean isOnlineModel) {
+            boolean isOnlineModel) {
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {
@@ -1086,6 +1088,10 @@ public class NDataModel extends RootPersistentEntity {
     //TODO: !!! check the returned
     public @Nullable Integer getColId(TblColRef colRef) {
         return effectiveCols.inverse().get(colRef);
+    }
+
+    public TblColRef getColRef(Integer colId) {
+        return effectiveCols.get(colId);
     }
 
     public boolean isExtendedColumn(TblColRef tblColRef) {

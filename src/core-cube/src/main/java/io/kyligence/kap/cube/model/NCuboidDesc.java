@@ -24,16 +24,16 @@
 
 package io.kyligence.kap.cube.model;
 
+import static io.kyligence.kap.metadata.model.NDataModel.Measure;
+
 import java.io.Serializable;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -78,11 +78,11 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     private NDataModel model;
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
-    private ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures;
+    private ImmutableBiMap<Integer, Measure> effectiveMeasures;
     private ImmutableBitSet dimensionBitset = null;
     private ImmutableBitSet measureBitset = null;
     private ImmutableSet<TblColRef> dimensionSet = null;
-    private ImmutableSet<NDataModel.Measure> measureSet = null;
+    private ImmutableSet<Measure> measureSet = null;
 
     public NCuboidDesc() {
     }
@@ -101,13 +101,13 @@ public class NCuboidDesc implements Serializable, IKeep {
 
         this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
 
-        // all layouts' measure order follow cuboid_desc's define
-        ImmutableBiMap.Builder<Integer, NDataModel.Measure> measuresBuilder = ImmutableBiMap.builder();
+        // TODO: all layouts' measure order must follow cuboid_desc's define ?
+        ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
             measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
         }
-        this.orderedMeasures = measuresBuilder.build();
-        this.measureSet = orderedMeasures.values();
+        this.effectiveMeasures = measuresBuilder.build();
+        this.measureSet = effectiveMeasures.values();
     }
 
     public boolean dimensionsDerive(TblColRef... dimensions) {
@@ -129,13 +129,6 @@ public class NCuboidDesc implements Serializable, IKeep {
                 && child.getMeasureBitset().andNot(getMeasureBitset()).isEmpty();
     }
 
-    public List<MeasureDesc> getMeasureDescs() {
-        Collection<NDataModel.Measure> measures = getOrderedMeasures().values();
-        List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
-        result.addAll(measures);
-        return result;
-    }
-
     public NCuboidLayout getLastLayout() {
         List<NCuboidLayout> existing = getLayouts();
         if (existing.isEmpty()) {
@@ -149,8 +142,8 @@ public class NCuboidDesc implements Serializable, IKeep {
         return effectiveDimCols;
     }
 
-    public ImmutableBiMap<Integer, NDataModel.Measure> getOrderedMeasures() {
-        return orderedMeasures;
+    public ImmutableBiMap<Integer, Measure> getEffectiveMeasures() {
+        return effectiveMeasures;
     }
 
     public ImmutableBitSet getDimensionBitset() {
@@ -165,7 +158,7 @@ public class NCuboidDesc implements Serializable, IKeep {
         return dimensionSet;
     }
 
-    public ImmutableSet<NDataModel.Measure> getMeasureSet() {
+    public ImmutableSet<Measure> getMeasureSet() {
         return measureSet;
     }
 

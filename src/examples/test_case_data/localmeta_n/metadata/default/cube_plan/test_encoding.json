@@ -5,127 +5,56 @@
   "name": "test_encoding",
   "model_name": "test_encoding",
   "description": "test_description",
-  "dimensions": [
-    {
-      "id": 0,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+  "cubeplan_override_encodings": {
+    "5": {
+      "name": "boolean",
+      "version": "1"
     },
-    {
-      "id": 1,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "6": {
+      "name": "boolean",
+      "version": "1"
     },
-    {
-      "id": 2,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "7": {
+      "name": "boolean",
+      "version": "1"
     },
-    {
-      "id": 3,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "8": {
+      "name": "fixed_length:10",
+      "version": "1"
     },
-    {
-      "id": 4,
-      "encoding": {
-        "name": "dict",
-        "version": "1"
-      }
+    "9": {
+      "name": "fixed_length_hex:6",
+      "version": "1"
     },
-    {
-      "id": 5,
-      "encoding": {
-        "name": "boolean",
-        "version": "1"
-      }
+    "10": {
+      "name": "integer:2",
+      "version": "1"
     },
-    {
-      "id": 6,
-      "encoding": {
-        "name": "boolean",
-        "version": "1"
-      }
+    "11": {
+      "name": "integer:2",
+      "version": "1"
     },
-    {
-      "id": 7,
-      "encoding": {
-        "name": "boolean",
-        "version": "1"
-      }
+    "12": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 8,
-      "encoding": {
-        "name": "fixed_length:10",
-        "version": "1"
-      }
+    "13": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 9,
-      "encoding": {
-        "name": "fixed_length_hex:6",
-        "version": "1"
-      }
+    "14": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 10,
-      "encoding": {
-        "name": "integer:2",
-        "version": "1"
-      }
+    "15": {
+      "name": "date",
+      "version": "1"
     },
-    {
-      "id": 11,
-      "encoding": {
-        "name": "integer:2",
-        "version": "1"
-      }
-    },
-    {
-      "id": 12,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 13,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 14,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 15,
-      "encoding": {
-        "name": "date",
-        "version": "1"
-      }
-    },
-    {
-      "id": 16,
-      "encoding": {
-        "name": "time",
-        "version": "1"
-      }
+    "16": {
+      "name": "time",
+      "version": "1"
     }
-  ],
+  },
   "cuboids": [
     {
       "id": 0,
@@ -154,75 +83,25 @@
       "layouts": [
         {
           "id": 1,
-          "rowkeys": [
-            {
-              "dimension_id": 0,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 1,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 2,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 3,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 4,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 5,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 6,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 7,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 8,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 9,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 10,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 11,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 12,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 13,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 14,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 15,
-              "index": "eq"
-            },
-            {
-              "dimension_id": 16,
-              "index": "eq"
-            }
+          "col_order": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            1000
           ],
           "dim_cf": [
             {
