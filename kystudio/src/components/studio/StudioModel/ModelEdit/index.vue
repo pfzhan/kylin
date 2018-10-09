@@ -45,6 +45,7 @@
           <div class="panel-title"><span>{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
           <DataSourceBar
             class="tree-box"
+            :project-name="currentSelectedProject"
             :is-show-load-source="false"
             :is-show-settings="false"
             :is-show-action-group="false"

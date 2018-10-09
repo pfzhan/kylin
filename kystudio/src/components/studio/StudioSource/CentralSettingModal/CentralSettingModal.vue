@@ -7,15 +7,6 @@
     <div class="body">
       <div class="row">
         <h1 class="title font-medium">
-          <span>{{$t('tableType')}}</span>
-          <i v-if="false" class="el-icon-ksd-what"></i>
-        </h1>
-        <el-radio v-model="isCentral" :label="true" :disabled="!partitionColumns.length">{{$t('centralTable')}}</el-radio>
-        <el-radio v-model="isCentral" :label="false">{{$t('normalTable')}}</el-radio>
-      </div>
-
-      <div class="row">
-        <h1 class="title font-medium">
           <span>{{$t('partition')}}</span>
           <i v-if="false" class="el-icon-ksd-what"></i>
         </h1>
@@ -117,7 +108,7 @@ export default class CentralSettingModal extends Vue {
     this.isShow = false
   }
   resetModal () {
-    this.isCentral = this.table.fact || false
+    this.isCentral = !this.table.fact
     this.partition = this.table.partition_column || ''
     this.startDate = this.table.start_time !== -1 ? new Date(this.table.start_time) : ''
     this.endDate = this.table.end_time !== -1 ? new Date(this.table.end_time) : ''

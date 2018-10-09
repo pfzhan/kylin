@@ -136,6 +136,14 @@ export function getDatasourceTree (that, tableDatas, project) {
   return sortDatasource(datasourceArray)
 }
 
+export function getFirstTableData (datasourceTree) {
+  for (const datasource of datasourceTree) {
+    for (const database of datasource.children) {
+      return database.children && database.children[0]
+    }
+  }
+}
+
 export function getDatasourceObj (that, table, project) {
   const sourceType = table.source_type
   const datasourceType = sourceTypes[sourceType]

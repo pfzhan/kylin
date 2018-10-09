@@ -4,15 +4,14 @@
       <!-- 数据源导航栏 -->
       <DataSourceBar
         class="layout-left"
+        ref="datasource-bar"
+        :project-name="currentSelectedProject"
         :is-show-load-source="true"
         :is-show-settings="false"
         :is-expand-on-click-node="false"
         :expand-node-types="['datasource', 'database']"
         :searchable-node-types="['table', 'column']"
-        :datasource="datasource"
-        @click="handleClick"
-        @source-update="handleSourceUpdate"
-        @load-more="handleLoadMore">
+        @click="handleClick">
       </DataSourceBar>
       <!-- Source Table展示 -->
       <div class="layout-right">
@@ -22,7 +21,6 @@
             <h1 class="table-name">{{selectedTable.database}}.{{selectedTable.name}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
             <div class="table-actions">
-              <el-button size="small" icon="el-icon-ksd-table_assign" type="primary" @click="handleChangeType">{{$t('changeType')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
               <!-- <el-button size="small" icon="el-icon-ksd-download" @click="handleSampling">{{$t('sampling')}}</el-button> -->
               <el-button size="small" icon="el-icon-ksd-download" @click="handleUnload">{{$t('unload')}}</el-button>
@@ -32,7 +30,7 @@
           <div class="table-details">
             <el-tabs v-model="viewType">
               <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-                <TableDataLoad :project="currentProjectData" :table="selectedTable" @on-data-range-change="handleFreshTable"></TableDataLoad>
+                <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
               </el-tab-pane>
               <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
                 <TableColumns :table="selectedTable"></TableColumns>
@@ -56,7 +54,6 @@
             </el-tabs>
           </div>
           <!-- Source Table动作弹框 -->
-          <CentralSettingModal ref="CentralSettingModal" :table="selectedTable" @submit="handleFreshTable" />
           <ReloadModal ref="ReloadModal" :table="selectedTable" />
           <SampleModal ref="SampleModal" :table="selectedTable" />
         </template>
@@ -72,19 +69,18 @@
 <script>
 import Vue from 'vue'
 import { mapGetters, mapActions, mapMutations } from 'vuex'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { viewTypes, getSelectedTableDetail } from './handler'
 import DataSourceBar from '../../common/DataSourceBar/index.vue'
-import TableDataLoad from './TableDataLoad/index.vue'
+import TableDataLoad from './TableDataLoad/TableDataLoad.vue'
 import TableColumns from './TableColumns/index.vue'
 import TableSamples from './TableSamples/index.vue'
 import TableStatistics from './TableStatistics/index.vue'
 import TableExtInfo from './TableExtInfo/index.vue'
 import ReloadModal from './ReloadModal/index.vue'
 import SampleModal from './SampleModal/index.vue'
-import CentralSettingModal from './CentralSettingModal/index.vue'
 import ViewKafka from '../../kafka/view_kafka.vue'
 import Access from '../../datasource/access.vue'
 import { sourceTypes } from '../../../config'
@@ -100,7 +96,6 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
     TableExtInfo,
     ReloadModal,
     SampleModal,
-    CentralSettingModal,
     ViewKafka,
     Access
   },
@@ -124,7 +119,6 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
 })
 export default class StudioSource extends Vue {
   viewType = ''
-  datasource = []
   selectedTable = null
   tableDetail = null
 
@@ -141,21 +135,8 @@ export default class StudioSource extends Vue {
     return transToGmtTime(this.selectedTable.last_modified, this)
   }
 
-  @Watch('selectedTable')
-  onSelectedTableChange () {
-    for (const table of this.datasource) {
-      table.isSelected = table.uuid === this.selectedTable.uuid
-    }
-  }
   async mounted () {
-    await this.handleSourceUpdate()
     this.viewType = viewTypes.DATA_LOAD
-
-    if (this.datasource[0]) {
-      await this.fetchTableDetail({ label: this.datasource[0].name, type: 'table' })
-    }
-    // const resp = await this.fetchDatabases({projectName: this.currentSelectedProject})
-    // console.log(resp)
   }
   handleClick (data) {
     this.fetchTableDetail(data)
@@ -163,9 +144,6 @@ export default class StudioSource extends Vue {
   handleKafkaClick () {
     const { currentProjectData: project } = this
     this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
-  }
-  handleLoadMore (data, node) {
-    console.log(data, node)
   }
   handleReload () {
     this.$refs['ReloadModal'].showModal()
@@ -175,32 +153,21 @@ export default class StudioSource extends Vue {
   }
   handleUnload () {
   }
-  handleChangeType () {
-    this.$refs['CentralSettingModal'].showModal()
-  }
-  async handleSourceUpdate () {
-    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
-    const datasource = await handleSuccessAsync(res)
-    this.datasource = datasource.map(table => ({
-      ...table,
-      isSelected: false
-    }))
-  }
   async handleFreshTable () {
-    await this.handleSourceUpdate()
-    await this.fetchTableDetail({ label: this.selectedTable.name, type: 'table' })
+    const { name, database } = this.selectedTable
+    await this.$refs['datasource-bar'].loadTables()
+    await this.fetchTableDetail({ label: name, database, type: 'table' })
   }
   async fetchTableDetail (data) {
-    const { label: selectedTableName, type } = data
+    const { label, type, database } = data
 
     if (type === 'table') {
       const project = this.currentSelectedProject
-      const tableInfo = this.datasource.find(table => table.name === selectedTableName)
-      const tableName = `${tableInfo.database}.${tableInfo.name}`
+      const tableName = `${database}.${label}`
       const res = await this.loadTableExt({tableName, project})
       const tableDetail = await handleSuccessAsync(res)
 
-      this.selectedTable = getSelectedTableDetail(tableInfo, tableDetail[0])
+      this.selectedTable = getSelectedTableDetail(tableDetail[0])
       this.setCurrentTableData({ tableData: this.selectedTable })
     }
   }

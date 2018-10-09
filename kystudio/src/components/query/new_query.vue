@@ -5,6 +5,7 @@
         <DataSourceBar
           :is-show-load-source="true"
           :is-expand-on-click-node="false"
+          :project-name="currentSelectedProject"
           :datasource="datasource"
           :expand-node-types="['datasource', 'database']"
           @autoComplete="handleAutoComplete"

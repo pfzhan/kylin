@@ -10,8 +10,8 @@ export const viewTypes = {
   ACCESS: 'access'
 }
 
-export function getSelectedTableDetail (tableInfo, tableDetail) {
-  const columns = tableInfo.columns.map(column => {
+export function getSelectedTableDetail (tableDetail) {
+  const columns = tableDetail.columns.map(column => {
     // for newten
     // const columnDetail = tableDetail.columns_stats.find(columnStats => columnStats.column_name === column.name)
 
@@ -23,7 +23,6 @@ export function getSelectedTableDetail (tableInfo, tableDetail) {
   })
 
   return {
-    ...tableInfo,
     ...tableDetail,
     mapper_rows: tableDetail.mapper_rows || [],
     sample_rows: tableDetail.sample_rows || [],

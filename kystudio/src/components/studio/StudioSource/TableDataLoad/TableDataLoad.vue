@@ -11,10 +11,11 @@
       <!-- 表类型：中心表/普通表 -->
       <div class="info-row">
         <div class="info-label font-medium">
-          <span>{{$t('tableType')}}</span><span>:</span>
+          <span>{{$t('loadingType')}}</span><span>:</span>
         </div>
         <div class="info-value">
-          <div>{{tableType}}</div>
+          <el-radio :value="isCentral" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
+          <el-radio :value="isCentral" :label="false" @click.native="handleChangeType(false)">{{$t('fullTable')}}</el-radio>
         </div>
       </div>
       <!-- v-if: 中心表才会展示的字段 -->
@@ -44,6 +45,7 @@
               <span>:</span>
             </div>
             <div class="load-range">
+              <el-slider range :max="100" :format-tooltip="() => 1"></el-slider>
               <DateRangeBar :date-ranges="tableDateRange" :is-show-start-to-end="true" />
             </div>
           </div>
@@ -112,6 +114,7 @@
       </div>
     </div>
 
+    <CentralSettingModal ref="CentralSettingModal" :table="table" @submit="$emit('fresh-tables')" />
   </div>
 </template>
 
@@ -122,8 +125,10 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import DateRangeBar from '../../../common/DateRangeBar/index.vue'
+import CentralSettingModal from '../CentralSettingModal/CentralSettingModal.vue'
 import { handleSuccessAsync } from '../../../../util'
 import { getModelDataRanges, getTableDataRanges } from './handle'
+import { partitionColumnTypes } from '../../../../config'
 
 @Component({
   props: {
@@ -135,7 +140,8 @@ import { getModelDataRanges, getTableDataRanges } from './handle'
     }
   },
   components: {
-    DateRangeBar
+    DateRangeBar,
+    CentralSettingModal
   },
   methods: {
     ...mapActions({
@@ -160,11 +166,11 @@ export default class TableDataLoad extends Vue {
   get isFact () {
     return this.table.root_fact
   }
-  get tableType () {
-    return this.isCentral ? this.$t('centralTable') : this.$t('normalTable')
-  }
   get dateRange () {
     return [this.startDate, this.endDate]
+  }
+  get partitionColumns () {
+    return this.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
   }
   set dateRange (val) {
     if (val) {
@@ -208,10 +214,19 @@ export default class TableDataLoad extends Vue {
       this.$message(this.$t('dataRangeTooSmall'))
     }
 
-    this.$emit('on-data-range-change')
+    this.$emit('fresh-tables')
   }
   handlePagination (val) {
     this.pagination.pageOffset = val - 1
+  }
+  handleChangeType (value) {
+    if (this.partitionColumns.length) {
+      if (!this.isCentral) {
+        this.$refs['CentralSettingModal'].showModal()
+      } else {
+        // send false
+      }
+    }
   }
   resetDateRange () {
     this.tableDateRange = getTableDataRanges(this.table, this.relatedModels) || []
@@ -271,6 +286,7 @@ export default class TableDataLoad extends Vue {
     width: 97px;
     float: left;
     text-align: right;
+    white-space: nowrap;
     span:last-child {
       margin-left: 8px;
     }

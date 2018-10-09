@@ -41,13 +41,13 @@ import { Component, Watch } from 'vue-property-decorator'
 import { sourceTypes } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
-import { getDatasourceTree, getAutoCompleteWords } from './handler'
+import { getDatasourceTree, getAutoCompleteWords, getFirstTableData } from './handler'
+import { handleSuccessAsync } from '../../../util'
 
 @Component({
   props: {
-    datasource: {
-      type: Array,
-      default: () => []
+    projectName: {
+      type: String
     },
     expandNodeTypes: {
       type: Array,
@@ -99,12 +99,17 @@ import { getDatasourceTree, getAutoCompleteWords } from './handler'
   methods: {
     ...mapActions('DataSourceModal', {
       callDataSourceModal: 'CALL_MODAL'
+    }),
+    ...mapActions({
+      fetchDatabases: 'LOAD_DATABASE',
+      fetchTables: 'LOAD_DATASOURCE'
     })
   },
   locales
 })
 export default class DataSourceBar extends Vue {
   sourceTypes = sourceTypes
+  tableArray = []
   autoCompleteWords = []
   defaultExpandedKeys = []
   draggableNodeKeys = []
@@ -112,21 +117,21 @@ export default class DataSourceBar extends Vue {
 
   get foreignKeyArray () {
     let foreignKeyArray = []
-    this.datasource.forEach((table) => {
+    this.tableArray.forEach((table) => {
       foreignKeyArray = foreignKeyArray.concat(table.foreign_key)
     })
     return foreignKeyArray
   }
   get primaryKeyArray () {
     let primaryKeyArray = []
-    this.datasource.forEach((table) => {
+    this.tableArray.forEach((table) => {
       primaryKeyArray = primaryKeyArray.concat(table.primary_key)
     })
     return primaryKeyArray
   }
   get datasourceTree () {
-    const { datasource, currentProjectData } = this
-    return getDatasourceTree(this, datasource, currentProjectData)
+    const { tableArray, currentProjectData } = this
+    return getDatasourceTree(this, tableArray, currentProjectData)
   }
   get isShowBtnLoad () {
     return (this.isAdminRole || this.isProjectAdmin) && !this.datasourceTree.length
@@ -147,7 +152,14 @@ export default class DataSourceBar extends Vue {
     this.$emit('autoComplete', autoCompleteWords)
   }
 
+  async mounted () {
+    await this.loadTables()
+    this.selectFirstTable()
+    // const resp = await this.fetchDatabases({projectName: this.currentSelectedProject})
+    // console.log(resp)
+  }
   handleClick (data, node) {
+    this.setSelectedTable(data)
     this.$emit('click', data, node)
   }
   handleDrag (node, data) {
@@ -156,6 +168,19 @@ export default class DataSourceBar extends Vue {
   handleLoadMore (node, data) {
     this.$emit('load-more', data, node)
   }
+  setSelectedTable (data) {
+    for (const table of this.tableArray) {
+      table.isSelected = data.id === table.uuid
+    }
+  }
+  selectFirstTable () {
+    this.handleClick(getFirstTableData(this.datasourceTree))
+  }
+  async loadTables () {
+    const res = await this.fetchTables({project: this.projectName, isExt: true})
+    const tableArray = await handleSuccessAsync(res)
+    this.tableArray = tableArray.map(table => ({ ...table, isSelected: false }))
+  }
   async loadDataSource (sourceType, project, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
@@ -163,7 +188,7 @@ export default class DataSourceBar extends Vue {
     const isSubmit = await this.callDataSourceModal({ sourceType, project })
 
     if (isSubmit) {
-      this.$emit('source-update')
+      this.loadTables()
     }
   }
 }
