@@ -1,6 +1,6 @@
 import NTable from './table.js'
 import store from '../../../../store'
-import { jsPlumbTool } from '../../../../util/business'
+import { jsPlumbTool } from '../../../../util/plumb'
 import { parsePath, isEmptyObject } from '../../../../util'
 import { modelRenderConfig } from './config'
 import ModelTree from './layout'
@@ -65,10 +65,9 @@ class NModel {
           kind: tableObj.kind,
           table: tableObj.table
         })
-        tableObj.join.foreign_key.forEach((fkey, i) => {
-          var ptable = this.getTableByAlias(fkey.split('.')[0])
-          ntable.addLinkData(ptable, fkey, tableObj.join.primary_key[i], tableObj.join.type)
-        })
+        // 获取外键表对象
+        var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
+        ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
       })
     }
   }
@@ -95,23 +94,33 @@ class NModel {
       for (var i in curNT.joinInfo) {
         var primaryGuid = guid
         var foreignGuid = curNT.joinInfo[i].foreignTable.guid
-        var conn = this.renderLink(primaryGuid, foreignGuid)
-        this.allConnInfo[primaryGuid + '$' + foreignGuid] = conn
+        this.renderLink(primaryGuid, foreignGuid)
       }
     }
   }
   renderLink (pid, fid) {
     this.addPlumbPoints(pid, '', '', true)
     this.addPlumbPoints(fid, '', '', true)
-    if (this.allConnInfo[pid + '$' + fid]) {
-      return this.allConnInfo[pid + '$' + fid]
+    var hasConn = this.allConnInfo[pid + '$' + fid]
+    if (hasConn) {
+      var primaryKeys = this.tables[pid].getLinks().primary_key
+      // 如果渲染的时候发现连接关系都没有了，直接删除
+      if (!primaryKeys || primaryKeys && primaryKeys.length === 0) {
+        this.removeRenderLink(hasConn)
+        return null
+      }
+      return hasConn
     }
     var conn = this.plumbTool.connect(pid, fid, () => {
       this.connClick(pid, fid)
     }, {})
     this.setOverLayLabel(conn)
     this.plumbTool.refreshPlumbInstance()
+    this.allConnInfo[pid + '$' + fid] = conn
     return conn
+  }
+  removeRenderLink (conn) {
+    this.plumbTool.deleteConnect(conn)
   }
   renderLabels () {
     for (var i in this.allConnInfo) {

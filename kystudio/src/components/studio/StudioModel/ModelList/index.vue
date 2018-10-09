@@ -152,45 +152,6 @@
       <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
     </div>
   </el-dialog>
-  <!-- 模型克隆 -->
-<!--   <el-dialog :title="$t('modelClone')" width="440px" :visible.sync="cloneFormVisible" :close-on-press-escape="false" :close-on-click-modal="false">
-      <el-form :model="cloneModelMeta" :rules="cloneFormRule" ref="cloneForm" label-width="100px">
-        <el-form-item :label="$t('modelName')" prop="newName">
-          <el-input v-model="cloneModelMeta.newName" auto-complete="off" size="medium"></el-input>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="cloneFormVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="cloneModel">{{$t('kylinLang.common.clone')}}</el-button>
-      </div>
-  </el-dialog> -->
-
-
-    <!-- 添加model -->
-    <el-dialog :title="$t('kylinLang.model.addModel')" width="440px" :visible.sync="createModelVisible" @close="resetAddModelForm">
-      <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
-        <el-form-item prop="modelName" :label="$t('kylinLang.model.modelName')">
-          <span slot="label">{{$t('kylinLang.model.modelName')}}
-            <common-tip :content="$t('kylinLang.model.modelNameTips')" ><i class="el-icon-question"></i></common-tip>
-          </span>
-          <el-input v-model="createModelMeta.modelName" auto-complete="off" size="medium"></el-input>
-        </el-form-item>
-        <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc" style="margin-top: 20px;">
-         <el-input
-            type="textarea"
-            :rows="2"
-            :placeholder="$t('kylinLang.common.pleaseInput')"
-            v-model="createModelMeta.modelDesc">
-          </el-input>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="createModelVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
-
-
     <!-- 模型检查 -->
     <el-dialog title="Model Check" width="440px" :visible.sync="modelCheckModeVisible">
       <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
@@ -215,7 +176,7 @@
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="modelCheckModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" plain @click="" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
 
@@ -269,11 +230,12 @@
       </div>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dataLoadingModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="createModel" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" plain @click="" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
     <ModelRenameModal/>
     <ModelCloneModal/>
+    <ModelAddModal/>
   </div>
 </template>
 <script>
@@ -290,6 +252,7 @@ import ModelSegment from './ModelSegment/index.vue'
 import ModelAggregate from './ModelAggregate/index.vue'
 import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
+import ModelAddModal from './ModelAddModal/addmodel.vue'
 import { mockSQL } from './mock'
 import './fly.js'
 @Component({
@@ -315,7 +278,6 @@ import './fly.js'
   methods: {
     ...mapActions({
       loadModels: 'LOAD_MODEL_LIST',
-      cloneModel: 'CLONE_MODEL',
       delModel: 'DELETE_MODEL',
       checkModelName: 'CHECK_MODELNAME',
       applySpeedInfo: 'APPLY_SPEED_INFO',
@@ -330,6 +292,9 @@ import './fly.js'
     }),
     ...mapActions('ModelCloneModal', {
       callCloneModelDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelAddModal', {
+      callAddModelDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -337,7 +302,8 @@ import './fly.js'
     ModelSegment,
     ModelAggregate,
     ModelRenameModal,
-    ModelCloneModal
+    ModelCloneModal,
+    ModelAddModal
   },
   locales
 })
@@ -356,19 +322,9 @@ export default class ModelList extends Vue {
       {validator: this.checkName, trigger: 'blur'}
     ]
   }
-  cloneFormRule = {
-    newName: [
-      {required: true, message: this.$t('inputCloneName'), trigger: 'blur'},
-      {validator: this.checkName, trigger: 'blur'}]
-  }
   createModelMeta = {
     modelName: '',
     modelDesc: ''
-  }
-  cloneModelMeta = {
-    newName: '',
-    oldName: '',
-    project: ''
   }
   filterArgs = {
     pageOffset: 0,
@@ -488,46 +444,33 @@ export default class ModelList extends Vue {
       })
     }
   }
+  handleModel (action, modelInstance, successTip) {
+    this[action]({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
+      kapMessage(successTip)
+      this.loadModelsList()
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  // 禁用model
   handleDisableModel (modelInstance) {
-    let model = objectClone(modelInstance)
-    model.status = 'DISABLED'
-    this.disableModel({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
-      kapMessage(this.$t('disbaleModelSuccessTip'))
-      this.loadModelsList()
-    }, (res) => {
-      handleError(res)
-    })
+    this.handleModel('disableModel', modelInstance, this.$t('disbaleModelSuccessTip'))
   }
+  // 启用model
   handleEnableModel (modelInstance) {
-    this.enableModel({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
-      kapMessage(this.$t('enabledModelSuccessTip'))
-      this.loadModelsList()
-    }, (res) => {
-      handleError(res)
-    })
+    this.handleModel('enableModel', modelInstance, this.$t('enabledModelSuccessTip'))
   }
-  handleEdit (model) {
-    this.$emit('addtabs', 'model', model.name, 'modelEdit', {
-      project: model.project,
-      modelName: model.name,
-      uuid: model.uuid,
-      status: model.is_draft
-    })
+  // 删除model
+  handleDrop (modelInstance) {
+    this.handleModel('delModel', modelInstance, this.$t('deleteModelSuccessTip'))
   }
-  handleDrop (model) {
-    this.delModel({modelName: model.name, project: this.currentSelectedProject}).then(() => {
-      kapMessage(this.$t('deleteModelSuccessTip'))
-      this.loadModelsList()
-    }, (res) => {
-      handleError(res)
-    })
+  // 清理model
+  handlePurge (modelInstance) {
+    this.handleModel('purgeModel', modelInstance, this.$t('purgeModelSuccessTip'))
   }
-  handlePurge (model) {
-    this.purgeModel({project: this.currentSelectedProject, modelName: model.name}).then(() => {
-      kapMessage(this.$t('purgeModelSuccessTip'))
-    }, (res) => {
-      handleError(res)
-    })
+  // 编辑model
+  handleEditModel (modelName) {
+    this.$router.push({ name: 'ModelEdit', params: { modelName: modelName, action: 'edit' } })
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {
@@ -546,13 +489,10 @@ export default class ModelList extends Vue {
     }
     this.loadModelsList()
   }
-  // 全凭查看模型附属信息
+  // 全屏查看模型附属信息
   toggleShowFull (index) {
     this.showFull = true
     this.activeIndex = index
-  }
-  handleEditModel (modelName) {
-    this.$router.push({ name: 'ModelEdit', params: { modelName: modelName, action: 'edit' } })
   }
   // 加载模型列表
   loadModelsList () {
@@ -585,11 +525,8 @@ export default class ModelList extends Vue {
     }, 500)
   }
   showAddModelDialog () {
-    this.createModelVisible = true
+    this.callAddModelDialog()
   }
-  createModel () {}
-  resetAddModelForm () {}
-  cloneModel () {}
   hasPermissionOfProject () {
     return hasPermission(this, permissions.ADMINISTRATION.mask, permissions.MANAGEMENT.mask)
   }

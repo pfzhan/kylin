@@ -3,10 +3,10 @@
 
     <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
       <!-- table box -->
-      <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" v-for="t in modelRender && modelRender.tables || []" :style="tableBoxStyle(t.drawSize)">
+      <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title"  @mousedown="activeTablePanel(t)"   v-drag:change.left.top="t.drawSize" :class="{isLookup:t.kind==='LOOKUP'}">
           <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-model="t.alias" @blur=" t.aliasIsEdit = false" v-event-stop></el-input>
-          <span v-show="!t.aliasIsEdit">
+          <span v-show="!t.aliasIsEdit" @click="changeTableType(t)">
             <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'" v-event-stop></i>
             <i v-else class="el-icon-ksd-lookup_table kind" v-event-stop></i>
           </span>
@@ -18,7 +18,7 @@
         </div>
         <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' v-event-stop @drop='(e) => {dropColumn(e, null, t)}' v-scroll>
           <ul >
-            <li class="column-li" @drop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns">
+            <li class="column-li" @drop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns" :key="col.name">
               <span class="col-name">{{col.name|omit(14,'...')}}</span>
               <span class="col-type">{{col.datatype}}</span>
             </li>
@@ -97,7 +97,7 @@
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
                 <template v-for="d in modelRender.dimensions">
-                <li v-for="c in d.columns">{{c|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editDimension"></i><i class="el-icon-ksd-table_delete"></i><span>{{getColumnType(d.table, c)}}</span></li>
+                <li v-for="c in d.columns" :key="c">{{c|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editDimension"></i><i class="el-icon-ksd-table_delete"></i><span>{{getColumnType(d.table, c)}}</span></li>
                 </template>
               </ul>
             </div>
@@ -119,7 +119,7 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
+                <li v-for="m in modelRender.all_measures" :key="m.name">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -184,7 +184,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, loadingBox } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox } from '../../../../util/business'
 import { isIE, groupData } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -221,9 +221,6 @@ import { modelRenderConfig } from './config'
     ...mapActions('TableJoinModal', {
       showJoinDialog: 'CALL_MODAL'
     }),
-    ...mapMutations('TableJoinModal', {
-      setLinkDialogData: 'SET_MODAL'
-    }),
     ...mapActions('SingleDimensionModal', {
       showSingleDimensionDialog: 'CALL_MODAL'
     }),
@@ -255,7 +252,7 @@ export default class ModelEdit extends Vue {
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
   measureVisible = false
-  baseIndex = 100
+  // baseIndex = modelRenderConfig.baseIndex
   autoSetting = true
   measureObj = {
     name: '',
@@ -264,58 +261,7 @@ export default class ModelEdit extends Vue {
     convertedColumns: [],
     returntype: ''
   }
-  panelAppear = {
-    dimension: {
-      top: 72,
-      right: 60,
-      width: 250,
-      height: 316,
-      zIndex: this.baseIndex - 2,
-      display: false,
-      minheight: 80,
-      box: modelRenderConfig.rootBox
-    },
-    measure: {
-      top: 115,
-      right: 60,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: this.baseIndex - 1,
-      display: false,
-      box: modelRenderConfig.rootBox
-    },
-    setting: {
-      top: 158,
-      right: 60,
-      width: 250,
-      height: 410,
-      minheight: 80,
-      zIndex: this.baseIndex,
-      display: false,
-      box: modelRenderConfig.rootBox
-    },
-    datasource: {
-      top: 52,
-      left: 10,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: this.baseIndex,
-      display: true,
-      box: modelRenderConfig.rootBox
-    },
-    search: {
-      top: 52,
-      left: 10,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: this.baseIndex,
-      display: false,
-      box: modelRenderConfig.rootBox
-    }
-  }
+  panelAppear = modelRenderConfig.pannelsLayout
   radio = 1
   query (className) {
     return $(this.$el.querySelector(className))
@@ -330,7 +276,6 @@ export default class ModelEdit extends Vue {
   toggleMenu (i) {
     this.panelAppear[i].display = !this.panelAppear[i].display
     if (this.panelAppear[i].display) {
-      this.panelAppear[i].zindex = ++this.baseIndex
       this.activePanel(i)
     }
   }
@@ -343,6 +288,9 @@ export default class ModelEdit extends Vue {
   }
   closeAddMeasureDia () {
     this.measureVisible = false
+  }
+  changeTableType (t) {
+    t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
   }
   // 放大视图
   addZoom (e) {
@@ -374,7 +322,7 @@ export default class ModelEdit extends Vue {
       }, () => {
         this.globalLoading.hide()
       })
-    } else if (this.action === 'new') {
+    } else if (this.extraoption.action === 'add') {
       this.modelData = {
         modelName: this.extraoption.modelName,
         name: this.extraoption.action
@@ -456,7 +404,7 @@ export default class ModelEdit extends Vue {
     if (this.currentDragColumnData.guid === table.guid) {
       return
     }
-    // 判断是否是把fact当主键盘（连向fact）
+    // 判断是否是把fact当主键表（连向fact）
     if (table.kind === modelRenderConfig.tableKind.fact) {
       return
     }
@@ -471,22 +419,28 @@ export default class ModelEdit extends Vue {
         columnName: col && col.name || ''
       }
     }
-    // 设置连接弹出框数据
-    this.setLinkDialogData({
+    // 弹出框弹出
+    this.showJoinDialog({
       foreignTable: this.modelRender.tables[this.currentDragColumnData.guid],
       primaryTable: table,
       tables: this.modelRender.tables
+    }).then((data) => {
+      var pGuid = data.selectP
+      var fGuid = data.selectF
+      var joinData = data.joinData
+      var joinType = data.joinType
+      this.saveLinkData(pGuid, fGuid, joinData.foreign_key, joinData.primary_key, joinType)
     })
-    // 弹出框弹出
-    this.showJoinDialog()
   }
-  saveLinkData () {
-    this.modelInstance.renderLink(this.currentDropColumnData.guid, this.currentDragColumnData.guid)
-    var pTable = this.modelInstance.tables[this.currentDropColumnData.guid]
-    pTable.addLinkData(pTable, this.currentDragColumnData.columnName, this.currentDropColumnData.columnName, modelRenderConfig.joinKind.inner)
+  saveLinkData (pGuid, fGuid, fcols, pcols, joinType) {
+    var pTable = this.modelInstance.tables[pGuid]
+    // 给table添加连接数据
+    pTable.addLinkData(pTable, fcols, pcols, joinType)
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null
+    // 渲染下连线
+    this.modelInstance.renderLink(pGuid, fGuid)
   }
   removeDragInClass () {
     $(this.$el).removeClass('drag-in').find('.drag-in').removeClass('drag-in')
@@ -546,31 +500,28 @@ export default class ModelEdit extends Vue {
     }
     if (select.action === 'addjoin') {
       let pguid = moreInfo.guid
-      this.setLinkDialogData({
+      this.showJoinDialog({
         foreignTable: this.modelRender.tables[pguid],
         primaryTable: {},
         tables: this.modelRender.tables,
         ftableName: moreInfo.name
       })
-      this.showJoinDialog()
     }
     if (select.action === 'tableeditjoin') {
       let pguid = moreInfo.guid
-      this.setLinkDialogData({
+      this.showJoinDialog({
         foreignTable: moreInfo.joinInfo[pguid].foreignTable,
         primaryTable: moreInfo.joinInfo[pguid].table,
         tables: this.modelRender.tables
       })
-      this.showJoinDialog()
     }
     if (select.action === 'tableaddjoin') {
       let pguid = moreInfo.guid
-      this.setLinkDialogData({
+      this.showJoinDialog({
         foreignTable: this.modelRender.tables[pguid],
         primaryTable: {},
         tables: this.modelRender.tables
       })
-      this.showJoinDialog()
     }
     this.panelAppear.search.display = false
   }
@@ -625,25 +576,27 @@ export default class ModelEdit extends Vue {
     this.$el.onselectstart = function (e) {
       return false
     }
-    this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true}).then((res) => {
+    this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true}).then((res) => { // 初始化project数据
       handleSuccess(res, (data) => {
         this.datasource = data
-        this.initModelDesc((data) => {
+        this.initModelDesc((data) => { // 初始化模型数据
           this.modelInstance = new NModel(Object.assign(data, {
             project: this.currentSelectedProject,
             renderDom: this.renderBox
           }), this.modelRender, this)
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
-            this.setLinkDialogData({
+            this.showJoinDialog({
               foreignTable: ftable,
               primaryTable: ptable,
               tables: this.modelRender.tables
             })
-            this.showJoinDialog()
           })
         })
       })
+    }, (err) => {
+      handleError(err)
+      this.globalLoading.hide()
     })
   }
   beforeCreate () {

@@ -27,22 +27,22 @@ class NTable {
   // 链接关系处理
   addLinkData (fTable, linkColumnF, linkColumnP, type) {
     var pid = this.guid
-    if (this.joinInfo[pid]) {
-      this.joinInfo[pid].join.type = type
-      this.joinInfo[pid].join.primary_key.push(linkColumnP)
-      this.joinInfo[pid].join.foreign_key.push(linkColumnF)
-    } else {
-      this.joinInfo[pid] = {
-        table: this,
-        join: {
-          type: type,
-          primary_key: [linkColumnP],
-          foreign_key: [linkColumnF]
-        },
-        foreignTable: fTable,
-        kind: this.kind
-      }
+    // if (this.joinInfo[pid]) {
+    //   this.joinInfo[pid].join.type = type
+    //   this.joinInfo[pid].join.primary_key.push(...linkColumnP)
+    //   this.joinInfo[pid].join.foreign_key.push(...linkColumnF)
+    // } else {
+    this.joinInfo[pid] = {
+      table: this,
+      join: {
+        type: type,
+        primary_key: [...linkColumnP],
+        foreign_key: [...linkColumnF]
+      },
+      foreignTable: fTable,
+      kind: this.kind
     }
+    // }
   }
   getColumnType (columnName) {
     for (var i = this.columns.length - 1; i >= 0; i--) {
@@ -70,7 +70,7 @@ class NTable {
   }
   // 获取某个主键表相关的连接
   getLinks (pid) {
-    return this.joinInfo[pid] || []
+    return this.joinInfo[pid] || {}
   }
   // 可计算列处理
   // 维度处理

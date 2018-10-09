@@ -125,7 +125,8 @@ Vue.http.interceptors.push(function (request, next) {
   })
 })
 router.beforeEach((to, from, next) => {
-  ElementUI.Message.closeAll()
+  ElementUI.Message.closeAll() // 切换路由的时候关闭message
+  store.state.config.showLoadingBox = false // 切换路由的时候关闭全局loading
   if (to.matched && to.matched.length) {
     store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Overview'
     // 确保在非点击菜单的路由跳转下还能够正确定位到指定的active name
