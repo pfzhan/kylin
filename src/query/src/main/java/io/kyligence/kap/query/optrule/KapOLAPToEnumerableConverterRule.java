@@ -28,9 +28,9 @@ import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.kylin.query.relnode.OLAPRel;
 
 import io.kyligence.kap.query.relnode.KapOLAPToEnumerableConverter;
+import io.kyligence.kap.query.relnode.KapRel;
 
 /**
  */
@@ -39,7 +39,7 @@ public class KapOLAPToEnumerableConverterRule extends ConverterRule {
     public static final ConverterRule INSTANCE = new KapOLAPToEnumerableConverterRule();
 
     public KapOLAPToEnumerableConverterRule() {
-        super(RelNode.class, OLAPRel.CONVENTION, EnumerableConvention.INSTANCE, "KapOLAPToEnumerableConverterRule");
+        super(RelNode.class, KapRel.CONVENTION, EnumerableConvention.INSTANCE, "KapOLAPToEnumerableConverterRule");
     }
 
     @Override

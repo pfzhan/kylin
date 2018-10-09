@@ -24,35 +24,35 @@
 
 package io.kyligence.kap.query.optrule;
 
+import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.convert.ConverterRule;
 import org.apache.calcite.rel.logical.LogicalFilter;
-import org.apache.kylin.query.relnode.OLAPFilterRel;
-import org.apache.kylin.query.relnode.OLAPRel;
 
 import io.kyligence.kap.query.relnode.KapFilterRel;
+import io.kyligence.kap.query.relnode.KapRel;
 
 /**
  */
-public class KapFilterRule extends RelOptRule {
+public class KapFilterRule extends ConverterRule {
 
     public static final RelOptRule INSTANCE = new KapFilterRule();
 
     public KapFilterRule() {
-        super(operand(LogicalFilter.class, any()));
+        super(LogicalFilter.class, Convention.NONE, KapRel.CONVENTION, "KapFilterRule");
     }
 
     @Override
-    public void onMatch(RelOptRuleCall call) {
-        LogicalFilter filter = call.rel(0);
+    public RelNode convert(RelNode call) {
+        LogicalFilter filter = (LogicalFilter) call;
 
         RelTraitSet origTraitSet = filter.getTraitSet();
-        RelTraitSet traitSet = origTraitSet.replace(OLAPRel.CONVENTION).simplify();
+        RelTraitSet traitSet = origTraitSet.replace(KapRel.CONVENTION).simplify();
 
-        OLAPFilterRel olapFilter = new KapFilterRel(filter.getCluster(), traitSet, convert(filter.getInput(), traitSet),
+        return new KapFilterRel(filter.getCluster(), traitSet, convert(filter.getInput(), KapRel.CONVENTION),
                 filter.getCondition());
-        call.transformTo(olapFilter);
     }
 
 }

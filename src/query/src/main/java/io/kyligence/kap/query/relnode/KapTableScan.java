@@ -30,9 +30,11 @@ import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
+import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptTable;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.plan.volcano.AbstractConverter.ExpandConversionRule;
+import org.apache.calcite.prepare.CalcitePrepareImpl;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
@@ -46,10 +48,12 @@ import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
 import org.apache.calcite.rel.rules.JoinPushThroughJoinRule;
 import org.apache.calcite.rel.rules.JoinUnionTransposeRule;
+import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.SemiJoinRule;
 import org.apache.calcite.rel.rules.SortJoinTransposeRule;
 import org.apache.calcite.rel.rules.SortUnionTransposeRule;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
 import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -58,11 +62,13 @@ import org.apache.kylin.query.schema.OLAPTable;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.query.optrule.KAPValuesRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
 import io.kyligence.kap.query.optrule.KapOLAPToEnumerableConverterRule;
+import io.kyligence.kap.query.optrule.KapProjectMergeRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
 import io.kyligence.kap.query.optrule.KapSortRule;
 import io.kyligence.kap.query.optrule.KapUnionRule;
@@ -71,9 +77,11 @@ import io.kyligence.kap.query.optrule.KapWindowRule;
 /**
  */
 public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel {
+    KapConfig kapConfig;
 
     public KapTableScan(RelOptCluster cluster, RelOptTable table, OLAPTable olapTable, int[] fields) {
         super(cluster, table, olapTable, fields);
+        kapConfig = KapConfig.getInstanceFromEnv();
     }
 
     @Override
@@ -85,6 +93,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         planner.addRule(KapOLAPToEnumerableConverterRule.INSTANCE);
         planner.addRule(KapFilterRule.INSTANCE);
         planner.addRule(KapProjectRule.INSTANCE);
+        planner.removeRule(ProjectMergeRule.INSTANCE);
+        planner.addRule(KapProjectMergeRule.INSTANCE);
         planner.addRule(KapAggregateRule.INSTANCE);
 
         planner.addRule(KapJoinRule.INSTANCE);
@@ -93,21 +103,31 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         planner.addRule(KapSortRule.INSTANCE);
         planner.addRule(KapUnionRule.INSTANCE);
         planner.addRule(KapWindowRule.INSTANCE);
+        planner.addRule(KAPValuesRule.INSTANCE);
 
         // Support translate the grouping aggregate into union of simple aggregates
+        //        planner.addRule(CorrReduceFunctionRule.INSTANCE);
         planner.addRule(AggregateMultipleExpandRule.INSTANCE);
         planner.addRule(AggregateProjectReduceRule.INSTANCE);
 
         // CalcitePrepareImpl.CONSTANT_REDUCTION_RULES
-        planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
-        planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
+        if (kylinConfig.isReduceExpressionsRulesEnabled()) {
+            planner.addRule(ReduceExpressionsRule.PROJECT_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.FILTER_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.CALC_INSTANCE);
+            planner.addRule(ReduceExpressionsRule.JOIN_INSTANCE);
+        }
         // the ValuesReduceRule breaks query test somehow...
         //        planner.addRule(ValuesReduceRule.FILTER_INSTANCE);
         //        planner.addRule(ValuesReduceRule.PROJECT_FILTER_INSTANCE);
         //        planner.addRule(ValuesReduceRule.PROJECT_INSTANCE);
 
+        removeRules(planner, kylinConfig.getCalciteRemoveRule());
+        if (!kylinConfig.isEnumerableRulesEnabled()) {
+            for (RelOptRule rule : CalcitePrepareImpl.ENUMERABLE_RULES) {
+                planner.removeRule(rule);
+            }
+        }
         // since join is the entry point, we can't push filter past join
         planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
         planner.removeRule(FilterJoinRule.JOIN);
@@ -116,6 +136,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         planner.removeRule(JoinCommuteRule.INSTANCE);
         planner.removeRule(JoinPushThroughJoinRule.LEFT);
         planner.removeRule(JoinPushThroughJoinRule.RIGHT);
+        removeRules(planner, kylinConfig.getCalciteRemoveRule());
 
         // keep tree structure like filter -> aggregation -> project -> join/table scan, implementOLAP() rely on this tree pattern
         planner.removeRule(AggregateJoinTransposeRule.INSTANCE);

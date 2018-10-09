@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -64,6 +64,8 @@ public class QueryContext {
     private Set<String> groups;
     private AtomicLong scannedRows = new AtomicLong();
     private AtomicLong scannedBytes = new AtomicLong();
+
+    private Object calcitePlan;
 
     private QueryContext() {
         // use QueryContext.current() instead
@@ -117,5 +119,13 @@ public class QueryContext {
 
     public long addAndGetScannedBytes(long deltaBytes) {
         return scannedBytes.addAndGet(deltaBytes);
+    }
+
+    public Object getCalcitePlan() {
+        return calcitePlan;
+    }
+
+    public void setCalcitePlan(Object calcitePlan) {
+        this.calcitePlan = calcitePlan;
     }
 }

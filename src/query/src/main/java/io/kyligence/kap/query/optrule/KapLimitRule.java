@@ -50,9 +50,7 @@ public class KapLimitRule extends RelOptRule {
             return;
         }
 
-        RelTraitSet origTraitSet = sort.getTraitSet();
-        RelTraitSet traitSet = origTraitSet.replace(OLAPRel.CONVENTION).simplify();
-
+        RelTraitSet traitSet = sort.getTraitSet().replace(OLAPRel.CONVENTION).simplify();
         RelNode input = sort.getInput();
         if (!sort.getCollation().getFieldCollations().isEmpty()) {
             // Create a sort with the same sort key, but no offset or fetch.

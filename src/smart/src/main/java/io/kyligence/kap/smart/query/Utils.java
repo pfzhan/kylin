@@ -34,6 +34,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.query.util.DefaultQueryTransformer;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -41,8 +43,6 @@ import io.kyligence.kap.query.util.CognosParenthesesEscape;
 import io.kyligence.kap.query.util.EscapeTransformer;
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import io.kyligence.kap.smart.query.mockup.MockupStorage;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Utils {
     private static final Logger logger = LoggerFactory.getLogger(Utils.class);

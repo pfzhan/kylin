@@ -124,7 +124,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     private String backupAlias;
     protected ColumnRowType columnRowType;
     protected OLAPContext context;
-    private KylinConfig kylinConfig;
+    protected KylinConfig kylinConfig;
 
     public OLAPTableScan(RelOptCluster cluster, RelOptTable table, OLAPTable olapTable, int[] fields) {
         super(cluster, cluster.traitSetOf(OLAPRel.CONVENTION), table);
@@ -229,7 +229,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         planner.removeRule(ExpandConversionRule.INSTANCE);
     }
 
-    private void addRules(final RelOptPlanner planner, List<String> rules) {
+    protected void addRules(final RelOptPlanner planner, List<String> rules) {
         modifyRules(rules, new Function<RelOptRule, Void>() {
             @Nullable
             @Override
@@ -240,7 +240,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         });
     }
 
-    private void removeRules(final RelOptPlanner planner, List<String> rules) {
+    protected void removeRules(final RelOptPlanner planner, List<String> rules) {
         modifyRules(rules, new Function<RelOptRule, Void>() {
             @Nullable
             @Override

@@ -55,16 +55,16 @@ import java.util.SortedSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.kylin.common.lock.DistributedLockFactory;
-import org.apache.kylin.common.persistence.HDFSResourceStore;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.CliCommandExecutor;
-import org.apache.kylin.common.util.ZooKeeperUtil;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.lock.DistributedLockFactory;
+import org.apache.kylin.common.persistence.HDFSResourceStore;
+import org.apache.kylin.common.util.ClassUtil;
+import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.ZooKeeperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1500,5 +1500,13 @@ abstract public class KylinConfigBase implements Serializable {
 
     public boolean getEventWaitForJobFinished() {
         return Boolean.valueOf(getOptional("kylin.event.wait-for-job-finished", "false"));
+    }
+
+    public Boolean isEnumerableRulesEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite.enumerable-rules-enabled", "false"));
+    }
+
+    public boolean isReduceExpressionsRulesEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.query.calcite.reduce-rules-enabled", "true"));
     }
 }

@@ -27,10 +27,6 @@ package io.kyligence.kap.query.optrule;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.query.relnode.KapFilterRel;
-import io.kyligence.kap.query.relnode.KapJoinRel;
-import io.kyligence.kap.query.relnode.KapRel;
 import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelTraitSet;
@@ -52,6 +48,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.query.relnode.KapFilterRel;
+import io.kyligence.kap.query.relnode.KapJoinRel;
+import io.kyligence.kap.query.relnode.KapRel;
+
 public class KapJoinRule extends ConverterRule implements IKeep {
     private static final Logger logger = LoggerFactory.getLogger(KapJoinRule.class);
 
@@ -68,8 +69,8 @@ public class KapJoinRule extends ConverterRule implements IKeep {
         RelNode right = join.getInput(1);
 
         RelTraitSet traitSet = join.getTraitSet().replace(KapRel.CONVENTION);
-        left = convert(left, traitSet);
-        right = convert(right, traitSet);
+        left = convert(left, left.getTraitSet().replace(KapRel.CONVENTION));
+        right = convert(right, right.getTraitSet().replace(KapRel.CONVENTION));
 
         final JoinInfo info = JoinInfo.of(left, right, join.getCondition());
 

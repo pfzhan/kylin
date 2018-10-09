@@ -21,35 +21,26 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.query.optrule;
 
 import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.core.Window;
+import org.apache.calcite.rel.core.Values;
+import org.apache.kylin.query.relnode.OLAPRel;
 
-import io.kyligence.kap.query.relnode.KapRel;
-import io.kyligence.kap.query.relnode.KapWindowRel;
+import io.kyligence.kap.query.relnode.KapValuesRel;
 
-/**
- */
-public class KapWindowRule extends ConverterRule {
+public class KAPValuesRule extends ConverterRule {
+    public static final KAPValuesRule INSTANCE = new KAPValuesRule();
 
-    public static final KapWindowRule INSTANCE = new KapWindowRule();
-
-    public KapWindowRule() {
-        super(Window.class, Convention.NONE, KapRel.CONVENTION, "KapWindowRule");
+    KAPValuesRule() {
+        super(Values.class, Convention.NONE, OLAPRel.CONVENTION, "KapValuesRule");
     }
 
     @Override
     public RelNode convert(RelNode rel) {
-        final Window window = (Window) rel;
-        final RelTraitSet traitSet = window.getTraitSet().replace(KapRel.CONVENTION);
-        final RelNode input = window.getInput();
-        return new KapWindowRel(rel.getCluster(), traitSet,
-                convert(input, input.getTraitSet().replace(KapRel.CONVENTION)), window.constants, window.getRowType(),
-                window.groups);
+        Values values = (Values) rel;
+        return KapValuesRel.create(values.getCluster(), values.getRowType(), values.getTuples());
     }
 }

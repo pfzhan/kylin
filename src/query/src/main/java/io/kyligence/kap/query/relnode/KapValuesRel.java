@@ -22,53 +22,47 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.query.optrule;
+package io.kyligence.kap.query.relnode;
 
 import java.util.List;
 
-import org.apache.calcite.plan.Convention;
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.logical.LogicalProject;
+import org.apache.calcite.rel.RelDistribution;
+import org.apache.calcite.rel.RelDistributionTraitDef;
 import org.apache.calcite.rel.metadata.RelMdCollation;
+import org.apache.calcite.rel.metadata.RelMdDistribution;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexLiteral;
+import org.apache.kylin.query.relnode.OLAPRel;
+import org.apache.kylin.query.relnode.OLAPValuesRel;
 
 import com.google.common.base.Supplier;
+import com.google.common.collect.ImmutableList;
 
-import io.kyligence.kap.query.relnode.KapProjectRel;
-import io.kyligence.kap.query.relnode.KapRel;
+public class KapValuesRel extends OLAPValuesRel implements KapRel {
 
-/**
- */
-public class KapProjectRule extends ConverterRule {
-
-    public static final RelOptRule INSTANCE = new KapProjectRule();
-
-    public KapProjectRule() {
-        super(LogicalProject.class, Convention.NONE, KapRel.CONVENTION, "KapProjectRule");
+    private KapValuesRel(RelOptCluster cluster, RelDataType rowType, ImmutableList<ImmutableList<RexLiteral>> tuples,
+            RelTraitSet traitSet) {
+        super(cluster, rowType, tuples, traitSet);
     }
 
-    @Override
-    public RelNode convert(RelNode call) {
-        final LogicalProject project = (LogicalProject) call;
-
-        final RelNode convertInput = convert(project.getInput(),
-                project.getInput().getTraitSet().replace(KapRel.CONVENTION));
-        final RelOptCluster cluster = convertInput.getCluster();
+    public static KapValuesRel create(RelOptCluster cluster, final RelDataType rowType,
+            final ImmutableList<ImmutableList<RexLiteral>> tuples) {
         final RelMetadataQuery mq = cluster.getMetadataQuery();
-        final RelTraitSet traitSet = cluster.traitSet().replace(KapRel.CONVENTION)
+        final RelTraitSet traitSet = cluster.traitSetOf(OLAPRel.CONVENTION)
                 .replaceIfs(RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
                     public List<RelCollation> get() {
-                        return RelMdCollation.project(mq, convertInput, project.getProjects());
+                        return RelMdCollation.values(mq, rowType, tuples);
+                    }
+                }).replaceIf(RelDistributionTraitDef.INSTANCE, new Supplier<RelDistribution>() {
+                    public RelDistribution get() {
+                        return RelMdDistribution.values(rowType, tuples);
                     }
                 });
-        return new KapProjectRel(project.getCluster(), traitSet, //
-                convertInput, project.getProjects(), project.getRowType());
+        return new KapValuesRel(cluster, rowType, tuples, traitSet);
     }
-
 }

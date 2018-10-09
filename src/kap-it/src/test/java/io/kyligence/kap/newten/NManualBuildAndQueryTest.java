@@ -93,7 +93,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         System.setProperty("isDeveloperMode", "true");
         buildCubes();
         KapSparkSession kapSparkSession = prepareSS(config);
-        List<Pair<String, Throwable>> results = execAndGetResults(Lists.newArrayList(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "temp"))); //
+        List<Pair<String, Throwable>> results = execAndGetResults(
+                Lists.newArrayList(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "temp"))); //
         report(results);
     }
 
@@ -114,7 +115,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private List<Pair<String, Throwable>> execAndGetResults(List<QueryCallable> tasks)
             throws InterruptedException, java.util.concurrent.ExecutionException {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(9 //
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(9//
                 , 9 //
                 , 1 //
                 , TimeUnit.DAYS //
@@ -179,6 +180,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_powerbi"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_raw"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_rawtable"));
+            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_value"));
 
             // same row count
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_ROWCOUNT, joinType, "sql_tableau"));
@@ -192,7 +194,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.NONE, joinType, "sql_distinct"));
 
             //execLimitAndValidate
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SUBSET, joinType, "sql"));
+            //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SUBSET, joinType, "sql"));
         }
 
         tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_multi_model"));
@@ -256,7 +258,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 logger.error("Query fail on:", identity);
                 return Pair.newPair(identity, th);
             }
-            logger.error("Query succeed on:", identity);
+            logger.info("Query succeed on:", identity);
             return Pair.newPair(identity, null);
         }
     }
