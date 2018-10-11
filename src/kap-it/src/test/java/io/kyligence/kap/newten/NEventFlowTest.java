@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.newten;
 
+import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,8 +34,12 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
+import io.kylingence.kap.event.handle.LoadingRangeRefreshHandler;
+import io.kylingence.kap.event.handle.RefreshSegmentHandler;
 import io.kylingence.kap.event.handle.RemoveCuboidHandler;
 import io.kylingence.kap.event.model.EventContext;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kylingence.kap.event.model.RefreshSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -104,6 +110,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         new RemoveCuboidHandler();
         new ModelUpdateHandler();
         new LoadingRangeUpdateHandler();
+        new LoadingRangeRefreshHandler();
     }
 
     @After
@@ -131,18 +138,67 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     @SuppressWarnings("MethodLength")
     public void testEventFlow() throws Exception {
         // mock success job
-        List<DefaultChainedExecutable> successJobs = genMockJobs(7, ExecutableState.SUCCEED);
+        List<DefaultChainedExecutable> successJobs = genMockJobs(11, ExecutableState.SUCCEED);
 
         AddSegmentHandler addSegmentHandler = Mockito.spy(AddSegmentHandler.class);
         AddCuboidHandler addCuboidHandler = Mockito.spy(AddCuboidHandler.class);
+        RefreshSegmentHandler refreshSegmentHandler = Mockito.spy(RefreshSegmentHandler.class);
 
         Mockito.doReturn(successJobs.get(0), successJobs.get(1), successJobs.get(2), successJobs.get(3)).when(addSegmentHandler).createJob(Mockito.any(EventContext.class));
         Mockito.doReturn(successJobs.get(4), successJobs.get(5), successJobs.get(6)).when(addCuboidHandler).createJob(Mockito.any(EventContext.class));
+        Mockito.doReturn(successJobs.get(7), successJobs.get(8), successJobs.get(9), successJobs.get(10)).when(refreshSegmentHandler).createJob(Mockito.any(EventContext.class));
 
         testLoadingRangeFlow();
+        testRefreshFlow();
         testCuboidEventFlow();
         testRemoveEventFlow();
         testEventErrorFlow();
+    }
+
+    private void testRefreshFlow() throws PersistentException, InterruptedException, IOException, NoSuchFieldException, IllegalAccessException {
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+
+        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(config, DEFAULT_PROJECT).getDataLoadingRange(tableName);
+        Class<?> clazz = dataLoadingRange.getClass();
+        Field field = clazz.getDeclaredField("waterMarkEnd");
+        field.setAccessible(true);
+        field.set(dataLoadingRange, 0);
+
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2012-08-01");
+
+        LoadingRangeRefreshEvent loadingRangeRefreshEvent = new LoadingRangeRefreshEvent();
+        loadingRangeRefreshEvent.setApproved(true);
+        loadingRangeRefreshEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeRefreshEvent.setTableName(tableName);
+        loadingRangeRefreshEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
+
+        eventManager.post(loadingRangeRefreshEvent);
+
+        waitForEventFinished(config);
+
+        Event updatedEvent = EventDao.getInstance(config, DEFAULT_PROJECT).getEvent(loadingRangeRefreshEvent.getUuid());
+        Assert.assertEquals(EventStatus.ERROR, updatedEvent.getStatus());
+        Assert.assertTrue(updatedEvent.getMsg().contains("is out of range the coveredReadySegmentRange of dataLoadingRange"));
+
+        start = SegmentRange.dateToLong("2010-01-01");
+        end = SegmentRange.dateToLong("2012-06-01");
+
+        loadingRangeRefreshEvent = new LoadingRangeRefreshEvent();
+        loadingRangeRefreshEvent.setApproved(true);
+        loadingRangeRefreshEvent.setProject(DEFAULT_PROJECT);
+        loadingRangeRefreshEvent.setTableName(tableName);
+        loadingRangeRefreshEvent.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(start, end));
+
+        eventManager.post(loadingRangeRefreshEvent);
+
+        waitForEventFinished(config);
+
+        Map<Class, List<Event>> eventsMap = getEventsMap();
+        List<Event> refreshSegmentEvents = eventsMap.get(RefreshSegmentEvent.class);
+
+        Assert.assertNotNull(refreshSegmentEvents);
+        Assert.assertEquals(4, refreshSegmentEvents.size());
     }
 
     private void testEventErrorFlow() throws PersistentException, InterruptedException {
@@ -156,7 +212,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         waitForEventFinished(config);
 
         Event updatedEvent = EventDao.getInstance(config, DEFAULT_PROJECT).getEvent(loadingRangeUpdateEvent.getUuid());
-        Assert.assertEquals(updatedEvent.getStatus(), EventStatus.ERROR);
+        Assert.assertEquals(EventStatus.ERROR, updatedEvent.getStatus());
         Assert.assertTrue(updatedEvent.getMsg().contains("TableDesc 'errorTable' does not exist"));
     }
 
@@ -240,7 +296,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         List<Event> addSegmentEvents = eventsMap.get(AddSegmentEvent.class);
 
         Assert.assertNotNull(addSegmentEvents);
-        Assert.assertEquals(addSegmentEvents.size(), 4);
+        Assert.assertEquals(4, addSegmentEvents.size());
     }
 
     public void testCuboidEventFlow() throws Exception {

@@ -45,12 +45,12 @@ package io.kylingence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class LoadingRangeUpdateEvent extends Event{
+public class LoadingRangeRefreshEvent extends Event{
 
     @JsonProperty("table")
     private String tableName;
 
-    public LoadingRangeUpdateEvent() {
+    public LoadingRangeRefreshEvent() {
         super();
         setTriggerType(TriggerType.TIME_LINE);
         setApproved(true);
@@ -63,4 +63,5 @@ public class LoadingRangeUpdateEvent extends Event{
     public void setTableName(String tableName) {
         this.tableName = tableName;
     }
+
 }
