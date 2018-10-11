@@ -256,8 +256,8 @@ export default class ModelEdit extends Vue {
   autoSetting = true
   measureObj = {
     name: '',
-    expression: 'COUNT(column)',
-    parameterValue: '',
+    expression: 'SUM(column)',
+    parameterValue: {type: 'column', value: ''},
     convertedColumns: [],
     returntype: ''
   }

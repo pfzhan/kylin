@@ -34,7 +34,7 @@
             <el-select :popper-append-to-body="false" :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
-            size="medium" v-model="measure.parameterValue" :placeholder="$t('kylinLang.common.pleaseSelect')"
+            size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <el-option
                 v-for="(item, index) in getParameterValue"
@@ -60,7 +60,7 @@
         <el-form :model="ccObject" class="cc-block" :class="{'editCC': !isEdit}" label-position="top" :rules="ccRules" ref="ccForm" v-show="ccVisible">
           <el-form-item prop="name" class="ksd-mb-10">
             <span slot="label">Column Name <span v-if="!isEdit">: {{ccObject.name}}</span></span>
-            <el-input class="measures-width" size="medium" v-model="ccObject.name" v-if="isEdit"></el-input>
+            <el-input class="measures-width" size="medium" v-model="ccObject.name" v-if="isEdit" @blur="upperCaseCCName"></el-input>
 
           </el-form-item>
           <el-form-item prop="returnType" class="ksd-mb-10">
@@ -95,7 +95,7 @@
       <el-form-item :label="isGroupBy">
         <div class="measure-flex-row" v-if="measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
-            <el-select class="measures-width" size="medium" v-model="column.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
+            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
               <el-option
                 v-for="(item, index) in getParameterValue"
                 :key="index"
@@ -110,7 +110,7 @@
           <el-button size="medium" icon="el-icon-ksd-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
         <div v-if="measure.expression ==='CORR'" class="ksd-mt-10">
-          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
+          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
             <el-option
               v-for="(item, index) in getParameterValue"
               :key="index"
@@ -157,8 +157,8 @@ export default class AddMeasure extends Vue {
   reuseColumn = ''
   measure = {
     name: '',
-    expression: 'COUNT(column)',
-    parameterValue: '',
+    expression: 'SUM(column)',
+    parameterValue: {type: 'column', value: ''},
     convertedColumns: [],
     returntype: ''
   }
@@ -212,11 +212,6 @@ export default class AddMeasure extends Vue {
     {name: 'percentile(1000)', value: 'percentile(1000)'},
     {name: 'percentile(10000)', value: 'percentile(10000)'}
   ]
-  nextParam = {
-    'type': 'column',
-    'value': '',
-    'next_parameter': null
-  }
   integerType = ['bigint', 'int', 'integer', 'smallint', 'tinyint']
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
@@ -239,14 +234,24 @@ export default class AddMeasure extends Vue {
     this.measure.name = this.measure.name.toLocaleUpperCase()
   }
 
+  upperCaseCCName () {
+    this.ccObject.name = this.ccObject.name.toLocaleUpperCase()
+  }
+
   changeExpression () {
     this.measure.returntype = ''
+    if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
+      this.measure.parameterValue.type = 'constant'
+      this.measure.parameterValue.value = 1
+    } else {
+      this.measure.parameterValue.type = 'column'
+    }
     if (this.measure.expression === 'TOP_N') {
-      this.measure.convertedColumns = [{column: ''}]
+      this.measure.convertedColumns = [{type: 'column', value: ''}]
       this.measure.returntype = 'topn(100)'
     }
     if (this.measure.expression === 'CORR') {
-      this.measure.convertedColumns = [{column: ''}]
+      this.measure.convertedColumns = [{type: 'column', value: ''}]
     }
     if (this.measure.expression === 'COUNT_DISTINCT') {
       this.measure.convertedColumns = []
@@ -258,9 +263,7 @@ export default class AddMeasure extends Vue {
   }
 
   addNewProperty () {
-    const GroupBy = {
-      column: ''
-    }
+    const GroupBy = {type: 'column', value: ''}
     this.measure.convertedColumns.push(GroupBy)
   }
 
@@ -289,7 +292,7 @@ export default class AddMeasure extends Vue {
         this.ccGroups.splice(this.activeCCIndex, 1)
       })
     }
-    this.measure.parameter.value = ''
+    this.measure.parameterValue.value = ''
     this.ccVisible = false
     this.isEdit = false
   }
@@ -297,7 +300,7 @@ export default class AddMeasure extends Vue {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
         this.activeCCIndex = this.ccGroups.push(this.ccObject) - 1
-        this.measure.parameter.value = this.ccObject
+        this.measure.parameterValue.value = this.ccObject.name
         this.isEdit = false
       }
     })
@@ -380,10 +383,23 @@ export default class AddMeasure extends Vue {
   resetMeasure () {
     this.measure = {
       name: '',
-      expression: 'COUNT(column)',
-      parameterValue: '',
+      expression: 'SUM(column)',
+      parameterValue: {type: 'column', value: ''},
       convertedColumns: [],
       returntype: ''
+    }
+    this.ccVisible = false
+    this.isEdit = false
+    this.ccObject = {
+      name: '',
+      returnType: '',
+      expression: ''
+    }
+  }
+
+  initExpression () {
+    if (this.measure.expression === 'SUM' || this.measure.expression === 'COUNT') {
+      this.measure.expression = `${this.measure.expression}(${this.measure.parameterValue.type})`
     }
   }
 
@@ -393,6 +409,7 @@ export default class AddMeasure extends Vue {
     if (this.measureVisible) {
       this.resetMeasure()
       this.measure = objectClone(this.measureObj)
+      this.initExpression()
     }
   }
 }
