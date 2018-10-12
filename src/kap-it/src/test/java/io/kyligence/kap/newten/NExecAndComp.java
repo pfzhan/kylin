@@ -109,7 +109,7 @@ public class NExecAndComp {
             List<Row> kapRows = kapResult.toJavaRDD().collect();
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-            compareResults(kapRows, sparkRows, CompareLevel.SUBSET);
+            compareResults(sparkRows, kapRows, CompareLevel.SUBSET);
         }
         logger.info("Queries appended with limit: " + appendLimitQueries);
     }
