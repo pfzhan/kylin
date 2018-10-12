@@ -35,13 +35,20 @@
         <template slot-scope="props">
           <div class="detail-title">
             <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
-            <!-- <span class="ksd-fright">Help 
-              <i class="el-icon-question"></i>
-            </span> -->
           </div>
           <div class="detail-content">
             <el-row :gutter="20">
-              <el-col :span="10">
+              <el-col :span="10" style="position:relative;">
+                <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
+                </kap_editor>
+                <div class="copy-btn">
+                  <transition name="fade">
+                    <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
+                  </transition>
+                  <el-button type="primary" text v-clipboard:copy="$store.state.config.errorMsgBox.detail" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+                </div>
+              </el-col>
+              <el-col :span="14">
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.queryId')}}</span>
                   <span>{{props.row.query_id}}</span>
@@ -50,20 +57,12 @@
                   <span class="label">{{$t('kylinLang.query.duration')}}</span>
                   <span>{{props.row.latency / 1000 | fixed(2)}}s</span>
                 </div>
-                <div>
-                  <span class="label">{{$t('kylinLang.query.sqlContent')}}</span>
-                </div>
-                  <kap_editor height="130" width="80%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
-                  </kap_editor>
-              </el-col>
-              <el-col :span="10">
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.modelName')}}</span>
-                  <span>{{props.row.model_name}}</span>
-                </div>
-                <div class="ksd-nobr-text">
+                <div class="realization-block">
                   <span class="label">{{$t('kylinLang.query.realization')}}</span>
-                  <span class="realization-detail" @click="openAgg(props.row)">{{props.row.realization | arrayToStr}}</span>
+                  <div class="tags-block">
+                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization">{{pushdown}}</el-tag>
+                    <el-tag v-else v-for="modelName in props.row.realization" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                  </div>
                 </div>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.content')}}</span>
@@ -77,7 +76,6 @@
                   <span class="label">{{$t('kylinLang.query.scanBytes')}}</span>
                   <span>{{props.row.total_scan_bytes}}</span>
                 </div>
-                <br/>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
                   <span>{{props.row.result_row_count}}</span>
@@ -106,7 +104,13 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250">
+      <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250" show-overflow-tooltip>
+        <template slot-scope="props">
+          <div class="tag-ellipsis">
+            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization">{{pushdown}}</el-tag>
+            <el-tag v-else v-for="modelName in props.row.realization">{{modelName}}</el-tag>
+          </div>
+        </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.ip_th')" prop="query_node" header-align="center" width="200">
       </el-table-column>
@@ -231,6 +235,7 @@ export default class QueryHistoryTable extends Vue {
     sql: null
   }
   timer = null
+  showCopyStatus = false
   multipleSelection = []
   userGroups = []
   ruleVisible = false
@@ -256,6 +261,17 @@ export default class QueryHistoryTable extends Vue {
       this.filterData.startTimeTo = null
     }
     this.filterList()
+  }
+
+  onCopy () {
+    this.showCopyStatus = true
+    setTimeout(() => {
+      this.showCopyStatus = false
+    }, 3000)
+  }
+
+  onError () {
+    this.$message(this.$t('kylinLang.common.copyfail'))
   }
 
   async loadAllRules () {
@@ -420,10 +436,8 @@ export default class QueryHistoryTable extends Vue {
   handleSelectionChange (rows) {
     this.$emit('selectionChanged', rows)
   }
-  openAgg (queryHistory) {
-    if (queryHistory.realization.length && queryHistory.realization.includes('Aggregate Index')) {
-      this.$emit('openAgg', queryHistory)
-    }
+  openAgg (modelName) {
+    this.$emit('openAgg', modelName)
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {
@@ -591,6 +605,18 @@ export default class QueryHistoryTable extends Vue {
     margin-top: 20px;
     .el-table__expanded-cell {
       padding: 20px;
+      .copy-btn {
+        position: absolute;
+        right: 80px;
+        bottom: 8px;
+        .copyStatusMsg {
+          display: inline-block;
+          color: @text-normal-color;
+          .el-icon-circle-check {
+            color: @normal-color-1;
+          }
+        }
+      }
       .detail-title {
         border-bottom: 1px solid @line-border-color;
         overflow: hidden;
@@ -615,9 +641,13 @@ export default class QueryHistoryTable extends Vue {
           width: 125px;
           text-align: right;
         }
-        .realization-detail {
-          color: @link-color;
-          cursor: pointer;
+        .realization-block {
+          display: table;
+          .tags-block {
+            line-height: 2.8;
+            display: table-cell;
+            vertical-align: top;
+          }
         }
       }
     }
@@ -625,6 +655,11 @@ export default class QueryHistoryTable extends Vue {
       width: 400px;
     }
     .history-table {
+      .tag-ellipsis {
+        width: 100%;
+        text-overflow: ellipsis;
+        overflow: hidden;
+      }
       .el-date-editor {
         line-height: inherit;
         padding: 0;

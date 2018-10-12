@@ -70,7 +70,6 @@
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
-
 import locales from './locales'
 import { formatFlowerJson, getCuboidCounts } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'

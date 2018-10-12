@@ -51,7 +51,8 @@ import PartitionChart from '../common/PartitionChart'
   methods: {
     ...mapActions({
       getHistoryList: 'GET_HISTORY_LIST',
-      fetchCuboids: 'FETCH_CUBOIDS'
+      fetchCuboids: 'FETCH_CUBOIDS',
+      fetchCuboid: 'FETCH_CUBOID'
     })
   },
   computed: {
@@ -88,11 +89,13 @@ export default class QueryHistory extends Vue {
     accelerateStatus: [],
     sql: ''
   }
+  modelName = 'query_history_table.vue'
 
-  async openAgg (queryHistory) {
+  async openAgg (modelName) {
     this.aggDetailVisible = true
+    this.modelName = modelName
 
-    const res = await this.fetchCuboids({modelName: queryHistory.model_name, projectName: this.currentSelectedProject})
+    const res = await this.fetchCuboids({modelName: this.modelName, projectName: this.currentSelectedProject})
     const data = await handleSuccessAsync(res)
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)
@@ -102,7 +105,7 @@ export default class QueryHistory extends Vue {
     const cuboidId = node.cuboid.id
     const res = await this.fetchCuboid({
       projectName: this.currentSelectedProject,
-      modelName: this.model.name,
+      modelName: this.modelName,
       cuboidId
     })
     const cuboid = await handleSuccessAsync(res)
