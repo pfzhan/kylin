@@ -76,9 +76,7 @@ public class NTableController extends NBasicController {
 
         checkProjectName(project);
         List<TableDesc> tableDescs = new ArrayList<>();
-
         tableDescs.addAll(tableService.getTableDesc(project, withExt, table));
-
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableDescs, "");
     }
 

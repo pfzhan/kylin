@@ -26,9 +26,11 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -292,6 +294,113 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(0);
         validateTableIndex(0);
+    }
+
+    @Test
+    public void testCancelCubingJob() throws Exception {
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<NCuboidLayout> round1 = new ArrayList<>();
+        round1.add(layouts.get(0));
+        round1.add(layouts.get(1));
+        round1.add(layouts.get(2));
+        round1.add(layouts.get(3));
+        round1.add(layouts.get(7));
+        // Round1. Build new segment
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
+        execMgr.addJob(job);
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertEquals(1, df.getSegments().size());
+        while (true) {
+            if (execMgr.getJob(job.getId()).getStatus().equals(ExecutableState.RUNNING)) {
+                Thread.sleep(1000);
+                break;
+            }
+        }
+        Class clazz = NDefaultScheduler.class;
+        Field field = clazz.getDeclaredField("threadToInterrupt");
+        field.setAccessible(true);
+        ConcurrentHashMap<String, Thread> threadToInterrupt = (ConcurrentHashMap<String, Thread>) field.get(clazz);
+        Assert.assertEquals(true, threadToInterrupt.containsKey(job.getId()));
+        Thread thread = threadToInterrupt.get(job.getId());
+        Assert.assertEquals(false, thread.isInterrupted());
+        job.cancelJob();
+        Assert.assertEquals(false, threadToInterrupt.containsKey(job.getId()));
+        waitThreadInterupt(thread, 60000);
+        Assert.assertEquals(true, thread.isInterrupted());
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+        execMgr.discardJob(job.getId());
+    }
+
+    @Test
+    public void testCancelMergingJob() throws Exception {
+        config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        NExecutableManager execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT);
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertEquals(0, df.getSegments().size());
+        // ready dataflow, segment, cuboid layout
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        long start = SegmentRange.dateToLong("2011-01-01");
+        long end = SegmentRange.dateToLong("2012-06-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        start = SegmentRange.dateToLong("2012-06-01");
+        end = SegmentRange.dateToLong("2013-01-01");
+        builCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
+                Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        df = dsMgr.getDataflow("ncube_basic");
+        NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        execMgr.addJob(firstMergeJob);
+        while (true) {
+            if (execMgr.getJob(firstMergeJob.getId()).getStatus().equals(ExecutableState.RUNNING)) {
+                Thread.sleep(1000);
+                break;
+            }
+        }
+        Class clazz = NDefaultScheduler.class;
+        Field field = clazz.getDeclaredField("threadToInterrupt");
+        field.setAccessible(true);
+        ConcurrentHashMap<String, Thread> threadToInterrupt = (ConcurrentHashMap<String, Thread>) field.get(clazz);
+        Assert.assertEquals(true, threadToInterrupt.containsKey(firstMergeJob.getId()));
+        Thread thread = threadToInterrupt.get(firstMergeJob.getId());
+        Assert.assertEquals(false, thread.isInterrupted());
+        firstMergeJob.cancelJob();
+        Assert.assertEquals(false, threadToInterrupt.containsKey(firstMergeJob.getId()));
+        waitThreadInterupt(thread, 100000);
+        Assert.assertEquals(true, thread.isInterrupted());
+        df = dsMgr.getDataflow("ncube_basic");
+        Assert.assertEquals(df.getSegment(firstMergeJob.getSparkCubingStep().getSegmentIds()), null);
+        execMgr.discardJob(firstMergeJob.getId());
+    }
+
+    private void waitThreadInterupt(Thread thread, int maxWaitTime) {
+        long start = System.currentTimeMillis();
+        while (System.currentTimeMillis() - start < maxWaitTime) {
+            if (thread.isInterrupted()) {
+                break;
+            }
+        }
+        if (System.currentTimeMillis() - start >= maxWaitTime) {
+            throw new RuntimeException("too long wait time");
+        }
     }
 
     @Ignore

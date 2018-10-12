@@ -102,7 +102,7 @@ public class NExecutableManager {
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
-        result.setJobType(executable.getJobType());
+        result.setJobType(executable.getName());
         result.setDataRangeStart(executable.getDataRangeStart());
         result.setDataRangeEnd(executable.getDataRangeEnd());
         result.setTargetSubject(executable.getTargetSubject());
@@ -147,6 +147,12 @@ public class NExecutableManager {
 
     //for ut
     public void deleteJob(String jobId) {
+        AbstractExecutable executable = getJob(jobId);
+        ExecutableState status = executable.getStatus();
+        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED)) {
+            throw new IllegalStateException(
+                    "Cannot drop running job " + executable.getName() + ", please discard it first.");
+        }
         try {
             executableDao.deleteJob(jobId, project);
         } catch (PersistentException e) {
@@ -571,7 +577,7 @@ public class NExecutableManager {
             result.setName(executablePO.getName());
             result.setProject(executablePO.getProject());
             result.setParams(executablePO.getParams());
-            result.setJobType(executablePO.getJobType());
+            result.setName(executablePO.getJobType());
             result.setDataRangeStart(executablePO.getDataRangeStart());
             result.setDataRangeEnd(executablePO.getDataRangeEnd());
             result.setTargetSubject(executablePO.getTargetSubject());

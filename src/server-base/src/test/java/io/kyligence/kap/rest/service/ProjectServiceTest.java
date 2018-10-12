@@ -101,7 +101,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         projectService.createProject(projectInstance);
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
-        projectManager.removeProjectLocal("project11");
+        projectManager.dropProject("project11");
 
     }
 
@@ -128,7 +128,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjects() throws Exception {
 
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
-        Assert.assertTrue(projectInstances.size() == 6);
+        Assert.assertEquals(6, projectInstances.size());
 
     }
 

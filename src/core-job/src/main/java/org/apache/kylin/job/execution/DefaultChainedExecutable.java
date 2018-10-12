@@ -68,7 +68,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             sub.initConfig(config);
         }
     }
-    
+
+
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
@@ -177,6 +178,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     public List<AbstractExecutable> getTasks() {
         return subTasks;
     }
+
 
     @Override
     protected boolean needRetry() {

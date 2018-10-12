@@ -306,7 +306,10 @@ public class NProjectManager {
             }
 
             logger.info("Dropping project '" + projectInstance.getName() + "'");
-
+            String projectPathRoot = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE
+                    + ".json";
+            getStore().deleteResource(projectPathRoot);
+            projectMap.remove(projectName);
             clearL2Cache();
             return projectInstance;
         }

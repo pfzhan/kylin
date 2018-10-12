@@ -43,6 +43,7 @@
 
 package org.apache.kylin.job.execution;
 
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collections;
@@ -83,8 +84,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private KylinConfig config;
     private String name;
 
-    private String jobType;
-
     public long getDataRangeStart() {
         return dataRangeStart;
     }
@@ -109,13 +108,6 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private String project;
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
-    public String getJobType() {
-        return jobType;
-    }
-
-    public void setJobType(String jobType) {
-        this.jobType = jobType;
-    }
 
     public String getTargetSubject() {
         return targetSubject;
@@ -132,6 +124,9 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public void initConfig(KylinConfig config) {
         Preconditions.checkState(this.config == null || this.config == config);
         this.config = config;
+    }
+
+    public void cancelJob() throws IOException {
     }
 
     protected KylinConfig getConfig() {

@@ -25,6 +25,7 @@
 package org.apache.kylin.job.impl.threadpool;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,7 +66,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private ScheduledExecutorService fetcherPool;
     private ExecutorService jobPool;
     private DefaultContext context;
-
+    private static ConcurrentHashMap<String, Thread> threadToInterrupt = new ConcurrentHashMap<>();
     private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
     private volatile boolean initialized = false;
     private volatile boolean hasStarted = false;
@@ -75,6 +76,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     //TODO: concurrent issue?
     private static volatile Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newHashMap();
 
+    public NDefaultScheduler() {
+    }
+
     public NDefaultScheduler(String project) {
         Preconditions.checkNotNull(project);
         this.project = project;
@@ -83,6 +87,14 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             throw new IllegalStateException(
                     "DefaultScheduler for project " + project + " has been initiated. Use getInstance() instead.");
 
+    }
+
+    public static void stopThread(String jobId) {
+        Thread thread = threadToInterrupt.get(jobId);
+        if (thread != null) {
+            thread.interrupt();
+            threadToInterrupt.remove(jobId);
+        }
     }
 
     private class FetcherRunner implements Runnable {
@@ -178,6 +190,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         public void run() {
             try (SetThreadName ignored = new SetThreadName("Scheduler %s Job %s",
                     System.identityHashCode(NDefaultScheduler.this), executable.getId())) {
+                threadToInterrupt.put(executable.getId(), Thread.currentThread());
                 executable.execute(context);
                 // trigger the next step asap
                 fetcherPool.schedule(fetcher, 0, TimeUnit.SECONDS);

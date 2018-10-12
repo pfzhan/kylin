@@ -102,11 +102,11 @@ public class AclEvaluate {
     public void checkProjectReadPermission(JobInstance job) {
         aclUtil.hasProjectReadPermission(getProjectByJob(job));
     }
-    
+
     public void checkProjectWritePermission(JobInstance job) {
         aclUtil.hasProjectWritePermission(getProjectByJob(job));
     }
-    
+
     public void checkProjectOperationPermission(JobInstance job) {
         aclUtil.hasProjectOperationPermission(getProjectByJob(job));
     }

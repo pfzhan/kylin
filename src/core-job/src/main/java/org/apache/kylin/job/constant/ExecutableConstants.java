@@ -63,7 +63,10 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_FACT_DISTINCT_COLUMNS = "Extract Fact Table Distinct Columns";
     public static final String STEP_NAME_BUILD_BASE_CUBOID = "Build Base Cuboid";
     public static final String STEP_NAME_BUILD_IN_MEM_CUBE = "Build Cube In-Mem";
-    public static final String STEP_NAME_BUILD_SPARK_CUBE = "Build Cube with Spark";
+    public static final String STEP_NAME_BUILD_SPARK_CUBE = "Load Data To Index";
+    public static final String STEP_NAME_MERGER_SPARK_SEGMENT = "Merge Segment Data";
+    public static final String STEP_NAME_CLEANUP = "Clean Up Old Segment";
+    public static final String STEP_NAME_UPDATE_CUBE_INFO = "Refresh Index Information";
     public static final String STEP_NAME_BUILD_N_D_CUBOID = "Build N-Dimension Cuboid";
     public static final String STEP_NAME_GET_CUBOID_KEY_DISTRIBUTION = "Calculate HTable Region Splits";
     public static final String STEP_NAME_CREATE_HBASE_TABLE = "Create HTable";
@@ -73,7 +76,6 @@ public final class ExecutableConstants {
     public static final String STEP_NAME_MERGE_STATISTICS = "Merge Cuboid Statistics";
     public static final String STEP_NAME_SAVE_STATISTICS = "Save Cuboid Statistics";
     public static final String STEP_NAME_MERGE_CUBOID = "Merge Cuboid Data";
-    public static final String STEP_NAME_UPDATE_CUBE_INFO = "Update Cube Info";
     public static final String STEP_NAME_HIVE_CLEANUP = "Hive Cleanup";
     public static final String STEP_NAME_KAFKA_CLEANUP = "Kafka Intermediate File Cleanup";
     public static final String STEP_NAME_GARBAGE_COLLECTION = "Garbage Collection";

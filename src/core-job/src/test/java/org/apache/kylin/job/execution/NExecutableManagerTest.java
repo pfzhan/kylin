@@ -28,11 +28,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -112,6 +114,67 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(id, ExecutableState.READY, null, null);
         manager.updateJobOutput(id, ExecutableState.RUNNING, null, null);
         manager.updateJobOutput(id, ExecutableState.SUCCEED, null, null);
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void testDropJobException() throws IOException {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.deleteJob(executable.getId());
+    }
+
+    @Test
+    public void testDropJobSucceed() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
+        manager.deleteJob(executable.getId());
+        List<AbstractExecutable> executables = manager.getAllExecutables();
+        Assert.assertTrue(!executables.contains(executable));
+    }
+
+    @Test
+    public void testDiscardAndDropJob() throws IOException {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.discardJob(executable.getId());
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
+        manager.deleteJob(executable.getId());
+        List<AbstractExecutable> executables = manager.getAllExecutables();
+        Assert.assertTrue(!executables.contains(executable));
+    }
+
+    @Test
+    public void testResumeAndPauseJob() throws IOException {
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        SucceedTestExecutable executable1 = new SucceedTestExecutable();
+        job.addTask(executable1);
+        job.setProject("default");
+        manager.addJob(job);
+        manager.pauseJob(job.getId());
+        AbstractExecutable anotherJob = manager.getJob(job.getId());
+        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.STOPPED));
+        manager.resumeJob(job.getId());
+        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
+        manager.pauseJob(job.getId());
+        job.setEndTime(System.currentTimeMillis());
+        manager.resumeJob(job.getId());
+        Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
     }
 
     @Test(expected = IllegalStateTranferException.class)

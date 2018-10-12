@@ -43,6 +43,10 @@
 package io.kyligence.kap.rest.service;
 
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableDesc;
+import io.kyligence.kap.metadata.model.NTableExtDesc;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -64,6 +68,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
 
@@ -101,6 +106,26 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(), "default");
         Set<String>[] resultSet = tableExtService.loadTables(tables, "default", 11);
         Assert.assertTrue(resultSet[0].size() == 2);
+    }
+
+    @Test
+    public void testRemoveJobIdFromTableExt() throws Exception {
+        NTableExtDesc tableExtDesc = new NTableExtDesc();
+        tableExtDesc.setUuid(UUID.randomUUID().toString());
+        tableExtDesc.setProject("default");
+        tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
+        tableExtDesc.setJodID("test");
+        NTableDesc tableDesc = new NTableDesc();
+        tableDesc.setProject("default");
+        tableDesc.setName("TEST_REMOVE");
+        tableDesc.setDatabase("DEFAULT");
+        tableDesc.setUuid(UUID.randomUUID().toString());
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        tableMetadataManager.saveTableExt(tableExtDesc);
+        tableMetadataManager.saveSourceTable(tableDesc);
+        tableExtService.removeJobIdFromTableExt("test", "default");
+        TableExtDesc tableExtDesc1 = tableMetadataManager.getTableExt("DEFAULT.TEST_REMOVE");
+        Assert.assertTrue(tableExtDesc1.getJodID() == null);
     }
 
     private List<Pair<TableDesc, TableExtDesc>> mockTablePair() {

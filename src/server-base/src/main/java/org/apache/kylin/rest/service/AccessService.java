@@ -49,7 +49,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
@@ -363,48 +362,6 @@ public class AccessService {
             throw new ForbiddenException(msg.getREVOKE_ADMIN_PERMISSION());
     }
 
-    public Object generateAllAceResponses(Acl acl) {
-        List<AccessEntryResponse> result = new ArrayList<AccessEntryResponse>();
-
-        while (acl != null) {
-            for (AccessControlEntry ace : acl.getEntries()) {
-                result.add(new AccessEntryResponse(ace.getId(), ace.getSid(), ace.getPermission(), ace.isGranting()));
-            }
-            acl = acl.getParentAcl();
-        }
-
-        return result;
-    }
-
-    public void revokeProjectPermission(String name, String type) {
-        Sid sid = null;
-        if (type.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
-            sid = new PrincipalSid(name);
-        } else if (type.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
-            sid = new GrantedAuthoritySid(name);
-        } else {
-            return;
-        }
-
-        // revoke user's project permission
-        List<ProjectInstance> projectInstances = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
-                .listAllProjects();
-        for (ProjectInstance pi : projectInstances) {
-            // after KYLIN-2760, only project ACL will work, so entity type is always ProjectInstance.
-            AclEntity ae = getAclEntity("ProjectInstance", pi.getUuid());
-
-            MutableAclRecord acl = getAcl(ae);
-            if (acl == null) {
-                return;
-            }
-
-            Permission perm = acl.getAclRecord().getPermission(sid);
-            if (perm != null) {
-                secureOwner(acl, sid);
-                aclService.upsertAce(acl, sid, null);
-            }
-        }
-    }
     
     public String getUserPermissionInPrj(String project) {
         String grantedPermission = "";

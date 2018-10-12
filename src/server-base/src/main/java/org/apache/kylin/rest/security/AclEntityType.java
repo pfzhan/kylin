@@ -48,7 +48,5 @@ public interface AclEntityType {
 
     static final String N_DATA_MODEL = "NDataModel";
 
-    static final String JOB_INSTANCE = "JobInstance";
-
     static final String PROJECT_INSTANCE = "ProjectInstance";
 }

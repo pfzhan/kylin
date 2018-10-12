@@ -123,5 +123,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
     public void testGetSegmentRange() {
         SegmentRange segmentRange = new CsvSource().getSegmentRange("0", "21423423");
         Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
+        SegmentRange segmentRange2 = new CsvSource().getSegmentRange("", "");
+        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
 }

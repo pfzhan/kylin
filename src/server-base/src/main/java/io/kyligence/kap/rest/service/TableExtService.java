@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
@@ -51,10 +53,9 @@ public class TableExtService extends BasicService {
      * Load a group of  tables
      *
      * @return an array of table name sets:
-     *         [0] : tables that loaded successfully
-     *         [1] : tables that didn't load due to running sample job todo
-     *         [2] : tables that didn't load due to other error
-     *
+     * [0] : tables that loaded successfully
+     * [1] : tables that didn't load due to running sample job todo
+     * [2] : tables that didn't load due to other error
      * @throws Exception if reading hive metadata error
      */
     public Set<String>[] loadTables(String[] tables, String project, Integer sourceType) throws Exception {
@@ -77,7 +78,7 @@ public class TableExtService extends BasicService {
             }
             (ok ? loaded : failed).add(tableName);
         }
-        return new Set[] { loaded, running, failed };
+        return new Set[]{loaded, running, failed};
     }
 
     /**
@@ -95,5 +96,15 @@ public class TableExtService extends BasicService {
 
     }
 
+    public void removeJobIdFromTableExt(String jobId, String project) throws IOException {
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        for (TableDesc desc : tableMetadataManager.listAllTables()) {
+            TableExtDesc extDesc = tableMetadataManager.getTableExt(desc);
+            if (extDesc.getJodID() != null && jobId.equals(extDesc.getJodID())) {
+                extDesc.setJodID(null);
+                tableMetadataManager.saveTableExt(extDesc);
+            }
+        }
 
+    }
 }

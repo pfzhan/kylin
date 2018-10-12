@@ -44,7 +44,6 @@ package org.apache.kylin.rest.security;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.job.JobInstance;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 /**
@@ -53,25 +52,12 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 public class AclEntityFactory implements AclEntityType {
 
     public static RootPersistentEntity createAclEntity(String entityType, String uuid) {
-      /*  if (CUBE_INSTANCE.equals(entityType)) {
-            CubeInstance cubeInstance = new CubeInstance();
-            cubeInstance.setUuid(uuid);
-
-            return cubeInstance;
-        }*/
 
         if (N_DATA_MODEL.equals(entityType)) {
             NDataModel modelInstance = new NDataModel();
             modelInstance.setUuid(uuid);
 
             return modelInstance;
-        }
-
-        if (JOB_INSTANCE.equals(entityType)) {
-            JobInstance jobInstance = new JobInstance();
-            jobInstance.setUuid(uuid);
-
-            return jobInstance;
         }
 
         if (PROJECT_INSTANCE.equals(entityType)) {

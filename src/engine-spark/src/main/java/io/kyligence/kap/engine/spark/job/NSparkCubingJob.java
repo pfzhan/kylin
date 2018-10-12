@@ -24,11 +24,19 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.base.Preconditions;
@@ -47,12 +55,15 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter) {
+        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD);
+    }
+
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter, JobTypeEnum jobType) {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
         Preconditions.checkArgument(submitter != null);
         NDataflow df = segments.iterator().next().getDataflow();
         NSparkCubingJob job = new NSparkCubingJob();
-        job.setJobType(JobTypeEnum.SPARKING_CUBING.toString());
         long startTime = Long.MAX_VALUE - 1;
         long endTime = 0L;
         for (NDataSegment segment : segments) {
@@ -61,6 +72,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
             endTime = endTime > Long.parseLong(segment.getSegRange().getStart().toString()) ? endTime
                     : Long.parseLong(segment.getSegRange().getEnd().toString());
         }
+        job.setName(jobType.toString());
         job.setDataRangeStart(startTime);
         job.setDataRangeEnd(endTime);
         job.setTargetSubject(segments.iterator().next().getModel().getName());
@@ -79,7 +91,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         NSparkCubingStep step = new NSparkCubingStep();
         NDataflow df = segments.iterator().next().getDataflow();
         KylinConfigExt config = df.getConfig();
-
+        step.setName(ExecutableConstants.STEP_NAME_BUILD_SPARK_CUBE);
         step.setProject(getProject());
         step.setProjectParam();
         step.setDataflowName(df.getName());
@@ -92,8 +104,28 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
 
     private void addUpdateAfterBuildStep() {
         NSparkCubingUpdateAfterBuildStep step = new NSparkCubingUpdateAfterBuildStep();
+        step.setName(ExecutableConstants.STEP_NAME_UPDATE_CUBE_INFO);
         step.setProject(getProject());
         this.addTask(step);
+    }
+
+    @Override
+    public void cancelJob() throws IOException {
+        NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
+        NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowName());
+        List<NDataSegment> segments = new ArrayList<>();
+        for (Integer id : getSparkCubingStep().getSegmentIds()) {
+            NDataSegment segment = dataflow.getSegment(id);
+            if (segment != null && !segment.getStatus().equals(SegmentStatusEnum.READY)) {
+                segments.add(segment);
+            }
+        }
+        NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
+        NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
+        NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        nDataflowUpdate.setToRemoveSegs(nDataSegments);
+        nDataflowManager.updateDataflow(nDataflowUpdate);
+        NDefaultScheduler.stopThread(getId());
     }
 
 }

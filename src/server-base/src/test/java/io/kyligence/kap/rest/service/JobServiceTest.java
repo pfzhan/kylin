@@ -46,31 +46,42 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.rest.execution.SucceedTestExecutable;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.service.AccessService;
-import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class JobServiceTest extends NLocalFileMetadataTestCase {
-    private final JobService jobService = new JobService();
 
-    private AccessService accessService = Mockito.mock(AccessService.class);
+    @InjectMocks
+    private JobService jobService = Mockito.spy(new JobService());
+
+    @Mock
+    private TableExtService tableExtService = Mockito.spy(TableExtService.class);
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -83,7 +94,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        ReflectionTestUtils.setField(jobService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
+        ReflectionTestUtils.setField(jobService, "tableExtService", tableExtService);
 
     }
 
@@ -94,22 +105,130 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListJobs() throws Exception {
-        NExecutableManager manager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NSparkCubingJob executable = new NSparkCubingJob();
+        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs());
+        Integer[] statusInt = {};
+        String[] subjects = {};
+        List<ExecutableResponse> jobs = jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "", true);
+        Assert.assertTrue(jobs.size() == 3);
+        List<ExecutableResponse> jobs2 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.LAST_ONE_DAY, subjects, "ob1", "", true);
+        Assert.assertTrue(jobs2.size() == 1);
+        String[] subjects2 = {"model1"};
+        List<ExecutableResponse> jobs3 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.LAST_ONE_MONTH, subjects2, "", "", true);
+        Assert.assertTrue(jobs3.size() == 1);
+        Integer[] statusInt2 = {0};
+        List<ExecutableResponse> jobs4 = jobService.listJobs("default", statusInt2, JobTimeFilterEnum.LAST_ONE_WEEK, subjects, "", "", true);
+        Assert.assertTrue(jobs4.size() == 3);
+        List<ExecutableResponse> jobs5 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.LAST_ONE_YEAR, subjects, "", "job_name", true);
+        Assert.assertTrue(jobs5.size() == 3 && jobs5.get(0).getJobName().equals("sparkjob3"));
+        List<ExecutableResponse> jobs6 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "job_name", false);
+        Assert.assertTrue(jobs6.size() == 3 && jobs6.get(0).getJobName().equals("sparkjob1"));
+        List<ExecutableResponse> jobs7 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "duration", true);
+        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob2"));
+        List<ExecutableResponse> jobs8 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "exec_start_time", false);
+        Assert.assertTrue(jobs8.size() == 3 && jobs8.get(0).getJobName().equals("sparkjob2"));
+        List<ExecutableResponse> jobs9 = jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "target_subject", false);
+        Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
+        Integer[] statusInt3 = {0, 1, 2, 4, 8, 16, 32};
+        List<ExecutableResponse> jobs10 = jobService.listJobs("default", statusInt3, JobTimeFilterEnum.ALL, subjects, "", "", false);
+        Assert.assertTrue(jobs9.size() == 3);
+        List<ExecutableResponse> jobs11 = jobService.listJobs("default", statusInt3, JobTimeFilterEnum.ALL, subjects, "", "job_status", false);
+        Assert.assertTrue(jobs11.size() == 3 && jobs11.get(0).getJobName().equals("sparkjob1"));
+    }
+
+
+    @Test
+    public void testBasic() throws IOException {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        jobService.updateJobStatus(executable.getId(), "default", "PAUSE");
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.STOPPED));
+        jobService.updateJobStatus(executable.getId(), "default", "RESUME");
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
+        jobService.updateJobStatus(executable.getId(), "default", "DISCARD");
+        Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
+        Assert.assertTrue(dsMgr.getDataflow("ncube_basic").getSegment(0) == null);
+        Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
+        jobService.dropJob("default", executable.getId());
+        List<AbstractExecutable> executables = manager.getAllExecutables();
+        Assert.assertTrue(!executables.contains(executable));
+    }
+
+    @Test
+    public void testDiscardJobException() throws IOException {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
+        Assert.assertEquals(executable.getStatus(), ExecutableState.SUCCEED);
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
+        jobService.updateJobStatus(executable.getId(), "default", "DISCARD");
+    }
+
+
+    @Test
+    public void testUpdateException() throws IOException {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
         executable.setParam("test3", "test3");
         executable.setProject("default");
+        executable.setName("test");
         manager.addJob(executable);
-        List<JobStatusEnum> status = new ArrayList<>();
-        status.add(JobStatusEnum.NEW);
-        ArrayList<AbstractExecutable> jobs = new ArrayList<>();
-        Integer[] statusInt = { 4 };
-        String[] subjects = {};
+        thrown.expect(IllegalStateException.class);
+        jobService.updateJobStatus(executable.getId(), "default", "ROLLBACK");
+    }
 
-        jobs = jobService.listJobs("default", status, JobTimeFilterEnum.ALL, subjects, "");
-        Assert.assertTrue(jobs.size() == 1);
+    @Test
+    public void testGetJobDetail() {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        executable.setName("test");
+        executable.addTask(new SucceedTestExecutable());
+        manager.addJob(executable);
+        List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
+        Assert.assertTrue(result.size() == 1);
+    }
 
+
+    private List<AbstractExecutable> mockJobs() {
+        List<AbstractExecutable> jobs = new ArrayList<>();
+        SucceedTestExecutable job1 = new SucceedTestExecutable();
+        job1.setProject("default");
+        job1.initConfig(KylinConfig.getInstanceFromEnv());
+        job1.setName("sparkjob1");
+        job1.setTargetSubject("model1");
+        job1.setStartTime(1506585216000L);
+        job1.setEndTime(1506758016000L);
+        SucceedTestExecutable job2 = new SucceedTestExecutable();
+        job2.setProject("default");
+        job2.initConfig(KylinConfig.getInstanceFromEnv());
+        job2.setName("sparkjob2");
+        job2.setTargetSubject("model2");
+        job2.setStartTime(1506585215000L);
+        job2.setEndTime(1506758017000L);
+        SucceedTestExecutable job3 = new SucceedTestExecutable();
+        job3.setProject("default");
+        job3.initConfig(KylinConfig.getInstanceFromEnv());
+        job3.setName("sparkjob3");
+        job3.setTargetSubject("model3");
+        job3.setStartTime(1506585217000L);
+        job3.setEndTime(1506758018000L);
+        jobs.add(job1);
+        jobs.add(job2);
+        jobs.add(job3);
+        return jobs;
     }
 
 }
