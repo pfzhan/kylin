@@ -6,6 +6,7 @@
       :is-show-filter="true"
       :is-show-resize-bar="true"
       :on-filter="handleFilter"
+      :filter-white-list-types="['datasource', 'database']"
       @resize="handleResize"
       @click="handleClickNode"
       @node-expand="handleNodeExpand"
@@ -15,7 +16,6 @@
       <arealabel
         splitChar=","
         placeholder=" "
-        :validateRegex="tableRegex"
         :selectedlabels="selectedTables"
         :allowcreate="true"
         :datamap="{label: 'label', value: 'value'}"
@@ -73,7 +73,6 @@ export default class SourceHive extends Vue {
     width: null
   }
   sourceTypes = sourceTypes
-  tableRegex = /^\s*;?(\w+\.\w+)\s*(,\s*\w+\.\w+)*;?\s*$/
   timer = null
   get selectedTableOptions () {
     return this.selectedTables.map(tableId => ({
@@ -83,9 +82,19 @@ export default class SourceHive extends Vue {
   }
   @Watch('selectedTables')
   onSelectedTablesChange () {
+    // 刷新table或者db的选中状态
     for (const database of this.databases) {
-      for (const table of database.children) {
-        table.isSelected = this.selectedTables.includes(table.id)
+      database.isSelected = this.selectedTables.includes(database.id)
+      if (database.isSelected === true) {
+        for (const table of database.children) {
+          table.isSelected = true
+          table.clickable = false
+        }
+      } else {
+        for (const table of database.children) {
+          table.isSelected = this.selectedTables.includes(table.id)
+          table.clickable = true
+        }
       }
     }
   }
@@ -98,6 +107,10 @@ export default class SourceHive extends Vue {
   hideNodeLoading (data) {
     data.isLoading = false
   }
+  constructor () {
+    super()
+    this.getDatabaseTree = getDatabaseTree.bind(this)
+  }
   async mounted () {
     await this.loadDatabase()
   }
@@ -105,11 +118,11 @@ export default class SourceHive extends Vue {
     const projectName = this.currentSelectedProject
     const sourceType = this.sourceType
     const res = await this.fetchDatabase({ projectName, sourceType })
-    this.databases = getDatabaseTree(await handleSuccessAsync(res))
+    this.databases = this.getDatabaseTree(await handleSuccessAsync(res))
     this.treeData = [{
       id: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
       label: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
-      type: 'text',
+      type: 'datasource',
       children: this.databases
     }]
   }
@@ -118,11 +131,11 @@ export default class SourceHive extends Vue {
     const sourceType = this.sourceType
     const databaseName = database.id
     const pagination = database.pagination
-    const res = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
-    // hard code size
-    const data = { size: 7, tables: await handleSuccessAsync(res) }
-    getTableTree(database, data, isTableReset)
+    const response = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
+    const { size, tables } = await handleSuccessAsync(response)
+    getTableTree(database, { size, tables }, isTableReset)
     this.setNextPagination(pagination)
+    this.$emit('input', { selectedTables: [...this.selectedTables] })
   }
   handleFilter (tableName) {
     clearInterval(this.timer)
@@ -142,13 +155,14 @@ export default class SourceHive extends Vue {
       }, 1000)
     })
   }
-  handleClickNode (data) {
-    if (data.type === 'table') {
-      const isSelected = this.selectedTables.includes(data.id)
-      if (isSelected) {
-        this.handleRemoveTable(data.id)
-      } else {
-        this.handleAddTable(data.id)
+  handleClickNode (data, node, event, isSelectDatabase = false) {
+    if ((data.type === 'table' && data.clickable || isSelectDatabase)) {
+      this.selectedTables.includes(data.id)
+        ? this.handleRemoveTable(data.id)
+        : this.handleAddTable(data.id)
+      if (isSelectDatabase) {
+        event.preventDefault()
+        event.stopPropagation()
       }
     }
   }
@@ -164,7 +178,7 @@ export default class SourceHive extends Vue {
       this.hideNodeLoading(data)
     }
   }
-  handleLoadMore (data) {
+  async handleLoadMore (data) {
     const database = this.databases.find(database => database.id === data.parent.id)
     this.loadTables({ database })
   }
@@ -190,6 +204,25 @@ export default class SourceHive extends Vue {
     width: 218px;
     float: left;
     border-right: 1px solid #cfd8dc;
+    .el-tree-node__content {
+      position: relative;
+      &:hover {
+        .select-all {
+          display: block;
+        }
+      }
+    }
+    .select-all {
+      display: none;
+      position: absolute;
+      top: 0;
+      right: 10px;
+      line-height: 36px;
+      font-size: 12px;
+      &:hover {
+        color: #0988de;
+      }
+    }
   }
   .filter-tree {
     min-height: 220px;

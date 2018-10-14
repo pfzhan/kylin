@@ -3,10 +3,11 @@
     <div class="filter-box">
       <el-input
         size="medium"
-        prefix-icon="el-icon-search"
         v-if="isShowFilter && data.length"
         v-model="filterText"
-        :placeholder="placeholder">
+        :placeholder="placeholder"
+        @keyup.native="handleInput">
+        <el-button slot="append" icon="el-icon-search" @click="handleFilter"></el-button>
       </el-input>
     </div>
     <el-tree
@@ -37,8 +38,10 @@
 <script>
 import Vue from 'vue'
 import loadMoreImg from '../../../assets/img/loadmore.png'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { isIE } from '../../../util'
+
+const filterDefaultWhiteList = ['isMore', 'isLoading']
 
 @Component({
   props: {
@@ -50,11 +53,11 @@ import { isIE } from '../../../util'
       type: Array,
       default: () => []
     },
-    draggableNodeKeys: {
+    draggableNodeTypes: {
       type: Array,
       default: () => []
     },
-    searchableNodeKeys: {
+    filterWhiteListTypes: {
       type: Array,
       default: () => []
     },
@@ -142,14 +145,18 @@ export default class TreeList extends Vue {
   hideLoading () {
     this.isLoading = false
   }
-  @Watch('filterText')
-  async onFilterTextChange (text) {
+  handleInput (event) {
+    if (event.which === 13) {
+      this.handleFilter()
+    }
+  }
+  async handleFilter () {
     if (this.onFilter) {
       this.showLoading()
-      await this.onFilter(text)
+      await this.onFilter(this.filterText)
       this.hideLoading()
     }
-    this.$refs['tree'].filter(text)
+    this.$refs['tree'].filter(this.filterText)
   }
   getTreeItemStyle (data, node) {
     const treeItemStyle = {}
@@ -165,8 +172,8 @@ export default class TreeList extends Vue {
     return treeItemStyle
   }
   renderNode (h, { node, data, store }) {
-    const { render, draggable, id: nodeId, handleClick, handleDbClick, type } = data
-    const isNodeDraggable = this.draggableNodeKeys.includes(nodeId) || draggable
+    const { render, draggable, handleClick, handleDbClick, type } = data
+    const isNodeDraggable = this.draggableNodeTypes.includes(type) || draggable
     const treeItemStyle = this.getTreeItemStyle(data, node)
     const props = {
       directives: [
@@ -178,9 +185,15 @@ export default class TreeList extends Vue {
       ]
     }
 
+    if (type === 'isMore') {
+      node.visible = data.parent.children.length !== 1 || data.parent.children.length === 0
+    }
+    if (data.isHidden !== undefined) {
+      node.visible = !data.isHidden
+    }
     if (data.children) {
-      this.patchNodeLoading(data)
-      this.patchNodeMore(data)
+      this.patchNodeLoading(data, node)
+      this.patchNodeMore(data, node)
     }
     return (
       <div class="tree-item"
@@ -245,31 +258,28 @@ export default class TreeList extends Vue {
     if (!isIE()) {
       event.dataTransfer && event.dataTransfer.setData && event.dataTransfer.setData('text', '')
     }
-    this.$emit('drag', event.srcElement ? event.srcElement : event.target, data)
+    this.$emit('drag', data, event.srcElement ? event.srcElement : event.target)
   }
   handleNodeFilter (value, data, node) {
-    // 如果有配置searchableNodeKeys，则只搜索key中内容
-    if (this.searchableNodeKeys.length) {
-      return this.searchableNodeKeys.includes(data.id) && data.label.toUpperCase().includes(value.toUpperCase())
-    } else {
-      // 如果没有设置，只搜索叶子节点
-      return node.isLeaf && data.label.toUpperCase().includes(value.toUpperCase())
-    }
-  }
-  getSimplePropsData (data) {
-    const simplePropsData = {}
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value !== 'object') {
-        simplePropsData[key] = value
+    const NodeWhiteList = [...this.filterWhiteListTypes, ...filterDefaultWhiteList]
+
+    if (node.isLeaf) {
+      if (NodeWhiteList.includes(data.type)) {
+        return true
+      } else if (value) {
+        return data.label.toUpperCase().includes(value.toUpperCase())
+      } else if (!value) {
+        return !data.children
       }
+    } else {
+      return true
     }
-    return simplePropsData
   }
   patchNodeLoading (data) {
     const hasLoadingNode = data.children.some(child => child.type === 'isLoading')
     if (data.isLoading) {
       if (!hasLoadingNode) {
-        data.children.push({ id: 'isLoading', label: '', type: 'isLoading', parent: this.getSimplePropsData(data) })
+        data.children.push({ id: 'isLoading', label: '', type: 'isLoading', parent: data })
       }
     } else {
       if (hasLoadingNode) {
@@ -277,16 +287,16 @@ export default class TreeList extends Vue {
       }
     }
   }
-  patchNodeMore (data) {
+  patchNodeMore (data, node) {
     const hasMoreNode = data.children.some(child => child.type === 'isMore')
     const lastChild = data.children[data.children.length - 1]
     if (data.isMore) {
       if (!hasMoreNode) {
-        data.children.push({ id: 'isMore', label: '', type: 'isMore', parent: this.getSimplePropsData(data) })
+        data.children.push({ id: 'isMore', label: '', type: 'isMore', isSelected: false, parent: data })
       }
       if (lastChild && lastChild.type !== 'isMore') {
         data.children = data.children.filter(child => child.type !== 'isMore')
-        data.children.push({ id: 'isMore', label: '', type: 'isMore', parent: this.getSimplePropsData(data) })
+        data.children.push({ id: 'isMore', label: '', type: 'isMore', isSelected: false, parent: data })
       }
     } else {
       if (hasMoreNode) {
@@ -306,7 +316,16 @@ export default class TreeList extends Vue {
   }
   .filter-box .el-input__inner {
     border: 1px solid #8E9FA8;
-    border-radius: 2px;
+    border-top-left-radius: 2px;
+    border-bottom-left-radius: 2px;
+    &:focus+.el-input-group__append {
+      border-color: #8E9FA8;
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+      &:focus {
+        border-color: #8E9FA8;
+      }
+    }
   }
   .tree-item.el-loading-parent--relative {
     position: relative !important;

@@ -216,15 +216,15 @@ export default {
       this.$refs['loginBtn'].loading = false
     },
     checkLicense () {
-      this.getAboutKap().then((result) => {
-        handleSuccess(result, (data) => {
-          if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] === null) {
-            this.hasLicense = true
-          }
-        }, (resp) => {
-          handleError(resp)
-        })
-      })
+      // this.getAboutKap().then((result) => {
+      //   handleSuccess(result, (data) => {
+      //     if (this.$store.state.system.serverAboutKap && this.$store.state.system.serverAboutKap['kap.dates'] === null) {
+      //       this.hasLicense = true
+      //     }
+      //   }, (resp) => {
+      //     handleError(resp)
+      //   })
+      // })
     },
     licenseForm: function () {
       this.$refs['licenseEnter'].$emit('licenseFormValid')

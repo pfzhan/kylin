@@ -3,14 +3,12 @@
     <div class="table-layout clearfix"> 
       <div class="layout-left">
         <DataSourceBar
+          :project-name="currentSelectedProject"
           :is-show-load-source="true"
           :is-expand-on-click-node="false"
-          :project-name="currentSelectedProject"
-          :datasource="datasource"
           :expand-node-types="['datasource', 'database']"
           @autoComplete="handleAutoComplete"
-          @click="clickTable"
-          @source-update="handleSourceUpdate">
+          @click="clickTable">
         </DataSourceBar>
       </div>
       <div class="layout-right">
@@ -102,7 +100,6 @@ import saveQueryDialog from './save_query_dialog'
 import DataSourceBar from '../common/DataSourceBar'
 import { kapConfirm, hasRole, hasPermission, handleSuccess, handleError } from '../../util/business'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccessAsync } from '../../util/index'
 import { permissions, insightKeyword } from '../../config'
 @Component({
   methods: {
@@ -343,11 +340,6 @@ export default class NewQuery extends Vue {
     if (!this.currentSelectedProject) {
       return
     }
-    await this.handleSourceUpdate()
-  }
-  async handleSourceUpdate () {
-    const res = await this.loadDataSourceByProject({project: this.currentSelectedProject, isExt: true})
-    this.datasource = await handleSuccessAsync(res)
   }
 }
 </script>

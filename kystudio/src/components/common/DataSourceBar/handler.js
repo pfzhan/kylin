@@ -1,16 +1,15 @@
-import { sourceTypes, sourceNameMapping } from '../../../config'
+import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
 
 export const render = {
   datasource: {
     render (h, { node, data, store }) {
       const { sourceType, project, label } = data
-
       return (
         <div class="datasource font-medium">
           <span>{label}</span>
           <div class="right">
             { this.isShowLoadSource ? (
-              <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.loadDataSource(sourceType, project, event)}></i>
+              <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, project, event)}></i>
             ) : null}
           </div>
         </div>
@@ -35,9 +34,15 @@ export const render = {
     render (h, { node, data, store }) {
       const { label, tags, dateRange } = data
       const dataRangeTitle = this.$t('dataRange')
+      const nodeClass = {
+        class: [
+          'table', 'font-medium',
+          ...(dateRange ? ['has-range'] : [])
+        ]
+      }
 
       return (
-        <div class="table font-medium">
+        <div {...nodeClass}>
           <div class="left">
             {tags.map(tag => {
               switch (tag) {
@@ -53,6 +58,11 @@ export const render = {
           </div>
           <span title={label}>{label}</span>
           <div class="right">
+            <i
+              class="tree-icon table-date-tip top"
+              onClick={event => this.handleToggleTop(data, node, event)}
+              slot="reference"
+              { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-clean'] : ['el-icon-ksd-arrow_up']} }></i>
             { dateRange ? (
               <el-popover
                 placement="right"
@@ -90,132 +100,83 @@ export const render = {
   }
 }
 
-export function sortDatasource (datasourceArray) {
-  datasourceArray.forEach(datasource => {
-    datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
-    datasource.children.forEach(database => {
-      database.children.sort((itemA, itemB) => {
-        if (itemA.isTopSet !== itemB.isTopSet) {
-          return itemA.isTopSet && !itemB.isTopSet ? -1 : 1
-        } else {
-          if (itemA.isCentral !== itemB.isCentral) {
-            return itemA.isCentral && !itemB.isCentral ? -1 : 1
-          } else {
-            return itemA.label < itemB.label ? -1 : 1
-          }
-        }
-      })
-      database.children.forEach(table => {
-        table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
-      })
-    })
-  })
-  return datasourceArray
-}
-
-export function getDatasourceTree (that, tableDatas, project) {
-  const datasourceArray = []
-
-  tableDatas.forEach(table => {
-    const sourceType = table.source_type
-    const datasource = datasourceArray.find(datasource => datasource.sourceType === sourceType)
-
-    if (datasource) {
-      const database = datasource.children.find(database => database.label === table.database)
-
-      if (database) {
-        database.children.push(getTableObj(that, table))
-      } else {
-        datasource.children.push(getDatabaseObj(that, table))
-      }
-    } else {
-      datasourceArray.push(getDatasourceObj(that, table, project))
-    }
-  })
-
-  return sortDatasource(datasourceArray)
-}
-
-export function getFirstTableData (datasourceTree) {
-  for (const datasource of datasourceTree) {
-    for (const database of datasource.children) {
-      return database.children && database.children[0]
-    }
-  }
-}
-
-export function getDatasourceObj (that, table, project) {
-  const sourceType = table.source_type
-  const datasourceType = sourceTypes[sourceType]
-  const datasourceName = sourceNameMapping[datasourceType]
-
+export function getDatasourceObj (that, sourceType) {
+  const { projectName } = that
+  const sourceName = sourceTypes[sourceType]
+  const sourceNameStr = sourceNameMapping[sourceName]
   return {
-    id: `datasource-Source: ${datasourceName}`,
-    label: `${that.$t('source')} : ${datasourceName}`,
+    id: sourceType,
+    label: `${that.$t('source')} : ${sourceNameStr}`,
     render: render.datasource.render.bind(that),
-    children: [
-      getDatabaseObj(that, table)
-    ],
+    children: [],
     sourceType,
-    project,
+    projectName,
     type: 'datasource'
   }
 }
 
-function getDatabaseObj (that, table) {
-  const sourceType = table.source_type
-  const datasourceType = sourceTypes[sourceType]
-  const datasourceName = sourceNameMapping[datasourceType]
-
+export function getDatabaseObj (that, datasource, databaseItem) {
+  const { projectName } = datasource
   return {
-    id: `database-${table.database}`,
-    label: table.database,
+    id: `${datasource.id}.${databaseItem}`,
+    label: databaseItem,
     render: render.database.render.bind(that),
-    children: [
-      getTableObj(that, table)
-    ],
+    children: [],
     type: 'database',
-    datasource: datasourceName
+    datasource: datasource.id,
+    isMore: false,
+    isHidden: false,
+    isLoading: true,
+    projectName,
+    parent: datasource,
+    pagination: {
+      pageOffset: 0,
+      pageSize: pageSizeMapping.TABLE_TREE
+    }
   }
 }
 
-function getTableObj (that, table) {
-  const sourceType = table.source_type
-  const datasourceType = sourceTypes[sourceType]
-  const datasourceName = sourceNameMapping[datasourceType]
+export function getTableObj (that, database, table) {
+  const { datasource, label: databaseName } = database
   const tags = [
     ...(table.root_fact ? ['F'] : []),
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
   const dateRange = table.start_time !== -1 && table.end_time !== -1 ? getDateRangeStr(that, table) : null
-
-  return {
-    id: `table-${table.name}`,
+  const tableObj = {
+    id: table.uuid,
     label: table.name,
-    children: getColumnObjArray(that, table.name, table.columns),
+    children: [],
     render: render.table.render.bind(that),
     tags,
     type: 'table',
-    database: table.database,
-    datasource: datasourceName,
+    database: databaseName,
+    datasource,
     isCentral: table.fact,
-    isTopSet: table.isTopSet,
+    isTopSet: table.top_set,
     dateRange,
-    isSelected: table.isSelected
+    isSelected: false,
+    parent: database,
+    __data: table
   }
+  tableObj.children = getColumnObjArray(that, tableObj)
+  return tableObj
 }
 
-function getColumnObjArray (that, tableName, columnArray) {
-  const { foreignKeyArray, primaryKeyArray } = that
-  return columnArray.map(column => {
-    const columnFullName = `${tableName}.${column.name}`
+function getColumnObjArray (that, tableObj) {
+  const { foreignKeys, primaryKeys } = that
+  const { label: tableName, database, datasource } = tableObj
+  const { columns } = tableObj.__data
+
+  return columns.map(column => {
+    const columnFullName = `${datasource}.${database}.${tableName}.${column.name}`
     const tags = [
-      ...(foreignKeyArray.includes(columnFullName) ? ['FK'] : []),
-      ...(primaryKeyArray.includes(columnFullName) ? ['PK'] : [])
+      ...(foreignKeys.includes(columnFullName) ? ['FK'] : []),
+      ...(primaryKeys.includes(columnFullName) ? ['PK'] : [])
     ]
     return {
-      id: `column-${column.name}`,
+      id: `${tableObj.id}.${column.name}`,
       label: column.name,
       render: render.column.render.bind(that),
       tags,
@@ -224,46 +185,23 @@ function getColumnObjArray (that, tableName, columnArray) {
   })
 }
 
-export function getAutoCompleteWords (datasourceTree) {
-  let autoCompleteWords = []
-  datasourceTree.forEach(datasource => {
-    autoCompleteWords = [
-      ...autoCompleteWords,
-      ...getChildrenWords(datasource)
-    ]
-  })
-  return autoCompleteWords
+export function getWordsData (data) {
+  return {
+    meta: data.type,
+    caption: data.id,
+    value: data.label,
+    scope: 1
+  }
 }
 
-function getChildrenWords (parent) {
-  let { children } = parent
-  let words = []
-
-  if (children.length) {
-    children.forEach(child => {
-      words.push({
-        meta: child.type,
-        caption: child.label,
-        value: child.label,
-        scope: 1
-      })
-
-      if (child.type === 'table') {
-        words.push({
-          meta: child.type,
-          caption: `${parent.label}.${child.label}`,
-          value: `${parent.label}.${child.label}`,
-          scope: 1
-        })
+export function getFirstTableData (datasourceTree) {
+  for (const datasource of datasourceTree) {
+    for (const database of datasource.children) {
+      if (database.children && database.children[0]) {
+        return database.children && database.children[0]
       }
-
-      if (child.children) {
-        words = [...words, ...getChildrenWords(child)]
-      }
-    })
+    }
   }
-
-  return words
 }
 
 function getDateRangeStr (that, table) {
@@ -282,4 +220,27 @@ function getDateStr (date) {
 
 function getDoubleNumber (number) {
   return number < 10 ? `0${number}` : String(number)
+}
+
+export function freshTreeOrder (that) {
+  that.datasources.forEach(datasource => {
+    datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+    datasource.children.forEach(database => {
+      database.children.sort((itemA, itemB) => {
+        if (itemA.isTopSet !== itemB.isTopSet) {
+          return itemA.isTopSet && !itemB.isTopSet ? -1 : 1
+        } else {
+          if (itemA.isCentral !== itemB.isCentral) {
+            return itemA.isCentral && !itemB.isCentral ? -1 : 1
+          } else {
+            return itemA.label < itemB.label ? -1 : 1
+          }
+        }
+      })
+      database.children.forEach(table => {
+        table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+      })
+    })
+  })
+  that.datasources = [...that.datasources]
 }

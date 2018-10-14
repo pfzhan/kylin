@@ -423,10 +423,18 @@ export function getQueryString (name) {
   }
 }
 
-export function handleSuccessAsync (res) {
-  return new Promise((resolve, reject) => {
-    handleSuccess(res, resolve, reject)
-  })
+export async function handleSuccessAsync (responses) {
+  if (responses instanceof Array) {
+    const results = []
+    for (const response of responses) {
+      results.push(await handleSuccessAsync(response))
+    }
+    return results
+  } else {
+    return new Promise((resolve, reject) => {
+      handleSuccess(responses, resolve, reject)
+    })
+  }
 }
 // 获取object full mapping
 export function getFullMapping (mapping) {

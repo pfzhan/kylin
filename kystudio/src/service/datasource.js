@@ -147,7 +147,19 @@ export default {
   fetchRelatedModels (project, table) {
     return Vue.resource(apiUrl + 'models').get({project, table})
   },
+  fetchTables (project, database, table, pageOffset, pageSize, isFuzzy, ext) {
+    return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})
+  },
   fetchDatabases (project, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/databases').get({project})
+    return Vue.resource(apiUrl + 'tables/databases').get({project, datasourceType})
+  },
+  importDatabases (project, datasourceType, databases) {
+    return Vue.resource(apiUrl + 'tables/databases').save({project, datasourceType, databases})
+  },
+  updateTopTable (project, table, top) {
+    return Vue.resource(apiUrl + 'tables/top').save({project, table, top})
+  },
+  deleteTable (project, database, table) {
+    return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete()
   }
 }

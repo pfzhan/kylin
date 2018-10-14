@@ -11,8 +11,8 @@ export default {
   getters: {
   },
   mutations: {
-    [types.CACHE_DATASOURCE]: function (state, { data, project }) {
-      state.dataSource[project] = data
+    [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
+      state.dataSource[project] = !isReset ? [...state.dataSource[project], ...data] : data
     },
     [types.CACHE_ENCODINGS]: function (state, { data, project }) {
       state.encodings = data
@@ -31,6 +31,9 @@ export default {
           commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.project })
           return response
         })
+    },
+    [types.IMPORT_DATABASE]: function ({commit}, para) {
+      return api.datasource.importDatabases(para.projectName, para.sourceType, para.databaseNames)
     },
     [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
@@ -172,8 +175,21 @@ export default {
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName)
     },
-    [types.LOAD_DATABASE]: function ({commit}, para) {
-      return api.datasource.fetchDatabases(para.projectName)
+    [types.FETCH_DATABASES]: function ({commit}, para) {
+      return api.datasource.fetchDatabases(para.projectName, para.sourceType)
+    },
+    [types.FETCH_TABLES]: function ({commit}, para) {
+      return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.pageOffset, para.pageSize, para.isFuzzy, para.isExt)
+        .then((response) => {
+          commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.pageOffset === 0 })
+          return response
+        })
+    },
+    [types.UPDATE_TOP_TABLE]: function ({commit}, para) {
+      return api.datasource.updateTopTable(para.projectName, para.tableFullName, para.isTopSet)
+    },
+    [types.DELETE_TABLE]: function ({commit}, para) {
+      return api.datasource.deleteTable(para.projectName, para.databaseName, para.tableName)
     }
   }
 }

@@ -85,9 +85,9 @@ vuex.registerModule(['modals', 'DataSourceModal'], store)
     // 后台接口请求
     ...mapActions({
       updateProject: 'UPDATE_PROJECT',
-      loadHiveInProject: 'LOAD_HIVE_IN_PROJECT',
+      importDatabase: 'IMPORT_DATABASE',
+      importTable: 'LOAD_HIVE_IN_PROJECT',
       saveKafka: 'SAVE_KAFKA',
-      loadDataSourceByProject: 'LOAD_DATASOURCE',
       saveSampleData: 'SAVE_SAMPLE_DATA'
     })
   },
@@ -181,11 +181,13 @@ export default class DataSourceModal extends Vue {
         this.setModal({ sourceType: this.form.project.override_kylin_properties['kylin.source.default'] })
         // 后台保存：Hive和RDBMS导入
       } else if (this.isTableTree) {
-        const res = await this.loadHiveInProject(data)
-        const resData = await handleSuccessAsync(res)
+        const res = await Promise.all([
+          ...(data.tableNames.length ? [this.importTable(data)] : []),
+          ...(data.databaseNames.length ? [this.importDatabase(data)] : [])
+        ])
+        let resData = await handleSuccessAsync(res)
         // Todo: data success 提示
         console.log(resData)
-        this.loadDataSourceByProject({ project, isExt: true })
         this.handleClose(true)
         // 后台保存：Kafka导入
       } else if (this.isKafka) {

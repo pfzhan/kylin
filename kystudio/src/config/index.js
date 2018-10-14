@@ -636,6 +636,10 @@ export const sourceNameMapping = {
   HIVE: 'Hive'
 }
 
+export const pageSizeMapping = {
+  TABLE_TREE: 99
+}
+
 export const partitionColumnTypes = [
   'timestamp', 'date'
 ]

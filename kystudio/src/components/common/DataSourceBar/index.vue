@@ -5,26 +5,26 @@
         {{$t('kylinLang.common.dataSource')}}
       </div>
       <div class="header-icons">
-        <i class="el-icon-ksd-add_data_source" v-if="isShowLoadSource" @click="loadDataSource(sourceTypes.NEW, currentProjectData)"></i>
-        <i class="el-icon-ksd-table_setting" v-if="isShowSettings" @click="loadDataSource(sourceTypes.SETTING, currentProjectData)"></i>
+        <i class="el-icon-ksd-add_data_source" v-if="isShowLoadSource" @click="importDataSource(sourceTypes.NEW, currentProjectData)"></i>
+        <i class="el-icon-ksd-table_setting" v-if="isShowSettings" @click="importDataSource(sourceTypes.SETTING, currentProjectData)"></i>
       </div>
     </section>
 
     <section class="body">
       <div v-if="isShowBtnLoad" class="btn-group">
-        <el-button plain size="medium" type="primary" icon="el-icon-ksd-load" @click="loadDataSource(sourceTypes.NEW, currentProjectData)">
+        <el-button plain size="medium" type="primary" icon="el-icon-ksd-load" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
           {{$t('kylinLang.common.dataSource')}}
         </el-button>
       </div>
       <TreeList
-        :data="datasourceTree"
+        :data="datasources"
         :placeholder="$t('searchTable')"
         :default-expanded-keys="defaultExpandedKeys"
-        :draggable-node-keys="draggableNodeKeys"
-        :searchable-node-keys="searchableNodeKeys"
+        :draggable-node-types="draggableNodeTypes"
         :is-expand-all="isExpandAll"
         :is-show-filter="isShowFilter"
         :is-expand-on-click-node="isExpandOnClickNode"
+        :on-filter="handleFilter"
         @click="handleClick"
         @drag="handleDrag"
         @load-more="handleLoadMore">
@@ -41,7 +41,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { sourceTypes } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
-import { getDatasourceTree, getAutoCompleteWords, getFirstTableData } from './handler'
+import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, freshTreeOrder } from './handler'
 import { handleSuccessAsync } from '../../../util'
 
 @Component({
@@ -61,6 +61,10 @@ import { handleSuccessAsync } from '../../../util'
       type: Array,
       default: () => []
     },
+    clickableNodeTypes: {
+      type: Array,
+      default: () => ['database', 'table', 'column']
+    },
     isShowActionGroup: {
       type: Boolean,
       default: true
@@ -70,6 +74,10 @@ import { handleSuccessAsync } from '../../../util'
       default: false
     },
     isShowSettings: {
+      type: Boolean,
+      default: false
+    },
+    isShowSelected: {
       type: Boolean,
       default: false
     },
@@ -101,95 +109,200 @@ import { handleSuccessAsync } from '../../../util'
       callDataSourceModal: 'CALL_MODAL'
     }),
     ...mapActions({
-      fetchDatabases: 'LOAD_DATABASE',
-      fetchTables: 'LOAD_DATASOURCE'
+      fetchDatabases: 'FETCH_DATABASES',
+      fetchTables: 'FETCH_TABLES',
+      updateTopTable: 'UPDATE_TOP_TABLE'
     })
   },
   locales
 })
 export default class DataSourceBar extends Vue {
+  filterText = ''
+  datasources = []
   sourceTypes = sourceTypes
-  tableArray = []
-  autoCompleteWords = []
+  allWords = []
   defaultExpandedKeys = []
   draggableNodeKeys = []
-  searchableNodeKeys = []
+  timer = null
 
-  get foreignKeyArray () {
-    let foreignKeyArray = []
-    this.tableArray.forEach((table) => {
-      foreignKeyArray = foreignKeyArray.concat(table.foreign_key)
-    })
-    return foreignKeyArray
+  get databaseArray () {
+    const allData = this.datasources.reduce((databases, datasource) => [...databases, ...datasource.children], [])
+    return allData.filter(data => !['isMore', 'isLoading'].includes(data.type))
   }
-  get primaryKeyArray () {
-    let primaryKeyArray = []
-    this.tableArray.forEach((table) => {
-      primaryKeyArray = primaryKeyArray.concat(table.primary_key)
-    })
-    return primaryKeyArray
+  get tableArray () {
+    const allData = this.databaseArray.reduce((tables, database) => [...tables, ...database.children], [])
+    return allData.filter(data => !['isMore', 'isLoading'].includes(data.type))
   }
-  get datasourceTree () {
-    const { tableArray, currentProjectData } = this
-    return getDatasourceTree(this, tableArray, currentProjectData)
+  get columnArray () {
+    return this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
+  }
+  get currentSourceTypes () {
+    const projectProperies = this.currentProjectData['override_kylin_properties']
+    return projectProperies && projectProperies['kylin.source.default']
+      ? [+projectProperies['kylin.source.default']]
+      : []
+  }
+  get foreignKeys () {
+    return this.tableArray.reduce((foreignKeys, table) => {
+      const currentFK = table.__data.foreign_key.map(foreignKey => `${table.datasource}.${table.database}.${foreignKey}`)
+      return [...foreignKeys, ...currentFK]
+    }, [])
   }
   get isShowBtnLoad () {
-    return (this.isAdminRole || this.isProjectAdmin) && !this.datasourceTree.length
+    return (this.isAdminRole || this.isProjectAdmin) && !this.datasources.length
   }
-
-  @Watch('datasourceTree')
-  onDatasourceTreeChange (datasourceTree) {
-    const autoCompleteWords = getAutoCompleteWords(datasourceTree)
-    this.defaultExpandedKeys = autoCompleteWords
+  get primaryKeys () {
+    return this.tableArray.reduce((primaryKeys, table) => {
+      const currentPK = table.__data.primary_key.map(primaryKey => `${table.datasource}.${table.database}.${primaryKey}`)
+      return [...primaryKeys, ...currentPK]
+    }, [])
+  }
+  @Watch('columnArray')
+  onTreeDataChange () {
+    this.freshAutoCompleteWords()
+    this.defaultExpandedKeys = this.allWords
       .filter(word => this.expandNodeTypes.includes(word.meta))
-      .map(word => `${word.meta}-${word.caption}`)
-    this.draggableNodeKeys = autoCompleteWords
-      .filter(word => this.draggableNodeTypes.includes(word.meta))
-      .map(word => `${word.meta}-${word.caption}`)
-    this.searchableNodeKeys = autoCompleteWords
-      .filter(word => this.searchableNodeTypes.includes(word.meta))
-      .map(word => `${word.meta}-${word.caption}`)
-    this.$emit('autoComplete', autoCompleteWords)
+      .map(word => word.caption)
   }
-
-  async mounted () {
-    await this.loadTables()
+  @Watch('projectName')
+  onProjectChange () {
+    this.initTree()
+  }
+  mounted () {
+    this.initTree()
+  }
+  addPagination (data) {
+    data.pagination.pageOffset++
+  }
+  clearPagination (data) {
+    data.pagination.pageOffset = 0
+  }
+  showLoading (data) {
+    data.isLoading = true
+  }
+  hideLoading (data) {
+    data.isLoading = false
+  }
+  async initTree () {
+    await this.loadDatasources()
+    await this.loadDataBases()
+    await this.loadTables({ isReset: true })
     this.selectFirstTable()
-    // const resp = await this.fetchDatabases({projectName: this.currentSelectedProject})
-    // console.log(resp)
+    freshTreeOrder(this)
   }
-  handleClick (data, node) {
-    this.setSelectedTable(data)
-    this.$emit('click', data, node)
+  async loadDatasources () {
+    this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
   }
-  handleDrag (node, data) {
+  async loadDataBases () {
+    // 分数据源，请求database
+    const responses = await Promise.all(this.datasources.map(({ projectName, sourceType }) => {
+      return this.fetchDatabases({ projectName, sourceType })
+    }))
+    const results = await handleSuccessAsync(responses)
+    // 组装database进datasource
+    this.datasources.forEach((datasource, index) => {
+      for (const resultDatabse of results[index]) {
+        datasource.children.push(getDatabaseObj(this, datasource, resultDatabse))
+      }
+    })
+  }
+  async loadTables (params) {
+    const { tableName = null, databaseId = null, isReset = false } = params || {}
+    const currentDatabases = this.databaseArray.filter(database => {
+      return database.id === databaseId || !databaseId
+    })
+
+    const responses = await Promise.all(currentDatabases.map((database) => {
+      const { projectName, label: databaseName, pagination } = database
+      isReset ? this.clearPagination(database) : null
+      return this.fetchTables({ projectName, databaseName, tableName, isExt: true, ...pagination })
+    }))
+    const results = await handleSuccessAsync(responses)
+
+    currentDatabases.forEach((database, index) => {
+      const { size, tables: resultTables } = results[index]
+      const tables = resultTables.map(resultTable => getTableObj(this, database, resultTable))
+      database.children = !isReset ? [...database.children, ...tables] : tables
+      database.isMore = size && size > this.getChildrenCount(database)
+      database.isHidden = !this.getChildrenCount(database)
+      this.addPagination(database)
+      this.hideLoading(database)
+    })
+  }
+  getChildrenCount (data) {
+    return data.children.filter(data => !['isMore', 'isLoading'].includes(data.type)).length
+  }
+  handleDrag (data, node) {
     this.$emit('drag', data, node)
   }
-  handleLoadMore (node, data) {
-    this.$emit('load-more', data, node)
+  handleFilter (filterText) {
+    clearInterval(this.timer)
+
+    return new Promise(async resolve => {
+      this.timer = setTimeout(async () => {
+        const requests = this.databaseArray.map(async database => {
+          const tableName = filterText
+          const databaseId = database.id
+          this.clearPagination(database)
+
+          await this.loadTables({ databaseId, tableName, isReset: true })
+        })
+        await Promise.all(requests)
+        this.filterText = filterText
+        this.selectFirstTable()
+        resolve()
+      }, 1000)
+    })
+  }
+  async handleLoadMore (data, node) {
+    const { id: databaseId } = data.parent
+    const tableName = this.filterText
+    await this.loadTables({ databaseId, tableName })
+  }
+  handleClick (data, node) {
+    if (this.clickableNodeTypes.includes(data.type)) {
+      if (this.isShowSelected) {
+        this.setSelectedTable(data)
+      }
+      this.$emit('click', data, node)
+    }
+  }
+  async handleToggleTop (data, node, event) {
+    event && event.stopPropagation()
+    event && event.preventDefault()
+
+    const { projectName } = this
+    const tableFullName = `${data.database}.${data.label}`
+    const isTopSet = !data.isTopSet
+
+    await this.updateTopTable({ projectName, tableFullName, isTopSet })
+    data.isTopSet = isTopSet
+    freshTreeOrder(this)
   }
   setSelectedTable (data) {
     for (const table of this.tableArray) {
-      table.isSelected = data.id === table.uuid
+      table.isSelected = data.id === table.id
     }
   }
   selectFirstTable () {
-    this.handleClick(getFirstTableData(this.datasourceTree))
+    if (this.isShowSelected && this.tableArray.length) {
+      this.handleClick(getFirstTableData(this.datasources))
+    }
   }
-  async loadTables () {
-    const res = await this.fetchTables({project: this.projectName, isExt: true})
-    const tableArray = await handleSuccessAsync(res)
-    this.tableArray = tableArray.map(table => ({ ...table, isSelected: false }))
+  freshAutoCompleteWords () {
+    const datasourceWords = this.datasources.map(datasource => getWordsData(datasource))
+    const databaseWords = this.databaseArray.map(database => getWordsData(database))
+    const tableWords = this.tableArray.map(table => getWordsData(table))
+    const columnWords = this.columnArray.map(column => getWordsData(column))
+    this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
+    this.$emit('autoComplete', [...databaseWords, ...tableWords, ...columnWords])
   }
-  async loadDataSource (sourceType, project, event) {
+  async importDataSource (sourceType, project, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
 
     const isSubmit = await this.callDataSourceModal({ sourceType, project })
-
-    if (isSubmit) {
-      this.loadTables()
-    }
+    isSubmit && this.loadTables({ isReset: true })
   }
 }
 </script>
@@ -256,8 +369,21 @@ export default class DataSourceBar extends Vue {
     .tree-item {
       position: relative;
       width: calc(~'100% - 24px');
+      .top {
+        display: none;
+        font-size: 13px;
+        position: relative;
+        top: -1px;
+      }
+      &:hover .top {
+        display: inline;
+      }
       .table {
         padding-right: 30px;
+        line-height: 36px;
+      }
+      .table.has-range:hover {
+        padding-right: 45px;
       }
       .column {
         padding-right: 10px;
@@ -305,9 +431,6 @@ export default class DataSourceBar extends Vue {
       border: 1px solid #CFD8DC;
       overflow: hidden;
       margin-bottom: 10px;
-      &[aria-expanded="true"] > .el-tree-node__content {
-        border-bottom: 1px solid #CFD8DC;
-      }
       & > .el-tree-node__content {
         padding: 10px 9px !important; // important用来去掉el-tree的内联样式
         height: auto;
@@ -336,10 +459,7 @@ export default class DataSourceBar extends Vue {
         margin-left: -18px;
       }
       & > .el-tree-node__children > .el-tree-node {
-        border-bottom: 1px solid #CFD8DC;
-        &:last-child {
-          border-bottom: 0;
-        }
+        border-top: 1px solid #CFD8DC;
       }
     }
   }

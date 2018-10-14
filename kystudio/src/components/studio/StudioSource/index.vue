@@ -8,7 +8,9 @@
         :project-name="currentSelectedProject"
         :is-show-load-source="true"
         :is-show-settings="false"
+        :is-show-selected="true"
         :is-expand-on-click-node="false"
+        :is-first-select="true"
         :expand-node-types="['datasource', 'database']"
         :searchable-node-types="['table', 'column']"
         @click="handleClick">
@@ -53,9 +55,6 @@
               </el-tab-pane> -->
             </el-tabs>
           </div>
-          <!-- Source Table动作弹框 -->
-          <ReloadModal ref="ReloadModal" :table="selectedTable" />
-          <SampleModal ref="SampleModal" :table="selectedTable" />
         </template>
         <!-- Table空页 -->
         <template v-if="!selectedTable">
@@ -79,8 +78,6 @@ import TableColumns from './TableColumns/index.vue'
 import TableSamples from './TableSamples/index.vue'
 import TableStatistics from './TableStatistics/index.vue'
 import TableExtInfo from './TableExtInfo/index.vue'
-import ReloadModal from './ReloadModal/index.vue'
-import SampleModal from './SampleModal/index.vue'
 import ViewKafka from '../../kafka/view_kafka.vue'
 import Access from '../../datasource/access.vue'
 import { sourceTypes } from '../../../config'
@@ -94,8 +91,6 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
     TableSamples,
     TableStatistics,
     TableExtInfo,
-    ReloadModal,
-    SampleModal,
     ViewKafka,
     Access
   },
@@ -110,9 +105,9 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
       setCurrentTableData: 'SET_CURRENT_TABLE'
     }),
     ...mapActions({
-      fetchDatabases: 'LOAD_DATABASE',
-      loadDataSourceByProject: 'LOAD_DATASOURCE',
-      loadTableExt: 'LOAD_DATASOURCE_EXT'
+      fetchTables: 'FETCH_TABLES',
+      importTable: 'LOAD_HIVE_IN_PROJECT',
+      deleteTable: 'DELETE_TABLE'
     })
   },
   locales
@@ -146,28 +141,65 @@ export default class StudioSource extends Vue {
     this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
   }
   handleReload () {
-    this.$refs['ReloadModal'].showModal()
+    this.$confirm(this.$t('reloadTable'), this.$t('kylinLang.common.notice'), {
+      confirmButtonText: this.$t('kylinLang.common.ok'),
+      cancelButtonText: this.$t('kylinLang.common.cancel'),
+      type: 'warning'
+    }).then(() => {
+      const databaseName = this.selectedTable.database
+      const tableName = this.selectedTable.name
+
+      const projectName = this.currentSelectedProject
+      const sourceType = this.selectedTable.source_type
+      const tableFullName = `${databaseName}.${tableName}`
+      return this.importTable({ projectName, sourceType, tableNames: [tableFullName] })
+    }).then(() => {
+      const databaseName = this.selectedTable.database
+      const tableName = this.selectedTable.name
+
+      this.$message({
+        type: 'success',
+        message: this.$t('reloadSuccess')
+      })
+      return this.fetchTableDetail({ label: tableName, database: databaseName, type: 'table' })
+    }).catch(() => {})
   }
   handleSampling () {
     this.$refs['SampleModal'].showModal()
   }
   handleUnload () {
+    this.$confirm(this.$t('unloadTable'), this.$t('kylinLang.common.notice'), {
+      confirmButtonText: this.$t('kylinLang.common.ok'),
+      cancelButtonText: this.$t('kylinLang.common.cancel'),
+      type: 'warning'
+    }).then(() => {
+      const projectName = this.currentSelectedProject
+      const databaseName = this.selectedTable.database
+      const tableName = this.selectedTable.name
+      return this.deleteTable({ projectName, databaseName, tableName })
+    }).then(() => {
+      this.$message({
+        type: 'success',
+        message: this.$t('unloadSuccess')
+      })
+      return this.handleFreshTable()
+    }).catch(() => {})
   }
   async handleFreshTable () {
+    await this.$refs['datasource-bar'].loadTables({ isReset: true })
+
     const { name, database } = this.selectedTable
-    await this.$refs['datasource-bar'].loadTables()
     await this.fetchTableDetail({ label: name, database, type: 'table' })
   }
   async fetchTableDetail (data) {
-    const { label, type, database } = data
-
-    if (type === 'table') {
-      const project = this.currentSelectedProject
-      const tableName = `${database}.${label}`
-      const res = await this.loadTableExt({tableName, project})
+    if (data.type === 'table') {
+      const projectName = this.currentSelectedProject
+      const tableName = data.label
+      const databaseName = data.database
+      const res = await this.fetchTables({ projectName, databaseName, tableName, isExt: true, isFuzzy: true })
       const tableDetail = await handleSuccessAsync(res)
 
-      this.selectedTable = getSelectedTableDetail(tableDetail[0])
+      this.selectedTable = getSelectedTableDetail(tableDetail.tables[0])
       this.setCurrentTableData({ tableData: this.selectedTable })
     }
   }

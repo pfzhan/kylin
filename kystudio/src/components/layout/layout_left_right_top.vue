@@ -208,9 +208,9 @@ export default class LayoutLeftRightTop extends Vue {
     //   handleError(res)
     // })
     // for newten
-    this.getAboutKap(() => {}, (res) => {
-      handleError(res)
-    })
+    // this.getAboutKap(() => {}, (res) => {
+    //   handleError(res)
+    // })
   }
   showMenuByRole (menuName) {
     if ((menuName === 'system' && this.isAdmin === false) || (menuName === 'monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) || (menuName === 'auto' && this.isAdmin === false && !this.hasAdminPermissionOfProject)) {
@@ -232,7 +232,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   _replaceRouter (currentPath) {
-    this.$router.replace('/refresh')
+    this.$router.push('/refresh')
     this.$nextTick(() => {
       if ((currentPath === '/monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) || (currentPath === '/auto' && this.isAdmin === false && !this.hasAdminPermissionOfProject)) {
         this.$router.replace('/dashboard')

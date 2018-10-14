@@ -22,7 +22,7 @@
         </el-dropdown-item> -->
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="'https://kybot.io/#/home'+kapVersionPara"> {{$t('kybotService')}}</a></el-dropdown-item>
         <!-- <el-dropdown-item command="updatelicense" divided>{{$t('updateLicense')}}</el-dropdown-item> -->
-        <el-dropdown-item command="aboutkap" divided>{{$t('aboutKap')}}</el-dropdown-item>
+        <!-- <el-dropdown-item command="aboutkap" divided>{{$t('aboutKap')}}</el-dropdown-item> -->
       </el-dropdown-menu>
     </el-dropdown>
 
@@ -168,10 +168,10 @@
       handleCommand (val) {
         if (val === 'aboutkap') {
           // 发请求 kap/system/license
-          this.getAboutKap().then((result) => {
-          }, (resp) => {
-            // console.log(resp)
-          })
+          // this.getAboutKap().then((result) => {
+          // }, (resp) => {
+          //   // console.log(resp)
+          // })
           this.getCurKybotAccount().then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
               this.$store.state.kybot.hasLoginAccount = data

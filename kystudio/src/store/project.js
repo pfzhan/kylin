@@ -47,6 +47,14 @@ export default {
       state.selected_project = selectedProject
       state.projectAccess = {}
       state.projectEndAccess = {}
+    },
+    [types.UPDATE_PROJECT] (state, { project }) {
+      const projectIdx = state.allProject.findIndex(projectItem => projectItem.uuid === project.uuid)
+      state.allProject = [
+        ...state.allProject.slice(0, projectIdx),
+        project,
+        ...state.allProject.slice(projectIdx + 1)
+      ]
     }
   },
   actions: {
@@ -81,10 +89,13 @@ export default {
     },
     [types.UPDATE_PROJECT]: function ({ commit }, project) {
       return api.project.updateProject(project)
+        .then(response => {
+          commit(types.UPDATE_PROJECT, { project: response.data.data })
+        })
     },
     [types.SAVE_PROJECT]: function ({ dispatch, commit }, project) {
-      return api.project.saveProject(project).then((res) => {
-        dispatch(types.LOAD_ALL_PROJECT)
+      return api.project.saveProject(project).then(async (res) => {
+        await dispatch(types.LOAD_ALL_PROJECT)
         return res
       })
     },
