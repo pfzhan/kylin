@@ -134,7 +134,7 @@ public class NExecAndComp {
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                compareResults(kapRows, sparkRows, compareLevel);
+                compareResults(sparkRows, kapRows, compareLevel);
             } else {
                 cubeResult.persist();
                 System.out
@@ -176,7 +176,8 @@ public class NExecAndComp {
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = sql.replaceAll("edw\\.", "").replaceAll("\"EDW\"\\.", "").replaceAll("EDW\\.", "")
-                .replaceAll("default\\.", "").replaceAll("DEFAULT\\.", "").replaceAll("\"DEFAULT\"\\.", "");
+                .replaceAll("default\\.", "").replaceAll("DEFAULT\\.", "").replaceAll("\"DEFAULT\"\\.", "")
+                .replaceAll("TPCH\\.", "").replaceAll("tpch\\.", "");
         HivePushDownConverter converter = new HivePushDownConverter();
         String afterConvert = converter.convert(sqlForSpark, "default", "default", false);
 
@@ -310,7 +311,7 @@ public class NExecAndComp {
     private static void printRows(String source, List<Row> rows){
         System.out.println("***********" + source + " start**********");
         for (Row row: rows){
-            System.out.println(row.mkString());
+            System.out.println(row.mkString("|"));
         }
         System.out.println("***********" + source + " end**********");
     }

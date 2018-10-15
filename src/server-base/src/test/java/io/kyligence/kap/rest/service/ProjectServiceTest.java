@@ -128,7 +128,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjects() throws Exception {
 
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
-        Assert.assertEquals(6, projectInstances.size());
+        Assert.assertEquals(7, projectInstances.size());
 
     }
 
