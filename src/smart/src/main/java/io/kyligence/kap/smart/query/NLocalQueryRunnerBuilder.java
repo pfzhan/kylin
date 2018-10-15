@@ -49,20 +49,19 @@ class NLocalQueryRunnerBuilder {
     }
 
     NLocalQueryRunner buildBasic(String projectName) {
-        Set<String> dumpResources = Sets.newHashSet();
-        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
-
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
         NProjectManager projectManager = NProjectManager.getInstance(srcKylinConfig);
-
         ProjectInstance srcProj = projectManager.getProject(projectName);
 
         ProjectInstance dumpProj = new ProjectInstance();
         dumpProj.setName(projectName);
         dumpProj.setTables(srcProj.getTables());
         dumpProj.init();
+
+        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
+        Set<String> dumpResources = Sets.newHashSet();
         for (TableDesc tableDesc : metadataManager.listAllTables()) {
             dumpResources.add(tableDesc.getResourcePath());
         }

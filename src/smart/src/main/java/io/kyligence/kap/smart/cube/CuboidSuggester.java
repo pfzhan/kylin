@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.cube;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -38,7 +39,6 @@ import java.util.SortedSet;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -46,40 +46,20 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NColumnFamilyDesc;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NRowkeyColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class CuboidSuggester {
-
-    private class RowkeyComparator implements Comparator<NRowkeyColumnDesc> {
-        final Map<Integer, Double> dimScores;
-
-        RowkeyComparator(Map<Integer, Double> dimScores) {
-            this.dimScores = dimScores;
-        }
-
-        @Override
-        public int compare(NRowkeyColumnDesc o1, NRowkeyColumnDesc o2) {
-            int c1 = o1.getDimensionId();
-            int c2 = o2.getDimensionId();
-            if (dimScores.get(c2) - dimScores.get(c1) > 0) {
-                return 1;
-            } else {
-                return -1;
-            }
-        }
-    }
 
     private class ColIndexSuggestor {
         OLAPContext olapContext;
@@ -88,7 +68,7 @@ public class CuboidSuggester {
             this.olapContext = olapContext;
         }
 
-        private String suggestIndex(TblColRef colRef) {
+        private String suggest(TblColRef colRef) {
             TupleFilter filter = olapContext.filter;
             LinkedList<TupleFilter> filters = Lists.newLinkedList();
             filters.add(filter);
@@ -115,36 +95,6 @@ public class CuboidSuggester {
             }
             return "eq";
         }
-
-        String suggest(int dimId, TblColRef colRef) {
-            return suggestIndex(colRef);
-        }
-    }
-
-    private class DimensionCFClusterer {
-        NColumnFamilyDesc.DimensionCF[] cluster(Collection<Integer> dimIds) {
-            // TODO: because of limitation of GTRecord, currently only support
-            // all dimensions in one column family
-            NColumnFamilyDesc.DimensionCF[] dimCFs = new NColumnFamilyDesc.DimensionCF[1];
-            dimCFs[0] = new NColumnFamilyDesc.DimensionCF();
-            dimCFs[0].setName("ALL_DIM");
-            dimCFs[0].setColumns(ArrayUtils.toPrimitive(dimIds.toArray(new Integer[0])));
-            return dimCFs;
-        }
-    }
-
-    private class MeasureCFClusterer {
-        NColumnFamilyDesc.MeasureCF[] cluster(Collection<Integer> measureIds) {
-            NColumnFamilyDesc.MeasureCF[] measureCFs = new NColumnFamilyDesc.MeasureCF[measureIds.size()];
-            int c = 0;
-            for (Integer measureId : measureIds) {
-                measureCFs[c] = new NColumnFamilyDesc.MeasureCF();
-                measureCFs[c].setName(String.format("MEASURE_%d", measureId));
-                measureCFs[c].setColumns(new int[] { measureId });
-                c++;
-            }
-            return measureCFs;
-        }
     }
 
     private NSmartContext context;
@@ -152,12 +102,12 @@ public class CuboidSuggester {
     private NDataModel model;
     private Map<TblColRef, Integer> colIdMap;
     private Map<FunctionDesc, Integer> aggFuncIdMap;
-    private Map<Pair<BitSet, BitSet>, NCuboidDesc> collector;
+    private Map<NCuboidIdentifier, NCuboidDesc> collector;
 
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
     public CuboidSuggester(NSmartContext context, NDataModel model, NCubePlan cubePlan,
-            Map<Pair<BitSet, BitSet>, NCuboidDesc> collector) {
+            Map<NCuboidIdentifier, NCuboidDesc> collector) {
         this.context = context;
         this.model = model;
         this.cubePlan = cubePlan;
@@ -182,7 +132,7 @@ public class CuboidSuggester {
         Map<Integer, String> ret = Maps.newHashMap();
         for (Map.Entry<Integer, Double> dimEntry : dimScores.entrySet()) {
             int dimId = dimEntry.getKey();
-            String index = suggester.suggest(dimId, colRefMap.get(dimId));
+            String index = suggester.suggest(colRefMap.get(dimId));
             if (!"eq".equals(index)) {
                 ret.put(dimId, index);
             }
@@ -202,14 +152,13 @@ public class CuboidSuggester {
         return ArrayUtils.toPrimitive(shardBy.toArray(new Integer[0]));
     }
 
-    private int[] suggestSortBy(Collection<Integer> dimIds, boolean isTableIndex) {
-        if (isTableIndex && (!dimIds.isEmpty())) {
+    private int[] suggestSortBy(Collection<Integer> dimIds) {
+        if (!dimIds.isEmpty()) {
             // TODO choose reasonable sort key(s)
             Integer[] dimArray = dimIds.toArray(new Integer[0]);
             return new int[] { dimArray[0] };
-        } else {
-            return new int[0]; // not used for normal cuboid.
         }
+        return new int[0];
     }
 
     private Map<Integer, Double> getDimScores(OLAPContext ctx) {
@@ -231,44 +180,38 @@ public class CuboidSuggester {
         if (ctx.subqueryJoinParticipants != null)
             groupByCols.addAll(ctx.subqueryJoinParticipants);
 
-        if (CollectionUtils.isNotEmpty(groupByCols)) {
-            for (TblColRef colRef : groupByCols) {
-                Integer colId = colIdMap.get(colRef);
-                if (colId == null) {
-                    // FIXME model not contains all columns of ctx, this is not supposed to happen
-                    throw new IllegalArgumentException();
-                }
-                TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
-                if (columnStats != null && columnStats.getCardinality() > 0)
-                    dimScores.put(colId, -1D / columnStats.getCardinality());
-                else
-                    dimScores.put(colId, 0D);
-            }
-        }
+        calcDimScores(groupByCols, dimScores, false);
+        calcDimScores(ctx.filterColumns, dimScores, true);
 
-        if (CollectionUtils.isNotEmpty(ctx.filterColumns)) {
-            for (TblColRef colRef : ctx.filterColumns) {
-                Integer colId = colIdMap.get(colRef);
-                if (colId == null) {
-                    // FIXME model not contains all columns of ctx, this is not supposed to happen
-                    throw new IllegalArgumentException();
-                }
-                TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
-                if (columnStats != null && columnStats.getCardinality() > 0)
-                    dimScores.put(colId, (double) columnStats.getCardinality());
-                else
-                    dimScores.put(colId, 0D);
-            }
-        }
         return dimScores;
     }
 
-    public static boolean compareLayouts(NCuboidLayout l1, NCuboidLayout l2) {
-        // TODO: currently it's exact equals, we should tolerate some order
-        // and cf inconsistency
+    private void calcDimScores(Set<TblColRef> cols, Map<Integer, Double> dimScores, boolean isFilterCols) {
+        if (CollectionUtils.isEmpty(cols)) {
+            return;
+        }
 
-        //TODO: https://stackoverflow.com/questions/124585/java-equals-to-reflect-or-not-to-reflect
-        //use EqualsBuilder
+        for (TblColRef colRef : cols) {
+            Integer colId = colIdMap.get(colRef);
+            if (colId == null) {
+                // FIXME model not contains all columns of ctx, this is not supposed to happen
+                throw new IllegalArgumentException();
+            }
+            TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
+            if (columnStats != null && columnStats.getCardinality() > 0) {
+                if (isFilterCols) {
+                    dimScores.put(colId, (double) columnStats.getCardinality());
+                } else {
+                    dimScores.put(colId, -1D / columnStats.getCardinality());
+                }
+            } else
+                dimScores.put(colId, 0D);
+        }
+    }
+
+    static boolean compareLayouts(NCuboidLayout l1, NCuboidLayout l2) {
+        // TODO: currently it's exact equals, we should tolerate some order and cf inconsistency
+        //TODO: https://stackoverflow.com/questions/124585/java-equals-to-reflect-or-not-to-reflect use EqualsBuilder
         return Objects.equals(l1.getColOrder(), l2.getColOrder())
                 && Objects.equals(l1.getLayoutOverrideIndexes(), l2.getLayoutOverrideIndexes())
                 && Objects.equals(l1.getStorageType(), l2.getStorageType())
@@ -277,88 +220,37 @@ public class CuboidSuggester {
     }
 
     void ingest(OLAPContext ctx, NDataModel model) {
-        final BitSet dimBitSet = new BitSet();
-        final BitSet measureBitSet = new BitSet();
-
         final Map<Integer, Double> dimScores = getDimScores(ctx);
         SortedSet<Integer> measureIds = Sets.newTreeSet();
 
         boolean useTableIndex = ctx.getSQLDigest().isRawQuery;
+        NCuboidDesc cuboidDesc = useTableIndex ? createTableIndex(ctx, dimScores, measureIds)
+                : createAggregatedIndex(ctx, dimScores, measureIds);
 
-        if (!useTableIndex) {
-            // FIXME work around empty dimension case
-            if (dimScores.isEmpty()) {
-                Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
-                for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
-                    dimensionCandidate.put(namedColumn.name, namedColumn);
-                }
-                for (NDataModel.Measure measure : model.getAllMeasures()) {
-                    FunctionDesc agg = measure.getFunction();
-                    if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
-                        continue;
-                    }
-                    dimensionCandidate.remove(agg.getParameter().getValue());
-                }
-                if (dimensionCandidate.isEmpty()) {
-                    throw new RuntimeException("Suggest no dimension");
-                }
-                dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
-            }
-
-            //measureIds.add(NDataModel.MEASURE_ID_BASE);
-            if (CollectionUtils.isNotEmpty(ctx.aggregations)) {
-                for (FunctionDesc aggFunc : ctx.aggregations) {
-                    Integer measureId = aggFuncIdMap.get(aggFunc);
-                    if (measureId == null) {
-                        // dimension as measure, put cols to rowkey tail
-                        if (aggFunc.getParameter() != null) {
-                            for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
-                                int colId = colIdMap.get(colRef);
-                                if (!dimScores.containsKey(colId))
-                                    dimScores.put(colId, -1D);
-                            }
-                        }
-                    } else {
-                        measureIds.add(measureId);
-                        measureBitSet.set(measureId);
-                    }
-                }
-            }
+        final NCuboidIdentifier cuboidIdentifier = cuboidDesc.createCuboidIdentifier();
+        if (collector.containsKey(cuboidIdentifier)) {
+            cuboidDesc = collector.get(cuboidIdentifier);
         } else {
-            // FIXME use better table index flag
-            int tableIndexFlag = Integer.MAX_VALUE;
-            dimBitSet.set(tableIndexFlag);
-            for (NamedColumn column : model.getAllNamedColumns()) {
-                dimScores.put(column.id, -1D);
-            }
+            collector.put(cuboidIdentifier, cuboidDesc);
         }
 
-        for (int dimId : dimScores.keySet())
-            dimBitSet.set(dimId);
-
-        if (dimScores.isEmpty() && measureIds.isEmpty())
-            return;
-
-        Map<Integer, String> layoutOverrideIndexes = suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap());
-        List<Integer> colOrder = Lists.newArrayList();
-        colOrder.addAll(dimScores.keySet());
-        colOrder.addAll(measureIds);
-
-        int[] shardBy = suggestShardBy(dimScores.keySet());
-        int[] sortBy = suggestSortBy(dimScores.keySet(), useTableIndex);
-
-        Pair<BitSet, BitSet> cuboidKey = new Pair<>(dimBitSet, measureBitSet);
-
-        NCuboidDesc cuboidDesc = collector.get(cuboidKey);
-        if (cuboidDesc == null) {
-            cuboidDesc = createCuboidDesc(dimScores.keySet(), measureIds, useTableIndex);
-            collector.put(cuboidKey, cuboidDesc);
+        int[] shardBy = new int[0];
+        int[] sortBy = new int[0];
+        if (useTableIndex) {
+            shardBy = suggestShardBy(dimScores.keySet());
+            sortBy = suggestSortBy(dimScores.keySet());
+            // compare shardbyColumns and sortByColumns of existing layouts with current computed
+            for (NCuboidLayout lay : cuboidDesc.getLayouts()) {
+                if (Arrays.equals(lay.getSortByColumns(), sortBy) && Arrays.equals(lay.getShardByColumns(), shardBy)) {
+                    return;
+                }
+            }
         }
 
         NCuboidLayout layout = new NCuboidLayout();
         layout.setId(suggestLayoutId(cuboidDesc));
-        layout.setLayoutOverrideIndexes(layoutOverrideIndexes);
-        layout.setColOrder(colOrder);
+        layout.setLayoutOverrideIndexes(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
+        layout.setColOrder(suggestColOrder(dimScores, measureIds));
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
@@ -372,7 +264,74 @@ public class CuboidSuggester {
         cuboidLayoutIds.add(layout.getId());
     }
 
+    private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
+            SortedSet<Integer> measureIds) {
+        final Set<TblColRef> allColumns = ctx.allColumns;
+        for (TblColRef col : allColumns) {
+            dimScores.put(model.getColumnIdByColumnName(col.getIdentity()), -1D);
+        }
+
+        final BitSet dimBitSet = new BitSet();
+        for (int dimId : dimScores.keySet())
+            dimBitSet.set(dimId);
+
+        return createCuboidDesc(dimScores.keySet(), measureIds, true);
+    }
+
+    private NCuboidDesc createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
+            SortedSet<Integer> measureIds) {
+        final BitSet measureBitSet = new BitSet();
+
+        // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
+        // Example: select count(*) from kylin_sales
+        fixDimScoresIfEmpty(model, dimScores);
+
+        for (FunctionDesc aggFunc : ctx.aggregations) {
+            Integer measureId = aggFuncIdMap.get(aggFunc);
+            if (measureId != null) {
+                measureIds.add(measureId);
+                measureBitSet.set(measureId);
+            } else if (aggFunc.getParameter() != null) {
+                // dimension as measure, put cols to rowkey tail
+                for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
+                    int colId = colIdMap.get(colRef);
+                    if (!dimScores.containsKey(colId))
+                        dimScores.put(colId, -1D);
+                }
+            }
+        }
+
+        final BitSet dimBitSet = new BitSet();
+        for (int dimId : dimScores.keySet())
+            dimBitSet.set(dimId);
+
+        return createCuboidDesc(dimScores.keySet(), measureIds, false);
+    }
+
+    private void fixDimScoresIfEmpty(NDataModel model, Map<Integer, Double> dimScores) {
+        if (dimScores.isEmpty()) {
+            Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
+            for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
+                dimensionCandidate.put(namedColumn.name, namedColumn);
+            }
+            for (NDataModel.Measure measure : model.getAllMeasures()) {
+                FunctionDesc agg = measure.getFunction();
+                if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
+                    continue;
+                }
+                dimensionCandidate.remove(agg.getParameter().getValue());
+            }
+            if (dimensionCandidate.isEmpty()) {
+                throw new IllegalStateException("Suggest no dimension");
+            }
+            dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
+        }
+    }
+
     private NCuboidDesc createCuboidDesc(Set<Integer> dimIds, Set<Integer> measureIds, boolean isTableIndex) {
+        Preconditions.checkState(!dimIds.isEmpty() || !measureIds.isEmpty(),
+                "Neither dimension nor measure could be proposed for CuboidDesc");
+
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(suggestDescId(isTableIndex));
         cuboidDesc.setDimensions(ArrayUtils.toPrimitive(dimIds.toArray(new Integer[0])));
@@ -382,6 +341,27 @@ public class CuboidSuggester {
         Arrays.sort(cuboidDesc.getDimensions());
         Arrays.sort(cuboidDesc.getMeasures());
         return cuboidDesc;
+    }
+
+    private List<Integer> suggestColOrder(final Map<Integer, Double> dimScores, Set<Integer> measureIds) {
+        List<Integer> colOrder = Lists.newArrayList();
+
+        colOrder.addAll(dimScores.keySet());
+        Collections.sort(colOrder, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer c1, Integer c2) {
+                if (dimScores.get(c1) < dimScores.get(c2)) {
+                    return 1;
+                } else if (dimScores.get(c1) > dimScores.get(c2)) {
+                    return -1;
+                } else {
+                    return Integer.compare(c1, c2);
+                }
+            }
+        });
+
+        colOrder.addAll(measureIds);
+        return colOrder;
     }
 
     private long suggestDescId(boolean isTableIndex) {

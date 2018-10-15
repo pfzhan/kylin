@@ -43,7 +43,10 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
 
-public class NDimensionProposer extends NAbstractCubeProposer {
+class NDimensionProposer extends NAbstractCubeProposer {
+
+    private static final int DEFAULT_VER = 1;
+
     NDimensionProposer(NSmartContext.NModelContext context) {
         super(context);
     }
@@ -72,7 +75,7 @@ public class NDimensionProposer extends NAbstractCubeProposer {
         // TODO: we can set boolean encoding according to column type and cardinality, but cardinality is not precise.
         DataType dataType = colRef.getType();
 
-        // datatime family
+        // datetime family
         if (dataType.isDate()) {
             return newEnc(DateDimEnc.ENCODING_NAME);
         } else if (dataType.isDateTimeFamily()) {
@@ -80,14 +83,15 @@ public class NDimensionProposer extends NAbstractCubeProposer {
         }
 
         // number family
+        String format = "%s:%d";
         if (dataType.isTinyInt()) {
-            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 1));
+            return newEnc(String.format(format, IntegerDimEnc.ENCODING_NAME, 1));
         } else if (dataType.isSmallInt()) {
-            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 2));
+            return newEnc(String.format(format, IntegerDimEnc.ENCODING_NAME, 2));
         } else if (dataType.isInt()) {
-            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 4));
+            return newEnc(String.format(format, IntegerDimEnc.ENCODING_NAME, 4));
         } else if (dataType.isIntegerFamily()) {
-            return newEnc(String.format("%s:%d", IntegerDimEnc.ENCODING_NAME, 8));
+            return newEnc(String.format(format, IntegerDimEnc.ENCODING_NAME, 8));
         } else if (dataType.isNumberFamily()) {
             return newEnc(DictionaryDimEnc.ENCODING_NAME);
         }
@@ -110,7 +114,7 @@ public class NDimensionProposer extends NAbstractCubeProposer {
     }
 
     private NEncodingDesc newEnc(String name) {
-        return newEnc(name, 1);
+        return newEnc(name, DEFAULT_VER);
     }
 
     private NEncodingDesc newEnc(String name, int ver) {

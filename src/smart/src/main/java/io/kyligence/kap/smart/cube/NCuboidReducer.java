@@ -24,12 +24,9 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.util.BitSet;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
@@ -40,13 +37,14 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.model.ModelTree;
 
 public class NCuboidReducer extends NAbstractCubeProposer {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(NCuboidReducer.class);
 
     NCuboidReducer(NModelContext context) {
@@ -55,28 +53,20 @@ public class NCuboidReducer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        // get current cuboids
-        Map<Pair<BitSet, BitSet>, NCuboidDesc> originalCuboids = Maps.newLinkedHashMap();
-        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-            BitSet dimBitSet = ImmutableBitSet.valueOf(cuboidDesc.getDimensions()).mutable();
-            if (cuboidDesc.isTableIndex()) {
-                // FIXME use better table index flag
-                int tableIndexFlag = Integer.MAX_VALUE;
-                dimBitSet.set(tableIndexFlag);
-            }
-            Pair<BitSet, BitSet> key = new Pair<>(dimBitSet,
-                    ImmutableBitSet.valueOf(cuboidDesc.getMeasures()).mutable());
-            NCuboidDesc desc = originalCuboids.get(key);
 
-            if (desc == null) {
-                originalCuboids.put(key, cuboidDesc);
+        // get current cuboids
+        Map<NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = Maps.newLinkedHashMap();
+        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+            NCuboidIdentifier identifier = cuboidDesc.createCuboidIdentifier();
+            if (!originalCuboidsMap.containsKey(identifier)) {
+                originalCuboidsMap.put(identifier, cuboidDesc);
             } else {
-                desc.getLayouts().addAll(cuboidDesc.getLayouts());
+                originalCuboidsMap.get(identifier).getLayouts().addAll(cuboidDesc.getLayouts());
             }
         }
 
         // get to be removed cuboids
-        Map<Pair<BitSet, BitSet>, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
+        Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
         NDataModel model = context.getTargetModel();
         ModelTree modelTree = context.getModelTree();
         CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, proposedCuboids);
@@ -93,10 +83,10 @@ public class NCuboidReducer extends NAbstractCubeProposer {
         }
 
         // remove cuboids
-        for (Entry<Pair<BitSet, BitSet>, NCuboidDesc> cuboidPair : proposedCuboids.entrySet()) {
-            Pair<BitSet, BitSet> cuboidKey = cuboidPair.getKey();
-            NCuboidDesc cuboid = cuboidPair.getValue();
-            NCuboidDesc originalCuboid = originalCuboids.get(cuboidKey);
+        for (Entry<NCuboidIdentifier, NCuboidDesc> cuboidEntity : proposedCuboids.entrySet()) {
+            NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
+            NCuboidDesc cuboid = cuboidEntity.getValue();
+            NCuboidDesc originalCuboid = originalCuboidsMap.get(cuboidKey);
             if (originalCuboid == null) {
                 continue;
             }
@@ -119,10 +109,10 @@ public class NCuboidReducer extends NAbstractCubeProposer {
                 originalCuboid.getLayouts().remove(toRemoveLayout);
             }
             if (originalCuboid.getLayouts().isEmpty()) {
-                originalCuboids.remove(cuboidKey);
+                originalCuboidsMap.remove(cuboidKey);
             }
         }
 
-        cubePlan.setCuboids(Lists.newArrayList(originalCuboids.values()));
+        cubePlan.setCuboids(Lists.newArrayList(originalCuboidsMap.values()));
     }
 }

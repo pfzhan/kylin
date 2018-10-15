@@ -77,10 +77,11 @@ public class NCubeMasterTest extends NTestBase {
         cubePlan = cubeMaster.proposeCuboids(cubePlan);
         {
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
-            Assert.assertEquals(2, cuboidDescs.size());
+            Assert.assertEquals(4, cuboidDescs.size());
 
             for (NCuboidDesc c : cuboidDescs) {
                 if (c.getLayouts().size() == 2) {
+                    Assert.assertFalse(c.isTableIndex());
                     Assert.assertEquals(2, c.getDimensions().length);
                     Assert.assertEquals(1, c.getMeasures().length);
                     Assert.assertSame(cubePlan, c.getCubePlan());
@@ -97,7 +98,8 @@ public class NCubeMasterTest extends NTestBase {
                     indexes.add(c12.getColIndexType(1));
                     Assert.assertEquals(2, indexes.size());
 
-                } else if (c.getLayouts().size() == 1) {
+                } else if (c.getLayouts().size() == 1 && c.getMeasures().length > 0) {
+                    Assert.assertFalse(c.isTableIndex());
                     Assert.assertEquals(1, c.getDimensions().length);
                     Assert.assertEquals(2, c.getMeasures().length);
                     Assert.assertSame(cubePlan, c.getCubePlan());
@@ -107,6 +109,30 @@ public class NCubeMasterTest extends NTestBase {
                     Assert.assertEquals(3, c21.getColOrder().size());
                     Assert.assertEquals(new Integer(1), c21.getColOrder().get(0));
                     Assert.assertEquals("eq", c21.getColIndexType(0));
+
+                } else if (c.getLayouts().size() == 1 && c.getDimensions().length == 4) {
+                    Assert.assertTrue(c.isTableIndex());
+                    Assert.assertEquals(0, c.getMeasures().length);
+                    Assert.assertSame(cubePlan, c.getCubePlan());
+
+                    NCuboidLayout c31 = c.getLayouts().get(0);
+                    Assert.assertSame(c31.getCuboidDesc(), c);
+                    Assert.assertEquals(4, c31.getColOrder().size());
+                    Assert.assertEquals(new Integer(0), c31.getColOrder().get(0));
+                    Assert.assertEquals("eq", c31.getColIndexType(0));
+
+                } else if (c.getLayouts().size() == 1) {
+                    Assert.assertTrue(c.isTableIndex());
+                    Assert.assertEquals(3, c.getDimensions().length);
+                    Assert.assertEquals(0, c.getMeasures().length);
+                    Assert.assertSame(cubePlan, c.getCubePlan());
+
+                    NCuboidLayout c41 = c.getLayouts().get(0);
+                    Assert.assertSame(c41.getCuboidDesc(), c);
+                    Assert.assertEquals(3, c41.getColOrder().size());
+                    Assert.assertEquals(new Integer(0), c41.getColOrder().get(0));
+                    Assert.assertEquals("eq", c41.getColIndexType(0));
+
                 } else {
                     throw new IllegalStateException("Should not come here");
                 }
@@ -125,8 +151,11 @@ public class NCubeMasterTest extends NTestBase {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-01' group by part_dt, lstg_format_name", //
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-02' group by part_dt, lstg_format_name", //
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name", //
-                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt" //
-        };
+                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
+                // follow items for table index
+                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'",
+                "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
+                "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         smartMaster.analyzeSQLs();

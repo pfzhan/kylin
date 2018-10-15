@@ -28,8 +28,10 @@ import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 import java.io.Serializable;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 
@@ -55,11 +57,11 @@ import io.kyligence.kap.metadata.model.NDataModel;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NCuboidDesc implements Serializable, IKeep {
     /**
-     * Here suppose cuboid's number is not bigger than 1000000, so if the id is bigger than 1000000*1000
+     * Here suppose cuboid's number is not bigger than 1_000_000, so if the id is bigger than 1_000_000 * 1_000
      * means it should be a table index cuboid.
      */
-    public static long TABLE_INDEX_START_ID = 1000000000L;
-    public static long RULE_BASED_CUBOID_START_ID = 900000000L;
+    public static final long TABLE_INDEX_START_ID = 1_000_000_000L;
+    static final long RULE_BASED_CUBOID_START_ID = 900_000_000L;
 
     @JsonBackReference
     private NCubePlan cubePlan;
@@ -76,7 +78,6 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     // computed fields below
 
-    private NDataModel model;
     private transient BiMap<Integer, TblColRef> effectiveDimCols; // BiMap impl (com.google.common.collect.Maps$FilteredEntryBiMap) is not serializable
     private ImmutableBiMap<Integer, Measure> effectiveMeasures;
     private ImmutableBitSet dimensionBitset = null;
@@ -84,11 +85,8 @@ public class NCuboidDesc implements Serializable, IKeep {
     private ImmutableSet<TblColRef> dimensionSet = null;
     private ImmutableSet<Measure> measureSet = null;
 
-    public NCuboidDesc() {
-    }
-
     void init() {
-        this.model = getModel();
+        NDataModel model = getModel();
         this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
         this.measureBitset = ImmutableBitSet.valueOf(measures);
 
@@ -225,17 +223,60 @@ public class NCuboidDesc implements Serializable, IKeep {
     }
 
     public boolean bothTableIndexOrNot(NCuboidDesc another) {
-        if (this.isTableIndex() && another.isTableIndex())
-            return true;
-
-        if (!this.isTableIndex() && !another.isTableIndex())
-            return true;
-
-        return false;
+        return this.isTableIndex() == another.isTableIndex();
     }
 
     public boolean isTableIndex() {
         return id >= TABLE_INDEX_START_ID;
     }
 
+    // ============================================================================
+    // NCuboidIdentifier used for auto-modeling
+    // ============================================================================
+
+    public class NCuboidIdentifier {
+        BitSet dimBitSet;
+        BitSet measureBitSet;
+        boolean isTableIndex;
+
+        NCuboidIdentifier(BitSet dimBitSet, BitSet measureBitSet, boolean isTableIndex) {
+            this(dimBitSet, measureBitSet);
+            this.isTableIndex = isTableIndex;
+        }
+
+        NCuboidIdentifier(BitSet dimBitSet, BitSet measureBitSet) {
+            this.dimBitSet = dimBitSet;
+            this.measureBitSet = measureBitSet;
+        }
+
+        @Override
+        public String toString() {
+            return "CuboidToken{" + "dimBitSet=" + dimBitSet + ", measureBitSet=" + measureBitSet + ", isTableIndex="
+                    + isTableIndex + '}';
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            NCuboidIdentifier that = (NCuboidIdentifier) o;
+            return isTableIndex == that.isTableIndex && Objects.equals(dimBitSet, that.dimBitSet)
+                    && Objects.equals(measureBitSet, that.measureBitSet);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(dimBitSet, measureBitSet, isTableIndex);
+        }
+    }
+
+    public NCuboidIdentifier createCuboidIdentifier() {
+        return new NCuboidIdentifier(//
+                ImmutableBitSet.valueOf(getDimensions()).mutable(), //
+                ImmutableBitSet.valueOf(getMeasures()).mutable(), //
+                isTableIndex()//
+        );
+    }
 }

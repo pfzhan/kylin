@@ -24,11 +24,8 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.util.BitSet;
 import java.util.Map;
 
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 
@@ -37,39 +34,32 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.model.ModelTree;
 
 public class NCuboidProposer extends NAbstractCubeProposer {
+
     NCuboidProposer(NSmartContext.NModelContext context) {
         super(context);
     }
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        Map<Pair<BitSet, BitSet>, NCuboidDesc> cuboidDescs = Maps.newLinkedHashMap();
+        Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = Maps.newLinkedHashMap();
         for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-            BitSet dimBitSet = ImmutableBitSet.valueOf(cuboidDesc.getDimensions()).mutable();
-            if (cuboidDesc.isTableIndex()) {
-                // FIXME use better table index flag
-                int tableIndexFlag = Integer.MAX_VALUE;
-                dimBitSet.set(tableIndexFlag);
-            }
-            Pair<BitSet, BitSet> key = new Pair<>(dimBitSet,
-                    ImmutableBitSet.valueOf(cuboidDesc.getMeasures()).mutable());
-            NCuboidDesc desc = cuboidDescs.get(key);
-
-            if (desc == null) {
-                cuboidDescs.put(key, cuboidDesc);
+            NCuboidIdentifier identifier = cuboidDesc.createCuboidIdentifier();
+            if (!cuboidDescMap.containsKey(identifier)) {
+                cuboidDescMap.put(identifier, cuboidDesc);
             } else {
-                desc.getLayouts().addAll(cuboidDesc.getLayouts());
+                cuboidDescMap.get(identifier).getLayouts().addAll(cuboidDesc.getLayouts());
             }
         }
 
         NDataModel model = context.getTargetModel();
         ModelTree modelTree = context.getModelTree();
-        CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, cuboidDescs);
+        CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, cuboidDescMap);
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
             ctx.fixModel(model, aliasMap);
@@ -77,6 +67,6 @@ public class NCuboidProposer extends NAbstractCubeProposer {
             ctx.unfixModel();
         }
 
-        cubePlan.setCuboids(Lists.newArrayList(cuboidDescs.values()));
+        cubePlan.setCuboids(Lists.newArrayList(cuboidDescMap.values()));
     }
 }
