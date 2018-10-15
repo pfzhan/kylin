@@ -184,7 +184,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
 import { isIE, groupData } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -267,7 +267,11 @@ export default class ModelEdit extends Vue {
     return $(this.$el.querySelector(className))
   }
   delTable (guid) {
-    this.modelInstance.delTable(guid)
+    this.modelInstance.delTable(guid).then(() => {
+
+    }, () => {
+      kapMessage(this.$t('delTableTip'), {type: 'warning'})
+    })
   }
   editAlias (t) {
     this.$set(t, 'aliasIsEdit', true)
@@ -425,14 +429,16 @@ export default class ModelEdit extends Vue {
       primaryTable: table,
       tables: this.modelRender.tables
     }).then((data) => {
-      var pGuid = data.selectP
-      var fGuid = data.selectF
-      var joinData = data.joinData
-      var joinType = data.joinType
-      this.saveLinkData(pGuid, fGuid, joinData.foreign_key, joinData.primary_key, joinType)
+      this.saveLinkData(data)
     })
   }
-  saveLinkData (pGuid, fGuid, fcols, pcols, joinType) {
+  saveLinkData (data) {
+    var pGuid = data.selectP
+    var fGuid = data.selectF
+    var joinData = data.joinData
+    var joinType = data.joinType
+    var fcols = joinData.foreign_key
+    var pcols = joinData.primary_key
     var pTable = this.modelInstance.tables[pGuid]
     // 给table添加连接数据
     pTable.addLinkData(pTable, fcols, pcols, joinType)
@@ -496,7 +502,9 @@ export default class ModelEdit extends Vue {
       this.measureVisible = true
     }
     if (select.action === 'editjoin') {
-      this.showJoinDialog()
+      this.showJoinDialog().then((data) => {
+        this.saveLinkData(data)
+      })
     }
     if (select.action === 'addjoin') {
       let pguid = moreInfo.guid
@@ -505,6 +513,8 @@ export default class ModelEdit extends Vue {
         primaryTable: {},
         tables: this.modelRender.tables,
         ftableName: moreInfo.name
+      }).then((data) => {
+        this.saveLinkData(data)
       })
     }
     if (select.action === 'tableeditjoin') {
@@ -513,6 +523,8 @@ export default class ModelEdit extends Vue {
         foreignTable: moreInfo.joinInfo[pguid].foreignTable,
         primaryTable: moreInfo.joinInfo[pguid].table,
         tables: this.modelRender.tables
+      }).then((data) => {
+        this.saveLinkData(data)
       })
     }
     if (select.action === 'tableaddjoin') {
@@ -521,6 +533,8 @@ export default class ModelEdit extends Vue {
         foreignTable: this.modelRender.tables[pguid],
         primaryTable: {},
         tables: this.modelRender.tables
+      }).then((data) => {
+        this.saveLinkData(data)
       })
     }
     this.panelAppear.search.display = false
@@ -590,6 +604,8 @@ export default class ModelEdit extends Vue {
               foreignTable: ftable,
               primaryTable: ptable,
               tables: this.modelRender.tables
+            }).then((data) => {
+              this.saveLinkData(data)
             })
           })
         })

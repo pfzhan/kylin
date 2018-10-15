@@ -1,7 +1,7 @@
 import NTable from './table.js'
 import store from '../../../../store'
 import { jsPlumbTool } from '../../../../util/plumb'
-import { parsePath, isEmptyObject } from '../../../../util'
+import { parsePath } from '../../../../util'
 import { modelRenderConfig } from './config'
 import ModelTree from './layout'
 import $ from 'jquery'
@@ -107,6 +107,7 @@ class NModel {
       // 如果渲染的时候发现连接关系都没有了，直接删除
       if (!primaryKeys || primaryKeys && primaryKeys.length === 0) {
         this.removeRenderLink(hasConn)
+
         return null
       }
       return hasConn
@@ -119,8 +120,22 @@ class NModel {
     this.allConnInfo[pid + '$' + fid] = conn
     return conn
   }
+  // 判断是否table有关联的链接
+  isConnectedTable (guid) {
+    var reg = new RegExp('^' + guid + '\\$|\\$' + guid + '$')
+    for (let i in this.allConnInfo) {
+      if (reg.test(i)) {
+        return true
+      }
+    }
+  }
+  // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
+    var fid = conn.sourceId
+    var pid = conn.targetId
+    delete this.allConnInfo[pid + '$' + fid]
     this.plumbTool.deleteConnect(conn)
+    this.tables[pid].joinInfo = {}
   }
   renderLabels () {
     for (var i in this.allConnInfo) {
@@ -199,11 +214,15 @@ class NModel {
     return result
   }
   delTable (guid) {
-    if (this.tables[guid] && isEmptyObject(this.tables[guid].joinInfo) && this.tables[guid].kind !== modelRenderConfig.tableKind.fact) {
-      this.$delete(this.tables, guid)
-    } else {
-      // 有连接的情况下
-    }
+    return new Promise((resolve, reject) => {
+      if (!this.isConnectedTable(guid)) {
+        this.$delete(this.tables, guid)
+        resolve()
+      } else {
+        // 有连接的情况下
+        reject()
+      }
+    })
   }
   getTable (key, val) {
     for (var i in this.tables) {

@@ -17,7 +17,8 @@ export default {
     'systemMaintainedTip2': 'System can change the model index: aggregate index or table index',
     'systemMaintainedTip3': 'System can delete this model',
     'avoidSysChange': 'Avoid system change semantics',
-    'allowSysChange': 'Allow system change semantics'
+    'allowSysChange': 'Allow system change semantics',
+    'delTableTip': 'you should delete the links of other tables before delete this table'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -37,6 +38,7 @@ export default {
     'systemMaintainedTip2': '系统可以更改模型下属的索引（聚合索引&明细表索引）',
     'systemMaintainedTip3': '系统可以删除模型',
     'avoidSysChange': '禁止系统修改模型语义',
-    'allowSysChange': '允许系统修改模型语义'
+    'allowSysChange': '允许系统修改模型语义',
+    'delTableTip': '请先删除掉该表和其他表的关联关系。'
   }
 }

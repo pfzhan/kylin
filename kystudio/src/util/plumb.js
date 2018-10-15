@@ -103,6 +103,8 @@ export function jsPlumbTool () {
     },
     deleteConnect (conn) {
       plumbInstance.deleteConnection(conn)
+      console.log(conn)
+      this.deleteEndPoint(conn.targetId)
     }
   }
 }

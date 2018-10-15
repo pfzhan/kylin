@@ -149,30 +149,10 @@ Vue.directive('drag', {
         return true
       }
       if (!dragInfo.box) {
-        if (changeType === 'top') {
-          if (!limitObj['top'] || limitObj['top'][0] <= size && size <= limitObj['top'][1]) {
-            return true
-          }
-        }
-        if (changeType === 'height') {
-          if (limitObj['height'] === undefined || limitObj['height'][0] <= size && size <= limitObj['height'][1]) {
-            return true
-          }
-        }
-        if (changeType === 'left') {
-          if (limitObj['left'] === undefined || limitObj['left'][0] <= size && size <= limitObj['left'][1]) {
-            return true
-          }
-        }
-        if (changeType === 'right') {
-          if (limitObj['right'] === undefined || limitObj['right'][0] <= size && size <= limitObj['right'][1]) {
-            return true
-          }
-        }
-        if (changeType === 'width') {
-          if (limitObj['wdith'] === undefined || limitObj['wdith'][0] <= size && size <= limitObj['wdith'][1]) {
-            return true
-          }
+        let curCheckProp = limitObj[changeType]
+        let isInArea = curCheckProp === undefined || curCheckProp[0] <= size && size <= curCheckProp[1]
+        if (isInArea) {
+          return true
         }
         return false
       } else {
