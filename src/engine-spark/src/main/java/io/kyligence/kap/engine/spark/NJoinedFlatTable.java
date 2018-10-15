@@ -103,14 +103,14 @@ public class NJoinedFlatTable {
         }
 
         List<TblColRef> colRefs = flatTable.getAllColumns();
-        List<Integer> colIndexes = ((NCubeJoinedFlatTableDesc) flatTable).getIndexes();
+        List<Integer> colIndices = ((NCubeJoinedFlatTableDesc) flatTable).getIndices();
         Column[] names = new Column[colRefs.size()];
-        String[] indexes = new String[names.length];
+        String[] indices = new String[names.length];
         for (int i = 0; i < names.length; i++) {
             names[i] = new Column(NSparkCubingUtil.convertFromDot(colRefs.get(i).getIdentity()));
-            indexes[i] = String.valueOf(colIndexes.get(i));
+            indices[i] = String.valueOf(colIndices.get(i));
         }
-        return ds.select(names).toDF(indexes);
+        return ds.select(names).toDF(indices);
     }
 
     public static String replaceDot(String original, NDataModel model) {

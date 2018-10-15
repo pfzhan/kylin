@@ -130,8 +130,8 @@ public class NDataflowBuildJob extends NDataflowJob {
 
         if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().length == 0);
-            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
-            Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
+            Set<Integer> dimIndices = cuboid.getEffectiveDimCols().keySet();
+            Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndices));
             long cuboidRowCnt = afterPrj.count();
             // TODO: shard number should respect the shard column defined in cuboid
             int partition = estimatePartitions(afterPrj, config);
@@ -146,10 +146,10 @@ public class NDataflowBuildJob extends NDataflowJob {
                 recursiveBuildCuboid(seg, child, afterPrj, measures, nSpanningTree);
             }
         } else {
-            Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
-            Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndexes, measures.keySet());
+            Set<Integer> dimIndices = cuboid.getEffectiveDimCols().keySet();
+            Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndices, measures.keySet());
             Dataset<Row> afterPrj = parent.select(selectedColumns);
-            Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndexes, measures).aggregate().persist();
+            Dataset<Row> afterAgg = new NCuboidAggregator(ss, afterPrj, dimIndices, measures).aggregate().persist();
             long cuboidRowCnt = afterAgg.count();
 
             int partition = estimatePartitions(afterAgg, config);

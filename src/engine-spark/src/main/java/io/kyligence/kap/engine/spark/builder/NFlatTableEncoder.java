@@ -130,13 +130,13 @@ public class NFlatTableEncoder implements Serializable {
             dataset = ss.createDataFrame(globalDictRdd, dataset.schema());
         }
 
-        Set<Integer> dimIndexes = seg.getCubePlan().getEffectiveDimCols().keySet();
-        Set<Integer> meaIndexes = seg.getCubePlan().getEffectiveMeasures().keySet();
+        Set<Integer> dimIndices = seg.getCubePlan().getEffectiveDimCols().keySet();
+        Set<Integer> meaIndices = seg.getCubePlan().getEffectiveMeasures().keySet();
         StructType schema = new StructType();
-        for (Integer index : dimIndexes) {
+        for (Integer index : dimIndices) {
             schema = schema.add(String.valueOf(index), DataTypes.BinaryType, false);
         }
-        for (Integer index : meaIndexes) {
+        for (Integer index : meaIndices) {
             schema = schema.add(String.valueOf(index), DataTypes.BinaryType, false);
         }
         return dataset.map(new EncodeFunction(seg, config),

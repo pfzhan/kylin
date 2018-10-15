@@ -93,10 +93,10 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c12 = c.getLayouts().get(1);
                     Assert.assertSame(c12.getCuboidDesc(), c);
                     Assert.assertEquals(3, c12.getColOrder().size());
-                    Set<String> indexes = Sets.newHashSet();
-                    indexes.add(c12.getColIndexType(0));
-                    indexes.add(c12.getColIndexType(1));
-                    Assert.assertEquals(2, indexes.size());
+                    Set<String> indices = Sets.newHashSet();
+                    indices.add(c12.getColIndexType(0));
+                    indices.add(c12.getColIndexType(1));
+                    Assert.assertEquals(2, indices.size());
 
                 } else if (c.getLayouts().size() == 1 && c.getMeasures().length > 0) {
                     Assert.assertFalse(c.isTableIndex());

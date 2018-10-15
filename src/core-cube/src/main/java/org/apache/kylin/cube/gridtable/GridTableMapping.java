@@ -91,7 +91,7 @@ public abstract class GridTableMapping {
         return i == null ? -1 : i.intValue();
     }
 
-    public int[] getDimIndexes(Collection<TblColRef> dims) {
+    public int[] getDimIndices(Collection<TblColRef> dims) {
         int[] result = new int[dims.size()];
         int i = 0;
         for (TblColRef dim : dims) {
@@ -105,7 +105,7 @@ public abstract class GridTableMapping {
         return r == null ? -1 : r;
     }
 
-    public int[] getMetricsIndexes(Collection<FunctionDesc> metrics) {
+    public int[] getMetricsIndices(Collection<FunctionDesc> metrics) {
         int[] result = new int[metrics.size()];
         int i = 0;
         for (FunctionDesc metric : metrics) {

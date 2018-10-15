@@ -101,9 +101,9 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("cubeplan_override_encodings")
     private Map<Integer, NEncodingDesc> cubePlanOverrideEnc = Maps.newHashMap();
 
-    @JsonProperty("cubeplan_override_indexes")
+    @JsonProperty("cubeplan_override_indices")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Map<Integer, String> cubePlanOverrideIndexes = Maps.newHashMap();
+    private Map<Integer, String> cubePlanOverrideIndices = Maps.newHashMap();
 
     @JsonManagedReference
     @JsonProperty("rule_based_cuboids")
@@ -591,13 +591,13 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         this.description = description;
     }
 
-    public ImmutableMap<Integer, String> getCubePlanOverrideIndexes() {
-        return ImmutableMap.copyOf(this.cubePlanOverrideIndexes);
+    public ImmutableMap<Integer, String> getCubePlanOverrideIndices() {
+        return ImmutableMap.copyOf(this.cubePlanOverrideIndices);
     }
 
-    public void setCubePlanOverrideIndexes(Map<Integer, String> m) {
+    public void setCubePlanOverrideIndices(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
-        this.cubePlanOverrideIndexes = m;
+        this.cubePlanOverrideIndices = m;
     }
 
     public ImmutableMap<Integer, NEncodingDesc> getCubePlanOverrideEncodings() {

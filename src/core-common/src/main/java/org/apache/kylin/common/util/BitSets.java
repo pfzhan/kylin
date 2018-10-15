@@ -46,17 +46,17 @@ package org.apache.kylin.common.util;
 import java.util.BitSet;
 
 public class BitSets {
-    public static BitSet valueOf(int[] indexes) {
-        if (indexes == null || indexes.length == 0) {
+    public static BitSet valueOf(int[] indices) {
+        if (indices == null || indices.length == 0) {
             return new BitSet();
         }
 
         int maxIndex = Integer.MIN_VALUE;
-        for (int index : indexes) {
+        for (int index : indices) {
             maxIndex = Math.max(maxIndex, index);
         }
         BitSet set = new BitSet(maxIndex);
-        for (int index : indexes) {
+        for (int index : indices) {
             set.set(index);
         }
         return set;

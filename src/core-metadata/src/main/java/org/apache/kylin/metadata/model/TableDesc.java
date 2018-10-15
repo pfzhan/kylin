@@ -211,6 +211,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         return null;
     }
 
+    @Override
     public String getResourcePath() {
         if (isBorrowedFromGlobal()) {
             return concatResourcePath(getIdentity(), null);

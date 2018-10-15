@@ -116,13 +116,13 @@ public abstract class RoutingRule {
     }
 
     protected List<Integer> findRealizationsOf(List<IRealization> realizations, String type) {
-        List<Integer> itemIndexes = Lists.newArrayList();
+        List<Integer> itemIndices = Lists.newArrayList();
         for (int i = 0; i < realizations.size(); ++i) {
             if (realizations.get(i).getType().equals(type)) {
-                itemIndexes.add(i);
+                itemIndices.add(i);
             }
         }
-        return itemIndexes;
+        return itemIndices;
     }
 
     @Override

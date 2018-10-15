@@ -98,27 +98,27 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Column[] getColumns(Set<Integer> indexes1, Set<Integer> indexes2) {
+    public static Column[] getColumns(Set<Integer> indices1, Set<Integer> indices2) {
         Set<Integer> ret = new LinkedHashSet<>();
-        ret.addAll(indexes1);
-        ret.addAll(indexes2);
+        ret.addAll(indices1);
+        ret.addAll(indices2);
         return getColumns(ret);
     }
 
-    public static Column[] getColumns(Set<Integer> indexes) {
-        Column[] ret = new Column[indexes.size()];
+    public static Column[] getColumns(Set<Integer> indices) {
+        Column[] ret = new Column[indices.size()];
         int index = 0;
-        for (Integer i : indexes) {
+        for (Integer i : indices) {
             ret[index] = new Column(String.valueOf(i));
             index++;
         }
         return ret;
     }
 
-    public static Column[] getColumns(int[] indexes) {
-        Column[] ret = new Column[indexes.length];
+    public static Column[] getColumns(int[] indices) {
+        Column[] ret = new Column[indices.length];
         int index = 0;
-        for (Integer i : indexes) {
+        for (Integer i : indices) {
             ret[index] = new Column(String.valueOf(i));
             index++;
         }

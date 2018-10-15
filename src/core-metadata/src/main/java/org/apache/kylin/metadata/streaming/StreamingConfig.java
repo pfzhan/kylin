@@ -86,6 +86,7 @@ public class StreamingConfig extends RootPersistentEntity {
         this.type = type;
     }
 
+    @Override
     public String getResourcePath() {
         return concatResourcePath(name);
     }

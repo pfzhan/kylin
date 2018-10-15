@@ -213,7 +213,7 @@ public class CuboidSuggester {
         // TODO: currently it's exact equals, we should tolerate some order and cf inconsistency
         //TODO: https://stackoverflow.com/questions/124585/java-equals-to-reflect-or-not-to-reflect use EqualsBuilder
         return Objects.equals(l1.getColOrder(), l2.getColOrder())
-                && Objects.equals(l1.getLayoutOverrideIndexes(), l2.getLayoutOverrideIndexes())
+                && Objects.equals(l1.getLayoutOverrideIndices(), l2.getLayoutOverrideIndices())
                 && Objects.equals(l1.getStorageType(), l2.getStorageType())
                 && Arrays.equals(l1.getShardByColumns(), l2.getShardByColumns())
                 && Arrays.equals(l1.getSortByColumns(), l2.getSortByColumns());
@@ -249,7 +249,7 @@ public class CuboidSuggester {
 
         NCuboidLayout layout = new NCuboidLayout();
         layout.setId(suggestLayoutId(cuboidDesc));
-        layout.setLayoutOverrideIndexes(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
+        layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
         layout.setColOrder(suggestColOrder(dimScores, measureIds));
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);

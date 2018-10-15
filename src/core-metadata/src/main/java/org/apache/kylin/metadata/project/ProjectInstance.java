@@ -108,7 +108,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LinkedHashMap<String, String> overrideKylinProps;
 
-
+    @Override
     public String getResourcePath() {
         return concatResourcePath(resourceName());
     }

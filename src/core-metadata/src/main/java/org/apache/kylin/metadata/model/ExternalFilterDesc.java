@@ -73,6 +73,7 @@ public class ExternalFilterDesc extends RootPersistentEntity implements ISourceA
     @JsonProperty("description")
     private String description;
 
+    @Override
     public String getResourcePath() {
         return concatResourcePath(getName());
     }

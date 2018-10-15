@@ -50,7 +50,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
     private List<TblColRef> columns = Lists.newLinkedList();
-    private List<Integer> indexes = Lists.newArrayList();
+    private List<Integer> indices = Lists.newArrayList();
 
     public NCubeJoinedFlatTableDesc(NCubePlan cubePlan) {
         this(cubePlan, null);
@@ -103,15 +103,15 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
         // TODO: add dictionary columns
     }
 
-    public List<Integer> getIndexes() {
+    public List<Integer> getIndices() {
         for (TblColRef tblColRef : columns) {
             int id = cubePlan.getModel().getColumnIdByColumnName(tblColRef.getIdentity());
             if (-1 == id)
                 throw new IllegalArgumentException(
                         "Column: " + tblColRef.getIdentity() + " is not in model: " + cubePlan.getModel().getName());
-            indexes.add(id);
+            indices.add(id);
         }
-        return indexes;
+        return indices;
     }
 
     @Override

@@ -88,8 +88,8 @@ public class NSegmentCubeTupleIterator implements ITupleIterator {
         this.context = context;
 
         GridTableMapping mapping = new NCuboidToGridTableMapping(cuboid);
-        int[] gtDimsIdx = mapping.getDimIndexes(selectedDimensions);
-        int[] gtMetricsIdx = mapping.getMetricsIndexes(selectedMetrics);
+        int[] gtDimsIdx = mapping.getDimIndices(selectedDimensions);
+        int[] gtMetricsIdx = mapping.getMetricsIndices(selectedMetrics);
         // gtColIdx = gtDimsIdx + gtMetricsIdx
         int[] gtColIdx = new int[gtDimsIdx.length + gtMetricsIdx.length];
         System.arraycopy(gtDimsIdx, 0, gtColIdx, 0, gtDimsIdx.length);

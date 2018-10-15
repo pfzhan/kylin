@@ -165,7 +165,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
         manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
-        Assert.assertEquals(executable.getStatus(), ExecutableState.SUCCEED);
+        Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
         jobService.updateJobStatus(executable.getId(), "default", "DISCARD");

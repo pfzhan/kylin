@@ -47,10 +47,10 @@ public class NDataflowJob extends AbstractApplication {
             .isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_PROJECT_NAME);
     @SuppressWarnings("static-access")
     public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
-            .isRequired(true).withDescription("Segment indexes").create(NBatchConstants.P_SEGMENT_IDS);
+            .isRequired(true).withDescription("Segment indices").create(NBatchConstants.P_SEGMENT_IDS);
     @SuppressWarnings("static-access")
     public static final Option OPTION_LAYOUT_IDS = OptionBuilder.withArgName(NBatchConstants.P_CUBOID_LAYOUT_IDS)
-            .hasArg().isRequired(true).withDescription("Layout indexes").create(NBatchConstants.P_CUBOID_LAYOUT_IDS);
+            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_CUBOID_LAYOUT_IDS);
     @SuppressWarnings("static-access")
     public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
             .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);

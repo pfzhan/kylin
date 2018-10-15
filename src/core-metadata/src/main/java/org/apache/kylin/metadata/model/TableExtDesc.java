@@ -125,6 +125,7 @@ public class TableExtDesc extends RootPersistentEntity {
         return TableDesc.makeResourceName(getIdentity(), getProject());
     }
 
+    @Override
     public String getResourcePath() {
         return concatResourcePath(getIdentity(), getProject());
     }

@@ -63,9 +63,9 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("col_order")
     private List<Integer> colOrder = Lists.newArrayList();
 
-    @JsonProperty("layout_override_indexes")
+    @JsonProperty("layout_override_indices")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Map<Integer, String> layoutOverrideIndexes = Maps.newHashMap();
+    private Map<Integer, String> layoutOverrideIndices = Maps.newHashMap();
     @JsonProperty("shard_by_columns")
     private int[] shardByColumns = new int[0];
     @JsonProperty("sort_by_columns")
@@ -128,8 +128,8 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     }
 
     public String getColIndexType(int colId) {
-        return MapUtil.getOrElse(this.layoutOverrideIndexes, colId,
-                MapUtil.getOrElse(getCuboidDesc().getCubePlan().getCubePlanOverrideIndexes(), colId, "eq"));
+        return MapUtil.getOrElse(this.layoutOverrideIndices, colId,
+                MapUtil.getOrElse(getCuboidDesc().getCubePlan().getCubePlanOverrideIndices(), colId, "eq"));
     }
 
     public Integer getDimensionPos(TblColRef tblColRef) {
@@ -178,13 +178,13 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         this.colOrder = l;
     }
 
-    public ImmutableMap<Integer, String> getLayoutOverrideIndexes() {
-        return ImmutableMap.copyOf(this.layoutOverrideIndexes);
+    public ImmutableMap<Integer, String> getLayoutOverrideIndices() {
+        return ImmutableMap.copyOf(this.layoutOverrideIndices);
     }
 
-    public void setLayoutOverrideIndexes(Map<Integer, String> m) {
+    public void setLayoutOverrideIndices(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
-        this.layoutOverrideIndexes = m;
+        this.layoutOverrideIndices = m;
     }
 
     public int[] getShardByColumns() {

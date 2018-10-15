@@ -129,7 +129,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         return "default";
     }
 
-    protected void init() throws Exception{
+    protected void init() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
         this.createTestMetadata();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());

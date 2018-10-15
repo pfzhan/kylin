@@ -65,8 +65,8 @@ import io.kyligence.kap.spark.KapSparkSession;
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
-
-    private boolean succceed = true;
+    
+    private boolean succeed = true;
 
     @Before
     public void setup() throws Exception {
@@ -137,11 +137,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     private void report(List<Pair<String, Throwable>> results) {
         for (Pair<String, Throwable> result : results) {
             if (result.getSecond() != null) {
-                succceed = false;
+                succeed = false;
                 logger.error("CI failed on:" + result.getFirst(), result.getSecond());
             }
         }
-        if (!succceed) {
+        if (!succeed) {
             Assert.fail();
         }
     }
