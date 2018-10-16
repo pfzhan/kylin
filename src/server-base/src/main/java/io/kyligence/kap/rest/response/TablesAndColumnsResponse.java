@@ -22,25 +22,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.response;
 
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.TableExtDesc;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
 
-public class NTableExtDesc extends TableExtDesc {
+public class TablesAndColumnsResponse {
 
-    public NTableExtDesc() {
-        super();
+    @JsonProperty("database")
+    private String database;
+    @JsonProperty("table")
+    private String table;
+    @JsonProperty("columns")
+    private List<String> columns;
+
+    public String getDatabase() {
+        return database;
     }
 
-    public NTableExtDesc(TableExtDesc other) {
-        super(other);
+    public void setDatabase(String database) {
+        this.database = database;
     }
 
-    @Override
-    public String getResourcePath() {
-        return new StringBuilder().append("/").append(getProject()).append(ResourceStore.TABLE_EXD_RESOURCE_ROOT).append("/")
-                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
+    public String getTable() {
+        return table;
+    }
+
+    public void setTable(String table) {
+        this.table = table;
+    }
+
+    public List<String> getColumns() {
+        return columns;
+    }
+
+    public void setColumns(List<String> columns) {
+        this.columns = columns;
     }
 }

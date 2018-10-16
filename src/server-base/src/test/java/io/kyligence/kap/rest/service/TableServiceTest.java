@@ -47,14 +47,18 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -93,7 +97,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
@@ -114,11 +117,16 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetTableDesc() throws Exception {
 
-        List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "");
-
-        Assert.assertEquals(true, tableDesc.size() > 0);
-        List<TableDesc> tables = tableService.getTableDesc("default", true, "DEFAULT.TEST_COUNTRY");
+        List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true);
+        Assert.assertEquals(true, tableDesc.size() == 8);
+        List<TableDesc> tableDesc2 = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", false);
+        Assert.assertEquals(1, tableDesc2.size());
+        List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true);
+        Assert.assertEquals(true, tables3.size() == 11);
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
         Assert.assertEquals(true, tables.get(0).getName().equals("TEST_COUNTRY"));
+        List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
+        Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
     }
 
     @Test
@@ -131,7 +139,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testLoadTableToProject() throws IOException {
-        List<TableDesc> tables = tableService.getTableDesc("default", true, "DEFAULT.TEST_COUNTRY");
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
         NTableDesc nTableDesc = new NTableDesc(tables.get(0));
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
@@ -139,6 +147,27 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
         String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
         Assert.assertTrue(result.length == 1);
+    }
+
+
+    @Test
+    public void testUnloadTable() throws IOException {
+        TableDesc tableDesc = new TableDesc();
+        List<ColumnDesc> columns = new ArrayList<>();
+        columns.add(new ColumnDesc());
+        ColumnDesc[] colomnArr = new ColumnDesc[1];
+        tableDesc.setColumns(columns.toArray(colomnArr));
+        tableDesc.setName("TEST_UNLOAD");
+        tableDesc.setDatabase("DEFAULT");
+        TableExtDesc tableExt = new TableExtDesc();
+        tableExt.setIdentity("DEFAULT.TEST_UNLOAD");
+        tableExt.updateRandomUuid();
+        NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
+        String[] result = tableService.loadTableToProject(tableDesc, tableExtDesc, "default");
+        Assert.assertTrue(result.length == 1);
+        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD");
+        NTableMetadataManager nTableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        Assert.assertEquals(null, nTableMetadataManager.getTableDesc("DEFAULT.TEST_UNLOAD"));
     }
 
     @Test
@@ -150,7 +179,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSourceTableNames() throws Exception {
-        List<String> tableNames = tableService.getSourceTableNames("default", "DEFAULT", 11);
+        List<String> tableNames = tableService.getSourceTableNames("default", "DEFAULT", 11, "");
         Assert.assertTrue(tableNames.contains("TEST_ACCOUNT"));
     }
 
@@ -162,9 +191,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetFactAndSetDataRange() throws Exception {
-
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
-        List<TableDesc> tables = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
+        List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         tableService.setDataRange(mockDateRangeRequest());
         Assert.assertTrue(tables.get(0).getFact() && tables.get(0).getName().equals("TEST_KYLIN_FACT"));
         thrown.expect(IllegalStateException.class);
@@ -174,7 +202,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
         //set Account fact true and false
         tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "ACCOUNT_BUYER_LEVEL");
-        List<TableDesc> tables2 = tableService.getTableDesc("default", false, "DEFAULT.TEST_KYLIN_FACT");
+        List<TableDesc> tables2 = tableService.getTableDesc("default", false, "TEST_KYLIN_FACT", "DEFAULT", true);
         tableService.setDataRange(dateRangeRequest);
         Assert.assertTrue(tables2.get(0).getFact() && tables2.get(0).getName().equals("DEFAULT.TEST_ACCOUNT"));
         tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", false, "");
@@ -191,10 +219,33 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetTableAndColumns() {
+        List<TablesAndColumnsResponse> result = tableService.getTableAndColomns("default");
+        Assert.assertEquals(11, result.size());
+    }
+
+
+    @Test
     public void testGetSegmentRange() {
         DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         SegmentRange segmentRange = tableService.getSegmentRangeByTable(dateRangeRequest);
         Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange);
+    }
+
+    @Test
+    public void testSetTop() throws IOException {
+        TopTableRequest topTableRequest = mockTopTableRequest();
+        tableService.setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
+        List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
+        Assert.assertTrue(tables.get(0).isTop());
+    }
+
+    private TopTableRequest mockTopTableRequest() {
+        TopTableRequest topTableRequest = new TopTableRequest();
+        topTableRequest.setProject("default");
+        topTableRequest.setTable("DEFAULT.TEST_COUNTRY");
+        topTableRequest.setTop(true);
+        return topTableRequest;
     }
 
     private DateRangeRequest mockDateRangeRequest() {

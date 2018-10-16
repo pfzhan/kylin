@@ -91,7 +91,7 @@ public class ProjectService extends BasicService {
             ProjectInstance projectInstance = getProjectManager().getProject(projectName);
             projectInstances.add(projectInstance);
         } else {
-            projectInstances = getProjectManager().listAllProjects();
+            projectInstances.addAll(getProjectManager().listAllProjects());
         }
         return projectInstances;
     }

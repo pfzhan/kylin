@@ -42,9 +42,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
 import org.apache.kylin.common.util.JsonUtil;
@@ -52,7 +56,9 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -79,7 +85,13 @@ public class NTableControllerTest {
     private TableService tableService;
 
     @Mock
+    private ModelService modelService;
+
+    @Mock
     private TableExtService tableExtService;
+
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
     @InjectMocks
     private NTableController nTableController = Mockito.spy(new NTableController());
@@ -121,24 +133,27 @@ public class NTableControllerTest {
 
     @Test
     public void testGetTableDesc() throws Exception {
-        Mockito.when(tableService.getTableDesc("default", false, "")).thenReturn(mockTables());
+        Mockito.when(tableService.getTableDesc("default", false, "", "DEFAULT", true)).thenReturn(mockTables());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables").contentType(MediaType.APPLICATION_JSON)
                 .param("withExt", "false").param("project", "default").param("table", "")
+                .param("database", "DEFAULT").param("pageOffset", "0").param("pageSize", "10")
+                .param("isFuzzy", "true")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nTableController).getTableDesc(false, "default", "");
+        Mockito.verify(nTableController).getTableDesc(false, "default", "", "DEFAULT", true, 0, 10);
     }
 
     @Test
     public void testGetTableDescWithName() throws Exception {
-        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT")).thenReturn(mockTables());
+        Mockito.when(tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true)).thenReturn(mockTables());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables").contentType(MediaType.APPLICATION_JSON)
                 .param("withExt", "false").param("project", "default").param("table", "TEST_KYLIN_FACT")
+                .param("database", "DEFAULT").param("pageOffset", "0").param("pageSize", "10")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
-        Mockito.verify(nTableController).getTableDesc(false, "default", "TEST_KYLIN_FACT");
+        Mockito.verify(nTableController).getTableDesc(false, "default", "TEST_KYLIN_FACT", "DEFAULT", true, 0, 10);
     }
 
     @Test
@@ -159,12 +174,13 @@ public class NTableControllerTest {
         List<String> list = new ArrayList<>();
         list.add("ddd");
         list.add("fff");
-        Mockito.when(tableService.getSourceTableNames("default", "db1", 11)).thenReturn(list);
+        Mockito.when(tableService.getSourceTableNames("default", "db1", 11, "")).thenReturn(list);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("datasourceType", "11").param("database", "db1")
+                .param("pageOffset", "0").param("pageSize", "10").param("table", "")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).showTables("default", 11, "db1");
+        Mockito.verify(nTableController).showTables("default", 11, "", 0, 10, "db1");
     }
 
     @Test
@@ -206,6 +222,36 @@ public class NTableControllerTest {
 
     }
 
+    @Test
+    public void testSetTop() throws Exception {
+        final TopTableRequest topTableRequest = mockTopTableRequest();
+        Mockito.doNothing().when(tableService).setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/top").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(topTableRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).setTableTop(Mockito.any(TopTableRequest.class));
+
+    }
+
+
+    private DatabaseLoadRequest mockDatabaseLoadRequest() {
+        String[] databases = { "DEFAULT" };
+        DatabaseLoadRequest databaseLoadRequest = new DatabaseLoadRequest();
+        databaseLoadRequest.setDatabases(databases);
+        databaseLoadRequest.setDatasourceType(11);
+        databaseLoadRequest.setProject("default");
+        return databaseLoadRequest;
+    }
+
+    private TopTableRequest mockTopTableRequest() {
+        TopTableRequest topTableRequest = new TopTableRequest();
+        topTableRequest.setTop(true);
+        topTableRequest.setTable("table1");
+        topTableRequest.setProject("default");
+        return topTableRequest;
+    }
+
     private DateRangeRequest mockDateRangeRequest() {
         DateRangeRequest request = new DateRangeRequest();
         request.setStart("0");
@@ -231,6 +277,80 @@ public class NTableControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
+    }
+
+    @Test
+    public void testLoadTablesByDatabase() throws Exception {
+        String[] databases = { "DEFAULT" };
+        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
+        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
+    }
+
+    @Test
+    public void testLoadTablesByDatabaseException() throws Exception {
+        String[] databases = {};
+        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
+        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
+        databaseLoadRequest.setDatabases(databases);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
+    }
+
+    @Test
+    public void testLoadTablesByDatabaseException2() throws Exception {
+        String[] databases = null;
+        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
+        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
+        databaseLoadRequest.setDatabases(databases);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
+    }
+
+    @Test
+    public void testUnloadTable() throws Exception {
+        Mockito.doReturn(false).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
+        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
+    }
+
+    @Test
+    public void testUnloadTableException() throws Exception {
+        Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
+        Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
+    }
+
+    @Test
+    public void testGetTablesAndColumns() throws Exception {
+        Mockito.doReturn(mockTableAndColumns()).when(tableService).getTableAndColomns("default");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/simple_table").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("pageSize", "10").param("pageOffset", "0")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getTablesAndColomns("default", 0, 10);
+    }
+
+    private List<TablesAndColumnsResponse> mockTableAndColumns() {
+        List<TablesAndColumnsResponse> result = new ArrayList<>();
+        result.add(new TablesAndColumnsResponse());
+        return result;
     }
 
     private List<TableDesc> mockTables() {

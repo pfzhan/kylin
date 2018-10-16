@@ -196,6 +196,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             } catch (Exception e) {
                 logger.error("unknown error execute job:" + executable.getId(), e);
             } finally {
+                threadToInterrupt.remove(executable.getId());
                 context.removeRunningJob(executable);
             }
         }

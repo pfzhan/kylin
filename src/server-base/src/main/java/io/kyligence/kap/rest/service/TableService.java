@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
@@ -36,6 +38,7 @@ import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.TableDescResponse;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
 import org.apache.commons.collections.CollectionUtils;
@@ -50,16 +53,20 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.msg.Message;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.kylin.source.SourceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -73,13 +80,52 @@ public class TableService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(TableService.class);
 
+    private static Message msg = MsgPicker.getMsg();
 
-    public List<TableDesc> getTableDesc(String project, boolean withExt, String tableName) throws IOException {
+    @Autowired
+    private ModelService modelService;
+
+    public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database, boolean isFuzzy) throws IOException {
+        NTableMetadataManager nTableMetadataManager = getTableManager(project);
         List<TableDesc> tables = new ArrayList<>();
-        if (StringUtils.isEmpty(tableName)) {
-            tables.addAll(getProjectManager().listDefinedTables(project));
+        //get table not fuzzy,can use getTableDesc(tableName)
+        if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
+            tables.add(nTableMetadataManager.getTableDesc(database + "." + tableName));
         } else {
-            tables.add(getTableManager(project).getTableDesc(tableName));
+            tables.addAll(Lists.newArrayList(FluentIterable.from(nTableMetadataManager.listAllTables()).filter(new Predicate<TableDesc>() {
+                @Override
+                public boolean apply(TableDesc tableDesc) {
+                    if (StringUtils.isEmpty(database)) {
+                        return true;
+                    } else if (tableDesc.getDatabase().equals(database)) {
+                        return true;
+                    }
+                    return false;
+                }
+            }).filter(new Predicate<TableDesc>() {
+                @Override
+                public boolean apply(TableDesc tableDesc) {
+                    if (StringUtils.isEmpty(tableName)) {
+                        return true;
+                    } else if (tableDesc.getName().toLowerCase().contains(tableName.toLowerCase())) {
+                        return true;
+                    }
+                    return false;
+                }
+            }).toSortedList(new Comparator<TableDesc>() {
+                @Override
+                public int compare(TableDesc o1, TableDesc o2) {
+                    if (!(o1.isTop() ^ o2.isTop())) {
+                        if (!(o1.getFact() ^ o2.getFact())) {
+                            return o1.getName().compareToIgnoreCase(o2.getName());
+                        } else {
+                            return o1.getFact() && !o2.getFact() ? -1 : 1;
+                        }
+                    } else {
+                        return o1.isTop() && !o2.isTop() ? -1 : 1;
+                    }
+                }
+            })));
         }
         tables = getTablesResponse(tables, project, withExt);
         return tables;
@@ -166,10 +212,21 @@ public class TableService extends BasicService {
         return explr.listDatabases();
     }
 
-    public List<String> getSourceTableNames(String project, String database, int dataSourceType) throws Exception {
+    public List<String> getSourceTableNames(String project, String database, int dataSourceType, final String table) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        return explr.listTables(database);
+        List<String> tables = Lists.newArrayList(FluentIterable.from(explr.listTables(database)).filter(new Predicate<String>() {
+            @Override
+            public boolean apply(String s) {
+                if (StringUtils.isEmpty(table)) {
+                    return true;
+                } else if (s.toLowerCase().contains(table.toLowerCase())) {
+                    return true;
+                }
+                return false;
+            }
+        }));
+        return tables;
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
@@ -360,5 +417,39 @@ public class TableService extends BasicService {
         TableDesc tableDesc = nProjectManager.getTableDesc(table);
         return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
 
+    }
+
+    public void unloadTable(String project, String table) throws IOException {
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        getProjectManager().removeTableDescFromProject(table, project);
+        tableMetadataManager.removeTableExt(table);
+        tableMetadataManager.removeSourceTable(table);
+    }
+
+    public void setTop(String table, String project, boolean top) throws IOException {
+        NTableMetadataManager nTableMetadataManager = getTableManager(project);
+        TableDesc tableDesc = nTableMetadataManager.getTableDesc(table);
+        tableDesc.setTop(top);
+        nTableMetadataManager.updateTableDesc(tableDesc);
+    }
+
+    public List<TablesAndColumnsResponse> getTableAndColomns(String project) {
+        List<TableDesc> tables = getTableManager(project).listAllTables();
+        List<TablesAndColumnsResponse> result = new ArrayList<>();
+        for (TableDesc table : tables
+                ) {
+            TablesAndColumnsResponse response = new TablesAndColumnsResponse();
+            response.setTable(table.getName());
+            response.setDatabase(table.getDatabase());
+            ColumnDesc[] columns = table.getColumns();
+            List<String> columnNames = new ArrayList<>();
+            for (ColumnDesc column : columns
+                    ) {
+                columnNames.add(column.getName());
+            }
+            response.setColumns(columnNames);
+            result.add(response);
+        }
+        return result;
     }
 }

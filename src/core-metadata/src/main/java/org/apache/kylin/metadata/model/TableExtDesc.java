@@ -122,7 +122,7 @@ public class TableExtDesc extends RootPersistentEntity {
 
     @Override
     public String resourceName() {
-        return TableDesc.makeResourceName(getIdentity(), getProject());
+        return getIdentity();
     }
 
     @Override
@@ -132,6 +132,10 @@ public class TableExtDesc extends RootPersistentEntity {
 
     public String getProject() {
         return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
     }
 
     public int getFrequency() {
@@ -241,7 +245,6 @@ public class TableExtDesc extends RootPersistentEntity {
 
     public void init(String project) {
         this.project = project;
-
         if (this.tableIdentity != null)
             this.tableIdentity = this.tableIdentity.toUpperCase();
     }

@@ -116,7 +116,9 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
     private int sourceType = ISourceAware.ID_HIVE;
     @JsonProperty("table_type")
     private String tableType;
-
+    //Sticky table
+    @JsonProperty("top")
+    private boolean isTop;
     @JsonProperty("data_gen")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String dataGen;
@@ -145,6 +147,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
             this.columns[i] = new ColumnDesc(other.columns[i]);
             this.columns[i].init(this);
         }
+        this.isTop = other.isTop;
         this.project = other.project;
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
@@ -297,6 +300,14 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
 
     public void setFact(boolean fact) {
         isFact = fact;
+    }
+
+    public boolean isTop() {
+        return isTop;
+    }
+
+    public void setTop(boolean top) {
+        isTop = top;
     }
 
     public int getMaxColumnIndex() {

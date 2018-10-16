@@ -259,9 +259,7 @@ public class NTableMetadataManager {
                 if (t.getIdentity() == null) {
                     t = convertOldTableExtToNewer(resourceName);
                 }
-
-                String prj = TableDesc.parseResourcePath(resourceName).getSecond();
-                t.init(prj);
+                t.init(project);
                 return t;
             }
         };

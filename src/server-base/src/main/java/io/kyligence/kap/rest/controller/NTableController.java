@@ -24,11 +24,16 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
+import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -41,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -68,16 +74,39 @@ public class NTableController extends NBasicController {
     @Qualifier("tableExtService")
     private TableExtService tableExtService;
 
+    @Autowired
+    @Qualifier("modelService")
+    private ModelService modelService;
+
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getTableDesc(@RequestParam(value = "ext", required = false) boolean withExt,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "table", required = false) String table) throws IOException {
+            @RequestParam(value = "table", required = false) String table,
+            @RequestParam(value = "database", required = false) String database,
+            @RequestParam(value = "isFuzzy", required = false, defaultValue = "true") boolean isFuzzy,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) throws IOException {
 
         checkProjectName(project);
         List<TableDesc> tableDescs = new ArrayList<>();
-        tableDescs.addAll(tableService.getTableDesc(project, withExt, table));
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableDescs, "");
+
+        tableDescs.addAll(tableService.getTableDesc(project, withExt, table, database, isFuzzy));
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tableDescs, offset, limit), "");
+    }
+
+    @RequestMapping(value = "{project}/{database}/{table}", method = {RequestMethod.DELETE}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse unloadTable(@PathVariable(value = "project") String project, @PathVariable(value = "database") String database, @PathVariable(value = "table") String table) throws IOException {
+
+        checkProjectName(project);
+        String tableName = database + "." + table;
+        if (modelService.isModelsUsingTable(tableName, project)) {
+            List<String> models = modelService.getModelsUsingTable(tableName, project);
+            throw new BadRequestException(String.format(msg.getTABLE_IN_USE_BY_MODEL(), models));
+        }
+        tableService.unloadTable(project, tableName);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     /**
@@ -97,6 +126,15 @@ public class NTableController extends NBasicController {
         }
         tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.getFact(),
                 factTableRequest.getColumn());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/top", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse setTableTop(@RequestBody TopTableRequest topTableRequest) throws IOException {
+        checkProjectName(topTableRequest.getProject());
+        tableService.setTop(topTableRequest.getTable(), topTableRequest.getProject(), topTableRequest.isTop());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -129,11 +167,23 @@ public class NTableController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse showDatabases(@RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "datasourceType", required = true) Integer datasourceType) throws Exception {
+            @RequestParam(value = "datasourceType", required = false) Integer datasourceType) throws Exception {
 
         checkProjectName(project);
         List<String> databases = tableService.getSourceDbNames(project, datasourceType);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
+    }
+
+    @RequestMapping(value = "/databases", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse loadtablesByDatabase(@RequestBody DatabaseLoadRequest databaseLoadRequest) throws Exception {
+        checkProjectName(databaseLoadRequest.getProject());
+        if (ArrayUtils.isEmpty(databaseLoadRequest.getDatabases())) {
+            throw new BadRequestException("you should select at least 1 database to load");
+        }
+        tableExtService.loadTablesByDatabase(databaseLoadRequest.getProject(), databaseLoadRequest.getDatabases(), databaseLoadRequest.getDatasourceType());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     /**
@@ -146,12 +196,27 @@ public class NTableController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse showTables(@RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "datasourceType", required = true) Integer dataSourceType,
+            @RequestParam(value = "datasourceType", required = false) Integer dataSourceType,
+            @RequestParam(value = "table", required = false) String table,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "database", required = true) String database) throws Exception {
-
         checkProjectName(project);
-        List<String> tables = tableService.getSourceTableNames(project, database, dataSourceType);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tables, "");
+        List<String> tables = tableService.getSourceTableNames(project, database, dataSourceType, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tables, offset, limit)
+                , "");
+    }
+
+    @RequestMapping(value = "/simple_table", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getTablesAndColomns(@RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit){
+        checkProjectName(project);
+        List<TablesAndColumnsResponse> responses = tableService.getTableAndColomns(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tablesAndColumns", responses, offset, limit)
+                , "");
     }
 
 }

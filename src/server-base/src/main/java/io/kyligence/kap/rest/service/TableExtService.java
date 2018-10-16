@@ -26,6 +26,8 @@ package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Function;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -106,5 +108,19 @@ public class TableExtService extends BasicService {
             }
         }
 
+    }
+
+    public void loadTablesByDatabase(String project, final String[] databases, int datasourceType) throws Exception {
+        for (final String database : databases) {
+            List<String> tables = tableService.getSourceTableNames(project, database, datasourceType, "");
+            List<String> identities = Lists.transform(tables, new Function<String, String>() {
+                @Override
+                public String apply(String s) {
+                    return database + "." + s;
+                }
+            });
+            String[] tableToLoad = new String[identities.size()];
+            loadTables(identities.toArray(tableToLoad), project, datasourceType);
+        }
     }
 }

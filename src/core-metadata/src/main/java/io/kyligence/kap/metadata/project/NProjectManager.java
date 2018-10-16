@@ -66,7 +66,7 @@ import io.kyligence.kap.metadata.NTableMetadataManager;
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
     private Serializer<ProjectInstance> serializer;
-
+    private static final String JSON_SUFFIX = ".json";
     public static NProjectManager getInstance(KylinConfig config) {
         return config.getManager(NProjectManager.class);
     }
@@ -204,7 +204,7 @@ public class NProjectManager {
 
     private ProjectInstance getInstanceFromResource(String projectName) throws IOException {
         String projectResourcePath = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE
-                + ".json";
+                + JSON_SUFFIX;
         ProjectInstance instance = getStore().getResource(projectResourcePath, ProjectInstance.class, serializer);
 
         if (instance == null)
@@ -307,7 +307,7 @@ public class NProjectManager {
 
             logger.info("Dropping project '" + projectInstance.getName() + "'");
             String projectPathRoot = getProjectRootPath(projectName) + "/" + MetadataConstants.PROJECT_RESOURCE
-                    + ".json";
+                    + JSON_SUFFIX;
             getStore().deleteResource(projectPathRoot);
             projectMap.remove(projectName);
             clearL2Cache();
@@ -458,7 +458,7 @@ public class NProjectManager {
     private ProjectInstance save(ProjectInstance prj) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             String projectPathRoot = getProjectRootPath(prj.getName()) + "/" + MetadataConstants.PROJECT_RESOURCE
-                    + ".json";
+                    + JSON_SUFFIX;
             Preconditions.checkArgument(prj != null);
             if (getStore().getConfig().isCheckCopyOnWrite()) {
                 if (prj.isCachedAndShared() || projectMap.get(prj.getName()) == prj) {

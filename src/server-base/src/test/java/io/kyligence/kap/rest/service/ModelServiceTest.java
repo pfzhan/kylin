@@ -281,4 +281,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<NDataModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT");
         Assert.assertTrue(models.size() == 2);
     }
+
+    @Test
+    public void testIsModelsUsingTable() throws IOException {
+        boolean result = modelService.isModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
+        Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testGetModelUsingTable() throws IOException {
+        List<String> result = modelService.getModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
+        Assert.assertTrue(result.size() == 2);
+    }
 }

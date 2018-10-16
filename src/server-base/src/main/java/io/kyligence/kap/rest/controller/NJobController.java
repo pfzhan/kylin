@@ -28,12 +28,12 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 
-import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ public class NJobController extends NBasicController {
     @RequestMapping(value = "", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) Integer[] status,
-            @RequestParam(value = "jobName", required = false) String jobType,
+            @RequestParam(value = "jobName", required = false) String jobName,
             @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
             @RequestParam(value = "subjects", required = false) String[] subjects,
             @RequestParam(value = "project", required = true) String project,
@@ -66,8 +66,8 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        List<ExecutableResponse> executables = jobService.listJobs(project, status,
-                JobTimeFilterEnum.getByCode(timeFilter), subjects, jobType, sortBy, reverse);
+        JobFilter jobFilter = new JobFilter(status, jobName, timeFilter, subjects, project, sortBy, reverse);
+        List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }

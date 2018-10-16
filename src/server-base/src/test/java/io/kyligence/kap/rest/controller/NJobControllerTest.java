@@ -45,13 +45,13 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
-import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Before;
@@ -99,9 +99,10 @@ public class NJobControllerTest {
         List<JobStatusEnum> status = new ArrayList<>();
         status.add(JobStatusEnum.NEW);
         List<ExecutableResponse> jobs = new ArrayList<>();
-        Integer[] statusInt = { 4 };
+        Integer[] statusInt = {4};
         String[] subjects = {};
-        Mockito.when(jobService.listJobs("default", statusInt, JobTimeFilterEnum.ALL, subjects, "", "job_name", false)).thenReturn(jobs);
+        JobFilter jobFilter = new JobFilter(statusInt, "", 4, subjects, "default", "job_name", false);
+        Mockito.when(jobService.listJobs(jobFilter)).thenReturn(jobs);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("offset", "0").param("limit", "10").param("timeFilter", "1")
                 .param("subjects", "").param("jobName", "").param("status", "4")
@@ -109,7 +110,6 @@ public class NJobControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 
         Mockito.verify(nJobController).getJobList(statusInt, "", 1, subjects, "default", 0, 10, "last_modified", true);
-
     }
 
     @Test

@@ -42,6 +42,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import org.apache.commons.lang.StringUtils;
@@ -78,16 +79,15 @@ public class JobService extends BasicService {
     private static final String EXEC_START_TIME = "exec_start_time";
     private static final String DURATION = "duration";
 
-    public List<ExecutableResponse> listJobs(final String project, final Integer[] status,
-                                             JobTimeFilterEnum timeFilter, final String[] subjects, final String jobName, final String sortBy, final boolean reverse) {
-        NExecutableManager executableManager = getExecutableManager(project);
+    public List<ExecutableResponse> listJobs(final JobFilter jobFilter) {
+        NExecutableManager executableManager = getExecutableManager(jobFilter.getProject());
         // prepare time range
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
-        long timeStartInMillis = getTimeStartInMillis(calendar, timeFilter);
+        long timeStartInMillis = getTimeStartInMillis(calendar, JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter()));
         long timeEndInMillis = Long.MAX_VALUE;
         List<JobStatusEnum> statusList = new ArrayList<JobStatusEnum>();
-
+        Integer[] status = jobFilter.getStatus();
         if (null != status && status.length != 0) {
             for (int stat : status) {
                 statusList.add(JobStatusEnum.getByCode(stat));
@@ -108,6 +108,7 @@ public class JobService extends BasicService {
                 }, new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
+                        String[] subjects = jobFilter.getSubjects();
                         if (subjects == null || subjects.length == 0) {
                             return true;
                         }
@@ -116,6 +117,7 @@ public class JobService extends BasicService {
                 }, new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
+                        String jobName = jobFilter.getJobName();
                         if (StringUtils.isEmpty(jobName)) {
                             return true;
                         }
@@ -131,6 +133,7 @@ public class JobService extends BasicService {
                 }).toSortedList(new Comparator<ExecutableResponse>() {
                     @Override
                     public int compare(ExecutableResponse o1, ExecutableResponse o2) {
+                        String sortBy = jobFilter.getSortBy();
                         switch (sortBy) {
                             case JOB_NAME:
                                 return o1.getJobName().compareTo(o2.getJobName());
@@ -147,7 +150,7 @@ public class JobService extends BasicService {
                         }
                     }
                 });
-        if (reverse) {
+        if (jobFilter.isReverse()) {
             filteredJobs = filteredJobs.reverse();
         }
         List<ExecutableResponse> executableResponseResults = Lists.newArrayList(filteredJobs);

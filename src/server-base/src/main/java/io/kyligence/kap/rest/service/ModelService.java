@@ -396,4 +396,12 @@ public class ModelService extends BasicService {
         TableDesc tableDesc = getTableManager(project).getTableDesc(tableRef.getTableIdentity());
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
+
+    public boolean isModelsUsingTable(String table, String project) throws IOException {
+        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table)).size() > 0;
+    }
+
+    public List<String> getModelsUsingTable(String table, String project) throws IOException {
+        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
+    }
 }

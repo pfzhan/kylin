@@ -103,8 +103,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getSegments(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end) {
         checkProjectName(project);
