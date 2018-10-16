@@ -23,7 +23,7 @@
               </el-row>
               <div class="statistics-img1">
                 <img src="../../assets/img/renderUp.gif" height="63" width="48">
-                <div class="data-flow"><span>50,000</span><span>Query / Month</span></div>
+                <div class="data-flow"><span>{{statisticObj.amount}}</span><span>Query / Day</span></div>
               </div>
               <div class="kap-layer">Kyligence Enterprise</div>
               <div class="gif-layer">
@@ -33,21 +33,21 @@
                 <el-col :span="12" class="analysis-before">
                   <el-row>
                      <el-col :span="12">
-                        <div class="percent"><span>15</span><span>%</span></div>
+                        <div class="percent"><span>{{statisticObj['RDBMS'].ratio * 100}}</span><span>%</span></div>
                         <div><img src="../../assets/img/RDBMs.png" height="118" width="136"></div>
                         <div class="type">RDBMS</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
-                          <span>60.00</span><span>s</span>
+                          <span>{{statisticObj['RDBMS'].mean / 1000 | fixed(2) || '0.00'}}</span><span>s</span>
                         </div>
                      </el-col>
                      <el-col :span="12">
-                       <div class="percent"><span>15</span><span>%</span></div>
+                       <div class="percent"><span>{{statisticObj['HIVE'].ratio * 100}}</span><span>%</span></div>
                         <div><img src="../../assets/img/Hive.png" height="118" width="136"></div>
                         <div class="type">Hive</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
-                          <span>99.00</span><span>s</span>
+                          <span>{{statisticObj['HIVE'].mean / 1000 | fixed(2) || '0.00'}}</span><span>s</span>
                         </div>
                      </el-col>
                   </el-row>
@@ -56,21 +56,21 @@
                 <el-col :span="11" class="analysis-after">
                   <el-row>
                      <el-col :span="12">
-                       <div class="percent"><span>30</span><span>%</span></div>
+                       <div class="percent"><span>{{statisticObj['Agg Index'].ratio * 100}}</span><span>%</span></div>
                         <div><img src="../../assets/img/cube.png" height="118" width="136"></div>
                         <div class="type">Aggregate Index</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
-                          <span>6.02</span><span>s</span>
+                          <span>{{statisticObj['Agg Index'].mean / 1000 | fixed(2) || '0.00'}}</span><span>s</span>
                         </div>
                      </el-col>
                      <el-col :span="12">
-                       <div class="percent"><span>40</span><span>%</span></div>
+                       <div class="percent"><span>{{statisticObj['Table Index'].ratio * 100}}</span><span>%</span></div>
                         <div><img src="../../assets/img/table_index.png" height="118" width="136"></div>
                         <div class="type">Tabel Index</div>
                         <div class="cost-time">
                           <img src="../../assets/img/cost_time.png" height="15" width="20">
-                          <span>8.02</span><span>s</span>
+                          <span>{{statisticObj['Table Index'].mean / 1000 | fixed(2) || '0.00'}}</span><span>s</span>
                         </div>
                      </el-col>
                   </el-row>
@@ -121,6 +121,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 import Scrollbar from 'smooth-scrollbar'
+import { handleSuccess, handleError } from '../../util/business'
 @Component({
   methods: {
     ...mapActions({
@@ -128,7 +129,8 @@ import Scrollbar from 'smooth-scrollbar'
       getCubesList: 'GET_CUBES_LIST',
       loadModels: 'LOAD_MODEL_LIST',
       loadJobsList: 'LOAD_JOBS_LIST',
-      loadUsersList: 'LOAD_USERS_LIST'
+      loadUsersList: 'LOAD_USERS_LIST',
+      loadStatistics: 'LOAD_STATISTICS'
     })
   },
   locales: {
@@ -165,6 +167,13 @@ export default class Overview extends Vue {
     {message: 'I\'m sorry,  Cube 「test_01_BX」 build errors, please check.', status: 'error', timestamp: 1524829437628, isReaded: false},
     {message: 'I\'m sorry,  Cube 「test_01_BX」 build errors, please check.', status: 'error', timestamp: 1524829437628, isReaded: false}
   ]
+  statisticObj = {
+    amount: 0,
+    'RDBMS': {ratio: 0, mean: 0},
+    'HIVE': {ratio: 0, mean: 0},
+    'Agg Index': {ratio: 0, mean: 0},
+    'Table Index': {ratio: 0, mean: 0}
+  }
 
   handleCommand (command) {}
   mounted () {
@@ -186,6 +195,14 @@ export default class Overview extends Vue {
     } else {
       this.$store.state.user.usersSize = 0
     }
+
+    this.loadStatistics({start_time: new Date().setHours(0, 0, 0, 0), end_time: new Date().setHours(23, 59, 59, 999)}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.statisticObj = data
+      })
+    }, (errResp) => {
+      handleError(errResp)
+    })
   }
 }
 </script>

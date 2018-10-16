@@ -60,8 +60,8 @@
                 <div class="realization-block">
                   <span class="label">{{$t('kylinLang.query.realization')}}</span>
                   <div class="tags-block">
-                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization">{{pushdown}}</el-tag>
-                    <el-tag v-else v-for="modelName in props.row.realization" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization" :key="pushdown">{{pushdown}}</el-tag>
+                    <el-tag v-else v-for="modelName in props.row.realization" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
                   </div>
                 </div>
                 <div class="ksd-nobr-text">
@@ -107,8 +107,8 @@
       <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
-            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization">{{pushdown}}</el-tag>
-            <el-tag v-else v-for="modelName in props.row.realization">{{modelName}}</el-tag>
+            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization" :key="pushdown">{{pushdown}}</el-tag>
+            <el-tag v-else v-for="modelName in props.row.realization" :key="modelName">{{modelName}}</el-tag>
           </div>
         </template>
       </el-table-column>

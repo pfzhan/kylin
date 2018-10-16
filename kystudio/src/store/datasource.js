@@ -53,6 +53,9 @@ export default {
     [types.LOAD_BUILD_COMPLETE_TABLES]: function ({commit}, project) {
       return api.datasource.loadBuildCompeleteTables(project)
     },
+    [types.LOAD_STATISTICS]: function ({commit}, para) {
+      return api.datasource.loadStatistics(para)
+    },
     [types.QUERY_BUILD_TABLES]: function ({commit}, para) {
       return api.datasource.query(para)
     },

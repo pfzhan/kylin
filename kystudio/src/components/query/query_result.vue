@@ -1,61 +1,35 @@
 <template>
   <div class="result_box">
     <div class="resultTipsLine">
-      <el-row :gutter="20" class="resultTips">
-        <el-col :span="7" class="resultText">
-          <p>
-            <span class="label">{{$t('kylinLang.query.queryId')}}</span>
-            <span class="text">{{queryInfo.queryId}}</span>
-          </p>
-        </el-col>
-        <el-col :span="7" class="resultText">
-          <p v-if="extraoption.data.pushDown">
-            <span class="label">{{$t('kylinLang.query.duration')}}</span>
-            <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span>
-          </p>
-          <p v-else>
-            <span class="label">{{$t('kylinLang.query.modelName')}}</span>
-            <span class="text">{{queryInfo.modelName | arrayToStr}}</span>
-          </p>
-        </el-col>
-        <el-col :span="7" class="resultText">
-          <p v-if="extraoption.data.pushDown">
-            <span class="label">{{$t('kylinLang.query.realization')}}</span>
-            <span class="text">{{queryInfo.realization | arrayToStr}}</span>
-          </p>
-          <p v-else>
-            <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
-            <span class="text">{{queryInfo.scanCount}}</span>
-          </p>
-        </el-col>
-        <el-col :span="3" class="ksd-right" v-if="!extraoption.data.pushDown">
-          <el-button plain size="medium" @click="toggleDetail">
-            {{$t('kylinLang.common.seeDetail')}} 
-            <i class="el-icon-arrow-down" v-show="!showDetail"></i>
-            <i class="el-icon-arrow-up" v-show="showDetail"></i>
-          </el-button>
-        </el-col>
-      </el-row>
-      <el-row :gutter="20" class="resultTips" v-show="showDetail" v-if="!extraoption.data.pushDown">
-        <el-col :span="7" class="resultText">
-          <p>
-            <span class="label">{{$t('kylinLang.query.duration')}}</span>
-            <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span>
-          </p>
-        </el-col>
-        <el-col :span="7" class="resultText">
-          <p>
-            <span class="label">{{$t('kylinLang.query.realization')}}</span>
-            <span class="text">{{queryInfo.realization | arrayToStr}}</span>
-          </p>
-        </el-col>
-        <el-col :span="7" class="resultText">
-          <p>
-            <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
-            <span class="text">{{queryInfo.resultRows}}</span>
-          </p>
-        </el-col>
-      </el-row>
+      <div class="resultTips">
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.queryId')}}</span>
+          <span class="text">{{queryInfo.queryId}}</span>
+        </p>
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.realization')}}</span>
+          <span class="text">{{queryInfo.answeredBy | arrayToStr}}</span>
+        </p>
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.duration')}}</span>
+          <span class="text">{{(queryInfo.duration/1000)|fixed(2)||0.00}}s</span>
+        </p>
+        <el-button plain size="medium" @click="toggleDetail" class="show-more-btn" v-if="!extraoption.data.pushDown">
+          {{$t('kylinLang.common.seeDetail')}}
+          <i class="el-icon-arrow-down" v-show="!showDetail"></i>
+          <i class="el-icon-arrow-up" v-show="showDetail"></i>
+        </el-button>
+      </div>
+      <div class="resultTips" v-show="showDetail" v-if="!extraoption.data.pushDown">
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
+          <span class="text">{{queryInfo.totalScanCount}}</span>
+        </p>
+        <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
+          <span class="text">{{queryInfo.resultRowCount}}</span>
+        </p>
+      </div>
     </div>
     <div class="clearfix">
       <div class="ksd-title-label ksd-fleft ksd-mt-30">{{$t('queryInformation')}}</div>
@@ -273,18 +247,16 @@ export default class queryResult extends Vue {
     padding: 20px;
     background-color: @table-stripe-color;
     line-height: 1.8;
+    position: relative;
+    .show-more-btn {
+      position: absolute;
+      right: 20px;
+      top: 20px;
+    }
     .resultTips{
       align-items: center;
       flex-wrap:wrap;
       .resultText{
-        padding-left:14px;
-        padding-right:14px;
-        &:first-child{
-          padding-left:0px;
-        }
-        &:last-child{
-           padding-right:0px;
-        }
         color:@color-text-primary;
         .label {
           font-weight: bold;

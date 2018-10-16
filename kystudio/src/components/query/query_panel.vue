@@ -12,8 +12,6 @@
         </el-col>
       </el-row>
       <div class="error-block">{{errinfo}}</div>
-      <!-- <kap_editor height="170" lang="sql" theme="chrome" v-model="errinfo" class="ksd-mt-6">
-      </kap_editor> -->
     </div>
     <div v-show="!errinfo" class="ksd-center ksd-mt-10">
       <el-progress type="circle" :percentage="percent"></el-progress>
@@ -50,6 +48,7 @@ export default class queryPanel extends Vue {
   pending = 0
   startTime = Date.now()
   saveQueryFormVisible = false
+  queryId = '-'
 
   refreshQuery () {
     this.queryResult()
@@ -68,7 +67,13 @@ export default class queryPanel extends Vue {
     }).then((res) => {
       clearInterval(this.ST)
       handleSuccess(res, (data) => {
-        this.$emit('changeView', this.extraoption.index, data)
+        this.queryId = data.queryId
+        if (data.isException) {
+          this.errinfo = data.exceptionMessage
+          this.$emit('changeView', this.extraoption.index, data, 'el-icon-ksd-error_01', 'querypanel')
+        } else {
+          this.$emit('changeView', this.extraoption.index, data)
+        }
       })
     }, (res) => {
       handleError(res, (data, code, status, msg) => {

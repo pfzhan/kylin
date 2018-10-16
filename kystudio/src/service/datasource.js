@@ -27,6 +27,9 @@ export default {
   loadBuildCompeleteTables: (project) => {
     return Vue.resource(apiUrl + 'tables_and_columns?project=' + project).get()
   },
+  loadStatistics: (para) => {
+    return Vue.resource(apiUrl + 'query/statistics').get(para)
+  },
   query: (para) => {
     return Vue.resource(apiUrl + 'query').save(para)
   },
