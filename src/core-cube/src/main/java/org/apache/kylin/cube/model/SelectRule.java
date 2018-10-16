@@ -52,11 +52,11 @@ public class SelectRule implements Serializable {
     private static final long serialVersionUID = 1L;
     
     @JsonProperty("hierarchy_dims")
-    public String[][] hierarchyDims;
+    public Integer[][] hierarchyDims;
     @JsonProperty("mandatory_dims")
-    public String[] mandatoryDims;
+    public Integer[] mandatoryDims;
     @JsonProperty("joint_dims")
-    public String[][] jointDims;
+    public Integer[][] jointDims;
     @JsonProperty("dim_cap")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public Integer dimCap;

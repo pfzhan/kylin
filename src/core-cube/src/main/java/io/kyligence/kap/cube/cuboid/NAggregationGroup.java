@@ -33,10 +33,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.apache.kylin.cube.model.SelectRule;
-import org.apache.kylin.metadata.model.TblColRef;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
@@ -46,7 +44,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.math.LongMath;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
@@ -64,7 +61,7 @@ public class NAggregationGroup implements Serializable {
     }
 
     @JsonProperty("includes")
-    private String[] includes;
+    private Integer[] includes;
     @JsonProperty("select_rule")
     private SelectRule selectRule;
 
@@ -74,8 +71,6 @@ public class NAggregationGroup implements Serializable {
     private List<HierarchyMask> hierarchyMasks;
     private List<Long> joints;//each long is a group
     private long jointDimsMask;
-    private long normalDimsMask;
-    private long hierarchyDimsMask;
     private List<Long> normalDims;//each long is a single dim
     private NCubePlan nCubePlan;
     private NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
@@ -91,53 +86,47 @@ public class NAggregationGroup implements Serializable {
             throw new IllegalStateException("AggregationGroup incomplete");
         }
 
-        normalizeColumnNames();
+        checkAndNormalizeFields();
 
         buildPartialCubeFullMask();
         buildMandatoryColumnMask();
         buildJointColumnMask();
         buildJointDimsMask();
         buildHierarchyMasks();
-        buildHierarchyDimsMask();
         buildNormalDimsMask();
     }
 
-    private void normalizeColumnNames() {
+    private void checkAndNormalizeFields() {
         Preconditions.checkNotNull(includes);
-        normalizeColumnNames(includes);
+        checkAndNormalizeFields(includes);
 
         Preconditions.checkNotNull(selectRule.mandatoryDims);
-        normalizeColumnNames(selectRule.mandatoryDims);
+        checkAndNormalizeFields(selectRule.mandatoryDims);
 
         if (selectRule.hierarchyDims == null)
-            selectRule.hierarchyDims = new String[0][];
-        for (String[] cols : selectRule.hierarchyDims) {
+            selectRule.hierarchyDims = new Integer[0][];
+        for (Integer[] cols : selectRule.hierarchyDims) {
             Preconditions.checkNotNull(cols);
-            normalizeColumnNames(cols);
+            checkAndNormalizeFields(cols);
         }
 
         if (selectRule.jointDims == null)
-            selectRule.jointDims = new String[0][];
-        for (String[] cols : selectRule.jointDims) {
+            selectRule.jointDims = new Integer[0][];
+        for (Integer[] cols : selectRule.jointDims) {
             Preconditions.checkNotNull(cols);
-            normalizeColumnNames(cols);
+            checkAndNormalizeFields(cols);
         }
     }
 
-    private void normalizeColumnNames(String[] names) {
-        if (names == null)
+    private void checkAndNormalizeFields(Integer[] dims) {
+        if (dims == null)
             return;
 
-        for (int i = 0; i < names.length; i++) {
-            TblColRef col = nCubePlan.getModel().findColumn(names[i]);
-            names[i] = col.getIdentity();
-        }
-
         // check no dup
-        Set<String> set = new HashSet<>(Arrays.asList(names));
-        if (set.size() < names.length)
+        Set<Integer> set = new HashSet<>(Arrays.asList(dims));
+        if (set.size() < dims.length)
             throw new IllegalStateException(
-                    "Columns in aggrgroup must not contain duplication: " + Arrays.asList(names));
+                    "Columns in aggrgroup must not contain duplication: " + Arrays.asList(dims));
     }
 
     private void buildPartialCubeFullMask() {
@@ -145,9 +134,8 @@ public class NAggregationGroup implements Serializable {
         Preconditions.checkState(this.includes.length != 0);
 
         partialCubeFullMask = 0L;
-        for (String dim : this.includes) {
-            TblColRef hColumn = nCubePlan.getModel().findColumn(dim);
-            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hColumn);
+        for (Integer dimId : this.includes) {
+            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(dimId);
             long bit = 1L << index;
             partialCubeFullMask |= bit;
         }
@@ -161,15 +149,14 @@ public class NAggregationGroup implements Serializable {
             return;
         }
 
-        for (String[] jointDims : this.selectRule.jointDims) {
+        for (Integer[] jointDims : this.selectRule.jointDims) {
             if (jointDims == null || jointDims.length == 0) {
                 continue;
             }
 
             long joint = 0L;
             for (int i = 0; i < jointDims.length; i++) {
-                TblColRef hColumn = nCubePlan.getModel().findColumn(jointDims[i]);
-                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hColumn);
+                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(jointDims[i]);
                 long bit = 1L << index;
                 joint |= bit;
             }
@@ -190,14 +177,13 @@ public class NAggregationGroup implements Serializable {
     private void buildMandatoryColumnMask() {
         mandatoryColumnMask = 0L;
 
-        String[] mandatory_dims = this.selectRule.mandatoryDims;
+        Integer[] mandatory_dims = this.selectRule.mandatoryDims;
         if (mandatory_dims == null || mandatory_dims.length == 0) {
             return;
         }
 
-        for (String dim : mandatory_dims) {
-            TblColRef hColumn = nCubePlan.getModel().findColumn(dim);
-            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hColumn);
+        for (Integer dim : mandatory_dims) {
+            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(dim);
             mandatoryColumnMask |= (1L << index);
         }
     }
@@ -209,7 +195,7 @@ public class NAggregationGroup implements Serializable {
             return;
         }
 
-        for (String[] hierarchy_dims : this.selectRule.hierarchyDims) {
+        for (Integer[] hierarchy_dims : this.selectRule.hierarchyDims) {
             HierarchyMask mask = new HierarchyMask();
             if (hierarchy_dims == null || hierarchy_dims.length == 0) {
                 continue;
@@ -218,8 +204,7 @@ public class NAggregationGroup implements Serializable {
             ArrayList<Long> allMaskList = new ArrayList<Long>();
             ArrayList<Long> dimList = new ArrayList<Long>();
             for (int i = 0; i < hierarchy_dims.length; i++) {
-                TblColRef hColumn = nCubePlan.getModel().findColumn(hierarchy_dims[i]);
-                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hColumn);
+                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hierarchy_dims[i]);
                 long bit = 1L << index;
 
                 // combine joint as logic dim
@@ -252,16 +237,7 @@ public class NAggregationGroup implements Serializable {
             leftover &= ~hierarchyMask.fullMask;
         }
 
-        this.normalDimsMask = leftover;
         this.normalDims = bits(leftover);
-    }
-
-    private void buildHierarchyDimsMask() {
-        long ret = 0;
-        for (HierarchyMask mask : hierarchyMasks) {
-            ret |= mask.fullMask;
-        }
-        this.hierarchyDimsMask = ret;
     }
 
     private List<Long> bits(long x) {
@@ -290,78 +266,6 @@ public class NAggregationGroup implements Serializable {
     public List<HierarchyMask> getHierarchyMasks() {
         return hierarchyMasks;
     }
-
-    public int getBuildLevel() {
-        int ret = 1;//base cuboid => partial cube root
-        if (this.getPartialCubeFullMask() == nRuleBasedCuboidsDesc.getFullMask()) {
-            ret -= 1;//if partial cube's root is base cuboid, then one round less agg
-        }
-
-        ret += getNormalDims().size();
-        for (HierarchyMask hierarchyMask : this.hierarchyMasks) {
-            ret += hierarchyMask.allMasks.length;
-        }
-        for (Long joint : joints) {
-            if ((joint & this.getHierarchyDimsMask()) == 0) {
-                ret += 1;
-            }
-        }
-
-        return ret;
-    }
-
-    /** Compute cuboid combination for aggregation group */
-    public long calculateCuboidCombination() {
-        long combination = 1;
-
-        try {
-            if (this.getDimCap() > 0) {
-                NCuboidScheduler cuboidScheduler = nCubePlan.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler();
-                combination = cuboidScheduler.calculateCuboidsForAggGroup(this).size();
-            } else {
-                Set<String> includeDims = new TreeSet<>(Arrays.asList(includes));
-                Set<String> mandatoryDims = new TreeSet<>(Arrays.asList(selectRule.mandatoryDims));
-
-                Set<String> hierarchyDims = new TreeSet<>();
-                for (String[] ss : selectRule.hierarchyDims) {
-                    hierarchyDims.addAll(Arrays.asList(ss));
-                    combination = LongMath.checkedMultiply(combination, (ss.length + 1));
-                }
-
-                Set<String> jointDims = new TreeSet<>();
-                for (String[] ss : selectRule.jointDims) {
-                    jointDims.addAll(Arrays.asList(ss));
-                }
-                combination = LongMath.checkedMultiply(combination, (1L << selectRule.jointDims.length));
-
-                Set<String> normalDims = new TreeSet<>();
-                normalDims.addAll(includeDims);
-                normalDims.removeAll(mandatoryDims);
-                normalDims.removeAll(hierarchyDims);
-                normalDims.removeAll(jointDims);
-
-                combination = LongMath.checkedMultiply(combination, (1L << normalDims.size()));
-
-                if (nCubePlan.getConfig().getCubeAggrGroupIsMandatoryOnlyValid() && !mandatoryDims.isEmpty()) {
-                    combination += 1;
-                }
-                combination -= 1; // not include cuboid 0
-            }
-
-            if (combination < 0)
-                throw new ArithmeticException();
-
-        } catch (ArithmeticException ae) {
-            // long overflow, give max value
-            combination = Long.MAX_VALUE;
-        }
-
-        if (combination < 0) { // overflow
-            combination = Long.MAX_VALUE - 1;
-        }
-        return combination;
-    }
-
     public Long translateToOnTreeCuboid(long cuboidID) {
         if ((cuboidID & ~getPartialCubeFullMask()) > 0) {
             //the partial cube might not contain all required dims
@@ -414,7 +318,7 @@ public class NAggregationGroup implements Serializable {
                     return cuboidID | Long.lowestOneBit(nonJointNonHierarchy);
                 } else {
                     //choose from a hierarchy that does not intersect with any joint dim, only check level 1
-                    long allJointDims = getJointDimsMask();
+                    long allJointDims = jointDimsMask;
                     for (HierarchyMask hierarchyMask : getHierarchyMasks()) {
                         long dim = hierarchyMask.allMasks[0];
                         if ((dim & allJointDims) == 0) {
@@ -498,28 +402,8 @@ public class NAggregationGroup implements Serializable {
         return true;
     }
 
-    public void setIncludes(String[] includes) {
-        this.includes = includes;
-    }
-
-    public void setSelectRule(SelectRule selectRule) {
-        this.selectRule = selectRule;
-    }
-
     public List<Long> getJoints() {
         return joints;
-    }
-
-    public long getJointDimsMask() {
-        return jointDimsMask;
-    }
-
-    public long getNormalDimsMask() {
-        return normalDimsMask;
-    }
-
-    public long getHierarchyDimsMask() {
-        return hierarchyDimsMask;
     }
 
     public List<Long> getNormalDims() {
@@ -530,20 +414,13 @@ public class NAggregationGroup implements Serializable {
         return partialCubeFullMask;
     }
 
-    public String[] getIncludes() {
-        return includes;
-    }
-
+    //used by test
     public SelectRule getSelectRule() {
         return selectRule;
     }
 
     public boolean isMandatoryOnlyValid() {
         return isMandatoryOnlyValid;
-    }
-
-    public NCubePlan getnCubePlan() {
-        return nCubePlan;
     }
 
     public int getDimCap() {
