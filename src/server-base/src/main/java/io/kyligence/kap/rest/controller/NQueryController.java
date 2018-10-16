@@ -42,6 +42,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -146,8 +147,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getSavedQueries(@RequestParam(value = "project", required = false) String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit)
-            throws IOException {
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
@@ -163,21 +163,22 @@ public class NQueryController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
-                                              @RequestParam(value = "startTimeFrom", required = false, defaultValue = "-1") long startTimeFrom,
-                                              @RequestParam(value = "startTimeTo", required = false, defaultValue = "-1") long startTimeTo,
-                                              @RequestParam(value = "latencyFrom", required = false, defaultValue = "-1") long latencyFrom,
-                                              @RequestParam(value = "latencyTo", required = false, defaultValue = "-1") long latencyTo,
-                                              @RequestParam(value = "sql", required = false) String sql,
-                                              @RequestParam(value = "realization[]", required = false) List<String> realizations,
-                                              @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
-                                              @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-                                              @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit)
-            throws IOException {
+            @RequestParam(value = "startTimeFrom", required = false, defaultValue = "-1") long startTimeFrom,
+            @RequestParam(value = "startTimeTo", required = false, defaultValue = "-1") long startTimeTo,
+            @RequestParam(value = "latencyFrom", required = false, defaultValue = "-1") long latencyFrom,
+            @RequestParam(value = "latencyTo", required = false, defaultValue = "-1") long latencyTo,
+            @RequestParam(value = "sql", required = false) String sql,
+            @RequestParam(value = "realization[]", required = false) List<String> realizations,
+            @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
         HashMap<String, Object> data = new HashMap<>();
-        QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
+        QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(startTimeFrom, startTimeTo, latencyFrom,
+                latencyTo, sql, realizations, accelerateStatuses);
         List<QueryHistory> queryHistories;
         if (rule != null)
-            queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(rule), queryHistoryService.getQueryHistories(project));
+            queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(rule),
+                    queryHistoryService.getQueryHistories(project));
         else
             queryHistories = queryHistoryService.getQueryHistories(project);
 
@@ -241,6 +242,13 @@ public class NQueryController extends NBasicController {
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getMetadataV2(metaRequest.getProject()),
                 "");
+    }
+
+    @RequestMapping(value = "/statistics", method = RequestMethod.GET, params = { "start_time",
+            "end_time" }, produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse<List<QueryStatisticsResponse>> queryStatistics(@RequestParam("start_time") long startTime,
+            @RequestParam("end_time") long endTime) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getQueryStatistics(startTime, endTime), "");
     }
 
 }

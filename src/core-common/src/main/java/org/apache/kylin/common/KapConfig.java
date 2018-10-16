@@ -454,6 +454,18 @@ public class KapConfig {
         return config.getOptional("kap.metric.diagnosis.graph-writer-type", "BLACK_HOLE");
     }
 
+    public String influxdbAddress() {
+        return config.getOptional("kap.metric.diagnosis.influxDB-address", "localhost:8086");
+    }
+
+    public String influxdbUsername() {
+        return config.getOptional("kap.metric.diagnosis.influxDB-username", "root");
+    }
+
+    public String influxdbPassword() {
+        return config.getOptional("kap.metric.diagnosis.influxDB-password", "root");
+    }
+
     public String sparderJars() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",

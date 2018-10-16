@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.junit.After;
@@ -134,20 +135,31 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // exception case
         sqlResponse.setIsException(true);
 
+        sqlResponse.setHitExceptionCache(true);
+
         queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 0);
         QueryHistoryManager queryHistoryManager = QueryHistoryManager.getInstance(getTestConfig(), PROJECT);
         List<QueryHistory> queryHistories = queryHistoryManager.getAllQueryHistories();
         Assert.assertEquals(5, queryHistories.size());
         Assert.assertEquals(0L, queryHistories.get(queryHistories.size() - 1).getStartTime());
         Assert.assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(queryHistories.size() - 1).getQueryStatus());
+        Assert.assertEquals(true, queryHistories.get(queryHistories.size() - 1).isCacheHit());
 
         // push down case
-        sqlResponse = new SQLResponse(null, null, null, 0, false, null, true, true);
-        queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 1);
-        queryHistories = queryHistoryManager.getAllQueryHistories();
-        Assert.assertEquals(6, queryHistories.size());
-        Assert.assertEquals(1L, queryHistories.get(queryHistories.size() - 2).getStartTime());
-        Assert.assertEquals("[pushdown]", queryHistories.get(queryHistories.size() - 2).getRealization().toString());
+        try {
+            sqlResponse = new SQLResponse(null, null, null, 0, false, null, true, true);
+            QueryContext.current().setPushdownEngine(QueryContext.PUSHDOWN_RDBMS);
+            queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 1);
+            queryHistories = queryHistoryManager.getAllQueryHistories();
+            Assert.assertEquals(6, queryHistories.size());
+            Assert.assertEquals(1L, queryHistories.get(queryHistories.size() - 2).getStartTime());
+            Assert.assertEquals("[" + QueryContext.PUSHDOWN_RDBMS + "]",
+                    queryHistories.get(queryHistories.size() - 2).getRealization().toString());
+
+        } finally {
+            QueryContext.reset();
+        }
+
 
         sqlResponse = new SQLResponse(null, null, null, 0, false, null, true, false);
         queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, 2);

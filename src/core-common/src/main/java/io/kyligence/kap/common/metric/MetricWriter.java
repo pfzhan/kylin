@@ -29,7 +29,8 @@ import java.util.Map;
 import org.apache.commons.lang.StringUtils;
 
 public interface MetricWriter {
-    void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) throws Throwable;
+    void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics, long timestamp)
+            throws Throwable;
 
     String getType();
 
@@ -43,7 +44,7 @@ public interface MetricWriter {
                 type = Type.BLACK_HOLE.name();
             }
             if (type.equalsIgnoreCase(Type.INFLUX.name())) {
-                return InfluxDBWriter.INSTANCE;
+                return InfluxDBWriter.getInstance();
             } else if (type.equalsIgnoreCase(Type.CONSOLE.name())) {
                 return ConsoleWriter.INSTANCE;
             } else {

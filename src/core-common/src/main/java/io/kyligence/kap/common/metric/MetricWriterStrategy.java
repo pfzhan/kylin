@@ -27,7 +27,6 @@ package io.kyligence.kap.common.metric;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
@@ -36,33 +35,50 @@ import org.slf4j.LoggerFactory;
 public enum MetricWriterStrategy {
     INSTANCE;
     public static final Logger logger = LoggerFactory.getLogger(MetricWriterStrategy.class);
-    private static AtomicInteger retryTime = new AtomicInteger();
+    private static AtomicInteger failoverFlag = new AtomicInteger(0);
     private final static String CONFIG_KEY = "kap.metric.diagnosis.graph-writer-type";
 
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) {
+        write(dbName, measurement, tags, metrics, System.currentTimeMillis());
+    }
+
+    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics,
+            long timestamp) {
         try {
-            String type;
-            // In spark executor may can not get kylin config, use system property instead.
-            if (!StringUtils.isEmpty(KylinConfig.getKylinHomeWithoutWarn())) {
-                type = KapConfig.getInstanceFromEnv().diagnosisMetricWriterType();
-            } else {
-                type = System.getProperty(CONFIG_KEY);
-            }
-            MetricWriter writer = MetricWriter.Factory.getInstance(type);
+            MetricWriter writer = MetricWriter.Factory.getInstance(getType());
             logger.trace("Use writer:" + writer.getType());
-            writer.write(dbName, measurement, tags, metrics);
-            retryTime.set(0);
+            writer.write(dbName, measurement, tags, metrics, timestamp);
+
+            // reset failvoer flag
+            failoverFlag.set(0);
+
         } catch (Throwable th) {
-            if (retryTime.getAndIncrement() >= 10) {
-                logger.error("Write failed more than 10 times, change writer to black_hole");
-                if (!StringUtils.isEmpty(KylinConfig.getKylinHomeWithoutWarn())) {
-                    KylinConfig.getInstanceFromEnv().setProperty(CONFIG_KEY, "BLACK_HOLE");
-                } else {
-                    System.setProperty(CONFIG_KEY, "BLACK_HOLE");
-                }
-                return;
+            logger.error("Error when write metrics, increment failover flag, current value is {}",
+                    failoverFlag.incrementAndGet(), th);
+
+            if (failoverFlag.get() > 10) {
+                logger.error("Write failed more than 10 times, failover writer to 'BLACK_HOLE'");
+                failover();
             }
-            logger.error("Error when getting JVM info, error times:" + retryTime.get(), th);
+
+        }
+    }
+
+    private void failover() {
+        try {
+            KylinConfig.getInstanceFromEnv().setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
+        } catch (Exception e) {
+            // In spark executor may can not get kylin config, use system property instead.
+            System.setProperty(CONFIG_KEY, MetricWriter.Type.BLACK_HOLE.name());
+        }
+    }
+
+    private String getType() {
+        try {
+            return KapConfig.getInstanceFromEnv().diagnosisMetricWriterType();
+        } catch (Exception e) {
+            // In spark executor may can not get kylin config, use system property instead.
+            return System.getProperty(CONFIG_KEY);
         }
     }
 }

@@ -30,9 +30,9 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.Assert;
@@ -63,11 +63,16 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isInternalServerError())
+                .andExpect(MockMvcResultMatchers.status().isOk())
                 .andReturn();
 
-        Assert.assertTrue(result.getResolvedException() instanceof InternalErrorException);
-        Assert.assertTrue(StringUtils.contains(result.getResolvedException().getMessage(), "No realization found for OLAPContext"));
+
+
+        final boolean isException = JsonPath.compile("$.data.isException").read(result.getResponse().getContentAsString());
+        Assert.assertTrue(isException);
+
+        final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage").read(result.getResponse().getContentAsString());
+        Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
 
         QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig(), "default");
         List<QueryHistory> queryHistories = manager.getAllQueryHistories();
@@ -131,7 +136,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         // assert if query history was saved
         Assert.assertEquals(5, queryHistories.size());
         Assert.assertEquals(sqlRequest.getSql(), newRecordedQuery.getSql());
-        Assert.assertEquals(QueryHistory.ADJ_PUSHDOWN, newRecordedQuery.getRealization().get(0));
+        Assert.assertEquals(QueryContext.PUSHDOWN_RDBMS, newRecordedQuery.getRealization().get(0));
         Assert.assertEquals(totalScanCount, newRecordedQuery.getTotalScanCount());
         Assert.assertEquals(totalScanBytes, newRecordedQuery.getTotalScanBytes());
 

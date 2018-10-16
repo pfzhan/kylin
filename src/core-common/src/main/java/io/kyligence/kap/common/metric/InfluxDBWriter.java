@@ -24,14 +24,14 @@
 
 package io.kyligence.kap.common.metric;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.BatchOptions;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Pong;
+import org.apache.kylin.common.KapConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,69 +39,136 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Point;
 
-public enum InfluxDBWriter implements MetricWriter {
-    INSTANCE;
+public class InfluxDBWriter implements MetricWriter {
+
     private static final Logger logger = LoggerFactory.getLogger(InfluxDBWriter.class);
-    private static volatile InfluxDB influxDB;
+
+    public static final String DEFAULT_DATABASE = "KE_METRIC";
+    public static final String DEFAULT_RP = "KE_METRIC_RP";
+
     private static volatile ScheduledExecutorService scheduledExecutorService;
 
-    private static InfluxDB getInfluxDBIns() throws UnknownHostException {
-        if (influxDB == null) {
+    private static volatile InfluxDB influxDB;
+
+    private static volatile InfluxDBWriter INSTANCE;
+
+    private static volatile boolean isConnected = false;
+
+    public static InfluxDBWriter getInstance() {
+        if (INSTANCE == null) {
             synchronized (InfluxDBWriter.class) {
-                if (influxDB == null) {
-                    String addr = System.getProperty("influxDB.address");
-                    if (StringUtils.isBlank(addr)) {
-                        addr = InetAddress.getLocalHost().getHostName() + ":8085";
-                    }
-                    logger.info("The influx DB' address is:" + addr);
-                    influxDB = InfluxDBFactory.connect("http://" + addr, "root", "root");
-                    logger.info("Create influxDB Database KAP_METRIC");
-                    influxDB.createDatabase("KAP_METRIC");
-                    influxDB.enableBatch(2000, 100, TimeUnit.MILLISECONDS);
-                    logger.info(influxDB.ping().toString());
-                    monitorInfluxDB();
+                if (INSTANCE != null) {
+                    return INSTANCE;
                 }
+
+                startMonitorInfluxDB();
+                INSTANCE = new InfluxDBWriter();
             }
         }
-        return influxDB;
+
+        return INSTANCE;
     }
 
-    private static void monitorInfluxDB() {
-        if (scheduledExecutorService == null) {
-            scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-            logger.info("Start to ping influxDB");
-            scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        if (influxDB != null) {
-                            logger.info("ping influxDB");
-                            influxDB.ping();
-                        }
-                    } catch (Throwable th) {
-                        logger.info("lost influxDB, close existing instance.");
-                        influxDB.close();
-                        influxDB = null;
-                    }
-                }
-            }, 10, 60, TimeUnit.SECONDS);
+    private InfluxDBWriter() {
+        tryConnectInfluxDB();
+
+        getInfluxDB().setDatabase(DEFAULT_DATABASE);
+        getInfluxDB().setRetentionPolicy(DEFAULT_RP);
+
+        // enable async write. max batch size 1000, flush duration 3s.
+        // when bufferLimit > actions，#RetryCapableBatchWriter will be used
+        getInfluxDB().enableBatch(
+                BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000).flushDuration(3000).jitterDuration(500));
+
+        if (!getInfluxDB().databaseExists(DEFAULT_DATABASE)) {
+            logger.info("Create influxDB Database {}", DEFAULT_DATABASE);
+            getInfluxDB().createDatabase(DEFAULT_DATABASE);
+
+            // create retention policy and use it as the default
+            logger.info("Create influxDB retention policy '{}' on database '{}'", DEFAULT_RP, DEFAULT_DATABASE);
+            getInfluxDB().createRetentionPolicy(DEFAULT_RP, DEFAULT_DATABASE, "30d", "7d", 1, true);
         }
     }
 
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields) throws Throwable {
-        logger.trace("Start to send to influx DB");
-        InfluxDB instance = getInfluxDBIns();
-        if (instance == null) {
+    private static void startMonitorInfluxDB() {
+        if (scheduledExecutorService != null) {
             return;
         }
 
+        logger.info("Start to monitor influxDB");
+        scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+        scheduledExecutorService.scheduleAtFixedRate(new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    tryConnectInfluxDB();
+
+                    if (!Type.INFLUX.name().equals(System.getProperty("kap.metric.diagnosis.graph-writer-type"))) {
+                        // failback to 'INFLUX', reset "kap.metric.diagnosis.graph-writer-type" to "INFLUX"
+                        logger.info("failback to 'INFLUX'");
+                        System.setProperty("kap.metric.diagnosis.graph-writer-type", Type.INFLUX.name());
+                    }
+
+                } catch (Exception ex) {
+                    logger.error("monitor influxDB error", ex);
+                }
+            }
+        }, 60, 60, TimeUnit.SECONDS);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+            @Override
+            public void run() {
+                getInfluxDB().close();
+                scheduledExecutorService.shutdownNow();
+                logger.info("Shutdown influxdb writer");
+            }
+        }));
+    }
+
+    private static void tryConnectInfluxDB() {
+        try {
+            final Pong pong = getInfluxDB().ping();
+            logger.info("Connected influxDB successful. [{}]", pong);
+            isConnected = true;
+        } catch (Throwable th) {
+            isConnected = false;
+            throw new RuntimeException("Can not connected to influxDB", th);
+        }
+    }
+
+    @Override
+    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
+            long timestamp) throws Throwable {
+        if (!isConnected) {
+            throw new IllegalStateException("Unable to got Influxdb connection");
+        }
+
         Point p = Point.measurement(measurement) //
-                .time(System.currentTimeMillis(), TimeUnit.MILLISECONDS) //
+                .time(timestamp, TimeUnit.MILLISECONDS) //
                 .tag(tags) //
                 .fields(fields) //
                 .build(); //
-        instance.write(dbName, "autogen", p);
-        logger.trace("finished to send to influx DB");
+
+        getInfluxDB().write(p);
+    }
+
+    private static InfluxDB getInfluxDB() {
+        if (influxDB == null) {
+            synchronized (InfluxDBWriter.class) {
+                if (influxDB != null) {
+                    return influxDB;
+                }
+
+                final String addr = KapConfig.getInstanceFromEnv().influxdbAddress();
+                final String username = KapConfig.getInstanceFromEnv().influxdbUsername();
+                final String password = KapConfig.getInstanceFromEnv().influxdbPassword();
+                logger.info("Init influxDB, address [{}], username [{}], password [{}]", addr, username, password);
+                influxDB = InfluxDBFactory.connect("http://" + addr, username, password);
+            }
+        }
+
+        return influxDB;
     }
 
     @Override

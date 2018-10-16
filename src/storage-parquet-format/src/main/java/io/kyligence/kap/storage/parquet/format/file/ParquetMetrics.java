@@ -192,7 +192,7 @@ public class ParquetMetrics {
             fields.putAll(getMetric());
 
             MetricWriterStrategy writer = MetricWriterStrategy.INSTANCE;
-            writer.write("KAP_METRIC", "parquet_metric", tags, fields);
+            writer.write("KE_METRIC", "parquet_metric", tags, fields);
         } catch (Throwable th) {
             logger.error("Metric write error.", th);
         }

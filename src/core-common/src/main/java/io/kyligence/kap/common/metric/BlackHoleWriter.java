@@ -30,7 +30,8 @@ public enum BlackHoleWriter implements MetricWriter {
     INSTANCE;
 
     @Override
-    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics) throws Throwable {
+    public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> metrics,
+                      long timestamp) throws Throwable {
     }
 
     @Override

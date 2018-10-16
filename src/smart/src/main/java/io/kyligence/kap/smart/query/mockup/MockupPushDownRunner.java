@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.query.mockup;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 
@@ -43,5 +44,10 @@ public class MockupPushDownRunner implements IPushDownRunner {
     @Override
     public void executeUpdate(String sql) throws Exception {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getName() {
+        return QueryContext.PUSHDOWN_MOCKUP;
     }
 }

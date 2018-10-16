@@ -52,6 +52,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
@@ -127,5 +128,10 @@ public class PushDownRunnerJdbcImpl implements IPushDownRunner {
             results.add(new LinkedList<String>(oneRow));
             oneRow.clear();
         }
+    }
+
+    @Override
+    public String getName() {
+        return QueryContext.PUSHDOWN_RDBMS;
     }
 }

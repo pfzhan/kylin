@@ -89,6 +89,8 @@ public class SQLResponse implements Serializable {
 
     protected long totalScanBytes;
 
+    protected long resultRowCount;
+
     protected boolean hitExceptionCache = false;
 
     protected boolean storageCacheUsed = false;
@@ -98,6 +100,10 @@ public class SQLResponse implements Serializable {
     protected byte[] queryStatistics;
 
     protected String traceUrl = null;
+
+    protected String queryId;
+
+    protected List<String> answeredBy;
 
     public SQLResponse() {
     }
@@ -109,6 +115,9 @@ public class SQLResponse implements Serializable {
         this.affectedRowCount = affectedRowCount;
         this.isException = isException;
         this.exceptionMessage = exceptionMessage;
+        if(results != null){
+            this.resultRowCount = results.size();
+        }
     }
 
     public SQLResponse(List<SelectedColumnMeta> columnMetas, List<List<String>> results, String cube,
@@ -121,6 +130,9 @@ public class SQLResponse implements Serializable {
         this.exceptionMessage = exceptionMessage;
         this.isPartial = isPartial;
         this.queryPushDown = isPushDown;
+        if(results != null){
+            this.resultRowCount = results.size();
+        }
     }
 
     public List<SelectedColumnMeta> getColumnMetas() {
@@ -229,4 +241,27 @@ public class SQLResponse implements Serializable {
         this.traceUrl = traceUrl;
     }
 
+    public String getQueryId() {
+        return queryId;
+    }
+
+    public void setQueryId(String queryId) {
+        this.queryId = queryId;
+    }
+
+    public List<String> getAnsweredBy() {
+        return answeredBy;
+    }
+
+    public void setAnsweredBy(List<String> answeredBy) {
+        this.answeredBy = answeredBy;
+    }
+
+    public long getResultRowCount() {
+        return resultRowCount;
+    }
+
+    public void setResultRowCount(long resultRowCount) {
+        this.resultRowCount = resultRowCount;
+    }
 }

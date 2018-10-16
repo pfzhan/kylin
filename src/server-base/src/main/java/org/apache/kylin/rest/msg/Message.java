@@ -495,4 +495,10 @@ public class Message {
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
         return "Current number of unAccelerated favorite queries has not reached to '%s' ";
     }
+
+    // Query statistics
+
+    public String getNOT_SET_INFLUXDB(){
+        return "Not set kap.metric.diagnosis.graph-writer-type to 'INFLUX'";
+    }
 }

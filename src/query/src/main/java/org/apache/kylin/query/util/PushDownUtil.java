@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -69,6 +69,7 @@ import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -87,17 +88,17 @@ public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownSelectQuery(String project, String sql,
-            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
+                                                                                            String defaultSchema, SQLException sqlException, boolean isPrepare) throws Exception {
         return tryPushDownQuery(project, sql, defaultSchema, sqlException, true, isPrepare);
     }
 
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownNonSelectQuery(String project,
-            String sql, String defaultSchema, boolean isPrepare) throws Exception {
+                                                                                               String sql, String defaultSchema, boolean isPrepare) throws Exception {
         return tryPushDownQuery(project, sql, defaultSchema, null, false, isPrepare);
     }
 
     private static Pair<List<List<String>>, List<SelectedColumnMeta>> tryPushDownQuery(String project, String sql,
-            String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
+                                                                                       String defaultSchema, SQLException sqlException, boolean isSelect, boolean isPrepare) throws Exception {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
@@ -153,6 +154,8 @@ public class PushDownUtil {
         if (!isSelect && !isPrepare && kylinConfig.isPushDownUpdateEnabled()) {
             runner.executeUpdate(sql);
         }
+
+        QueryContext.current().setPushdownEngine(runner.getName());
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
@@ -167,12 +170,12 @@ public class PushDownUtil {
         if (!isPushDownUpdateEnabled) {
             return rootCause != null //
                     && (rootCause instanceof NoRealizationFoundException //
-                            || rootCause instanceof RoutingIndicatorException); //
+                    || rootCause instanceof RoutingIndicatorException); //
         } else {
             return (rootCause != null //
                     && (rootCause instanceof NoRealizationFoundException //
-                            || rootCause instanceof SqlValidatorException //
-                            || rootCause instanceof RoutingIndicatorException)); //
+                    || rootCause instanceof SqlValidatorException //
+                    || rootCause instanceof RoutingIndicatorException)); //
         }
     }
 

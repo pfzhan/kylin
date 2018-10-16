@@ -47,6 +47,7 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import net.sf.ehcache.CacheManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
@@ -165,8 +166,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
 
+        final String expectedQueryID = QueryContext.current().getQueryId();
+
         final SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, response.isPushDown());
+        Assert.assertEquals(expectedQueryID, response.getQueryId());
 
     }
 
@@ -180,11 +184,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         request.setProject(project);
         request.setSql(sql);
 
+        String expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
-        Assert.assertEquals(false, firstSuccess.isStorageCacheUsed());
+        Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
 
+        expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
+        Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
 
 
     }
@@ -201,17 +208,21 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         stubQueryConnectionException(project);
         try {
+            final String expectedQueryID = QueryContext.current().getQueryId();
             final SQLResponse response = queryService.doQueryWithCache(request, false);
             Assert.assertEquals(false, response.isHitExceptionCache());
             Assert.assertEquals(true, response.getIsException());
+            Assert.assertEquals(expectedQueryID, response.getQueryId());
         } catch (InternalErrorException ex) {
             // ignore
         }
 
         try {
+            final String expectedQueryID = QueryContext.current().getQueryId();
             final SQLResponse response = queryService.doQueryWithCache(request, false);
             Assert.assertEquals(true, response.isHitExceptionCache());
             Assert.assertEquals(true, response.getIsException());
+            Assert.assertEquals(expectedQueryID, response.getQueryId());
         } catch (InternalErrorException ex) {
             // ignore
         }

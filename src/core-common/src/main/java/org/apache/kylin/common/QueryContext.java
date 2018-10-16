@@ -52,6 +52,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class QueryContext {
 
+    public static final String PUSHDOWN_RDBMS = "RDBMS";
+    public static final String PUSHDOWN_HIVE = "HIVE";
+    public static final String PUSHDOWN_MOCKUP = "MOCKUP";
+
     private static final ThreadLocal<QueryContext> contexts = new ThreadLocal<QueryContext>() {
         @Override
         protected QueryContext initialValue() {
@@ -66,15 +70,24 @@ public class QueryContext {
     private AtomicLong scannedBytes = new AtomicLong();
 
     private Object calcitePlan;
+    private long queryStartMillis;
+
+    private Throwable errorCause;
+
+    private String pushdownEngine;
 
     private QueryContext() {
         // use QueryContext.current() instead
-
+        queryStartMillis = System.currentTimeMillis();
         queryId = UUID.randomUUID().toString();
     }
 
     public static QueryContext current() {
         return contexts.get();
+    }
+
+    public long getQueryStartMillis() {
+        return queryStartMillis;
     }
 
     public static void reset() {
@@ -127,5 +140,21 @@ public class QueryContext {
 
     public void setCalcitePlan(Object calcitePlan) {
         this.calcitePlan = calcitePlan;
+    }
+    
+    public Throwable getErrorCause() {
+        return errorCause;
+    }
+
+    public void setErrorCause(Throwable errorCause) {
+        this.errorCause = errorCause;
+    }
+
+    public String getPushdownEngine() {
+        return pushdownEngine;
+    }
+
+    public void setPushdownEngine(String pushdownEngine) {
+        this.pushdownEngine = pushdownEngine;
     }
 }

@@ -45,6 +45,7 @@ package io.kyligence.kap.metadata.query;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -93,6 +94,9 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
     private long resultRowCount;
     @JsonProperty("cube_hit")
     private boolean isCubeHit = false;
+    @JsonProperty("cache_hit")
+    private boolean cacheHit = false;
+
 
     public QueryHistory(String queryId, String sql, long startTime, long latency, String queryNode, String thread,
                         String user) {
@@ -252,6 +256,14 @@ public class QueryHistory extends RootPersistentEntity implements Comparable<Que
 
     public void setCubeHit(boolean cubeHit) {
         isCubeHit = cubeHit;
+    }
+
+    public boolean isCacheHit() {
+        return cacheHit;
+    }
+
+    public void setCacheHit(boolean cacheHit) {
+        this.cacheHit = cacheHit;
     }
 
     @Override

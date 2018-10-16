@@ -478,4 +478,10 @@ public class CnMessage extends Message {
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
         return "目前待加速的加速查询未达到 '%s' 条";
     }
+
+    // Query statistics
+
+    public String getNOT_SET_INFLUXDB(){
+        return "未设置参数 kap.metric.diagnosis.graph-writer-type 为 'INFLUX'";
+    }
 }

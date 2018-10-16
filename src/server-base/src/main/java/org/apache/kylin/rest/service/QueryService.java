@@ -30,9 +30,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -71,6 +71,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
@@ -327,6 +328,10 @@ public class QueryService extends BasicService {
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
         stringBuilder.append("==========================[QUERY]===============================").append(newLine);
 
+        if (QueryMetricsContext.isStarted()) {
+            QueryMetricsContext.log(stringBuilder.toString());
+        }
+
         logger.info(stringBuilder.toString());
     }
 
@@ -352,6 +357,7 @@ public class QueryService extends BasicService {
             BackdoorToggles.addToggles(sqlRequest.getBackdoorToggles());
 
         final QueryContext queryContext = QueryContext.current();
+        QueryMetricsContext.start(queryContext.getQueryId());
 
         TraceScope scope = null;
         if (kylinConfig.isHtraceTracingEveryQuery() || BackdoorToggles.getHtraceEnabled()) {
@@ -400,24 +406,29 @@ public class QueryService extends BasicService {
             } else {
                 Trace.addTimelineAnnotation("response without real execution");
             }
+            sqlResponse.setQueryId(QueryContext.current().getQueryId());
             sqlResponse.setDuration(System.currentTimeMillis() - startTime);
             sqlResponse.setTraceUrl(traceUrl);
             logQuery(sqlRequest, sqlResponse);
 
-            recordMetric(sqlRequest, sqlResponse);
+            try {
+                recordMetric(sqlRequest, sqlResponse);
+            } catch (Throwable th) {
+                logger.warn("Write metric error.", th);
+            }
 
             if (!isCreateTempStatement && !isQueryInspect) {
                 queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, startTime);
             }
-
-            if (sqlResponse.getIsException())
-                throw new InternalErrorException(sqlResponse.getExceptionMessage());
 
             return sqlResponse;
 
         } finally {
             BackdoorToggles.cleanToggles();
             QueryContext.reset();
+            if (QueryMetricsContext.isStarted()) {
+                QueryMetricsContext.reset();
+            }
             if (scope != null) {
                 scope.close();
             }
@@ -475,6 +486,8 @@ public class QueryService extends BasicService {
 
             sqlResponse = new SQLResponse(null, null, null, 0, true, errMsg, false, false);
             QueryContext queryContext = QueryContext.current();
+            queryContext.setErrorCause(e);
+            sqlResponse.setQueryId(queryContext.getQueryId());
             sqlResponse.setTotalScanCount(queryContext.getScannedRows());
             sqlResponse.setTotalScanBytes(queryContext.getScannedBytes());
 
@@ -894,8 +907,8 @@ public class QueryService extends BasicService {
         } catch (SQLException sqlException) {
             Pair<List<List<String>>, List<SelectedColumnMeta>> r = null;
             try {
-                r = tryPushDownSelectQuery(sqlRequest.getProject(), correctedSql, conn.getSchema(),
-                        sqlException, BackdoorToggles.getPrepareOnly());
+                r = tryPushDownSelectQuery(sqlRequest.getProject(), correctedSql, conn.getSchema(), sqlException,
+                        BackdoorToggles.getPrepareOnly());
             } catch (Exception e2) {
                 logger.error("pushdown engine failed current query too", e2);
                 //exception in pushdown, throw it instead of exception in calcite
@@ -980,11 +993,13 @@ public class QueryService extends BasicService {
             List<SelectedColumnMeta> columnMetas) {
 
         boolean isPartialResult = false;
+        List<String> models = Lists.newArrayList();
         StringBuilder cubeSb = new StringBuilder();
         StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
         if (OLAPContext.getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                 if (ctx.realization != null) {
+                    models.add(ctx.realization.getModel().getName());
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     if (cubeSb.length() > 0) {
                         cubeSb.append(",");
@@ -998,8 +1013,14 @@ public class QueryService extends BasicService {
 
         SQLResponse response = new SQLResponse(columnMetas, results, cubeSb.toString(), 0, false, null, isPartialResult,
                 isPushDown);
+        response.setQueryId(QueryContext.current().getQueryId());
         response.setTotalScanCount(QueryContext.current().getScannedRows());
         response.setTotalScanBytes(QueryContext.current().getScannedBytes());
+        if (isPushDown) {
+            response.setAnsweredBy(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
+        } else {
+            response.setAnsweredBy(models);
+        }
         return response;
     }
 

@@ -74,4 +74,6 @@ public interface IPushDownRunner {
      */
     void executeUpdate(String sql) throws Exception;
 
+    String getName();
+
 }

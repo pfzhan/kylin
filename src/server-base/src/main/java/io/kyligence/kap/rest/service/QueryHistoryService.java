@@ -74,6 +74,10 @@ public class QueryHistoryService extends BasicService {
         queryHistory.setTotalScanBytes(sqlResponse.getTotalScanBytes());
         queryHistory.setTotalScanCount(sqlResponse.getTotalScanCount());
 
+        if (sqlResponse.isHitExceptionCache() || sqlResponse.isStorageCacheUsed()) {
+            queryHistory.setCacheHit(true);
+        }
+
         if (sqlResponse.getIsException()) {
             queryHistory.setQueryStatus(QueryHistoryStatusEnum.FAILED);
             queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
@@ -85,7 +89,7 @@ public class QueryHistoryService extends BasicService {
             queryHistory.setResultRowCount(sqlResponse.getResults().size());
 
         if (sqlResponse.isPushDown()) {
-            queryHistory.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+            queryHistory.setRealization(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
             queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
         } else {
             queryHistory.setCubeHit(true);
@@ -122,39 +126,44 @@ public class QueryHistoryService extends BasicService {
         return getQueryHistoryManager(project).getAllQueryHistories();
     }
 
-    private boolean compare(final QueryFilterRule.QueryHistoryCond cond, QueryHistory queryHistory, List<QueryHistory> queryHistories) {
+    private boolean compare(final QueryFilterRule.QueryHistoryCond cond, QueryHistory queryHistory,
+            List<QueryHistory> queryHistories) {
         switch (cond.getField()) {
-            case QueryFilterRule.START_TIME:
-                return queryHistory.getStartTime() > Long.valueOf(cond.getLeftThreshold()) && queryHistory.getStartTime() < Long.valueOf(cond.getRightThreshold());
-            case QueryFilterRule.FREQUENCY:
-                return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) > Integer.valueOf(cond.getRightThreshold());
-            case QueryFilterRule.LATENCY:
-                if (cond.getLeftThreshold() == null)
-                    return queryHistory.getLatency() > Long.valueOf(cond.getRightThreshold())*1000L;
-                else
-                    return queryHistory.getLatency() > Long.valueOf(cond.getLeftThreshold())*1000L && queryHistory.getLatency() < Long.valueOf(cond.getRightThreshold())*1000L;
-            case QueryFilterRule.ACCELERATE_STATUS:
-                if (queryHistory.getAccelerateStatus() == null)
-                    return false;
-                return queryHistory.getAccelerateStatus().equals(cond.getRightThreshold());
-            case QueryFilterRule.SQL:
-                return queryHistory.getSql().contains(cond.getRightThreshold());
-            case QueryFilterRule.ANSWERED_BY:
-                if (queryHistory.getRealization() == null)
-                    return false;
-                if (cond.getRightThreshold().equals(QueryHistory.ADJ_PUSHDOWN))
-                    return queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-                else if (cond.getRightThreshold().equals("model"))
-                    return !queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+        case QueryFilterRule.START_TIME:
+            return queryHistory.getStartTime() > Long.valueOf(cond.getLeftThreshold())
+                    && queryHistory.getStartTime() < Long.valueOf(cond.getRightThreshold());
+        case QueryFilterRule.FREQUENCY:
+            return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) > Integer
+                    .valueOf(cond.getRightThreshold());
+        case QueryFilterRule.LATENCY:
+            if (cond.getLeftThreshold() == null)
+                return queryHistory.getLatency() > Long.valueOf(cond.getRightThreshold()) * 1000L;
+            else
+                return queryHistory.getLatency() > Long.valueOf(cond.getLeftThreshold()) * 1000L
+                        && queryHistory.getLatency() < Long.valueOf(cond.getRightThreshold()) * 1000L;
+        case QueryFilterRule.ACCELERATE_STATUS:
+            if (queryHistory.getAccelerateStatus() == null)
                 return false;
-            case QueryFilterRule.USER:
-                return queryHistory.getUser().equals(cond.getRightThreshold());
-            default:
-                throw new IllegalArgumentException(String.format("The field of %s is not yet supported.", cond.getField()));
+            return queryHistory.getAccelerateStatus().equals(cond.getRightThreshold());
+        case QueryFilterRule.SQL:
+            return queryHistory.getSql().contains(cond.getRightThreshold());
+        case QueryFilterRule.ANSWERED_BY:
+            if (queryHistory.getRealization() == null)
+                return false;
+            if (cond.getRightThreshold().equals(QueryHistory.ADJ_PUSHDOWN))
+                return queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+            else if (cond.getRightThreshold().equals("model"))
+                return !queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+            return false;
+        case QueryFilterRule.USER:
+            return queryHistory.getUser().equals(cond.getRightThreshold());
+        default:
+            throw new IllegalArgumentException(String.format("The field of %s is not yet supported.", cond.getField()));
         }
     }
 
-    public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules, final List<QueryHistory> queryHistories) throws IOException {
+    public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules,
+            final List<QueryHistory> queryHistories) throws IOException {
         List<Predicate<QueryHistory>> andPredicates = Lists.newArrayList();
         List<Predicate<QueryHistory>> orPredicates = Lists.newArrayList();
         Predicate<QueryHistory> predicate = null;
@@ -205,7 +214,8 @@ public class QueryHistoryService extends BasicService {
         Calendar queryStartTime = Calendar.getInstance();
         for (QueryHistory queryHistory : queryHistories) {
             queryStartTime.setTime(new Date(queryHistory.getStartTime()));
-            if (now.get(Calendar.YEAR) == queryStartTime.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == queryStartTime.get(Calendar.DAY_OF_YEAR)) {
+            if (now.get(Calendar.YEAR) == queryStartTime.get(Calendar.YEAR)
+                    && now.get(Calendar.DAY_OF_YEAR) == queryStartTime.get(Calendar.DAY_OF_YEAR)) {
                 sqls.add(queryHistory.getSql());
             }
         }
@@ -213,7 +223,8 @@ public class QueryHistoryService extends BasicService {
         return sqls;
     }
 
-    public QueryFilterRule parseQueryFilterRuleRequest(long startTimeFrom, long startTimeTo, long latencyFrom, long latencyTo, String sql, List<String> realizations, List<String> accelerateStatuses) {
+    public QueryFilterRule parseQueryFilterRuleRequest(long startTimeFrom, long startTimeTo, long latencyFrom,
+            long latencyTo, String sql, List<String> realizations, List<String> accelerateStatuses) {
         List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList();
         if (startTimeFrom != -1 && startTimeTo != -1) {
             QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
@@ -246,11 +257,12 @@ public class QueryHistoryService extends BasicService {
                     if (realization.equals(QueryHistory.ADJ_PUSHDOWN)) {
                         cond.setRightThreshold(QueryHistory.ADJ_PUSHDOWN);
                         conds.add(cond);
-                    } else if(realization.equals("modelName")) {
+                    } else if (realization.equals("modelName")) {
                         cond.setRightThreshold("model");
                         conds.add(cond);
                     } else
-                        throw new IllegalArgumentException(String.format("Not supported filter condition: %s", realization));
+                        throw new IllegalArgumentException(
+                                String.format("Not supported filter condition: %s", realization));
                 }
             }
 

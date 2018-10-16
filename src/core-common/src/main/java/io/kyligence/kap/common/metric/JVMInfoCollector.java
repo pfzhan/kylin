@@ -48,7 +48,7 @@ public class JVMInfoCollector {
     private static volatile boolean isStarted = false;
 
     public static final Logger logger = LoggerFactory.getLogger(JVMInfoCollector.class);
-    private static final String DB = "KAP_METRIC";
+    private static final String DB = "KE_METRIC";
     private static final Set youngGCAlgorithm = Sets.newHashSet("Copy", "ParNew", "PS Scavenge", "G1 Young Generation");
     private static final Set oldGCAlgorithm = Sets.newHashSet("MarkSweepCompact", "PS MarkSweep", "ConcurrentMarkSweep", "G1 Old Generation");
     private static final String MEASURE_GC = "gc";
