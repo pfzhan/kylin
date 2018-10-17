@@ -56,6 +56,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -99,9 +100,11 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.EqualsAndHashCode;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
 
@@ -115,24 +118,31 @@ public class NDataModel extends RootPersistentEntity {
 
     private KylinConfig config;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("name")
     private String name;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("alias")
     private String alias;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("owner")
     private String owner;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("is_draft")
     private boolean isDraft;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("description")
     private String description;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("fact_table")
     private String rootFactTable;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("lookups")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private JoinTableDesc[] joinTables;
@@ -141,28 +151,39 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private JoinTableDesc[] deprecatedLookups; // replaced by "join_tables" since KYLIN-1875
 
+    @EqualsAndHashCode.Include
     @JsonProperty("dimensions")
     private List<ModelDimensionDesc> dimensions;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("metrics")
     private String[] metrics;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("filter_condition")
     private String filterCondition;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_desc")
     PartitionDesc partitionDesc;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("capacity")
     private RealizationCapacity capacity = RealizationCapacity.MEDIUM;
 
     // computed attributes
     private TableRef rootFactTableRef;
+
     private Set<TableRef> factTableRefs = Sets.newLinkedHashSet();
+
     private Set<TableRef> lookupTableRefs = Sets.newLinkedHashSet();
+
     private Set<TableRef> allTableRefs = Sets.newLinkedHashSet();
+
     private Map<String, TableRef> aliasMap = Maps.newHashMap(); // alias => TableRef, a table has exactly one alias
+
     private Map<String, TableRef> tableNameMap = Maps.newHashMap(); // name => TableRef, a table maybe referenced by multiple names
+
     private JoinsTree joinsTree;
 
     /**
@@ -191,7 +212,6 @@ public class NDataModel extends RootPersistentEntity {
         this.colCorrs = other.colCorrs;
         this.mpColStrs = other.mpColStrs;
         this.computedColumnDescs = other.computedColumnDescs;
-
     }
 
     public KylinConfig getConfig() {
@@ -791,30 +811,6 @@ public class NDataModel extends RootPersistentEntity {
         return this.errors;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        NDataModel modelDesc = (NDataModel) o;
-
-        if (!name.equals(modelDesc.name))
-            return false;
-        if (!getRootFactTable().equals(modelDesc.getRootFactTable()))
-            return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = 0;
-        result = 31 * result + name.hashCode();
-        result = 31 * result + getRootFactTable().hashCode();
-        return result;
-    }
 
     @Override
     public String toString() {
@@ -845,24 +841,8 @@ public class NDataModel extends RootPersistentEntity {
         return NProjectManager.getInstance(getConfig()).getProject(project);
     }
 
-    public static NDataModel copy(NDataModel orig, NDataModel copy) {
-        copy.config = orig.config;
-        copy.name = orig.name;
-        copy.isDraft = orig.isDraft;
-        copy.owner = orig.owner;
-        copy.description = orig.description;
-        copy.rootFactTable = orig.rootFactTable;
-        copy.joinTables = orig.joinTables;
-        copy.dimensions = orig.dimensions;
-        copy.metrics = orig.metrics;
-        copy.filterCondition = orig.filterCondition;
-        copy.capacity = orig.capacity;
-        copy.lastModified = orig.lastModified;
-        if (orig.getPartitionDesc() != null) {
-            copy.partitionDesc = PartitionDesc.getCopyOf(orig.getPartitionDesc());
-        }
-        copy.updateRandomUuid();
-        return copy;
+    public NDataModel copy() {
+        return getCopyOf(this);
     }
 
     // TODO: newten:
@@ -870,19 +850,24 @@ public class NDataModel extends RootPersistentEntity {
     public static final int MEASURE_ID_BASE = 1000;
 
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+    @EqualsAndHashCode
     public static class NamedColumn implements Serializable, IKeep {
         @JsonProperty("id")
         public int id;
+
         @JsonProperty("name")
         public String name;
+
         @JsonProperty("column")
         public String aliasDotColumn;
         // logical delete symbol
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public boolean tomb = false;
+
     }
 
+    @EqualsAndHashCode
     public static class Measure extends MeasureDesc implements IKeep {
         @JsonProperty("id")
         public int id;
@@ -890,9 +875,11 @@ public class NDataModel extends RootPersistentEntity {
         @JsonProperty("tomb")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
         public boolean tomb = false;
+
     }
 
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+    @EqualsAndHashCode
     public static class ColumnCorrelation implements Serializable, IKeep {
         @JsonProperty("name")
         public String name;
@@ -902,26 +889,32 @@ public class NDataModel extends RootPersistentEntity {
         public String[] aliasDotColumns;
 
         public TblColRef[] cols;
+
     }
 
     // ============================================================================
 
+    @EqualsAndHashCode.Include
     @JsonProperty("all_named_columns")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NamedColumn> allNamedColumns = new ArrayList<>(); // including deleted ones
 
+    @EqualsAndHashCode.Include
     @JsonProperty("all_measures")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Measure> allMeasures = new ArrayList<>(); // including deleted ones
 
+    @EqualsAndHashCode.Include
     @JsonProperty("column_correlations")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<ColumnCorrelation> colCorrs = new ArrayList<>();
 
+    @EqualsAndHashCode.Include
     @JsonProperty("multilevel_partition_cols")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private String[] mpColStrs = new String[0];
 
+    @EqualsAndHashCode.Include
     @JsonProperty("computed_columns")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
@@ -935,7 +928,7 @@ public class NDataModel extends RootPersistentEntity {
     private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
     private TblColRef[] mpCols;
 
-    // don't use unless you're sure, for jackson only
+    // don't use unless you're sure(when in doubt, leave it out), for jackson only
     public NDataModel() {
         super();
     }
@@ -1291,18 +1284,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public static NDataModel getCopyOf(NDataModel orig) {
-        NDataModel copy = NDataModel.copy(orig, new NDataModel());
-        copy.setDimensions(Lists.<ModelDimensionDesc> newArrayList());
-        copy.setMetrics(new String[0]);
-        copy.setProject(orig.getProject());
-        copy.computedColumnDescs = orig.computedColumnDescs;
-        copy.allCols = orig.allCols;
-        copy.allMeasures = orig.allMeasures;
-        copy.allNamedColumns = orig.allNamedColumns;
-        copy.colCorrs = orig.colCorrs;
-        copy.mpColStrs = orig.mpColStrs;
-        copy.mpCols = orig.mpCols;
-        return copy;
+        return (NDataModel)SerializationUtils.clone(orig);
     }
 
     @Override

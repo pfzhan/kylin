@@ -39,17 +39,19 @@ import java.util.Set;
 public class NDataModelTest {
 
     private static final String DEFAULT_PROJECT = "default";
+    KylinConfig config;
+    NDataModelManager mgr;
 
     @Before
     public void setUp() throws Exception {
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
+        config = KylinConfig.getInstanceFromEnv();
+        mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);
     }
 
     @Test
     public void testBasics() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataModelManager mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);
         try {
             mgr.init(config, DEFAULT_PROJECT);
         } catch (Exception e){
@@ -57,12 +59,14 @@ public class NDataModelTest {
         }
 
         NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        Assert.assertNotNull(model);
+        Assert.assertNotEquals(model, model.getRootFactTable());
 
         Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_ORDER"));
         Set<TableRef> lookupTables = model.getLookupTables();
         TableRef lookupTable = null;
-        for (TableRef table: lookupTables){
-            if(table.getTableIdentity().equals("DEFAULT.TEST_ORDER")){
+        for (TableRef table: lookupTables) {
+            if (table.getTableIdentity().equals("DEFAULT.TEST_ORDER")) {
                 lookupTable = table;
                 break;
             }
@@ -73,8 +77,8 @@ public class NDataModelTest {
         Assert.assertTrue(model.isFactTable("DEFAULT.TEST_KYLIN_FACT"));
         Set<TableRef> factTables = model.getFactTables();
         TableRef factTable = null;
-        for (TableRef table: factTables){
-            if(table.getTableIdentity().equals("DEFAULT.TEST_KYLIN_FACT")){
+        for (TableRef table: factTables) {
+            if (table.getTableIdentity().equals("DEFAULT.TEST_KYLIN_FACT")) {
                 factTable = table;
                 break;
             }
@@ -111,8 +115,6 @@ public class NDataModelTest {
 
     @Test
     public void getAllNamedColumns_changeToTomb_lessEffectiveCols() throws IOException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NDataModelManager mgr = NDataModelManager.getInstance(config, DEFAULT_PROJECT);
         NDataModel model = mgr.getDataModelDesc("nmodel_basic");
         int size = model.getEffectiveColsMap().size();
 
@@ -122,5 +124,27 @@ public class NDataModelTest {
         int size2 = model.getEffectiveColsMap().size();
 
         Assert.assertEquals(size - 1, size2);
+    }
+
+    @Test
+    public void testGetCopyOf() {
+        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+
+        NDataModel copyModel = NDataModel.getCopyOf(model);
+        Assert.assertEquals(model, copyModel);
+        Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
+        copyModel.getAllMeasures().get(0).tomb = true;
+        Assert.assertFalse(model.getAllMeasures().get(0).tomb);
+        Assert.assertNotEquals(model, copyModel);
+
+        NDataModel copyModel2 = NDataModel.getCopyOf(model);
+        Assert.assertEquals(model, copyModel2);
+        copyModel2.getAllNamedColumns().remove(copyModel2.getAllNamedColumns().size() - 1);
+        Assert.assertNotEquals(model, copyModel2);
+
+        NDataModel copyModel3 = NDataModel.getCopyOf(model);
+        Assert.assertEquals(model, copyModel3);
+        copyModel3.getColCorrs().remove(copyModel3.getColCorrs().size() - 1);
+        Assert.assertNotEquals(model, copyModel3);
     }
 }

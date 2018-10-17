@@ -59,10 +59,10 @@ import io.kyligence.kap.smart.NSmartContext;
 
 public class CuboidSuggester {
 
-    private class ColIndexSuggestor {
+    private class ColIndexSuggester {
         OLAPContext olapContext;
 
-        private ColIndexSuggestor(OLAPContext olapContext) {
+        private ColIndexSuggester(OLAPContext olapContext) {
             this.olapContext = olapContext;
         }
 
@@ -126,7 +126,7 @@ public class CuboidSuggester {
 
     private Map<Integer, String> suggestIndexMap(OLAPContext ctx, final Map<Integer, Double> dimScores,
             Map<Integer, TblColRef> colRefMap) {
-        ColIndexSuggestor suggester = new ColIndexSuggestor(ctx);
+        ColIndexSuggester suggester = new ColIndexSuggester(ctx);
         Map<Integer, String> ret = Maps.newHashMap();
         for (Map.Entry<Integer, Double> dimEntry : dimScores.entrySet()) {
             int dimId = dimEntry.getKey();

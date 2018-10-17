@@ -79,7 +79,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNotNull(ctx);
         }
 
-        // analysis SQL
+        // analyze SQL
         {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
@@ -172,7 +172,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNotNull(ctx);
         }
 
-        // analysis SQL
+        // analyze SQL
         {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
@@ -255,7 +255,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNotNull(ctx);
         }
 
-        // analysis SQL
+        // analyze SQL
         {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
@@ -288,8 +288,8 @@ public class NSmartMasterTest extends NTestBase {
             NCubePlan cubePlan = mdCtx.getTargetCubePlan();
             Assert.assertEquals(4, cubePlan.getAllCuboids().size());
             smartMaster.shrinkCubePlan();
-            NCubePlan shrinkedCubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(2, shrinkedCubePlan.getAllCuboids().size());
+            NCubePlan shrunkCubePlan = mdCtx.getTargetCubePlan();
+            Assert.assertEquals(2, shrunkCubePlan.getAllCuboids().size());
         }
 
         // shrink model
@@ -300,9 +300,9 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(4, model.getEffectiveColsMap().size());
             Assert.assertEquals(3, model.getEffectiveMeasureMap().size());
             smartMaster.shrinkModel();
-            NDataModel shrinkedModel = mdCtx.getTargetModel();
-            Assert.assertEquals(3, shrinkedModel.getEffectiveColsMap().size());
-            Assert.assertEquals(2, shrinkedModel.getEffectiveMeasureMap().size());
+            NDataModel shrunkModel = mdCtx.getTargetModel();
+            Assert.assertEquals(3, shrunkModel.getEffectiveColsMap().size());
+            Assert.assertEquals(2, shrunkModel.getEffectiveMeasureMap().size());
         }
 
         // save
@@ -319,14 +319,12 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
     }
-    
+
     private void test4thRound() throws IOException {
-        String[] sqls = new String[] { 
-                "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
+        String[] sqls = new String[] { "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
                 + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
                 + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
-                + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id"
-        };
+                + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         {
@@ -334,13 +332,13 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNotNull(ctx);
         }
 
-        // analysis SQL
+        // analyze SQL
         {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertEquals(2, ctx.getModelContexts().size());
         }
-        
+
         // select Model
         {
             smartMaster.selectModel();
@@ -349,7 +347,7 @@ public class NSmartMasterTest extends NTestBase {
                 Assert.assertNull(modelContext.getOrigModel());
             }
         }
-        
+
         // opt Model
         {
             smartMaster.optimizeModel();
@@ -400,7 +398,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     private void test5thRound() throws IOException {
-        String[] sqls = new String[] { 
+        String[] sqls = new String[] {
                 // 1st round
                 "select 1", // not effective olap_context
                 "create table a", // not effective olap_context
@@ -418,20 +416,19 @@ public class NSmartMasterTest extends NTestBase {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name", //
                 // 4th round
                 "select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(seller_id) as TRANS_CNT "
-                + " from kylin_sales as test_kylin_fact where test_kylin_fact.lstg_format_name <= 'ABZ' "
-                + " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2", //
+                        + " from kylin_sales as test_kylin_fact where test_kylin_fact.lstg_format_name <= 'ABZ' "
+                        + " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2", //
                 "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
-                + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
-                + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
-                + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id"
-        };
+                        + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
+                        + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
+                        + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);
         }
 
-        // analysis SQL
+        // analyze SQL
         {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
@@ -505,7 +502,84 @@ public class NSmartMasterTest extends NTestBase {
         test5thRound();
     }
 
-/*
+    // Test shrink model/cube_plan process may contaminate the original model/cube_plan or not
+    @Test
+    public void testShrinkIsolation() throws Exception {
+        String[] sqlStatements = new String[] {
+                "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
+        NDataModel originalModel1, originalModel2, targetModel1, targetModel2, targetModel3;
+        NCubePlan originalCubePlan1, originalCubePlan2, targetCubePlan1, targetCubePlan2, targetCubePlan3;
+        // select, optimize and save the model & cube_plan
+        {
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
+            smartMaster.analyzeSQLs();
+            smartMaster.selectModel();
+            smartMaster.optimizeModel();
+
+            NSmartContext ctx = smartMaster.getContext();
+            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
+            targetModel1 = modelContext.getTargetModel();
+
+            smartMaster.selectCubePlan();
+            smartMaster.optimizeCubePlan();
+            targetCubePlan1 = modelContext.getTargetCubePlan();
+
+            smartMaster.saveModel();
+            smartMaster.saveCubePlan();
+        }
+        // select, shrink the model & cube_plan without save
+        {
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
+            smartMaster.analyzeSQLs();
+            NSmartContext ctx = smartMaster.getContext();
+
+            smartMaster.selectModel();
+            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
+            originalModel1 = modelContext.getOrigModel();
+            // Make sure the saveModel() is taken effect
+            Assert.assertEquals(originalModel1, targetModel1);
+
+            smartMaster.selectCubePlan();
+            originalCubePlan1 = modelContext.getOrigCubePlan();
+            Assert.assertEquals(originalCubePlan1, targetCubePlan1);
+
+            smartMaster.shrinkCubePlan();
+            targetCubePlan2 = modelContext.getTargetCubePlan();
+
+            smartMaster.shrinkModel();
+            targetModel2 = modelContext.getTargetModel();
+        }
+        // select, shrink and save the model & cube_plan
+        {
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
+
+            smartMaster.analyzeSQLs();
+            NSmartContext ctx = smartMaster.getContext();
+
+            smartMaster.selectModel();
+            NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
+            originalModel2 = modelContext.getOrigModel();
+            // Make sure shrinkModel() does not soil the originalModel
+            Assert.assertEquals(originalModel1, originalModel2);
+
+            smartMaster.selectCubePlan();
+            originalCubePlan2 = modelContext.getOrigCubePlan();
+            Assert.assertEquals(originalCubePlan1, originalCubePlan2);
+
+            smartMaster.shrinkCubePlan();
+            targetCubePlan3 = modelContext.getTargetCubePlan();
+            Assert.assertEquals(targetCubePlan2, targetCubePlan3);
+
+            smartMaster.shrinkModel();
+            targetModel3 = modelContext.getTargetModel();
+            Assert.assertEquals(targetModel2, targetModel3);
+
+            smartMaster.saveModel();
+            smartMaster.saveCubePlan();
+        }
+    }
+
+    /*
     public void testNewtenDemoScript() throws Exception {
         metaDir = "src/test/resources/nsmart/newten/meta";
         proj = "newten";

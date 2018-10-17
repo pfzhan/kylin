@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,6 +45,7 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
@@ -60,6 +60,7 @@ import com.google.common.base.Preconditions;
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class PartitionDesc implements Serializable {
 
     public static enum PartitionType implements Serializable {
@@ -67,21 +68,26 @@ public class PartitionDesc implements Serializable {
         UPDATE_INSERT // not used since 0.7.1
     }
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_date_column")
     private String partitionDateColumn;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_time_column")
     private String partitionTimeColumn;
 
     @JsonProperty("partition_date_start")
     private long partitionDateStart = 0L;//Deprecated
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_date_format")
     private String partitionDateFormat = DateFormat.DEFAULT_DATE_PATTERN;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_time_format")
     private String partitionTimeFormat = DateFormat.DEFAULT_TIME_PATTERN;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_type")
     private PartitionType partitionType = PartitionType.APPEND;
 
@@ -144,12 +150,12 @@ public class PartitionDesc implements Serializable {
     }
 
     // for test
-    void setPartitionTimeColumn(String partitionTimeColumn) {
+    public void setPartitionTimeColumn(String partitionTimeColumn) {
         this.partitionTimeColumn = partitionTimeColumn;
     }
 
     // for test
-    void setPartitionTimeColumnRef(TblColRef partitionTimeColumnRef) {
+    public void setPartitionTimeColumnRef(TblColRef partitionTimeColumnRef) {
         this.partitionTimeColumnRef = partitionTimeColumnRef;
     }
 
