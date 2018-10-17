@@ -254,7 +254,7 @@ import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
 import { mockSQL } from './mock'
-import './fly.js'
+import '../../../../util/fly.js'
 @Component({
   computed: {
     ...mapGetters([
@@ -541,24 +541,6 @@ export default class ModelList extends Vue {
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
-@range: 2160deg;
-@timer:3s;
-.rotateY{
-  -webkit-transform: rotate3d(0,1,0,@range);
-  -moz-transform: rotate3d(0,1,0,@range);
-  transform: rotate3d(0,1,0,@range);
-  transition: -webkit-transform @timer ease-out;
-  transition: -moz-transform @timer ease-out;
-  transition: transform @timer ease-out;
-}
-.fly-box {
-  position:absolute;
-  width:14px;
-  height:14px;
-  border-radius: 50%;
-  background-color:@error-color-1;
-  z-index:99999;
-}
 .mode-list{
   .model-detail-tabs {
     &>.el-tabs__header{

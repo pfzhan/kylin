@@ -291,6 +291,7 @@ exports.default = {
     acceleration_th: 'Acceleration',
     sqlContent_th: 'SQL Statement',
     ip_th: 'IP',
+    submitter: 'Submitter',
     startTimeFilter: 'Start Time',
     endTimeFilter: 'End Time',
     latency: 'Duration',

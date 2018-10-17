@@ -163,6 +163,12 @@ export default class FavoriteQuery extends Vue {
     this.loadFavoriteList()
   }
 
+  mounted () {
+    this.$nextTick(() => {
+      $('#favo-menu-item').removeClass('rotateY').css('opacity', 0)
+    })
+  }
+
   openCandidateList () {
     this.candidateVisible = true
     this.loadCandidateList()

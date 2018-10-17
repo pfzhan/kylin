@@ -18,7 +18,13 @@
                 <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
               </template>
               <el-menu-item-group>
-                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">{{$t('kylinLang.menu.' + child.name)}}<div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div></el-menu-item>
+                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">
+                  <span style="position:relative;">
+                    {{$t('kylinLang.menu.' + child.name)}}
+                    <span id="favo-menu-item" v-if="item.name === 'insight' && child.name === 'favorite_query'"></span>
+                  </span>
+                  <div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div>
+                </el-menu-item>
               </el-menu-item-group>
             </el-submenu>
           </template>
@@ -479,6 +485,16 @@ export default class LayoutLeftRightTop extends Vue {
 
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  #favo-menu-item {
+    position:absolute;
+    width:4px;
+    height:4px;
+    top: 0px;
+    right: -5px;
+    border-radius: 50%;
+    background-color:@error-color-1;
+    opacity: 0;
+  }
   .full-layout{
     .bread-box {
       padding:20px 0;

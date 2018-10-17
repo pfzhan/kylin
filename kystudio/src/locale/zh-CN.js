@@ -288,6 +288,7 @@ exports.default = {
     acceleration_th: '加速状态',
     sqlContent_th: 'SQL语句',
     ip_th: '查询执行地址',
+    submitter: '查询用户',
     startTimeFilter: '开始时间',
     endTimeFilter: '结束时间',
     latency: '延迟',

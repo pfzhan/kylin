@@ -112,14 +112,17 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.ip_th')" prop="query_node" header-align="center" width="200">
+      <el-table-column :label="$t('kylinLang.query.submitter')" prop="user" header-align="center" width="200">
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120" v-if="!isCandidate">
         <template slot-scope="props">
+          <el-tooltip class="item" effect="dark" :content="$t('toAcce')" placement="top" v-if="props.row.accelerate_status === 'UNACCELERATED'">
+            <i class="el-icon-ksd-negative" @click="(event) => {toAcce(event, props.row.uuid)}"></i>
+          </el-tooltip>
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
-            'el-icon-ksd-negative': props.row.accelerate_status === 'NEW'
-          }"></i>
+            'el-icon-ksd-acclerate1': props.row.accelerate_status === 'PARTLY_ACCELERATED'
+          }" v-else></i>
         </template>
       </el-table-column>
     </el-table>
@@ -193,6 +196,8 @@ import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
+import '../../util/fly.js'
+import $ from 'jquery'
 @Component({
   props: ['queryHistoryData', 'isCandidate'],
   methods: {
@@ -205,17 +210,19 @@ import { Component, Watch } from 'vue-property-decorator'
       enableRule: 'ENABLE_RULE',
       applyRule: 'APPLY_RULE',
       automaticRule: 'AUTOMATIC_RULE',
-      getAutoMaticStatus: 'GET_AUTO_MATIC_STATUS'
+      getAutoMaticStatus: 'GET_AUTO_MATIC_STATUS',
+      markFav: 'MARK_FAV'
     })
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'briefMenuGet'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', enabled: 'Enabled'},
-    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', enabled: '应用规则'}
+    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', enabled: 'Enabled', toAcce: 'Click to Accelerate'},
+    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', enabled: '应用规则', toAcce: '去加速'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -223,7 +230,7 @@ export default class QueryHistoryTable extends Vue {
   startSec = 0
   endSec = 10
   latencyFilterPopoverVisible = false
-  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-negative', value: 'NEW'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate1', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED'}]
   realFilteArr = [{name: 'Pushdown', value: 'pushdown'}, {name: 'Model Name', value: 'modelName'}]
   filterData = {
     startTimeFrom: null,
@@ -284,6 +291,46 @@ export default class QueryHistoryTable extends Vue {
     this.getAutoMaticStatus({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.isAutoMatic = data
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
+
+  flyEvent (event) {
+    const targetArea = $('#insight')
+    const targetDom = this.briefMenuGet ? targetArea.find('.menu-icon') : targetArea.find('#favo-menu-item')
+    const offset = targetDom.offset()
+    const flyer = $('<span class="fly-box"></span>')
+    flyer.fly({
+      start: {
+        left: event.pageX,
+        top: event.pageY
+      },
+      end: {
+        left: offset.left,
+        top: offset.top,
+        width: 4,
+        height: 4
+      },
+      onEnd: function () {
+        $('#favo-menu-item').css('opacity', 1)
+        targetDom.addClass('rotateY')
+        flyer.remove()
+        setTimeout(() => {
+          targetDom.fadeTo('slow', 0.5, function () {
+            targetDom.removeClass('rotateY')
+            targetDom.fadeTo('fast', 1)
+          })
+        }, 3000)
+      }
+    })
+  }
+
+  toAcce (event, uuid) {
+    this.markFav({project: this.currentSelectedProject, uuids: [uuid]}).then((res) => {
+      handleSuccess(res, () => {
+        this.flyEvent(event)
       })
     }, (res) => {
       handleError(res)
@@ -669,6 +716,10 @@ export default class QueryHistoryTable extends Vue {
       .el-icon-ksd-filter {
         position: relative;
         top: 1px;
+      }
+      .el-icon-ksd-negative {
+        color: @base-color;
+        font-size: 20px;
       }
       .status-icon {
         font-size: 20px;
