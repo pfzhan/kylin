@@ -251,6 +251,7 @@ export const GET_CUR_ACCOUNTNAME = 'GET_CUR_ACCOUNTNAME'
 export const GET_KYBOT_SERVERS = 'GET_KYBOT_SERVERS'
 // monitor actions mutations
 export const LOAD_JOBS_LIST = 'LOAD_JOBS_LIST'
+export const GET_JOB_DETAIL = 'GET_JOB_DETAIL'
 export const SAVE_JOBS_LIST = 'SAVE_JOBS_LIST'
 export const LOAD_SLOW_QUERIES = 'LOAD_SLOW_QUERIES'
 export const SAVE_SLOW_QUERIES = 'SAVE_SLOW_QUERIES'

@@ -8,6 +8,9 @@ export default {
   getJobsList: (params) => {
     return Vue.resource(apiUrl + 'jobs{?status}').get(params)
   },
+  getJobDetail: (para) => {
+    return Vue.resource(apiUrl + 'jobs/detail').get(para)
+  },
   getSlowQueries: (para) => {
     return Vue.resource(apiUrl + 'diag/slow_query').get(para.page)
   },
@@ -20,16 +23,16 @@ export default {
   getStepOutputs: (stepDetail) => {
     return Vue.resource(apiUrl + 'jobs/' + stepDetail.jobID + '/steps/' + stepDetail.stepID + '/output').get()
   },
-  resumeJob: (jobID) => {
-    return Vue.resource(apiUrl + 'jobs/' + jobID + '/resume').update({})
+  resumeJob: (para) => {
+    return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
-  cancelJob: (jobID) => {
-    return Vue.resource(apiUrl + 'jobs/' + jobID + '/cancel').update({})
+  cancelJob: (para) => {
+    return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
-  pauseJob: (jobID) => {
-    return Vue.resource(apiUrl + 'jobs/' + jobID + '/pause').update({})
+  pauseJob: (para) => {
+    return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
-  removeJob: (jobID) => {
-    return Vue.resource(apiUrl + 'jobs/' + jobID + '/drop').delete({})
+  removeJob: (para) => {
+    return Vue.resource(apiUrl + 'jobs/' + para.project + '/' + para.jobId).delete()
   }
 }

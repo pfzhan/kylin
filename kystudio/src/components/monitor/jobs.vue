@@ -40,7 +40,7 @@
         :width="200"
       >
         <template slot-scope="scope">
-          <i class="el-icon-arrow-right" ></i> {{scope.row.job_type}}
+          <i class="el-icon-arrow-right" ></i> {{scope.row.job_name}}
         </template>
       </el-table-column>
       <el-table-column
@@ -88,13 +88,13 @@
         width="100">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-delete ksd-fs-16" @click.stop="drop(scope.row.uuid)"></i>
+            <i class="el-icon-delete ksd-fs-16" @click.stop="drop(scope.row.id)"></i>
           </common-tip>
           <common-tip :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING' || scope.row.job_status=='RUNNING'">
-            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="discard(scope.row)"></i>
+            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="discard(scope.row.id)"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume(scope.row)"></i>
+            <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume(scope.row.id)"></i>
           </common-tip>
           <el-dropdown trigger="click">
             <span class="el-dropdown-link" @click.stop>
@@ -103,9 +103,9 @@
               </common-tip>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="discard(scope.row)" v-if="scope.row.job_status=='NEW' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="pause(scope.row)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.uuid)">{{$t('jobDiagnosis')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="discard(scope.row.id)" v-if="scope.row.job_status=='NEW' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="pause(scope.row.id)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.id)">{{$t('jobDiagnosis')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </template>
@@ -123,7 +123,7 @@
             <tr>
               <td>Job ID</td>
               <td class="single-line greyd0">
-                {{selectedJob.uuid}}
+                {{selectedJob.id}}
               </td>
             </tr>
             <tr>
@@ -140,10 +140,6 @@
               <td>{{$t('duration')}}</td>
               <td class="greyd0">{{selectedJob.duration/60000 | number(2)}} mins</td>
             </tr>
-            <tr>
-              <td>MapReduce {{$t('waiting')}}</td>
-              <td class="greyd0">{{selectedJob.mr_waiting/60000 | number(2)}} mins</td>
-            </tr>
           </table>
         </div>
       </div>
@@ -152,7 +148,7 @@
       </p>
       <ul class="timeline">
 
-        <li v-for="(step, index) in selectedJob.steps" :class="{'finished' : step.step_status=='FINISHED'}">
+        <li v-for="(step, index) in selectedJob.details" :class="{'finished' : step.step_status=='FINISHED'}">
           <el-popover
             placement="left"
             width="300"
@@ -170,11 +166,9 @@
               <li>SequenceID: {{step.sequence_id}}</li>
               <li>Status: {{step.step_status}}</li>
               <li>Duration: {{timerlineDuration(step)}}</li>
-              <li>Waiting: {{ step.exec_wait_time | tofixedTimer(2)}}</li>
               <li>Start At: {{transToGmtTime(step.exec_start_time !=0 ? step.exec_start_time:'')}}</li>
               <li>End At: {{transToGmtTime(step.exec_end_time !=0 ? step.exec_end_time :'')}}</li>
               <li v-if="step.info.hdfs_bytes_written">Data Size: <span>{{ step.info.hdfs_bytes_written | dataSize}}</span></li>
-              <li v-if="step.info.mr_job_id">MR Job: {{step.info.mr_job_id}}</li>
             </ul>
           </el-popover>
 
@@ -191,25 +185,19 @@
               <div v-if="step.info.hdfs_bytes_written">
                 <span class="jobActivityLabel">Data Size: </span>
                 <span>{{step.info.hdfs_bytes_written|dataSize}}</span>
-                <!-- <br /> -->
               </div>
               <div>
                 <span class="jobActivityLabel">{{$t('duration')}}: </span>
                 <span>{{timerlineDuration(step)}}</span><br />
               </div>
-              <div>
-                <span class="jobActivityLabel">{{$t('waiting')}}: </span>
-                <span>{{step.exec_wait_time | tofixedTimer(2)}}</span><br />
-              </div>
             </div>
             <div class="timeline-footer">
-                <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-export" @click="clickFile(step)"></i>
-                <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i>
+              <i name="file" v-if="step.step_status!='PENDING'" class="el-icon-ksd-export" @click="clickFile(step)"></i>
+              <i name="key" v-if="step.exec_cmd" class="el-icon-ksd-paramters" @click="clickKey(step)"></i>
               <a :href="step.info.yarn_application_tracking_url" target="_blank"
                  tooltip="MRJob" style="margin-left: 5px;">
                   <i name="tasks" v-if="step.info.yarn_application_tracking_url" class="el-icon-ksd-details"></i>
               </a>
-
               <a  target="_blank" tooltip="Monitoring">
                 <i class="ace-icon fa fa-chain grey bigger-110"></i>
               </a>
@@ -228,9 +216,7 @@
       </span>
     </el-dialog>
 
-    <!-- <el-dialog class="kybot_diagnosis" :close-on-click-modal="false" :title="$t('diagnosis')" :visible.sync="diagnosisVisible"> -->
     <diagnosis :targetId="targetId" :job="selectedJob" :show="diagnosisVisible" v-on:closeModal="closeModal"></diagnosis>
-    <!-- </el-dialog> -->
   </div>
 </template>
 
@@ -247,12 +233,15 @@ import diagnosisXX from '../security/diagnosis'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       loadJobsList: 'LOAD_JOBS_LIST',
+      getJobDetail: 'GET_JOB_DETAIL',
       loadStepOutputs: 'LOAD_STEP_OUTPUTS',
       removeJob: 'REMOVE_JOB',
       pauseJob: 'PAUSE_JOB',
       cancelJob: 'CANCEL_JOB',
       resumeJob: 'RESUME_JOB'
-    }),
+    })
+  },
+  computed: {
     ...mapGetters([
       'currentSelectedProject'
     ])
@@ -284,7 +273,7 @@ export default class JobsList extends Vue {
     pageSize: pageCount,
     timeFilter: this.$store.state.monitor.filter.timeFilter,
     jobName: this.$store.state.monitor.filter.jobName,
-    sortby: this.$store.state.monitor.filter.sortby,
+    sortBy: this.$store.state.monitor.filter.sortby,
     status: this.$store.state.monitor.filter.status,
     subjects: ''
   }
@@ -342,8 +331,15 @@ export default class JobsList extends Vue {
     return this.$store.state.monitor.jobsList.map((m) => {
       m.gmtTime = transToGmtTime(m.exec_start_time, this)
       if (this.selectedJob) {
-        if (m.uuid === this.selectedJob.uuid) {
-          this.selectedJob = m
+        if (m.id === this.selectedJob.id) {
+          this.getJobDetail({project: this.currentSelectedProject, jobId: m.id}).then((res) => {
+            handleSuccess(res, (data) => {
+              this.selectedJob = m
+              this.selectedJob['details'] = data
+            })
+          }, (resError) => {
+            handleError(resError)
+          })
         }
       }
       return m
@@ -416,7 +412,7 @@ export default class JobsList extends Vue {
     this.showStep = false
   }
   tableRowClassName ({row, rowIndex}) {
-    if (row.uuid === this.selectedJob.uuid && this.showStep) {
+    if (row.id === this.selectedJob.id && this.showStep) {
       return 'current-row2'
     }
   }
@@ -444,9 +440,9 @@ export default class JobsList extends Vue {
     }
     this.loadJobsList(this.filter)
   }
-  resume (job) {
+  resume (jobId) {
     kapConfirm(this.$t('resumeJob')).then(() => {
-      this.resumeJob(job.uuid).then(() => {
+      this.resumeJob({jobId: jobId, project: this.currentSelectedProject, action: 'RESUME'}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -457,9 +453,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  discard (job) {
+  discard (jobId) {
     kapConfirm(this.$t('discardJob')).then(() => {
-      this.cancelJob(job.uuid).then(() => {
+      this.cancelJob({jobId: jobId, project: this.currentSelectedProject, action: 'DISCARD'}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -470,9 +466,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  pause (job) {
+  pause (jobId) {
     kapConfirm(this.$t('pauseJob')).then(() => {
-      this.pauseJob(job.uuid).then(() => {
+      this.pauseJob({jobId: jobId, project: this.currentSelectedProject, action: 'PAUSE'}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -485,7 +481,7 @@ export default class JobsList extends Vue {
   }
   drop (jobId) {
     kapConfirm(this.$t('dropJob')).then(() => {
-      this.removeJob(jobId).then(() => {
+      this.removeJob({jobId: jobId, project: this.currentSelectedProject}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
@@ -496,25 +492,32 @@ export default class JobsList extends Vue {
       })
     })
   }
-  showLineSteps (row, v1, v2) {
+  showLineSteps (row) {
     var needShow = false
     // 减去滚动条的高度
-    if (row.uuid !== this.selectedJob.uuid) {
+    if (row.id !== this.selectedJob.id) {
       needShow = true
     } else {
       needShow = !this.showStep
     }
     this.showStep = false
-    this.$nextTick(() => {
-      this.showStep = needShow
-      var sTop = document.getElementById('scrollBox').scrollTop
-      this.beforeScrollPos = sTop
-      var result = sTop
-      if (sTop < 96) {
-        result = 96
-      }
-      document.getElementById('stepList').style.top = result + 'px'
-      this.selectedJob = row
+    this.selectedJob = row
+    this.getJobDetail({project: this.currentSelectedProject, jobId: row.id}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.$nextTick(() => {
+          this.selectedJob['details'] = data
+          this.showStep = needShow
+          var sTop = document.getElementById('scrollBox').scrollTop
+          this.beforeScrollPos = sTop
+          var result = sTop
+          if (sTop < 112) {
+            result = 112
+          }
+          document.getElementById('stepList').style.top = result + 'px'
+        })
+      }, (resError) => {
+        handleError(resError)
+      })
     })
   }
   clickKey (step) {
@@ -526,7 +529,7 @@ export default class JobsList extends Vue {
     this.stepAttrToShow = 'output'
     this.dialogVisible = true
     this.outputDetail = this.$t('load')
-    this.loadStepOutputs({jobID: this.selectedJob.uuid, stepID: step.id}).then((result) => {
+    this.loadStepOutputs({jobID: this.selectedJob.id, stepID: step.id}).then((result) => {
       this.outputDetail = result.body.data.cmd_output
     }).catch((result) => {
       this.outputDetail = this.$t('cmdOutput')

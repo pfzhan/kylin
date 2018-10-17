@@ -44,11 +44,14 @@ export default {
   actions: {
     [types.LOAD_JOBS_LIST]: function ({ commit, state }, params) {
       return api.monitor.getJobsList(params).then((response) => {
-        commit(types.SAVE_JOBS_LIST, { list: response.data.data.jobs, total: response.data.data.size })
+        commit(types.SAVE_JOBS_LIST, { list: response.data.data.jobList, total: response.data.data.size })
       }, () => {
         state.jobsList = []
         state.totalJobs = 0
       })
+    },
+    [types.GET_JOB_DETAIL]: function ({ commit }, para) {
+      return api.monitor.getJobDetail(para)
     },
     [types.LOAD_SLOW_QUERIES]: function ({ commit }, para) {
       api.monitor.getSlowQueries(para).then((response) => {
@@ -66,17 +69,17 @@ export default {
     [types.LOAD_STEP_OUTPUTS]: function ({ commit }, stepDetail) {
       return api.monitor.getStepOutputs(stepDetail)
     },
-    [types.RESUME_JOB]: function ({ commit }, jobId) {
-      return api.monitor.resumeJob(jobId)
+    [types.RESUME_JOB]: function ({ commit }, para) {
+      return api.monitor.resumeJob(para)
     },
-    [types.CANCEL_JOB]: function ({ commit }, jobId) {
-      return api.monitor.cancelJob(jobId)
+    [types.CANCEL_JOB]: function ({ commit }, para) {
+      return api.monitor.cancelJob(para)
     },
-    [types.PAUSE_JOB]: function ({ commit }, jobId) {
-      return api.monitor.pauseJob(jobId)
+    [types.PAUSE_JOB]: function ({ commit }, para) {
+      return api.monitor.pauseJob(para)
     },
-    [types.REMOVE_JOB]: function ({ commit }, jobId) {
-      return api.monitor.removeJob(jobId)
+    [types.REMOVE_JOB]: function ({ commit }, para) {
+      return api.monitor.removeJob(para)
     }
   },
   getters: {}
