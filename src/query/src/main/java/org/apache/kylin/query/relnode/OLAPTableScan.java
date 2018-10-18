@@ -424,7 +424,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         context.setReturnTupleInfo(rowType, columnRowType);
         String execFunction = genExecFunc();
 
-        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), JavaRowFormat.ARRAY);
+        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), JavaRowFormat.ARRAY, false);
         MethodCallExpression exprCall = Expressions.call(table.getExpression(OLAPTable.class), execFunction,
                 implementor.getRootExpression(), Expressions.constant(context.id));
         return implementor.result(physType, Blocks.toBlock(exprCall));

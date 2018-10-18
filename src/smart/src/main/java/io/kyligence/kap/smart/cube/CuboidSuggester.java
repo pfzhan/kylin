@@ -25,11 +25,11 @@
 package io.kyligence.kap.smart.cube;
 
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -224,7 +224,7 @@ public class CuboidSuggester {
         SortedSet<Integer> measureIds = Sets.newTreeSet();
 
         boolean useTableIndex = ctx.getSQLDigest().isRawQuery;
-        NCuboidDesc cuboidDesc = useTableIndex ? createTableIndex(ctx, dimScores, measureIds)
+        NCuboidDesc cuboidDesc = useTableIndex ? createTableIndex(ctx, dimScores)
                 : createAggregatedIndex(ctx, dimScores, measureIds);
 
         final NCuboidIdentifier cuboidIdentifier = cuboidDesc.createCuboidIdentifier();
@@ -264,23 +264,19 @@ public class CuboidSuggester {
         cuboidLayoutIds.add(layout.getId());
     }
 
-    private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
-            SortedSet<Integer> measureIds) {
+    private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {
         final Set<TblColRef> allColumns = ctx.allColumns;
         for (TblColRef col : allColumns) {
             dimScores.put(model.getColumnIdByColumnName(col.getIdentity()), -1D);
         }
 
-        final BitSet dimBitSet = new BitSet();
-        for (int dimId : dimScores.keySet())
-            dimBitSet.set(dimId);
-
-        return createCuboidDesc(dimScores.keySet(), measureIds, true);
+        return createCuboidDesc(dimScores.keySet(), new HashSet<Integer>(), true);
     }
 
     private NCuboidDesc createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
             SortedSet<Integer> measureIds) {
-        final BitSet measureBitSet = new BitSet();
+        // Add default measure count(1)
+        measureIds.add(NDataModel.MEASURE_ID_BASE);
 
         // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
         // Example: select count(*) from kylin_sales
@@ -290,7 +286,6 @@ public class CuboidSuggester {
             Integer measureId = aggFuncIdMap.get(aggFunc);
             if (measureId != null) {
                 measureIds.add(measureId);
-                measureBitSet.set(measureId);
             } else if (aggFunc.getParameter() != null) {
                 // dimension as measure, put cols to rowkey tail
                 for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
@@ -300,10 +295,6 @@ public class CuboidSuggester {
                 }
             }
         }
-
-        final BitSet dimBitSet = new BitSet();
-        for (int dimId : dimScores.keySet())
-            dimBitSet.set(dimId);
 
         return createCuboidDesc(dimScores.keySet(), measureIds, false);
     }

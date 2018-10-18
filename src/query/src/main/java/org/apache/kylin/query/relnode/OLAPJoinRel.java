@@ -339,7 +339,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
         context.setReturnTupleInfo(rowType, columnRowType);
 
-        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
+        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray(), false);
         RelOptTable factTable = context.firstTableScan.getTable();
         MethodCallExpression exprCall = Expressions.call(factTable.getExpression(OLAPTable.class), "executeOLAPQuery",
                 implementor.getRootExpression(), Expressions.constant(context.id));

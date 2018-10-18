@@ -144,7 +144,7 @@ public class QueryMetricsContext {
     }
 
     private static QueryMetricsContext obtainCurrentQueryMetrics() {
-        final QueryMetricsContext current;
+        QueryMetricsContext current = null;
         Preconditions.checkState((current = contexts.get()) != null, "Query metric context is not started.");
         return current;
     }

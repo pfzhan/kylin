@@ -87,7 +87,6 @@ import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NRawQueryLastHacker;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -158,7 +157,7 @@ public class RealizationChooser {
         SQLDigest sqlDigest = context.getSQLDigest();
         NDataflow dataflow = (NDataflow) context.realization;
         //cope with queries with no aggregations
-        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow);
+//        NRawQueryLastHacker.hackNoAggregations(sqlDigest, dataflow);
         // Customized measure taking effect: e.g. allow custom measures to help raw queries
         notifyBeforeStorageQuery(sqlDigest, dataflow);
         // build dimension & metrics
@@ -182,8 +181,9 @@ public class RealizationChooser {
             storageContext.setCandidate(layoutCandidate);
             storageContext.setDimensions(dimensions);
             storageContext.setMetrics(metrics);
-            logger.info("Choose dataflow:" + cuboidLayout.getCuboidDesc().getModel().getName());
-            logger.info("Choose cuboid layout ID:" + cuboidLayout.getId());
+            logger.info("Choose model name: {}", cuboidLayout.getCuboidDesc().getModel().getName());
+            logger.info("Choose dataflow name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
+            logger.info("Choose cuboid layout ID: {}", cuboidLayout.getId());
             return true;
         } else {
             return false;

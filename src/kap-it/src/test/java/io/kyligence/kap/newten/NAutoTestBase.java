@@ -107,6 +107,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
     }
 
+    @SuppressWarnings("unchecked")
     protected void executeTestScenario(TestScenario... tests) throws Exception {
 
         List<Pair<String, String>> queries = new ArrayList<>();

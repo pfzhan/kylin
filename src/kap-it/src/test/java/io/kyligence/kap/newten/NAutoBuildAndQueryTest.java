@@ -256,6 +256,12 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 //                new TestScenario("sql_subquery", CompareLevel.SAME)
                 );
     }
+    
+    @Test
+    public void testTemp() throws Exception {
+        String[] exclusionList = new String[] {};
+        new TestScenario("temp", CompareLevel.SAME, exclusionList).execute();
+    }
 
     /***************
      * Test Kylin test queries with auto modeling

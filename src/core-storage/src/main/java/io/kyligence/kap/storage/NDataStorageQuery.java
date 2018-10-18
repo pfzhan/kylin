@@ -270,7 +270,7 @@ public class NDataStorageQuery implements IStorageQuery {
         HashSet<TblColRef> temp = Sets.newHashSet();
         temp.addAll(groupD);
         temp.addAll(singleValueD);
-        if (cuboid.getOrderedDimensions().size() == temp.size()) {
+        if (cuboid.getCuboidDesc().isTableIndex() || cuboid.getOrderedDimensions().size() == temp.size()) {
             logger.debug("Does not need storage aggregation");
             return false;
         } else {
