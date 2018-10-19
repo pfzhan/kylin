@@ -8,15 +8,20 @@
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
         <div class="add_dimensions">
-          <div v-for="(table, index) in factTableColumns" class="ksd-mb-20">
-            <span><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.tableName}} </span>
+          <div v-for="(table, index) in factTable" :key="index" class="ksd-mb-20">
+            <div @click="toggleTableShow(table)" class="table-header">
+              <i class="el-icon-arrow-right ksd-fright right-icon" v-if="!table.show"></i>
+              <i class="el-icon-arrow-down  ksd-fright right-icon" v-else></i>
+              <span><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}}</span>
+            </div>
             <el-table
+              v-if="table.show"
               class="ksd-mt-10"
               border
               :data="table.columns"
-              @row-click="dimensionRowClick"
-              :ref="table.tableName"
-              @select-all="selectionAllChange(table.tableName)"
+              @row-click="(row) => {dimensionRowClick(row, table.guid)}"
+              :ref="table.guid"
+              @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
               @select="selectionChange">
               <el-table-column
                 type="selection"
@@ -25,55 +30,48 @@
               <el-table-column
                 :label="$t('name')">
                 <template slot-scope="scope">
-                  <el-input size="small" @click.native.stop v-model="scope.row.name" :disabled="!scope.row.isSelected" @change="(value) => { changeName(scope.row, table, value) }">
+                  <el-input size="small" @click.native.stop v-model="scope.row.alias" :disabled="!scope.row.isSelected">
                   </el-input>
                 </template>
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
-                property="column"
+                prop="name"
                 :label="$t('column')">
               </el-table-column>
               <el-table-column
+                prop="datatype"
                 show-overflow-tooltip
                 :label="$t('datatype')"
                 width="110">
-                <template slot-scope="scope">
-                  {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
-                </template>
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
                 :label="$t('cardinality')"
                 width="100">
                 <template slot-scope="scope">
-                  {{modelDesc.columnsDetail&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
-                </template>
-              </el-table-column>
-               <el-table-column
-                :label="$t('type')"
-                width="100">
-                <template slot-scope="scope">
-                  <el-radio-group size="mini" @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
-                    <el-radio-button plain type="primary" size="mini" label="false">Normal</el-radio-button><!--
-                    注释是为了取消button之间的间距，不要删--><el-radio-button plain type="warning" label="true" size="mini">Derived</el-radio-button>
-                  </el-radio-group>
                 </template>
               </el-table-column>
               <el-table-column
+              prop="comment"
               :label="$t('Comment')">
               </el-table-column>
             </el-table>
           </div>
 
-          <div v-for="(table, index) in lookupTableColumns" class="ksd-mb-20">
-            <span><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.tableName}} </span>
+          <div v-for="(table, index) in lookupTable" :key="index" class="ksd-mb-20">
+            <div @click="toggleTableShow(table)" class="table-header">
+              <i class="el-icon-arrow-right ksd-fright right-icon" v-if="!table.show"></i>
+              <i class="el-icon-arrow-down  ksd-fright right-icon" v-else></i>
+              <span><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}}</span>
+            </div>
             <el-table
+              v-if="table.show"
               class="ksd-mt-10"
               border
-              :data="table.columns" :ref="table.tableName"
-              @row-click="dimensionRowClick"
-              @select-all="selectionAllChange(table.tableName)"
+              :data="table.columns" :ref="table.guid"
+              @row-click="(row) => {dimensionRowClick(row, table.guid)}"
+              @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
               @select="selectionChange">
               <el-table-column
                 type="selection"
@@ -82,38 +80,25 @@
                <el-table-column
                 :label="$t('name')">
                 <template slot-scope="scope">
-                  <el-input size="small" v-model="scope.row.name" @click.native.stop :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
+                  <el-input size="small" v-model="scope.row.alias" @click.native.stop :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
                 </template>
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
-                property="column"
+                prop="name"
                 :label="$t('column')">
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
                 :label="$t('datatype')"
+                prop="datatype"
                 width="110">
-                <template slot-scope="scope">
-                  {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].datatype}}
-                </template>
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
                 :label="$t('cardinality')"
                 width="100">
                 <template slot-scope="scope">
-                  {{modelDesc.columnsDetail[table.tableName + '.' + scope.row.column]&&modelDesc.columnsDetail[table.tableName + '.' + scope.row.column].cardinality}}
-                </template>
-              </el-table-column>
-              <el-table-column
-                :label="$t('type')"
-                width="100">
-                <template slot-scope="scope">
-                  <el-radio-group size="mini" @click.native.stop v-model="scope.row.derived" :disabled="!scope.row.isSelected" @change="changeType(scope.row)">
-                    <el-radio-button plain type="primary" size="mini" label="false">Normal</el-radio-button><!--
-                    注释是为了取消button之间的间距，不要删--><el-radio-button plain type="warning" label="true" size="mini">Derived</el-radio-button>
-                  </el-radio-group>
                 </template>
               </el-table-column>
                <el-table-column
@@ -138,17 +123,11 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { sourceTypes } from '../../../../config'
+// import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-// import { handleSuccessAsync, handleError } from '../../../util'
+import { objectClone } from 'util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
-  // props: {
-  //   modelTables: {
-  //     type: Array,
-  //     default: null
-  //   }
-  // },
   computed: {
     ...mapGetters([
       'currentSelectedProject'
@@ -156,7 +135,8 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
     // Store数据注入
     ...mapState('DimensionsModal', {
       isShow: state => state.isShow,
-      modelTables: state => state.modelTables
+      tables: state => objectClone(state.modelDesc.tables),
+      callback: state => state.callback
     })
   },
   methods: {
@@ -181,66 +161,41 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
 export default class DimensionsModal extends Vue {
   isLoading = false
   isFormShow = false
-  factTableColumns = [{tableName: 'DEFAULT.KYLIN_SALES', column: 'PRICE'}]
-  lookupTableColumns = [{tableName: 'DEFAULT.KYLIN_CAL_DT', column: 'CAL_DT'}]
-
+  factTable = []
+  lookupTable = []
   getTableColumns () {
-    this.modelTables.forEach((NTable) => {
+    this.factTable = []
+    this.lookupTable = []
+    Object.values(this.tables).forEach((NTable) => {
       if (NTable.kind === 'FACT') {
-        NTable.columns.forEach((col) => {
-          this.factTableColumns.push({tableName: NTable.name, column: col.name, name: col.name, isSelected: false})
-        })
+        this.$set(NTable, 'show', true)
+        this.factTable.push(NTable)
       } else {
-        NTable.columns.forEach((col) => {
-          this.lookupTableColumns.push({tableName: NTable.name, column: col.name, name: col.name, isSelected: false})
-        })
+        this.$set(NTable, 'show', false)
+        this.lookupTable.push(NTable)
       }
+      this.$nextTick(() => {
+        this.renerTableColumnSelected(NTable)
+      })
     })
   }
-
-  // get modalTitle () {
-  //   return titleMaps[this.sourceType]
-  // }
-  // get cancelText () {
-  //   return this.$t(cancelMaps[this.sourceType])
-  // }
-  // get confirmText () {
-  //   return this.$t(confirmMaps[this.sourceType])
-  // }
-  get isNewSource () {
-    return this.sourceType === sourceTypes.NEW
-  }
-  get isTableTree () {
-    return this.sourceType === sourceTypes.HIVE ||
-      this.sourceType === sourceTypes.RDBMS ||
-      this.sourceType === sourceTypes.RDBMS2
-  }
-  get isSourceSetting () {
-    return this.sourceType === sourceTypes.SETTING
-  }
-  get isKafka () {
-    return this.sourceType === sourceTypes.KAFKA
-  }
-  isSourceShow (sourceType) {
-    return this.sourceType === sourceType
-  }
-
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
-
       if (!this.currentSelectedProject) {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
+      this.getTableColumns()
     } else {
       setTimeout(() => {
         this.isFormShow = false
       }, 200)
     }
   }
-
+  mounted () {
+  }
   handleClose (isSubmit) {
     this.hideModal()
     setTimeout(() => {
@@ -248,7 +203,50 @@ export default class DimensionsModal extends Vue {
       this.callback && this.callback(isSubmit)
     }, 300)
   }
+  selectionChange (selection, row) {
+    this.$set(row, 'isSelected', !row.isSelected)
+  }
+  selectionAllChange (selection, guid) {
+    if (!selection.length) {
+      let columns = this.tables[guid].columns
+      columns.forEach((row) => {
+        this.$set(row, 'isSelected', false)
+      })
+    } else {
+      selection.forEach((row) => {
+        this.$set(row, 'isSelected', true)
+      })
+    }
+  }
+  dimensionRowClick (row, guid) {
+    this.$refs[guid][0].toggleRowSelection(row)
+    this.$set(row, 'isSelected', !row.isSelected)
+  }
+  toggleTableShow (table) {
+    table.show = !table.show
+    this.renerTableColumnSelected(table)
+  }
+  renerTableColumnSelected (table) {
+    if (table.show) {
+      this.$nextTick(() => {
+        table.columns.forEach((col) => {
+          if (col.isSelected) {
+            this.$refs[table.guid][0].toggleRowSelection(col)
+          }
+        })
+      })
+    }
+  }
   handleClick () {
+    let result = []
+    Object.values(this.tables).forEach((NTable) => {
+      NTable.columns.forEach((col) => {
+        if (col.isSelected) {
+          result.push(col)
+        }
+      })
+    })
+    this.handleClose(true, result)
   }
   destroyed () {
     if (!module.hot) {
@@ -264,6 +262,15 @@ export default class DimensionsModal extends Vue {
   .table-title {
     font-size: 16px;
     margin-left: 5px;
+  }
+  .table-header {
+    border-bottom:solid 1px @line-border-color;
+    height:30px;
+    line-height:30px;
+    cursor:pointer;
+    .right-icon{
+      margin-right:20px;
+    }
   }
 }
 </style>

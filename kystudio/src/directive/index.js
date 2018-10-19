@@ -158,7 +158,7 @@ Vue.directive('drag', {
       } else {
         if (changeType === 'top') {
           if (size + dragInfo.height > boxH) {
-            dragInfo.top = boxH - dragInfo.height
+            dragInfo.top = boxH - dragInfo.height > 0 ? boxH - dragInfo.height : 0
             return false
           }
           if (size < 0) {
@@ -178,12 +178,11 @@ Vue.directive('drag', {
         }
         if (changeType === 'right' || changeType === 'left') {
           if (size + dragInfo.width > boxW) {
-            dragInfo[changeType] = boxW - dragInfo.width
+            dragInfo[changeType] = boxW - dragInfo.width > 0 ? boxW - dragInfo.width : 0
             return false
           }
           if (size < 0) {
             dragInfo[changeType] = 0
-            return false
           }
         }
         return true

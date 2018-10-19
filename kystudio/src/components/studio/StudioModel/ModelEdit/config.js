@@ -44,56 +44,58 @@ export const modelRenderConfig = {
   },
   searchCountLimit: 4, // 搜索每一类出来的最多条数
   baseIndex: baseIndex,
-  pannelsLayout: { // 编辑界面的弹出层位置信息
-    dimension: {
-      top: 72,
-      right: 60,
-      width: 250,
-      height: 316,
-      zIndex: baseIndex - 2,
-      display: false,
-      minheight: 80,
-      box: rootBox
-    },
-    measure: {
-      top: 115,
-      right: 60,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: baseIndex - 1,
-      display: false,
-      box: rootBox
-    },
-    setting: {
-      top: 158,
-      right: 60,
-      width: 250,
-      height: 410,
-      minheight: 80,
-      zIndex: baseIndex,
-      display: false,
-      box: rootBox
-    },
-    datasource: {
-      top: 52,
-      left: 10,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: baseIndex,
-      display: true,
-      box: rootBox
-    },
-    search: {
-      top: 52,
-      left: 10,
-      width: 250,
-      height: 316,
-      minheight: 80,
-      zIndex: baseIndex,
-      display: false,
-      box: rootBox
+  pannelsLayout: () => {
+    return { // 编辑界面的弹出层位置信息
+      dimension: {
+        top: 72,
+        right: 60,
+        width: 250,
+        height: 316,
+        zIndex: baseIndex - 2,
+        display: false,
+        minheight: 80,
+        box: rootBox
+      },
+      measure: {
+        top: 115,
+        right: 60,
+        width: 250,
+        height: 316,
+        minheight: 80,
+        zIndex: baseIndex - 1,
+        display: false,
+        box: rootBox
+      },
+      setting: {
+        top: 158,
+        right: 60,
+        width: 250,
+        height: 410,
+        minheight: 80,
+        zIndex: baseIndex,
+        display: false,
+        box: rootBox
+      },
+      datasource: {
+        top: 52,
+        left: 10,
+        width: 250,
+        height: 316,
+        minheight: 80,
+        zIndex: baseIndex,
+        display: true,
+        box: rootBox
+      },
+      search: {
+        top: 52,
+        left: 10,
+        width: 250,
+        height: 316,
+        minheight: 80,
+        zIndex: baseIndex,
+        display: false,
+        box: rootBox
+      }
     }
   }
 }

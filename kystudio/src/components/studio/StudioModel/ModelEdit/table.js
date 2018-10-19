@@ -39,13 +39,17 @@ class NTable {
         primary_key: [...linkColumnP],
         foreign_key: [...linkColumnF]
       },
-      foreignTable: fTable,
+      foreignTable: {
+        guid: fTable.guid,
+        namd: fTable.name
+      },
       kind: this.kind
     }
     // }
   }
   getColumnType (columnName) {
-    for (var i = this.columns.length - 1; i >= 0; i--) {
+    let len = this.columns && this.columns.length || 0
+    for (let i = len - 1; i >= 0; i--) {
       if (this.columns[i].name === columnName) {
         return this.columns[i].datatype
       }

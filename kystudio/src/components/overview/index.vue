@@ -211,18 +211,6 @@ export default class Overview extends Vue {
   @import "../../assets/styles/variables.less";
   #overview{
 	  margin: 40px 30px;
-    .el-card {
-      border-radius: 0;
-      box-shadow: none;
-      .el-card__header {
-        background: @grey-3;
-        color: @text-title-color;
-        font-size: 16px;
-      }
-      .el-card__body {
-        padding: 0;
-      }
-    }
     .statistics {
       height: 843px;
       .statistics-body {

@@ -176,17 +176,17 @@ export default class ModelAggregate extends Vue {
   .agg-detail-card {
     height: 638px;
     box-shadow: none;
-    .el-card__header {
-      background-color: @grey-3;
-      color: @text-title-color;
-      font-size: 16px;
-      padding: 7px 9px 7px 17px;
-    }
-    &.agg_index {
-      .el-card__header {
-        padding: 7px 9px 7px 17px;
-      }
-    }
+    // .el-card__header {
+    //   background-color: @grey-3;
+    //   color: @text-title-color;
+    //   font-size: 16px;
+    //   padding: 7px 9px 7px 17px;
+    // }
+    // &.agg_index {
+    //   .el-card__header {
+    //     padding: 7px 9px 7px 17px;
+    //   }
+    // }
     .el-card__body {
       overflow: auto;
       padding: 10px;
@@ -203,7 +203,6 @@ export default class ModelAggregate extends Vue {
     .left {
       display: block;
       float: left;
-      padding-top: 3px;
       &.fix {
         width: 130px;
       }

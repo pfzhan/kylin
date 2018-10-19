@@ -23,7 +23,7 @@ class NModel {
     this.dimensions = options.dimensions || []
     this.all_measures = options.all_measures || []
     this.project = options.project
-    this.datasource = store.state.datasource.dataSource[this.project]
+    this.datasource = store.state.datasource.dataSource[this.project].tables
     this.vm = _
     this._mount = _mount // 挂载对象
     this.$set = _.$set
@@ -52,16 +52,20 @@ class NModel {
   }
   renderTable () {
     if (this.mode === 'edit') {
+      let factTableInfo = this._getTableOriginInfo(this.fact_table)
       this.addTable({
         alias: this.fact_table.split('.')[1],
-        columns: this._getTableColumns(this.fact_table),
+        columns: factTableInfo.columns,
+        _isOriginFact: factTableInfo.fact,
         kind: 'FACT',
         table: this.fact_table
       })
       this.lookups.forEach((tableObj) => {
+        let tableInfo = this._getTableOriginInfo(tableObj.table)
         let ntable = this.addTable({
           alias: tableObj.alias,
-          columns: this._getTableColumns(tableObj.table),
+          columns: tableInfo.columns,
+          _isOriginFact: tableInfo.fact,
           kind: tableObj.kind,
           table: tableObj.table
         })
@@ -275,7 +279,7 @@ class NModel {
   }
   addTable (options) {
     if (!this.tables[options.alias]) {
-      options.columns = this._getTableColumns(options.table)
+      options.columns = this._getTableOriginInfo(options.table).columns
       options.plumbTool = this.plumbTool
       let table = new NTable(options)
       // this.tables[options.alias] = table
@@ -287,11 +291,11 @@ class NModel {
     }
     return this.tables[options.alias]
   }
-  _getTableColumns (tableFullName) {
+  _getTableOriginInfo (tableFullName) {
     if (this.datasource) {
       for (var i = this.datasource.length - 1; i >= 0; i--) {
         if (this.datasource[i].database + '.' + this.datasource[i].name === tableFullName) {
-          return this.datasource[i].columns
+          return this.datasource[i]
         }
       }
     }

@@ -1,7 +1,6 @@
 const types = {
   SHOW_MODAL: 'SHOW_MODAL',
   HIDE_MODAL: 'HIDE_MODAL',
-  SET_MODAL: 'SET_MODAL',
   SET_MODAL_FORM: 'SET_MODAL_FORM',
   RESET_MODAL_FORM: 'RESET_MODAL_FORM',
   CALL_MODAL: 'CALL_MODAL'
@@ -9,8 +8,9 @@ const types = {
 // 声明：初始state状态
 const initialState = JSON.stringify({
   isShow: false,
-  modelDesc: [],
-  selectedDimensions: [],
+  form: {
+    data: ''
+  },
   callback: null
 })
 
@@ -26,20 +26,18 @@ export default {
     [types.HIDE_MODAL]: (state) => {
       state.isShow = false
     },
-    [types.SET_MODAL]: (state, payload) => {
-      state.modelDesc = payload.modelDesc
+    [types.SET_MODAL_FORM]: (state, payload) => {
+      state.form.data = payload.data
       state.callback = payload.callback
     },
-    // 还原Modal中的值为初始值
     [types.RESET_MODAL_FORM]: (state) => {
-      state.selectedDimensions = []
-      state.modelDesc = null
+      state.form = JSON.parse(initialState).form
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { modelDesc }) {
+    [types.CALL_MODAL] ({ commit }, data) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { modelDesc: modelDesc, callback: resolve })
+        commit(types.SET_MODAL_FORM, {data: data, callback: resolve})
         commit(types.SHOW_MODAL)
       })
     }

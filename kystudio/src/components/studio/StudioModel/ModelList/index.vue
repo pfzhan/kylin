@@ -40,10 +40,7 @@
                   <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
                 </el-tab-pane>
                 <el-tab-pane :label="$t('tableIndex')" name="third">
-                  <div style="height:80px;background-color: #fff">
-                    <!-- 临时 -->
-                  </div>
-                  <!-- <TableIndex></TableIndex> -->
+                  <TableIndex></TableIndex>
                 </el-tab-pane>
                 <el-tab-pane label="JSON" name="forth">
                   <el-input
@@ -230,7 +227,7 @@
       </div>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dataLoadingModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </el-dialog>
     <ModelRenameModal/>

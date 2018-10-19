@@ -90,7 +90,7 @@
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span @click="batchDimension"><i class="el-icon-ksd-add"></i></span>
+              <span @click="batchSetDimension"><i class="el-icon-ksd-add"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-computed"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
@@ -261,7 +261,7 @@ export default class ModelEdit extends Vue {
     convertedColumns: [],
     returntype: ''
   }
-  panelAppear = modelRenderConfig.pannelsLayout
+  panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
   query (className) {
     return $(this.$el.querySelector(className))
@@ -294,7 +294,18 @@ export default class ModelEdit extends Vue {
     this.measureVisible = false
   }
   changeTableType (t) {
+    this._checkTableType(t)
     t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
+  }
+  _checkTableType (t) {
+    if (t._isOriginFact) {
+      // 提示 增量构建的不能改成lookup
+      return
+    }
+    if (t.joinInfo) {
+      // 提示，主键表不能作为fact
+      return
+    }
   }
   // 放大视图
   addZoom (e) {
@@ -335,8 +346,10 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
     }
   }
-  batchDimension () {
-    this.showDimensionDialog([], [])
+  batchSetDimension () {
+    this.showDimensionDialog({
+      modelDesc: this.modelRender
+    })
   }
   addCCDimension () {
     this.showSingleDimensionDialog({

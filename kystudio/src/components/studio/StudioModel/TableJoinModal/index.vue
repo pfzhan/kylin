@@ -141,7 +141,6 @@ export default class TableJoinModal extends Vue {
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()
-      console.log(this.callback)
       this.callback && this.callback(data)
     }, 300)
   }
