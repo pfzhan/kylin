@@ -110,11 +110,11 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         {
             NCuboidDesc last = Iterables.getLast(cube.getCuboids(), null);
             Assert.assertNotNull(last);
-            Assert.assertEquals(1000002000, last.getId());
+            Assert.assertEquals(20000002000L, last.getId());
             Assert.assertEquals(1, last.getLayouts().size());
             NCuboidLayout cuboidLayout = last.getLastLayout();
             Assert.assertNotNull(cuboidLayout);
-            Assert.assertEquals(1000002001, cuboidLayout.getId());
+            Assert.assertEquals(20000002001L, cuboidLayout.getId());
             Assert.assertEquals(26, cuboidLayout.getOrderedDimensions().size());
             Assert.assertEquals(0, cuboidLayout.getOrderedMeasures().size());
         }

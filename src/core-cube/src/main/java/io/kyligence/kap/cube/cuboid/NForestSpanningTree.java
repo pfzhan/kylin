@@ -161,6 +161,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     private void init() {
         new TreeBuilder(cuboids.keySet()).build();
     }
+
     private class TreeNode implements Serializable {
         @JsonProperty("cuboid")
         private final NCuboidDesc cuboidDesc;
@@ -185,7 +186,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         private SortedSet<NCuboidDesc> cuboids = Sets.newTreeSet(new Comparator<NCuboidDesc>() {
             @Override
             public int compare(NCuboidDesc o1, NCuboidDesc o2) {
-                int c = Integer.compare(o2.getDimensions().length, o1.getDimensions().length);
+                int c = Integer.compare(o2.getDimensions().size(), o1.getDimensions().size());
                 if (c != 0)
                     return c;
                 else
@@ -236,7 +237,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             return Collections.min(candidates, new Comparator<TreeNode>() {
                 @Override
                 public int compare(TreeNode o1, TreeNode o2) {
-                    return o1.cuboidDesc.getDimensions().length - o2.cuboidDesc.getDimensions().length; // TODO: compare
+                    return o1.cuboidDesc.getDimensions().size() - o2.cuboidDesc.getDimensions().size(); // TODO: compare
                     // with row size
                 }
             });

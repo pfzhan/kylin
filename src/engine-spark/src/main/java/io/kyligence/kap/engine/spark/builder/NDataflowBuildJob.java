@@ -126,10 +126,10 @@ public class NDataflowBuildJob extends NDataflowJob {
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
-            Map<Integer, Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+                                      Map<Integer, Measure> measures, NSpanningTree nSpanningTree) throws IOException {
 
         if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
-            Preconditions.checkArgument(cuboid.getMeasures().length == 0);
+            Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
             Set<Integer> dimIndices = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndices));
             long cuboidRowCnt = afterPrj.count();

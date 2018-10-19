@@ -23,11 +23,8 @@
  */
 package io.kylingence.kap.event.handle;
 
+import java.util.List;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,29 +33,37 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.EventContext;
+import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
-
+@Slf4j
 public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        getTestConfig().setProperty("kylin.server.mode", "query");
     }
 
     @After
     public void tearDown() throws Exception {
+        getTestConfig().setProperty("kylin.server.mode", "all");
         this.cleanupTestMetadata();
     }
 
     @Test
     public void testHandlerIdempotent() throws Exception {
-        getTestConfig().setProperty("kylin.server.mode", "query");
 
         // first add cuboid layouts
-        List<String> sqls = Lists.<String>newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT");
+        List<String> sqls = Lists.<String> newArrayList(
+                "select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT");
         NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
         master.runAll();
 
@@ -91,8 +96,45 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(cuboidLayoutSize3, cuboidLayoutSize2);
 
-        getTestConfig().setProperty("kylin.server.mode", "all");
+    }
 
+    @Test
+    public void testHandlerLayouts() throws Exception {
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NCubePlan cubePlan = cubePlanManager.getCubePlan("ncube_basic_inner");
+        int cuboidLayoutSize = cubePlan.getAllCuboidLayouts().size();
+
+        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
+            log.warn("layout({}) {} {}", layout.getCuboidDesc().isRuleBased(), layout.getId(), layout);
+        }
+
+        RemoveCuboidEvent event = new RemoveCuboidEvent();
+        event.setApproved(true);
+        event.setProject(DEFAULT_PROJECT);
+        event.setModelName("nmodel_basic");
+        event.setCubePlanName("ncube_basic_inner");
+        event.setLayoutIds(Lists.<Long> newArrayList(1000001L));
+
+        EventContext eventContext = new EventContext(event, getTestConfig());
+        RemoveCuboidHandler handler = new RemoveCuboidHandler();
+        // then remove the added cuboid layouts
+        handler.handle(eventContext);
+
+        cubePlan = cubePlanManager.getCubePlan("ncube_basic_inner");
+        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
+            log.warn("layout({}) {} {}", layout.getCuboidDesc().isRuleBased(), layout.getId(), layout);
+        }
+        int cuboidLayoutSize2 = cubePlan.getAllCuboidLayouts().size();
+
+        Assert.assertEquals(cuboidLayoutSize - 1, cuboidLayoutSize2);
+
+        event.getLayoutIds().add(1002L);
+        handler.handle(eventContext);
+
+        cubePlan = cubePlanManager.getCubePlan("ncube_basic_inner");
+        int cuboidLayoutSize3 = cubePlan.getAllCuboidLayouts().size();
+
+        Assert.assertEquals(cuboidLayoutSize2 - 1, cuboidLayoutSize3);
     }
 
 }

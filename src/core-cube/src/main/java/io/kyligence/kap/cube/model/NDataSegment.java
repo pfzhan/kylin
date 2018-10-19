@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.dict.NDictionaryInfo;
@@ -51,6 +50,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.model.NDataModel;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -117,7 +117,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         segDetails.setCachedAndShared(dataflow.isCachedAndShared());
 
         List<NDataCuboid> cuboids = segDetails.getCuboids();
-        cuboidsMap = new HashMap<Long, NDataCuboid>(cuboids.size());
+        cuboidsMap = new HashMap<>(cuboids.size());
         for (NDataCuboid i : cuboids) {
             cuboidsMap.put(i.getCuboidLayoutId(), i);
         }

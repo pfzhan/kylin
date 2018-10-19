@@ -79,7 +79,7 @@ public class NAggregationGroup implements Serializable {
 
     public void init(NCubePlan cubePlan) {
         this.nCubePlan = cubePlan;
-        this.nRuleBasedCuboidsDesc = cubePlan.getnRuleBasedCuboidsDesc();
+        this.nRuleBasedCuboidsDesc = cubePlan.getRuleBasedCuboidsDesc();
         this.isMandatoryOnlyValid = cubePlan.getConfig().getCubeAggrGroupIsMandatoryOnlyValid();
 
         if (this.includes == null || this.includes.length == 0 || this.selectRule == null) {
@@ -358,7 +358,7 @@ public class NAggregationGroup implements Serializable {
             return false;
         } else {
             //base cuboid is always valid
-            if (cuboidID == nCubePlan.getnRuleBasedCuboidsDesc().getFullMask()) {
+            if (cuboidID == nCubePlan.getRuleBasedCuboidsDesc().getFullMask()) {
                 return true;
             }
 

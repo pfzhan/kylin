@@ -24,18 +24,23 @@
 
 package io.kyligence.kap.smart.cube;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import javax.annotation.Nullable;
+
+import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -53,18 +58,6 @@ public class NCuboidReducer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-
-        // get current cuboids
-        Map<NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = Maps.newLinkedHashMap();
-        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-            NCuboidIdentifier identifier = cuboidDesc.createCuboidIdentifier();
-            if (!originalCuboidsMap.containsKey(identifier)) {
-                originalCuboidsMap.put(identifier, cuboidDesc);
-            } else {
-                originalCuboidsMap.get(identifier).getLayouts().addAll(cuboidDesc.getLayouts());
-            }
-        }
-
         // get to be removed cuboids
         Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
         NDataModel model = context.getTargetModel();
@@ -83,36 +76,24 @@ public class NCuboidReducer extends NAbstractCubeProposer {
         }
 
         // remove cuboids
-        for (Entry<NCuboidIdentifier, NCuboidDesc> cuboidEntity : proposedCuboids.entrySet()) {
-            NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
-            NCuboidDesc cuboid = cuboidEntity.getValue();
-            NCuboidDesc originalCuboid = originalCuboidsMap.get(cuboidKey);
-            if (originalCuboid == null) {
-                continue;
-            }
-            for (NCuboidLayout cuboidLayout : cuboid.getLayouts()) {
+        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getSmartContext().getKylinConfig(),
+                cubePlan.getProject());
+        Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap = Maps.newHashMap();
+        for (Entry<NCuboidIdentifier, NCuboidDesc> entry : proposedCuboids.entrySet()) {
+            cuboidLayoutMap.put(entry.getKey(), entry.getValue().getLayouts());
+        }
+        cubePlanManager.removeLayouts(cubePlan, cuboidLayoutMap, new Predicate<NCuboidLayout>() {
+            @Override
+            public boolean apply(@Nullable NCuboidLayout input) {
                 // TODO check if this layout is used by other query
                 boolean hasExternalRef = false;
-                if (hasExternalRef) {
-                    continue;
-                }
-                NCuboidLayout toRemoveLayout = null;
-                for (NCuboidLayout originalLayout : originalCuboid.getLayouts()) {
-                    if (CuboidSuggester.compareLayouts(originalLayout, cuboidLayout)) {
-                        toRemoveLayout = originalLayout;
-                        break;
-                    }
-                }
-                if (toRemoveLayout == null) {
-                    continue;
-                }
-                originalCuboid.getLayouts().remove(toRemoveLayout);
+                return hasExternalRef;
             }
-            if (originalCuboid.getLayouts().isEmpty()) {
-                originalCuboidsMap.remove(cuboidKey);
+        }, new Predicate2<NCuboidLayout, NCuboidLayout>() {
+            @Override
+            public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
+                return CuboidSuggester.compareLayouts(o1, o2);
             }
-        }
-
-        cubePlan.setCuboids(Lists.newArrayList(originalCuboidsMap.values()));
+        });
     }
 }

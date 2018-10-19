@@ -325,12 +325,12 @@ public class CuboidSuggester {
 
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(suggestDescId(isTableIndex));
-        cuboidDesc.setDimensions(ArrayUtils.toPrimitive(dimIds.toArray(new Integer[0])));
-        cuboidDesc.setMeasures(ArrayUtils.toPrimitive(measureIds.toArray(new Integer[0])));
+        cuboidDesc.setDimensions(Lists.newArrayList(dimIds));
+        cuboidDesc.setMeasures(Lists.newArrayList(measureIds));
         cuboidDesc.setCubePlan(cubePlan);
 
-        Arrays.sort(cuboidDesc.getDimensions());
-        Arrays.sort(cuboidDesc.getMeasures());
+        Collections.sort(cuboidDesc.getDimensions());
+        Collections.sort(cuboidDesc.getMeasures());
         return cuboidDesc;
     }
 

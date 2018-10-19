@@ -50,9 +50,14 @@ import io.kyligence.kap.common.util.MapUtil;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+@Getter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonBackReference
     private NCuboidDesc cuboidDesc;
@@ -60,16 +65,24 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("id")
     private long id;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("col_order")
     private List<Integer> colOrder = Lists.newArrayList();
 
+    @EqualsAndHashCode.Include
     @JsonProperty("layout_override_indices")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Map<Integer, String> layoutOverrideIndices = Maps.newHashMap();
+
+    @EqualsAndHashCode.Include
     @JsonProperty("shard_by_columns")
     private int[] shardByColumns = new int[0];
+
+    @EqualsAndHashCode.Include
     @JsonProperty("sort_by_columns")
     private int[] sortByColumns = new int[0];
+
+    @EqualsAndHashCode.Include
     @JsonProperty("storage_type")
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 
@@ -84,7 +97,19 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
     private ImmutableBiMap<Integer, Measure> orderedMeasures;
 
+    @Setter
+    private int version;
+
     public NCuboidLayout() {
+    }
+
+    /**
+     * @return  0 for auto agg; 1 for rule based agg; 2 for auto table index; 3 for manual table index
+     */
+
+    @EqualsAndHashCode.Include
+    public long getIndexType() {
+        return id / NCuboidDesc.CUBOID_ID_SIZE;
     }
 
     public ImmutableBiMap<Integer, TblColRef> getOrderedDimensions() { // dimension order abides by rowkey_col_desc
@@ -160,10 +185,6 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
-    public long getId() {
-        return id;
-    }
-
     public void setId(long id) {
         checkIsNotCachedAndShared();
         this.id = id;
@@ -205,17 +226,9 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         this.sortByColumns = sortByColumns;
     }
 
-    public int getStorageType() {
-        return storageType;
-    }
-
     public void setStorageType(int storageType) {
         checkIsNotCachedAndShared();
         this.storageType = storageType;
-    }
-
-    public NCuboidDesc getCuboidDesc() {
-        return cuboidDesc;
     }
 
     public void setCuboidDesc(NCuboidDesc cuboidDesc) {

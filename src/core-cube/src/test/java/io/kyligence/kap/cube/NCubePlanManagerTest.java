@@ -24,20 +24,35 @@
 
 package io.kyligence.kap.cube;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import com.google.common.base.Predicate;
+import lombok.var;
+import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-import java.util.UUID;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCubePlanManager.NCubePlanUpdater;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import lombok.val;
+
+import javax.annotation.Nullable;
 
 public class NCubePlanManagerTest {
     private static final String DEFAULT_PROJECT = "default";
@@ -51,13 +66,15 @@ public class NCubePlanManagerTest {
     }
 
     @Test
-    public void testCRUD() throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException, InvocationTargetException {
+    public void testCRUD() throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException,
+            InvocationTargetException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
         final String cubeName = UUID.randomUUID().toString();
         //refect
         Class<? extends NCubePlanManager> managerClass = manager.getClass();
-        Constructor<? extends NCubePlanManager> constructor = managerClass.getDeclaredConstructor(KylinConfig.class, String.class);
+        Constructor<? extends NCubePlanManager> constructor = managerClass.getDeclaredConstructor(KylinConfig.class,
+                String.class);
         constructor.setAccessible(true);
         final NCubePlanManager refectionManage = constructor.newInstance(config, DEFAULT_PROJECT);
         Assert.assertNotNull(refectionManage);
@@ -101,5 +118,51 @@ public class NCubePlanManagerTest {
         cube = manager.getCubePlan(cubeName);
         Assert.assertNull(cube);
         Assert.assertEquals(cntBeforeCreate, manager.listAllCubePlans().size());
+    }
+
+    @Test
+    public void testRemoveLayout() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
+
+        var cube = manager.getCubePlan("ncube_basic_inner").copy();
+        val originalSize = cube.getAllCuboidLayouts().size();
+        val cuboidMap = Maps.newHashMap(cube.getCuboidMap());
+        val toRemovedMap = Maps.<NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
+        for (Map.Entry<NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
+            if (cuboidDescEntry.getValue().isRuleBased()) {
+                continue;
+            }
+            val layouts = cuboidDescEntry.getValue().getLayouts();
+            val filteredLayouts = Lists.<NCuboidLayout> newArrayList();
+            for (NCuboidLayout layout : layouts) {
+                if (Arrays.asList(1000001L, 1002L).contains(layout.getId())) {
+                    filteredLayouts.add(layout);
+                }
+            }
+
+            toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
+        }
+        manager.removeLayouts(cube, toRemovedMap, new Predicate2<NCuboidLayout, NCuboidLayout>() {
+            @Override
+            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
+                return nCuboidLayout.equals(nCuboidLayout2);
+            }
+        });
+        Assert.assertEquals(originalSize - 2, cube.getAllCuboidLayouts().size());
+
+        cube = manager.getCubePlan("ncube_basic_inner").copy();
+        manager.removeLayouts(cube, toRemovedMap, new Predicate<NCuboidLayout>() {
+            @Override
+            public boolean apply(@Nullable NCuboidLayout input) {
+                return input != null && input.getId() == 1002L;
+            }
+        }, new Predicate2<NCuboidLayout, NCuboidLayout>() {
+            @Override
+            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
+                return nCuboidLayout.equals(nCuboidLayout2);
+            }
+        });
+        Assert.assertEquals(originalSize - 1, cube.getAllCuboidLayouts().size());
     }
 }

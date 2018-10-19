@@ -46,6 +46,7 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 import java.util.Iterator;
+import java.util.List;
 
 public class ImmutableBitSet implements Iterable<Integer>, Serializable {
     private static final long serialVersionUID = 2670748367234738640L;
@@ -53,6 +54,13 @@ public class ImmutableBitSet implements Iterable<Integer>, Serializable {
     public static final ImmutableBitSet EMPTY = new ImmutableBitSet(new BitSet());
 
     public static ImmutableBitSet valueOf(int... values) {
+        BitSet set = new BitSet();
+        for (int i : values)
+            set.set(i);
+        return new ImmutableBitSet(set);
+    }
+
+    public static ImmutableBitSet valueOf(List<Integer> values) {
         BitSet set = new BitSet();
         for (int i : values)
             set.set(i);

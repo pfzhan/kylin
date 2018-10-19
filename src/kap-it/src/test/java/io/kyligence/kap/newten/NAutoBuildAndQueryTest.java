@@ -32,6 +32,7 @@ import java.util.Map;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkContext;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -213,8 +214,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 Assert.assertEquals(expected.getAllCuboidLayouts().size(), actual.getAllCuboidLayouts().size());
                 for (NCuboidDesc actualCuboid : actual.getCuboids()) {
                     NCuboidDesc expectedCuboid = expected.getCuboidDesc(actualCuboid.getId());
-                    Assert.assertArrayEquals(expectedCuboid.getDimensions(), actualCuboid.getDimensions());
-                    Assert.assertArrayEquals(expectedCuboid.getMeasures(), actualCuboid.getMeasures());
+                    Assert.assertThat(expectedCuboid.getDimensions(), CoreMatchers.is(actualCuboid.getDimensions()));
+                    Assert.assertThat(expectedCuboid.getMeasures(), CoreMatchers.is(actualCuboid.getMeasures()));
                 }
             }
         }

@@ -27,6 +27,8 @@ package io.kyligence.kap.rest;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
+import io.kylingence.kap.event.handle.CubePlanCleanupHandler;
+import io.kylingence.kap.event.handle.CubePlanUpdateHandler;
 import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
 import io.kylingence.kap.event.handle.MergeSegmentHandler;
 import io.kylingence.kap.event.handle.ModelUpdateHandler;
@@ -117,6 +119,8 @@ public class KAPDebugServer {
         new AddCuboidHandler();
         new ModelUpdateHandler();
         new LoadingRangeUpdateHandler();
+        new CubePlanUpdateHandler();
+        new CubePlanCleanupHandler();
 
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
         try {

@@ -82,8 +82,8 @@ public class NCubeMasterTest extends NTestBase {
             for (NCuboidDesc c : cuboidDescs) {
                 if (c.getLayouts().size() == 2) {
                     Assert.assertFalse(c.isTableIndex());
-                    Assert.assertEquals(2, c.getDimensions().length);
-                    Assert.assertEquals(2, c.getMeasures().length);
+                    Assert.assertEquals(2, c.getDimensions().size());
+                    Assert.assertEquals(2, c.getMeasures().size());
                     Assert.assertSame(cubePlan, c.getCubePlan());
 
                     NCuboidLayout c11 = c.getLayouts().get(0);
@@ -98,10 +98,10 @@ public class NCubeMasterTest extends NTestBase {
                     indices.add(c12.getColIndexType(1));
                     Assert.assertEquals(2, indices.size());
 
-                } else if (c.getLayouts().size() == 1 && c.getMeasures().length > 0) {
+                } else if (c.getLayouts().size() == 1 && c.getMeasures().size()> 0) {
                     Assert.assertFalse(c.isTableIndex());
-                    Assert.assertEquals(1, c.getDimensions().length);
-                    Assert.assertEquals(2, c.getMeasures().length);
+                    Assert.assertEquals(1, c.getDimensions().size());
+                    Assert.assertEquals(2, c.getMeasures().size());
                     Assert.assertSame(cubePlan, c.getCubePlan());
 
                     NCuboidLayout c21 = c.getLayouts().get(0);
@@ -110,9 +110,9 @@ public class NCubeMasterTest extends NTestBase {
                     Assert.assertEquals(new Integer(1), c21.getColOrder().get(0));
                     Assert.assertEquals("eq", c21.getColIndexType(0));
 
-                } else if (c.getLayouts().size() == 1 && c.getDimensions().length == 4) {
+                } else if (c.getLayouts().size() == 1 && c.getDimensions().size()== 4) {
                     Assert.assertTrue(c.isTableIndex());
-                    Assert.assertEquals(0, c.getMeasures().length);
+                    Assert.assertEquals(0, c.getMeasures().size());
                     Assert.assertSame(cubePlan, c.getCubePlan());
 
                     NCuboidLayout c31 = c.getLayouts().get(0);
@@ -123,8 +123,8 @@ public class NCubeMasterTest extends NTestBase {
 
                 } else if (c.getLayouts().size() == 1) {
                     Assert.assertTrue(c.isTableIndex());
-                    Assert.assertEquals(3, c.getDimensions().length);
-                    Assert.assertEquals(0, c.getMeasures().length);
+                    Assert.assertEquals(3, c.getDimensions().size());
+                    Assert.assertEquals(0, c.getMeasures().size());
                     Assert.assertSame(cubePlan, c.getCubePlan());
 
                     NCuboidLayout c41 = c.getLayouts().get(0);

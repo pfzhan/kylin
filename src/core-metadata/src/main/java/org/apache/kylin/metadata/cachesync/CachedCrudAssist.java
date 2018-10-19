@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
+public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
     private static final Logger logger = LoggerFactory.getLogger(CachedCrudAssist.class);
 
@@ -111,6 +111,7 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     public T copyBySerialization(T entity) {
+        Preconditions.checkNotNull(entity);
         T copy;
         try {
             byte[] bytes;
@@ -195,6 +196,10 @@ abstract public class CachedCrudAssist<T extends RootPersistentEntity> {
         } catch (Exception e) {
             throw new IllegalStateException("Error loading " + entityType.getSimpleName() + " at " + path, e);
         }
+    }
+
+    public T get(String resourceName) {
+        return cache.get(resourceName);
     }
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);

@@ -47,16 +47,21 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.metadata.model.SegmentRange;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.Maps;
-import org.apache.kylin.metadata.model.SegmentRange;
+
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */
 @SuppressWarnings("serial")
+@Setter
+@Getter
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class Event extends RootPersistentEntity {
@@ -97,123 +102,4 @@ public class Event extends RootPersistentEntity {
         uuid = UUID.randomUUID().toString();
     }
 
-    public EventStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(EventStatus status) {
-        this.status = status;
-    }
-
-    public TriggerType getTriggerType() {
-        return triggerType;
-    }
-
-    public void setTriggerType(TriggerType triggerType) {
-        this.triggerType = triggerType;
-    }
-
-    public boolean isApproved() {
-        return approved;
-    }
-
-    public void setApproved(boolean approved) {
-        this.approved = approved;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public Map<String, Object> getAddedInfo() {
-        return addedInfo;
-    }
-
-    public void setAddedInfo(Map<String, Object> addedInfo) {
-        this.addedInfo = addedInfo;
-    }
-
-    public boolean isGlobal() {
-        return isGlobal;
-    }
-
-    public void setGlobal(boolean global) {
-        isGlobal = global;
-    }
-
-    public SegmentRange getSegmentRange() {
-        return segmentRange;
-    }
-
-    public void setSegmentRange(SegmentRange segmentRange) {
-        this.segmentRange = segmentRange;
-    }
-
-    public String getCubePlanName() {
-        return cubePlanName;
-    }
-
-    public void setCubePlanName(String cubePlanName) {
-        this.cubePlanName = cubePlanName;
-    }
-
-    public String getMsg() {
-        return msg;
-    }
-
-    public void setMsg(String msg) {
-        this.msg = msg;
-    }
-
-    public String getJobId() {
-        return jobId;
-    }
-
-    public void setJobId(String jobId) {
-        this.jobId = jobId;
-    }
-
-    public boolean isParallel() {
-        return isParallel;
-    }
-
-    public void setParallel(boolean parallel) {
-        isParallel = parallel;
-    }
-
-    public String getParentId() {
-        return parentId;
-    }
-
-    public void setParentId(String parentId) {
-        this.parentId = parentId;
-    }
-
-    public int getJobRetry() {
-        return jobRetry;
-    }
-
-    public void setJobRetry(int jobRetry) {
-        this.jobRetry = jobRetry;
-    }
-
-    public long getCreateTime() {
-        return createTime;
-    }
-
-    public void setCreateTime(long createTime) {
-        this.createTime = createTime;
-    }
 }

@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 
 /**
  * Defines a cuboid tree, rooted by the base cuboid. A parent cuboid generates its child cuboids.
@@ -40,30 +41,46 @@ import io.kyligence.kap.cube.model.NCubePlan;
 abstract public class NCuboidScheduler implements Serializable {
 
     public static NCuboidScheduler getInstance(NCubePlan nCubePlan) {
-        return new NKapCuboidScheduler243(nCubePlan);
+        return new NKapCuboidScheduler243(nCubePlan, null);
+    }
+
+    public static NCuboidScheduler getInstance(NCubePlan nCubePlan, NRuleBasedCuboidsDesc ruleBasedCuboidsDes) {
+        return new NKapCuboidScheduler243(nCubePlan, ruleBasedCuboidsDes);
     }
 
     // ============================================================================
 
-    final protected NCubePlan nCubePlan;
+    protected final NCubePlan nCubePlan;
+    protected final NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
 
-    protected NCuboidScheduler(NCubePlan nCubePlan) {
-        this.nCubePlan = nCubePlan;
+    protected NCuboidScheduler(final NCubePlan cubePlan, NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc) {
+        this.nCubePlan = cubePlan;
+        this.nRuleBasedCuboidsDesc = nRuleBasedCuboidsDesc == null ? cubePlan.getRuleBasedCuboidsDesc() : nRuleBasedCuboidsDesc;
     }
 
-    /** Returns all cuboids on the tree. */
+    /**
+     * Returns all cuboids on the tree.
+     */
     abstract public Set<Long> getAllCuboidIds();
 
-    /** Returns the number of all cuboids. */
+    /**
+     * Returns the number of all cuboids.
+     */
     abstract public int getCuboidCount();
 
-    /** Returns the child cuboids of a parent. */
+    /**
+     * Returns the child cuboids of a parent.
+     */
     abstract public List<Long> getSpanningCuboid(long parentCuboid);
 
-    /** Returns a valid cuboid that best matches the request cuboid. */
+    /**
+     * Returns a valid cuboid that best matches the request cuboid.
+     */
     abstract public long findBestMatchCuboid(long requestCuboid);
 
-    /** optional */
+    /**
+     * optional
+     */
     abstract public Set<Long> calculateCuboidsForAggGroup(NAggregationGroup agg);
 
     // ============================================================================
@@ -71,20 +88,23 @@ abstract public class NCuboidScheduler implements Serializable {
     private transient List<List<Long>> cuboidsByLayer;
 
     public long getBaseCuboidId() {
-        return nCubePlan.getnRuleBasedCuboidsDesc().getFullMask();
+        return nRuleBasedCuboidsDesc.getFullMask();
     }
 
     public NCubePlan getnCubePlan() {
         return nCubePlan;
     }
 
-    /** Checks whether a cuboid is valid or not. */
+    /**
+     * Checks whether a cuboid is valid or not.
+     */
     public boolean isValid(long requestCuboid) {
         return getAllCuboidIds().contains(requestCuboid);
     }
 
     /**
      * Get cuboids by layer. It's built from pre-expanding tree.
+     *
      * @return layered cuboids
      */
     public List<List<Long>> getCuboidsByLayer() {
@@ -95,7 +115,7 @@ abstract public class NCuboidScheduler implements Serializable {
         int totalNum = 0;
         cuboidsByLayer = Lists.newArrayList();
 
-        cuboidsByLayer.add(Collections.singletonList(nCubePlan.getnRuleBasedCuboidsDesc().getFullMask()));
+        cuboidsByLayer.add(Collections.singletonList(nRuleBasedCuboidsDesc.getFullMask()));
         totalNum++;
 
         List<Long> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
@@ -119,13 +139,16 @@ abstract public class NCuboidScheduler implements Serializable {
 
     /**
      * Get cuboid level count except base cuboid
+     *
      * @return
      */
     public int getBuildLevel() {
         return getCuboidsByLayer().size() - 1;
     }
 
-    /** Returns the key for what this cuboid scheduler responsible for. */
+    /**
+     * Returns the key for what this cuboid scheduler responsible for.
+     */
     public String getCuboidCacheKey() {
         return nCubePlan.getName();
     }

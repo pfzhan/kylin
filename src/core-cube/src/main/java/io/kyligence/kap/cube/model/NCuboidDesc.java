@@ -24,20 +24,6 @@
 
 package io.kyligence.kap.cube.model;
 
-import static io.kyligence.kap.metadata.model.NDataModel.Measure;
-
-import java.io.Serializable;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import javax.annotation.Nullable;
-
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.metadata.model.TblColRef;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -49,9 +35,19 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.metadata.model.TblColRef;
+
+import javax.annotation.Nullable;
+import java.io.Serializable;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -60,8 +56,10 @@ public class NCuboidDesc implements Serializable, IKeep {
      * Here suppose cuboid's number is not bigger than 1_000_000, so if the id is bigger than 1_000_000 * 1_000
      * means it should be a table index cuboid.
      */
-    public static final long TABLE_INDEX_START_ID = 1_000_000_000L;
-    static final long RULE_BASED_CUBOID_START_ID = 900_000_000L;
+    public static final long CUBOID_ID_SIZE = 10_000_000_000L;
+    public static final long RULE_BASED_CUBOID_START_ID = CUBOID_ID_SIZE;
+    public static final long TABLE_INDEX_START_ID = 2 * CUBOID_ID_SIZE;
+    public static final long MANUAL_TABLE_INDEX_START_ID = 3 * CUBOID_ID_SIZE;
 
     @JsonBackReference
     private NCubePlan cubePlan;
@@ -69,9 +67,9 @@ public class NCuboidDesc implements Serializable, IKeep {
     @JsonProperty("id")
     private long id;
     @JsonProperty("dimensions")
-    private int[] dimensions = new int[0];
+    private List<Integer> dimensions = Lists.newArrayList();
     @JsonProperty("measures")
-    private int[] measures = new int[0];
+    private List<Integer> measures = Lists.newArrayList();
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<NCuboidLayout> layouts = Lists.newArrayList();
@@ -186,20 +184,20 @@ public class NCuboidDesc implements Serializable, IKeep {
         this.id = id;
     }
 
-    public int[] getDimensions() {
-        return isCachedAndShared() ? Arrays.copyOf(dimensions, dimensions.length) : dimensions;
+    public List<Integer> getDimensions() {
+        return isCachedAndShared() ? Lists.newArrayList(dimensions) : dimensions;
     }
 
-    public void setDimensions(int[] dimensions) {
+    public void setDimensions(List<Integer> dimensions) {
         checkIsNotCachedAndShared();
         this.dimensions = dimensions;
     }
 
-    public int[] getMeasures() {
-        return isCachedAndShared() ? Arrays.copyOf(measures, measures.length) : measures;
+    public List<Integer> getMeasures() {
+        return isCachedAndShared() ? Lists.newArrayList(measures) : measures;
     }
 
-    public void setMeasures(int[] measures) {
+    public void setMeasures(List<Integer> measures) {
         checkIsNotCachedAndShared();
         this.measures = measures;
     }
@@ -228,6 +226,14 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     public boolean isTableIndex() {
         return id >= TABLE_INDEX_START_ID;
+    }
+
+    public boolean isRuleBased() {
+        return id >= RULE_BASED_CUBOID_START_ID && id < TABLE_INDEX_START_ID;
+    }
+
+    public boolean isManualTableIndex() {
+        return id >= MANUAL_TABLE_INDEX_START_ID;
     }
 
     // ============================================================================
@@ -279,4 +285,5 @@ public class NCuboidDesc implements Serializable, IKeep {
                 isTableIndex()//
         );
     }
+
 }

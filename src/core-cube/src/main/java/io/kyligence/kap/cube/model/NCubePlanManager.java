@@ -24,10 +24,12 @@
 
 package io.kyligence.kap.cube.model;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
@@ -40,9 +42,13 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
+import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
+import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
@@ -206,6 +212,50 @@ public class NCubePlanManager implements IKeepNames {
             updater.modify(copy);
             return updateCubePlan(copy);
         }
+    }
+
+    /**
+     * remove useless layouts from cubePlan
+     * @param cubePlan        the cubePlan's isCachedAndShared must be false
+     * @param cuboidLayoutMap the layouts to be removed, group by cuboid's identify
+     * @param comparator      compare if two layouts is equal
+     */
+    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap, Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+        removeLayouts(cubePlan, cuboidLayoutMap, null, comparator);
+    }
+
+    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboids, Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+        Map<NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = cubePlan.getCuboidMap();
+        for (Map.Entry<NCuboidIdentifier, List<NCuboidLayout>> cuboidEntity : cuboids.entrySet()) {
+            NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
+            NCuboidDesc originalCuboid = originalCuboidsMap.get(cuboidKey);
+            if (originalCuboid == null) {
+                continue;
+            }
+            List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
+            for (NCuboidLayout cuboidLayout : cuboidEntity.getValue()) {
+                if (isSkip != null && isSkip.apply(cuboidLayout)) {
+                    continue;
+                }
+                NCuboidLayout toRemoveLayout = null;
+                for (NCuboidLayout originalLayout : originalCuboid.getLayouts()) {
+                    if (equal.apply(originalLayout, cuboidLayout)) {
+                        toRemoveLayout = originalLayout;
+                        break;
+                    }
+                }
+                if (toRemoveLayout != null) {
+                    toRemoveLayouts.add(toRemoveLayout);
+                }
+            }
+            logger.debug("to remove {}", toRemoveLayouts);
+            originalCuboid.getLayouts().removeAll(toRemoveLayouts);
+            if (originalCuboid.getLayouts().isEmpty()) {
+                originalCuboidsMap.remove(cuboidKey);
+            }
+        }
+
+        cubePlan.setCuboids(Lists.newArrayList(originalCuboidsMap.values()));
     }
 
     // use the NCubePlanUpdater instead

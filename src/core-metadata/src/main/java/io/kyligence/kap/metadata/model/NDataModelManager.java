@@ -24,11 +24,9 @@
 
 package io.kyligence.kap.metadata.model;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -49,10 +47,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.metadata.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class NDataModelManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataModelManager.class);
@@ -252,7 +250,6 @@ public class NDataModelManager {
 
             // now that model is saved, update project formally
             prjMgr.addModelToProject(name, project);
-
             return desc;
         }
     }
@@ -263,7 +260,6 @@ public class NDataModelManager {
             if (!dataModelDescMap.containsKey(desc.getName())) {
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
             }
-
             return saveDataModelDesc(desc);
         }
     }
@@ -284,6 +280,7 @@ public class NDataModelManager {
 
     /**
      * if there is some change need be applied after getting a cubeDesc from front-end, do it here
+     *
      * @param dataModel
      */
     private void postProcessKapModel(NDataModel dataModel) {
@@ -301,7 +298,6 @@ public class NDataModelManager {
     }
 
     /**
-     *
      * @param resPath should be exactly like this: /{project_name}/model_desc/{model_name}.json
      * @return {project_name}
      */

@@ -56,23 +56,23 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         NCubePlan cube = utCube("2.1.0.20403", 3);
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(0);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(0);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(19, set.size());
         }
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(1);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(1);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(31, set.size());
         }
@@ -84,23 +84,23 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         NCubePlan cube = utCube("2.1.0.20403", 2);
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(0);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(0);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(15, set.size());
         }
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(1);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(1);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(11, set.size());
         }
 
         {
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(24, set.size());
         }
@@ -112,23 +112,23 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         NCubePlan cube = utCube("2.1.0.20403", 1);
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(0);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(0);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg1 result");
             Assert.assertEquals(6, set.size());
         }
 
         {
-            NAggregationGroup agg = cube.getnRuleBasedCuboidsDesc().getNAggregationGroups().get(1);
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler()
+            NAggregationGroup agg = cube.getRuleBasedCuboidsDesc().getAggregationGroups().get(1);
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler()
                     .calculateCuboidsForAggGroup(agg);
             //KapCuboidScheduler2403.debugPrint(set, "agg2 result");
             Assert.assertEquals(5, set.size());
         }
 
         {
-            Set<Long> set = cube.getnRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
+            Set<Long> set = cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler().getAllCuboidIds();
             //KapCuboidScheduler2403.debugPrint(set, "all result");
             Assert.assertEquals(11, set.size());
         }
@@ -139,10 +139,10 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         NCubePlan cube = mgr.getCubePlan("ut_inner_join_cube_partial");
         cube = JsonUtil.deepCopy(cube, NCubePlan.class);
         cube.setVersion(resetVer);
-        cube.getnRuleBasedCuboidsDesc().setParentForward(256); // disable parent forward
+        cube.getRuleBasedCuboidsDesc().setParentForward(256); // disable parent forward
 
         if (resetDimCap != null) {
-            for (NAggregationGroup g : cube.getnRuleBasedCuboidsDesc().getNAggregationGroups())
+            for (NAggregationGroup g : cube.getRuleBasedCuboidsDesc().getAggregationGroups())
                 g.getSelectRule().dimCap = resetDimCap;
         }
 

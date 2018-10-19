@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -79,18 +79,18 @@ public class HDFSResourceStore extends ResourceStore {
     // for test
     public static HDFSResourceStore newLocalStore(KylinConfig config, File localDir) throws Exception {
         localDir.mkdirs();
-        
+
         // normalize path
         String path = localDir.getCanonicalPath().replace('\\', '/');
         if (path.startsWith("/") == false)
             path = "/" + path;
-        
+
         StorageURL url = new StorageURL(localDir.getName(), HDFS_SCHEME, ImmutableMap.of("path", "file:" + path));
         return new HDFSResourceStore(config, url);
     }
-    
+
     // ============================================================================
-    
+
     private Path hdfsMetaPath;
 
     private FileSystem fs;
@@ -98,23 +98,23 @@ public class HDFSResourceStore extends ResourceStore {
     public HDFSResourceStore(KylinConfig kylinConfig, StorageURL storageUrl) throws Exception {
         super(kylinConfig, storageUrl);
         Preconditions.checkState(HDFS_SCHEME.equals(storageUrl.getScheme()));
-        
+
         String path = storageUrl.getParameter("path");
         if (path == null) {
             // missing path is not expected, but don't fail it
             path = kylinConfig.getHdfsWorkingDirectory() + "tmp_metadata";
-            logger.warn("Missing path, fall back to " + path);
+            logger.warn("Missing path, fall back to {}", path);
         }
-        
+
         fs = HadoopUtil.getFileSystem(path);
         Path metadataPath = new Path(path);
-        if (fs.exists(metadataPath) == false) {
-            logger.warn("Path not exist in HDFS, create it: " + path);
+        if (!fs.exists(metadataPath)) {
+            logger.warn("Path not exist in HDFS, create it: {}", path);
             createMetaFolder(metadataPath);
         }
 
         hdfsMetaPath = metadataPath;
-        logger.info("hdfs meta path : " + hdfsMetaPath.toString());
+        logger.info("hdfs meta path : {}", hdfsMetaPath.toString());
 
     }
 

@@ -43,6 +43,7 @@
 
 package org.apache.kylin.metadata.cachesync;
 
+import lombok.Getter;
 import org.apache.kylin.common.KylinConfig;
 
 /**
@@ -50,6 +51,8 @@ import org.apache.kylin.common.KylinConfig;
 public abstract class AbstractCache<K, V> {
 
     protected final KylinConfig config;
+
+    @Getter
     protected final String syncEntity;
 
     protected AbstractCache(KylinConfig config, String syncEntity) {

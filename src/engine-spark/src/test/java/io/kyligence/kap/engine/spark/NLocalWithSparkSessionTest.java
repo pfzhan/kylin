@@ -183,7 +183,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         throw new IllegalArgumentException("KAP data type: " + type + " can not be converted to spark's type.");
     }
 
-    protected List<Object[]> getCuboidDataAfterDecoding(NDataSegment seg, int cuboidLayoutId) {
+    protected List<Object[]> getCuboidDataAfterDecoding(NDataSegment seg, long cuboidLayoutId) {
         NDataSegDetails segCuboids = seg.getSegDetails();
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, cuboidLayoutId);
         List<Object[]> resultFromLayout = new ArrayList<>();

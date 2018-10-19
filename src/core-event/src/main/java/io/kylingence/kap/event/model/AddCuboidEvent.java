@@ -44,9 +44,13 @@
 package io.kylingence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
+@Setter
+@Getter
 public class AddCuboidEvent extends Event {
 
     @JsonProperty("layout_ids")
@@ -55,26 +59,10 @@ public class AddCuboidEvent extends Event {
     @JsonProperty("sql_ids")
     private List<String> sqlIdList;
 
-
     public AddCuboidEvent() {
         super();
         setTriggerType(TriggerType.SPACE_WISE);
         setParallel(true);
     }
 
-    public List<Long> getLayoutIds() {
-        return layoutIds;
-    }
-
-    public void setLayoutIds(List<Long> layoutIds) {
-        this.layoutIds = layoutIds;
-    }
-
-    public List<String> getSqlIdList() {
-        return sqlIdList;
-    }
-
-    public void setSqlIdList(List<String> sqlIdList) {
-        this.sqlIdList = sqlIdList;
-    }
 }

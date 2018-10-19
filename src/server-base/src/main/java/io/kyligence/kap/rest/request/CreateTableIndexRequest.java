@@ -21,37 +21,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.rest.request;
 
-package io.kyligence.kap.smart.cube;
+import lombok.Data;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NEncodingDesc;
-import io.kyligence.kap.smart.NSmartContext.NModelContext;
-
-import java.util.Map;
-import java.util.Set;
-
-public class NDimensionReducer extends NAbstractCubeProposer {
-
-    NDimensionReducer(NModelContext context) {
-        super(context);
-    }
-
-    @Override
-    void doPropose(NCubePlan cubePlan) {
-        final Set<Integer> usedDimensionIds = Sets.newHashSet();
-        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
-            usedDimensionIds.addAll(Lists.newArrayList(cuboidDesc.getDimensions()));
-        }
-
-        Map<Integer, NEncodingDesc> newMap = Maps.filterKeys(cubePlan.getCubePlanOverrideEncodings(), Predicates.in(usedDimensionIds));
-
-        cubePlan.setCubePlanOverrideEncodings(newMap);
-    }
-
+@Data
+public class CreateTableIndexRequest {
 }

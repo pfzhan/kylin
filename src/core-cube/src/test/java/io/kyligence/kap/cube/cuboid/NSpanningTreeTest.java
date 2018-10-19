@@ -80,7 +80,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         NCuboidDesc childCuboid2 = spanningTree.getCuboidDesc(1000L);
         NCuboidDesc rootCuboid = spanningTree.getCuboidDesc(3000L);
         NCuboidDesc cubeCuboidRoot = spanningTree.getCuboidDesc(1000000L);
-        NCuboidDesc tableIndexCuboidRoot = spanningTree.getCuboidDesc(1000002000L);
+        NCuboidDesc tableIndexCuboidRoot = spanningTree.getCuboidDesc(20000002000L);
 
         Assert.assertEquals(2, spanningTree.getRootCuboidDescs().size());
         Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(tableIndexCuboidRoot));
