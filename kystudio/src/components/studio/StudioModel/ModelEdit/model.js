@@ -13,6 +13,7 @@ class NModel {
     this.fact_table = options.fact_table
     this.uuid = options.uuid || null
     this.tables = {}
+    this.canvas = options.canvas // 模型布局坐标
     this.filter_condition = options.filter_condition || null
     this.column_correlations = options.column_correlations || []
     this.computed_columns = options.computed_columns || []
@@ -42,7 +43,10 @@ class NModel {
     this.renderTable()
     this.vm.$nextTick(() => {
       this.renderLinks()
-      this.renderPosition()
+      // 如果没有布局信息，就走自动布局程序
+      if (!this.canvas) {
+        this.renderPosition()
+      }
       setTimeout(() => {
         this.renderLabels()
       }, 1)
@@ -53,22 +57,26 @@ class NModel {
   renderTable () {
     if (this.mode === 'edit') {
       let factTableInfo = this._getTableOriginInfo(this.fact_table)
-      this.addTable({
+      let initTableOptions = {
         alias: this.fact_table.split('.')[1],
         columns: factTableInfo.columns,
-        _isOriginFact: factTableInfo.fact,
+        fact: factTableInfo.fact,
         kind: 'FACT',
         table: this.fact_table
-      })
+      }
+      initTableOptions.drawSize = this.getTableCoordinate(this.fact_table.split('.')[1]) // 获取坐标信息
+      this.addTable(initTableOptions)
       this.lookups.forEach((tableObj) => {
         let tableInfo = this._getTableOriginInfo(tableObj.table)
-        let ntable = this.addTable({
+        let initTableInfo = {
           alias: tableObj.alias,
           columns: tableInfo.columns,
-          _isOriginFact: tableInfo.fact,
+          fact: tableInfo.fact,
           kind: tableObj.kind,
           table: tableObj.table
-        })
+        }
+        initTableInfo.drawSize = this.getTableCoordinate(tableObj.alias) // 获取坐标信息
+        let ntable = this.addTable(initTableInfo)
         // 获取外键表对象
         var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
         ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
@@ -77,20 +85,22 @@ class NModel {
   }
   renderPosition () {
     const layers = this.autoCalcLayer()
-    const baseL = modelRenderConfig.baseLeft
-    const baseT = modelRenderConfig.baseTop
-    const centerL = $(this.renderDom).width() / 2 - modelRenderConfig.tableBoxWidth / 2
-    const moveL = layers[0].X - centerL
-    for (let k = 0; k < layers.length; k++) {
-      var currentTable = this.getTableByGuid(layers[k].guid)
-      currentTable.drawSize.left = baseL - moveL + layers[k].X
-      currentTable.drawSize.top = baseT + layers[k].Y
-      currentTable.drawSize.width = modelRenderConfig.tableBoxWidth
-      currentTable.drawSize.height = modelRenderConfig.tableBoxHeight
+    if (layers && layers.length > 0) {
+      const baseL = modelRenderConfig.baseLeft
+      const baseT = modelRenderConfig.baseTop
+      const centerL = $(this.renderDom).width() / 2 - modelRenderConfig.tableBoxWidth / 2
+      const moveL = layers[0].X - centerL
+      for (let k = 0; k < layers.length; k++) {
+        var currentTable = this.getTableByGuid(layers[k].guid)
+        currentTable.drawSize.left = baseL - moveL + layers[k].X
+        currentTable.drawSize.top = baseT + layers[k].Y
+        currentTable.drawSize.width = modelRenderConfig.tableBoxWidth
+        currentTable.drawSize.height = modelRenderConfig.tableBoxHeight
+      }
+      this.vm.$nextTick(() => {
+        this.plumbTool.refreshPlumbInstance(this.plumbInstance)
+      })
     }
-    this.vm.$nextTick(() => {
-      this.plumbTool.refreshPlumbInstance(this.plumbInstance)
-    })
   }
   renderLinks () {
     for (var guid in this.tables) {
@@ -107,11 +117,11 @@ class NModel {
     this.addPlumbPoints(fid, '', '', true)
     var hasConn = this.allConnInfo[pid + '$' + fid]
     if (hasConn) {
-      var primaryKeys = this.tables[pid].getLinks().primary_key
+      let joinInfo = this.tables[pid].getLinks()
+      var primaryKeys = joinInfo && joinInfo.join && joinInfo.join.primary_key
       // 如果渲染的时候发现连接关系都没有了，直接删除
       if (!primaryKeys || primaryKeys && primaryKeys.length === 0) {
         this.removeRenderLink(hasConn)
-
         return null
       }
       return hasConn
@@ -235,6 +245,21 @@ class NModel {
       }
     }
   }
+  getTableCoordinate (alias) {
+    if (this.canvas) {
+      for (let i in this.canvas.coordinate) {
+        if (i === alias) {
+          let _info = this.canvas.coordinate[i]
+          return {
+            left: _info.x,
+            top: _info.y,
+            width: _info.width,
+            height: _info.height
+          }
+        }
+      }
+    }
+  }
   // 设置当前最上层的table（zindex）
   setIndexTop (data, t, path) {
     let maxZindex = -1
@@ -279,8 +304,10 @@ class NModel {
   }
   addTable (options) {
     if (!this.tables[options.alias]) {
-      options.columns = this._getTableOriginInfo(options.table).columns
+      let tableInfo = this._getTableOriginInfo(options.table)
+      options.columns = tableInfo.columns
       options.plumbTool = this.plumbTool
+      options.fact = tableInfo.fact
       let table = new NTable(options)
       // this.tables[options.alias] = table
       if (this.vm) {

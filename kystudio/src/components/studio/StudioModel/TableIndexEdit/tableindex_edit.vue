@@ -6,8 +6,8 @@
           <el-input v-model="modelClone.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
       </el-form>
-      <div class="ky-line"></div>
-      <h3 class="ksd-mt-20">Table Index Content:</h3>
+      <div class="ky-line-full"></div>
+      <h3 class="ksd-mt-40">Table Index Content:</h3>
       <div class="ksd-mt-20">
         <el-steps direction="vertical" :active="1">
           <el-step title="Select Columns">

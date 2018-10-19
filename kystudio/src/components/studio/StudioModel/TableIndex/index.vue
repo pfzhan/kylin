@@ -5,7 +5,7 @@
       <div class="ksd-mb-20">
         <el-button type="primary" icon="el-icon-ksd-project_add">Create Table Index</el-button>
         <el-button type="primary" icon="el-icon-ksd-table_refresh">Refresh</el-button>
-        <el-button icon="el-icon-ksd-table_delete">Delete</el-button>
+        <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
         <el-input style="width:200px" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" placeholder="search index ID" class="ksd-fright ksd-mr-20"></el-input>
       </div>
       <el-steps direction="vertical" :active="1">

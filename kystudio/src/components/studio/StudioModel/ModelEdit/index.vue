@@ -294,18 +294,20 @@ export default class ModelEdit extends Vue {
     this.measureVisible = false
   }
   changeTableType (t) {
-    this._checkTableType(t)
-    t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
+    if (this._checkTableType(t)) {
+      t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
+    }
   }
   _checkTableType (t) {
-    if (t._isOriginFact) {
+    if (t.fact) {
       // 提示 增量构建的不能改成lookup
-      return
+      return false
     }
-    if (t.joinInfo) {
+    if (Object.keys(t.joinInfo).length && t.kind === modelRenderConfig.tableKind.lookup) {
       // 提示，主键表不能作为fact
-      return
+      return false
     }
+    return true
   }
   // 放大视图
   addZoom (e) {
@@ -436,13 +438,19 @@ export default class ModelEdit extends Vue {
         columnName: col && col.name || ''
       }
     }
-    // 弹出框弹出
-    this.showJoinDialog({
+    this.callJoinDialog({
       foreignTable: this.modelRender.tables[this.currentDragColumnData.guid],
       primaryTable: table,
       tables: this.modelRender.tables
-    }).then((data) => {
-      this.saveLinkData(data)
+    })
+  }
+  callJoinDialog (data) {
+    // 弹出框弹出
+    this.showJoinDialog(data).then(({isSubmit, data}) => {
+      // 保存的回调
+      if (isSubmit) {
+        this.saveLinkData(data)
+      }
     })
   }
   saveLinkData (data) {
@@ -515,39 +523,31 @@ export default class ModelEdit extends Vue {
       this.measureVisible = true
     }
     if (select.action === 'editjoin') {
-      this.showJoinDialog().then((data) => {
-        this.saveLinkData(data)
-      })
+      this.callJoinDialog()
     }
     if (select.action === 'addjoin') {
       let pguid = moreInfo.guid
-      this.showJoinDialog({
+      this.callJoinDialog({
         foreignTable: this.modelRender.tables[pguid],
         primaryTable: {},
         tables: this.modelRender.tables,
         ftableName: moreInfo.name
-      }).then((data) => {
-        this.saveLinkData(data)
       })
     }
     if (select.action === 'tableeditjoin') {
       let pguid = moreInfo.guid
-      this.showJoinDialog({
+      this.callJoinDialog({
         foreignTable: moreInfo.joinInfo[pguid].foreignTable,
         primaryTable: moreInfo.joinInfo[pguid].table,
         tables: this.modelRender.tables
-      }).then((data) => {
-        this.saveLinkData(data)
       })
     }
     if (select.action === 'tableaddjoin') {
       let pguid = moreInfo.guid
-      this.showJoinDialog({
+      this.callJoinDialog({
         foreignTable: this.modelRender.tables[pguid],
         primaryTable: {},
         tables: this.modelRender.tables
-      }).then((data) => {
-        this.saveLinkData(data)
       })
     }
     this.panelAppear.search.display = false
@@ -613,12 +613,10 @@ export default class ModelEdit extends Vue {
           }), this.modelRender, this)
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
-            this.showJoinDialog({
+            this.callJoinDialog({
               foreignTable: ftable,
               primaryTable: ptable,
               tables: this.modelRender.tables
-            }).then((data) => {
-              this.saveLinkData(data)
             })
           })
         })

@@ -35,7 +35,7 @@
           </el-select>
       </el-col>
       <el-col :span="4" class="ksd-center">
-        <el-button  icon="el-icon-plus" @click="addJoinConditionColumns" circle v-show="val==0"></el-button>
+        <el-button  icon="el-icon-plus" @click="addJoinConditionColumns" circle></el-button>
           <el-button  icon="el-icon-delete" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-col>
     </el-row>
@@ -141,7 +141,10 @@ export default class TableJoinModal extends Vue {
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()
-      this.callback && this.callback(data)
+      this.callback && this.callback({
+        isSubmit: isSubmit,
+        data: data
+      })
     }, 300)
   }
   handleClick () {

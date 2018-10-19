@@ -17,8 +17,8 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="ky-line ksd-mb-30"></div>
-    <div class="ky-list-title">分区设置</div>
+    <div class="ky-line-full"></div>
+    <div class="ky-list-title ksd-mt-40">分区设置</div>
     <div class="ky-list-sub-title">一级分区</div>
     <el-form :inline="true" :model="form" class="demo-form-inline">
       <el-form-item label="表">
@@ -49,8 +49,8 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="ky-line  ksd-mb-30"></div>
-    <div class="ky-list-title">Where 条件设置</div>
+    <div class="ky-line-full"></div>
+    <div class="ky-list-title ksd-mt-30">Where 条件设置</div>
     <el-input type="textarea" class="where-area"></el-input>
     <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
     <div slot="footer" class="dialog-footer">
