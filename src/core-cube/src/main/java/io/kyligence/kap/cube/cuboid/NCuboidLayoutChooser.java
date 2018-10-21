@@ -154,7 +154,7 @@ public class NCuboidLayoutChooser {
                     .filter(new Predicate<NCuboidLayout>() {
                         @Override
                         public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null || filterCuboid(isRawQuery, input.getId())) {
+                            if (input == null || (isRawQuery != input.getCuboidDesc().isTableIndex())) {
                                 return false;
                             }
 
@@ -189,20 +189,6 @@ public class NCuboidLayoutChooser {
         public NLayoutCandidate getBestLayoutCandidate() {
             return bestLayoutCandidate;
         }
-    }
-
-    private static boolean filterCuboid(boolean isRawQuery, long id) {
-        if (isRawQuery) {
-            // filter cube
-            return !isTableIndexCubiod(id);
-        } else {
-            // filter table index
-            return isTableIndexCubiod(id);
-        }
-    }
-
-    private static boolean isTableIndexCubiod(long id) {
-        return id >= 1000000000L;
     }
 
     private static void goThruUnmatchedDims(final NCuboidDesc cuboidDesc,

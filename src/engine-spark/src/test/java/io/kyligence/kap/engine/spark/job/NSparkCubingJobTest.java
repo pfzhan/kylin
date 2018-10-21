@@ -238,12 +238,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = new ArrayList<>();
-        round1.add(layouts.get(0));
-        round1.add(layouts.get(1));
-        round1.add(layouts.get(2));
-        round1.add(layouts.get(3));
-        round1.add(layouts.get(7));
-        round1.add(layouts.get(9));
+        round1.add(df.getCubePlan().getCuboidLayout(20_000_002_001L));
+        round1.add(df.getCubePlan().getCuboidLayout(1_000_001L));
+        round1.add(df.getCubePlan().getCuboidLayout(3001L));
+        round1.add(df.getCubePlan().getCuboidLayout(1002L));
+        round1.add(df.getCubePlan().getCuboidLayout(2L));
 
         NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
@@ -271,10 +270,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
          * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
          */
         List<NCuboidLayout> round2 = new ArrayList<>();
-        round2.add(layouts.get(4));
-        round2.add(layouts.get(5));
-        round2.add(layouts.get(6));
-        round2.add(layouts.get(8));
+        round2.add(df.getCubePlan().getCuboidLayout(1L));
+        round2.add(df.getCubePlan().getCuboidLayout(20_000_000_001L));
+        round2.add(df.getCubePlan().getCuboidLayout(20_000_001_001L));
+        round2.add(df.getCubePlan().getCuboidLayout(2001L));
+        round2.add(df.getCubePlan().getCuboidLayout(1001L));
 
         //update seg
         oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
@@ -282,7 +282,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
             NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
                     rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
-//            Assert.assertTrue(layout != null);
+            Assert.assertTrue(layout != null);
         }
 
         job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round2), "ADMIN");
