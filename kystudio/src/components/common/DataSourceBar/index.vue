@@ -165,8 +165,11 @@ export default class DataSourceBar extends Vue {
       .map(word => word.caption)
   }
   @Watch('projectName')
-  onProjectChange () {
-    this.initTree()
+  @Watch('currentSourceTypes')
+  onProjectChange (oldValue, newValue) {
+    if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
+      this.initTree()
+    }
   }
   mounted () {
     this.initTree()
@@ -343,6 +346,9 @@ export default class DataSourceBar extends Vue {
   }
   .body .btn-group {
     text-align: center;
+  }
+  .body .btn-group .el-button {
+    width: 100%;
   }
   // datasource tree样式
   .el-tree {

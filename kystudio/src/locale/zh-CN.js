@@ -144,7 +144,12 @@ exports.default = {
     clearAll: '全部删除',
     remove: '移除',
     import: '导入',
-    back: '返回'
+    back: '返回',
+    startTime: '开始时间',
+    endTime: '结束时间',
+    pleaseChoose: '请选择',
+    ON: '开',
+    OFF: '关'
   },
   model: {
     modelName: '模型名称：',

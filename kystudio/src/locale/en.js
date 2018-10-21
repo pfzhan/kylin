@@ -145,7 +145,12 @@ exports.default = {
     clearAll: 'Clear All',
     remove: 'Remove',
     import: 'Import',
-    back: 'Back'
+    back: 'Back',
+    startTime: 'Start Time',
+    endTime: 'End Time',
+    pleaseChoose: 'Please Choose',
+    ON: 'ON',
+    OFF: 'OFF'
   },
   model: {
     draft: 'Draft',

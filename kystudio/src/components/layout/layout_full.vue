@@ -47,7 +47,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 import loginKybot from '../common/login_kybot.vue'
-import Modal from '../common/Modal'
+import Modal from '../common/Modal/Modal'
 import { handleSuccess, handleError } from '../../util/business'
 @Component({
   methods: {

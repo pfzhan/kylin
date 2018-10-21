@@ -32,7 +32,7 @@
           <div class="table-details">
             <el-tabs v-model="viewType">
               <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-                <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
+                <TableDataLoad :project-name="currentSelectedProject" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
               </el-tab-pane>
               <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
                 <TableColumns :table="selectedTable"></TableColumns>
@@ -57,9 +57,10 @@
           </div>
         </template>
         <!-- Table空页 -->
-        <template v-if="!selectedTable">
-
-        </template>
+        <div class="empty-page" v-if="!selectedTable">
+          <el-row class="center"><img :src="emptyImg" /></el-row>
+          <el-row class="center">{{$t('emptyTable')}}</el-row>
+        </div>
       </div>
     </div>
   </div>
@@ -70,6 +71,7 @@ import Vue from 'vue'
 import { mapGetters, mapActions, mapMutations } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
+import emptyImg from './empty.svg'
 import locales from './locales'
 import { viewTypes, getSelectedTableDetail } from './handler'
 import DataSourceBar from '../../common/DataSourceBar/index.vue'
@@ -118,6 +120,7 @@ export default class StudioSource extends Vue {
   tableDetail = null
 
   viewTypes = viewTypes
+  emptyImg = emptyImg
 
   get isShowStatistic () {
     const { source_type: sourceType } = this.selectedTable
@@ -214,6 +217,9 @@ export default class StudioSource extends Vue {
   background: white;
   .layout-right {
     padding: 20px 20px 0 20px;
+    min-height: 100%;
+    box-sizing: border-box;
+    position: relative;
   }
   .table-name {
     font-size: 16px;
@@ -245,6 +251,21 @@ export default class StudioSource extends Vue {
   .el-tabs__item:not(.is-active) {
     font-size: 14px;
     color: #455A64;
+  }
+  .empty-page {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .center {
+    text-align: center;
+    &:first-child {
+      margin-bottom: 20px;
+    }
+  }
+  .el-tabs__content {
+    overflow: visible;
   }
 }
 </style>

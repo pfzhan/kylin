@@ -144,7 +144,7 @@ export default {
   saveFactTable (project, table, fact, column) {
     return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column})
   },
-  saveDateRange (project, table, start, end) {
+  saveDataRange (project, table, start, end) {
     return Vue.resource(apiUrl + 'tables/date_range').save({project, table, start, end})
   },
   fetchRelatedModels (project, table) {
@@ -164,5 +164,17 @@ export default {
   },
   deleteTable (project, database, table) {
     return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete()
+  },
+  fetchRangeFreshInfo (project, table, start, end) {
+    return Vue.resource(apiUrl + `tables/refresh_storage`).get({ project, table, start, end })
+  },
+  freshRangeData (project, table, start, end) {
+    return Vue.resource(apiUrl + `tables/segments`).update({ project, table, start, end })
+  },
+  fetchMergeConfig (project, model, table) {
+    return Vue.resource(apiUrl + `tables/auto_merge_config`).get({ project, model, table })
+  },
+  updateMergeConfig (project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeAvailable, volatileRange) {
+    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMerge, autoMergeTimeRanges, volatileRange, volatileRangeAvailable })
   }
 }

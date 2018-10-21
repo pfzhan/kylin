@@ -37,7 +37,7 @@ import locales from './locales'
 import TreeList from '../../TreeList'
 import { sourceTypes } from '../../../../config'
 import { getDatabaseTree, getTableTree } from './handler'
-import { handleSuccessAsync } from '../../../../util'
+import { handleSuccessAsync, handleError } from '../../../../util'
 import arealabel from '../../area_label.vue'
 
 @Component({
@@ -74,6 +74,7 @@ export default class SourceHive extends Vue {
   }
   sourceTypes = sourceTypes
   timer = null
+  isDatabaseError = false
   get selectedTableOptions () {
     return this.selectedTables.map(tableId => ({
       label: tableId,
@@ -112,19 +113,28 @@ export default class SourceHive extends Vue {
     this.getDatabaseTree = getDatabaseTree.bind(this)
   }
   async mounted () {
-    await this.loadDatabase()
-  }
-  async loadDatabase () {
-    const projectName = this.currentSelectedProject
     const sourceType = this.sourceType
-    const res = await this.fetchDatabase({ projectName, sourceType })
-    this.databases = this.getDatabaseTree(await handleSuccessAsync(res))
     this.treeData = [{
       id: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
       label: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
       type: 'datasource',
-      children: this.databases
+      children: []
     }]
+    await this.loadDatabase()
+  }
+  async loadDatabase () {
+    try {
+      const projectName = this.currentSelectedProject
+      const sourceType = this.sourceType
+      const res = await this.fetchDatabase({ projectName, sourceType })
+      this.databases = this.getDatabaseTree(await handleSuccessAsync(res))
+      this.treeData[0].children = this.databases
+      this.isDatabaseError = false
+    } catch (e) {
+      this.isDatabaseError = true
+      handleError(e)
+      console.log(e)
+    }
   }
   async loadTables ({database, tableName = '', isTableReset = false}) {
     const projectName = this.currentSelectedProject
@@ -149,13 +159,13 @@ export default class SourceHive extends Vue {
           await this.loadTables({ database, tableName, isTableReset: true })
         })
         await Promise.all(requests)
-
+        this.treeData = [...this.treeData]
         this.onSelectedTablesChange()
         resolve()
       }, 1000)
     })
   }
-  handleClickNode (data, node, event, isSelectDatabase = false) {
+  async handleClickNode (data, node, event, isSelectDatabase = false) {
     if ((data.type === 'table' && data.clickable || isSelectDatabase)) {
       this.selectedTables.includes(data.id)
         ? this.handleRemoveTable(data.id)
@@ -164,6 +174,9 @@ export default class SourceHive extends Vue {
         event.preventDefault()
         event.stopPropagation()
       }
+    }
+    if (data.type === 'datasource' && this.isDatabaseError) {
+      await this.loadDatabase()
     }
   }
   handleResize (treeWidth) {

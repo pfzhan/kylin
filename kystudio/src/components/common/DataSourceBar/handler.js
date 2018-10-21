@@ -143,7 +143,7 @@ export function getTableObj (that, database, table) {
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
-  const dateRange = table.start_time !== -1 && table.end_time !== -1 ? getDateRangeStr(that, table) : null
+  const dateRange = +table.start !== -1 && +table.start !== -1 ? getDateRangeStr(that, table) : null
   const tableObj = {
     id: table.uuid,
     label: table.name,
@@ -205,8 +205,8 @@ export function getFirstTableData (datasourceTree) {
 }
 
 function getDateRangeStr (that, table) {
-  const startDate = new Date(table.start_time)
-  const endDate = new Date(table.end_time)
+  const startDate = new Date(+table.start)
+  const endDate = new Date(+table.end)
 
   return `${getDateStr(startDate)} ${that.$t('to')} ${getDateStr(endDate)}`
 }

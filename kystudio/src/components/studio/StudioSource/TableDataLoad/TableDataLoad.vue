@@ -1,260 +1,244 @@
 <template>
   <div class="table-data-load">
-    <div class="table-info">
+    <el-row class="info-group">
       <!-- 表名 -->
-      <div class="info-row">
+      <el-row class="info-row">
         <div class="info-label font-medium">
-          <span>{{$t('tableName')}}</span><span>:</span>
+          <span>{{$t('tableName')}}</span>&ensp;<span>{{$t(':')}}</span>
         </div>
         <div class="info-value">{{table.name}}</div>
-      </div>
+      </el-row>
       <!-- 表类型：中心表/普通表 -->
-      <div class="info-row">
+      <el-row class="info-row">
         <div class="info-label font-medium">
-          <span>{{$t('loadingType')}}</span><span>:</span>
+          <span>{{$t('loadingType')}}</span>
+          <i class="el-icon-ksd-what" @click="isLoadingTypeShow = !isLoadingTypeShow"></i>
+          <span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
-          <el-radio :value="isCentral" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
-          <el-radio :value="isCentral" :label="false" @click.native="handleChangeType(false)">{{$t('fullTable')}}</el-radio>
+          <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
+          <el-radio :value="isIncremental" :label="false" @click.native="handleChangeType(false)">{{$t('fullTable')}}</el-radio>
+        </div>
+      </el-row>
+    </el-row>
+    <el-collapse-transition>
+      <div class="table-remind" v-show="isLoadingTypeShow">
+        <div class="table-remind-row">
+          <h1 class="remind-header font-medium">{{$t('incrementalTitle')}}</h1>
+          <p>{{$t('incrementalDesc')}}</p>
         </div>
       </div>
-      <!-- v-if: 中心表才会展示的字段 -->
-      <template v-if="isCentral">
-        <!-- 表的分区列 -->
-        <div class="info-row">
-          <div class="info-label font-medium">
-            <span>{{$t('partition')}}</span><span>:</span>
+    </el-collapse-transition>
+    <el-row class="info-group" v-if="!isIncremental">
+      <el-row class="info-row">
+        <div class="info-label font-medium">
+          <span>{{$t('storageType')}}</span>
+          <span>{{$t(':')}}</span>
+        </div>
+        <div class="info-value">
+          {{ 'Snapshot' }}
+        </div>
+      </el-row>
+      <el-row class="info-row">
+        <div class="info-label font-medium">
+          <span>{{$t('schemaChanging')}}</span>
+          <i class="el-icon-ksd-what" @click="isSchemaChangeShow = !isSchemaChangeShow"></i>
+          <span>{{$t(':')}}</span>
+        </div>
+        <div class="info-value">
+          <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">SCD1</el-radio>
+          <el-radio :value="isIncremental" :label="false" @click.native="handleChangeType(false)">SCD2</el-radio>
+        </div>
+      </el-row>
+      <el-collapse-transition>
+        <div class="table-remind" v-show="isSchemaChangeShow">
+          <div class="table-remind-row">
+            <h1 class="remind-header font-medium">{{$t('scdTitle')}}</h1>
+            <p>{{$t('scdDesc')}}</p>
           </div>
-          <div class="info-value">
-            <div>{{table.partitioned_column}}</div>
+          <div class="table-remind-row">
+            <h1 class="remind-header font-medium">{{$t('scd1Title')}}</h1>
+            <p>{{$t('scd1Desc')}}</p>
+          </div>
+          <div class="table-remind-row">
+            <h1 class="remind-header font-medium">{{$t('scd2Title')}}</h1>
+            <p>{{$t('scd2Desc')}}</p>
           </div>
         </div>
-        <!-- 标题 -->
-        <div class="info-row clearfix">
-          <div class="info-label font-medium">
-            <span>{{$t('dataRange')}}</span>
-            <i class="el-icon-ksd-what"></i>
-          </div>
+      </el-collapse-transition>
+    </el-row>
+    <!-- v-if: 中心表才会展示的字段 -->
+    <el-row class="info-group" v-if="isIncremental">
+      <!-- 表的分区列 -->
+      <el-row class="info-row">
+        <div class="info-label font-medium">
+          <span>{{$t('partition')}}</span>&ensp;<span>{{$t(':')}}</span>
         </div>
-        <!-- 时间区间 -->
-        <div class="info-row date-range-box">
-          <!-- 数据加载区间 -->
-          <div class="row-item">
-            <div class="info-label font-medium small">
-              <span>{{$t('loadingRange')}}</span>
-              <span>:</span>
-            </div>
-            <div class="load-range">
-              <el-slider range :max="100" :format-tooltip="() => 1"></el-slider>
-              <DateRangeBar :date-ranges="tableDateRange" :is-show-start-to-end="true" />
-            </div>
-          </div>
-          <!-- 选择时间区间 -->
-          <div class="row-item">
-            <div class="info-label font-medium small">
-              <span>{{$t('dateRange')}}</span>
-              <i class="el-icon-ksd-what"></i>
-              <span>:</span>
-            </div>
-            <el-date-picker
-              size="medium"
-              class="date-range-input"
-              v-model="dateRange"
-              type="datetimerange"
-              range-separator="-"
-              :start-placeholder="$t('startTime')"
-              :end-placeholder="$t('endTime')"
-              :picker-options="{ disabledDate: getDisabledDate }">
-            </el-date-picker>
-            <el-button size="medium" type="primary" @click="handleSubmitRange">{{$t('kylinLang.common.submit')}}</el-button>
-          </div>
+        <div class="info-value">
+          <div>{{table.partitioned_column}}</div>
         </div>
-      </template>
-    </div>
+      </el-row>
+      <!-- Table数据区间时间选择 -->
+      <el-row class="info-row data-range">
+        <div class="info-label font-medium">
+          <span>{{$t('dataRange')}}</span>
+          <i class="el-icon-ksd-what" @click="isDataRangeShow = !isDataRangeShow"></i>
+          <span>{{$t(':')}}</span>
+        </div>
+        <div class="info-value">
+          <div class="date-text left">{{minDataRangeStr}}</div>
+          <div class="date-text right">{{maxDataRangeStr}}</div>
+          <DataRangeBar :max-range="table.allRange" :value="table.userRange" @click="handleChangeDataRange"></DataRangeBar>
+        </div>
+      </el-row>
+      <!-- Table数据区间操作 -->
+      <el-row class="info-row">
+        <div class="info-label font-medium" style="line-height: 28px;">
+          <span>{{$t('modifyDateRange')}}</span>&ensp;<span>{{$t(':')}}</span>
+        </div>
+        <div class="info-value">
+          <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange">{{$t('incrementalLoading')}}</el-button>
+          <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('kylinLang.common.refresh')}}</el-button>
+          <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('dataMerge')}}</el-button>
+        </div>
+      </el-row>
+    </el-row>
 
-    <template v-if="isCentral">
-      <h1 class="related-model-title font-medium">{{$t('relatedModel')}}</h1>
-      <el-table class="table" :data="relatedModels" border>
-        <el-table-column
-          prop="alias"
-          :label="$t('modelName')"
-          width="275px"
-          sortable
-          align="center">
-        </el-table-column>
-        <el-table-column
-          prop="progress"
-          :label="$t('status')"
-          align="center">
-          <template slot-scope="scope">
-            <div class="load-range">
-              <DateRangeBar :date-ranges="scope.row.dataRanges" />
-            </div>
-            <span class="status" v-if="scope.row.dataRanges.length === 0">Disable</span>
-            <span class="status" v-else-if="isDateRangeReady(scope.row.dataRanges, 'model')">Ready</span>
-            <span class="status" v-else>In Progress</span>
-          </template>
-        </el-table-column>
-      </el-table>
-      <kap-pager
-        class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
-        :totalSize="relatedModels.length"
-        @handleCurrentChange="handlePagination">
-      </kap-pager>
+    <template v-if="isIncremental">
+      <RelatedModels
+        :project-name="projectName"
+        :table="table"
+        :related-models="relatedModels"
+        @load-more="handleLoadMore"/>
     </template>
-
-    <div class="table-remind">
-      <div class="table-remind-row">
-        <h1 class="remind-header font-medium">{{$t('centralTableTitle')}}</h1>
-        <p>{{$t('centralTableDesc')}}</p>
-      </div>
-      <div class="table-remind-row">
-        <h1 class="remind-header font-medium">{{$t('normalTableTitle')}}</h1>
-        <p>{{$t('normalTableDesc')}}</p>
-      </div>
-    </div>
-
-    <CentralSettingModal ref="CentralSettingModal" :table="table" @submit="$emit('fresh-tables')" />
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
+import dayjs from 'dayjs'
 import { mapActions } from 'vuex'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import DateRangeBar from '../../../common/DateRangeBar/index.vue'
-import CentralSettingModal from '../CentralSettingModal/CentralSettingModal.vue'
+import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
+import RelatedModels from '../RelatedModels/RelatedModels'
 import { handleSuccessAsync } from '../../../../util'
-import { getModelDataRanges, getTableDataRanges } from './handle'
 import { partitionColumnTypes } from '../../../../config'
+import { getMockModelResponse } from './mock'
 
 @Component({
   props: {
-    project: {
-      type: Object
+    projectName: {
+      type: String
     },
     table: {
       type: Object
     }
   },
   components: {
-    DateRangeBar,
-    CentralSettingModal
+    DataRangeBar,
+    RelatedModels
   },
   methods: {
+    ...mapActions('SourceTableModal', {
+      callSourceTableModal: 'CALL_MODAL'
+    }),
     ...mapActions({
-      saveDateRange: 'SAVE_DATE_RANGE',
       fetchRelatedModels: 'FETCH_RELATED_MODELS'
     })
   },
   locales
 })
 export default class TableDataLoad extends Vue {
-  startDate = ''
-  endDate = ''
   pagination = {
     pageOffset: 0,
     pageSize: 50
   }
-  tableDateRange = []
   relatedModels = []
-  get isCentral () {
+  isLoadingTypeShow = true
+  isSchemaChangeShow = true
+  isDataRangeShow = false
+  get minDataRangeStr () {
+    return dayjs(this.table.userRange[0]).format('YYYY-MM-DD')
+  }
+  get maxDataRangeStr () {
+    return dayjs(this.table.userRange[1]).format('YYYY-MM-DD')
+  }
+  get isIncremental () {
     return this.table.fact
   }
   get isFact () {
     return this.table.root_fact
   }
-  get dateRange () {
-    return [this.startDate, this.endDate]
-  }
   get partitionColumns () {
     return this.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
   }
-  set dateRange (val) {
-    if (val) {
-      const [startDate, endDate] = val
-      this.startDate = startDate
-      this.endDate = endDate
-    } else {
-      this.startDate = ''
-      this.endDate = ''
-    }
-  }
-  isDateRangeReady (dateRanges, type) {
-    return dateRanges.every((dateRange) => dateRange.status === 'READY')
-  }
   mounted () {
-    if (this.isCentral) {
-      this.getRelatedModel()
-      this.resetDateRange()
+    if (this.isIncremental) {
+      this.loadRelatedModel()
     }
   }
-  @Watch('table')
-  async onTableChange (table) {
-    if (this.isCentral) {
-      await this.getRelatedModel()
-      this.resetDateRange()
-    }
-  }
-  async handleSubmitRange () {
-    const projectName = this.project.name
-    const tableFullName = `${this.table.database}.${this.table.name}`
-    const startDate = this.startDate.getTime()
-    const endDate = this.endDate.getTime()
-
-    if (this.isDateRangeVaild()) {
-      await this.saveDateRange({ projectName, tableFullName, startDate, endDate })
-      this.$message({
-        message: this.$t('kylinLang.common.updateSuccess'),
-        type: 'success'
-      })
-    } else {
-      this.$message(this.$t('dataRangeTooSmall'))
-    }
-
+  async handleChangeDataRange () {
+    await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table })
     this.$emit('fresh-tables')
   }
-  handlePagination (val) {
-    this.pagination.pageOffset = val - 1
-  }
-  handleChangeType (value) {
-    if (this.partitionColumns.length) {
-      if (!this.isCentral) {
-        this.$refs['CentralSettingModal'].showModal()
-      } else {
-        // send false
-      }
+  async handleChangeType () {
+    if (!this.isIncremental && this.partitionColumns.length) {
+      await this.callSourceTableModal({ editType: 'changeTableType', table: this.table })
+      this.$emit('fresh-tables')
     }
   }
-  resetDateRange () {
-    this.tableDateRange = getTableDataRanges(this.table, this.relatedModels) || []
-    this.startDate = new Date(this.table.start_time)
-    this.endDate = new Date(this.table.end_time)
+  async handleRefreshTable () {
+    await this.callSourceTableModal({ editType: 'refreshRange', table: this.table })
+    this.$emit('fresh-tables')
   }
-  async getRelatedModel () {
-    const projectName = this.project.name
-    const tableFullName = `${this.table.database}.${this.table.name}`
-
-    const res = await this.fetchRelatedModels({ projectName, tableFullName })
-    const { models } = await handleSuccessAsync(res)
-    this.relatedModels = models.map(model => {
-      model.dataRanges = getModelDataRanges(model)
-      return model
+  async handleTableMerge () {
+    const { table, projectName } = this
+    await this.callSourceTableModal({ editType: 'dataMerge', table, projectName })
+    this.$emit('fresh-tables')
+  }
+  async handleLoadMore () {
+    this.loadRelatedModel({ isReset: false })
+  }
+  addPagination () {
+    this.pagination.pageOffset++
+  }
+  clearPagination () {
+    this.pagination.pageOffset = 0
+  }
+  async loadRelatedModel (props) {
+    const { isReset = true } = props || {}
+    const { projectName, table, pagination } = this
+    const tableFullName = `${table.database}.${table.name}`
+    const res = await this.fetchRelatedModels({ projectName, tableFullName, ...pagination })
+    /* eslint-disable */
+    const { models } = true ? getMockModelResponse() : await handleSuccessAsync(res)
+    const formatedModels = this.formatModelData(models)
+    if (isReset) {
+      this.relatedModels = formatedModels
+      this.clearPagination()
+    } else {
+      this.relatedModels = [ ...this.relatedModels, ...formatedModels ]
+      this.addPagination()
+    }
+  }
+  formatModelData (models) {
+    return models.map(model => {
+      let startTime = Infinity
+      let endTime = -Infinity
+      let isOnline = true
+      const segments = Object.entries(model.segment_ranges).map(([key, value]) => {
+        const [ startTime, endTime ] = key.replace(/^TimePartitionedSegmentRange\[|\)$/g, '').split(',')
+        return { startTime, endTime, status: value }
+      })
+      segments.forEach(segment => {
+        segment.startTime < startTime && (startTime = +segment.startTime)
+        segment.endTime > endTime && (endTime = +segment.endTime)
+        segment.status === 'NEW' && (isOnline = false)
+      })
+      return { ...model, segments, startTime, endTime, isOnline }
     })
-  }
-  getDisabledDate (time) {
-    return this.table.start_time < time.getTime() &&
-      time.getTime() < this.table.end_time
-  }
-  isDateRangeVaild () {
-    const startTime = this.startDate.getTime()
-    const endTime = this.endDate.getTime()
-    const tableStartTime = this.table.start_time
-    const tableEndTime = this.table.end_time
-
-    return startTime <= tableStartTime && endTime >= tableEndTime
   }
 }
 </script>
@@ -264,14 +248,16 @@ export default class TableDataLoad extends Vue {
 
 .table-data-load {
   // height: calc(~'100vh - 249px');
-  overflow: auto;
+  overflow: visible;
   box-sizing: border-box;
-  .table-info {
-    background: #f7f7f7;
-    padding: 20px;
-  }
   .range-submit {
     margin-left: 3px;
+  }
+  .info-group {
+    margin: 15px 0;
+    &:first-child {
+      margin-top: 5px;
+    }
   }
   .info-row {
     font-size: 14px;
@@ -283,26 +269,22 @@ export default class TableDataLoad extends Vue {
     }
   }
   .info-label {
-    width: 97px;
+    width: 150px;
     float: left;
     text-align: right;
     white-space: nowrap;
-    span:last-child {
-      margin-left: 8px;
-    }
     &.small {
       width: 110px;
       white-space: nowrap;
     }
   }
   .el-icon-ksd-what {
-    margin-left: 3px;
-    margin-right: -3px;
+    margin-left: 1px;
+    margin-right: 1px;
     position: relative;
-    transform: translateY(1px);
   }
   .info-value {
-    margin-left: 120px;
+    margin-left: 160px;
   }
   .info-row.range-process .info-label {
     position: relative;
@@ -313,12 +295,15 @@ export default class TableDataLoad extends Vue {
   }
   .table-remind {
     padding: 20px;
-    margin-top: 20px;
     font-size: 12px;
     background: #E6F3FC;
+    box-sizing: border-box;
+    p {
+      line-height: 18px;
+    }
   }
   .table-remind-row {
-    margin-bottom: 20px;
+    margin-bottom: 10px;
     &:last-child {
       margin-bottom: 0;
     }
@@ -327,44 +312,25 @@ export default class TableDataLoad extends Vue {
     font-size: 14px;
     margin-bottom: 10px;
   }
-  .load-range {
-    width: calc(~'85% - 140px');
-    display: inline-block;
-    margin-left: 15px;
-    .progress-bar {
-      width: 100%;
+  .data-range {
+    .info-value {
+      padding-top: 10px;
+      position: relative;
+      width: 70%;
+    }
+    .date-text {
+      position: absolute;
+      top: 0;
+    }
+    .left {
+      left: 0;
+    }
+    .right {
+      right: 0;
     }
   }
   .status {
     margin-left: 10px;
-  }
-  .table {
-    width: 100%;
-    .progress-bar {
-      width: calc(~'100% - 120px');
-    }
-  }
-  .related-model-title {
-    font-size: 16px;
-    color: #263238;
-    margin: 25px 0 10px 0;
-  }
-  .el-table__row > td {
-    text-align: left;
-  }
-  .date-range-box {
-    background: white;
-    padding: 10px 10px 20px 10px;
-  }
-  .row-item {
-    margin-bottom: 35px;
-    &:last-child {
-      margin-bottom: 0px;
-      .info-label {
-        position: relative;
-        top: 9px;
-      }
-    }
   }
   .date-range-input {
     .el-flex-box {

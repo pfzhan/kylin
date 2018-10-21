@@ -14,7 +14,8 @@ export default {
     reloadTable: 'Are you sure to reload table?',
     reloadSuccess: 'Reload Table successfully.',
     unloadTable: 'Are you sure to unload table?',
-    unloadSuccess: 'Unload Table successfully.'
+    unloadSuccess: 'Unload Table successfully.',
+    emptyTable: 'No Data'
   },
   'zh-cn': {
     updateAt: '上次更新时间 :',
@@ -31,6 +32,7 @@ export default {
     reloadTable: '确定要重载源表？',
     reloadSuccess: '重载成功',
     unloadTable: '确定要删除源表？',
-    unloadSuccess: '删除成功'
+    unloadSuccess: '删除成功',
+    emptyTable: '没有数据'
   }
 }

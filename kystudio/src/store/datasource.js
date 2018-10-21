@@ -170,10 +170,10 @@ export default {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
     },
     [types.SAVE_FACT_TABLE]: function ({commit}, para) {
-      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isCentral, para.column)
+      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isIncremental, para.column)
     },
-    [types.SAVE_DATE_RANGE]: function ({commit}, para) {
-      return api.datasource.saveDateRange(para.projectName, para.tableFullName, String(para.startDate), String(para.endDate))
+    [types.SAVE_DATA_RANGE]: function ({commit}, para) {
+      return api.datasource.saveDataRange(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName)
@@ -193,6 +193,18 @@ export default {
     },
     [types.DELETE_TABLE]: function ({commit}, para) {
       return api.datasource.deleteTable(para.projectName, para.databaseName, para.tableName)
+    },
+    [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, para) {
+      return api.datasource.fetchRangeFreshInfo(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
+    },
+    [types.FRESH_RANGE_DATA]: function ({commit}, para) {
+      return api.datasource.freshRangeData(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
+    },
+    [types.FETCH_MERGE_CONFIG]: function ({commit}, para) {
+      return api.datasource.fetchMergeConfig(para.projectName, para.modelName, para.tableFullName)
+    },
+    [types.UPDATE_MERGE_CONFIG]: function ({commit}, para) {
+      return api.datasource.updateMergeConfig(para.projectName, para.modelName, para.tableFullName, para.isAutoMerge, para.autoMergeConfigs, para.isVolatile, para.volatileConfig)
     }
   }
 }
