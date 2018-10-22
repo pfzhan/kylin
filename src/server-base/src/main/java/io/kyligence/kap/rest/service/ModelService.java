@@ -173,7 +173,7 @@ public class ModelService extends BasicService {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         List<NCuboidDesc> cuboidDescs = new ArrayList<NCuboidDesc>();
         for (NCubePlan cubeplan : cubePlans) {
-            cuboidDescs.addAll(cubeplan.getCuboids());
+            cuboidDescs.addAll(cubeplan.getAllCuboids());
         }
         return cuboidDescs;
     }

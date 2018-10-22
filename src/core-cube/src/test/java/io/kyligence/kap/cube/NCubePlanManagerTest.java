@@ -32,16 +32,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.base.Predicate;
-import lombok.var;
+import javax.annotation.Nullable;
+
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -51,8 +53,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import lombok.val;
-
-import javax.annotation.Nullable;
+import lombok.var;
 
 public class NCubePlanManagerTest {
     private static final String DEFAULT_PROJECT = "default";
@@ -165,4 +166,21 @@ public class NCubePlanManagerTest {
         });
         Assert.assertEquals(originalSize - 1, cube.getAllCuboidLayouts().size());
     }
+
+    @Test
+    public void testRemoveLayout2() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
+
+        var cube = manager.getCubePlan("ncube_basic_inner").copy();
+        val originalSize = cube.getAllCuboidLayouts().size();
+        manager.removeLayouts(cube, Sets.newHashSet(1000001L, 1002L), new Predicate2<NCuboidLayout, NCuboidLayout>() {
+            @Override
+            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
+                return nCuboidLayout.equals(nCuboidLayout2);
+            }
+        });
+        Assert.assertEquals(originalSize - 2, cube.getAllCuboidLayouts().size());
+    }
+
 }

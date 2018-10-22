@@ -25,7 +25,6 @@
 package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -65,6 +64,12 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("id")
     private long id;
 
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("owner")
+    private String owner;
+
     @EqualsAndHashCode.Include
     @JsonProperty("col_order")
     private List<Integer> colOrder = Lists.newArrayList();
@@ -76,15 +81,18 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
 
     @EqualsAndHashCode.Include
     @JsonProperty("shard_by_columns")
-    private int[] shardByColumns = new int[0];
+    private List<Integer> shardByColumns = Lists.newArrayList();
 
     @EqualsAndHashCode.Include
     @JsonProperty("sort_by_columns")
-    private int[] sortByColumns = new int[0];
+    private List<Integer> sortByColumns = Lists.newArrayList();
 
     @EqualsAndHashCode.Include
     @JsonProperty("storage_type")
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+
+    @JsonProperty("update_time")
+    private long updateTime;
 
     // computed fields below
 
@@ -170,7 +178,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     }
 
     public Set<TblColRef> getShardByColumnRefs() {
-        Set<TblColRef> colRefs = Sets.newHashSetWithExpectedSize(shardByColumns.length);
+        Set<TblColRef> colRefs = Sets.newHashSetWithExpectedSize(shardByColumns.size());
         for (int c : shardByColumns) {
             colRefs.add(getOrderedDimensions().get(c));
         }
@@ -208,20 +216,20 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         this.layoutOverrideIndices = m;
     }
 
-    public int[] getShardByColumns() {
-        return isCachedAndShared() ? Arrays.copyOf(shardByColumns, shardByColumns.length) : shardByColumns;
+    public List<Integer> getShardByColumns() {
+        return isCachedAndShared() ? Lists.newArrayList(shardByColumns) : shardByColumns;
     }
 
-    public void setShardByColumns(int[] shardByColumns) {
+    public void setShardByColumns(List<Integer> shardByColumns) {
         checkIsNotCachedAndShared();
         this.shardByColumns = shardByColumns;
     }
 
-    public int[] getSortByColumns() {
-        return isCachedAndShared() ? Arrays.copyOf(sortByColumns, sortByColumns.length) : sortByColumns;
+    public List<Integer> getSortByColumns() {
+        return isCachedAndShared() ? Lists.newArrayList(sortByColumns) : sortByColumns;
     }
 
-    public void setSortByColumns(int[] sortByColumns) {
+    public void setSortByColumns(List<Integer> sortByColumns) {
         checkIsNotCachedAndShared();
         this.sortByColumns = sortByColumns;
     }
@@ -234,6 +242,21 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     public void setCuboidDesc(NCuboidDesc cuboidDesc) {
         checkIsNotCachedAndShared();
         this.cuboidDesc = cuboidDesc;
+    }
+
+    public void setUpdateTime(long updateTime) {
+        checkIsNotCachedAndShared();
+        this.updateTime = updateTime;
+    }
+
+    public void setName(String name) {
+        checkIsNotCachedAndShared();
+        this.name = name;
+    }
+
+    public void setOwner(String owner) {
+        checkIsNotCachedAndShared();
+        this.owner = owner;
     }
 
     public boolean isCachedAndShared() {
@@ -249,4 +272,5 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     public String toString() {
         return Objects.toStringHelper(this).add("id", id).toString();
     }
+
 }

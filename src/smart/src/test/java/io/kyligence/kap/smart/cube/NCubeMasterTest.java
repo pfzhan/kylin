@@ -55,7 +55,7 @@ public class NCubeMasterTest extends NTestBase {
         NCubePlan cubePlan = cubeMaster.proposeInitialCube();
         {
             Assert.assertNotNull(cubePlan);
-            Assert.assertTrue(cubePlan.getCuboids().isEmpty());
+            Assert.assertTrue(cubePlan.getAllCuboids().isEmpty());
             Assert.assertTrue(cubePlan.getCubePlanOverrideEncodings().isEmpty());
         }
 
@@ -76,7 +76,7 @@ public class NCubeMasterTest extends NTestBase {
 
         cubePlan = cubeMaster.proposeCuboids(cubePlan);
         {
-            List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
+            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
             Assert.assertEquals(4, cuboidDescs.size());
 
             for (NCuboidDesc c : cuboidDescs) {

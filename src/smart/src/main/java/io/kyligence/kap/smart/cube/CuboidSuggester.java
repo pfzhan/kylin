@@ -38,7 +38,6 @@ import java.util.Set;
 import java.util.SortedSet;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -140,7 +139,7 @@ public class CuboidSuggester {
         return ret;
     }
 
-    private int[] suggestShardBy(Collection<Integer> dimIds) {
+    private List<Integer> suggestShardBy(Collection<Integer> dimIds) {
         List<Integer> shardBy = Lists.newArrayList();
         for (int dimId : dimIds) {
             TblColRef colRef = model.getEffectiveColsMap().get(dimId);
@@ -149,16 +148,15 @@ public class CuboidSuggester {
                 shardBy.add(dimId);
             }
         }
-        return ArrayUtils.toPrimitive(shardBy.toArray(new Integer[0]));
+        return shardBy;
     }
 
-    private int[] suggestSortBy(Collection<Integer> dimIds) {
+    private List<Integer> suggestSortBy(Collection<Integer> dimIds) {
         if (!dimIds.isEmpty()) {
             // TODO choose reasonable sort key(s)
-            Integer[] dimArray = dimIds.toArray(new Integer[0]);
-            return new int[] { dimArray[0] };
+            return Arrays.asList(dimIds.iterator().next());
         }
-        return new int[0];
+        return Lists.newArrayList();
     }
 
     private Map<Integer, Double> getDimScores(OLAPContext ctx) {
@@ -215,8 +213,8 @@ public class CuboidSuggester {
         return Objects.equals(l1.getColOrder(), l2.getColOrder())
                 && Objects.equals(l1.getLayoutOverrideIndices(), l2.getLayoutOverrideIndices())
                 && Objects.equals(l1.getStorageType(), l2.getStorageType())
-                && Arrays.equals(l1.getShardByColumns(), l2.getShardByColumns())
-                && Arrays.equals(l1.getSortByColumns(), l2.getSortByColumns());
+                && Objects.equals(l1.getShardByColumns(), l2.getShardByColumns())
+                && Objects.equals(l1.getSortByColumns(), l2.getSortByColumns());
     }
 
     void ingest(OLAPContext ctx, NDataModel model) {
@@ -234,14 +232,14 @@ public class CuboidSuggester {
             collector.put(cuboidIdentifier, cuboidDesc);
         }
 
-        int[] shardBy = new int[0];
-        int[] sortBy = new int[0];
+        List<Integer> shardBy = Lists.newArrayList();
+        List<Integer> sortBy = Lists.newArrayList();
         if (useTableIndex) {
             shardBy = suggestShardBy(dimScores.keySet());
             sortBy = suggestSortBy(dimScores.keySet());
             // compare shardbyColumns and sortByColumns of existing layouts with current computed
             for (NCuboidLayout lay : cuboidDesc.getLayouts()) {
-                if (Arrays.equals(lay.getSortByColumns(), sortBy) && Arrays.equals(lay.getShardByColumns(), shardBy)) {
+                if (Objects.equals(lay.getSortByColumns(), sortBy) &&Objects.equals(lay.getShardByColumns(), shardBy)) {
                     return;
                 }
             }

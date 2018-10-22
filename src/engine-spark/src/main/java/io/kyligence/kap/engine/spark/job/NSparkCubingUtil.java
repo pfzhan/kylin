@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.common.KapConfig;
@@ -115,8 +116,8 @@ public class NSparkCubingUtil {
         return ret;
     }
 
-    public static Column[] getColumns(int[] indices) {
-        Column[] ret = new Column[indices.length];
+    public static Column[] getColumns(List<Integer> indices) {
+        Column[] ret = new Column[indices.size()];
         int index = 0;
         for (Integer i : indices) {
             ret[index] = new Column(String.valueOf(i));

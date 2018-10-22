@@ -62,14 +62,14 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(spanningTree instanceof NForestSpanningTree);
         Assert.assertNotNull(spanningTree);
 
-        Assert.assertEquals(cube.getCuboids().size(), spanningTree.getCuboidCount());
-        Assert.assertEquals(cube.getCuboids().size(), spanningTree.getAllCuboidDescs().size());
+        Assert.assertEquals(cube.getAllCuboids().size(), spanningTree.getCuboidCount());
+        Assert.assertEquals(cube.getAllCuboids().size(), spanningTree.getAllCuboidDescs().size());
         Assert.assertEquals(4, spanningTree.getBuildLevel());
         Assert.assertEquals(cube.getName(), spanningTree.getCuboidCacheKey());
 
         NCuboidDesc cuboidDesc = spanningTree.getCuboidDesc(1000L);
         Assert.assertNotNull(cuboidDesc);
-        Assert.assertTrue(cube.getCuboids().contains(cuboidDesc));
+        Assert.assertTrue(cube.getAllCuboids().contains(cuboidDesc));
         Assert.assertEquals(2, cuboidDesc.getLayouts().size());
 
         NCuboidLayout cuboidLayout = spanningTree.getCuboidLayout(1001L);

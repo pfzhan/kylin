@@ -120,7 +120,7 @@ public class NSmartMaster {
 
             for (NDataSegment seg : df.getSegments()) {
                 Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
-                for (NCuboidDesc desc : cubePlan.getCuboids()) {
+                for (NCuboidDesc desc : cubePlan.getAllCuboids()) {
                     for (NCuboidLayout layout : desc.getLayouts()) {
                         if (!cuboidMap.containsKey(layout.getId())) {
                             toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));

@@ -210,9 +210,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 NCubePlan expected = cubePlanOfParts.get(actual.getId());
                 Assert.assertNotNull(expected);
                 // compare cuboids
-                Assert.assertEquals(expected.getCuboids().size(), actual.getCuboids().size());
+                Assert.assertEquals(expected.getAllCuboids().size(), actual.getAllCuboids().size());
                 Assert.assertEquals(expected.getAllCuboidLayouts().size(), actual.getAllCuboidLayouts().size());
-                for (NCuboidDesc actualCuboid : actual.getCuboids()) {
+                for (NCuboidDesc actualCuboid : actual.getAllCuboids()) {
                     NCuboidDesc expectedCuboid = expected.getCuboidDesc(actualCuboid.getId());
                     Assert.assertThat(expectedCuboid.getDimensions(), CoreMatchers.is(actualCuboid.getDimensions()));
                     Assert.assertThat(expectedCuboid.getMeasures(), CoreMatchers.is(actualCuboid.getMeasures()));

@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
 import java.util.List;
 import java.util.Map;
@@ -30,16 +30,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.IKapStorageAware;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
 @Data
-public class CreateTableIndexRequest {
+public class TableIndexResponse {
 
     private Long id;
 
@@ -48,6 +42,10 @@ public class CreateTableIndexRequest {
     private String model;
 
     private String name;
+
+    private String owner;
+
+    private Status status;
 
     @JsonProperty("col_order")
     private List<String> colOrder;
@@ -63,4 +61,8 @@ public class CreateTableIndexRequest {
 
     @JsonProperty("storage_type")
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+
+    public enum Status {
+        Empty, Available, Broken
+    }
 }

@@ -113,11 +113,13 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("rule_based_cuboids")
     private NRuleBasedCuboidsDesc ruleBasedCuboidsDesc;
 
+    @Getter
     @JsonManagedReference
     @JsonProperty("cuboids")
     private List<NCuboidDesc> cuboids = Lists.newArrayList();
     @JsonProperty("override_properties")
     private LinkedHashMap<String, String> overrideProps = Maps.newLinkedHashMap();
+
     @Getter
     @JsonProperty("segment_range_start")
     private long segmentRangeStart = 0L;
@@ -206,7 +208,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     private void initDimensionAndMeasures() {
         final BitSet dimBitSet = new BitSet();
         final BitSet measureBitSet = new BitSet();
-        for (NCuboidDesc cuboid : getCuboids()) {
+        for (NCuboidDesc cuboid : getAllCuboids()) {
             dimBitSet.or(cuboid.getDimensionBitset().mutable());
             measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }
@@ -456,10 +458,18 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return functions;
     }
 
+    public List<NCuboidDesc> getAllCuboids() {
+        List<NCuboidDesc> ret = Lists.newArrayList();
+        ret.addAll(cuboids);
+        ret.addAll(ruleBasedCuboids);
+        return ret;
+    }
+
+
     public List<NCuboidLayout> getAllCuboidLayouts() {
         Set<NCuboidLayout> r = Sets.newHashSet();
 
-        for (NCuboidDesc cd : getCuboids()) {
+        for (NCuboidDesc cd : getAllCuboids()) {
             r.addAll(cd.getLayouts());
         }
         return Lists.newArrayList(r);
@@ -517,14 +527,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
-
-    public List<NCuboidDesc> getCuboids() {
-        List<NCuboidDesc> ret = Lists.newArrayList();
-        ret.addAll(cuboids);
-        ret.addAll(ruleBasedCuboids);
-        return ret;
-    }
-
     public void setCuboids(List<NCuboidDesc> cuboids) {
         checkIsNotCachedAndShared();
         this.cuboids = cuboids;
@@ -615,7 +617,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
      */
     public Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> getCuboidMap() {
         Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = Maps.newLinkedHashMap();
-        for (NCuboidDesc cuboidDesc : getCuboids()) {
+        for (NCuboidDesc cuboidDesc : getAllCuboids()) {
             if (cuboidDesc.isRuleBased()) {
                 continue;
             }

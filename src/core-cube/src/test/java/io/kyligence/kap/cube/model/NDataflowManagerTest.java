@@ -203,7 +203,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testGetDataflow(){
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        Assert.assertNotNull(mgr.getDataflowByUuid("0aeb985d-aec5-488a-a9b7-a5a564004433"));
+        Assert.assertNotNull(mgr.getDataflowByUuid("0aeb985d-aec5-488a-a9b7-a5a564008891"));
         Assert.assertNotNull(mgr.getDataflowsByCubePlan("ncube_basic"));
     }
 

@@ -134,7 +134,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNotNull(cubePlan);
             Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
 
-            List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
+            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
             Assert.assertEquals(2, cuboidDescs.size());
             Assert.assertEquals(3, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts()));
         }
@@ -223,7 +223,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(cubePlan.getName(), mdCtx.getOrigCubePlan().getName());
             Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
 
-            List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
+            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
             Assert.assertEquals(4, cuboidDescs.size());
             Assert.assertEquals(6, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts(),
                     cuboidDescs.get(2).getLayouts(), cuboidDescs.get(3).getLayouts()));
@@ -286,10 +286,10 @@ public class NSmartMasterTest extends NTestBase {
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(4, cubePlan.getCuboids().size());
+            Assert.assertEquals(4, cubePlan.getAllCuboids().size());
             smartMaster.shrinkCubePlan();
             NCubePlan shrinkedCubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(2, shrinkedCubePlan.getCuboids().size());
+            Assert.assertEquals(2, shrinkedCubePlan.getAllCuboids().size());
         }
 
         // shrink model
@@ -378,10 +378,10 @@ public class NSmartMasterTest extends NTestBase {
             NSmartContext ctx = smartMaster.getContext();
             NCubePlan cubePlan0 = ctx.getModelContexts().get(0).getTargetCubePlan();
             Assert.assertNotNull(cubePlan0);
-            Assert.assertEquals(1, cubePlan0.getCuboids().size());
+            Assert.assertEquals(1, cubePlan0.getAllCuboids().size());
             NCubePlan cubePlan1 = ctx.getModelContexts().get(1).getTargetCubePlan();
             Assert.assertNotNull(cubePlan1);
-            Assert.assertEquals(1, cubePlan1.getCuboids().size());
+            Assert.assertEquals(1, cubePlan1.getAllCuboids().size());
         }
 
         // save
@@ -463,7 +463,7 @@ public class NSmartMasterTest extends NTestBase {
             for (NModelContext modelContext : ctx.getModelContexts()) {
                 NCubePlan cubePlan = modelContext.getTargetCubePlan();
                 Assert.assertNotNull(cubePlan);
-                Assert.assertTrue(cubePlan.getCuboids().isEmpty());
+                Assert.assertTrue(cubePlan.getAllCuboids().isEmpty());
             }
         }
 

@@ -21,46 +21,10 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.cube.model;
 
-import java.util.List;
-import java.util.Map;
+public enum NCuboidLayoutStatus {
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
+    EMPTY, AVAILABLE, BROKEN
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-@Data
-public class CreateTableIndexRequest {
-
-    private Long id;
-
-    private String project;
-
-    private String model;
-
-    private String name;
-
-    @JsonProperty("col_order")
-    private List<String> colOrder;
-
-    @JsonProperty("layout_override_indices")
-    private Map<String, String> layoutOverrideIndices = Maps.newHashMap();
-
-    @JsonProperty("shard_by_columns")
-    private List<String> shardByColumns;
-
-    @JsonProperty("sort_by_columns")
-    private List<String> sortByColumns;
-
-    @JsonProperty("storage_type")
-    private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 }

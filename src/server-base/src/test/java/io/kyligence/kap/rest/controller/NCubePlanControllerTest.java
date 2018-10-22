@@ -80,7 +80,7 @@ public class NCubePlanControllerTest {
     @Test
     public void testUpdateRule() throws Exception {
         val request = UpdateRuleBasedCuboidRequest.builder().dimensions(Arrays.asList(1, 2, 3, 4, 5, 6))
-                .measures(Arrays.asList(1001, 1002)).project("default").cubePlanName("ncube_basic_inner")
+                .measures(Arrays.asList(1001, 1002)).project("default").model("nmodel_basic")
                 .parentForward(3).aggregationGroups(Lists.<NAggregationGroup> newArrayList())
                 .cuboidBlackSet(Sets.newHashSet(1L, 2L, 3L)).build();
         Mockito.when(cubePlanService.updateRuleBasedCuboid(Mockito.any(UpdateRuleBasedCuboidRequest.class)))
@@ -92,7 +92,4 @@ public class NCubePlanControllerTest {
         Mockito.verify(nCubePlanController).updateRule(Mockito.any(UpdateRuleBasedCuboidRequest.class));
     }
 
-    @Test
-    public void testCreateTableIndex() {
-    }
 }

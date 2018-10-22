@@ -75,7 +75,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertSame(getTestConfig(), cube.getConfig().base());
         Assert.assertEquals(getTestConfig(), cube.getConfig());
         Assert.assertEquals(getTestConfig().hashCode(), cube.getConfig().hashCode());
-        Assert.assertEquals(8, cube.getCuboids().size());
+        Assert.assertEquals(8, cube.getAllCuboids().size());
         Assert.assertEquals("test_description", cube.getDescription());
 
         NDataModel model = cube.getModel();
@@ -94,7 +94,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("1", m.getFunction().getParameter().getValue());
 
         {
-            NCuboidDesc first = Iterables.getFirst(cube.getCuboids(), null);
+            NCuboidDesc first = Iterables.getFirst(cube.getAllCuboids(), null);
             Assert.assertNotNull(first);
             Assert.assertEquals(1000000, first.getId());
             Assert.assertEquals(1, first.getLayouts().size());
@@ -108,7 +108,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         }
 
         {
-            NCuboidDesc last = Iterables.getLast(cube.getCuboids(), null);
+            NCuboidDesc last = Iterables.getLast(cube.getAllCuboids(), null);
             Assert.assertNotNull(last);
             Assert.assertEquals(20000002000L, last.getId());
             Assert.assertEquals(1, last.getLayouts().size());

@@ -41,7 +41,7 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 public class NSpanningTreeFactory {
     public static NSpanningTree fromCubePlan(NCubePlan cubePlan) {
         Map<NCuboidDesc, Collection<NCuboidLayout>> descLayouts = Maps.newHashMap();
-        for (NCuboidDesc nCuboidDesc : cubePlan.getCuboids()) {
+        for (NCuboidDesc nCuboidDesc : cubePlan.getAllCuboids()) {
             descLayouts.put(nCuboidDesc, nCuboidDesc.getLayouts());
         }
         return newInstance(KapConfig.wrap(cubePlan.getConfig()), descLayouts, cubePlan.getName());

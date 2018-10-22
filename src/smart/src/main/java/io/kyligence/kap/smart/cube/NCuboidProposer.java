@@ -48,7 +48,7 @@ public class NCuboidProposer extends NAbstractCubeProposer {
     @Override
     void doPropose(NCubePlan cubePlan) {
         Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = Maps.newLinkedHashMap();
-        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+        for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
             NCuboidIdentifier identifier = cuboidDesc.createCuboidIdentifier();
             if (!cuboidDescMap.containsKey(identifier)) {
                 cuboidDescMap.put(identifier, cuboidDesc);

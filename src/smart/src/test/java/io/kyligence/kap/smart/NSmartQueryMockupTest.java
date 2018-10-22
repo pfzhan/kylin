@@ -289,7 +289,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 update.setToAddSegs(segment);
                 update.setStatus(RealizationStatusEnum.READY);
                 List<NDataCuboid> cuboids = Lists.newArrayList();
-                for (NCuboidDesc cuboidDesc : copy.getCubePlan().getCuboids()) {
+                for (NCuboidDesc cuboidDesc : copy.getCubePlan().getAllCuboids()) {
                     for (NCuboidLayout layout : cuboidDesc.getLayouts()) {
                         NDataCuboid c = NDataCuboid.newDataCuboid(copy, segment.getId(), layout.getId());
                         c.setStatus(SegmentStatusEnum.READY);

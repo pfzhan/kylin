@@ -44,8 +44,7 @@ public class UpdateRuleBasedCuboidRequest {
 
     private String project;
 
-    @JsonProperty("cube_plan_name")
-    private String cubePlanName;
+    private String model;
 
     @Builder.Default
     private List<Integer> dimensions = Lists.newArrayList();

@@ -45,7 +45,7 @@ public class NDimensionReducer extends NAbstractCubeProposer {
     @Override
     void doPropose(NCubePlan cubePlan) {
         final Set<Integer> usedDimensionIds = Sets.newHashSet();
-        for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+        for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
             usedDimensionIds.addAll(Lists.newArrayList(cuboidDesc.getDimensions()));
         }
 

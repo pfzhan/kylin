@@ -26,7 +26,6 @@ package io.kylingence.kap.event.handle;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
@@ -36,12 +35,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -52,7 +49,6 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.EventContext;
 import io.kylingence.kap.event.model.RemoveCuboidEvent;
-import lombok.val;
 
 public class RemoveCuboidHandler extends AbstractEventHandler {
 
@@ -72,28 +68,13 @@ public class RemoveCuboidHandler extends AbstractEventHandler {
             cpMgr.updateCubePlan(event.getCubePlanName(), new NCubePlanManager.NCubePlanUpdater() {
                 @Override
                 public void modify(NCubePlan copyForWrite) {
-                    val cuboidMap = Maps.newHashMap(copyForWrite.getCuboidMap());
-                    val toRemovedMap = Maps.<NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
-                    for (Map.Entry<NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
-                        if (cuboidDescEntry.getValue().isRuleBased()) {
-                            continue;
-                        }
-                        val layouts = cuboidDescEntry.getValue().getLayouts();
-                        val filteredLayouts = Lists.<NCuboidLayout> newArrayList();
-                        for (NCuboidLayout layout : layouts) {
-                            if (event.getLayoutIds().contains(layout.getId())) {
-                                filteredLayouts.add(layout);
-                            }
-                        }
-
-                        toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
-                    }
-                    cpMgr.removeLayouts(copyForWrite, toRemovedMap, new Predicate2<NCuboidLayout, NCuboidLayout>() {
-                        @Override
-                        public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
-                            return o1.equals(o2);
-                        }
-                    });
+                    cpMgr.removeLayouts(copyForWrite, Sets.newHashSet(event.getLayoutIds()),
+                            new Predicate2<NCuboidLayout, NCuboidLayout>() {
+                                @Override
+                                public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
+                                    return o1.equals(o2);
+                                }
+                            });
                 }
             });
             removeLayouts(df, event.getLayoutIds(), dfMgr);

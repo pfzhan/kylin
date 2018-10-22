@@ -31,7 +31,6 @@ import lombok.Setter;
 
 @Setter
 @Getter
-@EqualsAndHashCode(callSuper = true)
 public class CubePlanUpdateEvent extends Event {
 
     @JsonProperty("is_model_changed")

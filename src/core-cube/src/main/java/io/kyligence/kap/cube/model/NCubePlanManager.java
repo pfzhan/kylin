@@ -44,11 +44,13 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
@@ -112,7 +114,7 @@ public class NCubePlanManager implements IKeepNames {
         for (IRealization realization : realizations) {
             if (realization instanceof NDataflow) {
                 NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
-                if (cubePlan.getModelName().equals(modelName)){
+                if (cubePlan.getModelName().equals(modelName)) {
                     matchingCubePlans.add(cubePlan);
                 }
             }
@@ -214,17 +216,43 @@ public class NCubePlanManager implements IKeepNames {
         }
     }
 
+    public void removeLayouts(NCubePlan cubePlan, Set<Long> cuboidLayoutIds,
+            Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+        val cuboidMap = Maps.newHashMap(cubePlan.getCuboidMap());
+        val toRemovedMap = Maps.<NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
+        for (Map.Entry<NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
+            if (cuboidDescEntry.getValue().isRuleBased()) {
+                continue;
+            }
+            val layouts = cuboidDescEntry.getValue().getLayouts();
+            val filteredLayouts = Lists.<NCuboidLayout> newArrayList();
+            for (NCuboidLayout layout : layouts) {
+                if (cuboidLayoutIds.contains(layout.getId())) {
+                    filteredLayouts.add(layout);
+                }
+            }
+
+            toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
+        }
+
+        removeLayouts(cubePlan, toRemovedMap, comparator);
+    }
+
     /**
-     * remove useless layouts from cubePlan
+     * remove useless layouts from cubePlan without shared
+     * this method will not persist cubePlan entity
+     *
      * @param cubePlan        the cubePlan's isCachedAndShared must be false
      * @param cuboidLayoutMap the layouts to be removed, group by cuboid's identify
      * @param comparator      compare if two layouts is equal
      */
-    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap, Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap,
+            Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
         removeLayouts(cubePlan, cuboidLayoutMap, null, comparator);
     }
 
-    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboids, Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+    public void removeLayouts(NCubePlan cubePlan, Map<NCuboidIdentifier, List<NCuboidLayout>> cuboids,
+            Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
         Map<NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = cubePlan.getCuboidMap();
         for (Map.Entry<NCuboidIdentifier, List<NCuboidLayout>> cuboidEntity : cuboids.entrySet()) {
             NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
@@ -232,30 +260,35 @@ public class NCubePlanManager implements IKeepNames {
             if (originalCuboid == null) {
                 continue;
             }
-            List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
-            for (NCuboidLayout cuboidLayout : cuboidEntity.getValue()) {
-                if (isSkip != null && isSkip.apply(cuboidLayout)) {
-                    continue;
-                }
-                NCuboidLayout toRemoveLayout = null;
-                for (NCuboidLayout originalLayout : originalCuboid.getLayouts()) {
-                    if (equal.apply(originalLayout, cuboidLayout)) {
-                        toRemoveLayout = originalLayout;
-                        break;
-                    }
-                }
-                if (toRemoveLayout != null) {
-                    toRemoveLayouts.add(toRemoveLayout);
-                }
-            }
-            logger.debug("to remove {}", toRemoveLayouts);
-            originalCuboid.getLayouts().removeAll(toRemoveLayouts);
+            removeLayoutsInCuboid(originalCuboid, cuboidEntity.getValue(), isSkip, equal);
             if (originalCuboid.getLayouts().isEmpty()) {
                 originalCuboidsMap.remove(cuboidKey);
             }
         }
 
         cubePlan.setCuboids(Lists.newArrayList(originalCuboidsMap.values()));
+    }
+
+    private void removeLayoutsInCuboid(NCuboidDesc originalCuboid, List<NCuboidLayout> deprecatedLayouts,
+            Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+        List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
+        for (NCuboidLayout cuboidLayout : deprecatedLayouts) {
+            if (isSkip != null && isSkip.apply(cuboidLayout)) {
+                continue;
+            }
+            NCuboidLayout toRemoveLayout = null;
+            for (NCuboidLayout originalLayout : originalCuboid.getLayouts()) {
+                if (equal.apply(originalLayout, cuboidLayout)) {
+                    toRemoveLayout = originalLayout;
+                    break;
+                }
+            }
+            if (toRemoveLayout != null) {
+                toRemoveLayouts.add(toRemoveLayout);
+            }
+        }
+        logger.debug("to remove {}", toRemoveLayouts);
+        originalCuboid.getLayouts().removeAll(toRemoveLayouts);
     }
 
     // use the NCubePlanUpdater instead

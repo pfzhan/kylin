@@ -115,7 +115,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
         Set<NamedColumn> usedCols = Sets.newHashSet();
         Set<Measure> usedMeasures = Sets.newHashSet();
         for (NCubePlan cubePlan : modelCubePlans.values()) {
-            for (NCuboidDesc cuboidDesc : cubePlan.getCuboids()) {
+            for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
                 for (int id : cuboidDesc.getDimensions()) {
                     usedCols.add(colsById.get(id));
                 }
