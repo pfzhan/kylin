@@ -25,16 +25,16 @@ package io.kyligence.kap.rest.metrics;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.common.metric.InfluxDBWriter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -55,6 +55,8 @@ public class QueryMetricsContext {
     private static final Logger logger = LoggerFactory.getLogger(QueryMetricsContext.class);
 
     protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv().getInstanceFromEnv();
+
+    public static final String UNKNOWN = "Unknown";
 
     public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
     public static final String QUERY_MEASUREMENT = "query_metric";
@@ -96,7 +98,7 @@ public class QueryMetricsContext {
 
     private String engineType;
 
-    private final Set<RealizationMetrics> realizationMetrics = new HashSet<>();
+    private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
     private String log;
 
@@ -155,6 +157,9 @@ public class QueryMetricsContext {
         this.submitter = request.getUsername();
         this.project = request.getProject();
 
+        this.hostname = response.getServer();
+        this.suite = response.getSuite();
+
         this.queryDuration = response.getDuration();
         this.totalScanBytes = response.getTotalScanBytes();
 
@@ -187,8 +192,8 @@ public class QueryMetricsContext {
         }
     }
 
-    public Set<RealizationMetrics> getRealizationMetrics() {
-        return ImmutableSet.copyOf(realizationMetrics);
+    public List<RealizationMetrics> getRealizationMetrics() {
+        return ImmutableList.copyOf(realizationMetrics);
     }
 
     private void collectRealizationMetrics(final SQLResponse response, final QueryContext context) {
@@ -202,7 +207,7 @@ public class QueryMetricsContext {
                 final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
                         .isTableIndex() ? "Table Index" : "Agg Index";
                 addRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType,
-                        ctx.realization.getModel() == null ? "UNKNOWN" : ctx.realization.getModel().getName());
+                        ctx.realization.getModel().getName());
             }
         }
     }
@@ -220,7 +225,7 @@ public class QueryMetricsContext {
         } else if (!realizationMetrics.isEmpty()) {
             this.engineType = realizationMetrics.iterator().next().realizationType;
         } else {
-            this.engineType = "Unknown";
+            this.engineType = UNKNOWN;
         }
     }
 
@@ -228,14 +233,14 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(SUBMITTER_METRIC, submitter) //
                 .put(PROJECT_METRIC, project) //
-                .put(SUITE_METRIC, suite == null ? "Unknown" : suite) //
+                .put(SUITE_METRIC, suite == null ? UNKNOWN : suite) //
                 .put(ENGINE_TYPE_METRIC, engineType);
 
         if (StringUtils.isBlank(hostname)) {
             try {
                 hostname = InetAddress.getLocalHost().getHostAddress();
             } catch (UnknownHostException e) {
-                hostname = "Unknown";
+                hostname = UNKNOWN;
             }
         }
         builder.put(HOSTNAME_METRIC, hostname);
@@ -290,7 +295,7 @@ public class QueryMetricsContext {
         public RealizationMetrics(String queryId, String suite, String project, String realizationName,
                 String realizationType, String modelName) {
             this.queryId = queryId;
-            this.suite = suite == null ? "Unknown" : suite;
+            this.suite = suite == null ? UNKNOWN : suite;
             this.project = project;
             this.realizationName = realizationName;
             this.realizationType = realizationType;
@@ -309,39 +314,6 @@ public class QueryMetricsContext {
 
         public Map<String, Object> getInfluxdbFields() {
             return ImmutableMap.<String, Object> builder().put(QUERY_ID_METRIC, queryId).build();
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o)
-                return true;
-            if (o == null || getClass() != o.getClass())
-                return false;
-
-            RealizationMetrics that = (RealizationMetrics) o;
-
-            if (!queryId.equals(that.queryId))
-                return false;
-            if (!suite.equals(that.suite))
-                return false;
-            if (!project.equals(that.project))
-                return false;
-            if (!realizationName.equals(that.realizationName))
-                return false;
-            if (!realizationType.equals(that.realizationType))
-                return false;
-            return modelName.equals(that.modelName);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = queryId.hashCode();
-            result = 31 * result + suite.hashCode();
-            result = 31 * result + project.hashCode();
-            result = 31 * result + realizationName.hashCode();
-            result = 31 * result + realizationType.hashCode();
-            result = 31 * result + modelName.hashCode();
-            return result;
         }
     }
 }

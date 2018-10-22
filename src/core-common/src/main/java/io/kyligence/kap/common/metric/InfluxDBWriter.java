@@ -48,7 +48,8 @@ public class InfluxDBWriter implements MetricWriter {
 
     private static volatile ScheduledExecutorService scheduledExecutorService;
 
-    private static volatile InfluxDB influxDB;
+    // easy to test
+    static volatile InfluxDB influxDB;
 
     private static volatile InfluxDBWriter INSTANCE;
 

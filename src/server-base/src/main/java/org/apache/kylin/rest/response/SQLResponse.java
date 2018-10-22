@@ -103,6 +103,10 @@ public class SQLResponse implements Serializable {
 
     protected String queryId;
 
+    private String server;
+
+    private String suite;
+
     protected List<String> answeredBy;
 
     public SQLResponse() {
@@ -263,5 +267,21 @@ public class SQLResponse implements Serializable {
 
     public void setResultRowCount(long resultRowCount) {
         this.resultRowCount = resultRowCount;
+    }
+
+    public String getServer() {
+        return server;
+    }
+
+    public void setServer(String server) {
+        this.server = server;
+    }
+
+    public String getSuite() {
+        return suite;
+    }
+
+    public void setSuite(String suite) {
+        this.suite = suite;
     }
 }

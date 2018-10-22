@@ -45,8 +45,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
@@ -77,6 +77,8 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
                     "INFLUX");
             QueryMetricsContext.start(QUERY_ID);
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            QueryMetricsContext.start(QUERY_ID);
         } finally {
             QueryMetricsContext.reset();
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
@@ -99,6 +101,70 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
         QueryMetricsContext.collect(Mockito.mock(SQLRequest.class), Mockito.mock(SQLResponse.class),
                 Mockito.mock(QueryContext.class));
+    }
+
+    @Test
+    public void assertCollectOtherError() {
+        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        try {
+            final QueryContext queryContext = QueryContext.current();
+            QueryMetricsContext.start(queryContext.getQueryId());
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            queryContext.setErrorCause(new RuntimeException(new RuntimeException("other error")));
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql("select * from test_with_otherError");
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setHitExceptionCache(true);
+            response.setServer("localhost");
+            response.setSuite("suite_1");
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+            Assert.assertEquals("Other error", influxdbTags.get("error_type"));
+            Assert.assertEquals("localhost", influxdbTags.get("hostname"));
+            Assert.assertEquals("suite_1", influxdbTags.get("suite"));
+
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
+                    "BLACK_HOLE");
+        }
+    }
+
+    @Test
+    public void assertCollectWithoutError() {
+        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        try {
+            final QueryContext queryContext = QueryContext.current();
+            QueryMetricsContext.start(queryContext.getQueryId());
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql("select * from test_with_otherError");
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setHitExceptionCache(true);
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
+            Assert.assertFalse(influxdbTags.containsKey("error_type"));
+
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
+                    "BLACK_HOLE");
+        }
     }
 
     @Test
@@ -140,7 +206,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             Assert.assertEquals(999L, influxdbFields.get("total_scan_bytes"));
 
             // assert realizations
-            final Set<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
+            final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
                     .getRealizationMetrics();
             Assert.assertEquals(0, realizationMetrics.size());
 
@@ -172,6 +238,8 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
             mockOLAPContext();
 
+            QueryMetricsContext.log("query logs");
+
             final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
 
             // assert query metric tags
@@ -179,11 +247,16 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             Assert.assertEquals("Agg Index", influxdbTags.get("engine_type"));
             Assert.assertEquals("No realization found", influxdbTags.get("error_type"));
 
+            // assert query metric fields
+            final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+            Assert.assertEquals("1,2", influxdbFields.get("realizations"));
+            Assert.assertEquals("query logs", influxdbFields.get("log"));
+
             // assert realizations
-            final Set<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
+            final List<QueryMetricsContext.RealizationMetrics> realizationMetrics = metricsContext
                     .getRealizationMetrics();
-            Assert.assertEquals(1, realizationMetrics.size());
-            final QueryMetricsContext.RealizationMetrics actual = realizationMetrics.iterator().next();
+            Assert.assertEquals(2, realizationMetrics.size());
+            final QueryMetricsContext.RealizationMetrics actual = realizationMetrics.get(0);
 
             // assert realization metric fields
             Assert.assertEquals(queryContext.getQueryId(), actual.getInfluxdbFields().get("query_id"));
@@ -204,23 +277,31 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
         }
     }
 
-    private OLAPContext mockOLAPContext() {
-        final OLAPContext mock = new OLAPContext(1);
+    private void mockOLAPContext() {
+        for (long i = 1; i <= 2; i++) {
+            final OLAPContext mock = new OLAPContext((int) i);
 
-        final NDataModel mockModel = Mockito.spy(new NDataModel());
-        Mockito.when(mockModel.getName()).thenReturn("mock_model");
-        final IRealization mockRealization = Mockito.mock(IRealization.class);
-        Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
-        mock.realization = mockRealization;
+            final NDataModel mockModel = Mockito.spy(new NDataModel());
+            Mockito.when(mockModel.getName()).thenReturn("mock_model");
+            final IRealization mockRealization = Mockito.mock(IRealization.class);
+            Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
+            mock.realization = mockRealization;
 
-        final NCuboidDesc mockCuboidDesc = new NCuboidDesc();
-        mockCuboidDesc.setId(1L);
-        final NCuboidLayout mockLayout = new NCuboidLayout();
-        mockLayout.setCuboidDesc(mockCuboidDesc);
-        mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
-        mock.storageContext.setCuboidId(1L);
+            final NCuboidDesc mockCuboidDesc = new NCuboidDesc();
+            if (i == 1) {
+                // agg index
+                mockCuboidDesc.setId(i);
+            } else {
+                // table index
+                mockCuboidDesc.setId(NCuboidDesc.TABLE_INDEX_START_ID + i);
+            }
+            final NCuboidLayout mockLayout = new NCuboidLayout();
+            mockLayout.setCuboidDesc(mockCuboidDesc);
+            mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
+            mock.storageContext.setCuboidId(i);
 
-        OLAPContext.registerContext(mock);
-        return mock;
+            OLAPContext.registerContext(mock);
+        }
+
     }
 }
