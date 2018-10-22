@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.Charsets;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.Pair;
@@ -73,7 +74,10 @@ public class TempMetadataBuilder {
     }
 
     public static String prepareNLocalTempMetadata(boolean debug, String... overlay) {
-        return new TempMetadataBuilder(debug, overlay).build();
+        String[] nOverlay = new String[overlay.length + 1];
+        nOverlay[0] = N_KAP_META_TEST_DATA;
+        System.arraycopy(overlay, 0, nOverlay, 1, overlay.length);
+        return new TempMetadataBuilder(debug, nOverlay).build();
     }
 
     // ============================================================================
@@ -91,9 +95,9 @@ public class TempMetadataBuilder {
             if (debug) {
                 logger.info("Preparing local temp metadata");
                 for (String metaSrc : metaSrcs) {
-                    logger.info("Found one META_TEST_SRC: " + new File(metaSrc).getCanonicalPath());
+                    logger.info("Found one META_TEST_SRC: {}", new File(metaSrc).getCanonicalPath());
                 }
-                logger.info("TEMP_TEST_METADATA=" + new File(TEMP_TEST_METADATA).getCanonicalPath());
+                logger.info("TEMP_TEST_METADATA={}", new File(TEMP_TEST_METADATA).getCanonicalPath());
             }
 
             FileUtils.deleteDirectory(new File(TEMP_TEST_METADATA));
@@ -118,7 +122,7 @@ public class TempMetadataBuilder {
                 File copy = new File(TEMP_TEST_METADATA + ".debug");
                 FileUtils.deleteDirectory(copy);
                 FileUtils.copyDirectory(new File(TEMP_TEST_METADATA), copy);
-                logger.info("Make copy for debug: " + copy.getCanonicalPath());
+                logger.info("Make copy for debug: {}", copy.getCanonicalPath());
             }
 
             return TEMP_TEST_METADATA;
@@ -134,12 +138,12 @@ public class TempMetadataBuilder {
         File appendFile = new File(tempMetadataDir, "kylin.properties.append");
         if (appendFile.exists()) {
             if (debug) {
-                logger.info("Appending kylin.properties from " + appendFile.getCanonicalPath());
+                logger.info("Appending kylin.properties from {}", appendFile.getCanonicalPath());
             }
 
-            String appendStr = FileUtils.readFileToString(appendFile, "UTF-8");
-            FileUtils.writeStringToFile(propsFile, appendStr, "UTF-8", true);
-            appendFile.delete();
+            String appendStr = FileUtils.readFileToString(appendFile, Charsets.UTF_8);
+            FileUtils.writeStringToFile(propsFile, appendStr, Charsets.UTF_8, true);
+            FileUtils.deleteQuietly(appendFile);
         }
     }
 
@@ -149,8 +153,8 @@ public class TempMetadataBuilder {
         int storageType = typePair.getSecond();
 
         if (debug) {
-            logger.info("Override engine type to be " + engineType);
-            logger.info("Override storage type to be " + storageType);
+            logger.info("Override engine type to be {}", engineType);
+            logger.info("Override storage type to be {}", storageType);
         }
 
         // re-write cube_desc/*.json
@@ -164,9 +168,9 @@ public class TempMetadataBuilder {
                 continue;
             }
             if (debug) {
-                logger.info("Process override " + f.getCanonicalPath());
+                logger.info("Process override {}", f.getCanonicalPath());
             }
-            List<String> lines = FileUtils.readLines(f, "UTF-8");
+            List<String> lines = FileUtils.readLines(f, Charsets.UTF_8);
             for (int i = 0, n = lines.size(); i < n; i++) {
                 String l = lines.get(i);
                 if (l.contains("\"engine_type\"")) {
@@ -182,7 +186,7 @@ public class TempMetadataBuilder {
 
     private void overrideDimCapOnCiCubes(String tempMetadataDir, int dimCap) throws IOException {
         if (debug) {
-            logger.info("Override dim cap to be " + dimCap);
+            logger.info("Override dim cap to be {}", dimCap);
         }
 
         // re-write cube_desc/ci_*.json
@@ -196,16 +200,16 @@ public class TempMetadataBuilder {
                 continue;
             }
             if (debug) {
-                logger.info("Process override " + f.getCanonicalPath());
+                logger.info("Process override {}", f.getCanonicalPath());
             }
-            List<String> lines = FileUtils.readLines(f, "UTF-8");
+            List<String> lines = FileUtils.readLines(f, Charsets.UTF_8);
             for (int i = 0, n = lines.size(); i < n; i++) {
                 String l = lines.get(i);
                 if (l.contains("\"dim_cap\"")) {
                     lines.set(i, "        \"dim_cap\" : " + dimCap);
                 }
             }
-            FileUtils.writeLines(f, "UTF-8", lines);
+            FileUtils.writeLines(f, Charsets.UTF_8.toString(), lines);
         }
     }
 
@@ -213,7 +217,7 @@ public class TempMetadataBuilder {
         int engineType = -1;
         int storageType = -1;
 
-        List<String> lines = FileUtils.readLines(new File(tempMetadataDir, "kylin.properties"), "UTF-8");
+        List<String> lines = FileUtils.readLines(new File(tempMetadataDir, "kylin.properties"), Charsets.UTF_8);
         for (String l : lines) {
             if (l.startsWith("kylin.engine.default")) {
                 engineType = Integer.parseInt(l.substring(l.lastIndexOf('=') + 1).trim());
@@ -224,22 +228,22 @@ public class TempMetadataBuilder {
         }
 
         if (debug) {
-            logger.info("Grap from kylin.properties, engine type is " + engineType);
-            logger.info("Grap from kylin.properties, storage type is " + storageType);
+            logger.info("Grap from kylin.properties, engine type is {}", engineType);
+            logger.info("Grap from kylin.properties, storage type is {}", storageType);
         }
 
         String tmp = System.getProperty("kylin.engine");
         if (!StringUtils.isBlank(tmp)) {
             engineType = Integer.parseInt(tmp.trim());
             if (debug) {
-                logger.info("By system property, engine type is " + engineType);
+                logger.info("By system property, engine type is {}", engineType);
             }
         }
         tmp = System.getProperty("kylin.storage");
         if (!StringUtils.isBlank(tmp)) {
             storageType = Integer.parseInt(tmp.trim());
             if (debug) {
-                logger.info("By system property, storage type is " + storageType);
+                logger.info("By system property, storage type is {}", storageType);
             }
         }
 

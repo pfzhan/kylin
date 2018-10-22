@@ -21,25 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.util;
+package io.kyligence.kap.metadata.model.alias;
 
-import java.util.LinkedHashMap;
+/**
+ * normally col reference in query should be ALIAS.COL, when ALIAS part is missing,
+ * we need to deduce the alias 
+ */
+public interface IAliasDeduce {
+    public String deduceAlias(String colName);
 
-import org.apache.kylin.query.relnode.ColumnRowType;
-
-import com.google.common.collect.BiMap;
-
-public class QueryAliasMatchInfo extends AliasMapping {
-    // each alias's ColumnRowType
-    private LinkedHashMap<String, ColumnRowType> alias2CRT;
-
-    QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> alias2CRT) {
-        super(aliasMapping);
-        this.alias2CRT = alias2CRT;
-    }
-
-    LinkedHashMap<String, ColumnRowType> getAlias2CRT() {
-        return alias2CRT;
-    }
-
+    public IAliasDeduce NO_OP = new IAliasDeduce() {
+        @Override
+        public String deduceAlias(String colName) {
+            throw new IllegalStateException();
+        }
+    };
 }

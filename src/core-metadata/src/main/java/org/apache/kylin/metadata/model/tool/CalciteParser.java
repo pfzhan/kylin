@@ -39,13 +39,14 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 package org.apache.kylin.metadata.model.tool;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.calcite.sql.SqlIdentifier;
@@ -64,6 +65,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 public class CalciteParser {
+    
+    private CalciteParser() { }
+    
+    private static final String SQL_PREFIX = "select ";
+    private static final String SQL_SUFFIX = " from t";
+    
     public static SqlNode parse(String sql) throws SqlParseException {
         SqlParser.ConfigBuilder parserBuilder = SqlParser.configBuilder();
         SqlParser sqlParser = SqlParser.create(sql, parserBuilder.build());
@@ -75,7 +82,7 @@ public class CalciteParser {
         try {
             selectList = ((SqlSelect) CalciteParser.parse(sql)).getSelectList();
         } catch (SqlParseException e) {
-            throw new RuntimeException(
+            throw new IllegalStateException(
                     "Failed to parse expression \'" + sql + "\', please make sure the expression is valid", e);
         }
 
@@ -86,7 +93,7 @@ public class CalciteParser {
     }
 
     public static SqlNode getExpNode(String expr) {
-        return getOnlySelectNode("select " + expr + " from t");
+        return getOnlySelectNode(SQL_PREFIX + expr + SQL_SUFFIX);
     }
 
     public static String getLastNthName(SqlIdentifier id, int n) {
@@ -113,10 +120,17 @@ public class CalciteParser {
         sqlNode.accept(sqlVisitor);
     }
 
+    public static boolean hasAliasInExpr(String expr) {
+        try {
+            ensureNoAliasInExpr(expr);
+            return false;
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
     public static String insertAliasInExpr(String expr, String alias) {
-        String prefix = "select ";
-        String suffix = " from t";
-        String sql = prefix + expr + suffix;
+        String sql = SQL_PREFIX + expr + SQL_SUFFIX;
         SqlNode sqlNode = getOnlySelectNode(sql);
 
         final Set<SqlIdentifier> s = Sets.newHashSet();
@@ -142,7 +156,7 @@ public class CalciteParser {
             sql = sql.substring(0, start) + alias + "." + sql.substring(start);
         }
 
-        return sql.substring(prefix.length(), sql.length() - suffix.length());
+        return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
     }
 
     public static void descSortByPosition(List<SqlIdentifier> sqlIdentifiers) {
@@ -176,8 +190,7 @@ public class CalciteParser {
             columnEnd += lines[i].length() + 1;
         }
         //for calcite's bug CALCITE-1875
-        Pair<Integer, Integer> startEndPos = getPosWithBracketsCompletion(inputSql, columnStart, columnEnd);
-        return startEndPos;
+        return getPosWithBracketsCompletion(inputSql, columnStart, columnEnd);
     }
 
     private static Pair<Integer, Integer> getPosWithBracketsCompletion(String inputSql, int left, int right) {
@@ -208,5 +221,39 @@ public class CalciteParser {
             rightBracketNum++;
         }
         return Pair.newPair(left, right);
+    }
+
+    public static String replaceAliasInExpr(String expr, Map<String, String> renaming) {
+        String sql = SQL_PREFIX + expr + SQL_SUFFIX;
+        SqlNode sqlNode = CalciteParser.getOnlySelectNode(sql);
+
+        final Set<SqlIdentifier> s = Sets.newHashSet();
+        SqlVisitor sqlVisitor = new SqlBasicVisitor() {
+            @Override
+            public Object visit(SqlIdentifier id) {
+                Preconditions.checkState(id.names.size() == 2);
+                s.add(id);
+                return null;
+            }
+        };
+
+        sqlNode.accept(sqlVisitor);
+        List<SqlIdentifier> sqlIdentifiers = Lists.newArrayList(s);
+
+        CalciteParser.descSortByPosition(sqlIdentifiers);
+
+        for (SqlIdentifier sqlIdentifier : sqlIdentifiers) {
+            Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(sqlIdentifier, sql);
+            int start = replacePos.getFirst();
+            int end = replacePos.getSecond();
+            String aliasInExpr = sqlIdentifier.names.get(0);
+            String col = sqlIdentifier.names.get(1);
+            String renamedAlias = renaming.get(aliasInExpr);
+            Preconditions.checkNotNull(renamedAlias,
+                    "rename for alias " + aliasInExpr + " in expr (" + expr + ") is not found");
+            sql = sql.substring(0, start) + renamedAlias + "." + col + sql.substring(end);
+        }
+
+        return sql.substring(SQL_PREFIX.length(), sql.length() - SQL_SUFFIX.length());
     }
 }

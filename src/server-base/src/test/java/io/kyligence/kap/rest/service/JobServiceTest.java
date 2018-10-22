@@ -100,7 +100,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Test

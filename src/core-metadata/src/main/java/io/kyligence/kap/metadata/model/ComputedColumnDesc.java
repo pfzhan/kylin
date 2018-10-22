@@ -28,6 +28,7 @@ import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -37,7 +38,6 @@ import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,8 +52,11 @@ import com.google.common.base.Preconditions;
 public class ComputedColumnDesc implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnDesc.class);
 
+    // the table identity DB.TABLE (ignoring alias) in the model where the computed column belong to
+    // this field is more useful for frontend, for backend code, usage should be avoided
     @JsonProperty
-    private String tableIdentity; // the alias in the model where the computed column belong to 
+    private String tableIdentity;
+
     @JsonProperty
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String tableAlias;
@@ -68,16 +71,18 @@ public class ComputedColumnDesc implements Serializable {
     @JsonProperty
     private String comment;
 
-    public void init(Map<String, TableRef> aliasMap, String rootFactTableName) {
+    public void init(NDataModel model, String rootFactTableName) {
+        Map<String, TableRef> aliasMap = model.getAliasMap();
         Set<String> aliasSet = aliasMap.keySet();
 
         Preconditions.checkNotNull(tableIdentity, "tableIdentity is null");
         Preconditions.checkNotNull(columnName, "columnName is null");
-        Preconditions.checkNotNull(expression, "expression is null");
+        if (!model.isSeekingCCAdvice())
+            Preconditions.checkNotNull(expression, "expression is null");
         Preconditions.checkNotNull(datatype, "datatype is null");
 
         if (tableAlias == null) // refer to comment of handleLegacyCC()
-            tableAlias = tableIdentity.substring(tableIdentity.indexOf(".") + 1);
+            tableAlias = tableIdentity.substring(tableIdentity.indexOf('.') + 1);
 
         Preconditions.checkState(tableIdentity.equals(tableIdentity.trim()),
                 "tableIdentity of ComputedColumnDesc has heading/tailing whitespace");
@@ -92,23 +97,13 @@ public class ComputedColumnDesc implements Serializable {
         tableAlias = tableAlias.toUpperCase();
         columnName = columnName.toUpperCase();
 
-        if (!tableIdentity.contains(rootFactTableName) || !tableAlias.equals(rootFactTableName)) {
-            throw new IllegalArgumentException("Computed column has to be defined on fact table");
+        TableRef hostTblRef = model.findTable(tableAlias);
+        if (!model.isFactTable(hostTblRef)) {
+            throw new IllegalArgumentException(
+                    "Computed column has to be defined on fact table or limited lookup table");
         }
 
-        for (TableRef tableRef : aliasMap.values()) {
-            if (!rootFactTableName.equals(tableRef.getAlias())) {
-                for (TblColRef tblColRef : tableRef.getColumns()) {
-                    if (this.columnName.equals(tblColRef.getName())) {
-                        throw new IllegalArgumentException(
-                                "Computed column name " + columnName + " is already found on table "
-                                        + tableRef.getTableIdentity() + ", use a different computed column name");
-                    }
-                }
-            }
-        }
-
-        if ("true".equals(System.getProperty("needCheckCC"))) { //conditional execute this because of the calcite dependency is to available every where
+        if ("true".equals(System.getProperty("needCheckCC"))) {
             try {
                 simpleParserCheck(expression, aliasSet);
             } catch (Exception e) {
@@ -129,29 +124,39 @@ public class ComputedColumnDesc implements Serializable {
             simpleParserCheck(ret, aliasSet);
             return ret;
         } catch (Exception e) {
-            logger.error("failed to handle legacy CC " + expr);
+            logger.error("failed to handle legacy CC '{}'", expr);
             return null;
         }
     }
 
     public void simpleParserCheck(final String expr, final Set<String> aliasSet) {
+
         SqlNode sqlNode = CalciteParser.getExpNode(expr);
 
         SqlVisitor sqlVisitor = new SqlBasicVisitor() {
             @Override
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
-                    throw new IllegalArgumentException("Column Identifier in the computed column " + expr
-                            + "expression should comply to ALIAS.COLUMN ");
+                    throw new IllegalArgumentException(
+                            "Unrecognized column identifier: " + id.toString() + " in expression '" + expr
+                                    + "'. When referencing a column, expressions should use patterns like ALIAS.COLUMN,"
+                                    + " where ALIAS is the table alias defined in model.");
                 }
                 return null;
             }
 
             @Override
             public Object visit(SqlCall call) {
-                if (call instanceof SqlBasicCall && call.getOperator() instanceof SqlAsOperator) {
-                    throw new IllegalArgumentException(
-                            "Computed column expression " + expr + " should not contain AS ");
+                if (call instanceof SqlBasicCall) {
+                    if (call.getOperator() instanceof SqlAsOperator) {
+                        throw new IllegalArgumentException("Computed column expression should not contain keyword AS");
+                    }
+
+                    if (call.getOperator() instanceof SqlAggFunction) {
+                        throw new IllegalArgumentException(
+                                "Computed column expression should not contain any aggregate functions: "
+                                        + call.getOperator().getName());
+                    }
                 }
                 return call.getOperator().acceptCall(this, call);
             }
@@ -161,29 +166,45 @@ public class ComputedColumnDesc implements Serializable {
     }
 
     public String getFullName() {
-        return tableIdentity + "." + columnName;
+        return tableAlias + "." + columnName;
+    }
+
+    public void setTableIdentity(String tableIdentity) {
+        this.tableIdentity = tableIdentity;
     }
 
     public String getTableIdentity() {
         return tableIdentity;
     }
 
+    public void setTableAlias(String tableAlias) {
+        this.tableAlias = tableAlias;
+    }
+
     public String getTableAlias() {
         return tableAlias;
+    }
+
+    public void setColumnName(String columnName) {
+        this.columnName = columnName;
     }
 
     public String getColumnName() {
         return columnName;
     }
 
+    public void setExpression(String expression) {
+        this.expression = expression;
+    }
+
     public String getExpression() {
         return expression;
     }
-    
+
     public void setInnerExpression(String innerExpression) {
         this.innerExpression = innerExpression;
     }
-    
+
     public String getInnerExpression() {
         if (StringUtils.isEmpty(innerExpression)) {
             return expression;
@@ -191,8 +212,16 @@ public class ComputedColumnDesc implements Serializable {
         return innerExpression;
     }
 
+    public void setDatatype(String datatype) {
+        this.datatype = datatype;
+    }
+
     public String getDatatype() {
         return datatype;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     public String getComment() {

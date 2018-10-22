@@ -85,7 +85,7 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDownResource() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Before

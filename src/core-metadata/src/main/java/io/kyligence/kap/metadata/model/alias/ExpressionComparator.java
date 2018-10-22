@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.util;
+package io.kyligence.kap.metadata.model.alias;
 
 import java.util.List;
 import java.util.Objects;
@@ -42,8 +42,6 @@ import com.google.common.base.Preconditions;
 public class ExpressionComparator {
 
     private static final Logger logger = LoggerFactory.getLogger(ExpressionComparator.class);
-    
-    private ExpressionComparator() {}
 
     /**
      *
@@ -82,8 +80,7 @@ public class ExpressionComparator {
 
         protected boolean isSqlIdentifierEqual(SqlIdentifier querySqlIdentifier, SqlIdentifier exprSqlIdentifier) {
             Preconditions.checkState(exprSqlIdentifier.names.size() == 2);
-            String queryAlias = null;
-            String queryCol = null;
+            String queryAlias = null, queryCol = null;
             if (querySqlIdentifier.names.size() == 1) {
                 queryCol = querySqlIdentifier.names.get(0);
 
@@ -103,7 +100,7 @@ public class ExpressionComparator {
         }
     }
 
-    public abstract static class SqlNodeComparator {
+    public static abstract class SqlNodeComparator {
         protected abstract boolean isSqlIdentifierEqual(SqlIdentifier querySqlIdentifier,
                 SqlIdentifier exprSqlIdentifier);
 

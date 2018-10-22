@@ -107,7 +107,7 @@ public class NJoinedFlatTable {
         Column[] names = new Column[colRefs.size()];
         String[] indices = new String[names.length];
         for (int i = 0; i < names.length; i++) {
-            names[i] = new Column(NSparkCubingUtil.convertFromDot(colRefs.get(i).getIdentity()));
+            names[i] = new Column(NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB()));
             indices[i] = String.valueOf(colIndices.get(i));
         }
         return ds.select(names).toDF(indices);

@@ -32,7 +32,6 @@ public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.Loca
         System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
     }
 
-    @Override
     public void createTestMetadata() {
         staticCreateTestMetadata();
     }
@@ -44,4 +43,26 @@ public class LocalFileMetadataTestCase extends org.apache.kylin.common.util.Loca
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 
+    @Override
+    public void createTestMetadata(String... overlayMetadataDirs) {
+        staticCreateTestMetadata(overlayMetadataDirs);
+    }
+
+    public static void staticCreateTestMetadata(String... overlayMetadataDirs) {
+        staticCreateTestMetadata(true, overlayMetadataDirs);
+    }
+
+    public static void staticCreateTestMetadata(boolean useDefaultMetadata, String... overlayMetadataDirs) {
+        KylinConfig.destroyInstance();
+
+        String tempMetadataDir = LocalTempMetadata.prepareLocalTempMetadata(useDefaultMetadata,
+                new OverlayMetaHook(overlayMetadataDirs));
+
+        if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
+            System.setProperty(KylinConfig.KYLIN_CONF, tempMetadataDir);
+
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        config.setMetadataUrl(tempMetadataDir);
+        config.setProperty("kylin.env.hdfs-working-dir", "file:///tmp/kylin");
+    }
 }

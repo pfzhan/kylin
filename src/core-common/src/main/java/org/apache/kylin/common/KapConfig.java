@@ -57,7 +57,7 @@ public class KapConfig {
 
     // ============================================================================
 
-    final private KylinConfig config;
+    private final KylinConfig config;
 
     private KapConfig(KylinConfig config) {
         this.config = config;
@@ -404,6 +404,10 @@ public class KapConfig {
 
     public boolean isImplicitComputedColumnConvertEnabled() {
         return Boolean.valueOf(config.getOptional("kap.query.implicit-computed-column-convert", "true"));
+    }
+
+    public int getComputedColumnMaxRecursionTimes() {
+        return Integer.valueOf(config.getOptional("kap.query.computed-column-max-recursion-times", "10"));
     }
 
     public boolean isJdbcEscapeEnabled() {

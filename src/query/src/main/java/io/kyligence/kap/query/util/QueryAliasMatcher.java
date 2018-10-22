@@ -27,10 +27,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.calcite.schema.Table;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.JoinType;
@@ -38,6 +38,7 @@ import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
@@ -45,14 +46,15 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.query.relnode.ColumnRowType;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.query.schema.OLAPTable;
@@ -67,31 +69,22 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+
 // match alias in query to alias in model
 // Not designed to reuse, re-new per query
 public class QueryAliasMatcher {
-    private final static Logger logger = LoggerFactory.getLogger(QueryAliasMatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(QueryAliasMatcher.class);
 
-    public final static ColumnRowType SUBQUERY_TAG = new ColumnRowType(null);
-
-
-    //    public String translateImplicitComputedColumns(DataModelDesc model, String sql) throws SqlParseException {
-    //        SqlNode parsed = CalciteParser.parse(sql);
-    //        SqlSelectFinder sqlSelectFinder = new SqlSelectFinder();
-    //        parsed.accept(sqlSelectFinder);
-    //        List<SqlSelect> selects = sqlSelectFinder.getSubqueries();
-    //        for (SqlSelect sqlSelect : selects) {
-    //            QueryAliasInfo queryAliasInfo = getAliasInfo(sqlSelect, model);
-    //        }
-    //
-    //        return null;
-    //    }
-
+    private static final ColumnRowType SUBQUERY_TAG = new ColumnRowType(null);
+    private static final String[] COLUMN_ARRAY_MARKER = new String[0];
 
     //capture all the join within a SqlSelect's from clause, won't go into any subquery
-    class SqlJoinCapturer extends SqlBasicVisitor<SqlNode> {
+    private class SqlJoinCapturer extends SqlBasicVisitor<SqlNode> {
         private List<JoinDesc> joinDescs;
-        private LinkedHashMap<String, ColumnRowType> queryAlias = Maps.newLinkedHashMap(); // aliasInQuery => ColumnRowType representing the alias table
+        private LinkedHashMap<String, ColumnRowType> alias2CRT = Maps.newLinkedHashMap(); // aliasInQuery => ColumnRowType representing the alias table
+
+        private boolean foundJoinOnCC = false;
 
         SqlJoinCapturer() {
             this.joinDescs = new ArrayList<>();
@@ -101,15 +94,15 @@ public class QueryAliasMatcher {
             return joinDescs;
         }
 
-        LinkedHashMap<String, ColumnRowType> getQueryAlias() {
-            return queryAlias;
+        LinkedHashMap<String, ColumnRowType> getAlias2CRT() {
+            return alias2CRT;
         }
 
         TableRef getFirstTable() {
-            if (queryAlias.size() == 0) {
-                throw new IllegalStateException("queryAlias map is empty");
+            if (alias2CRT.size() == 0) {
+                throw new IllegalStateException("alias2CRT is empty");
             }
-            ColumnRowType first = Iterables.getFirst(queryAlias.values(), null);
+            ColumnRowType first = Iterables.getFirst(alias2CRT.values(), null);
             Preconditions.checkNotNull(first);
             return first.getAllColumns().get(0).getTableRef();
         }
@@ -141,14 +134,14 @@ public class QueryAliasMatcher {
 
                         ColumnRowType columnRowType = buildColumnRowType(alias, schemaAndTable.getFirst(),
                                 schemaAndTable.getSecond());
-                        queryAlias.put(alias, columnRowType);
+                        alias2CRT.put(alias, columnRowType);
                     }
 
                     //subqeury as alias
                     if ((operands[0] instanceof SqlSelect) || (operands[0] instanceof SqlOrderBy) //
                             && operands[1] instanceof SqlIdentifier) {
                         String alias = operands[1].toString();
-                        queryAlias.put(alias, SUBQUERY_TAG);
+                        alias2CRT.put(alias, SUBQUERY_TAG);
                     }
                 }
 
@@ -168,24 +161,24 @@ public class QueryAliasMatcher {
             }
 
             //Note this part is after visiting all children, it's on purpose so that by the time the SqlJoin
-            //is handled, all of its related join tables must have been recorded in queryAlias
+            //is handled, all of its related join tables must have been recorded in alias2CRT
             if (call instanceof SqlJoin) {
                 SqlJoin join = (SqlJoin) call;
                 if (join.getConditionType() != JoinConditionType.ON) {
-                    throw new IllegalArgumentException("JoinConditionType is not ON");
+                    throw new IllegalArgumentException("JoinConditionType is not ON: " + join.toSqlString(SqlDialect.CALCITE));
                 }
                 if (join.getJoinType() != JoinType.INNER && join.getJoinType() != JoinType.LEFT) {
                     throw new IllegalArgumentException("JoinType must be INNER or LEFT");
                 }
 
                 if (join.getCondition() instanceof SqlBasicCall) {
-                    JoinConditionCapturer joinConditionCapturer = new JoinConditionCapturer(queryAlias,
+                    JoinConditionCapturer joinConditionCapturer = new JoinConditionCapturer(alias2CRT,
                             join.getJoinType().toString());
                     join.getCondition().accept(joinConditionCapturer);
                     JoinDesc joinDesc = joinConditionCapturer.getJoinDescs();
-                    if (joinDesc.getForeignKey().length != 0) {
+                    foundJoinOnCC = foundJoinOnCC || joinConditionCapturer.foundCC;
+                    if (joinDesc.getForeignKey().length != 0)
                         joinDescs.add(joinDesc);
-                    }
                 } else {
                     throw new IllegalArgumentException("join condition should be SqlBasicCall");
                 }
@@ -198,7 +191,7 @@ public class QueryAliasMatcher {
             Pair<String, String> schemaAndTable = getSchemaAndTable(id);
             ColumnRowType columnRowType = buildColumnRowType(schemaAndTable.getSecond(), schemaAndTable.getFirst(),
                     schemaAndTable.getSecond());
-            queryAlias.put(schemaAndTable.getSecond(), columnRowType);
+            alias2CRT.put(schemaAndTable.getSecond(), columnRowType);
 
             return null;
         }
@@ -217,8 +210,31 @@ public class QueryAliasMatcher {
             return new ColumnRowType(columns);
         }
 
+        private OLAPTable getTable(String schemaName, String tableName) {
+            Map<String, OLAPTable> localTables = schemaTables.get(schemaName);
+            if (localTables == null) {
+                OLAPSchema olapSchema = getSchema(schemaName);
+                localTables = Maps.newHashMap();
+                for (Map.Entry<String, Table> entry : olapSchema.getTableMap().entrySet()) {
+                    localTables.put(entry.getKey(), (OLAPTable) entry.getValue());
+                }
+                schemaTables.put(schemaName, localTables);
+            }
+            return localTables.get(tableName);
+        }
+
+        private OLAPSchema getSchema(String name) {
+            OLAPSchema olapSchema = schemaMap.get(name);
+            if (olapSchema == null) {
+                olapSchema = new OLAPSchema(project, name, true);
+                schemaMap.put(name, olapSchema);
+            }
+            return olapSchema;
+        }
+
         private Pair<String, String> getSchemaAndTable(SqlIdentifier tableIdentifier) {
-            String schemaName, tableName;
+            String schemaName;
+            String tableName;
             if (tableIdentifier.names.size() == 2) {
                 schemaName = tableIdentifier.names.get(0);
                 tableName = tableIdentifier.names.get(1);
@@ -232,16 +248,17 @@ public class QueryAliasMatcher {
         }
     }
 
-    class JoinConditionCapturer extends SqlBasicVisitor<SqlNode> {
-        private final String[] COLUMN_ARRAY_MARKER = new String[0];
-        private final LinkedHashMap<String, ColumnRowType> queryAlias;
+    private class JoinConditionCapturer extends SqlBasicVisitor<SqlNode> {
+        private final LinkedHashMap<String, ColumnRowType> alias2CRT;
         private final String joinType;
 
         private List<TblColRef> pks = Lists.newArrayList();
         private List<TblColRef> fks = Lists.newArrayList();
 
-        JoinConditionCapturer(LinkedHashMap<String, ColumnRowType> queryAlias, String joinType) {
-            this.queryAlias = queryAlias;
+        private boolean foundCC = false;
+
+        JoinConditionCapturer(LinkedHashMap<String, ColumnRowType> alias2CRT, String joinType) {
+            this.alias2CRT = alias2CRT;
             this.joinType = joinType;
         }
 
@@ -250,14 +267,14 @@ public class QueryAliasMatcher {
                 @Nullable
                 @Override
                 public String apply(@Nullable TblColRef input) {
-                    return input.getName();
+                    return input == null ? null : input.getName();
                 }
             });
             List<String> fkNames = Lists.transform(fks, new Function<TblColRef, String>() {
                 @Nullable
                 @Override
                 public String apply(@Nullable TblColRef input) {
-                    return input.getName();
+                    return input == null ? null : input.getName();
                 }
             });
 
@@ -276,6 +293,38 @@ public class QueryAliasMatcher {
             return null;
         }
 
+        private TblColRef resolveComputedColumnRef(SqlCall call, String... tableCandidates) {
+            foundCC = true;
+            String table = findComputedColumnTable(call, tableCandidates);
+            ColumnDesc columnDesc = new ColumnDesc("-1", UUID.randomUUID().toString(), "string", "", null, null,
+                    call.toSqlString(SqlDialect.CALCITE).getSql());
+            TableRef tableRef = alias2CRT.get(table).getColumnByIndex(0).getTableRef();
+            columnDesc.setTable(tableRef.getTableDesc());
+            return TblColRef.columnForUnknownModel(tableRef, columnDesc);
+        }
+
+        private String findComputedColumnTable(SqlCall call, final String... tableCandidates) {
+            final String[] result = new String[1];
+
+            SqlBasicVisitor<SqlNode> visitor = new SqlBasicVisitor<SqlNode>() {
+                @Override
+                public SqlNode visit(SqlIdentifier sqlIdentifier) {
+                    TblColRef colRef = resolveTblColRef(sqlIdentifier, alias2CRT);
+                    for (String table : tableCandidates) {
+                        if (alias2CRT.get(table).getAllColumns().contains(colRef)) {
+                            result[0] = table;
+                            return sqlIdentifier;
+                        }
+                    }
+                    return null;
+                }
+            };
+            visitor.visit(call);
+
+            Preconditions.checkNotNull(result[0], "Table not found for SqlCall: " + call.toString());
+            return result[0];
+        }
+
         @Override
         public SqlNode visit(SqlCall call) {
             if ((call instanceof SqlBasicCall) && (call.getOperator() instanceof SqlBinaryOperator)) {
@@ -286,26 +335,34 @@ public class QueryAliasMatcher {
                         }
                     }
                     return null;
+                } else if (call.getOperator().getKind() == SqlKind.EQUALS && call.getOperandList().size() == 2) {
+                    SqlNode operand0 = call.getOperandList().get(0);
+                    SqlNode operand1 = call.getOperandList().get(1);
 
-                } else if (call.getOperator().getKind() == SqlKind.EQUALS) {
-                    if (call.getOperandList().size() == 2 && call.getOperandList().get(0) instanceof SqlIdentifier
-                            && call.getOperandList().get(1) instanceof SqlIdentifier) {
+                    if ((operand0 instanceof SqlIdentifier || operand0 instanceof SqlCall)
+                            && (operand1 instanceof SqlIdentifier || operand1 instanceof SqlCall)) {
+                        int numOfAlias = alias2CRT.size();
+                        String pkAlias = Iterables.getLast(alias2CRT.keySet());
+                        String fkAlias = Iterables.get(alias2CRT.keySet(), numOfAlias - 2);
 
-                        TblColRef tblColRef0 = QueryAliasMatchInfo
-                                .resolveTblColRef((SqlIdentifier) call.getOperandList().get(0), queryAlias);
-                        TblColRef tblColRef1 = QueryAliasMatchInfo
-                                .resolveTblColRef((SqlIdentifier) call.getOperandList().get(1), queryAlias);
+                        // sqlCall maybe used as join condition, which need to
+                        // translate as CC
+                        TblColRef tblColRef0 = operand0 instanceof SqlIdentifier
+                                ? resolveTblColRef((SqlIdentifier) operand0, alias2CRT)
+                                : resolveComputedColumnRef((SqlCall) operand0, pkAlias, fkAlias);
+                        TblColRef tblColRef1 = operand1 instanceof SqlIdentifier
+                                ? resolveTblColRef((SqlIdentifier) operand1, alias2CRT)
+                                : resolveComputedColumnRef((SqlCall) operand1, pkAlias, fkAlias);
 
                         if (tblColRef0 == null || tblColRef1 == null) {
                             return null;
                         }
 
-                        String last = Iterables.getLast(queryAlias.keySet());
-                        if (tblColRef1.getTableRef().getAlias().equals(last)) {
-                            //for most cases
+                        if (tblColRef1.getTableRef().getAlias().equals(pkAlias)) {
+                            // for most cases
                             pks.add(tblColRef1);
                             fks.add(tblColRef0);
-                        } else if (tblColRef0.getTableRef().getAlias().equals(last)) {
+                        } else if (tblColRef0.getTableRef().getAlias().equals(pkAlias)) {
                             pks.add(tblColRef0);
                             fks.add(tblColRef1);
                         }
@@ -314,9 +371,42 @@ public class QueryAliasMatcher {
                 }
             }
 
-            throw new IllegalStateException("Join condition is illegal");
+            throw new IllegalStateException("Join condition is illegal: " + call.toSqlString(SqlDialect.CALCITE));
         }
 
+    }
+
+    private static class CCJoinDescMatcher extends JoinsTree.DefaultJoinDescMatcher {
+        QueryAliasMatchInfo matchInfo;
+        boolean compareCCExpr;
+
+        public CCJoinDescMatcher(QueryAliasMatchInfo matchInfo, boolean compareCCExpr) {
+            this.matchInfo = matchInfo;
+            this.compareCCExpr = compareCCExpr;
+        }
+
+        @Override
+        protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {
+            if (a == null) {
+                return b == null;
+            } else if (b == null) {
+                return false;
+            }
+
+            if (!a.isComputedColumn() && !b.isComputedColumn()) {
+                return super.columnDescEquals(a, b);
+            } else if ((a.isComputedColumn() && !b.isComputedColumn())
+                    || (!a.isComputedColumn() && b.isComputedColumn())) {
+                return false;
+            } else {
+                if (!compareCCExpr)
+                    return true;
+
+                SqlNode node1 = CalciteParser.getExpNode(a.getComputedColumnExpr());
+                SqlNode node2 = CalciteParser.getExpNode(b.getComputedColumnExpr());
+                return ExpressionComparator.isNodeEqual(node1, node2, matchInfo, new AliasDeduceImpl(matchInfo));
+            }
+        }
     }
 
     private String project;
@@ -329,19 +419,7 @@ public class QueryAliasMatcher {
         this.defaultSchema = defaultSchema;
     }
 
-    //    public String translateImplicitComputedColumns(DataModelDesc model, String sql) throws SqlParseException {
-    //        SqlNode parsed = CalciteParser.parse(sql);
-    //        SqlSelectFinder sqlSelectFinder = new SqlSelectFinder();
-    //        parsed.accept(sqlSelectFinder);
-    //        List<SqlSelect> selects = sqlSelectFinder.getSubqueries();
-    //        for (SqlSelect sqlSelect : selects) {
-    //            QueryAliasInfo queryAliasInfo = getAliasInfo(sqlSelect, model);
-    //        }
-    //
-    //        return null;
-    //    }
-
-    public QueryAliasMatchInfo match(NDataModel model, SqlSelect sqlSelect) throws SqlParseException {
+    public QueryAliasMatchInfo match(NDataModel model, SqlSelect sqlSelect) {
         if (sqlSelect.getFrom() == null || sqlSelect.getFrom().getKind().equals(SqlKind.VALUES)) {
             return null;
         }
@@ -368,11 +446,30 @@ public class QueryAliasMatcher {
             sqlSelect.getFrom().accept(sqlJoinCapturer);
         }
 
-        LinkedHashMap<String, ColumnRowType> queryAlias = sqlJoinCapturer.getQueryAlias();
+        LinkedHashMap<String, ColumnRowType> queryAlias = sqlJoinCapturer.getAlias2CRT();
 
         List<JoinDesc> joinDescs = sqlJoinCapturer.getJoinDescs();
         TableRef firstTable = sqlJoinCapturer.getFirstTable();
         JoinsTree joinsTree = new JoinsTree(firstTable, joinDescs);
+
+        if (sqlJoinCapturer.foundJoinOnCC) {
+            // 1st round: dry run without cc expr comparison to collect model alias matching
+            joinsTree.setJoinDescMatcher(new CCJoinDescMatcher(null, false));
+
+            Map<String, String> matches = joinsTree.matches(model.getJoinsTree());
+            if (matches == null || matches.isEmpty()) {
+                return null;
+            }
+
+            BiMap<String, String> aliasMapping = HashBiMap.create();
+            aliasMapping.putAll(matches);
+
+            QueryAliasMatchInfo ccAliasMatch = new QueryAliasMatchInfo(aliasMapping, queryAlias);
+
+            // 2nd round: real run with cc expr comparison
+            joinsTree.setJoinDescMatcher(new CCJoinDescMatcher(ccAliasMatch, true));
+        }
+
         Map<String, String> matches = joinsTree.matches(model.getJoinsTree());
         if (matches == null || matches.isEmpty()) {
             return null;
@@ -395,26 +492,56 @@ public class QueryAliasMatcher {
         return null;
     }
 
-    private OLAPSchema getSchema(String name) {
-        OLAPSchema olapSchema = schemaMap.get(name);
-        if (olapSchema == null) {
-            olapSchema = new OLAPSchema(project, name, true);
-            schemaMap.put(name, olapSchema);
+    /**
+     * only return null if it's a column on subquery
+     */
+    static TblColRef resolveTblColRef(SqlIdentifier sqlIdentifier, LinkedHashMap<String, ColumnRowType> alias2CRT) {
+        TblColRef ret = null;
+        if (sqlIdentifier.names.size() == 2) {
+            //alias.col
+            String alias = sqlIdentifier.names.get(0);
+            String col = sqlIdentifier.names.get(1);
+            ColumnRowType columnRowType = alias2CRT.get(alias);
+
+            if (columnRowType == null) {
+                throw new IllegalStateException("Alias " + alias + " is not defined");
+            }
+
+            if (columnRowType == QueryAliasMatcher.SUBQUERY_TAG) {
+                return null;
+            }
+
+            ret = columnRowType.getColumnByName(col);
+        } else if (sqlIdentifier.names.size() == 1) {
+            //only col
+            String col = sqlIdentifier.names.get(0);
+            ret = resolveTblColRef(alias2CRT, col);
         }
-        return olapSchema;
+
+        if (ret == null) {
+            throw new IllegalStateException(
+                    "The join condition column " + sqlIdentifier.toString() + " cannot be resolved");
+        }
+        return ret;
     }
 
-    private OLAPTable getTable(String schemaName, String tableName) {
-        Map<String, OLAPTable> localTables = schemaTables.get(schemaName);
-        if (localTables == null) {
-            OLAPSchema olapSchema = getSchema(schemaName);
-            localTables = Maps.newHashMap();
-            for (Map.Entry<String, Table> entry : olapSchema.getTableMap().entrySet()) {
-                localTables.put(entry.getKey(), (OLAPTable) entry.getValue());
+    static TblColRef resolveTblColRef(LinkedHashMap<String, ColumnRowType> alias2CRT, String col) {
+
+        List<String> potentialAlias = Lists.newArrayList();
+        for (Map.Entry<String, ColumnRowType> entry : alias2CRT.entrySet()) {
+            if (entry.getValue() != QueryAliasMatcher.SUBQUERY_TAG && entry.getValue().getColumnByName(col) != null) {
+                potentialAlias.add(entry.getKey());
             }
-            schemaTables.put(schemaName, localTables);
         }
-        return localTables.get(tableName);
+        if (potentialAlias.size() == 1) {
+            ColumnRowType columnRowType = alias2CRT.get(potentialAlias.get(0));
+            return columnRowType.getColumnByName(col);
+        } else if (potentialAlias.size() > 1) {
+            throw new IllegalStateException(
+                    "The column " + col + " is found on multiple alias: " + StringUtils.join(potentialAlias, ","));
+        } else {
+            throw new IllegalStateException("The column " + col + " can't be found");
+        }
     }
 
 }

@@ -63,7 +63,7 @@ public class HBaseMetadataTestCase extends AbstractKylinTestCase {
     }
 
     @Override
-    public void createTestMetadata() throws Exception {
+    public void createTestMetadata(String... overlayMetadataDirs) throws Exception {
         staticCreateTestMetadata();
     }
 
@@ -83,6 +83,10 @@ public class HBaseMetadataTestCase extends AbstractKylinTestCase {
         if (System.getProperty(KylinConfig.KYLIN_CONF) == null && System.getenv(KylinConfig.KYLIN_CONF) == null)
             System.setProperty(KylinConfig.KYLIN_CONF, kylinConfigFolder);
 
+    }
+
+    public static void staticCleanupTestMetadata() {
+        clearTestConfig();
     }
 
 }

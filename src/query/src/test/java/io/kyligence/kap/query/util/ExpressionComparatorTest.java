@@ -52,10 +52,10 @@ public class ExpressionComparatorTest {
 
         BiMap<String, String> aliasMapping = HashBiMap.create();
         aliasMapping.put("A", "A");
-        QueryAliasMatchInfo queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, null);
+        QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, null);
 
-        assertEquals(true, ExpressionComparator.isNodeEqual(sn0, sn1, queryAliasMatchInfo));
-        assertEquals(false, ExpressionComparator.isNodeEqual(sn0, sn3, queryAliasMatchInfo));
+        assertEquals(true, ExpressionComparator.isNodeEqual(sn0, sn1, matchInfo, IAliasDeduce.NO_OP));
+        assertEquals(false, ExpressionComparator.isNodeEqual(sn0, sn3, matchInfo, IAliasDeduce.NO_OP));
 
     }
 
@@ -84,8 +84,8 @@ public class ExpressionComparatorTest {
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("B", columnRowType);
 
-            QueryAliasMatchInfo queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
-            assertEquals(true, ExpressionComparator.isNodeEqual(sn1, sn0, queryAliasMatchInfo));
+            QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
+            assertEquals(true, ExpressionComparator.isNodeEqual(sn1, sn0, matchInfo, IAliasDeduce.NO_OP));
         }
 
         // when query not using alias
@@ -101,8 +101,8 @@ public class ExpressionComparatorTest {
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("T", columnRowType);
 
-            QueryAliasMatchInfo queryAliasMatchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
-            assertEquals(true, ExpressionComparator.isNodeEqual(sn2, sn0, queryAliasMatchInfo));
+            QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
+            assertEquals(true, ExpressionComparator.isNodeEqual(sn2, sn0, matchInfo, new AliasDeduceImpl(matchInfo)));
         }
 
     }

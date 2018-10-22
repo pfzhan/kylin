@@ -24,19 +24,19 @@
 
 package io.kyligence.kap.metadata.acl;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.apache.kylin.common.KylinConfig;
+import java.io.IOException;
+import java.util.Set;
+
 import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Set;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class NColumnACLManagerTest extends NLocalFileMetadataTestCase {
 
@@ -81,9 +81,5 @@ public class NColumnACLManagerTest extends NLocalFileMetadataTestCase {
 
         final ColumnACL actual = manager.getColumnACLByCache(PROJECT);
         Assert.assertTrue(actual.contains(USER_NAME, MetadataConstants.TYPE_USER));
-    }
-
-    private ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 }

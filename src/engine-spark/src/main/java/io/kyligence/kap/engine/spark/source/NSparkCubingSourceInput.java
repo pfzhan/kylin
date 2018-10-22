@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
+import java.util.List;
+
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
@@ -30,6 +32,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
@@ -37,10 +40,13 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
     @Override
     public Dataset<Row> getSourceData(TableDesc table, SparkSession ss) {
         ColumnDesc[] columnDescs = table.getColumns();
-        String[] colNames = new String[columnDescs.length];
-        for (int i = 0; i < columnDescs.length; i++) {
-            colNames[i] = columnDescs[i].getName();
+        List<String> tblColNames = Lists.newArrayListWithCapacity(columnDescs.length);
+        for (ColumnDesc columnDesc : columnDescs) {
+            if (!columnDesc.isComputedColumn()) {
+                tblColNames.add(columnDesc.getName());
+            }
         }
+        String[] colNames = tblColNames.toArray(new String[0]);
         String colString = Joiner.on(",").join(colNames);
         String sql = String.format("select %s from %s", colString, table.getIdentity());
         return ss.sql(sql).toDF(colNames);

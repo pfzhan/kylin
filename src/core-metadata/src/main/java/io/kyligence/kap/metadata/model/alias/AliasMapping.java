@@ -21,25 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.query.util;
-
-import java.util.LinkedHashMap;
-
-import org.apache.kylin.query.relnode.ColumnRowType;
+package io.kyligence.kap.metadata.model.alias;
 
 import com.google.common.collect.BiMap;
 
-public class QueryAliasMatchInfo extends AliasMapping {
-    // each alias's ColumnRowType
-    private LinkedHashMap<String, ColumnRowType> alias2CRT;
+public class AliasMapping {
 
-    QueryAliasMatchInfo(BiMap<String, String> aliasMapping, LinkedHashMap<String, ColumnRowType> alias2CRT) {
-        super(aliasMapping);
-        this.alias2CRT = alias2CRT;
+    private BiMap<String, String> aliasMapping;
+
+    public AliasMapping(BiMap<String, String> aliasMapping) {
+        this.aliasMapping = aliasMapping;
     }
 
-    LinkedHashMap<String, ColumnRowType> getAlias2CRT() {
-        return alias2CRT;
+    public BiMap<String, String> getAliasMapping() {
+        return aliasMapping;
     }
-
 }

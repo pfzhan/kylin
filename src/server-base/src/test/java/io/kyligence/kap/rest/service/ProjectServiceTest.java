@@ -90,7 +90,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Test

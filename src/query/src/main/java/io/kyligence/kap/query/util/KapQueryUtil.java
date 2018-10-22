@@ -25,40 +25,53 @@
 package io.kyligence.kap.query.util;
 
 import java.util.List;
+import java.util.Map;
 
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.query.util.QueryUtil.IQueryTransformer;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import io.kyligence.kap.query.security.HackSelectStarWithColumnACL;
-import io.kyligence.kap.query.security.RowFilter;
+import io.kyligence.kap.metadata.model.NDataModel;
 
 public class KapQueryUtil {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(KapQueryUtil.class);
 
-    private static List<IQueryTransformer> queryTransformers;
+    private static List<IPushDownConverter> queryTransformers;
+    
+    public static String massageComputedColumn(String origin, String project, String defaultSchema, NDataModel model) {
+        String transformed = origin;
+        try {
+            // massage nested CC for drafted model
+            Map<String, NDataModel> modelMap = Maps.newHashMap();
+            modelMap.put(model.getName(), model);
+            transformed = RestoreFromComputedColumn.convertWithGivenModels(transformed, project, defaultSchema,
+                    modelMap);
+        } catch (Exception e) {
+            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", origin, model.getName(), e);
+            return origin;
+        }
+        return massageComputedColumn(transformed, project, defaultSchema);
+    }
 
-    public static String massageComputedColumn(String ccExpr, String project, String defaultSchema) {
-        String transformedCC = ccExpr;
+    public static String massageComputedColumn(String origin, String project, String defaultSchema) {
+        String transformed = origin;
 
         if (queryTransformers == null) {
             queryTransformers = Lists.newArrayList();
-            String[] classes = KylinConfig.getInstanceFromEnv().getQueryTransformers();
+            String[] classes = KylinConfig.getInstanceFromEnv().getPushDownConverterClassNames();
             for (String clz : classes) {
                 try {
-                    IQueryTransformer t = (IQueryTransformer) ClassUtil.newInstance(clz);
-                    if (
-                            //t instanceof ConvertToComputedColumn ||
-                            t instanceof RowFilter ||
-                            t instanceof HackSelectStarWithColumnACL) {
-                        continue;
-                    }
-                    if (t instanceof EscapeTransformer) {
+                    IPushDownConverter t = (IPushDownConverter) ClassUtil.newInstance(clz);
+                    if (t instanceof SparkSQLFunctionConverter) {
                         // TODO adjust dialect by data types
                         ((EscapeTransformer) t).setFunctionDialect(EscapeDialect.HIVE);
                     }
@@ -70,14 +83,29 @@ public class KapQueryUtil {
         }
 
         try {
-            for (IQueryTransformer t : queryTransformers) {
-                transformedCC = t.transform(transformedCC, project, defaultSchema);
+            for (IPushDownConverter t : queryTransformers) {
+                transformed = t.convert(transformed, project, defaultSchema, false);
             }
         } catch (Exception e) {
-            LOGGER.warn("Failed to massage computed column expression {}", ccExpr, e);
-            return ccExpr;
+            LOGGER.warn("Failed to massage SQL expression [{}] with pushdown converters", origin, e);
+            return origin;
         }
 
-        return transformedCC;
+        return transformed;
+    }
+    
+    public static SqlSelect extractSqlSelect(SqlCall selectOrOrderby) {
+        SqlSelect sqlSelect = null;
+
+        if (selectOrOrderby instanceof SqlSelect) {
+            sqlSelect = (SqlSelect) selectOrOrderby;
+        } else if (selectOrOrderby instanceof SqlOrderBy) {
+            SqlOrderBy sqlOrderBy = ((SqlOrderBy) selectOrOrderby);
+            if (sqlOrderBy.query instanceof SqlSelect) {
+                sqlSelect = (SqlSelect) sqlOrderBy.query;
+            }
+        }
+        
+        return sqlSelect;
     }
 }

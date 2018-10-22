@@ -119,7 +119,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Test

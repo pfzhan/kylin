@@ -103,7 +103,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Test

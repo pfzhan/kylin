@@ -31,15 +31,15 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
+ * 
  *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * 
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */
+*/
 
 package org.apache.kylin.metadata.model;
 
@@ -49,14 +49,18 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class JoinsTree implements Serializable {
     private static final long serialVersionUID = 1L;
+    private static final IJoinDescMatcher DEFAULT_JOINDESC_MATCHER = new DefaultJoinDescMatcher();
 
-    public final Map<String, Chain> tableChains = new LinkedHashMap<>();
+    private Map<String, Chain> tableChains = new LinkedHashMap<>();
+    private IJoinDescMatcher joinDescMatcher = DEFAULT_JOINDESC_MATCHER;
 
     public JoinsTree(TableRef rootTable, List<JoinDesc> joins) {
         for (JoinDesc join : joins) {
@@ -74,6 +78,10 @@ public class JoinsTree implements Serializable {
         }
     }
 
+    public JoinsTree(Map<String, Chain> tableChains) {
+        this.tableChains = tableChains;
+    }
+
     public Map<String, String> matches(JoinsTree another) {
         return matches(another, Collections.<String, String> emptyMap());
     }
@@ -82,7 +90,7 @@ public class JoinsTree implements Serializable {
         Map<String, String> matchUp = new HashMap<>();
 
         for (Chain chain : tableChains.values()) {
-            if (matchInTree(chain, another, constraints, matchUp) == false)
+            if (!matchInTree(chain, another, constraints, matchUp))
                 return null;
         }
 
@@ -125,7 +133,7 @@ public class JoinsTree implements Serializable {
         String curMatch = matchUp.get(thisAlias);
         if (curMatch != null)
             return curMatch.equals(anotherAlias);
-        if (curMatch == null && matchUp.values().contains(anotherAlias))
+        if (matchUp.values().contains(anotherAlias))
             return false;
 
         boolean matches = false;
@@ -133,7 +141,8 @@ public class JoinsTree implements Serializable {
             matches = anotherChain.join == null
                     && chain.table.getTableDesc().getIdentity().equals(anotherChain.table.getTableDesc().getIdentity());
         } else {
-            matches = chain.join.matches(anotherChain.join) && matchChain(chain.fkSide, anotherChain.fkSide, matchUp);
+            matches = joinDescMatcher.matches(chain.join, anotherChain.join)
+                    && matchChain(chain.fkSide, anotherChain.fkSide, matchUp);
         }
 
         if (matches) {
@@ -154,7 +163,7 @@ public class JoinsTree implements Serializable {
         Map<String, String> matchUp = new HashMap<>();
         List<Chain> unmatchedChainList = Lists.newArrayList();
         for (Chain chain : tableChains.values()) {
-            if (matchInTree(chain, another, constraints, matchUp) == false)
+            if (!matchInTree(chain, another, constraints, matchUp))
                 unmatchedChainList.add(chain);
         }
 
@@ -165,11 +174,31 @@ public class JoinsTree implements Serializable {
         return tableChains;
     }
 
+    public void setJoinDescMatcher(IJoinDescMatcher joinDescMatcher) {
+        this.joinDescMatcher = joinDescMatcher;
+    }
+
+    public JoinsTree getSubgraphByAlias(Set<String> aliases) {
+        Map<String, Chain> subgraph = Maps.newHashMap();
+        for (String alias : aliases) {
+            Chain chain = tableChains.get(alias);
+            if (chain == null)
+                throw new IllegalArgumentException("Table with alias " + alias + " is not found");
+
+            while (chain.getFkSide() != null) {
+                subgraph.put(chain.table.getAlias(), chain);
+                chain = chain.getFkSide();
+            }
+            subgraph.put(chain.table.getAlias(), chain);
+        }
+        return new JoinsTree(subgraph);
+    }
+
     public static class Chain implements Serializable {
         private static final long serialVersionUID = 1L;
 
         TableRef table; // pk side
-        public JoinDesc join;
+        JoinDesc join;
         Chain fkSide;
 
         public Chain(TableRef table, JoinDesc join, Chain fkSide) {
@@ -195,4 +224,41 @@ public class JoinsTree implements Serializable {
         }
     }
 
+    public static interface IJoinDescMatcher extends Serializable {
+        boolean matches(JoinDesc join1, JoinDesc join2);
+    }
+
+    public static class DefaultJoinDescMatcher implements IJoinDescMatcher {
+        @Override
+        public boolean matches(JoinDesc join1, JoinDesc join2) {
+            if (join1 == null) {
+                return join2 == null;
+            } else if (join2 == null) {
+                return false;
+            } else {
+
+                if (!join1.getType().equalsIgnoreCase(join2.getType()))
+                    return false;
+
+                // note pk/fk are sorted, sortByFK()
+                return this.columnDescEquals(join1.getForeignKeyColumns(), join2.getForeignKeyColumns())
+                    && this.columnDescEquals(join1.getPrimaryKeyColumns(), join2.getPrimaryKeyColumns());
+            }
+        }
+
+        private boolean columnDescEquals(TblColRef[] a, TblColRef[] b) {
+            if (a.length != b.length)
+                return false;
+
+            for (int i = 0; i < a.length; i++) {
+                if (!columnDescEquals(a[i].getColumnDesc(), b[i].getColumnDesc()))
+                    return false;
+            }
+            return true;
+        }
+
+        protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {
+            return a == null ? b == null : a.equals(b);
+        }
+    }
 }

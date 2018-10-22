@@ -26,9 +26,13 @@ package io.kyligence.kap.query.util;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.calcite.sql.SqlAsOperator;
+import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
@@ -65,8 +69,13 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
                 operand.accept(this);
             }
         }
-        if (call instanceof SqlSelect) {
-            sqlSelectsOrOrderbys.add(call);
+        if (call instanceof SqlSelect && ((SqlSelect) call).getFrom() != null) {
+            SqlSelect select = (SqlSelect) call;
+            RootTableValidator validator = new RootTableValidator();
+            select.getFrom().accept(validator);
+            if (validator.hasRoot) {
+                sqlSelectsOrOrderbys.add(call);
+            }
         }
 
         if (call.getKind().equals(SqlKind.UNION)) {
@@ -79,9 +88,38 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
             if (query instanceof SqlWith) {
                 query = ((SqlWith) query).body;
             }
-            Preconditions.checkState(query == sqlCall);
-            sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
+            RootTableValidator validator = new RootTableValidator();
+            ((SqlSelect) query).getFrom().accept(validator);
+            if (validator.hasRoot) {
+                Preconditions.checkState(query == sqlCall);
+                sqlSelectsOrOrderbys.set(sqlSelectsOrOrderbys.size() - 1, call);
+            }
         }
         return null;
+    }
+
+    private class RootTableValidator extends SqlBasicVisitor<SqlNode> {
+
+        private boolean hasRoot = true;
+
+        @Override
+        public SqlNode visit(SqlCall call) {
+            if (call instanceof SqlSelect) {
+                SqlNodeList list = ((SqlSelect) call).getSelectList();
+                hasRoot = list.get(0).toString().equals("*");
+            } else if (call instanceof SqlJoin) {
+                ((SqlJoin) call).getLeft().accept(this);
+            } else if (call instanceof SqlBasicCall && call.getOperator() instanceof SqlAsOperator) {
+                call.getOperandList().get(0).accept(this);
+            } else {
+                for (SqlNode operand : call.getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
+                }
+            }
+
+            return null;
+        }
     }
 }

@@ -50,7 +50,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        cleanAfterClass();
+        cleanupTestMetadata();
     }
 
     @Test

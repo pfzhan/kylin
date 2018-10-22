@@ -51,6 +51,8 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -134,11 +136,13 @@ public class CsvSource implements ISource {
                     String path = new File(getUtMetaDir(), "data/" + table.getIdentity() + ".csv").getAbsolutePath();
 
                     ColumnDesc[] columnDescs = table.getColumns();
-                    String[] colNames = new String[columnDescs.length];
-                    for (int i = 0; i < columnDescs.length; i++) {
-                        colNames[i] = columnDescs[i].getName();
+                    List<String> tblColNames = Lists.newArrayListWithCapacity(columnDescs.length);
+                    for (ColumnDesc columnDesc : columnDescs) {
+                        if (!columnDesc.isComputedColumn()) {
+                            tblColNames.add(columnDesc.getName());
+                        }
                     }
-                    return ss.read().csv(path).toDF(colNames);
+                    return ss.read().csv(path).toDF(tblColNames.toArray(new String[0])).toDF();
                 }
             };
         }

@@ -56,6 +56,10 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.ArrayUtils;
@@ -79,6 +83,7 @@ import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.util.JoinsGraph;
 import org.slf4j.Logger;
@@ -91,7 +96,9 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.collect.BiMap;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Iterables;
@@ -100,6 +107,10 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.model.alias.AliasMapping;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.alias.IAliasDeduce;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.EqualsAndHashCode;
 
@@ -573,7 +584,7 @@ public class NDataModel extends RootPersistentEntity {
             alias = alias.toUpperCase();
             join.setAlias(alias);
 
-            TableRef ref = new TableRef(this, alias, tableDesc, true);
+            TableRef ref = new TableRef(this, alias, tableDesc, false);
 
             join.setTableRef(ref);
             addAlias(ref);
@@ -796,8 +807,8 @@ public class NDataModel extends RootPersistentEntity {
 
         // validate PK/FK are in dimensions
         boolean pkfkDimAmended = false;
-        for (Chain chain : joinsTree.tableChains.values()) {
-            pkfkDimAmended = validatePkFkDim(chain.join, mcols) || pkfkDimAmended;
+        for (Chain chain : joinsTree.getTableChains().values()) {
+            pkfkDimAmended = validatePkFkDim(chain.getJoin(), mcols) || pkfkDimAmended;
         }
         return pkfkDimAmended;
     }
@@ -994,6 +1005,9 @@ public class NDataModel extends RootPersistentEntity {
     private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
     private TblColRef[] mpCols;
 
+    // when set true, cc expression will allow null value
+    private boolean isSeekingCCAdvice = false;
+
     // don't use unless you're sure(when in doubt, leave it out), for jackson only
     public NDataModel() {
         super();
@@ -1187,12 +1201,80 @@ public class NDataModel extends RootPersistentEntity {
     private void initComputedColumns(List<NDataModel> otherModels) {
         Preconditions.checkNotNull(otherModels);
 
-        List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
+        // init
+        for (ComputedColumnDesc newCC : this.computedColumnDescs) {
+            newCC.init(this, getRootFactTable().getAlias());
+        }
 
+        if (!"true".equals(System.getProperty("needCheckCC"))) {
+            return;
+        }
+
+        for (ComputedColumnDesc newCC : this.computedColumnDescs) {
+            Set<String> usedAliasSet = getUsedAliasSet(newCC.getExpression());
+
+            if (!this.isSeekingCCAdvice() //if is seeking for advice, expr will be null
+                    && !usedAliasSet.contains(newCC.getTableAlias())
+                    && !newCC.getTableAlias().equals(getRootFactTable().getAlias())) {
+                throw new BadModelException(
+                        "A computed column should be defined on root fact table if its expression is not referring its hosting alias table, cc: "
+                                + newCC.getFullName(),
+                        BadModelException.CauseType.LOOKUP_CC_NOT_REFERENCING_ITSELF, null, null,
+                        newCC.getFullName());
+            }
+        }
+        checkCCExprHealth();
+        selfCCConflictCheck();
+        crossCCConflictCheck(otherModels);
+    }
+
+    private void checkCCExprHealth() {
+        for (ComputedColumnDesc ccDesc : computedColumnDescs) {
+            Set<String> ccUsedCols = ComputedColumnUtil.getCCUsedColsWithModel(this, ccDesc);
+            for (String tblCol : ccUsedCols) {
+                String table = tblCol.substring(0, tblCol.lastIndexOf("."));
+                String column = tblCol.substring(tblCol.lastIndexOf(".") + 1);
+                TableRef tableRef = this.findFirstTable(table);
+                TblColRef col = tableRef.getColumn(column);
+                if (col == null) {
+                    throw new IllegalArgumentException(
+                            "Computed Column " + ccDesc.getColumnName() + " use incorrect column");
+                }
+            }
+        }
+    }
+
+    private void selfCCConflictCheck() {
+        int ccCount = this.computedColumnDescs.size();
+        for (int i = 1; i < ccCount; i++) {
+            for (int j = 0; j < i; j++) {
+                ComputedColumnDesc a = this.computedColumnDescs.get(i);
+                ComputedColumnDesc b = this.computedColumnDescs.get(j);
+                // self check, two cc cannot define same cc column name, even if it's on different alias table
+                if (StringUtils.equalsIgnoreCase(a.getColumnName(), b.getColumnName())) {
+                    throw new BadModelException(
+                            "In current model, at least two computed columns share the same column name: "
+                                    + a.getColumnName() + ", please use different column name",
+                            BadModelException.CauseType.SELF_CONFLICT, null, null, a.getFullName());
+                }
+                // self check, two cc cannot define same expression
+                if (isLiteralSameCCExpr(a, b)) {
+                    throw new BadModelException("In current model, computed column " + a.getFullName()
+                            + " share same expression as " + b.getFullName() + ", please remove one",
+                            BadModelException.CauseType.SELF_CONFLICT, null, null, a.getFullName());
+                }
+            }
+        }
+    }
+
+    // check duplication with other models:
+    private void crossCCConflictCheck(List<NDataModel> otherModels) {
+
+        List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
         for (NDataModel dataModelDesc : otherModels) {
             if (dataModelDesc instanceof NDataModel) {
-                NDataModel otherModel = (NDataModel) dataModelDesc;
-                if (!StringUtils.equals(otherModel.getName(), this.getName())) {
+                NDataModel otherModel = dataModelDesc;
+                if (!StringUtils.equals(otherModel.getName(), this.getName())) { // when update, self is already in otherModels
                     for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
                         existingCCs.add(Pair.newPair(cc, otherModel));
                     }
@@ -1201,31 +1283,212 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         for (ComputedColumnDesc newCC : this.computedColumnDescs) {
-
-            newCC.init(getAliasMap(), getRootFactTable().getAlias());
-            final String newCCFullName = newCC.getFullName();
             final String newCCColumnName = newCC.getColumnName();
 
             for (Pair<ComputedColumnDesc, NDataModel> pair : existingCCs) {
-                NDataModel dataModelDesc = pair.getSecond();
-                ComputedColumnDesc cc = pair.getFirst();
+                NDataModel existingModel = pair.getSecond();
+                ComputedColumnDesc existingCC = pair.getFirst();
 
-                if (StringUtils.equalsIgnoreCase(cc.getFullName(), newCCFullName) && !(cc.equals(newCC))) {
-                    throw new IllegalArgumentException(String.format(
-                            "Column name for computed column %s is already used in model %s, you should apply the same expression ' %s ' here, or use a different column name.",
-                            newCCFullName, dataModelDesc.getName(), cc.getExpression()));
+                AliasMapping aliasMapping = null;
+                JoinsTree joinsTree = getCCExprRelatedSubgraph(newCC, this);
+                Map<String, String> matches = joinsTree.matches(existingModel.getJoinsTree());
+                if (matches != null && !matches.isEmpty()) {
+                    BiMap<String, String> biMap = HashBiMap.create();
+                    biMap.putAll(matches);
+                    aliasMapping = new AliasMapping(biMap);
                 }
 
-                if (isTwoCCDefinitionEquals(cc.getExpression(), newCC.getExpression())
-                        && !StringUtils.equalsIgnoreCase(cc.getColumnName(), newCCColumnName)) {
-                    throw new IllegalArgumentException(String.format(
-                            "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
-                            newCC.getExpression(), newCCFullName, cc.getFullName(), dataModelDesc.getName(),
-                            cc.getColumnName()));
+                AliasMapping positionAliasMapping = getPositionAliasMapping(existingModel, existingCC);
+
+                boolean sameName = StringUtils.equalsIgnoreCase(existingCC.getColumnName(), newCC.getColumnName());
+                boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
+
+                if (sameName) {
+                    if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
+                        String advice = makeAdviseOnWRONG_POSITION(existingModel, existingCC, positionAliasMapping);
+                        String msg = null;
+
+                        if (advice != null) {
+                            msg = String.format(
+                                    "Computed column %s is already defined in model %s, to reuse it you have to define it on alias table: %s",
+                                    newCC.getColumnName(), existingModel.getName(), advice);
+                        } else {
+                            msg = String.format(
+                                    "Computed column %s is already defined in model %s, no suggestion could be provided to reuse it",
+                                    newCC.getColumnName(), existingModel.getName());
+                        }
+
+                        throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME, advice,
+                                existingModel.getName(), newCC.getFullName());
+                    }
+
+                    if (!sameCCExpr) {
+                        String advisedExpr = makeAdviseOnSAME_NAME_DIFF_EXPR(existingModel, existingCC);
+
+                        String msg = String.format(
+                                "Column name for computed column %s is already used in model %s, you should apply the same expression %s here, or use a different computed column name.",
+                                newCC.getFullName(), existingModel.getName(),
+                                advisedExpr != null ? "as \' " + advisedExpr + " \'"
+                                        : "like \' " + existingCC.getExpression() + " \'");
+                        throw new BadModelException(msg, BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr,
+                                existingModel.getName(), newCC.getFullName());
+                    }
                 }
+
+                if (sameCCExpr) {
+                    if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
+                        String advice = makeAdviseOnWRONG_POSITION(existingModel, existingCC, positionAliasMapping);
+
+                        String msg = null;
+
+                        if (advice != null) {
+                            msg = String.format(
+                                    "Computed column %s's expression is already defined in model %s, to reuse it you have to define it on alias table: %s",
+                                    newCC.getColumnName(), existingModel.getName(), advice);
+                        } else {
+                            msg = String.format(
+                                    "Computed column %s's expression is already defined in model %s, no suggestion could be provided to reuse it",
+                                    newCC.getColumnName(), existingModel.getName());
+                        }
+
+                        throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR, advice,
+                                existingModel.getName(), newCC.getFullName());
+                    }
+
+                    if (!sameName) {
+                        String adviseName = existingCC.getColumnName();
+                        String msg = String.format(
+                                "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
+                                newCC.getExpression(), newCC.getFullName(),
+                                existingCC.getFullName(), existingModel.getName(),
+                                existingCC.getColumnName());
+                        throw new BadModelException(msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
+                                existingModel.getName(), newCC.getFullName());
+                    }
+                }
+
             }
-            existingCCs.add(Pair.newPair(newCC, this));
         }
+    }
+
+    private String makeAdviseOnSAME_NAME_DIFF_EXPR(NDataModel existingModel, ComputedColumnDesc existingCC) {
+        AliasMapping aliasMapping2 = getAdviceAliasMapping(existingModel, existingCC);
+
+        return aliasMapping2 == null ? null
+                : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping2.getAliasMapping());
+    }
+
+    //adviceAliasMapping is computed to give a better advise
+    private AliasMapping getAdviceAliasMapping(NDataModel existingModel, ComputedColumnDesc existingCC) {
+        JoinsTree joinsTree = getCCExprRelatedSubgraph(existingCC, existingModel);
+        return getAliasMappingFromJoinTree(joinsTree);
+    }
+
+    private AliasMapping getAliasMappingFromJoinTree(JoinsTree joinsTree) {
+        AliasMapping adviceAliasMapping = null;
+
+        Map<String, String> matches = joinsTree.matches(this.getJoinsTree());
+        if (matches != null && !matches.isEmpty()) {
+            BiMap<String, String> biMap = HashBiMap.create();
+            biMap.putAll(matches);
+            adviceAliasMapping = new AliasMapping(biMap);
+        }
+        return adviceAliasMapping;
+    }
+
+    private String makeAdviseOnWRONG_POSITION(NDataModel existingModel, ComputedColumnDesc existingCC,
+            AliasMapping positionAliasMapping) {
+        return positionAliasMapping == null ? null
+                : positionAliasMapping.getAliasMapping().get(existingCC.getTableAlias());
+    }
+
+    private AliasMapping getPositionAliasMapping(NDataModel existingModel, ComputedColumnDesc existingCC) {
+        JoinsTree joinsTree = existingModel.getJoinsTree()
+                .getSubgraphByAlias(Collections.singleton(existingCC.getTableAlias()));
+
+        return getAliasMappingFromJoinTree(joinsTree);
+    }
+
+    //
+    //    private boolean isSameCC(ComputedColumnDesc existingCC, ComputedColumnDesc newCC, AliasMapping aliasMapping) {
+    //
+    //        if (aliasMapping == null) {
+    //            return false;
+    //        }
+    //
+    //        // skip check alias name on purpose
+    //
+    //        if (!StringUtils.equalsIgnoreCase(newCC.getColumnName(), existingCC.getColumnName()))
+    //            return false;
+    //        if (!StringUtils.equalsIgnoreCase(newCC.getTableIdentity(), existingCC.getTableIdentity()))
+    //            return false;
+    //        if (!StringUtils.equalsIgnoreCase(newCC.getDatatype(), existingCC.getDatatype()))
+    //            return false;
+    //
+    //        return isSameCCExpr(existingCC, newCC, aliasMapping);
+    //    }
+
+    private boolean isSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC, AliasMapping aliasMapping) {
+        if (existingCC.getExpression() == null) {
+            return newCC.getExpression() == null;
+        } else if (newCC.getExpression() == null) {
+            return false;
+        }
+
+        return ExpressionComparator.isNodeEqual(CalciteParser.getExpNode(newCC.getExpression()),
+                CalciteParser.getExpNode(existingCC.getExpression()), aliasMapping, IAliasDeduce.NO_OP);
+    }
+
+    private boolean isSameAliasTable(ComputedColumnDesc existingCC, ComputedColumnDesc newCC,
+            AliasMapping adviceAliasMapping) {
+        if (adviceAliasMapping == null) {
+            return false;
+        }
+        String existingAlias = existingCC.getTableAlias();
+        String newAlias = newCC.getTableAlias();
+        return StringUtils.equals(newAlias, adviceAliasMapping.getAliasMapping().get(existingAlias));
+    }
+
+    private boolean isLiteralSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
+        String definition0 = existingCC.getExpression();
+        String definition1 = newCC.getExpression();
+
+        if (definition0 == null) {
+            return definition1 == null;
+        } else if (definition1 == null) {
+            return false;
+        }
+
+        definition0 = definition0.replaceAll("\\s*", "");
+        definition1 = definition1.replaceAll("\\s*", "");
+        return definition0.equalsIgnoreCase(definition1);
+    }
+
+    // model X contains table f,a,b,c, and model Y contains table f,a,b,d
+    // if two cc involve table a,b, they might still be treated equal regardless of the model difference on c,d
+    private JoinsTree getCCExprRelatedSubgraph(ComputedColumnDesc cc, NDataModel model) {
+        Set<String> aliasSets = getUsedAliasSet(cc.getExpression());
+        return model.getJoinsTree().getSubgraphByAlias(aliasSets);
+    }
+
+    private Set<String> getUsedAliasSet(String expr) {
+        if (expr == null) {
+            return Sets.newHashSet();
+        }
+        SqlNode sqlNode = CalciteParser.getExpNode(expr);
+
+        final Set<String> s = Sets.newHashSet();
+        SqlVisitor sqlVisitor = new SqlBasicVisitor() {
+            @Override
+            public Object visit(SqlIdentifier id) {
+                Preconditions.checkState(id.names.size() == 2);
+                s.add(id.names.get(0));
+                return null;
+            }
+        };
+
+        sqlNode.accept(sqlVisitor);
+        return s;
     }
 
     private boolean isTwoCCDefinitionEquals(String definition0, String definition1) {
@@ -1305,6 +1568,14 @@ public class NDataModel extends RootPersistentEntity {
 
     void setMpColStrs(String[] mpColStrs) {
         this.mpColStrs = mpColStrs;
+    }
+
+    public boolean isSeekingCCAdvice() {
+        return isSeekingCCAdvice;
+    }
+
+    public void setSeekingCCAdvice(boolean seekingCCAdvice) {
+        isSeekingCCAdvice = seekingCCAdvice;
     }
 
     public List<NamedColumn> getAllNamedColumns() {
