@@ -122,6 +122,7 @@ import $ from 'jquery'
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
+      markFav: 'MARK_FAV'
     })
   },
   computed: {
