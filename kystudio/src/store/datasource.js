@@ -12,7 +12,7 @@ export default {
   },
   mutations: {
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
-      state.dataSource[project] = !isReset ? [...state.dataSource[project], ...data] : data
+      state.dataSource[project] = !isReset ? [...state.dataSource[project], ...data.tables] : data.tables
     },
     [types.CACHE_ENCODINGS]: function (state, { data, project }) {
       state.encodings = data
