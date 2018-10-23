@@ -101,7 +101,7 @@ public class NJdbcTableReaderTest extends NLocalFileMetadataTestCase implements 
         int rowNumber = 0;
         while (reader.next()) {
             String[] row = reader.getRow();
-            Assert.assertEquals(21, row.length);
+            Assert.assertEquals(11, row.length);
 
             rowNumber++;
         }

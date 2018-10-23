@@ -58,7 +58,7 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @AfterClass
     public static void tearDown() {
-        cleanAfterClass();
+        staticCleanupTestMetadata();
     }
 
     @Before

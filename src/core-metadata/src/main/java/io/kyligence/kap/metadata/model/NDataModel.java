@@ -584,11 +584,12 @@ public class NDataModel extends RootPersistentEntity {
             alias = alias.toUpperCase();
             join.setAlias(alias);
 
-            TableRef ref = new TableRef(this, alias, tableDesc, false);
+            boolean isLookup = join.getKind() == TableKind.LOOKUP;
+            TableRef ref = new TableRef(this, alias, tableDesc, isLookup);
 
             join.setTableRef(ref);
             addAlias(ref);
-            (join.getKind() == TableKind.LOOKUP ? lookupTableRefs : factTableRefs).add(ref);
+            (isLookup ? lookupTableRefs : factTableRefs).add(ref);
         }
 
         tableNameMap.putAll(aliasMap);
@@ -1510,7 +1511,7 @@ public class NDataModel extends RootPersistentEntity {
             public ColumnDesc apply(@Nullable ComputedColumnDesc input) {
                 id.increment();
                 ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
-                        input.getComment(), null, null, input.getExpression());
+                        input.getComment(), null, null, input.getInnerExpression());
                 return columnDesc;
             }
         }).toArray(ColumnDesc.class);

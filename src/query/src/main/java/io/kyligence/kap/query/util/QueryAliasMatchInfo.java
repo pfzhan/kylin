@@ -29,6 +29,8 @@ import org.apache.kylin.query.relnode.ColumnRowType;
 
 import com.google.common.collect.BiMap;
 
+import io.kyligence.kap.metadata.model.alias.AliasMapping;
+
 public class QueryAliasMatchInfo extends AliasMapping {
     // each alias's ColumnRowType
     private LinkedHashMap<String, ColumnRowType> alias2CRT;

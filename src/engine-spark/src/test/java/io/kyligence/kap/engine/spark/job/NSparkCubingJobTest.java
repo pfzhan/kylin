@@ -136,7 +136,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, ds);
         seg = dictionaryBuilder.buildDictionary();
-        Assert.assertEquals(21, seg.getDictionaries().size());
+        Assert.assertEquals(31, seg.getDictionaries().size());
     }
 
     @Test

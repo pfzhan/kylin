@@ -50,6 +50,8 @@ package io.kyligence.kap.query.util;
 
 import org.apache.kylin.metadata.model.TblColRef;
 
+import io.kyligence.kap.metadata.model.alias.IAliasDeduce;
+
 public class AliasDeduceImpl implements IAliasDeduce {
     private QueryAliasMatchInfo queryAliasMatchInfo = null;
 

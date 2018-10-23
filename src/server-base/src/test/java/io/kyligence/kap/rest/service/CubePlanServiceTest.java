@@ -82,7 +82,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() {
-        cleanAfterClass();
+        cleanupTestMetadata();
     }
 
     @Before
@@ -202,7 +202,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(originLayoutSize + 1, saved.getAllCuboidLayouts().size());
         val newLayout = saved.getCuboidLayout(30_000_000_001L);
         Assert.assertEquals(originModelSize + 2, saved.getModel().getAllNamedColumns().size());
-        Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(1, 2, 3, 4, 27, 28)));
+        Assert.assertThat(newLayout.getColOrder(), CoreMatchers.is(Arrays.asList(1, 2, 3, 4, 37, 38)));
         Assert.assertThat(newLayout.getShardByColumns(), CoreMatchers.is(Arrays.asList(1)));
         Assert.assertThat(newLayout.getSortByColumns(), CoreMatchers.is(Arrays.asList(2)));
     }

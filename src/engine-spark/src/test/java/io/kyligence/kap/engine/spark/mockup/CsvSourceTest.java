@@ -106,7 +106,6 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {
             Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.valueOf(field.name()))));
-            Assert.assertEquals(field.dataType(), DataTypes.StringType);
         }
 
         Set<Integer> dims = df.getCubePlan().getEffectiveDimCols().keySet();

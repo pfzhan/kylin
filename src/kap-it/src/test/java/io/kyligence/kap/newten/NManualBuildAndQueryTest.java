@@ -178,7 +178,6 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_distinct_precisely"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_powerbi"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_raw"));
-            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_rawtable"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_value"));
             tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_magine"));
             //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, joinType, "sql_cross_join"));
@@ -197,9 +196,14 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
             //execLimitAndValidate
             //            tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SUBSET, joinType, "sql"));
         }
+        
+        // cc tests
+        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_common"));
+        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME_SQL_COMPARE, "default", "sql_computedcolumn_leftjoin"));
 
         tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_inner"));
         tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "inner", "sql_magine_window"));
+        tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_rawtable"));
         tasks.add(new QueryCallable(kapSparkSession, CompareLevel.SAME, "default", "sql_multi_model"));
         logger.info("Total {} tasks.", tasks.size());
         return tasks;
@@ -252,6 +256,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                     List<Pair<String, String>> queries = NExecAndComp
                             .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql");
                     NExecAndComp.execLimitAndValidate(queries, kapSparkSession, joinType);
+                } else if (NExecAndComp.CompareLevel.SAME_SQL_COMPARE.equals(compareLevel)) {
+                    List<Pair<String, String>> queries = NExecAndComp
+                            .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
+                    NExecAndComp.execCompareQueryAndCompare(queries, kapSparkSession, joinType);
+                    
                 } else {
                     List<Pair<String, String>> queries = NExecAndComp
                             .fetchQueries(KAP_SQL_BASE_DIR + File.separator + sqlFolder);
@@ -321,7 +330,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegment(2);
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
                 SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
-        Assert.assertEquals(21, firstSegment.getDictionaries().size());
+        Assert.assertEquals(27, firstSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
     }
 
@@ -392,8 +401,8 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
                 SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
-        Assert.assertEquals(21, firstSegment.getDictionaries().size());
-        Assert.assertEquals(21, secondSegment.getDictionaries().size());
+        Assert.assertEquals(31, firstSegment.getDictionaries().size());
+        Assert.assertEquals(31, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
     }

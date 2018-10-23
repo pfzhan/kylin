@@ -38,6 +38,9 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
+import io.kyligence.kap.metadata.model.alias.IAliasDeduce;
+
 public class ExpressionComparatorTest {
 
     @Test

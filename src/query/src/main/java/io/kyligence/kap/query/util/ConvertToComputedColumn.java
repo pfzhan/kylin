@@ -85,6 +85,7 @@ import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
 

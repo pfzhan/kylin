@@ -35,6 +35,7 @@ import java.util.Objects;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.query.CompareQueryBySuffix;
 import org.apache.kylin.source.adhocquery.HivePushDownConverter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -55,7 +56,8 @@ public class NExecAndComp {
 
     public enum CompareLevel {
         SAME, // exec and compare
-        SAME_ROWCOUNT, SUBSET, NONE // batch execute
+        SAME_ROWCOUNT, SUBSET, NONE, // batch execute
+        SAME_SQL_COMPARE
     }
 
     public static void execLimitAndValidate(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
@@ -149,6 +151,21 @@ public class NExecAndComp {
             }
             logger.info("The query (" + joinType + ") : {} cost {} (ms)", query,
                     System.currentTimeMillis() - startTime);
+        }
+    }
+
+    public static void execCompareQueryAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
+            String joinType) {
+        for (Pair<String, String> query : queries) {
+
+            logger.info("Exec CompareQuery and compare on query: " + query.getFirst());
+            String sql1 = changeJoinType(query.getSecond(), joinType);
+            String sql2 = CompareQueryBySuffix.INSTANCE.transform(new File(query.getFirst()));
+
+            Dataset<Row> kapResult = queryWithKap(kapSparkSession, joinType, sql1);
+            Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql2);
+
+            compareResults(sparkResult, kapResult, CompareLevel.SAME);
         }
     }
 

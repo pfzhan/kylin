@@ -82,7 +82,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(cube.getModel());
 
         BiMap<Integer, TblColRef> effectiveDimCols = cube.getEffectiveDimCols();
-        Assert.assertEquals(26, effectiveDimCols.size());
+        Assert.assertEquals(36, effectiveDimCols.size());
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
@@ -101,8 +101,8 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1, first.getLayouts().size());
             NCuboidLayout cuboidLayout = first.getLastLayout();
             Assert.assertEquals(1000001, cuboidLayout.getId());
-            Assert.assertEquals(23, cuboidLayout.getOrderedDimensions().size());
-            Assert.assertEquals(23, cuboidLayout.getOrderedDimensions().size()); //test lazy init
+            Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size());
+            Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size()); //test lazy init
             Assert.assertEquals(11, cuboidLayout.getOrderedMeasures().size());
             Assert.assertEquals(11, cuboidLayout.getOrderedMeasures().size()); //test lazy init
         }
@@ -115,7 +115,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
             NCuboidLayout cuboidLayout = last.getLastLayout();
             Assert.assertNotNull(cuboidLayout);
             Assert.assertEquals(20000002001L, cuboidLayout.getId());
-            Assert.assertEquals(26, cuboidLayout.getOrderedDimensions().size());
+            Assert.assertEquals(36, cuboidLayout.getOrderedDimensions().size());
             Assert.assertEquals(0, cuboidLayout.getOrderedMeasures().size());
         }
     }
@@ -180,7 +180,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
         NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsHaveDictionary();
-        Assert.assertEquals(21, tblCols.size());
+        Assert.assertEquals(31, tblCols.size());
 
         NCubePlan cubePlan2 = cubeDefaultMgr.getCubePlan("all_fixed_length");
         Set<TblColRef> tblCols2 = cubePlan2.getAllColumnsHaveDictionary();
@@ -192,6 +192,6 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         NCubePlanManager cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
         NCubePlan cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
         Set<TblColRef> tblCols = cubePlan.getAllColumnsNeedDictionaryBuilt();
-        Assert.assertEquals(21, tblCols.size());
+        Assert.assertEquals(31, tblCols.size());
     }
 }

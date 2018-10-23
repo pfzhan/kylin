@@ -70,6 +70,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 // match alias in query to alias in model
 // Not designed to reuse, re-new per query
