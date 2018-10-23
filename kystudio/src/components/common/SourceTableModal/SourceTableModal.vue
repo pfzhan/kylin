@@ -17,7 +17,7 @@
           :value="form.partitionColumn"
           :disabled="disabled"
           :placeholder="$t('kylinLang.common.pleaseChoose')"
-          @input="value => this.handleInput('partitionColumn', value)">
+          @input="value => handleInput('partitionColumn', value)">
           <el-option
             v-for="column in partitionColumns"
             :key="column.name"
@@ -41,7 +41,7 @@
           :disabled="disabled"
           :start-placeholder="$t('kylinLang.common.startTime')"
           :end-placeholder="$t('kylinLang.common.endTime')"
-          @input="value => this.handleInputDate('newDataRange', value)">
+          @input="value => handleInputDate('newDataRange', value)">
         </el-date-picker>
       </el-form-item>
       <!-- Refresh Data Range Picker -->
@@ -59,7 +59,7 @@
           :disabled="disabled"
           :start-placeholder="$t('kylinLang.common.startTime')"
           :end-placeholder="$t('kylinLang.common.endTime')"
-          @input="value => this.handleInputDate('freshDataRange', value)">
+          @input="value => handleInputDate('freshDataRange', value)">
         </el-date-picker>
       </el-form-item>
       <!-- Data Merge Switcher -->
@@ -71,7 +71,7 @@
           :value="form.isMergeable"
           :active-text="$t('kylinLang.common.OFF')"
           :inactive-text="$t('kylinLang.common.ON')"
-          @input="value => this.handleInput('isMergeable', value)">
+          @input="value => handleInput('isMergeable', value)">
         </el-switch>
       </el-form-item>
       <!-- Auto Merge Configs -->
@@ -82,19 +82,31 @@
             {{$t('autoMerge')}}
             <i class="el-icon-ksd-what"></i>
           </el-row>
-          <el-checkbox-group
-            style="margin-top: -8px;"
-            :value="form.autoMergeConfigs"
-            @input="value => this.handleInput('autoMergeConfigs', value)">
-            <el-row v-for="(autoMergeGroup, index) in autoMergeGroups" :key="index">
-              <el-col :span="8" v-for="autoMergeType in autoMergeGroup" :key="autoMergeType">
-                <el-checkbox
-                  :label="autoMergeType">
-                  {{$t(autoMergeType)}}
-                </el-checkbox>
-              </el-col>
-            </el-row>
-          </el-checkbox-group>
+          <el-row v-for="(autoMergeConfig, index) in form.autoMergeConfigs" :key="index" :gutter="10">
+            <el-col :span="17">
+              <el-select
+                size="medium"
+                class="padding-bottom-10"
+                :value="autoMergeConfig"
+                @input="value => handleInput(`autoMergeConfigs.${index}`, value)">
+                <el-option
+                  v-for="autoMergeType in autoMergeTypes"
+                  :key="autoMergeType"
+                  :label="$t(autoMergeType)"
+                  :value="autoMergeType"
+                  :disabled="form.autoMergeConfigs.includes(autoMergeType)">
+                </el-option>
+              </el-select>
+            </el-col>
+            <el-col :span="4">
+              <el-button v-if="index === 0 && form.autoMergeConfigs.length < autoMergeTypes.length" size="medium" circle @click="handleAddConfig('autoMergeConfigs')">
+                <i class="el-icon-ksd-add_2"></i>
+              </el-button>
+              <el-button v-else-if="index !== 0" size="medium" circle @click="handleRemoveConfig('autoMergeConfigs', index)">
+                <i class="el-icon-ksd-table_delete"></i>
+              </el-button>
+            </el-col>
+          </el-row>
         </el-form-item>
       </template>
       <!-- Volatile Config -->
@@ -110,7 +122,7 @@
                 size="medium"
                 :value="form.volatileConfig.value"
                 :placeholder="$t('kylinLang.common.pleaseInput')"
-                @input="value => !isNaN(+value) && this.handleInput('volatileConfig.value', +value)">
+                @input="value => !isNaN(+value) && handleInput('volatileConfig.value', +value)">
               </el-input>
             </el-form-item>
           </el-col>
@@ -120,7 +132,7 @@
                 size="medium"
                 :value="form.volatileConfig.type"
                 :placeholder="$t('kylinLang.common.pleaseChoose')"
-                @input="value => this.handleInput('volatileConfig.type', value)">
+                @input="value => handleInput('volatileConfig.type', value)">
                 <el-option
                   v-for="volatileType in volatileTypes"
                   :key="volatileType"
@@ -131,6 +143,16 @@
             </el-form-item>
           </el-col>
         </el-row>
+      </template>
+      <!-- Pushdown Config -->
+      <template v-if="isFieldShow('isAsyncPushDown')">
+        <div class="item-desc margin-bottom-10">{{$t('pushdownDesc')}}</div>
+        <el-form-item class="margin-bottom-0" prop="isMergeable">
+          <el-radio-group :value="form.isPushdownSync" @input="value => handleInput('isPushdownSync', value)">
+            <div class="item-desc margin-bottom-10"><el-radio :label="true">{{$t('isPushdown')}}</el-radio></div>
+            <div class="item-desc margin-bottom-0"><el-radio :label="false">{{$t('notPushdown')}}</el-radio></div>
+          </el-radio-group>
+        </el-form-item>
       </template>
     </el-form>
     <div slot="footer" class="dialog-footer">
@@ -156,7 +178,8 @@ const {
   INCREMENTAL_SETTING,
   INCREMENTAL_LOADING,
   REFRESH_RANGE,
-  DATA_MERGE
+  DATA_MERGE,
+  PUSHDOWN_CONFIG
 } = editTypes
 
 vuex.registerModule(['modals', 'SourceTableModal'], store)
@@ -196,8 +219,8 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
       saveDataRange: 'SAVE_DATA_RANGE',
       fetchRangeFreshInfo: 'FETCH_RANGE_FRESH_INFO',
       freshRangeData: 'FRESH_RANGE_DATA',
-      fetchMergeConfig: 'FETCH_MERGE_CONFIG',
-      updateMergeConfig: 'UPDATE_MERGE_CONFIG'
+      updateMergeConfig: 'UPDATE_MERGE_CONFIG',
+      updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG'
     })
   },
   locales
@@ -206,8 +229,6 @@ export default class SourceTableModal extends Vue {
   isFormShow = false
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
-  volatileText = ''
-  volatileType = 'day'
   get modalTitle () {
     return titleMaps[this.editType]
   }
@@ -236,6 +257,15 @@ export default class SourceTableModal extends Vue {
   }
   handleInputDate (path, value) {
     this.handleInput(path, value)
+  }
+  handleAddConfig (path) {
+    const newConfigs = ['', ...this.form[path]]
+    this.setModalForm({ [path]: newConfigs })
+  }
+  handleRemoveConfig (path, index) {
+    const newConfigs = [...this.form[path]]
+    newConfigs.splice(index, 1)
+    this.setModalForm({ [path]: newConfigs })
   }
   closeHandler (isSubmit) {
     this.hideModal()
@@ -286,6 +316,8 @@ export default class SourceTableModal extends Vue {
       }
       case DATA_MERGE:
         return this.updateMergeConfig(data)
+      case PUSHDOWN_CONFIG:
+        return this.updatePushdownConfig(data)
     }
   }
   getSubmitData () {
@@ -314,7 +346,12 @@ export default class SourceTableModal extends Vue {
       }
       case DATA_MERGE: {
         const { isAutoMerge, autoMergeConfigs, isVolatile, volatileConfig } = form
-        return { projectName, tableFullName, isAutoMerge, autoMergeConfigs, isVolatile, volatileConfig }
+        const newAutoMergeConfigs = autoMergeConfigs.filter(autoMergeConfig => autoMergeConfig)
+        return { projectName, tableFullName, isAutoMerge, autoMergeConfigs: newAutoMergeConfigs, isVolatile, volatileConfig }
+      }
+      case PUSHDOWN_CONFIG: {
+        const { isPushdownSync } = form
+        return { projectName, tableFullName, isPushdownSync }
       }
       default:
         return null
@@ -330,9 +367,17 @@ export default class SourceTableModal extends Vue {
     font-size: 16px;
     font-weight: 500;
   }
+  .item-desc {
+    font-size: 14px;
+    color: #263238;
+    line-height: 21px;
+  }
   .el-switch {
     transform: scale(0.636);
     transform-origin: left;
+  }
+  .el-select {
+    width: 100%;
   }
   .start-merge {
     margin: -10px 0 20px 0;
@@ -351,6 +396,9 @@ export default class SourceTableModal extends Vue {
   }
   .margin-bottom-5 {
     margin-bottom: 5px;
+  }
+  .margin-bottom-10 {
+    margin-bottom: 10px;
   }
   .margin-bottom-20 {
     margin-bottom: 20px;

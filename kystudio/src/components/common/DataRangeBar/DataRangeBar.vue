@@ -7,15 +7,19 @@
       <div class="el-slider__button-wrapper right">
         <div class="el-slider__button el-tooltip"></div>
       </div>
+      <div class="offline" v-if="!isLeftDisable" :style="leftOfflineStyle"></div>
+      <div class="offline" v-if="!isRightDisable" :style="rightOfflineStyle"></div>
     </div>
     <div class="frontground" ref="frontground">
       <el-slider
         range
-        v-model="sliderValue"
+        v-if="isShowSlider"
+        :value="sliderValue"
         :max="totalTicks"
         :format-tooltip="handleFormatTip"
         :step="86400000"
-        @mousedown.native="handleDragStart">
+        @mousedown.native="handleDragStart"
+        @input="handleSlider">
       </el-slider>
     </div>
   </div>
@@ -43,7 +47,15 @@ const LARGE = 1
     },
     disabled: {
       type: Boolean,
-      default: () => false
+      default: false
+    },
+    isRightDisable: {
+      type: Boolean,
+      default: false
+    },
+    isLeftDisable: {
+      type: Boolean,
+      default: false
     }
   }
 })
@@ -52,6 +64,8 @@ export default class DataRangeBar extends Vue {
   sliderValue = [0, 0]
   movement = 0
   timer = null
+  isShowSlider = true
+  isDragSmall = false
   get totalTicks () {
     const [ min, max ] = this.maxRange
     return max - min
@@ -62,11 +76,27 @@ export default class DataRangeBar extends Vue {
   get isOutOfMax () {
     return this.sliderValue[LARGE] >= this.totalTicks
   }
+  get leftOfflineStyle () {
+    const leftValue = this.sliderValue[0]
+    const offlineRange = leftValue / this.totalTicks * 100
+    return {
+      left: '0%',
+      width: `${offlineRange}%`
+    }
+  }
+  get rightOfflineStyle () {
+    const rightValue = this.sliderValue[1]
+    const offlineRange = (1 - rightValue / this.totalTicks) * 100
+    return {
+      right: '0%',
+      width: `${offlineRange}%`
+    }
+  }
   get backgroundStyle () {
     const backgroundImage = `url(${rangeBarBgImg})`
     const offsetWidth = this.movement < 30 ? this.movement : 30
     const width = `calc(100% + ${offsetWidth}px)`
-    const left = `${this.isOutOfMin ? -offsetWidth : 0}px`
+    const left = `${this.isDragSmall ? -offsetWidth : 0}px`
     return { backgroundImage, width, left }
   }
   @Watch('value')
@@ -97,26 +127,50 @@ export default class DataRangeBar extends Vue {
       this.isDragging = false
 
       clearInterval(this.timer)
-      this.timer = setTimeout(() => this.$emit('click'), 100)
+      this.timer = setTimeout(() => {
+        this.movement = 0
+        this.$emit('click', this.sliderValue)
+      }, 100)
     }
   }
   handleDrag (event) {
-    const frontgroundEl = this.$refs['frontground']
-    if (this.isDragging && this.isOutOfMin) {
-      const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[SMALL]
-      const { left } = targetEl.getBoundingClientRect()
-      if (event.pageX <= left) {
-        this.movement = left - event.pageX
+    if (this.isDragging) {
+      const frontgroundEl = this.$refs['frontground']
+      if (this.isDragSmall && this.isOutOfMin) {
+        const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[SMALL]
+        const { left } = targetEl.getBoundingClientRect()
+        if (event.pageX <= left) {
+          this.movement = left - event.pageX
+        }
+      } else if (!this.isDragSmall && this.isOutOfMax) {
+        const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[LARGE]
+        const { left, width } = targetEl.getBoundingClientRect()
+        if (event.pageX >= left + width) {
+          this.movement = event.pageX - left - width
+        }
+      } else if (!this.isOutOfMin && !this.isOutOfMax) {
+        this.movement = 0
       }
-    } else if (this.isDragging && this.isOutOfMax) {
-      const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[LARGE]
-      const { left, width } = targetEl.getBoundingClientRect()
-      if (event.pageX >= left + width) {
-        this.movement = event.pageX - left - width
-      }
-    } else if (!this.isOutOfMin && !this.isOutOfMax) {
-      this.movement = 0
     }
+  }
+  checkDragSmall (event) {
+    const frontgroundEl = this.$refs['frontground']
+    const dragEls = frontgroundEl.querySelectorAll('.el-slider__button-wrapper')
+    const dragElsStyle = [this.getStyleLeft(dragEls[0]), this.getStyleLeft(dragEls[1])]
+
+    const smallDragEl = dragElsStyle[0] <= dragElsStyle[1] ? dragEls[0] : dragEls[1]
+    const largeDragEl = dragElsStyle[0] > dragElsStyle[1] ? dragEls[0] : dragEls[1]
+    const smallDragElChild = smallDragEl.querySelector('.el-slider__button')
+    const largeDragElChild = largeDragEl.querySelector('.el-slider__button')
+
+    if (event.target === smallDragEl || event.target === smallDragElChild) {
+      return true
+    } else if (event.target === largeDragEl || event.target === largeDragElChild) {
+      return false
+    }
+  }
+  getStyleLeft (el) {
+    return +el.style['left'].replace('%', '')
   }
   handleDragStart (event) {
     const isLeftKey = event.which === 1
@@ -124,15 +178,27 @@ export default class DataRangeBar extends Vue {
     const isDraggableEl = draggableClasses.some(draggableClass => classList.includes(draggableClass))
     if (!this.isDragging && isLeftKey && isDraggableEl && !this.disabled) {
       this.isDragging = true
+      this.isDragSmall = this.checkDragSmall(event)
     }
   }
   handleClick (event) {
     clearInterval(this.timer)
-    this.timer = setTimeout(() => this.$emit('click'), 100)
+    this.timer = setTimeout(() => {
+      this.movement = 0
+      this.$emit('click', this.sliderValue)
+    }, 100)
   }
   handleFormatTip (val) {
     const currentTime = this.maxRange[SMALL] + val
     return dayjs(currentTime).format('YYYY-MM-DD')
+  }
+  handleSlider (value) {
+    const [ oldLeftValue, oldRightValue ] = this.sliderValue
+    const [ newLeftValue, newRightValue ] = value
+    const leftValue = this.isLeftDisable ? oldLeftValue : newLeftValue
+    const rightValue = this.isRightDisable ? oldRightValue : newRightValue
+
+    this.sliderValue = [ leftValue, rightValue ]
   }
 }
 </script>
@@ -174,6 +240,9 @@ export default class DataRangeBar extends Vue {
     height: 8px;
     background: transparent;
   }
+  .el-slider__bar {
+    pointer-events: none;
+  }
   .el-slider__button {
     background-color: #1A731E;
     border: 0;
@@ -194,6 +263,11 @@ export default class DataRangeBar extends Vue {
       width: 0;
       height: 0;
     }
+  }
+  .offline {
+    position: absolute;
+    height: 8px;
+    background-color: #E2ECF1;
   }
 }
 </style>

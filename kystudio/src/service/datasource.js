@@ -147,8 +147,8 @@ export default {
   saveDataRange (project, table, start, end) {
     return Vue.resource(apiUrl + 'tables/date_range').save({project, table, start, end})
   },
-  fetchRelatedModels (project, table) {
-    return Vue.resource(apiUrl + 'models').get({project, table})
+  fetchRelatedModels (project, table, pageOffset, pageSize) {
+    return Vue.resource(apiUrl + 'models').get({project, table, pageOffset, pageSize})
   },
   fetchTables (project, database, table, pageOffset, pageSize, isFuzzy, ext) {
     return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})
@@ -174,7 +174,13 @@ export default {
   fetchMergeConfig (project, model, table) {
     return Vue.resource(apiUrl + `tables/auto_merge_config`).get({ project, model, table })
   },
-  updateMergeConfig (project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeAvailable, volatileRange) {
-    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMerge, autoMergeTimeRanges, volatileRange, volatileRangeAvailable })
+  updateMergeConfig (project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeAvailable, volatileRangeNumber, volatileRangeType) {
+    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeNumber, volatileRangeType, volatileRangeAvailable })
+  },
+  fetchPushdownConfig (project, table) {
+    return Vue.resource(apiUrl + `tables/push_down_config`).get({ project, table })
+  },
+  updatePushdownConfig (project, table, pushDownData) {
+    return Vue.resource(apiUrl + `tables/push_down_config`).update({ project, table, pushDownData })
   }
 }

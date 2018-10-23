@@ -1,4 +1,6 @@
+import dayjs from 'dayjs'
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
+import { getUserRange } from '../../../util/UtilTable'
 
 export const render = {
   datasource: {
@@ -143,7 +145,7 @@ export function getTableObj (that, database, table) {
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
-  const dateRange = +table.start !== -1 && +table.start !== -1 ? getDateRangeStr(that, table) : null
+  const dateRange = getDateRangeStr(that, getUserRange(table))
   const tableObj = {
     id: table.uuid,
     label: table.name,
@@ -204,22 +206,11 @@ export function getFirstTableData (datasourceTree) {
   }
 }
 
-function getDateRangeStr (that, table) {
-  const startDate = new Date(+table.start)
-  const endDate = new Date(+table.end)
-
-  return `${getDateStr(startDate)} ${that.$t('to')} ${getDateStr(endDate)}`
-}
-
-function getDateStr (date) {
-  const year = date.getFullYear()
-  const month = getDoubleNumber(date.getMonth() + 1)
-  const day = getDoubleNumber(date.getDate())
-  return `${year}-${month}-${day}`
-}
-
-function getDoubleNumber (number) {
-  return number < 10 ? `0${number}` : String(number)
+function getDateRangeStr (that, userRange) {
+  const [ startTime, endTime ] = userRange
+  const startStr = dayjs(startTime).format('YYYY-MM-DD')
+  const endStr = dayjs(endTime).format('YYYY-MM-DD')
+  return startTime && endTime && `${startStr} ${that.$t('to')} ${endStr}`
 }
 
 export function freshTreeOrder (that) {

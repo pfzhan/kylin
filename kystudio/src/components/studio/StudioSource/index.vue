@@ -24,8 +24,8 @@
             <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
             <div class="table-actions">
               <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
-              <!-- <el-button size="small" icon="el-icon-ksd-download" @click="handleSampling">{{$t('sampling')}}</el-button> -->
               <el-button size="small" icon="el-icon-ksd-download" @click="handleUnload">{{$t('unload')}}</el-button>
+              <el-button size="small" icon="el-icon-ksd-sync" @click="handlePushdownRange">{{$t('pushdownRange')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
@@ -103,6 +103,9 @@ import { handleSuccessAsync, transToGmtTime } from '../../../util'
     ])
   },
   methods: {
+    ...mapActions('SourceTableModal', {
+      callSourceTableModal: 'CALL_MODAL'
+    }),
     ...mapMutations({
       setCurrentTableData: 'SET_CURRENT_TABLE'
     }),
@@ -187,6 +190,12 @@ export default class StudioSource extends Vue {
       })
       return this.handleFreshTable()
     }).catch(() => {})
+  }
+  async handlePushdownRange () {
+    const projectName = this.currentSelectedProject
+    const table = this.selectedTable
+    const isSubmit = await this.callSourceTableModal({ editType: 'pushdownConfig', table, projectName })
+    isSubmit && this.$emit('fresh-tables')
   }
   async handleFreshTable () {
     await this.$refs['datasource-bar'].loadTables({ isReset: true })

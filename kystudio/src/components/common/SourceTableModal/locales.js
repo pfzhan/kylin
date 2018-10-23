@@ -27,7 +27,11 @@ export default {
     hour: 'Hour',
     day: 'Day',
     month: 'Month',
-    year: 'Year'
+    year: 'Year',
+    pushdownRange: 'Pushdown Range',
+    pushdownDesc: 'To keep query result consistent, system by default regards data range as the source table\'s pushdown range.',
+    isPushdown: 'Sure, pushdown range should be equal to data range',
+    notPushdown: 'System doesn\'t need to handle pushdown range anymore'
   },
   'zh-cn': {
     incrementalLoading: 'Incremental Load',
@@ -57,6 +61,10 @@ export default {
     hour: '小时',
     day: '天',
     month: '月',
-    year: '年'
+    year: '年',
+    pushdownRange: 'Pushdown Range',
+    pushdownDesc: 'To keep query result consistent, system by default regards data range as the source table\'s pushdown range.',
+    isPushdown: 'Sure, pushdown range should be equal to data range',
+    notPushdown: 'System doesn\'t need to handle pushdown range anymore'
   }
 }

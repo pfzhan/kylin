@@ -88,7 +88,13 @@
         <div class="info-value">
           <div class="date-text left">{{minDataRangeStr}}</div>
           <div class="date-text right">{{maxDataRangeStr}}</div>
-          <DataRangeBar :max-range="table.allRange" :value="table.userRange" @click="handleChangeDataRange"></DataRangeBar>
+          <DataRangeBar
+            :max-range="table.allRange"
+            :value="table.userRange"
+            :is-left-disable="table.isMinRangeDisabled"
+            :is-right-disable="table.isMaxRangeDisabled"
+            @click="handleChangeDataRange">
+          </DataRangeBar>
         </div>
       </el-row>
       <!-- Table数据区间操作 -->
@@ -125,7 +131,6 @@ import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
 import RelatedModels from '../RelatedModels/RelatedModels'
 import { handleSuccessAsync } from '../../../../util'
 import { partitionColumnTypes } from '../../../../config'
-import { getMockModelResponse } from './mock'
 
 @Component({
   props: {
@@ -160,10 +165,10 @@ export default class TableDataLoad extends Vue {
   isSchemaChangeShow = true
   isDataRangeShow = false
   get minDataRangeStr () {
-    return dayjs(this.table.userRange[0]).format('YYYY-MM-DD')
+    return dayjs(this.table.allRange[0]).format('YYYY-MM-DD')
   }
   get maxDataRangeStr () {
-    return dayjs(this.table.userRange[1]).format('YYYY-MM-DD')
+    return dayjs(this.table.allRange[1]).format('YYYY-MM-DD')
   }
   get isIncremental () {
     return this.table.fact
@@ -180,23 +185,23 @@ export default class TableDataLoad extends Vue {
     }
   }
   async handleChangeDataRange () {
-    await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table })
-    this.$emit('fresh-tables')
+    const isSubmit = await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table })
+    isSubmit && this.$emit('fresh-tables')
   }
   async handleChangeType () {
     if (!this.isIncremental && this.partitionColumns.length) {
-      await this.callSourceTableModal({ editType: 'changeTableType', table: this.table })
-      this.$emit('fresh-tables')
+      const isSubmit = await this.callSourceTableModal({ editType: 'changeTableType', table: this.table })
+      isSubmit && this.$emit('fresh-tables')
     }
   }
   async handleRefreshTable () {
-    await this.callSourceTableModal({ editType: 'refreshRange', table: this.table })
-    this.$emit('fresh-tables')
+    const isSubmit = await this.callSourceTableModal({ editType: 'refreshRange', table: this.table })
+    isSubmit && this.$emit('fresh-tables')
   }
   async handleTableMerge () {
     const { table, projectName } = this
-    await this.callSourceTableModal({ editType: 'dataMerge', table, projectName })
-    this.$emit('fresh-tables')
+    const isSubmit = await this.callSourceTableModal({ editType: 'dataMerge', table, projectName })
+    isSubmit && this.$emit('fresh-tables')
   }
   async handleLoadMore () {
     this.loadRelatedModel({ isReset: false })
@@ -212,15 +217,16 @@ export default class TableDataLoad extends Vue {
     const { projectName, table, pagination } = this
     const tableFullName = `${table.database}.${table.name}`
     const res = await this.fetchRelatedModels({ projectName, tableFullName, ...pagination })
-    /* eslint-disable */
-    const { models } = true ? getMockModelResponse() : await handleSuccessAsync(res)
+    const { size, models } = await handleSuccessAsync(res)
     const formatedModels = this.formatModelData(models)
-    if (isReset) {
-      this.relatedModels = formatedModels
-      this.clearPagination()
-    } else {
-      this.relatedModels = [ ...this.relatedModels, ...formatedModels ]
-      this.addPagination()
+    if (size > this.relatedModels.length) {
+      if (isReset) {
+        this.relatedModels = formatedModels
+        this.clearPagination()
+      } else {
+        this.relatedModels = [ ...this.relatedModels, ...formatedModels ]
+        this.addPagination()
+      }
     }
   }
   formatModelData (models) {

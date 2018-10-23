@@ -176,7 +176,7 @@ export default {
       return api.datasource.saveDataRange(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
-      return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName)
+      return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.pageOffset, para.pageSize)
     },
     [types.FETCH_DATABASES]: function ({commit}, para) {
       return api.datasource.fetchDatabases(para.projectName, para.sourceType)
@@ -204,7 +204,13 @@ export default {
       return api.datasource.fetchMergeConfig(para.projectName, para.modelName, para.tableFullName)
     },
     [types.UPDATE_MERGE_CONFIG]: function ({commit}, para) {
-      return api.datasource.updateMergeConfig(para.projectName, para.modelName, para.tableFullName, para.isAutoMerge, para.autoMergeConfigs, para.isVolatile, para.volatileConfig)
+      return api.datasource.updateMergeConfig(para.projectName, para.modelName, para.tableFullName, para.isAutoMerge, para.autoMergeConfigs, para.isVolatile, para.volatileConfig.value, para.volatileConfig.type)
+    },
+    [types.FETCH_PUSHDOWN_CONFIG]: function ({commit}, para) {
+      return api.datasource.fetchPushdownConfig(para.projectName, para.tableFullName)
+    },
+    [types.UPDATE_PUSHDOWN_CONFIG]: function ({commit}, para) {
+      return api.datasource.updatePushdownConfig(para.projectName, para.tableFullName, para.isPushdownSync)
     }
   }
 }

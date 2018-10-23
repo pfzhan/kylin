@@ -30,8 +30,9 @@ const initialState = JSON.stringify({
     autoMergeConfigs: [],
     volatileConfig: {
       value: 0,
-      type: 'day'
-    }
+      type: 'DAY'
+    },
+    isPushdownSync: true
   }
 })
 
@@ -79,13 +80,24 @@ export default {
       const { dispatch } = this
       return new Promise(async resolve => {
         commit(types.SET_MODAL, { editType, table, callback: resolve })
-        if (editType !== editTypes.DATA_MERGE) {
-          commit(types.INIT_FORM)
-        } else {
-          const tableFullName = `${table.database}.${table.name}`
-          const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
-          const payload = formatMergeConfig(await handleSuccessAsync(response))
-          commit(types.INIT_FORM, payload)
+        switch (editType) {
+          case editTypes.DATA_MERGE: {
+            const tableFullName = `${table.database}.${table.name}`
+            const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
+            const payload = formatMergeConfig(await handleSuccessAsync(response))
+            commit(types.INIT_FORM, payload)
+            break
+          }
+          case editTypes.PUSHDOWN_CONFIG: {
+            const tableFullName = `${table.database}.${table.name}`
+            const response = await dispatch('FETCH_PUSHDOWN_CONFIG', { projectName, tableFullName })
+            const isPushdownSync = await handleSuccessAsync(response)
+            commit(types.INIT_FORM, { isPushdownSync })
+            break
+          }
+          default: {
+            commit(types.INIT_FORM)
+          }
         }
         commit(types.SHOW_MODAL)
       })
@@ -100,7 +112,7 @@ function formatMergeConfig (response) {
   const autoMergeConfigs = response.auto_merge_time_ranges
   const volatileConfig = {
     value: response.volatile_range.volatile_range_number,
-    type: response.volatile_range.volatile_range_type.toLowerCase()
+    type: response.volatile_range.volatile_range_type
   }
   const isMergeable = isAutoMerge && isVolatile
   return { isMergeable, isAutoMerge, isVolatile, autoMergeConfigs, volatileConfig }

@@ -19,7 +19,7 @@
             :placeholder="$t('searchModel')">
           </el-input>
         </el-row>
-        <el-row v-for="(modelCardGroup, index) in modelCardGroups" :key="index" :gutter="10">
+        <el-row v-if="relatedModels.length" v-for="(modelCardGroup, index) in modelCardGroups" :key="index" :gutter="10">
           <el-col v-for="relatedModel in modelCardGroup" :key="relatedModel.uuid" :span="span">
             <div class="model-card">
               <el-row class="model-header">
@@ -36,6 +36,7 @@
             </div>
           </el-col>
         </el-row>
+        <el-row v-if="!relatedModels.length" class="center">{{$t('kylinLang.common.noData')}}</el-row>
         <Waypoint :scrollable-ancestor="scrollableAncestor" @enter="handleLoadMore"></Waypoint>
       </div>
     </el-collapse-transition>
@@ -182,6 +183,10 @@ export default class RelatedModels extends Vue {
     right: 20px;
     line-height: 21px;
     display: none;
+  }
+  .center {
+    text-align: center;
+    padding: 20px;
   }
 }
 </style>
