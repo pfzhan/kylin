@@ -39,6 +39,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -303,16 +304,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     }
 
     public NCuboidLayout getCuboidLayout(Long cuboidLayoutId) {
-        val layout = getSpanningTree().getCuboidLayout(cuboidLayoutId);
-        if (layout != null) {
-            return layout;
-        }
-        for (NCuboidLayout cuboidLayout : getAllCuboidLayouts()) {
-            if (cuboidLayout.getId() == cuboidLayoutId) {
-                return cuboidLayout;
-            }
-        }
-        return null;
+        return getSpanningTree().getCuboidLayout(cuboidLayoutId);
     }
 
     public KylinConfig getConfig() {
@@ -467,12 +459,12 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
 
     public List<NCuboidLayout> getAllCuboidLayouts() {
-        Set<NCuboidLayout> r = Sets.newHashSet();
+        List<NCuboidLayout> r = Lists.newArrayList();
 
         for (NCuboidDesc cd : getAllCuboids()) {
             r.addAll(cd.getLayouts());
         }
-        return Lists.newArrayList(r);
+        return r;
     }
 
     public List<NCuboidLayout> getRuleBaseCuboidLayouts() {
@@ -615,7 +607,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
      * will ignore rule based cuboids;
      * @return
      */
-    public Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> getCuboidMap() {
+    public Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> getWhiteListCuboidsMap() {
         Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = Maps.newLinkedHashMap();
         for (NCuboidDesc cuboidDesc : getAllCuboids()) {
             if (cuboidDesc.isRuleBased()) {
@@ -656,4 +648,54 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         this.dictionaries = dictionaries;
     }
 
+    public void removeLayouts(Map<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboids,
+                              Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+        Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = getWhiteListCuboidsMap();
+        for (Map.Entry<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboidEntity : cuboids.entrySet()) {
+            NCuboidDesc.NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
+            NCuboidDesc originalCuboid = originalCuboidsMap.get(cuboidKey);
+            if (originalCuboid == null) {
+                continue;
+            }
+            originalCuboid.removeLayoutsInCuboid(cuboidEntity.getValue(), isSkip, equal);
+            if (originalCuboid.getLayouts().isEmpty()) {
+                originalCuboidsMap.remove(cuboidKey);
+            }
+        }
+
+        setCuboids(Lists.newArrayList(originalCuboidsMap.values()));
+    }
+
+    /**
+     * remove useless layouts from cubePlan without shared
+     * this method will not persist cubePlan entity
+     *  @param cuboidLayoutMap the layouts to be removed, group by cuboid's identify
+     * @param comparator      compare if two layouts is equal
+     */
+    public void removeLayouts(Map<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap,
+                              Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+        removeLayouts(cuboidLayoutMap, null, comparator);
+    }
+
+    public void removeLayouts(Set<Long> cuboidLayoutIds,
+                              Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+        val cuboidMap = Maps.newHashMap(getWhiteListCuboidsMap());
+        val toRemovedMap = Maps.<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
+        for (Map.Entry<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
+            if (cuboidDescEntry.getValue().isRuleBased()) {
+                continue;
+            }
+            val layouts = cuboidDescEntry.getValue().getLayouts();
+            val filteredLayouts = Lists.<NCuboidLayout> newArrayList();
+            for (NCuboidLayout layout : layouts) {
+                if (cuboidLayoutIds.contains(layout.getId())) {
+                    filteredLayouts.add(layout);
+                }
+            }
+
+            toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
+        }
+
+        removeLayouts(toRemovedMap, comparator);
+    }
 }

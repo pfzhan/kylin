@@ -24,6 +24,20 @@
 
 package io.kyligence.kap.cube.model;
 
+import static io.kyligence.kap.metadata.model.NDataModel.Measure;
+
+import java.io.Serializable;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import javax.annotation.Nullable;
+
+import org.apache.calcite.linq4j.function.Predicate2;
+import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.metadata.model.TblColRef;
+
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -35,19 +49,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
-import org.apache.kylin.common.util.ImmutableBitSet;
-import org.apache.kylin.metadata.model.TblColRef;
-
-import javax.annotation.Nullable;
-import java.io.Serializable;
-import java.util.BitSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-
-import static io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -60,6 +64,8 @@ public class NCuboidDesc implements Serializable, IKeep {
     public static final long RULE_BASED_CUBOID_START_ID = CUBOID_ID_SIZE;
     public static final long TABLE_INDEX_START_ID = 2 * CUBOID_ID_SIZE;
     public static final long MANUAL_TABLE_INDEX_START_ID = 3 * CUBOID_ID_SIZE;
+    public static final long CUBOID_DESC_ID_STEP = 1000L;
+    public static final long CUBOID_LAYOUT_ID_STEP = 1L;
 
     @JsonBackReference
     private NCubePlan cubePlan;
@@ -234,6 +240,28 @@ public class NCuboidDesc implements Serializable, IKeep {
 
     public boolean isManualTableIndex() {
         return id >= MANUAL_TABLE_INDEX_START_ID;
+    }
+
+    void removeLayoutsInCuboid(List<NCuboidLayout> deprecatedLayouts,
+                               Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+        List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
+        for (NCuboidLayout cuboidLayout : deprecatedLayouts) {
+            if (isSkip != null && isSkip.apply(cuboidLayout)) {
+                continue;
+            }
+            NCuboidLayout toRemoveLayout = null;
+            for (NCuboidLayout originalLayout : getLayouts()) {
+                if (equal.apply(originalLayout, cuboidLayout)) {
+                    toRemoveLayout = originalLayout;
+                    break;
+                }
+            }
+            if (toRemoveLayout != null) {
+                toRemoveLayouts.add(toRemoveLayout);
+            }
+        }
+//        logger.debug("to remove {}", toRemoveLayouts);
+        getLayouts().removeAll(toRemoveLayouts);
     }
 
     // ============================================================================

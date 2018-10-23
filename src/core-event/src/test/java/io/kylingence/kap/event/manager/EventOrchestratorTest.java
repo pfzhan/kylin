@@ -23,7 +23,19 @@
  */
 package io.kylingence.kap.event.manager;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kylingence.kap.event.model.AddCuboidEvent;
 import io.kylingence.kap.event.model.AddSegmentEvent;
@@ -31,18 +43,8 @@ import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
 import io.kylingence.kap.event.model.MergeSegmentEvent;
 import io.kylingence.kap.event.model.ModelUpdateEvent;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kylingence.kap.event.model.RemoveSegmentEvent;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
 
@@ -160,7 +162,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         initEvents.add(removeSegmentEvent);
 
         Thread.sleep(10);
-        RemoveCuboidEvent removeCuboidEvent = new RemoveCuboidEvent();
+        RemoveCuboidBySqlEvent removeCuboidEvent = new RemoveCuboidBySqlEvent();
         removeCuboidEvent.setSqlList(Lists.<String>newArrayList());
         removeCuboidEvent.setApproved(true);
         removeCuboidEvent.setProject(DEFAULT_PROJECT);
@@ -177,7 +179,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         initEvents.add(addCuboidEvent);
 
         Thread.sleep(10);
-        removeCuboidEvent = new RemoveCuboidEvent();
+        removeCuboidEvent = new RemoveCuboidBySqlEvent();
         removeCuboidEvent.setSqlList(Lists.<String>newArrayList());
         removeCuboidEvent.setApproved(true);
         removeCuboidEvent.setProject(DEFAULT_PROJECT);

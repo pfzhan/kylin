@@ -82,7 +82,7 @@ public class NCuboidReducer extends NAbstractCubeProposer {
         for (Entry<NCuboidIdentifier, NCuboidDesc> entry : proposedCuboids.entrySet()) {
             cuboidLayoutMap.put(entry.getKey(), entry.getValue().getLayouts());
         }
-        cubePlanManager.removeLayouts(cubePlan, cuboidLayoutMap, new Predicate<NCuboidLayout>() {
+        cubePlan.removeLayouts(cuboidLayoutMap, new Predicate<NCuboidLayout>() {
             @Override
             public boolean apply(@Nullable NCuboidLayout input) {
                 // TODO check if this layout is used by other query

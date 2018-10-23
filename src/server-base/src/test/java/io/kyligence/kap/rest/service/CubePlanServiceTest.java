@@ -29,10 +29,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
-import io.kyligence.kap.rest.response.TableIndexResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.rest.constant.Constant;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -55,10 +53,11 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
+import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.model.AddCuboidEvent;
 import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 import lombok.var;
 
@@ -227,7 +226,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(2, allEvents.size());
         val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
+        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
     }
 
     @Test
@@ -258,7 +257,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(3, allEvents.size());
         val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
+        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
         val event2 = allEvents.get(2);
         Assert.assertThat(((AddCuboidEvent) event2).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_001_001L)));
     }

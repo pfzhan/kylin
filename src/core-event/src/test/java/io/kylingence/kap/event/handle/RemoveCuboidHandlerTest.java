@@ -38,7 +38,9 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.EventContext;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
+import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -71,7 +73,7 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
         NCubePlan cubePlan = cubePlanManager.getCubePlan("all_fixed_length");
         int cuboidLayoutSize = cubePlan.getAllCuboidLayouts().size();
 
-        RemoveCuboidEvent event = new RemoveCuboidEvent();
+        val event = new RemoveCuboidBySqlEvent();
         event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
@@ -79,7 +81,7 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
         event.setSqlList(sqls);
 
         EventContext eventContext = new EventContext(event, getTestConfig());
-        RemoveCuboidHandler handler = new RemoveCuboidHandler();
+        RemoveCuboidBySqlHandler handler = new RemoveCuboidBySqlHandler();
         // then remove the added cuboid layouts
         handler.handle(eventContext);
 
@@ -108,7 +110,7 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
             log.warn("layout({}) {} {}", layout.getCuboidDesc().isRuleBased(), layout.getId(), layout);
         }
 
-        RemoveCuboidEvent event = new RemoveCuboidEvent();
+        val event = new RemoveCuboidByIdEvent();
         event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
@@ -116,7 +118,7 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
         event.setLayoutIds(Lists.<Long> newArrayList(1000001L));
 
         EventContext eventContext = new EventContext(event, getTestConfig());
-        RemoveCuboidHandler handler = new RemoveCuboidHandler();
+        val handler = new RemoveCuboidByIdHandler();
         // then remove the added cuboid layouts
         handler.handle(eventContext);
 

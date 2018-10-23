@@ -36,7 +36,7 @@ import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
 import io.kylingence.kap.event.handle.LoadingRangeRefreshHandler;
 import io.kylingence.kap.event.handle.RefreshSegmentHandler;
-import io.kylingence.kap.event.handle.RemoveCuboidHandler;
+import io.kylingence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kylingence.kap.event.model.EventContext;
 import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 import io.kylingence.kap.event.model.RefreshSegmentEvent;
@@ -106,7 +106,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         System.setProperty("isDeveloperMode", "false");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "30");
 
-        new RemoveCuboidHandler();
+        new RemoveCuboidBySqlHandler();
         new ModelUpdateHandler();
         new LoadingRangeUpdateHandler();
         new LoadingRangeRefreshHandler();

@@ -36,11 +36,11 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
-import io.kylingence.kap.event.model.CubePlanCleanupEvent;
+import io.kylingence.kap.event.model.PostCubePlanRuleUpdateEvent;
 import io.kylingence.kap.event.model.EventContext;
 import lombok.val;
 
-public class CubePlanCleanupHandlerTest extends NLocalFileMetadataTestCase {
+public class PostCubePlanRuleUpdateHandlerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         createTestMetadata();
@@ -56,7 +56,7 @@ public class CubePlanCleanupHandlerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCleanUp() throws Exception {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
-        val cubePlanCleanupEvent = new CubePlanCleanupEvent();
+        val cubePlanCleanupEvent = new PostCubePlanRuleUpdateEvent();
 
         val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", new NCubePlanManager.NCubePlanUpdater() {
             @Override
@@ -71,7 +71,7 @@ public class CubePlanCleanupHandlerTest extends NLocalFileMetadataTestCase {
         cubePlanCleanupEvent.setCubePlanName(cubePlan.getName());
 
         val eventContext = new EventContext(cubePlanCleanupEvent, getTestConfig());
-        val handler = new CubePlanCleanupHandler();
+        val handler = new PostCubePlanRuleUpdateHandler();
         handler.handle(eventContext);
 
         val cleanedPlan = cubePlanManager.getCubePlan("ncube_basic_inner");

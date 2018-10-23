@@ -33,25 +33,24 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.CubePlanCleanupEvent;
-import io.kylingence.kap.event.model.CubePlanUpdateEvent;
+import io.kylingence.kap.event.model.CubePlanRuleUpdateEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventContext;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.PostCubePlanRuleUpdateEvent;
+import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CubePlanUpdateHandler extends AbstractEventHandler {
+public class CubePlanRuleUpdateHandler extends AbstractEventHandler {
 
     @Override
     protected void doHandle(EventContext eventContext) throws Exception {
-        val event = (CubePlanUpdateEvent) eventContext.getEvent();
+        val event = (CubePlanRuleUpdateEvent) eventContext.getEvent();
 
         val kylinConfig = eventContext.getConfig();
 
@@ -63,11 +62,11 @@ public class CubePlanUpdateHandler extends AbstractEventHandler {
 
     }
 
-    private void handleModelChanged(CubePlanUpdateEvent event, KylinConfig kylinConfig) {
+    private void handleModelChanged(CubePlanRuleUpdateEvent event, KylinConfig kylinConfig) {
         // TODO
     }
 
-    private void handleDiffLayouts(CubePlanUpdateEvent event, KylinConfig kylinConfig) throws Exception {
+    private void handleDiffLayouts(CubePlanRuleUpdateEvent event, KylinConfig kylinConfig) throws Exception {
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, event.getProject());
         val ruleBasedCuboidDesc = cubePlanManager.getCubePlan(event.getCubePlanName()).getRuleBasedCuboidsDesc();
         val newRuleBasedCuboidDesc = ruleBasedCuboidDesc.getNewRuleBasedCuboid();
@@ -101,41 +100,28 @@ public class CubePlanUpdateHandler extends AbstractEventHandler {
             for (NCuboidLayout addedLayout : difference.entriesOnlyOnRight().keySet()) {
                 layoutIds.add(addedLayout.getId());
             }
-            cubePlanManager.updateCubePlan(event.getCubePlanName(), new NCubePlanManager.NCubePlanUpdater() {
-                @Override
-                public void modify(NCubePlan copyForWrite) {
-                    copyForWrite.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().setCuboidIdMapping(newRuleBasedCuboidDesc.getCuboidIdMapping());
-                }
-            });
             addCuboidEvent.setLayoutIds(layoutIds);
             fireEvent(addCuboidEvent, event, kylinConfig);
         }
 
         // old cuboid
         if (difference.entriesOnlyOnLeft().size() > 0) {
-            val removeCuboidEvent = new RemoveCuboidEvent();
+            val removeCuboidEvent = new RemoveCuboidByIdEvent();
             val layoutIds = new ArrayList<Long>();
             for (NCuboidLayout removedLayout : difference.entriesOnlyOnLeft().keySet()) {
                 layoutIds.add(removedLayout.getId());
-                ruleBasedCuboidDesc.getCuboidIdMapping().remove(removedLayout.getId());
             }
-            cubePlanManager.updateCubePlan(event.getCubePlanName(), new NCubePlanManager.NCubePlanUpdater() {
-                @Override
-                public void modify(NCubePlan copyForWrite) {
-                    copyForWrite.getRuleBasedCuboidsDesc().setCuboidIdMapping(ruleBasedCuboidDesc.getCuboidIdMapping());
-                }
-            });
             removeCuboidEvent.setLayoutIds(layoutIds);
             fireEvent(removeCuboidEvent, event, kylinConfig);
         }
 
         // cleanup metadata
-        val metadataEvent = new CubePlanCleanupEvent();
+        val metadataEvent = new PostCubePlanRuleUpdateEvent();
         fireEvent(metadataEvent, event, kylinConfig);
 
     }
 
-    private void fireEvent(Event newEvent, CubePlanUpdateEvent originEvent, KylinConfig kylinConfig) throws PersistentException {
+    private void fireEvent(Event newEvent, CubePlanRuleUpdateEvent originEvent, KylinConfig kylinConfig) throws PersistentException {
         val eventManager = EventManager.getInstance(kylinConfig, originEvent.getProject());
         val eventAutoApproved = kylinConfig.getEventAutoApproved();
 
@@ -150,6 +136,6 @@ public class CubePlanUpdateHandler extends AbstractEventHandler {
 
     @Override
     public Class<?> getEventClassType() {
-        return CubePlanUpdateEvent.class;
+        return CubePlanRuleUpdateEvent.class;
     }
 }

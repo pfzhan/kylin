@@ -32,6 +32,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -114,6 +115,28 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         // touch lower level metadata before registering my listener
         crud.reloadAll();
         Broadcaster.getInstance(config).registerListener(new NDataflowSyncListener(), project, "ncube");
+    }
+
+    public NDataflow removeLayouts(NDataflow df, List<Long> tobeRemoveCuboidLayoutIds)
+            throws IOException {
+        List<NDataCuboid> tobeRemoveCuboidLayout = Lists.newArrayList();
+        Segments<NDataSegment> segments = df.getSegments();
+        for (NDataSegment segment : segments) {
+            for (Long tobeRemoveCuboidLayoutId : tobeRemoveCuboidLayoutIds) {
+                NDataCuboid dataCuboid = segment.getCuboid(tobeRemoveCuboidLayoutId);
+                if (dataCuboid == null) {
+                    continue;
+                }
+                tobeRemoveCuboidLayout.add(dataCuboid);
+            }
+        }
+
+        if (CollectionUtils.isNotEmpty(tobeRemoveCuboidLayout)) {
+            NDataflowUpdate update = new NDataflowUpdate(df.getName());
+            update.setToRemoveCuboids(tobeRemoveCuboidLayout.toArray(new NDataCuboid[0]));
+            return updateDataflow(update);
+        }
+        return df;
     }
 
     private class NDataflowSyncListener extends Broadcaster.Listener {

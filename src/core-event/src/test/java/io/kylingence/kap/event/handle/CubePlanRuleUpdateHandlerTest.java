@@ -37,13 +37,13 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.CubePlanUpdateEvent;
+import io.kylingence.kap.event.model.CubePlanRuleUpdateEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventContext;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 
-public class CubePlanUpdateHandlerTest extends NLocalFileMetadataTestCase {
+public class CubePlanRuleUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
@@ -60,7 +60,7 @@ public class CubePlanUpdateHandlerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testOnlyRuleChanged() throws Exception {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
-        val cubePlanUpdateEvent = new CubePlanUpdateEvent();
+        val cubePlanUpdateEvent = new CubePlanRuleUpdateEvent();
 
         val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", new NCubePlanManager.NCubePlanUpdater() {
             @Override
@@ -75,7 +75,7 @@ public class CubePlanUpdateHandlerTest extends NLocalFileMetadataTestCase {
         cubePlanUpdateEvent.setCubePlanName(cubePlan.getName());
 
         val eventContext = new EventContext(cubePlanUpdateEvent, getTestConfig());
-        val handler = new CubePlanUpdateHandler();
+        val handler = new CubePlanRuleUpdateHandler();
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
@@ -84,8 +84,8 @@ public class CubePlanUpdateHandlerTest extends NLocalFileMetadataTestCase {
             if (event instanceof AddCuboidEvent) {
                 Assert.assertEquals(1, ((AddCuboidEvent) event).getLayoutIds().size());
             }
-            if (event instanceof RemoveCuboidEvent) {
-                Assert.assertEquals(13, ((RemoveCuboidEvent) event).getLayoutIds().size());
+            if (event instanceof RemoveCuboidByIdEvent) {
+                Assert.assertEquals(13, ((RemoveCuboidByIdEvent) event).getLayoutIds().size());
             }
         }
     }

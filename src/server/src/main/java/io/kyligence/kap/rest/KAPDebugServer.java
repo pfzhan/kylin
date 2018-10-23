@@ -27,13 +27,14 @@ package io.kyligence.kap.rest;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
-import io.kylingence.kap.event.handle.CubePlanCleanupHandler;
-import io.kylingence.kap.event.handle.CubePlanUpdateHandler;
+import io.kylingence.kap.event.handle.PostCubePlanRuleUpdateHandler;
+import io.kylingence.kap.event.handle.CubePlanRuleUpdateHandler;
 import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
 import io.kylingence.kap.event.handle.MergeSegmentHandler;
 import io.kylingence.kap.event.handle.ModelUpdateHandler;
 import io.kylingence.kap.event.handle.ProjectHandler;
-import io.kylingence.kap.event.handle.RemoveCuboidHandler;
+import io.kylingence.kap.event.handle.RemoveCuboidByIdHandler;
+import io.kylingence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kylingence.kap.event.handle.RemoveSegmentHandler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -114,13 +115,14 @@ public class KAPDebugServer {
         new ProjectHandler();
         new AddSegmentHandler();
         new MergeSegmentHandler();
-        new RemoveCuboidHandler();
+        new RemoveCuboidBySqlHandler();
+        new RemoveCuboidByIdHandler();
         new RemoveSegmentHandler();
         new AddCuboidHandler();
         new ModelUpdateHandler();
         new LoadingRangeUpdateHandler();
-        new CubePlanUpdateHandler();
-        new CubePlanCleanupHandler();
+        new CubePlanRuleUpdateHandler();
+        new PostCubePlanRuleUpdateHandler();
 
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
         try {

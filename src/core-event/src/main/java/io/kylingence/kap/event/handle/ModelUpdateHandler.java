@@ -23,17 +23,12 @@
  */
 package io.kylingence.kap.event.handle;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.smart.model.ModelTree;
-import io.kylingence.kap.event.manager.EventManager;
-import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.ModelUpdateEvent;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -41,13 +36,18 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kylingence.kap.event.model.EventContext;
+import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.smart.model.ModelTree;
+import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.AddCuboidEvent;
+import io.kylingence.kap.event.model.EventContext;
+import io.kylingence.kap.event.model.ModelUpdateEvent;
+import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
 
 public class ModelUpdateHandler extends AbstractEventHandler {
 
@@ -92,7 +92,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                 Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan, targetCubePlan);
                 List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
                 AddCuboidEvent addCuboidEvent;
-                RemoveCuboidEvent removeCuboidEvent;
+                RemoveCuboidBySqlEvent removeCuboidEvent;
                 if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
                     addCuboidEvent = new AddCuboidEvent();
                     addCuboidEvent.setApproved(eventAutoApproved);
@@ -107,7 +107,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                 }
 
                 if (!event.isFavoriteMark() && origCubePlan != null) {
-                    removeCuboidEvent = new RemoveCuboidEvent();
+                    removeCuboidEvent = new RemoveCuboidBySqlEvent();
                     removeCuboidEvent.setSqlList(Lists.newArrayList(sqls));
                     removeCuboidEvent.setApproved(eventAutoApproved);
                     removeCuboidEvent.setProject(project);

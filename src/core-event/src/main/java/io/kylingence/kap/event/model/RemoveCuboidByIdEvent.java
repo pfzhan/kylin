@@ -21,19 +21,20 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kylingence.kap.event.model;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.EqualsAndHashCode;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class CubePlanUpdateEvent extends Event {
+public class RemoveCuboidByIdEvent extends RemoveCuboidEvent {
 
-    @JsonProperty("is_model_changed")
-    private boolean isModelChanged;
+    @JsonProperty("layout_ids")
+    private List<Long> layoutIds;
 
 }

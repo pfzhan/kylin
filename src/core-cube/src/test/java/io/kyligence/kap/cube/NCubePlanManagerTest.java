@@ -128,7 +128,7 @@ public class NCubePlanManagerTest {
 
         var cube = manager.getCubePlan("ncube_basic_inner").copy();
         val originalSize = cube.getAllCuboidLayouts().size();
-        val cuboidMap = Maps.newHashMap(cube.getCuboidMap());
+        val cuboidMap = Maps.newHashMap(cube.getWhiteListCuboidsMap());
         val toRemovedMap = Maps.<NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
         for (Map.Entry<NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
             if (cuboidDescEntry.getValue().isRuleBased()) {
@@ -144,7 +144,7 @@ public class NCubePlanManagerTest {
 
             toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
         }
-        manager.removeLayouts(cube, toRemovedMap, new Predicate2<NCuboidLayout, NCuboidLayout>() {
+        cube.removeLayouts(toRemovedMap, new Predicate2<NCuboidLayout, NCuboidLayout>() {
             @Override
             public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
                 return nCuboidLayout.equals(nCuboidLayout2);
@@ -153,7 +153,7 @@ public class NCubePlanManagerTest {
         Assert.assertEquals(originalSize - 2, cube.getAllCuboidLayouts().size());
 
         cube = manager.getCubePlan("ncube_basic_inner").copy();
-        manager.removeLayouts(cube, toRemovedMap, new Predicate<NCuboidLayout>() {
+        cube.removeLayouts(toRemovedMap, new Predicate<NCuboidLayout>() {
             @Override
             public boolean apply(@Nullable NCuboidLayout input) {
                 return input != null && input.getId() == 1002L;
@@ -174,7 +174,7 @@ public class NCubePlanManagerTest {
 
         var cube = manager.getCubePlan("ncube_basic_inner").copy();
         val originalSize = cube.getAllCuboidLayouts().size();
-        manager.removeLayouts(cube, Sets.newHashSet(1000001L, 1002L), new Predicate2<NCuboidLayout, NCuboidLayout>() {
+        cube.removeLayouts(Sets.newHashSet(1000001L, 1002L), new Predicate2<NCuboidLayout, NCuboidLayout>() {
             @Override
             public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
                 return nCuboidLayout.equals(nCuboidLayout2);

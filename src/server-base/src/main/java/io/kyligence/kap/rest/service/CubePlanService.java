@@ -58,8 +58,8 @@ import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.CubePlanUpdateEvent;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import io.kylingence.kap.event.model.CubePlanRuleUpdateEvent;
+import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 
 @Service("cubePlanService")
@@ -97,7 +97,7 @@ public class CubePlanService extends BasicService {
                         copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRuleBasedCuboid);
                     }
                 });
-        val event = new CubePlanUpdateEvent();
+        val event = new CubePlanRuleUpdateEvent();
         event.setApproved(true);
         event.setProject(request.getProject());
         event.setCubePlanName(cubePlan.getName());
@@ -141,17 +141,17 @@ public class CubePlanService extends BasicService {
         }
 
         val newLayout = new NCuboidLayout();
-        long maxCuboidId = NCuboidDesc.MANUAL_TABLE_INDEX_START_ID - NCubePlanManager.CUBOID_DESC_ID_STEP;
+        long maxCuboidId = NCuboidDesc.MANUAL_TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
         for (NCuboidDesc cuboid : cubePlan.getAllCuboids()) {
             if (cuboid.isTableIndex()) {
                 maxCuboidId = Math.max(maxCuboidId, cuboid.getId());
             }
         }
-        newLayout.setId(maxCuboidId + NCubePlanManager.CUBOID_DESC_ID_STEP + 1);
+        newLayout.setId(maxCuboidId + NCuboidDesc.CUBOID_DESC_ID_STEP + 1);
 
         // handle remove the latest table index
         if (Objects.equals(newLayout.getId(), request.getId())) {
-            newLayout.setId(newLayout.getId() + NCubePlanManager.CUBOID_DESC_ID_STEP);
+            newLayout.setId(newLayout.getId() + NCuboidDesc.CUBOID_DESC_ID_STEP);
         }
         newLayout.setName(request.getName());
         newLayout.setColOrder(convertColumn(request.getColOrder(), model));
@@ -209,7 +209,7 @@ public class CubePlanService extends BasicService {
         cubePlanManager.updateCubePlan(cubePlan.getName(), new NCubePlanManager.NCubePlanUpdater() {
             @Override
             public void modify(NCubePlan copyForWrite) {
-                cubePlanManager.removeLayouts(copyForWrite, Sets.newHashSet(id),
+                copyForWrite.removeLayouts(Sets.newHashSet(id),
                         new Predicate2<NCuboidLayout, NCuboidLayout>() {
                             @Override
                             public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
@@ -218,7 +218,7 @@ public class CubePlanService extends BasicService {
                         });
             }
         });
-        val removeEvent = new RemoveCuboidEvent();
+        val removeEvent = new RemoveCuboidByIdEvent();
         removeEvent.setLayoutIds(Arrays.asList(id));
         removeEvent.setProject(project);
         removeEvent.setModelName(cubePlan.getModelName());

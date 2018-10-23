@@ -25,14 +25,14 @@ package io.kylingence.kap.event.handle;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kylingence.kap.event.model.CubePlanCleanupEvent;
+import io.kylingence.kap.event.model.PostCubePlanRuleUpdateEvent;
 import io.kylingence.kap.event.model.EventContext;
 import lombok.val;
 
-public class CubePlanCleanupHandler extends AbstractEventHandler {
+public class PostCubePlanRuleUpdateHandler extends AbstractEventHandler {
     @Override
     protected void doHandle(EventContext eventContext) throws Exception {
-        val event = (CubePlanCleanupEvent) eventContext.getEvent();
+        val event = (PostCubePlanRuleUpdateEvent) eventContext.getEvent();
         val kylinConfig = eventContext.getConfig();
 
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, event.getProject());
@@ -51,6 +51,6 @@ public class CubePlanCleanupHandler extends AbstractEventHandler {
 
     @Override
     public Class<?> getEventClassType() {
-        return CubePlanCleanupEvent.class;
+        return PostCubePlanRuleUpdateEvent.class;
     }
 }

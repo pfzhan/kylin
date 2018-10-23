@@ -21,10 +21,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.cube.model;
 
-public enum NCuboidLayoutStatus {
+package io.kylingence.kap.event.model;
 
-    EMPTY, AVAILABLE, BROKEN
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
+public class CubePlanRuleUpdateEvent extends Event {
+
+    @JsonProperty("is_model_changed")
+    private boolean isModelChanged;
 
 }

@@ -27,58 +27,43 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.calcite.linq4j.function.Predicate2;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.EventContext;
+import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kylingence.kap.event.model.RemoveCuboidEvent;
 
-public class RemoveCuboidHandler extends AbstractEventHandler {
+public class RemoveCuboidBySqlHandler extends AbstractEventHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(RemoveCuboidHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(RemoveCuboidBySqlHandler.class);
 
     @Override
     protected void doHandle(EventContext eventContext) throws Exception {
-        final RemoveCuboidEvent event = (RemoveCuboidEvent) eventContext.getEvent();
+        val event = (RemoveCuboidBySqlEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
 
+        removeBySql(event, kylinConfig, project);
+
+        logger.info("RemoveCuboidBySqlHandler doHandle success...");
+    }
+
+    private void removeBySql(final RemoveCuboidBySqlEvent event, KylinConfig kylinConfig, String project)
+            throws IOException {
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
-
-        if (CollectionUtils.isNotEmpty(event.getLayoutIds())) {
-            final NCubePlanManager cpMgr = NCubePlanManager.getInstance(kylinConfig, project);
-            cpMgr.updateCubePlan(event.getCubePlanName(), new NCubePlanManager.NCubePlanUpdater() {
-                @Override
-                public void modify(NCubePlan copyForWrite) {
-                    cpMgr.removeLayouts(copyForWrite, Sets.newHashSet(event.getLayoutIds()),
-                            new Predicate2<NCuboidLayout, NCuboidLayout>() {
-                                @Override
-                                public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
-                                    return o1.equals(o2);
-                                }
-                            });
-                }
-            });
-            removeLayouts(df, event.getLayoutIds(), dfMgr);
-        }
 
         List<String> sqlList = event.getSqlList();
         if (CollectionUtils.isEmpty(sqlList)) {
@@ -98,11 +83,9 @@ public class RemoveCuboidHandler extends AbstractEventHandler {
                     continue;
                 }
                 // remove dataFlow cuboidLayout
-                df = removeLayouts(df, tobeRemoveCuboidLayoutIds, dfMgr);
+                df = dfMgr.removeLayouts(df, tobeRemoveCuboidLayoutIds);
             }
         }
-
-        logger.info("RemoveCuboidHandler doHandle success...");
     }
 
     private void doShrink(NSmartMaster master) throws IOException {
@@ -149,28 +132,6 @@ public class RemoveCuboidHandler extends AbstractEventHandler {
             layoutIds.add(layout.getId());
         }
         return layoutIds;
-    }
-
-    private NDataflow removeLayouts(NDataflow df, List<Long> tobeRemoveCuboidLayoutIds, NDataflowManager dfMgr)
-            throws IOException {
-        List<NDataCuboid> tobeRemoveCuboidLayout = Lists.newArrayList();
-        Segments<NDataSegment> segments = df.getSegments();
-        for (NDataSegment segment : segments) {
-            for (Long tobeRemoveCuboidLayoutId : tobeRemoveCuboidLayoutIds) {
-                NDataCuboid dataCuboid = segment.getCuboid(tobeRemoveCuboidLayoutId);
-                if (dataCuboid == null) {
-                    continue;
-                }
-                tobeRemoveCuboidLayout.add(dataCuboid);
-            }
-        }
-
-        if (CollectionUtils.isNotEmpty(tobeRemoveCuboidLayout)) {
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
-            update.setToRemoveCuboids(tobeRemoveCuboidLayout.toArray(new NDataCuboid[0]));
-            return dfMgr.updateDataflow(update);
-        }
-        return df;
     }
 
     @Override

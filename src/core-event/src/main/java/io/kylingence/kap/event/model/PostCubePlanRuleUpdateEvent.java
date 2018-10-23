@@ -28,5 +28,5 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class CubePlanCleanupEvent extends Event {
+public class PostCubePlanRuleUpdateEvent extends Event {
 }

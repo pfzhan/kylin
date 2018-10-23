@@ -76,6 +76,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
 
         this.max = nRuleBasedCuboidsDesc.getFullMask();
 
+        // handle nRuleBasedCuboidDesc has 0 dimensions
         if (max == 0) {
             allCuboidIds = Sets.newHashSet();
             parent2child = Maps.newHashMap();

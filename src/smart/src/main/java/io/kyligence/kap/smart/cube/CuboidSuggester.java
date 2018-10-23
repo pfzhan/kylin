@@ -51,7 +51,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -354,7 +353,7 @@ public class CuboidSuggester {
     }
 
     private long suggestDescId(boolean isTableIndex) {
-        return findLargestCuboidDescId(collector.values(), isTableIndex) + NCubePlanManager.CUBOID_DESC_ID_STEP;
+        return findLargestCuboidDescId(collector.values(), isTableIndex) + NCuboidDesc.CUBOID_DESC_ID_STEP;
     }
 
     private long suggestLayoutId(NCuboidDesc cuboidDesc) {
@@ -367,7 +366,7 @@ public class CuboidSuggester {
 
     private long findLargestCuboidDescId(Collection<NCuboidDesc> cuboidDescs, boolean isTableIndex) {
         if (isTableIndex) {
-            long maxId = NCuboidDesc.TABLE_INDEX_START_ID - NCubePlanManager.CUBOID_DESC_ID_STEP;
+            long maxId = NCuboidDesc.TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
             for (NCuboidDesc cuboidDesc : cuboidDescs) {
                 long cuboidId = cuboidDesc.getId();
                 if (cuboidId < NCuboidDesc.TABLE_INDEX_START_ID) {
@@ -377,7 +376,7 @@ public class CuboidSuggester {
             }
             return maxId;
         } else {
-            long maxId = 0 - NCubePlanManager.CUBOID_DESC_ID_STEP;
+            long maxId = 0 - NCuboidDesc.CUBOID_DESC_ID_STEP;
             for (NCuboidDesc cuboidDesc : cuboidDescs) {
                 long cuboidId = cuboidDesc.getId();
                 if (cuboidId >= NCuboidDesc.TABLE_INDEX_START_ID) {

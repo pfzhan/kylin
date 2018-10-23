@@ -286,7 +286,7 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         }
         if (cuboidIdMapping.isEmpty()) {
             for (int i = 0; i < allCuboidIds.size(); i++) {
-                cuboidIdMapping.add(advisedStartId + i * 1000);
+                cuboidIdMapping.add(advisedStartId + i * NCuboidDesc.CUBOID_DESC_ID_STEP);
             }
         }
 
@@ -311,7 +311,7 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
             Long prevId = layoutIdMap.get(layout);
             if (prevId != null) {
                 layout.setId(layoutIdMap.get(layout));
-                cuboidIdMapping.set(i, prevId);
+                cuboidIdMapping.set(i, prevId - 1);
             }
 
             //mock a NCuboidDesc for one legacy cuboid
