@@ -9,30 +9,7 @@
           <el-select :popper-append-to-body="false" style="width:350px" place-holder="" v-model="dimensionInfo.dimensionColumn"></el-select>
 
           <el-button size="medium" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain  v-if="addType === 'cc'"></el-button>
-          <el-form  class="cc-area" label-position="top" ref="ccForm" v-if="addType === 'cc'" >
-            <el-form-item prop="name" class="ksd-mb-10">
-              <span slot="label">{{$t('name')}}</span>
-              <el-input class="measures-width" size="medium"></el-input>
-            </el-form-item>
-            <el-form-item prop="returnType" class="ksd-mb-10">
-              <span slot="label">{{$t('returnType')}}</span>
-              <el-select size="medium" class="measures-width">
-              </el-select>
-            </el-form-item>
-            <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
-              <kap_editor ref="dimensionCCExpression" height="100" lang="sql" theme="chrome" >
-              </kap_editor>
-            </el-form-item>
-            <div class="btn-group clearfix">
-              <el-button size="small" plain  class="ksd-fleft">{{$t('kylinLang.common.delete')}}</el-button>
-              <el-button type="primary" size="small" plain  class="ksd-fright">
-                {{$t('kylinLang.common.save')}}
-              </el-button>
-              <el-button size="small" plain  class="ksd-fright">
-                {{$t('kylinLang.common.edit')}}
-              </el-button>
-            </div>
-        </el-form>
+          <CCEditForm/>
         </el-form-item>
         <el-form-item :label="$t('dimensionComment')" prop="age">
           <el-input type="textarea"></el-input>
@@ -53,6 +30,7 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../../store'
 import locales from './locales'
+import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import store, { types } from './store'
 vuex.registerModule(['modals', 'SingleDimensionModal'], store)
 @Component({
@@ -78,6 +56,9 @@ vuex.registerModule(['modals', 'SingleDimensionModal'], store)
     // 后台接口请求
     ...mapActions({
     })
+  },
+  components: {
+    CCEditForm
   },
   locales
 })

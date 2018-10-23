@@ -33,7 +33,7 @@ class NModel {
     this.$set(this._mount, 'tables', this.tables)
     this.$set(this._mount, 'all_measures', this.all_measures)
     this.$set(this._mount, 'dimensions', this.dimensions)
-    this.$set(this._mount, 'zoom', modelRenderConfig.zoom)
+    this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
     this.renderDom = this.vm.$el.querySelector(options.renderDom)
     this.plumbTool.init(this.renderDom, this._mount.zoom / 10)
     this.allConnInfo = {}
@@ -134,6 +134,29 @@ class NModel {
     this.allConnInfo[pid + '$' + fid] = conn
     return conn
   }
+  // 生成供后台使用的数据结构
+  generateMetadata () {
+    let metaData = {
+      uuid: this.uuid,
+      name: this.name,
+      fact_table: this.fact_table,
+      lookups: this._generateLookups(),
+      all_named_columns: this._generateAllColumns(),
+      all_measures: this.all_measures,
+      computed_columns: this.computed_columns,
+      last_modified: this.last_modified,
+      filter_condition: this.filter_condition,
+      partition_desc: this.partition_desc
+    }
+    return metaData
+  }
+  _generateLookups () {
+    return []
+  }
+  _generateAllColumns () {
+    return []
+  }
+  // end
   // 判断是否table有关联的链接
   isConnectedTable (guid) {
     var reg = new RegExp('^' + guid + '\\$|\\$' + guid + '$')

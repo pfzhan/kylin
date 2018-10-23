@@ -33,7 +33,13 @@ class NTable {
     //   this.joinInfo[pid].join.foreign_key.push(...linkColumnF)
     // } else {
     this.joinInfo[pid] = {
-      table: this,
+      table: {
+        guid: this.guid,
+        columns: this.columns,
+        name: this.name,
+        alias: this.alias,
+        kind: this.kind
+      },
       join: {
         type: type,
         primary_key: [...linkColumnP],

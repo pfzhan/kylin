@@ -117,5 +117,20 @@ export default {
   },
   fetchCuboids: (model, project) => {
     return Vue.resource(`${apiUrl}models/relations`).get({model, project})
+  },
+  getTableIndex: (para) => {
+    return Vue.resource(apiUrl + 'cube_plans/table_index').get(para)
+  },
+  editTableIndex: (para) => {
+    return Vue.resource(apiUrl + 'cube_plans/table_index').update(para)
+  },
+  delTableIndex: (para) => {
+    return Vue.resource(apiUrl + 'cube_plans/table_index/' + para.project + '/' + para.modelName + '/' + para.tableIndexId).delete()
+  },
+  addTableIndex: (para) => {
+    return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
+  },
+  refreshTableIndex: (para) => {
+    return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
   }
 }

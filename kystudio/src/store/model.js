@@ -85,6 +85,19 @@ export default {
     [types.LOAD_ALL_MODEL]: function ({ commit }, para) {
       return api.model.getModelList(para)
     },
+    [types.GET_TABLE_INDEX]: function ({ commit }, para) {
+      return api.model.getTableIndex(para)
+    },
+    [types.EDIT_TABLE_INDEX]: function ({ commit }, para) {
+      return api.model.editTableIndex(para)
+    },
+    [types.DELETE_TABLE_INDEX]: function ({ commit }, para) {
+      return api.model.delTableIndex(para)
+    },
+    [types.ADD_TABLE_INDEX]: function ({ commit }, para) {
+      return api.model.addTableIndex(para)
+    },
+    // old
     [types.SUGGEST_DIMENSION_MEASURE]: function ({ commit }, para) {
       return api.model.measureDimensionSuggestion(para)
     },

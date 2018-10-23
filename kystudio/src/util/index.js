@@ -316,6 +316,37 @@ export function getNextValInArray (arr, current) {
   }
   return null
 }
+export function getNextOrPrevDate (days) {
+  var dd = new Date()
+  dd.setDate(dd.getDate() + days || 0)
+  return dd.getTime()
+}
+export function isToday (ms) {
+  var dt = new Date()
+  var y = dt.getFullYear()
+  var m = dt.getMonth()
+  var d = dt.getDate()
+  var ndt = new Date(ms)
+  var ny = ndt.getFullYear()
+  var nm = ndt.getMonth()
+  var nd = ndt.getDate()
+  if (y === ny && m === nm && d === nd) {
+    return true
+  }
+  return false
+}
+// ms需要识别的时间戳，nowms当前的时间戳
+export function isThisWeek (ms, nowms) {
+  var oneDayTime = 1000 * 60 * 60 * 24
+  let now = nowms || Date.now()
+  var oldDays = parseInt(+ms / oneDayTime)
+  var nowDays = parseInt(+now / oneDayTime)
+  return parseInt((oldDays + 4) / 7) === parseInt((nowDays + 4) / 7)
+}
+export function isLastWeek (ms) {
+  let lastWeekDateTimeStamp = getNextOrPrevDate(-7)
+  return isThisWeek(ms, lastWeekDateTimeStamp)
+}
 // 时间转换工具
 import moment from 'moment-timezone'
 export function utcToConfigTimeZone (item, zone, formatSet) {

@@ -643,5 +643,4 @@ export const pageSizeMapping = {
 export const partitionColumnTypes = [
   'timestamp', 'date'
 ]
-
 export { projectCfgs } from './projectCfgs'

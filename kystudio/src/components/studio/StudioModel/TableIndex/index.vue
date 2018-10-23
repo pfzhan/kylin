@@ -6,77 +6,88 @@
         <el-button type="primary" icon="el-icon-ksd-project_add">Create Table Index</el-button>
         <el-button type="primary" icon="el-icon-ksd-table_refresh">Refresh</el-button>
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
-        <el-input style="width:200px" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" placeholder="search index ID" class="ksd-fright ksd-mr-20"></el-input>
+        <el-input style="width:200px" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" placeholder="search index ID" class="ksd-fright ksd-mr-20"></el-input>
       </div>
-      <el-steps direction="vertical" :active="1">
-        <el-step title="Recently(7)">
+      <el-steps direction="vertical" :active="4">
+        <el-step title="Today(7)" v-if="todayTableIndex.length">
           <div slot="description">
             <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
-              <el-carousel-item v-for="item in 6" :key="item">
-                <div class="slider-content-above">
-                  <div class="sub-info">Table Index ID: 42323232323</div>
-                  <div class="main-title">Table Index Name 001</div>
-                  <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>2018-09-28 19:00:00</div>
-                  <div class="actions ksd-right"><i class="el-icon-ksd-table_delete"></i></div>
-                </div>
-                <div class="ky-line"></div>
-                <div class="slider-content-below">
-                  <span class="tableindex-user">System</span>
-                  <span class="tableindex-count"><span>20</span>Columns</span>
-                </div>
-              </el-carousel-item>
-            </el-carousel>
-           </div>
-        </el-step>
-        <el-step title="Last Day(4)">
-           <div slot="description">
-            <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
-              <el-carousel-item v-for="item in 6" :key="item">
-                <div class="slider-content-above">
-                  <div class="sub-info">Table Index ID: 42323232323</div>
-                  <div class="main-title">Table Index Name 001</div>
-                  <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>2018-09-28 19:00:00</div>
-                </div>
-                <div class="ky-line"></div>
-                <div class="slider-content-below">
-                  <span class="tableindex-user">System</span>
-                  <span class="tableindex-count"><span>20</span>Columns</span>
+              <el-carousel-item v-for="item in todayTableIndex" :key="item" @click.native="showTableIndexDetal(item)">
+                <div :class="{'empty-table-index': item.status === 'empty'}">
+                  <div class="slider-content-above ">
+                    <div class="sub-info">Table Index ID: {{item.id}}</div>
+                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}<i class="el-icon-warning ksd-ml-4"></i></div>
+                    <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>{{transToGmtTime(item.update_time)}}</div>
+                    <div class="actions ksd-right" @click="delTableIndex(item.id)"><i class="el-icon-ksd-table_delete"></i></div>
+                  </div>
+                  <div class="ky-line"></div>
+                  <div class="slider-content-below">
+                    <span class="tableindex-user">{{item.owner}}</span>
+                    <span class="tableindex-count"><span>{{item.col_order.length}}</span>Columns</span>
+                  </div>
                 </div>
               </el-carousel-item>
             </el-carousel>
            </div>
         </el-step>
-        <el-step title="Last Week(4)">
+        <el-step title="This Week(4)" v-if="thisWeekTableIndex.length">
            <div slot="description">
             <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
-              <el-carousel-item v-for="item in 6" :key="item">
-                <div class="slider-content-above">
-                  <div class="sub-info">Table Index ID: 42323232323</div>
-                  <div class="main-title">Table Index Name 001</div>
-                  <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>2018-09-28 19:00:00</div>
-                </div>
-                <div class="ky-line"></div>
-                <div class="slider-content-below">
-                  <span class="tableindex-user">System</span>
-                  <span class="tableindex-count"><span>20</span>Columns</span>
+              <el-carousel-item v-for="item in thisWeekTableIndex" :key="item" @click.native="showTableIndexDetal(item)">
+                <div :class="{'empty-table-index': item.status === 'empty'}">
+                  <div class="slider-content-above ">
+                    <div class="sub-info">Table Index ID: {{item.id}}</div>
+                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}<i class="el-icon-warning ksd-ml-4"></i></div>
+                    <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>{{transToGmtTime(item.update_time)}}</div>
+                    <div class="actions ksd-right" @click="delTableIndex(item.id)"><i class="el-icon-ksd-table_delete"></i></div>
+                  </div>
+                  <div class="ky-line"></div>
+                  <div class="slider-content-below">
+                    <span class="tableindex-user">{{item.owner}}</span>
+                    <span class="tableindex-count"><span>{{item.col_order.length}}</span>Columns</span>
+                  </div>
                 </div>
               </el-carousel-item>
             </el-carousel>
            </div>
         </el-step>
-        <el-step title="Long Ago(4)">
+        <el-step title="Last Week(4)" v-if="lastWeekTableIndex.length">
            <div slot="description">
             <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
-              <el-carousel-item v-for="item in 6" :key="item">
-                <div class="slider-content-above">
-                  <div class="sub-info">Table Index ID: 42323232323</div>
-                  <div class="main-title">Table Index Name 001</div>
-                  <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>2018-09-28 19:00:00</div>
+              <el-carousel-item v-for="item in lastWeekTableIndex" :key="item" @click.native="showTableIndexDetal(item)">
+                <div :class="{'empty-table-index': item.status === 'empty'}">
+                  <div class="slider-content-above ">
+                    <div class="sub-info">Table Index ID: {{item.id}}</div>
+                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}<i class="el-icon-warning ksd-ml-4"></i></div>
+                    <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>{{transToGmtTime(item.update_time)}}</div>
+                    <div class="actions ksd-right" @click="delTableIndex(item.id)"><i class="el-icon-ksd-table_delete"></i></div>
+                  </div>
+                  <div class="ky-line"></div>
+                  <div class="slider-content-below">
+                    <span class="tableindex-user">{{item.owner}}</span>
+                    <span class="tableindex-count"><span>{{item.col_order.length}}</span>Columns</span>
+                  </div>
                 </div>
-                <div class="ky-line"></div>
-                <div class="slider-content-below">
-                  <span class="tableindex-user">System</span>
-                  <span class="tableindex-count"><span>20</span>Columns</span>
+              </el-carousel-item>
+            </el-carousel>
+           </div>
+        </el-step>
+        <el-step title="Long Ago()" v-if="longAgoTableIndex.length">
+           <div slot="description">
+            <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
+              <el-carousel-item v-for="item in longAgoTableIndex" :key="item" @click.native="showTableIndexDetal(item)">
+                <div :class="{'empty-table-index': item.status === 'empty'}">
+                  <div class="slider-content-above ">
+                    <div class="sub-info">Table Index ID: {{item.id}}</div>
+                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}<i class="el-icon-warning ksd-ml-4"></i></div>
+                    <div class="sub-info tableindex-timer"><i class="el-icon-ksd-elapsed-time"></i>{{transToGmtTime(item.update_time)}}</div>
+                    <div class="actions ksd-right" @click="delTableIndex(item.id)"><i class="el-icon-ksd-table_delete"></i></div>
+                  </div>
+                  <div class="ky-line"></div>
+                  <div class="slider-content-below">
+                    <span class="tableindex-user">{{item.owner}}</span>
+                    <span class="tableindex-count"><span>{{item.col_order.length}}</span>Columns</span>
+                  </div>
                 </div>
               </el-carousel-item>
             </el-carousel>
@@ -92,7 +103,7 @@
         </div>
         <div class="ksd-prl-20 ksd-ptb-20">
           <el-table
-          :data="convertedRawTable"
+          :data="showTableIndexDetail"
           border class="ksd-mt-14">
           <el-table-column
             :label="$t('ID')"
@@ -100,7 +111,7 @@
             align="center"
             width="80">
             <template slot-scope="scope">
-              <span>{{scope.$index + 1 + 15*(currentPage-1)}}</span>
+              
             </template>
           </el-table-column>
           <el-table-column
@@ -109,9 +120,6 @@
             header-align="center"
             prop="column"
             align="center">
-            <template slot-scope="scope">
-              {{scope.row.table + '.' + scope.row.column}}
-            </template>
           </el-table-column>
           <el-table-column
             show-overflow-tooltip
@@ -132,126 +140,10 @@
           align="center">
             </el-table-column>         
           </el-table>
-          <pager ref="pager" :perPageSize="15" :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange'></pager>
+          <pager ref="pager" :perPageSize="15" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></pager>
         </div> 
       </el-card>
     </div>
-     <!-- <div class="left-part">
-        <el-form label-position="top" label-width="80px">
-        <el-form-item label="Shard by Column">
-          <el-select v-model="shardbyColumn" style="width:100%" size="medium" :disabled="lockRawTable">
-            <el-option
-              v-for="item in tableIndexDesc"
-              :key="item.table + '.' + item.column"
-              :label="item.table + '.' + item.column"
-              :value="item.table + '.' + item.column">     
-            </el-option>
-            <el-option label="" value=""></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Sort by Column">
-          <el-row v-for="(item, index) in sortbyColumns" :key="index" :gutter="10">
-            <el-col  :span="17">
-              <el-select v-model="sortbyColumns[index]" style="width:208px" size="medium" @change="sortTable" :disabled="lockRawTable">
-                <el-option
-                  v-for="(column, colIndex) in sortByOptitions"
-                  :key="column.table + '.' + column.column"
-                  :label="column.table + '.' + column.column"
-                  :value="column.table + '.' + column.column">
-                </el-option>
-              </el-select>
-            </el-col>
-            <el-col :span="7">
-              <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-              <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button>
-            </el-col>
-          </el-row>
-        </el-form-item>
-      </el-form>
-     </div>
-     <div class="right-part">
-       <el-table
-        :data="convertedRawTable"
-        border class="ksd-mt-14">
-        <el-table-column
-          :label="$t('ID')"
-          header-align="center"
-          align="center"
-          width="80">
-          <template slot-scope="scope">
-            <span>{{scope.$index + 1 + 15*(currentPage-1)}}</span>
-          </template>
-        </el-table-column>
-        <el-table-column
-          show-overflow-tooltip
-          :label="$t('column')"
-          header-align="center"
-          prop="column"
-          align="center">
-          <template slot-scope="scope">
-            {{scope.row.table + '.' + scope.row.column}}
-          </template>
-        </el-table-column>
-        <el-table-column
-          show-overflow-tooltip
-          :label="$t('dataType')"
-          prop="dataType"
-          header-align="center"
-          align="center"
-          width="110"> 
-        </el-table-column>
-        <el-table-column
-          show-overflow-tooltip
-          :label="$t('Encoding')"
-          header-align="center"
-          align="center"
-          width="150">   
-          <template slot-scope="scope">
-            <el-select size="small" v-model="scope.row.encoding" :disabled="lockRawTable" >
-              <el-option
-                  v-for="(item, index) in scope.row.selectEncoding" :key="index"
-                  :label="item.name"
-                  :value="item.name + ':' + item.version">
-                <el-tooltip effect="dark" :content="$t('kylinLang.cube.'+$store.state.config.encodingTip[item.name])" placement="top">
-                  <span style="float: left;;width: 90%">{{ item.name }}</span>
-                  <span style="float: right;width: 10%; color: #8492a6; font-size: 13px" v-if="item.version>1">{{ item.version }}</span>
-                </el-tooltip>
-              </el-option>              
-            </el-select>
-          </template>
-        </el-table-column>  
-        <el-table-column
-          show-overflow-tooltip
-          :label="$t('Length')"
-          header-align="center"
-          align="center"
-          width="70">   
-          <template slot-scope="scope">
-            <el-input size="small" v-model="scope.row.valueLength"></el-input>  
-          </template>  
-        </el-table-column>
-        <el-table-column
-        :label="$t('Index')"
-        header-align="center"
-        align="center"
-        width="120">
-        <template slot-scope="scope">
-          <el-select size="small" v-model="scope.row.index" :disabled="lockRawTable" @change="changeRawTable(scope.row, scope.$index)">
-            <el-option
-                v-for="(item, index) in rawTableIndexOptions" :key="index"
-                :label="item"
-                :value="item">
-            </el-option>             
-          </el-select>
-            </template>
-          </el-table-column>       
-        </el-table> 
-        <pager ref="pager" :perPageSize="15" :totalSize="totalRawTable"  v-on:handleCurrentChange='currentChange'></pager>
-        <div class="ksd-right ksd-mt-10">
-          <el-button plain>Cancel</el-button>
-          <el-button type="primary" plain>Save</el-button>
-        </div>
-     </div> -->
      <TableIndexEdit/>
    </div>
 </template>
@@ -261,16 +153,70 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import locales from './locales'
+import { handleSuccess, handleError, transToGmtTime } from 'util/business'
+import { isToday, isThisWeek, isLastWeek } from 'util/index'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
 
 @Component({
+  props: ['modelDesc'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'
     ]),
     ...mapActions('TableIndexEditModal', {
       showTableIndexEditModal: 'CALL_MODAL'
-    })
+    }),
+    ...mapActions({
+      'loadAllTableIndex': 'GET_TABLE_INDEX',
+      'deleteTableIndex': 'DELETE_TABLE_INDEX'
+    }),
+    // 当天的数据
+    todayTableIndex () {
+      return this.tableIndexBaseList.filter((t) => {
+        if (isToday(t.update_time) && (t.id === +this.tableIndexFilter || this.tableIndexFilter === '')) {
+          return t
+        }
+      })
+    },
+    // 本周的数据（排除当天）
+    thisWeekTableIndex () {
+      return this.tableIndexBaseList.filter((t) => {
+        if (!isToday(t.update_time) && isThisWeek(t.update_time) && (t.id === +this.tableIndexFilter || this.tableIndexFilter === '')) {
+          return t
+        }
+      })
+    },
+    // 上周的数据
+    lastWeekTableIndex () {
+      return this.tableIndexBaseList.filter((t) => {
+        if (isLastWeek(t.update_time) && (t.id === +this.tableIndexFilter || this.tableIndexFilter === '')) {
+          return t
+        }
+      })
+    },
+    // 更久远的数据...
+    longAgoTableIndex () {
+      return this.tableIndexBaseList.filter((t) => {
+        if (!isLastWeek(t.update_time) && !isThisWeek(t.update_time) && (t.id === +this.tableIndexFilter || this.tableIndexFilter === '')) {
+          return t
+        }
+      })
+    },
+    showTableIndexDetail () {
+      if (!this.currentShowTableIndex.col_order) {
+        return []
+      }
+      let tableIndexList = this.currentShowTableIndex.col_order.slice(15 * (this.currentPage - 1), 15 * (this.currentPage))
+      let renderData = tableIndexList.map((item) => {
+        let newitem = {
+          column: item,
+          sort: this.currentShowTableIndex.sort_by_columns.includes(item),
+          shared: this.currentShowTableIndex.shared_by_columns.includes(item)
+        }
+        return newitem
+      })
+      return renderData
+    }
   },
   methods: {
     ...mapActions({
@@ -288,17 +234,112 @@ export default class TableIndex extends Vue {
   convertedRawTable = [{table: 'default', column: 'kylin'}]
   rawTableIndexOptions = []
   shardbyColumn = ''
-  lockRawTable = false
   totalRawTable = 10
   currentPage = 1
   searchLoading = false
-  mounted () {}
+  transToGmtTime = transToGmtTime
+  tableIndexFilter = ''
+  currentShowTableIndex = {}
+  tableIndexBaseList = [
+    {
+      'id': 123,
+      'name': 'today',
+      'project': 'default',
+      'cubePlanName': 'ncube_basic',
+      'status': 'EMPTY',
+      'update_time': 1540271625304,
+      'col_order': ['TEST_KYLIN_FACT.CAL_DT', 'TEST_KYLIN_FACT.ORDER_ID', 'TEST_KYLIN_FACT.LSTG_FORMAT_NAME'],
+      'sort_by_columns': ['TEST_KYLIN_FACT.TRANS_ID'],
+      'shared_by_columns': ['TEST_KYLIN_FACT.LEAF_CATEG_ID'],
+      'layout_override_indices': {'TEST_KYLIN_FACT.LEAF_CATEG_ID': 'eq'},
+      'owner': 'ADMIN',
+      'storage_type': 20
+    },
+    {
+      'id': 3000000,
+      'name': 'thisweek',
+      'project': 'default',
+      'cubePlanName': 'ncube_basic',
+      'status': 'AVAILABLE',
+      'update_time': 1540166400000,
+      'col_order': ['TEST_KYLIN_FACT.CAL_DT', 'TEST_KYLIN_FACT.ORDER_ID', 'TEST_KYLIN_FACT.LSTG_FORMAT_NAME'],
+      'sort_by_columns': ['TEST_KYLIN_FACT.TRANS_ID'],
+      'shared_by_columns': ['TEST_KYLIN_FACT.LEAF_CATEG_ID'],
+      'layout_override_indices': {'TEST_KYLIN_FACT.LEAF_CATEG_ID': 'eq'},
+      'owner': 'ADMIN',
+      'storage_type': 20
+    },
+    {
+      'id': 3000000,
+      'name': 'lastweek',
+      'project': 'default',
+      'cubePlanName': 'ncube_basic',
+      'status': 'AVAILABLE',
+      'update_time': 1539820800000,
+      'col_order': ['TEST_KYLIN_FACT.CAL_DT', 'TEST_KYLIN_FACT.ORDER_ID', 'TEST_KYLIN_FACT.LSTG_FORMAT_NAME'],
+      'sort_by_columns': ['TEST_KYLIN_FACT.TRANS_ID'],
+      'shared_by_columns': ['TEST_KYLIN_FACT.LEAF_CATEG_ID'],
+      'layout_override_indices': {'TEST_KYLIN_FACT.LEAF_CATEG_ID': 'eq'},
+      'owner': 'ADMIN',
+      'storage_type': 20
+    },
+    {
+      'id': 3000000,
+      'name': 'longago',
+      'project': 'default',
+      'cubePlanName': 'ncube_basic',
+      'status': 'AVAILABLE',
+      'update_time': 1531843200000,
+      'col_order': ['TEST_KYLIN_FACT.CAL_DT', 'TEST_KYLIN_FACT.ORDER_ID', 'TEST_KYLIN_FACT.LSTG_FORMAT_NAME'],
+      'sort_by_columns': ['TEST_KYLIN_FACT.TRANS_ID'],
+      'shared_by_columns': ['TEST_KYLIN_FACT.LEAF_CATEG_ID'],
+      'layout_override_indices': {'TEST_KYLIN_FACT.LEAF_CATEG_ID': 'eq'},
+      'owner': 'ADMIN',
+      'storage_type': 20
+    }
+  ]
+  mounted () {
+    this.loadAllTableIndex()
+  }
+  showTableIndexDetal (item) {
+    this.currentShowTableIndex = item
+  }
+  currentChange (curPage) {
+    this.currentPage = curPage
+  }
+  delTableIndex (id) {
+    // 删除警告
+    this.deleteTableIndex({
+      project: this.currentSelectedProject,
+      modelName: this.modelDesc.name,
+      tableIndexId: id
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        // 成功提示
+        this.getAllTableIndex()
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
+  getAllTableIndex () {
+    this.loadAllTableIndex({
+      project: this.currentSelectedProject,
+      modelName: this.modelDesc.name
+    }).then((res) => {
+      handleSuccess(res, (data) => {
+        this.tableIndexBaseList = data.table_indexs
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
   addSortbyCol () {}
-  currentChange () {}
   changeRawTable () {}
   sortTable () {}
   editTableIndex () {
-    this.showTableIndexEditModal()
+    this.showTableIndexEditModal().then(() => {
+    })
   }
 }
 </script>
@@ -310,6 +351,9 @@ export default class TableIndex extends Vue {
   }
 }
 .tableIndex-box {
+  .empty-table-index {
+    background-color: @grey-4;
+  }
   .el-step__description {
     padding-right:20px!important;
   }
@@ -363,6 +407,9 @@ export default class TableIndex extends Vue {
     .main-title {
       font-size: 16px;
       color:@text-title-color; 
+      i {
+        color:@warning-color-1;
+      }
     }
   }
   .el-carousel__item:nth-child(2n) {

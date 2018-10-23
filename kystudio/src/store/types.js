@@ -133,6 +133,11 @@ export const VERIFY_MODEL_SQL = 'VERIFY_MODEL_SQL'
 export const AUTO_MODEL = 'AUTO_MODEL'
 export const VALID_AUTOMODEL_SQL = 'VALID_AUTOMODEL_SQL'
 export const GET_AUTOMODEL_SQL = 'GET_AUTOMODEL_SQL'
+// table index
+export const GET_TABLE_INDEX = 'GET_TABLE_INDEX'
+export const EDIT_TABLE_INDEX = 'EDIT_TABLE_INDEX'
+export const DELETE_TABLE_INDEX = 'DELETE_TABLE_INDEX'
+export const ADD_TABLE_INDEX = 'ADD_TABLE_INDEX'
 
 // cube actions mutations
 export const GET_CUBES_LIST = 'GET_CUBES_LIST'
