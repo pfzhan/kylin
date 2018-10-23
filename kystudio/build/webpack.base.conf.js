@@ -32,8 +32,8 @@ module.exports = {
       'lessdir': resolve('src/less'),
       'util': resolve('src/util'),
       'config': resolve('src/config'),
-      'themescss': resolve('node_modules/kyligence-ui/packages/theme-chalk/src')
-      // 'element-ui': resolve('node_modules/kyligence-ui')
+      'themescss': resolve('node_modules/kyligence-ui/packages/theme-chalk/src'),
+      'kyligence-ui': resolve('node_modules/kyligence-ui')
     }
   },
   module: {

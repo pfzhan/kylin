@@ -48,29 +48,20 @@ export default {
   markFav: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
   },
-  getAllrules: (para) => {
+  getRules: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
   },
-  updateRule: (para) => {
+  getRulesImpact: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/impact').get(para)
+  },
+  getPreferrence: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/config').get(para)
+  },
+  updateRules: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para)
   },
-  saveRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules').save(para)
-  },
-  deleteRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/' + para.project + '/' + para.uuid).delete()
-  },
-  enableRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/enable/' + para.project + '/' + para.uuid).update()
-  },
-  applyRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/apply/' + para.project).update()
-  },
-  autoMaticRule: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic/' + para.project).update()
-  },
-  getAutoMaticStatus: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/automatic').get(para)
+  updatePreferrence: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/config').updata(para)
   },
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries').get(para)

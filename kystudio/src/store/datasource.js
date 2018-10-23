@@ -74,29 +74,20 @@ export default {
     [types.MARK_FAV]: function ({commit}, para) {
       return api.datasource.markFav(para)
     },
-    [types.GET_ALL_RULES]: function ({commit}, para) {
-      return api.datasource.getAllrules(para)
+    [types.GET_RULES]: function ({commit}, para) {
+      return api.datasource.getRules(para)
     },
-    [types.UPDATE_RULE]: function ({commit}, para) {
-      return api.datasource.updateRule(para)
+    [types.GET_RULES_IMPACT]: function ({commit}, para) {
+      return api.datasource.getRulesImpact(para)
     },
-    [types.SAVE_RULE]: function ({commit}, para) {
-      return api.datasource.saveRule(para)
+    [types.GET_PREFERRENCE]: function ({commit}, para) {
+      return api.datasource.getPreferrence(para)
     },
-    [types.DELETE_RULE]: function ({commit}, para) {
-      return api.datasource.deleteRule(para)
+    [types.UPDATE_RULES]: function ({commit}, para) {
+      return api.datasource.updateRules(para)
     },
-    [types.ENABLE_RULE]: function ({commit}, para) {
-      return api.datasource.enableRule(para)
-    },
-    [types.APPLY_RULE]: function ({commit}, para) {
-      return api.datasource.applyRule(para)
-    },
-    [types.AUTOMATIC_RULE]: function ({commit}, para) {
-      return api.datasource.autoMaticRule(para)
-    },
-    [types.GET_AUTO_MATIC_STATUS]: function ({commit}, para) {
-      return api.datasource.getAutoMaticStatus(para)
+    [types.UPDATE_PREFERRENCE]: function ({commit}, para) {
+      return api.datasource.updatePreferrence(para)
     },
     [types.GET_HISTORY_LIST]: function ({commit}, para) {
       return api.datasource.getHistoryList(para)

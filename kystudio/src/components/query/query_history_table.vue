@@ -2,36 +2,18 @@
   <div id="queryHistoryTable">
     <div class="clearfix ksd-mb-10">
       <div class="btn-group ksd-fleft">
-        <el-button type="primary" plain size="medium" icon="el-icon-ksd-mark_favorite" @click="markFavorite" v-if="isCandidate">{{$t('markFavorite')}}</el-button>
-        <div v-else class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
+        <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
         <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
       </div>
-      <el-dropdown v-if="isCandidate" @command="handleCommand" class="fav-dropdown ksd-fright" trigger="click">
-        <el-button size="medium" icon="el-icon-ksd-table_setting" plain type="primary">{{$t('kylinLang.query.applyRule')}}</el-button>
-        <el-dropdown-menu slot="dropdown">
-          <el-dropdown-item v-for="item in rules" :key="item.ruleId" class="fav-dropdown-item">
-            <el-checkbox v-model="item.enabled" v-event-stop:click @change="toggleRule(item.uuid)">{{item.name}}</el-checkbox>
-            <i class="el-icon-ksd-table_delete ksd-fright" v-event-stop:click @click="delRule(item.uuid)"></i>
-            <i class="el-icon-ksd-table_edit ksd-fright" @click="editRule(item)"></i>
-          </el-dropdown-item>
-          <el-dropdown-item divided command="createRule">{{$t('createRule')}}</el-dropdown-item>
-          <el-dropdown-item divided command="applyAll">{{$t('applyAll')}}</el-dropdown-item>
-          <el-dropdown-item command="markAll">
-            <span v-if="!isAutoMatic">{{$t('markAll')}}</span>
-            <span v-else>{{$t('unMarkAll')}}</span>
-          </el-dropdown-item>
-        </el-dropdown-menu>
-      </el-dropdown>
     </div>
     <el-table
       :data="queryHistoryData"
       border
       class="history-table"
-      @selection-change="handleSelectionChange"
       style="width: 100%">
-      <el-table-column type="expand" v-if="!isCandidate">
+      <el-table-column type="expand">
         <template slot-scope="props">
           <div class="detail-title">
             <span class="ksd-fleft ksd-fs-16">{{$t('queryDetails')}}</span>
@@ -89,7 +71,6 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column type="selection" width="55" align="center" v-if="isCandidate"></el-table-column>
       <el-table-column :renderHeader="renderColumn" sortable prop="start_time" header-align="center" width="210">
         <template slot-scope="props">
           {{transToGmtTime(props.row.start_time)}}
@@ -114,7 +95,7 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.submitter')" prop="user" header-align="center" width="200">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120" v-if="!isCandidate">
+      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">
           <el-tooltip class="item" effect="dark" :content="$t('toAcce')" placement="top" v-if="props.row.accelerate_status === 'UNACCELERATED'">
             <i class="el-icon-ksd-negative" @click="(event) => {toAcce(event, props.row.uuid)}"></i>
@@ -126,72 +107,10 @@
         </template>
       </el-table-column>
     </el-table>
-    <div class="rule-block" v-if="ruleVisible"></div>
-    <div class="ruleDiaglog translate-right transition-new" v-if="ruleVisible">
-      <div class="el-dialog__header">
-        <span class="el-dialog__title">{{ruleDiaglogTitle}}</span>
-      </div>
-      <div class="el-dialog__body">
-        <el-form label-position="top" size="medium" :model="formRule" ref="formRule">
-          <el-form-item :label="$t('ruleName')">
-            <el-input v-model.trim="formRule.name"></el-input>
-          </el-form-item>
-          <hr></hr>
-          <div class="ksd-mb-16">
-            <span>{{$t('ruleConditions')}}</span>
-            <el-tooltip placement="right">
-              <div slot="content" v-html="$t('ruleDesc')"></div>
-              <i class="el-icon-ksd-what"></i>
-            </el-tooltip>
-          </div>
-          <el-form-item v-for="(con, index) in formRule.conds" :key="index" class="con-form-item">
-            <el-row :gutter="10">
-              <el-col :span="6">
-                <el-select v-model="con.field" placeholder="请选择" @change="fieldChanged(con)">
-                  <el-option v-for="(item, key) in options" :key="key" :label="key" :value="item">
-                  </el-option>
-                </el-select>
-              </el-col>
-              <el-col :span="3" class="ksd-center">
-                <span v-if="con.field=='latency' || con.field=='frequency'"> > </span>
-                <span v-if="con.field=='user'"> is </span>
-                <span v-if="con.field=='sql'"> Contains </span>
-              </el-col>
-              <el-col :span="5">
-                <el-input v-model.trim="con.rightThreshold" v-if="con.field!=='user'"></el-input>
-                <el-select v-model="con.rightThreshold" placeholder="请选择" v-else>
-                  <el-option v-for="item in userGroups" :key="item" :label="item" :value="item">
-                  </el-option>
-                </el-select>
-              </el-col>
-              <el-col :span="4" style="width:105px;height:36px;">
-                <span v-if="con.field=='latency'">Seconds</span>
-                <span v-if="con.field=='frequency'">Times</span>
-              </el-col>
-              <el-col :span="6">
-                <div class="action-group ksd-fright">
-                  <el-button type="primary" icon="el-icon-ksd-add" plain circle size="medium" @click="addCon" v-if="index==0"></el-button>
-                  <el-button icon="el-icon-ksd-minus" plain circle size="medium" :disabled="formRule.conds.length == 1" @click="removeCon(index)"></el-button>
-                </div>
-              </el-col>
-            </el-row>
-          </el-form-item>
-          <div class="ksd-mb-16 ksd-mt-20">{{$t('toMark')}}</div>
-        </el-form>
-      </div>
-      <div class="el-dialog__footer">
-        <span class="dialog-footer">
-          <el-checkbox v-model="formRule.enabled" class="ksd-fleft ksd-mt-6">{{$t('enabled')}}</el-checkbox>
-          <el-button size="medium" @click="ruleVisible = false">取 消</el-button>
-          <el-button size="medium" type="primary" plain @click="submitRuleFrom">{{$t('kylinLang.common.save')}}</el-button>
-        </span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-import { handleSuccessAsync } from '../../util/index'
 import { transToUtcTimeFormat, handleSuccess, handleError, transToGmtTime } from '../../util/business'
 import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
@@ -199,19 +118,10 @@ import { Component, Watch } from 'vue-property-decorator'
 import '../../util/fly.js'
 import $ from 'jquery'
 @Component({
-  props: ['queryHistoryData', 'isCandidate'],
+  props: ['queryHistoryData'],
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
-      getAllRules: 'GET_ALL_RULES',
-      saveRule: 'SAVE_RULE',
-      updateRule: 'UPDATE_RULE',
-      deleteRule: 'DELETE_RULE',
-      enableRule: 'ENABLE_RULE',
-      applyRule: 'APPLY_RULE',
-      automaticRule: 'AUTOMATIC_RULE',
-      getAutoMaticStatus: 'GET_AUTO_MATIC_STATUS',
-      markFav: 'MARK_FAV'
     })
   },
   computed: {
@@ -221,8 +131,8 @@ import $ from 'jquery'
     ])
   },
   locales: {
-    'en': {createRule: 'Create Rule', editRule: 'Edit Rule', applyAll: 'Apply All', markAll: 'Mark Favorite Automatically', ruleName: 'Rule Name', unMarkAll: 'Mark Favorite Mannually', queryDetails: 'Query Details', markFavorite: 'Mark Favorite', ruleConditions: 'When a new SQL query meets all these conditions:', toMark: 'Then system will mark it as favorite query.', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', enabled: 'Enabled', toAcce: 'Click to Accelerate'},
-    'zh-cn': {createRule: '创建加速规则', editRule: '编辑加速规则', applyAll: '应用所有规则', markAll: '自动加速', ruleName: '规则名称', unMarkAll: '取消全部标记为待加速', queryDetails: '查询执行详情', markFavorite: '标记为加速查询', ruleConditions: '当SQL语句满足如下所有条件时:', toMark: '系统将其标记为加速查询。', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', enabled: '应用规则', toAcce: '去加速'}
+    'en': {queryDetails: 'Query Details', ruleDesc: 'Favorite Condition:<br/>Query Frequency (default by daily);<br/>Query Duration;<br/>From user/ user group;<br/>Pushdown Query.', toAcce: 'Click to Accelerate'},
+    'zh-cn': {queryDetails: '查询执行详情', ruleDesc: '加速规则条件包括：<br/>查询频率(默认是每日的频率)；<br/>查询响应时间；<br/>特定用户(组)；<br/>所有下压查询。', toAcce: '去加速'}
   }
 })
 export default class QueryHistoryTable extends Vue {
@@ -243,20 +153,6 @@ export default class QueryHistoryTable extends Vue {
   }
   timer = null
   showCopyStatus = false
-  multipleSelection = []
-  userGroups = []
-  ruleVisible = false
-  isEditRule = false
-  isAutoMatic = false
-  rules = []
-  formRule = {
-    name: '',
-    conds: [
-      {field: 'latency', op: 'GREATER', rightThreshold: null}
-    ],
-    enabled: false
-  }
-  options = {Latency: 'latency', Frequency: 'frequency', 'User/Group': 'user', 'SQL Content': 'sql'}
 
   @Watch('datetimerange')
   onDateRangeChange (val) {
@@ -279,22 +175,6 @@ export default class QueryHistoryTable extends Vue {
 
   onError () {
     this.$message(this.$t('kylinLang.common.copyfail'))
-  }
-
-  async loadAllRules () {
-    const res = await this.getAllRules({project: this.currentSelectedProject})
-    const data = await handleSuccessAsync(res)
-    this.rules = data && data.rules
-  }
-
-  getAutoStatus () {
-    this.getAutoMaticStatus({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.isAutoMatic = data
-      })
-    }, (res) => {
-      handleError(res)
-    })
   }
 
   flyEvent (event) {
@@ -337,25 +217,6 @@ export default class QueryHistoryTable extends Vue {
     })
   }
 
-  created () {
-    if (this.isCandidate) {
-      this.loadAllRules()
-      this.getAutoStatus()
-    }
-  }
-
-  get ruleDiaglogTitle () {
-    if (this.isEditRule) {
-      return this.$t('editRule')
-    } else {
-      return this.$t('createRule')
-    }
-  }
-
-  markFavorite () {
-    this.$emit('markToFav')
-  }
-
   onSqlFilterChange () {
     clearTimeout(this.timer)
     this.timer = setTimeout(() => {
@@ -367,122 +228,6 @@ export default class QueryHistoryTable extends Vue {
     this.$emit('loadFilterList', this.filterData)
   }
 
-  addCon () {
-    const con = {field: 'sql', op: '', rightThreshold: null}
-    this.formRule.conds.push(con)
-  }
-  removeCon (index) {
-    if (index === 0 && this.formRule.conds.length === 1) {
-      return
-    }
-    this.formRule.conds.splice(index, 1)
-  }
-  fieldChanged (con) {
-    if (con.field === 'latency' || con.field === 'frequency') {
-      con.op = 'GREATER'
-    } else if (con.field === 'user') {
-      con.op = 'EQUAL'
-    } else if (con.field === 'sql') {
-      con.op = 'CONTAINS'
-    }
-  }
-
-  editRule (ruleObj) {
-    this.formRule = ruleObj
-    this.ruleVisible = true
-    this.isEditRule = true
-  }
-
-  submitRuleFrom () {
-    this.$refs['formRule'].validate((valid) => {
-      if (valid) {
-        if (this.isEditRule) {
-          this.updateRule({project: this.currentSelectedProject, rule: this.formRule}).then((res) => {
-            handleSuccess(res, () => {
-              this.resetToList()
-              this.filterList()
-              this.loadAllRules()
-            })
-          }, (res) => {
-            handleError(res)
-          })
-        } else {
-          this.saveRule({project: this.currentSelectedProject, rule: this.formRule}).then((res) => {
-            handleSuccess(res, () => {
-              this.resetToList()
-              this.filterList()
-              this.loadAllRules()
-            })
-          }, (res) => {
-            handleError(res)
-          })
-        }
-      }
-    })
-  }
-
-  resetToList () {
-    this.isEditRule = false
-    this.ruleVisible = false
-  }
-
-  delRule (ruleId) {
-    this.deleteRule({project: this.currentSelectedProject, uuid: ruleId}).then((res) => {
-      handleSuccess(res, () => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.delSuccess')
-        })
-        this.loadAllRules()
-        this.filterList()
-      })
-    }, (res) => {
-      handleError(res)
-    })
-  }
-
-  toggleRule (ruleId) {
-    this.enableRule({project: this.currentSelectedProject, uuid: ruleId}).then((res) => {
-      handleSuccess(res, () => {
-        this.filterList()
-      })
-    }, (res) => {
-      handleError(res)
-    })
-  }
-
-  handleCommand (command) {
-    if (command === 'createRule') {
-      this.ruleVisible = true
-      this.formRule = {
-        name: '',
-        conds: [
-          {field: 'latency', op: 'GREATER', rightThreshold: null}
-        ],
-        enabled: false
-      }
-    } else if (command === 'applyAll') {
-      this.applyRule({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, () => {
-          this.loadAllRules()
-          this.filterList()
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    } else if (command === 'markAll') {
-      this.automaticRule({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, () => {
-          this.getAutoStatus()
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    }
-  }
-  handleSelectionChange (rows) {
-    this.$emit('selectionChanged', rows)
-  }
   openAgg (modelName) {
     this.$emit('openAgg', modelName)
   }
@@ -733,23 +478,6 @@ export default class QueryHistoryTable extends Vue {
       }
     }
   }
-  .fav-dropdown-item {
-    overflow: hidden;
-    i {
-      margin-left: 5px;
-      display: inline-block;
-      position: relative;
-      top: 10px;
-    }
-    &:hover {
-      i {
-        color: @text-normal-color;
-        &:hover {
-          color: @base-color;
-        }
-      }
-    }
-  }
   .latency-filter-pop {
     display: inline-flex;
     align-items: center;
@@ -774,80 +502,6 @@ export default class QueryHistoryTable extends Vue {
     margin-left: 5px !important;
     &:last-child {
       margin-bottom: 0;
-    }
-  }
-  .rule-block {
-    width: 100%;
-    height: 78vh;
-    position: absolute;
-    top: 57px;
-    left: 0;
-    z-index: 99;
-    background: #fff;
-    opacity: 0.85;
-    box-shadow: 0 1px 3px rgba(0,0,0,.3);
-  }
-  .translate-right {
-    -webkit-transform: translateX(600px);
-    -moz-transform: translateX(600px);
-    -ms-transform: translateX(600px);
-    -o-transform: translateX(600px);
-    transform: translateX(600px);
-    animation: rotate 1s forwards;
-  }
-  @keyframes rotate {
-    0% {
-      opacity: 0;
-    }
-    100% {
-      opacity: 1;
-      transform: rotate(360deg);
-    }
-  }
-  .transition-new {
-    -webkit-transition: all 1s ease-in;
-    -moz-transition: all 1s ease-in;
-    -ms-transition: all 1s ease-in;
-    -o-transition: all 1s ease-in;
-    transition: all 1s ease-in;
-  }
-  .ruleDiaglog {
-    width: 660px;
-    height: 78vh;
-    position: absolute;
-    top: 57px;
-    right: 0;
-    z-index: 999;
-    background-color: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,.3);
-    hr {
-      height: 1px;
-      border: none;
-      background-color: @line-border-color;
-      margin-bottom: 30px;
-    }
-    .el-dialog__body {
-      height: calc(~"78vh - 160px");
-      overflow-y: scroll;
-    }
-    .con-form-item {
-      margin-bottom: 20px;
-    }
-    .action-group {
-      .el-button i {
-        display: block;
-      }
-      .is-disabled {
-        background-color: @grey-4;
-        color: @line-border-color;
-        .el-icon-ksd-minus {
-          cursor: not-allowed;
-        }
-        :hover {
-          background-color: @grey-4;
-          color: @line-border-color;
-        }
-      }
     }
   }
 </style>
