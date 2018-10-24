@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
@@ -43,7 +42,7 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.EventContext;
 import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
-import io.kylingence.kap.event.model.RemoveCuboidEvent;
+import lombok.val;
 
 public class RemoveCuboidBySqlHandler extends AbstractEventHandler {
 
@@ -136,6 +135,6 @@ public class RemoveCuboidBySqlHandler extends AbstractEventHandler {
 
     @Override
     public Class<?> getEventClassType() {
-        return RemoveCuboidEvent.class;
+        return RemoveCuboidBySqlEvent.class;
     }
 }
