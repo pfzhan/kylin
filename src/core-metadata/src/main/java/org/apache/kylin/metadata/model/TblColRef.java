@@ -284,7 +284,7 @@ public class TblColRef implements Serializable {
     }
 
     // return DB.TABLE.COLUMN
-    public String getColumWithTableAndSchema() {
+    public String getColumnWithTableAndSchema() {
         return (getTableWithSchema() + "." + column.getName()).toUpperCase();
     }
 }

@@ -132,6 +132,7 @@ public class ParameterDesc implements Serializable {
 
     void setColRef(TblColRef colRef) {
         this.colRef = colRef;
+        this.allColRefsIncludingNexts = null;
     }
 
     public List<TblColRef> getColRefs() {

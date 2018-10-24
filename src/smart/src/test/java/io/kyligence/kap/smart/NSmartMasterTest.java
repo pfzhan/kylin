@@ -25,6 +25,7 @@
 package io.kyligence.kap.smart;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -579,7 +580,91 @@ public class NSmartMasterTest extends NTestBase {
         }
     }
 
-    /*
+    @Test
+    public void testRenameModel() throws Exception {
+        NDataModel model1, model2, model3;
+        {
+            String[] sqlStatements = new String[] {
+                    "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
+            model1 = proposeModel(sqlStatements);
+        }
+        {
+            String[] sqlStatements = new String[] { "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
+            model2 = proposeModel(sqlStatements);
+        }
+        {
+            String[] sqlStatements = new String[] {
+                    "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
+                            + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
+                            + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
+                            + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id"
+            };
+            model3 = proposeModel(sqlStatements);
+        }
+        String model1Alias = model1.getAlias();
+        String model2Alias = model2.getAlias();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_1", model1Alias);
+        Assert.assertEquals(model1Alias, model2Alias);
+        String model3Alias = model3.getAlias();
+        Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3Alias);
+    }
+
+    @Test
+    public void testRenameAllColumns() throws Exception {
+        // test all named columns rename
+        String[] sqlStatements = new String[] {
+                "SELECT\n" +
+                "BUYER_ACCOUNT.ACCOUNT_COUNTRY, SELLER_ACCOUNT.ACCOUNT_COUNTRY " +
+                "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT \n" +
+                "INNER JOIN TEST_ORDER as TEST_ORDER\n" +
+                "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" +
+                "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" +
+                "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" +
+                "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n" +
+                "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" +
+                "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" +
+                "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n" +
+                "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n" +
+                "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n" +
+                "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" +
+                "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n" +
+                "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n" +
+                "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n" +
+                "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n" +
+                "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" +
+                "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" +
+                "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY"
+        };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", sqlStatements);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+        NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        String[] namedColumns = new String[9];
+        for (int i = 0; i < 9; ++i) {
+            String namedColumn = model.getAllNamedColumns().get(i).name;
+            namedColumns[i] = namedColumn;
+        }
+        Arrays.sort(namedColumns);
+        String namedColumn1 = namedColumns[0];
+        String namedColumn2 = namedColumns[1];
+        Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_COUNTRY", namedColumn1);
+        Assert.assertEquals("TEST_ACCOUNT_1.ACCOUNT_COUNTRY", namedColumn2);
+    }
+
+    private NDataModel proposeModel(String[] sqlStatements) throws Exception {
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
+        smartMaster.renameModel();
+        smartMaster.saveModel();
+        return modelContext.getTargetModel();
+    }
+
+/*
     public void testNewtenDemoScript() throws Exception {
         metaDir = "src/test/resources/nsmart/newten/meta";
         proj = "newten";

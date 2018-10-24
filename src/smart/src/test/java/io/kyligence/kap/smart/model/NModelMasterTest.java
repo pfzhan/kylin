@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.io.IOException;
 
+import java.util.List;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -66,8 +67,10 @@ public class NModelMasterTest extends NTestBase {
         NDataModel dataModel = modelMaster.proposeInitialModel();
         {
             Assert.assertNotNull(dataModel);
+            List<NDataModel.Measure> allMeasures = dataModel.getAllMeasures();
             Assert.assertTrue(dataModel.getAllNamedColumns().isEmpty());
-            Assert.assertEquals(1, dataModel.getAllMeasures().size());
+            Assert.assertEquals(1, allMeasures.size());
+            Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
         }
 
         dataModel = modelMaster.proposeJoins(dataModel);
@@ -98,8 +101,11 @@ public class NModelMasterTest extends NTestBase {
         dataModel = modelMaster.proposeScope(dataModel);
         {
             Assert.assertNotNull(dataModel);
+            List<NDataModel.Measure> allMeasures = dataModel.getAllMeasures();
             Assert.assertFalse(dataModel.getAllNamedColumns().isEmpty());
-            Assert.assertEquals(3, dataModel.getAllMeasures().size());
+            Assert.assertEquals(3, allMeasures.size());
+            Assert.assertEquals("SUM_PRICE", allMeasures.get(1).getName());
+            Assert.assertEquals("SUM_ITEM_COUNT", allMeasures.get(2).getName());
         }
 
         // propose again, should return same result

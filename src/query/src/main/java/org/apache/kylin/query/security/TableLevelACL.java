@@ -78,7 +78,7 @@ public class TableLevelACL {
         for (OLAPContext context : contexts) {
             Set<TblColRef> allColumns = context.allColumns;
             for (TblColRef tblColRef : allColumns) {
-                allColWithTblAndSchema.add(tblColRef.getColumWithTableAndSchema());
+                allColWithTblAndSchema.add(tblColRef.getColumnWithTableAndSchema());
             }
         }
         return allColWithTblAndSchema;

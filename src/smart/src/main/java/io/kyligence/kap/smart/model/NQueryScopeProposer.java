@@ -30,7 +30,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -206,7 +205,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     FunctionDesc newFunc = copyFunctionDesc(agg);
                     NDataModel.Measure measure = new NDataModel.Measure();
                     measure.id = ++maxMeasureId;
-                    measure.setName(UUID.randomUUID().toString());
+                    String type = newFunc.getExpression();
+                    String columnName = newFunc.getParameter().getColRef().getName();
+                    measure.setName(type + "_" + columnName);
                     measure.setFunction(newFunc);
                     measureCandidate.put(newFunc, measure);
                 }

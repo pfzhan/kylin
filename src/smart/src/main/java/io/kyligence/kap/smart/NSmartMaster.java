@@ -27,7 +27,9 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,15 +49,19 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class NSmartMaster {
+
+    private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSmartMaster.class);
 
     private NSmartContext context;
     private NProposerProvider proposerProvider;
+    private NDataModelManager dataModelManager;
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
         this.context = new NSmartContext(kylinConfig, project, sqls);
         this.proposerProvider = NProposerProvider.create(context);
+        this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
     public NSmartContext getContext() {
@@ -90,10 +96,33 @@ public class NSmartMaster {
         proposerProvider.getModelShrinkProposer().propose();
     }
 
+    public void renameModel() {
+        List<NDataModel> modelList = dataModelManager.listModels();
+        Set<String> usedNames = Sets.newHashSet();
+        if (modelList != null) {
+            for (NDataModel model : modelList) {
+                usedNames.add(model.getAlias());
+            }
+        }
+        List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
+        for (NSmartContext.NModelContext modelCtx : modelContexts) {
+            NDataModel originalModel = modelCtx.getOrigModel();
+            NDataModel targetModel = modelCtx.getTargetModel();
+            if (originalModel == null) {
+                String rootTableAlias = targetModel.getRootFactTable().getAlias();
+                String modelName = getModelName(MODEL_NAME_PREFIX + rootTableAlias, usedNames);
+                targetModel.setAlias(modelName);
+            } else {
+                targetModel.setAlias(originalModel.getAlias());
+            }
+        }
+    }
+
     public void runAll() throws IOException {
         analyzeSQLs();
         selectModel();
         optimizeModel();
+        renameModel();
         saveModel();
 
         selectCubePlan();
@@ -135,13 +164,12 @@ public class NSmartMaster {
     }
 
     public void saveModel() throws IOException {
-        NDataModelManager modelManager = NDataModelManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NDataModel model = modelCtx.getTargetModel();
-            if (modelManager.getDataModelDesc(model.getName()) != null) {
-                modelManager.updateDataModelDesc(model);
+            if (dataModelManager.getDataModelDesc(model.getName()) != null) {
+                dataModelManager.updateDataModelDesc(model);
             } else {
-                modelManager.createDataModelDesc(model, null);
+                dataModelManager.createDataModelDesc(model, null);
             }
             try {
                 Thread.sleep(1000L);
@@ -150,5 +178,18 @@ public class NSmartMaster {
                 Thread.currentThread().interrupt();
             }
         }
+    }
+
+    private String getModelName(String seedModelName, Set<String> usedNames) {
+        int suffix = 0;
+        String targetName;
+        do {
+            if (suffix++ < 0) {
+                throw new IllegalStateException("Potential infinite loop in getModelName().");
+            }
+            targetName = seedModelName + "_" + suffix;
+        } while (usedNames.contains(targetName));
+        usedNames.add(targetName);
+        return targetName;
     }
 }
