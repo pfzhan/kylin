@@ -182,13 +182,16 @@ export default {
       return api.model.fetchAggregates(params.modelName, params.projectName)
     },
     [types.FETCH_SEGMENTS] ({ commit }, params) {
-      return api.model.fetchSegments(params.modelName, params.projectName, String(params.startDate), String(params.endDate))
+      return api.model.fetchSegments(params.modelName, params.projectName, String(params.startTime), String(params.endTime), params.pageOffset, params.pageSize)
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelName, params.projectName, params.cuboidId)
     },
     [types.FETCH_CUBOIDS] ({ commit }, params) {
       return api.model.fetchCuboids(params.modelName, params.projectName)
+    },
+    [types.REFRESH_SEGMENTS] ({ commit }, params) {
+      return api.model.refreshSegments(params.modelName, params.projectName, params.segmentIds)
     }
   },
   getters: {

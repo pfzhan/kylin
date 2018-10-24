@@ -287,7 +287,7 @@ export default class SourceTableModal extends Vue {
       this.closeHandler(true)
     } catch (e) {
       // 异常处理
-      e && handleError(e)
+      e !== 'cancel' && handleError(e)
     }
   }
   async submit (data) {
@@ -298,21 +298,16 @@ export default class SourceTableModal extends Vue {
       case INCREMENTAL_LOADING:
         return this.saveDataRange(data)
       case REFRESH_RANGE: {
-        try {
-          const response = await this.fetchRangeFreshInfo(data)
-          const storageSize = (await handleSuccessAsync(response)).size_kb
-          const confirmTitle = this.$t('kylinLang.common.notice')
-          const confirmMessage = this.$t('freshStorageCost', { storageSize: Vue.filter('dataSize')(storageSize) })
-          await this.$confirm(confirmMessage, confirmTitle, {
-            confirmButtonText: this.$t('kylinLang.common.ok'),
-            cancelButtonText: this.$t('kylinLang.common.cancel'),
-            type: 'warning'
-          })
-          return await this.freshRangeData(data)
-        } catch (e) {
-          e !== 'cancel' && handleError(e)
-        }
-        break
+        const response = await this.fetchRangeFreshInfo(data)
+        const storageSize = (await handleSuccessAsync(response)).size_kb
+        const confirmTitle = this.$t('kylinLang.common.notice')
+        const confirmMessage = this.$t('freshStorageCost', { storageSize: Vue.filter('dataSize')(storageSize) })
+        await this.$confirm(confirmMessage, confirmTitle, {
+          confirmButtonText: this.$t('kylinLang.common.ok'),
+          cancelButtonText: this.$t('kylinLang.common.cancel'),
+          type: 'warning'
+        })
+        return await this.freshRangeData(data)
       }
       case DATA_MERGE:
         return this.updateMergeConfig(data)

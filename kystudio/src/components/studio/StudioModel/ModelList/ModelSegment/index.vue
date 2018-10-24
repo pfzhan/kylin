@@ -2,9 +2,9 @@
   <div class="model-segment">
     <div class="segment-actions clearfix">
       <div class="left">
-        <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" :disabled="!selectedSegmentIds.length" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button>
-        <el-button size="medium" type="primary" icon="el-icon-ksd-drop">{{$t('kylinLang.common.drop')}}</el-button>
+        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" :disabled="!selectedSegmentIds.length">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action">
@@ -29,7 +29,7 @@
             :placeholder="$t('chooseEndDate')">
           </el-date-picker>
         </div>
-        <div class="segment-action">
+        <div class="segment-action" v-if="false">
           <span class="input-label">{{$t('primaryPartition')}}</span>
           <el-select v-model="filter.mpValues" size="medium" :placeholder="$t('pleaseChoose')">
             <el-option
@@ -44,10 +44,13 @@
     <div class="segment-views">
       <div class="segment-charts">
         <SegmentChart
-          :data="segments"
+          v-loading="isSegmentLoading"
+          :segments="segments"
           :scaleType="scaleTypes[scaleTypeIdx]"
-          @select="handleSelectSegment"
-        />
+          @input="handleSelectSegment"
+          @load-more="handleLoadMore">
+          <Waypoint class="load-more" :scrollable-ancestor="scrollableAncestor" @enter="handleLoadMore"></Waypoint>
+        </SegmentChart>
         <div class="chart-actions">
           <div class="icon-button" @click="handleAddZoom">
             <img :src="iconAdd" />
@@ -62,46 +65,6 @@
         </div>
       </div>
     </div>
-
-    <div class="segment-settings">
-      <h1 class="title font-medium">{{$t('segmentSetting')}}</h1>
-      <div class="settings">
-        <div class="setting" v-for="(config, configName) in configs" :key="configName">
-          <el-checkbox class="setting-checkbox" v-model="config.isEnabled">{{$t(configName)}}</el-checkbox>
-          <div class="setting-input"
-            v-for="(setting, index) in config.settings"
-            :key="index">
-            <el-input
-              v-model="setting.value"
-              :placeholder="$t('textInput')">
-            </el-input>
-            <el-select class="setting-select" v-model="setting.key">
-              <el-option
-                v-for="item in labels"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value">
-              </el-option>
-            </el-select>
-            <el-button
-              v-if="index === 0 && config.isAddible"
-              @click="handleAddSetting(configName)"
-              size="small"
-              class="is-circle primary new-setting"
-              icon="el-icon-ksd-add">
-            </el-button>
-            <el-button
-              v-if="config.isAddible"
-              @click="handleDeleteSetting(configName, index)"
-              size="small"
-              class="is-circle delete-setting"
-              icon="el-icon-ksd-minus"
-              :disabled="config.settings.length <= 1">
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -111,12 +74,14 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import SegmentChart from './SegmentChart/SegmentChart.vue'
-import { handleSuccessAsync } from '../../../../../util'
+import SegmentChart from './SegmentChart/SegmentChart'
+import Waypoint from '../../../../common/Waypoint/Waypoint'
+import { pageSizeMapping } from '../../../../../config'
+import { handleSuccessAsync, handleError } from '../../../../../util'
 import iconAdd from './icon_add.svg'
 import iconReduce from './icon_reduce.svg'
 import { formatSegments } from './handle'
-// import mockSegments from './mock'
+import { getMockSegments } from './mock'
 
 @Component({
   props: {
@@ -133,7 +98,8 @@ import { formatSegments } from './handle'
     }
   },
   components: {
-    SegmentChart
+    SegmentChart,
+    Waypoint
   },
   computed: {
     ...mapGetters([
@@ -142,7 +108,11 @@ import { formatSegments } from './handle'
   },
   methods: {
     ...mapActions({
-      fetchSegments: 'FETCH_SEGMENTS'
+      fetchSegments: 'FETCH_SEGMENTS',
+      refreshSegments: 'REFRESH_SEGMENTS'
+    }),
+    ...mapActions('SourceTableModal', {
+      callSourceTableModal: 'CALL_MODAL'
     })
   },
   locales
@@ -150,30 +120,8 @@ import { formatSegments } from './handle'
 export default class ModelSegment extends Vue {
   iconAdd = iconAdd
   iconReduce = iconReduce
-  configs = {
-    autoMerge: {
-      isEnabled: true,
-      isAddible: true,
-      settings: [{
-        key: 'Day',
-        value: ''
-      }]
-    },
-    volatile: {
-      isEnabled: true,
-      isAddible: false,
-      settings: [{
-        key: 'Day',
-        value: ''
-      }]
-    }
-  }
   zoom = 100
   segments = []
-  labels = [{
-    label: 'Day',
-    value: 'Day'
-  }]
   filter = {
     mpValues: '',
     startDate: '',
@@ -181,34 +129,27 @@ export default class ModelSegment extends Vue {
   }
   scaleTypes = ['hour', 'day', 'month', 'year']
   scaleTypeIdx = 1
+  scrollableAncestor = null
   pagination = {
     pageOffset: 0,
-    pageSize: 999
+    pageSize: pageSizeMapping.SEGMENT_CHART
   }
+  selectedSegmentIds = []
+  isSegmentLoading = false
   get selectedSegments () {
-    return this.segments.filter(segment => segment.isSelected)
+    return this.selectedSegmentIds.map(
+      segmentId => this.segments.find(segment => segment.uuid === segmentId)
+    )
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
+  @Watch('scaleTypeIdx')
   onDateRangeChange (val) {
-    this.getModelSegments()
+    this.loadSegments()
   }
   async mounted () {
-    await this.getModelSegments()
-  }
-  async getModelSegments () {
-    const { startDate, endDate } = this.filter
-    const res = await this.fetchSegments({
-      projectName: this.currentSelectedProject,
-      modelName: this.model.name,
-      startDate: startDate && startDate.getTime(),
-      endDate: endDate && endDate.getTime(),
-      ...this.pagination
-    })
-    const { segments } = await handleSuccessAsync(res)
-
-    this.segments = formatSegments(segments)
-    // formatSegments(mockSegments.segments)
+    await this.loadSegments()
+    this.scrollableAncestor = this.$el.querySelector('.segment-chart .container')
   }
   getStartDateLimit (time) {
     return this.filter.endDate ? time.getTime() > this.filter.endDate.getTime() : false
@@ -216,13 +157,40 @@ export default class ModelSegment extends Vue {
   getEndDateLimit (time) {
     return this.filter.startDate ? time.getTime() < this.filter.startDate.getTime() : false
   }
-  handleDeleteSetting (configName, index) {
-    const currentSettings = this.configs[configName].settings
-    currentSettings.length > 1 && currentSettings.splice(index, 1)
+  addPagination () {
+    this.pagination.pageOffset++
   }
-  handleAddSetting (configName) {
-    const currentSettings = this.configs[configName].settings
-    currentSettings.push({ key: 'Day', value: '' })
+  clearPagination () {
+    this.pagination.pageOffset = 0
+  }
+  async loadSegments (options) {
+    try {
+      const { isReset = true } = options || {}
+      const { startDate, endDate } = this.filter
+      const projectName = this.currentSelectedProject
+      const modelName = this.model.name
+      const startTime = startDate && startDate.getTime()
+      const endTime = endDate && endDate.getTime()
+
+      this.isSegmentLoading = true
+      isReset && this.clearPagination()
+      const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
+      let { size, segments } = await handleSuccessAsync(res)
+      // const formatedSegments = formatSegments(segments)
+      const formatedSegments = formatSegments(getMockSegments(isReset))
+      size = 99999; segments
+      if (size > this.segments.length) {
+        this.segments = isReset ? formatedSegments : this.segments.concat(formatedSegments)
+        this.addPagination()
+      }
+      this.isSegmentLoading = false
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  handleLoadMore () {
+    console.log('load-more')
+    this.loadSegments({ isReset: false })
   }
   handleAddZoom () {
     if (this.scaleTypeIdx > 0) {
@@ -234,57 +202,28 @@ export default class ModelSegment extends Vue {
       this.scaleTypeIdx++
     }
   }
-  handleSelectSegment (data, isSelectable) {
+  handleSelectSegment (selectedSegmentIds, isSelectable) {
     if (isSelectable) {
-      this.segments = this.segments.map(segment => {
-        if (segment.id === data.id) {
-          segment.isSelected = !segment.isSelected
-        }
-        return segment
-      })
+      this.selectedSegmentIds = selectedSegmentIds
     } else {
       this.$message('请选择相邻的segment')
     }
   }
-  handleRefreshSegment () {
-    this.getModelSegments()
-  }
-  handleMergeSegment () {
-    if (this.selectedSegments.length) {
-      let minDate = Infinity
-      let maxDate = -Infinity
-
-      this.selectedSegments.forEach(segment => {
-        if (segment.dateRangeStart < minDate) {
-          minDate = segment.dateRangeStart
-        }
-        if (segment.dateRangeEnd > maxDate) {
-          maxDate = segment.dateRangeEnd
-        }
-      })
-
-      // this.segments = this.segments.filter(segment => !this.selectedSegments.some(selected => selected.id === segment.id))
-      // const id = Math.random() * 100 + 100
-      // this.segments.push({
-      //   size_kb: 36,
-      //   snapshots: null,
-      //   source_offset_end: 0,
-      //   source_offset_start: 0,
-      //   status: 'READY',
-      //   storage_location_identifier: 'KYLIN_HE2YMKK60C',
-      //   total_shards: 0,
-      //   id: `6be0d737-1dc7-41d8-ab8d-a1bd1689307c${id}`,
-      //   name: '20120111164354_20130109174429',
-      //   last_build_time: 1532167086872,
-      //   dateRange_start: minDate,
-      //   dateRange_end: maxDate,
-      //   hit_count: 100,
-      //   isMerging: true,
-      //   from: new Date(minDate),
-      //   to: maxDate ? new Date(maxDate) : new Date(8640000000000000),
-      //   isSelected: false
-      // })
+  async handleRefreshSegment () {
+    try {
+      const projectName = this.currentSelectedProject
+      const modelName = this.model.name
+      const segmentIds = this.selectedSegmentIds
+      segmentIds.length && await this.refreshSegments({ projectName, modelName, segmentIds })
+    } catch (e) {
+      handleError(e)
     }
+  }
+  async handleMergeSegment () {
+    const projectName = this.currentSelectedProject
+    const modelName = this.model.name
+    const isSubmit = await this.callSourceTableModal({ editType: 'dataMerge', modelName, projectName })
+    isSubmit && this.$emit('fresh-tables')
   }
 }
 </script>
@@ -327,6 +266,9 @@ export default class ModelSegment extends Vue {
     position: relative;
     .segment-chart {
       width: calc(~'100% - 25px');
+    }
+    .stage {
+      position: relative;
     }
     .chart-actions {
       position: absolute;
@@ -411,6 +353,14 @@ export default class ModelSegment extends Vue {
         width: 100%;
       }
     }
+  }
+  .load-more {
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    background: red;
   }
 }
 </style>

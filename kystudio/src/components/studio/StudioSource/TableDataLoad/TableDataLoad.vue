@@ -212,8 +212,8 @@ export default class TableDataLoad extends Vue {
   clearPagination () {
     this.pagination.pageOffset = 0
   }
-  async loadRelatedModel (props) {
-    const { isReset = true } = props || {}
+  async loadRelatedModel (options) {
+    const { isReset = true } = options || {}
     const { projectName, table, pagination } = this
     const tableFullName = `${table.database}.${table.name}`
     const res = await this.fetchRelatedModels({ projectName, tableFullName, ...pagination })

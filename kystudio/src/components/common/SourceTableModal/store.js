@@ -76,13 +76,13 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, table, projectName = null, modelName = null }) {
+    [types.CALL_MODAL] ({ commit }, { editType, table = null, projectName = null, modelName = null }) {
       const { dispatch } = this
       return new Promise(async resolve => {
         commit(types.SET_MODAL, { editType, table, callback: resolve })
         switch (editType) {
           case editTypes.DATA_MERGE: {
-            const tableFullName = `${table.database}.${table.name}`
+            const tableFullName = table && `${table.database}.${table.name}`
             const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
             const payload = formatMergeConfig(await handleSuccessAsync(response))
             commit(types.INIT_FORM, payload)

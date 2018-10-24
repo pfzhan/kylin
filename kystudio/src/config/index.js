@@ -637,7 +637,8 @@ export const sourceNameMapping = {
 }
 
 export const pageSizeMapping = {
-  TABLE_TREE: 99
+  TABLE_TREE: 99,
+  SEGMENT_CHART: 1
 }
 
 export const partitionColumnTypes = [

@@ -106,8 +106,8 @@ export default {
   getAutoModelSql: (para) => {
     return Vue.resource(apiUrl + 'smart/' + para.modelName + '/model_sqls').get()
   },
-  fetchSegments: (model, project, start, end) => {
-    return Vue.resource(`${apiUrl}models/segments`).get({model, project, start, end})
+  fetchSegments: (model, project, start, end, pageOffset, pageSize) => {
+    return Vue.resource(`${apiUrl}models/segments`).get({model, project, start, end, pageOffset, pageSize})
   },
   fetchAggregates: (model, project) => {
     return Vue.resource(`${apiUrl}models/agg_indexs`).get({model, project})
@@ -132,5 +132,8 @@ export default {
   },
   refreshTableIndex: (para) => {
     return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
+  },
+  refreshSegments: (model, project, ids) => {
+    return Vue.resource(apiUrl + 'models/segments').update({ model, project, ids })
   }
 }

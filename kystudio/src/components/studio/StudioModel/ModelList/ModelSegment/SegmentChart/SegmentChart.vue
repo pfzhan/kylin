@@ -1,22 +1,26 @@
 <template>
   <div class="segment-chart">
-    <div class="container" @scroll="handleScroll">
+    <div class="container" ref="container" @scroll="handleScroll">
       <div class="stage" :style="stageStyle">
         <div class="segment"
-          v-for="segment in inviewSegments"
+          v-for="(segment, index) in inviewSegments"
           :style="segment.style"
-          :key="segment.uuid"
-          :class="{ selected: segment.isSelected }"
+          :key="`s-${index}`"
+          :class="segment.classNames"
           @mouseout="event => handleMouseOut(event, segment)"
           @mousemove="event => handleMouseMove(event, segment)"
           @click="event => handleClick(event, segment)">
         </div>
-        <div class="tick" v-for="tick in inviewTicks" :key="tick.timestamp" :style="tick.style">
-          <div class="tick-label">{{tick.label}}</div>
+        <div class="tick"
+          v-for="(tick, index) in inviewTicks"
+          :key="`t-${index}`"
+          :style="tick.style">
+          <div class="tick-label">{{tick.name}}</div>
         </div>
+        <slot></slot>
       </div>
     </div>
-    <div class="el-popover" :style="tip.style" v-if="tip.id !== ''">
+    <div class="el-popover" v-if="tip" :style="tip.style">
       <div class="popper__arrow"></div>
       <p>Segment ID: {{tip.id}}</p>
       <p>Storage Size: {{tip.storage}}</p>
@@ -30,23 +34,19 @@
 import Vue from 'vue'
 import dayjs from 'dayjs'
 import { Component, Watch } from 'vue-property-decorator'
+import { scaleTypes, formatTypes, isFilteredSegmentsContinue } from './handler'
+const { MINUTE, HOUR, DAY, MONTH, YEAR } = scaleTypes
 
 @Component({
   props: {
-    dateRange: {
-      type: Array,
-      default: () => []
-    },
-    data: {
+    segments: {
       type: Array,
       default: () => []
     },
     scaleType: {
       type: String,
-      default: 'day',
-      validator (value) {
-        return ['minute', 'hour', 'day', 'month', 'year'].includes(value)
-      }
+      default: DAY,
+      validator: value => [MINUTE, HOUR, DAY, MONTH, YEAR].includes(value)
     },
     gridWidth: {
       type: Number,
@@ -55,293 +55,188 @@ import { Component, Watch } from 'vue-property-decorator'
   }
 })
 export default class SegmentChart extends Vue {
+  scrollLeft = 0
+  viewPort = [0, 0]
+  tip = null
+  hoveredSegmentId = null
+  selectedSegmentIds = []
   timer = null
-  isLoading = false
-  segments = []
-  initJobId = ''
-  breakJobIds = []
-  scrollOffset = 0
-  elementWidth = 0
-  tip = {
-    id: '',
-    storage: 0,
-    startDate: '',
-    endDate: '',
-    style: {
-      left: 0
-    }
+  isFullInitilized = true
+  get selectedSegments () {
+    return this.segments.filter(segment => this.selectedSegmentIds.includes(segment.uuid))
   }
-  msTick = {
-    minute: 1000 * 60,
-    hour: 1000 * 3600,
-    day: 1000 * 3600 * 24,
-    month: 1000 * 3600 * 24 * 31,
-    year: 1000 * 3600 * 24 * 31 * 12
+  get formatType () {
+    return formatTypes[this.scaleType]
   }
-  labelFormats = {
-    minute: 'mm:ss',
-    hour: 'HH:mm A',
-    day: 'MMM DD',
-    month: 'MMM',
-    year: 'YYYY'
+  get totalTime () {
+    const { startTick, endTick } = this
+    return endTick.timestamp - startTick.timestamp
+  }
+  get startTick () {
+    return this.xTicks[0]
+  }
+  get endTick () {
+    return this.xTicks[this.xTicks.length - 1]
   }
   get xTicks () {
-    const ticks = []
-    const startDate = this.getZeroAM(this.minStartTime)
-    const endDate = this.getZeroAM(this.maxEndTime, 1)
-    const formatType = this.labelFormats[this.scaleType]
-    const tickCount = endDate.diff(startDate, this.scaleType)
+    const { formatType, scaleType, segments, gridWidth } = this
+    const containerWidth = this.$refs['container'] ? this.$refs['container'].clientWidth : 0
+    const segmentCount = segments.length - 1
+    const startTime = segments[0] && segments[0].startTime
+    const endTime = segments[segmentCount] && segments[segmentCount].endTime
+    const startTick = dayjs(startTime).startOf(DAY)
+    const endTick = dayjs(endTime).add(1, DAY).startOf(DAY)
+    const diff = endTick.diff(startTick, scaleType)
+    const isTickFull = diff * gridWidth > containerWidth
+    const xTicks = []
+    const tickCount = isTickFull ? diff : Math.floor(containerWidth / gridWidth)
 
-    let currentDate = startDate
+    let currentTick = startTick
     for (let i = 0; i < tickCount; i++) {
-      const label = dayjs(currentDate).format(formatType)
-      ticks.push({
-        label,
-        timestamp: currentDate.valueOf(),
-        style: this.getTickStyle(currentDate.valueOf()),
-        isShow: this.isTickShow(currentDate.valueOf())
-      })
-      currentDate = currentDate.add(1, this.scaleType)
-    }
+      const isStartOfYear = currentTick.valueOf() === currentTick.startOf(YEAR).valueOf()
+      const data = currentTick
+      const timestamp = currentTick.valueOf()
+      const name = !isStartOfYear
+        ? currentTick.format(formatType)
+        : currentTick.startOf(YEAR).format(formatTypes[YEAR])
 
-    return ticks
-  }
-  get selectedSegments () {
-    return this.segments.filter(segment => segment.isSelected)
-  }
-  get inviewSegments () {
-    return this.segments.filter(segment => segment.isShow)
+      xTicks.push({ name, data, timestamp })
+      currentTick = currentTick.add(1, scaleType)
+    }
+    return xTicks
   }
   get inviewTicks () {
-    return this.xTicks.filter(tick => tick.isShow)
+    return this.xTicks.map(xTick => {
+      const style = this.getTickStyle(xTick)
+      const isShow = this.isTickShow(xTick)
+      return { ...xTick, style, isShow }
+    }).filter(xTick => {
+      return xTick.isShow
+    })
+  }
+  get inviewSegments () {
+    return this.segments.map(item => {
+      const { uuid, startTime, endTime } = item
+      const storage = item.size_kb
+      const hitCount = item.hit_count
+      return { uuid, startTime, endTime, storage, hitCount }
+    }).map(segment => {
+      const style = this.getSegmentStyle(segment)
+      const isShow = this.isSegmentShow(segment)
+      const classNames = this.getSegmentClass(segment)
+      return { ...segment, style, isShow, classNames }
+    }).filter(segment => {
+      return segment.isShow
+    })
   }
   get stageStyle () {
-    const timeLong = this.maxEndTime - this.minStartTime
-    const msTick = this.msTick[this.scaleType]
     return {
-      width: `${timeLong / msTick * this.gridWidth}px`
+      width: `${this.xTicks.length * this.gridWidth}px`
     }
   }
-  get minStartTime () {
-    let minStartTime = Infinity
-    this.segments.forEach(segment => {
-      if (segment.dateRangeStart < minStartTime) {
-        minStartTime = segment.dateRangeStart
-      }
-    })
-    return dayjs(minStartTime !== Infinity ? minStartTime : undefined)
-      .set('millisecond', 0)
-      .set('millisecond', 0)
-      .set('second', 0)
-      .set('minute', 0)
-      .set('hour', 0)
-      .valueOf()
-  }
-  get maxEndTime () {
-    const defaultEndTime = dayjs(this.minStartTime).add(15, this.scaleType).valueOf()
-    let maxEndTime = -Infinity
-    this.segments.forEach(segment => {
-      if (segment.dateRangeEnd > maxEndTime) {
-        maxEndTime = segment.dateRangeEnd
-      }
-    })
-    return (maxEndTime === -Infinity || maxEndTime < defaultEndTime)
-      ? defaultEndTime
-      : maxEndTime
-  }
-  get segmentsMap () {
-    const segmentsMap = {}
-    for (const segment of this.segments) {
-      segmentsMap[segment.uuid] = segment
+  @Watch('segments')
+  onSegmentChange () {
+    const { segments } = this
+    const containerWidth = this.$refs['container'] ? this.$refs['container'].clientWidth : 0
+    const lastSegment = segments[segments.length - 1]
+
+    if (lastSegment) {
+      const segmentRight = this.getSegmentRight(lastSegment)
+      const isSegmentFull = containerWidth < segmentRight
+
+      !isSegmentFull && this.$emit('load-more')
     }
-    return segmentsMap
   }
-  @Watch('data')
-  async onDataChange () {
-    await this.initSegments()
-    this.freshSegments()
+  isTickShow (xTick) {
+    const { totalTime, startTick, gridWidth, xTicks, viewPort } = this
+    const curTimestamp = xTick.timestamp
+    const startTimestamp = startTick.timestamp
+    const tickLeft = (curTimestamp - startTimestamp) / totalTime * xTicks.length * gridWidth
+    return viewPort[0] <= tickLeft && tickLeft <= viewPort[1]
   }
-  @Watch('scaleType')
-  async onScaleTypeChange () {
-    this.freshSegments()
+  isSegmentShow (segment) {
+    const { totalTime, startTick, gridWidth, xTicks, viewPort } = this
+    const { endTime, startTime } = segment
+    const startTimestamp = startTick.timestamp
+    const segmentLeft = (startTime - startTimestamp) / totalTime * xTicks.length * gridWidth
+    const segmentRight = segmentLeft + (endTime - startTime) / totalTime * xTicks.length * gridWidth
+    return (viewPort[0] <= segmentLeft && segmentLeft <= viewPort[1]) ||
+      (viewPort[0] <= segmentRight && segmentRight <= viewPort[1])
   }
-  setInitJob (uuid) {
-    this.initJobId = uuid
-  }
-  checkIsInitBreak (uuid) {
-    return this.initJobId !== uuid
-  }
-  startLoadingData () {
-    this.isLoading = true
-  }
-  endLoadingData () {
-    this.isLoading = false
-  }
-  cleanupSegments (data) {
-    this.segments = this.segments.filter(segment => data.some(item => item.uuid === segment.uuid))
-  }
-  getNewSegmentsData (data) {
-    return data.filter(item => !(item.uuid in this.segmentsMap))
-  }
-  getUpdateSegmentsData (data) {
-    return data.filter(item => item.uuid in this.segmentsMap)
-  }
-  getZeroAM (time, addition = 0) {
-    const zeroAM = dayjs(time).add(addition, this.scaleType)
-    zeroAM.set(0, 'hour')
-    zeroAM.set(0, 'minute')
-    zeroAM.set(0, 'second')
-    zeroAM.set(0, 'millisecond')
-    return zeroAM
-  }
-  getStartTimeArray (data) {
-    return this.selectedSegments
-      .filter(segment => data.id !== segment.id)
-      .map(segment => segment.dateRangeStart)
-  }
-  getEndTimeArray (data) {
-    return this.selectedSegments
-      .filter(segment => data.id !== segment.id)
-      .map(segment => segment.dateRangeEnd)
-  }
-  async pushSegments (data, offset, limit) {
-    const newSegments = data.slice(offset, offset + limit)
-
-    return new Promise(resolve => {
-      setTimeout(() => {
-        for (const newSegment of newSegments) {
-          this.segments.push({ ...newSegment, isShow: false, style: {}, isSelected: false })
-          this.segments[this.segments.length - 1].isShow = this.isSegmentShow(newSegment)
-          this.segments[this.segments.length - 1].style = this.getSegmentStyle(newSegment)
-        }
-        resolve()
-      }, 500)
-    })
-  }
-  async initSegments () {
-    const newData = JSON.parse(JSON.stringify(this.data))
-    const limit = 20
-    const jobId = new Date().getTime()
-
-    this.setInitJob(jobId)
-    this.startLoadingData()
-    this.cleanupSegments(newData)
-    const newSegment = this.getNewSegmentsData(newData)
-    // const updateSegment = this.getUpdateSegmentsData(newData)
-
-    let offset = 0
-    for (let i = 0; i < newSegment.length / limit; i++) {
-      if (this.checkIsInitBreak(jobId)) { return }
-
-      await this.pushSegments(newSegment, offset, limit)
-      offset += limit
-    }
-
-    this.endLoadingData()
-  }
-  async freshSegments () {
-    this.segments.forEach(segment => {
-      segment.isShow = this.isSegmentShow(segment)
-      segment.style = this.getSegmentStyle(segment)
-    })
-  }
-  getTickStyle (timestamp) {
-    const msTick = this.msTick[this.scaleType]
-    const left = (timestamp - this.minStartTime) / msTick * this.gridWidth
+  getTickStyle (xTick) {
+    const { totalTime, startTick } = this
+    const curTimestamp = xTick.timestamp
+    const startTimestamp = startTick.timestamp
     return {
-      left: `${left}px`
+      left: `${(curTimestamp - startTimestamp) / totalTime * 100}%`
     }
   }
   getSegmentStyle (segment) {
-    const timeLong = segment.dateRangeEnd - segment.dateRangeStart
-    const msTick = this.msTick[this.scaleType]
-    const width = timeLong / msTick * this.gridWidth
-    const left = (segment.dateRangeStart - this.minStartTime) / msTick * this.gridWidth
+    const { totalTime, startTick, hoveredSegmentId } = this
+    const { uuid, endTime, startTime, hitCount } = segment
+    const startTimestamp = startTick.timestamp
     return {
-      left: `${left}px`,
-      width: `${width}px`,
-      background: segment.hit_count === 0 ? 'white' : `rgb(255, ${(1 - segment.hit_count / 100) * 255}, 0)`
+      left: `${(startTime - startTimestamp) / totalTime * 100}%`,
+      width: `${(endTime - startTime) / totalTime * 100}%`,
+      background: hitCount === 0 ? 'white' : `rgb(255, ${(1 - hitCount / 100) * 255}, 0)`,
+      zIndex: hoveredSegmentId === uuid ? 2 : (this.selectedSegmentIds.includes(segment.uuid) ? 1 : 0)
     }
   }
-  isSegmentShow (segment) {
-    const timeLong = segment.dateRangeEnd - segment.dateRangeStart
-    const msTick = this.msTick[this.scaleType]
-    const width = timeLong / msTick * this.gridWidth
-    const segmentLeft = (segment.dateRangeStart - this.minStartTime) / msTick * this.gridWidth
-    const segmentRight = segmentLeft + width
+  getSegmentRight (segment) {
+    const { totalTime, startTick, gridWidth, xTicks } = this
+    const { endTime, startTime } = segment
+    const startTimestamp = startTick.timestamp
+    const segmentLeft = (startTime - startTimestamp) / totalTime * xTicks.length * gridWidth
+    const segmentRight = segmentLeft + (endTime - startTime) / totalTime * xTicks.length * gridWidth
 
-    const isOutOfLeft = segmentRight < this.scrollOffset - this.elementWidth
-    const isOutOfRight = segmentLeft > this.scrollOffset + this.elementWidth + this.elementWidth
-
-    return !(isOutOfLeft || isOutOfRight)
+    return segmentRight
   }
-  isTickShow (timestamp) {
-    const msTick = this.msTick[this.scaleType]
-    const tickLeft = (timestamp - this.minStartTime) / msTick * this.gridWidth
-    const tickRight = tickLeft + 1
-
-    const isOutOfLeft = tickRight < this.scrollOffset - this.elementWidth
-    const isOutOfRight = tickLeft > this.scrollOffset + this.elementWidth + this.elementWidth
-
-    return !(isOutOfLeft || isOutOfRight)
+  getSegmentClass (segment) {
+    return {
+      selected: this.selectedSegmentIds.includes(segment.uuid)
+    }
   }
-  isSegmentSelectable (segment) {
-    const { selectedSegments, getStartTimeArray, getEndTimeArray } = this
-    const startTimeArray = getStartTimeArray(segment)
-    const endTimeArray = getEndTimeArray(segment)
+  handleScroll () {
+    clearTimeout(this.timer)
 
-    const isStartTimeContinue = startTimeArray.includes(segment.dateRangeEnd)
-    const isEndTimeContinue = endTimeArray.includes(segment.dateRangeStart)
-    const isSelfCancelSegment = selectedSegments.length === 1 && segment.uuid === selectedSegments[0].uuid
-    const isNoSegment = selectedSegments.length === 0
-    const isCancelMiddleSegment = isStartTimeContinue && isEndTimeContinue
-    // 对用户选择的segment进行判断
-    // 已选中的segment判断是不是中间取消segment
-    // 未选中的segment判断是不是时间连续
-    const unselectedCondition = !segment.isSelected && (isStartTimeContinue || isEndTimeContinue)
-    const selectedCondition = segment.isSelected && !isCancelMiddleSegment
-
-    return unselectedCondition || selectedCondition || isNoSegment || isSelfCancelSegment
-  }
-  handleScroll (event) {
-    clearInterval(this.timer)
     this.timer = setTimeout(() => {
-      this.scrollOffset = event.target.scrollLeft
-      this.freshSegments()
-    }, 10)
-  }
-  handleClick (event, segment) {
-    if (!segment.isMerging && segment.hit_count) {
-      if (this.isSegmentSelectable(segment)) {
-        segment.isSelected = !segment.isSelected
-        this.emitValueChange()
-      }
-    }
-  }
-  handleMouseMove (event, segment) {
-    this.tip.id = segment.id
-    this.tip.storage = segment.size_kb > 1024 ? `${segment.size_kb / 1024}MB` : `${segment.size_kb}KB`
-    this.tip.startDate = dayjs(segment.dateRangeStart).format('YYYY-MM-DD HH:mm:ss')
-    this.tip.endDate = dayjs(segment.dateRangeEnd).format('YYYY-MM-DD HH:mm:ss')
-    this.tip.style.left = `${event.offsetX + event.target.offsetLeft - this.scrollOffset}px`
+      const containerEl = this.$refs['container']
+      const { clientWidth, scrollLeft } = containerEl
+      // this.viewPort = [ scrollLeft, scrollLeft + clientWidth ]
+      this.viewPort = [ -clientWidth + scrollLeft, scrollLeft + clientWidth * 2 ]
+      this.scrollLeft = scrollLeft
+    }, 100)
   }
   handleMouseOut () {
-    this.tip.id = ''
-    this.tip.storage = 0
-    this.tip.startDate = ''
-    this.tip.endDate = ''
+    this.hoveredSegmentId = null
+    this.tip = null
   }
-  emitValueChange () {
-    const selectedSegmentIds = this.segments
-      .filter(segment => segment.isSelected)
-      .map(segment => segment.uuid)
-
-    this.$emit('input', selectedSegmentIds)
+  handleMouseMove (event, segment) {
+    const { uuid, startTime, endTime, storage } = segment
+    const startDate = dayjs(startTime).format('YYYY-MM-DD HH:mm:ss')
+    const endDate = dayjs(endTime).format('YYYY-MM-DD HH:mm:ss')
+    const style = {
+      left: `${event.offsetX + event.target.offsetLeft - this.scrollLeft}px`
+    }
+    this.hoveredSegmentId = uuid
+    this.tip = { id: uuid, startDate, endDate, storage, style }
   }
-  async mounted () {
-    this.elementWidth = this.$el.clientWidth
-    await this.initSegments()
-    this.freshSegments()
+  handleClick (event, segment) {
+    if (segment.hitCount) {
+      const isSelected = this.selectedSegmentIds.includes(segment.uuid)
+      const isSelectable = isFilteredSegmentsContinue(segment, this.selectedSegments)
+      if (isSelectable) {
+        if (isSelected) {
+          this.selectedSegmentIds = this.selectedSegmentIds.filter(segmentId => segmentId !== segment.uuid)
+        } else {
+          this.selectedSegmentIds.push(segment.uuid)
+        }
+      }
+      this.$emit('input', this.selectedSegmentIds, isSelectable)
+    }
+  }
+  mounted () {
+    this.handleScroll()
   }
 }
 </script>
@@ -362,7 +257,8 @@ export default class SegmentChart extends Vue {
   .stage {
     height: 152px;
     margin: 20px 0 110px 0;
-    border: 1px solid #CFD8DC;
+    border-top: 1px solid #CFD8DC;
+    border-bottom: 1px solid #CFD8DC;
   }
   .segment {
     box-sizing: border-box;
