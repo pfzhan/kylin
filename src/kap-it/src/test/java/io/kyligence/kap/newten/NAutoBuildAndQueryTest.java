@@ -64,7 +64,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         String targetModelName;
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 1, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -82,7 +82,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 2. Feed query with left join using same fact table, should update same model
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 1, 2, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -112,7 +112,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 4. Feed bad queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql_bad", 0, 0, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -123,7 +123,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 5. Feed query with inner join using same fact table, should create another model
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 3, 4, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -164,7 +164,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 1. Feed queries part1
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 2, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -178,7 +178,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 2. Feed queries part2
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 2, 4, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 
@@ -192,7 +192,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // 3. Retry all queries
         {
             List<Pair<String, String>> queries = fetchPartialQueries("auto/sql", 0, 4, "default");
-            NSmartMaster master = buildCubeWithSmartMaster(queries);
+            NSmartMaster master = proposeCubeWithSmartMaster(queries);
             kapSparkSession.use(getProject());
             kapSparkSession.buildAllCubes(kylinConfig, getProject());
 

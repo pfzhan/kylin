@@ -135,7 +135,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         kapSparkSession.close();
     }
 
-    protected NSmartMaster buildCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
+    protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
         List<String> sqlList = new ArrayList<>();
         for (Pair<String, String> queryPair : queries) {
             sqlList.add(queryPair.getSecond());
@@ -148,11 +148,9 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
     protected void buildCubeWithSparkSession(List<Pair<String, String>> queries) throws Exception {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        proposeCubeWithSmartMaster(queries);
         kapSparkSession.use(getProject());
-        for (Pair<String, String> query : queries) {
-            kapSparkSession.collectQueries(query.getSecond());
-        }
-        kapSparkSession.speedUp();
+        kapSparkSession.buildAllCubes(kylinConfig, getProject());
         kapSparkSession.close();
     }
 
