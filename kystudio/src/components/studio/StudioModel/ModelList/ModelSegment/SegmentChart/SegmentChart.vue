@@ -179,7 +179,7 @@ export default class SegmentChart extends Vue {
       left: `${(startTime - startTimestamp) / totalTime * 100}%`,
       width: `${(endTime - startTime) / totalTime * 100}%`,
       background: hitCount === 0 ? 'white' : `rgb(255, ${(1 - hitCount / 100) * 255}, 0)`,
-      zIndex: hoveredSegmentId === uuid ? 2 : (this.selectedSegmentIds.includes(segment.uuid) ? 1 : 0)
+      zIndex: hoveredSegmentId === uuid ? 3 : (this.selectedSegmentIds.includes(segment.uuid) ? 2 : 1)
     }
   }
   getSegmentRight (segment) {

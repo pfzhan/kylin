@@ -1,4 +1,4 @@
-import { editTypes } from './handler'
+import { editTypes, volatileTypes } from './handler'
 import { handleSuccessAsync } from '../../../util'
 import { partitionColumnTypes } from '../../../config'
 
@@ -19,7 +19,7 @@ const initialState = JSON.stringify({
   table: null,
   disabled: false,
   projectName: null,
-  modelName: null,
+  model: null,
   form: {
     newDataRange: [new Date(), new Date()],
     freshDataRange: [new Date(), new Date()],
@@ -48,6 +48,9 @@ export default {
       return state.table
         ? state.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
         : []
+    },
+    modelName (state) {
+      return state.model.name
     }
   },
   mutations: {
@@ -69,20 +72,25 @@ export default {
       }
     },
     [types.INIT_FORM]: (state, payload) => {
-      const [ startTime, endTime ] = state.table.userRange
-      state.form.newDataRange = [ new Date(startTime), new Date(endTime) ]
-      state.form.freshDataRange = [ new Date(startTime), new Date(endTime) ]
+      if (state.table) {
+        const [ startTime, endTime ] = state.table.userRange
+        state.form.newDataRange = [ new Date(startTime), new Date(endTime) ]
+        state.form.freshDataRange = [ new Date(startTime), new Date(endTime) ]
+      }
       state.form = { ...state.form, ...payload }
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, table = null, projectName = null, modelName = null }) {
+    [types.CALL_MODAL] ({ commit }, { editType, projectName = null, table = null, model = null }) {
       const { dispatch } = this
       return new Promise(async resolve => {
-        commit(types.SET_MODAL, { editType, table, callback: resolve })
+        const tableFullName = table && `${table.database}.${table.name}`
+        const modelName = model && model.name
+
+        commit(types.SET_MODAL, { editType, table, model, callback: resolve })
+
         switch (editType) {
           case editTypes.DATA_MERGE: {
-            const tableFullName = table && `${table.database}.${table.name}`
             const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
             const payload = formatMergeConfig(await handleSuccessAsync(response))
             commit(types.INIT_FORM, payload)
@@ -112,7 +120,7 @@ function formatMergeConfig (response) {
   const autoMergeConfigs = response.auto_merge_time_ranges
   const volatileConfig = {
     value: response.volatile_range.volatile_range_number,
-    type: response.volatile_range.volatile_range_type
+    type: response.volatile_range.volatile_range_type || volatileTypes[1]
   }
   const isMergeable = isAutoMerge && isVolatile
   return { isMergeable, isAutoMerge, isVolatile, autoMergeConfigs, volatileConfig }

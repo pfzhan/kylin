@@ -133,7 +133,10 @@ export default {
   refreshTableIndex: (para) => {
     return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
   },
-  refreshSegments: (model, project, ids) => {
-    return Vue.resource(apiUrl + 'models/segments').update({ model, project, ids })
+  refreshSegments: (modelName, project, ids) => {
+    return Vue.resource(apiUrl + 'models/segments').update({ modelName, project, ids })
+  },
+  deleteSegments: (model, project, ids) => {
+    return Vue.resource(`${apiUrl}models/segments/${project}/${model}`).delete({ ids })
   }
 }

@@ -203,6 +203,7 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
       table: state => state.table
     }),
     ...mapGetters('SourceTableModal', [
+      'modelName',
       'tableFullName',
       'partitionColumns'
     ])
@@ -316,7 +317,7 @@ export default class SourceTableModal extends Vue {
     }
   }
   getSubmitData () {
-    const { editType, tableFullName, form, projectName } = this
+    const { editType, tableFullName, form, projectName, modelName } = this
 
     switch (editType) {
       case INCREMENTAL_SETTING: {
@@ -342,7 +343,7 @@ export default class SourceTableModal extends Vue {
       case DATA_MERGE: {
         const { isAutoMerge, autoMergeConfigs, isVolatile, volatileConfig } = form
         const newAutoMergeConfigs = autoMergeConfigs.filter(autoMergeConfig => autoMergeConfig)
-        return { projectName, tableFullName, isAutoMerge, autoMergeConfigs: newAutoMergeConfigs, isVolatile, volatileConfig }
+        return { projectName, tableFullName, modelName, isAutoMerge, autoMergeConfigs: newAutoMergeConfigs, isVolatile, volatileConfig }
       }
       case PUSHDOWN_CONFIG: {
         const { isPushdownSync } = form

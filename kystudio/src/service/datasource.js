@@ -136,7 +136,7 @@ export default {
     return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column})
   },
   saveDataRange (project, table, start, end) {
-    return Vue.resource(apiUrl + 'tables/date_range').save({project, table, start, end})
+    return Vue.resource(apiUrl + 'tables/data_range').save({project, table, start, end})
   },
   fetchRelatedModels (project, table, pageOffset, pageSize) {
     return Vue.resource(apiUrl + 'models').get({project, table, pageOffset, pageSize})

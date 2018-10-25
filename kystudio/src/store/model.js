@@ -192,6 +192,9 @@ export default {
     },
     [types.REFRESH_SEGMENTS] ({ commit }, params) {
       return api.model.refreshSegments(params.modelName, params.projectName, params.segmentIds)
+    },
+    [types.DELETE_SEGMENTS] ({ commit }, params) {
+      return api.model.deleteSegments(params.modelName, params.projectName, params.segmentIds)
     }
   },
   getters: {

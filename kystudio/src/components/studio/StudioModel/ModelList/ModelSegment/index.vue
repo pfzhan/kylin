@@ -4,7 +4,7 @@
       <div class="left">
         <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" :disabled="!selectedSegmentIds.length" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button>
-        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" :disabled="!selectedSegmentIds.length">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" :disabled="!selectedSegmentIds.length" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action">
@@ -81,7 +81,7 @@ import { handleSuccessAsync, handleError } from '../../../../../util'
 import iconAdd from './icon_add.svg'
 import iconReduce from './icon_reduce.svg'
 import { formatSegments } from './handle'
-import { getMockSegments } from './mock'
+// import { getMockSegments } from './mock'
 
 @Component({
   props: {
@@ -109,7 +109,8 @@ import { getMockSegments } from './mock'
   methods: {
     ...mapActions({
       fetchSegments: 'FETCH_SEGMENTS',
-      refreshSegments: 'REFRESH_SEGMENTS'
+      refreshSegments: 'REFRESH_SEGMENTS',
+      deleteSegments: 'DELETE_SEGMENTS'
     }),
     ...mapActions('SourceTableModal', {
       callSourceTableModal: 'CALL_MODAL'
@@ -176,9 +177,8 @@ export default class ModelSegment extends Vue {
       isReset && this.clearPagination()
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
       let { size, segments } = await handleSuccessAsync(res)
-      // const formatedSegments = formatSegments(segments)
-      const formatedSegments = formatSegments(getMockSegments(isReset))
-      size = 99999; segments
+      const formatedSegments = formatSegments(segments)
+      // const formatedSegments = formatSegments(getMockSegments(isReset))
       if (size > this.segments.length) {
         this.segments = isReset ? formatedSegments : this.segments.concat(formatedSegments)
         this.addPagination()
@@ -189,7 +189,6 @@ export default class ModelSegment extends Vue {
     }
   }
   handleLoadMore () {
-    console.log('load-more')
     this.loadSegments({ isReset: false })
   }
   handleAddZoom () {
@@ -221,9 +220,19 @@ export default class ModelSegment extends Vue {
   }
   async handleMergeSegment () {
     const projectName = this.currentSelectedProject
-    const modelName = this.model.name
-    const isSubmit = await this.callSourceTableModal({ editType: 'dataMerge', modelName, projectName })
+    const model = this.model
+    const isSubmit = await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
     isSubmit && this.$emit('fresh-tables')
+  }
+  async handleDeleteSegment () {
+    try {
+      const projectName = this.currentSelectedProject
+      const modelName = this.model.name
+      const segmentIds = this.selectedSegmentIds
+      segmentIds.length && await this.deleteSegments({ projectName, modelName, segmentIds })
+    } catch (e) {
+      handleError(e)
+    }
   }
 }
 </script>
@@ -235,6 +244,7 @@ export default class ModelSegment extends Vue {
   padding: 20px 0;
   margin-bottom: 20px;
   .segment-actions {
+    margin-bottom: 15px;
     .left {
       float: left;
       display: none;
