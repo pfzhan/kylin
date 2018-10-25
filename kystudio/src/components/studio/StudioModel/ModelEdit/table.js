@@ -64,6 +64,18 @@ class NTable {
   getJoinInfo () {
     return this.joinInfo[this.guid]
   }
+  // 获取符合元数据格式的JoinInfo
+  getMetaJoinInfo () {
+    let joinInfo = objectClone(this.joinInfo[this.guid])
+    let obj = {}
+    if (joinInfo && joinInfo.table && joinInfo.join) {
+      obj.table = joinInfo.table.alias
+      obj.join = joinInfo.join
+    } else {
+      return null
+    }
+    return obj
+  }
   // 改变连接关系
   changeLinkType (pid, type) {
     if (this.joinInfo[pid]) {

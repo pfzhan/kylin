@@ -1,64 +1,78 @@
 <template>
   <!-- tableindex的添加和编辑 -->
   <el-dialog :title="$t('Edit Table Index')" class="table-edit-dialog" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
-      <el-form :model="modelClone" :rules="rules" ref="cloneForm" >
-        <el-form-item :label="$t('Table Index Name')" prop="newName">
-          <el-input v-model="modelClone.newName" auto-complete="off" size="medium"></el-input>
+      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" >
+        <el-form-item :label="$t('Table Index Name')" prop="name">
+          <el-input v-model="tableIndexMeta.name" auto-complete="off" size="medium"></el-input>
         </el-form-item>
       </el-form>
       <div class="ky-line-full"></div>
       <h3 class="ksd-mt-40">Table Index Content:</h3>
       <div class="ksd-mt-20">
-        <el-steps direction="vertical" :active="1">
+        <el-steps direction="vertical" :active="3">
           <el-step title="Select Columns">
-            <div slot="description">
+            <div slot="description"  class="ksd-mb-20">
               <div class="ksd-mt-14 ksd-mb-16">
-                <div class="actions"><el-button>Select All Columns</el-button> <el-button>Clear All</el-button> </div>
+                <div class="actions"><el-button @click="selectAll" plain  type="primary" size="medium">Select All Columns</el-button> <el-button @click="clearAll" size="medium">Clear All</el-button> </div>
                 <ul class="table-index-columns">
-                  <li>
-                    <span class="sort-icon ksd-mr-10">1</span>
-                    <el-input style="width:430px" size="medium"></el-input>
-                    <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button> 
-                  </li>
-                  <li>
-                    <span class="sort-icon ksd-mr-10">2</span>
-                    <el-input style="width:430px" size="medium"></el-input>
-                    <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button> 
+                  <li v-for='(col, index) in tableIndexMeta.col_order' :key='col'>
+                    <span class="sort-icon ksd-mr-10">{{index + 1}}</span>
+                    <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px" placeholder="请选择">
+                      <el-option
+                        v-for="item in allColumns"
+                        :key="item.alias + '.' + item.name"
+                        :label="item.alias + '.' + item.name"
+                        :value="item.alias + '.' + item.name">
+                      </el-option>
+                    </el-select>
+                    <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.col_order[index]"></el-input> -->
+                    <el-button circle plain  type="primary" icon="el-icon-plus" size="small" @click="addCol('col_order', index)" class="ksd-ml-10"></el-button>
+                    <el-button circle size="small" icon="el-icon-minus" @click="delCol('col_order', index)"></el-button> 
                   </li>
                 </ul>
               </div>
             </div>
           </el-step>
           <el-step title="Sort By">
-            <div slot="description">
+            <div slot="description" class="ksd-mb-20">
               <div class="ksd-mt-14 ksd-mb-16">
                 <ul class="table-index-columns">
-                  <li>
-                    <span class="sort-icon ksd-mr-10">1</span>
-                    <el-input style="width:430px" size="medium"></el-input>
-                    <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button> 
-                  </li>
-                  <li>
-                    <span class="sort-icon ksd-mr-10">2</span>
-                    <el-input style="width:430px" size="medium"></el-input>
-                    <el-button circle palin icon="el-icon-plus" size="small"  @click="addSortbyCol" :disabled="lockRawTable"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delSortbyCol(index)" :disabled="lockRawTable"></el-button> 
+                  <li v-for='(col, index) in tableIndexMeta.sort_by_columns' :key='col'>
+                    <span class="sort-icon ksd-mr-10">{{index + 1}}</span>
+                    <el-select v-model="tableIndexMeta.sort_by_columns[index]" filterable style="width:420px" placeholder="请选择">
+                      <el-option
+                        v-for="item in selectedColumns"
+                        :key="item"
+                        :label="item"
+                        :value="item">
+                      </el-option>
+                    </el-select>
+                    <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.sort_by_columns[index]"></el-input> -->
+                    <el-button circle plain type="primary" icon="el-icon-plus" size="small"  @click="addCol('sort_by_columns', index)" class="ksd-ml-10"></el-button>
+                    <el-button circle size="small" icon="el-icon-minus" @click="delCol('sort_by_columns', index)"></el-button> 
                   </li>
                 </ul>
               </div>
             </div>
           </el-step>
-          <el-step title="Shard By" description="这是一段很长很长很长的描述性文字">
-            <div slot="description">
-              <el-select v-model="value" style="width:100%" placeholder="请选择">
+          <el-step title="Shard By">
+            <div slot="title">
+              Shard By
+              <el-switch
+                v-model="openShared"
+                active-text="OFF"
+                inactive-text="ON"
+                :active-value="true"
+                :inactive-value="false">
+              </el-switch>
+            </div>
+            <div slot="description" v-show="openShared" class="ksd-mt-20">
+              <el-select v-model="tableIndexMeta.shard_by_columns[0]" filterable style="width:100%" placeholder="请选择">
                 <el-option
-                  v-for="item in options"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value">
+                  v-for="item in selectedColumns"
+                  :key="item"
+                  :label="item"
+                  :value="item">
                 </el-option>
               </el-select>
             </div>
@@ -77,7 +91,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
-  import { handleError, kapMessage } from 'util/business'
+  import { handleError } from 'util/business'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -90,13 +104,31 @@
       ]),
       ...mapState('TableIndexEditModal', {
         isShow: state => state.isShow,
-        data: state => state.form.data,
+        modelDesc: state => state.form.data.modelDesc,
+        tableIndexDesc: state => state.form.data.tableIndexDesc,
         callback: state => state.callback
-      })
+      }),
+      allColumns () {
+        // mock
+        let modelUsedTables = this.$store.state.datasource.dataSource[this.currentSelectedProject] // mock
+        // let modelUsedTables = this.modelDesc.simple_tables
+        var result = []
+        modelUsedTables && modelUsedTables.forEach((tableObj) => {
+          tableObj.columns.forEach((col) => {
+            col.alias = tableObj.name
+            result.push(col)
+          })
+        })
+        return result
+      },
+      selectedColumns () {
+        return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
+      }
     },
     methods: {
       ...mapActions({
-        cloneModel: 'CLONE_MODEL'
+        editTableIndex: 'EDIT_TABLE_INDEX',
+        addTableIndex: 'ADD_TABLE_INDEX'
       }),
       ...mapMutations('TableIndexEditModal', {
         setModal: types.SET_MODAL,
@@ -109,17 +141,30 @@
   })
   export default class TableIndexEditModal extends Vue {
     btnLoading = false
-    modelClone = {
-      newName: ''
-    }
+    openShared = false
+    tableIndexMetaStr = JSON.stringify({
+      id: '',
+      name: '',
+      col_order: [''],
+      sort_by_columns: [''],
+      shard_by_columns: []
+    })
+    tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
-      newName: [
+      name: [
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
-    @Watch('modelDesc')
-    initModelName () {
-      this.modelClone.newName = this.modelDesc.alias + '_clone'
+    @Watch('tableIndexDesc')
+    initTableIndex () {
+      if (this.tableIndexDesc) {
+        Object.assign(this.tableIndexMeta, this.tableIndexDesc)
+      } else {
+        this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
+      }
+      if (this.tableIndexMeta.shard_by_columns.length > 0) {
+        this.openShared = true
+      }
     }
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {
@@ -128,26 +173,56 @@
         callback()
       }
     }
+    clearAll () {
+      this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
+    }
+    selectAll () {
+      this.allColumns.forEach((col) => {
+        if (!this.tableIndexMeta.col_order.includes(col.name)) { // 需要加上table的alias
+          this.tableIndexMeta.col_order.push(col.name)
+        }
+      })
+    }
+    addCol (dataSet, i) {
+      this.tableIndexMeta[dataSet].splice(i, 0, '')
+    }
+    delCol (dataSet, i) {
+      var data = this.tableIndexMeta[dataSet]
+      if (data.length === 1) {
+        data[0] = ''
+      } else {
+        data.splice(i, 1)
+      }
+    }
     closeModal (isSubmit) {
       this.hideModal()
-      this.modelClone.newName = ''
+      this.tableIndexMeta.name = ''
       setTimeout(() => {
-        this.callback && this.callback(isSubmit)
+        this.callback && this.callback({
+          isSubmit: isSubmit
+        })
         this.resetModalForm()
       }, 200)
     }
     async submit () {
-      this.$refs.cloneForm.validate((valid) => {
+      this.$refs.tableIndexForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        this.cloneModel({modelName: this.modelDesc.name, newModelName: this.modelClone.newName, project: this.currentSelectedProject}).then(() => {
-          this.btnLoading = false
-          kapMessage(this.$t('cloneSuccessful'))
+        let successCb = () => {
           this.closeModal(true)
-        }, (res) => {
           this.btnLoading = false
-          res && handleError(res)
-        })
+        }
+        let errorCb = (res) => {
+          this.btnLoading = false
+          handleError(res)
+        }
+        this.tableIndexMeta.project = this.currentSelectedProject
+        this.tableIndexMeta.model = this.modelDesc.name
+        if (this.tableIndexMeta.id) {
+          this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+        } else {
+          this.addTableIndex(this.tableIndexMeta).then(successCb, errorCb)
+        }
       })
     }
   }

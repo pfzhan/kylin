@@ -9,7 +9,10 @@ const types = {
 const initialState = JSON.stringify({
   isShow: false,
   form: {
-    data: ''
+    data: {
+      modelDesc: null,
+      tableIndexDesc: null
+    }
   },
   callback: null
 })

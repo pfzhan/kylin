@@ -8,11 +8,11 @@
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
         <div class="add_dimensions">
-          <div v-for="(table, index) in factTable" :key="index" class="ksd-mb-20">
+          <div v-for="(table, index) in factTable" :key="index">
             <div @click="toggleTableShow(table)" class="table-header">
-              <i class="el-icon-arrow-right ksd-fright right-icon" v-if="!table.show"></i>
-              <i class="el-icon-arrow-down  ksd-fright right-icon" v-else></i>
-              <span><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}}</span>
+              <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
+              <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+              <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}}</span>
             </div>
             <el-table
               v-if="table.show"
@@ -59,11 +59,11 @@
             </el-table>
           </div>
 
-          <div v-for="(table, index) in lookupTable" :key="index" class="ksd-mb-20">
+          <div v-for="(table, index) in lookupTable" :key="index">
             <div @click="toggleTableShow(table)" class="table-header">
-              <i class="el-icon-arrow-right ksd-fright right-icon" v-if="!table.show"></i>
-              <i class="el-icon-arrow-down  ksd-fright right-icon" v-else></i>
-              <span><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}}</span>
+              <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
+              <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
+              <span class="ksd-ml-2"><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}}</span>
             </div>
             <el-table
               v-if="table.show"
@@ -110,7 +110,7 @@
     </template>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleClick"  :disabled="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" @click="submit"  :disabled="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -125,7 +125,7 @@ import locales from './locales'
 import store, { types } from './store'
 // import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { objectClone } from 'util'
+import { objectClone, objectArraySort } from 'util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
@@ -136,6 +136,7 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
     ...mapState('DimensionsModal', {
       isShow: state => state.isShow,
       tables: state => objectClone(state.modelDesc.tables),
+      usedColumns: state => state.modelDesc.all_named_columns,
       callback: state => state.callback
     })
   },
@@ -163,19 +164,42 @@ export default class DimensionsModal extends Vue {
   isFormShow = false
   factTable = []
   lookupTable = []
+  // 获取所有的table columns
   getTableColumns () {
     this.factTable = []
     this.lookupTable = []
-    Object.values(this.tables).forEach((NTable) => {
-      if (NTable.kind === 'FACT') {
-        this.$set(NTable, 'show', true)
-        this.factTable.push(NTable)
+    Object.values(this.tables).forEach((table) => {
+      if (table.kind === 'FACT') {
+        this.$set(table, 'show', true)
+        this.factTable.push(table)
       } else {
-        this.$set(NTable, 'show', false)
-        this.lookupTable.push(NTable)
+        this.$set(table, 'show', false)
+        this.lookupTable.push(table)
       }
+      // 将已经选上的dimension回显到界面上
+      table.columns && table.columns.forEach((col) => {
+        col.alias = col.alias || col.name
+        let len = this.usedColumns.length
+        for (let i = 0; i < len; i++) {
+          let d = this.usedColumns[i]
+          if (table.alias + '.' + col.name === d.column && d.is_dimension) {
+            if (d.is_dimension) {
+              col.isSelected = true //  dimension的列
+            } else {
+              col.isUsed = true // tableIndex的列
+            }
+            col.alias = d.name
+            col.id = d.id
+            break
+          } else {
+            delete col.id
+            col.isSelected = false
+            col.isUsed = false
+          }
+        }
+      })
       this.$nextTick(() => {
-        this.renerTableColumnSelected(NTable)
+        this.renerTableColumnSelected(table)
       })
     })
   }
@@ -196,11 +220,14 @@ export default class DimensionsModal extends Vue {
   }
   mounted () {
   }
-  handleClose (isSubmit) {
+  handleClose (isSubmit, data) {
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()
-      this.callback && this.callback(isSubmit)
+      this.callback && this.callback({
+        isSubmit: isSubmit,
+        data: data
+      })
     }, 300)
   }
   selectionChange (selection, row) {
@@ -229,7 +256,7 @@ export default class DimensionsModal extends Vue {
   renerTableColumnSelected (table) {
     if (table.show) {
       this.$nextTick(() => {
-        table.columns.forEach((col) => {
+        table.columns && table.columns.forEach((col) => {
           if (col.isSelected) {
             this.$refs[table.guid][0].toggleRowSelection(col)
           }
@@ -237,15 +264,22 @@ export default class DimensionsModal extends Vue {
       })
     }
   }
-  handleClick () {
+  submit () {
     let result = []
-    Object.values(this.tables).forEach((NTable) => {
-      NTable.columns.forEach((col) => {
-        if (col.isSelected) {
-          result.push(col)
+    let sortedColumns = objectArraySort(this.usedColumns, false, 'id')
+    let maxId = 0
+    // 获取上次数据里的最大ID，供新增的列做为起始ID
+    if (sortedColumns && sortedColumns.length) {
+      maxId = sortedColumns[0].id
+    }
+    Object.values(this.tables).forEach((table) => {
+      table.columns && table.columns.forEach((col) => {
+        if (col.isSelected || col.isUsed) {
+          result.push({id: col.id || ++maxId, name: col.alias, column: table.alias + '.' + col.name, is_dimension: col.isSelected})
         }
       })
     })
+    console.log(result)
     this.handleClose(true, result)
   }
   destroyed () {
@@ -265,8 +299,8 @@ export default class DimensionsModal extends Vue {
   }
   .table-header {
     border-bottom:solid 1px @line-border-color;
-    height:30px;
-    line-height:30px;
+    height:40px;
+    line-height:40px;
     cursor:pointer;
     .right-icon{
       margin-right:20px;

@@ -40,7 +40,7 @@
                   <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
                 </el-tab-pane>
                 <el-tab-pane :label="$t('tableIndex')" name="third">
-                  <TableIndex></TableIndex>
+                  <TableIndex :modelDesc="props.row"></TableIndex>
                 </el-tab-pane>
                 <el-tab-pane label="JSON" name="forth">
                   <el-input

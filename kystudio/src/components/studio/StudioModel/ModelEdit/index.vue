@@ -35,9 +35,10 @@
       :modelTables="modelRender && modelRender.tables || []"
       :allMeasures="modelRender && modelRender.all_measures"
       :measureObj="measureObj"
+      @saveNewMeasure="saveMeasure"
       v-on:closeAddMeasureDia="closeAddMeasureDia">
     </AddMeasure>
-    <SingleDimensionModal/>
+    <SingleDimensionModal :allColumns="allColumns || []"/>
     <!-- datasource面板  index 3-->
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click="toggleMenu('datasource')" v-event-stop><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
@@ -96,9 +97,12 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
-                <template v-for="d in modelRender.dimensions">
-                <li v-for="c in d.columns" :key="c">{{c|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editDimension"></i><i class="el-icon-ksd-table_delete"></i><span>{{getColumnType(d.table, c)}}</span></li>
-                </template>
+                <li v-for="d in dimensionColumns" :key="d.name">
+                  {{d.id}}{{d.name|omit(18,'...')}}
+                  <i class="el-icon-ksd-table_edit" @click="editDimension(d)"></i>
+                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.id)"></i>
+                  <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
+                </li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.dimension"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -252,6 +256,7 @@ export default class ModelEdit extends Vue {
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
   measureVisible = false
+  allColumns = []
   // baseIndex = modelRenderConfig.baseIndex
   autoSetting = true
   measureObj = {
@@ -263,6 +268,11 @@ export default class ModelEdit extends Vue {
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
+  get dimensionColumns () {
+    return this.modelRender.all_named_columns.filter((col) => {
+      return col.is_dimension === true
+    })
+  }
   query (className) {
     return $(this.$el.querySelector(className))
   }
@@ -351,18 +361,49 @@ export default class ModelEdit extends Vue {
   batchSetDimension () {
     this.showDimensionDialog({
       modelDesc: this.modelRender
+    }).then((res) => {
+      if (res.isSubmit) {
+        this.modelRender.all_named_columns = res.data
+      }
     })
   }
   addCCDimension () {
+    this.allColumns = this.modelInstance.getTableColumns()
     this.showSingleDimensionDialog({
-      addType: 'cc'
+      modelDesc: this.modelRender
+    }).then((res) => {
+      if (res.isSubmit) {
+        this.modelInstance.addDimension(res.data.dimension)
+        this.modelInstance.addCC(res.data.cc)
+      }
     })
   }
   addCCMeasure () {
     this.measureVisible = true
   }
-  editDimension () {
-    this.showSingleDimensionDialog()
+  saveMeasure (measureObj, ccObj, isEdit) {
+    if (isEdit) {
+      this.modelInstance.editMeasure(measureObj)
+      this.modelInstance.addCC(ccObj)
+    } else {
+      this.modelInstance.addMeasure(measureObj)
+      this.modelInstance.addCC(ccObj)
+    }
+  }
+  editDimension (dimension) {
+    this.showSingleDimensionDialog({
+      dimension: dimension
+    }).then((data) => {
+      if (data.isSubmit) {
+        this.modelInstance.editDimension(data.dimension)
+        this.modelInstance.addCC(data.dimension)
+      }
+    })
+  }
+  deleteDimenison (id) {
+    this.modelRender.all_named_columns = this.modelRender.all_named_columns.map((col) => {
+      return col.id !== id
+    })
   }
   editMeasure (m) {
     this.$nextTick(() => {
@@ -624,6 +665,10 @@ export default class ModelEdit extends Vue {
     }, (err) => {
       handleError(err)
       this.globalLoading.hide()
+    })
+    this.$on('saveModel', () => {
+      let data = this.modelInstance.generateMetadata()
+      console.log(data)
     })
   }
   beforeCreate () {

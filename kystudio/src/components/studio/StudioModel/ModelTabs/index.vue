@@ -81,6 +81,10 @@ export default class ModelTabs extends Vue {
   }
   openSaveDialog () {
     this.showPartitionDialog()
+    this.saveModel()
+  }
+  saveModel () {
+    this.$refs[this.modelEditPanels[0].content][0].$emit('saveModel', null)
   }
   mounted () {
     this.activeName = this.currentModel

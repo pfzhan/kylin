@@ -125,7 +125,7 @@ export default {
     return Vue.resource(apiUrl + 'cube_plans/table_index').update(para)
   },
   delTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index/' + para.project + '/' + para.modelName + '/' + para.tableIndexId).delete()
+    return Vue.resource(apiUrl + 'cube_plans/table_index/' + para.project + '/' + para.model + '/' + para.tableIndexId).delete()
   },
   addTableIndex: (para) => {
     return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)

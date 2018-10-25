@@ -1,7 +1,7 @@
 import NTable from './table.js'
 import store from '../../../../store'
 import { jsPlumbTool } from '../../../../util/plumb'
-import { parsePath } from '../../../../util'
+import { parsePath, objectArraySort } from '../../../../util'
 import { modelRenderConfig } from './config'
 import ModelTree from './layout'
 import $ from 'jquery'
@@ -24,13 +24,15 @@ class NModel {
     this.dimensions = options.dimensions || []
     this.all_measures = options.all_measures || []
     this.project = options.project
-    this.datasource = store.state.datasource.dataSource[this.project].tables
+    this.datasource = store.state.datasource.dataSource[this.project]
     this.vm = _
     this._mount = _mount // 挂载对象
     this.$set = _.$set
     this.$delete = _.$delete
     this.plumbTool = jsPlumbTool()
+    this.$set(this._mount, 'computed_columns', this.computed_columns)
     this.$set(this._mount, 'tables', this.tables)
+    this.$set(this._mount, 'all_named_columns', this.all_named_columns)
     this.$set(this._mount, 'all_measures', this.all_measures)
     this.$set(this._mount, 'dimensions', this.dimensions)
     this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
@@ -64,7 +66,7 @@ class NModel {
         kind: 'FACT',
         table: this.fact_table
       }
-      initTableOptions.drawSize = this.getTableCoordinate(this.fact_table.split('.')[1]) // 获取坐标信息
+      initTableOptions.drawSize = this.getTableCoordinate(this.fact_table) // 获取坐标信息
       this.addTable(initTableOptions)
       this.lookups.forEach((tableObj) => {
         let tableInfo = this._getTableOriginInfo(tableObj.table)
@@ -120,7 +122,7 @@ class NModel {
       let joinInfo = this.tables[pid].getLinks()
       var primaryKeys = joinInfo && joinInfo.join && joinInfo.join.primary_key
       // 如果渲染的时候发现连接关系都没有了，直接删除
-      if (!primaryKeys || primaryKeys && primaryKeys.length === 0) {
+      if (!primaryKeys || primaryKeys && primaryKeys.length === 1 && primaryKeys[0] === '') {
         this.removeRenderLink(hasConn)
         return null
       }
@@ -151,10 +153,20 @@ class NModel {
     return metaData
   }
   _generateLookups () {
-    return []
+    let result = []
+    for (let key in this.tables) {
+      let t = this.tables[key]
+      if (t.alias !== this.fact_table) {
+        var joinInfo = t.getMetaJoinInfo()
+        if (joinInfo) {
+          result.push(joinInfo)
+        }
+      }
+    }
+    return result
   }
   _generateAllColumns () {
-    return []
+    return this.all_named_columns
   }
   // end
   // 判断是否table有关联的链接
@@ -240,7 +252,6 @@ class NModel {
     data && data.forEach((t) => {
       actionsConfig.forEach((a) => {
         if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
-          // let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
           let item = this.renderSearchResult(t, key, kind, a)
           if (item) {
             result.push(item)
@@ -268,14 +279,21 @@ class NModel {
       }
     }
   }
+  getTableColumns () {
+    let result = []
+    for (var i in this.tables) {
+      Array.prototype.push.apply(result, this.tables[i].columns)
+    }
+    return result
+  }
   getTableCoordinate (alias) {
     if (this.canvas) {
       for (let i in this.canvas.coordinate) {
         if (i === alias) {
           let _info = this.canvas.coordinate[i]
           return {
-            left: _info.x,
-            top: _info.y,
+            left: _info.x_position,
+            top: _info.y_position,
             width: _info.width,
             height: _info.height
           }
@@ -371,6 +389,61 @@ class NModel {
         return this.tables[i]
       }
     }
+  }
+  getAllColumnsMaxId () {
+    let sortedColumns = objectArraySort(this.all_named_columns, false, 'id')
+    let maxId = 0
+    if (sortedColumns && sortedColumns.length) {
+      maxId = sortedColumns[0].id
+    }
+    return maxId
+  }
+  // 添加维度
+  addDimension (dimObj) {
+    dimObj.is_dimension = true
+    let maxId = this.getAllColumnsMaxId()
+    if (!dimObj.id) {
+      dimObj.id = maxId + 1
+    }
+    this.all_named_columns.push(dimObj)
+  }
+  // 添加度量
+  editDimsnion (dimObj) {
+    dimObj.is_dimension = true
+    this.all_named_columns.forEach((d) => {
+      if (dimObj.id === d.id) {
+        d = dimObj
+      }
+    })
+  }
+  // 添加度量
+  addMeasure (measureObj) {
+    this.all_measures.push(measureObj)
+  }
+  // 编辑度量
+  editMeasure (measureObj) {
+    this.all_measures.forEach((m) => {
+      if (m.name === measureObj.name) {
+        m = measureObj
+      }
+    })
+  }
+  // 添加CC
+  addCC (ccObj) {
+    let ccBase = {
+      tableIdentity: this.fact_table,
+      tableAlias: this.fact_table.split('.')[1]
+    }
+    Object.assign(ccBase, ccObj)
+    this.computed_columns.push(ccBase)
+  }
+  // 编辑CC
+  editCC (ccObj) {
+    this.computed_columns.forEach((c) => {
+      if (c.columnName === ccObj.name) {
+        Object.assign(c, ccObj)
+      }
+    })
   }
   autoCalcLayer (root, result, deep) {
     var factTable = this.getFactTable()

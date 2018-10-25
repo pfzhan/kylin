@@ -151,9 +151,14 @@ Vue.filter('timeSize', function (data) {
   return size
 })
 
-Vue.filter('filterArr', function (data, key, value, isFuzzy) {
+Vue.filter('filterArr', function (data, value, isFuzzy) {
   return data && data.filter((d) => {
-    return !value || isFuzzy ? d[key].toLowerCase().indexOf(value.toLowerCase()) >= 0 : d[key] === value
+    return isFuzzy ? d.toLowerCase().indexOf(value.toLowerCase()) < 0 : d !== value
+  }) || []
+})
+Vue.filter('filterObjArr', function (data, key, value, isFuzzy) {
+  return data && data.filter((d) => {
+    return isFuzzy ? d[key].toLowerCase().indexOf(value.toLowerCase()) < 0 : d[key] !== value
   }) || []
 })
 

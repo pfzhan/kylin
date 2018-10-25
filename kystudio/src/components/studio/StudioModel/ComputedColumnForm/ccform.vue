@@ -1,12 +1,12 @@
 <template>
   <el-form :model="ccObject" class="cc-block" :class="{'editCC': !isEdit}" label-position="top" :rules="ccRules" ref="ccForm">
-    <el-form-item prop="name" class="ksd-mb-10">
-      <span slot="label">Column Name <span v-if="!isEdit">: {{ccObject.name}}</span></span>
-      <el-input class="measures-width" size="medium" v-model="ccObject.name" v-if="isEdit" @blur="upperCaseCCName"></el-input>
+    <el-form-item prop="columnName" class="ksd-mb-10">
+      <span slot="label">Column Name <span v-if="!isEdit">: {{ccObject.columnName}}</span></span>
+      <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
     </el-form-item>
-    <el-form-item prop="returnType" class="ksd-mb-10">
-      <span slot="label">Return Type <span v-if="!isEdit">: {{ccObject.returnType}}</span></span>
-      <el-select :popper-append-to-body="false" size="medium" v-model="ccObject.returnType" class="measures-width" v-if="isEdit">
+    <el-form-item prop="datatype" class="ksd-mb-10">
+      <span slot="label">Return Type <span v-if="!isEdit">: {{ccObject.datatype}}</span></span>
+      <el-select :popper-append-to-body="false" size="medium" v-model="ccObject.datatype" class="measures-width" v-if="isEdit">
         <el-option
           v-for="(item, index) in computedRetrunType"
           :key="index"
@@ -48,13 +48,13 @@ import { computedDataType } from 'config/index'
 export default class CCForm extends Vue {
   computedRetrunType = computedDataType
   ccRules = {
-    name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
-    returnType: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
+    columnName: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
+    datatype: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
   }
   ccObject = {
-    name: '',
-    returnType: '',
+    columnName: '',
+    datatype: '',
     expression: ''
   }
   activeCCIndex = null
@@ -66,7 +66,7 @@ export default class CCForm extends Vue {
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
 
   upperCaseCCName () {
-    this.ccObject.name = this.ccObject.name.toLocaleUpperCase()
+    this.ccObject.columnName = this.ccObject.columnName.toLocaleUpperCase()
   }
   newCC () {
     this.isEdit = true
@@ -74,7 +74,7 @@ export default class CCForm extends Vue {
     this.$refs['ccForm'].resetFields()
   }
   delCC () {
-    this.$emit('delete', this.ccObject)
+    this.$emit('del', this.ccObject)
   }
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
@@ -90,8 +90,8 @@ export default class CCForm extends Vue {
   resetCC () {
     this.$refs['ccForm'].resetFields()
     this.ccObject = {
-      name: '',
-      returnType: '',
+      columnName: '',
+      datatype: '',
       expression: ''
     }
   }

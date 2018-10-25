@@ -369,11 +369,7 @@ export default class AddMeasure extends Vue {
   checkMeasure () {
     this.$refs['measureForm'].validate((valid) => {
       if (valid) {
-        if (!this.isEditMeasure) {
-          this.$emit('newMeasure', this.measure, this.ccObject)
-        } else {
-          this.$emit('editMeasure', this.measure, this.ccObject)
-        }
+        this.$emit('saveNewMeasure', this.measure, this.ccObject, this.isEditMeasure)
         this.resetMeasure()
         this.handleHide()
       }
